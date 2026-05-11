@@ -1,0 +1,12 @@
+[package]
+name = "naclac-idl"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "IDL (Interface Definition Language) generation and parsing for Naclac."
+
+[dependencies]
+naclac-syn = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

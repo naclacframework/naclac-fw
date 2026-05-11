@@ -1,0 +1,14 @@
+[package]
+name = "naclac-interface"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Standard interface and trait definitions for Naclac program interoperability."
+
+[lib]
+proc-macro = false
+
+[dependencies]
+naclac-lang = { path = "../naclac-lang" }
+naclac-macros = { path = "../naclac-macros" }

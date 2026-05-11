@@ -1,0 +1,58 @@
+[package]
+name = "naclac-lang"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The core Rust framework for writing hyper-optimized Solana smart contracts."
+
+[dependencies]
+solana-program = { workspace = true, optional = true }
+bytemuck = { workspace = true, features = ["derive"] }
+naclac-macros = { workspace = true }
+borsh = { workspace = true, features = ["derive"], optional = true }
+spl-token = { workspace = true, features = ["no-entrypoint"], optional = true }
+spl-token-2022 = { workspace = true, features = ["no-entrypoint"], optional = true }
+solana-system-interface = { workspace = true, features = ["bincode"], optional = true }
+spl-associated-token-account = { workspace = true, features = ["no-entrypoint"], optional = true }
+pinocchio = { workspace = true, optional = true }
+pinocchio-system = { workspace = true, optional = true }
+pinocchio-token = { workspace = true, optional = true }
+pinocchio-token-2022 = { workspace = true, optional = true }
+pinocchio-log = { workspace = true, optional = true }
+pinocchio-pubkey = { workspace = true, optional = true }
+pinocchio-log-macro = { workspace = true, optional = true }
+pinocchio-associated-token-account = { workspace = true, optional = true }
+pinocchio-memo = { workspace = true, optional = true }
+solana-address = { workspace = true, optional = true }
+blake3 = { workspace = true }
+
+[features]
+no-std = []
+default = ["borsh", "solana"]
+solana = ["dep:solana-program", "dep:solana-system-interface"]
+# Standard Solana Token Features
+spl-token = ["dep:spl-token", "dep:spl-token-2022"]
+spl-associated-token-account = ["dep:spl-associated-token-account"]
+# Pinocchio Token Features
+pinocchio-token = ["dep:pinocchio-token", "dep:pinocchio-token-2022"]
+pinocchio-ata = ["dep:pinocchio-associated-token-account"]
+idl-build = []
+debug-mode = ["naclac-macros/debug-mode"]
+pinocchio = [
+    "dep:pinocchio", 
+    "dep:pinocchio-system", 
+    "dep:pinocchio-log", 
+    "dep:pinocchio-pubkey",
+    "dep:pinocchio-log-macro",
+    "dep:pinocchio-memo",
+    "pinocchio-ata",
+    "naclac-macros/pinocchio",
+    "zero-copy"
+]
+zero-copy = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+] }

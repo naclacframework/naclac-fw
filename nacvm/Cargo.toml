@@ -1,0 +1,15 @@
+[package]
+name = "nacvm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The official version manager for the Naclac framework"
+
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+dirs = { workspace = true }
+colored = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.56"

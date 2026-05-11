@@ -1,0 +1,38 @@
+[package]
+name = "naclac"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The command-line interface for the Naclac Solana Framework."
+
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+syn = { workspace = true, features = ["full", "parsing", "extra-traits"] }
+quote = { workspace = true }
+heck = { workspace = true }
+sha2 = { workspace = true }
+naclac-idl = { workspace = true }
+naclac-client-gen = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-program = { workspace = true }
+solana-address = { workspace = true }
+solana-instruction = { workspace = true }
+solana-signature = { workspace = true }
+solana-rpc-client = { workspace = true }
+solana-rpc-client-api = { workspace = true }
+solana-transaction-status = { workspace = true }
+solana-keypair = { workspace = true }
+solana-transaction = { workspace = true }
+solana-system-interface = { workspace = true, features = ["bincode"] }
+solana-signer = { workspace = true }
+flate2 = { workspace = true }
+bs58 = { workspace = true }
+toml = { workspace = true }
+hex = { workspace = true }
+indicatif = { workspace = true }
+ctrlc = { workspace = true }
+colored = { workspace = true }
+dialoguer = "0.12.0"

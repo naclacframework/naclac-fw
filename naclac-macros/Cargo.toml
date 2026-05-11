@@ -1,0 +1,22 @@
+[package]
+name = "naclac-macros"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Procedural macros for the Naclac Solana Framework"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true, features = ["full", "extra-traits"] }
+sha2 = { workspace = true }
+naclac-cpi-core = { path = "../naclac-cpi-core" }
+heck = "0.5.0"
+
+[features]
+debug-mode = []
+pinocchio = []
