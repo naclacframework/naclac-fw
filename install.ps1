@@ -10,25 +10,19 @@ function Download-FileWithProgress {
         [string]$OutFile
     )
 
-    # Suppress the default PowerShell UI progress bar
+    # Suppress default PowerShell progress bar
     $ProgressPreference = 'SilentlyContinue'
 
-    $httpClient = New-Object System.Net.Http.HttpClient
+    $webClient = New-Object System.Net.WebClient
     try {
-        $response = $httpClient.GetAsync($Url, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
-        
-        if (-not $response.IsSuccessStatusCode) {
-            throw "Failed to download file. Status code: $($response.StatusCode)"
+        # Open the read stream (WebClient automatically follows redirects)
+        $responseStream = $webClient.OpenRead($Url)
+        $totalBytes = 0
+        if ($null -ne $webClient.ResponseHeaders["Content-Length"]) {
+            $totalBytes = [Int64]$webClient.ResponseHeaders["Content-Length"]
         }
 
-        $totalBytes = $response.Content.Headers.ContentLength
-        if ($null -eq $totalBytes) {
-            $totalBytes = 0
-        }
-
-        $responseStream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
         $fileStream = [System.IO.File]::Create($OutFile)
-        
         try {
             $buffer = New-Object byte[] 8192
             $bytesRead = 0
@@ -60,7 +54,7 @@ function Download-FileWithProgress {
             $responseStream.Close()
         }
     } finally {
-        $httpClient.Dispose()
+        $webClient.Dispose()
     }
     Write-Host "`nDownload complete!"
 }
