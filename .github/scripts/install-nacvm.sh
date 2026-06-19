@@ -4,7 +4,7 @@ set -e
 # Configuration
 REPO_OWNER="naclacframework"
 REPO_NAME="naclac-fw"
-INSTALL_DIR="$HOME/.local/share/naclac/bin"
+INSTALL_DIR="$HOME/.nacvm/bin"
 
 # 1. Platform Detection
 OS="$(uname -s)"
@@ -38,9 +38,9 @@ fi
 echo "🔍 Found latest version: $VERSION"
 
 # 3. Download the pre-compiled archive
-DOWNLOAD_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/naclac-$TARGET.tar.gz"
+DOWNLOAD_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/nacvm-$TARGET.tar.gz"
 TEMP_DIR=$(mktemp -d)
-archive="$TEMP_DIR/naclac.tar.gz"
+archive="$TEMP_DIR/nacvm.tar.gz"
 
 # Fetch content length by following redirects
 total_bytes=$(curl -sIL "$DOWNLOAD_URL" | grep -i "content-length" | tail -n 1 | awk '{print $2}' | tr -d '\r\n ')
@@ -124,7 +124,7 @@ fi
 echo "🚚 Extracting binary to $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR"
 tar -xzf "$archive" -C "$INSTALL_DIR"
-chmod +x "$INSTALL_DIR/naclac"
+chmod +x "$INSTALL_DIR/nacvm"
 
 # Clean up
 rm -rf "$TEMP_DIR"
@@ -152,7 +152,8 @@ fi
 
 path_added=false
 if [ -n "$shell_profile" ]; then
-    if ! grep -q "naclac/bin" "$shell_profile"; then
+    # check if it already contains the nacvm directory
+    if ! grep -q "nacvm/bin" "$shell_profile"; then
         echo "" >> "$shell_profile"
         echo 'export PATH="$PATH:'"$INSTALL_DIR"'"' >> "$shell_profile"
         path_added=true
@@ -163,7 +164,7 @@ if [ -n "$shell_profile" ]; then
 fi
 
 echo ""
-echo "✅ naclac CLI installed successfully at: $INSTALL_DIR/naclac"
+echo "✅ nacvm CLI installed successfully at: $INSTALL_DIR/nacvm"
 
 if [ "$path_added" = true ]; then
     echo ""

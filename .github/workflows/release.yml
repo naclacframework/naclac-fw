@@ -34,21 +34,24 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
 
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         targets: ${{ matrix.target }}
 
-    - name: Build CLI in Release Mode
-      run: cargo build --release --bin naclac --target ${{ matrix.target }}
+    - name: Build CLI and Version Manager in Release Mode
+      run: |
+        cargo build --release --bin naclac --target ${{ matrix.target }}
+        cargo build --release --bin nacvm --target ${{ matrix.target }}
 
     - name: Package Binary (Unix)
       if: matrix.use_shell
       run: |
         cd target/${{ matrix.target }}/release
         tar -czf ../../../naclac-${{ matrix.target }}.tar.gz ${{ matrix.artifact_name }}
+        tar -czf ../../../nacvm-${{ matrix.target }}.tar.gz nacvm
 
     - name: Package Binary (Windows)
       if: ${{ !matrix.use_shell }}
@@ -56,12 +59,15 @@ jobs:
       run: |
         cd target/${{ matrix.target }}/release
         Compress-Archive -Path ${{ matrix.artifact_name }} -DestinationPath ../../../naclac-${{ matrix.target }}.zip
+        Compress-Archive -Path nacvm.exe -DestinationPath ../../../nacvm-${{ matrix.target }}.zip
 
     - name: Upload Release Artifacts
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       with:
         files: |
           naclac-${{ matrix.target }}.tar.gz
           naclac-${{ matrix.target }}.zip
+          nacvm-${{ matrix.target }}.tar.gz
+          nacvm-${{ matrix.target }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

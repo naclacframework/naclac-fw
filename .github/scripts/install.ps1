@@ -1,4 +1,6 @@
 # Windows PowerShell Installer for naclac CLI
+$ProgressPreference = 'SilentlyContinue'
+
 $owner = "naclacframework"
 $repo = "naclac-fw"
 $installDir = "$HOME\.local\share\naclac\bin"
@@ -9,9 +11,6 @@ function Download-FileWithProgress {
         [string]$Url,
         [string]$OutFile
     )
-
-    # Suppress default PowerShell progress bar
-    $ProgressPreference = 'SilentlyContinue'
 
     $webClient = New-Object System.Net.WebClient
     try {
