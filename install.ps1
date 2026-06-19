@@ -91,10 +91,15 @@ Write-Host "Extracting to $installDir..."
 Expand-Archive -Path $tempZip -DestinationPath $installDir -Force
 Remove-Item -Path $tempZip
 
-# 5. Add to PATH
+# 5. Add to PATH (using double quotes for proper expansion)
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+# Clean up any literal '$installDir' text from previous run
+$userPath = $userPath.Replace(';$installDir', '').Replace('$installDir', '')
+[Environment]::SetEnvironmentVariable('Path', $userPath, 'User')
+
 if ($userPath -notlike "*$installDir*") {
-    [Environment]::SetEnvironmentVariable('Path', $userPath + ';$installDir', 'User')
+    $newUserPath = $userPath + ";$installDir"
+    [Environment]::SetEnvironmentVariable('Path', $newUserPath, 'User')
     Write-Host "Added $installDir to User PATH."
 }
 
