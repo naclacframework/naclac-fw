@@ -44,7 +44,7 @@ TEMP_DIR=$(mktemp -d)
 archive="$TEMP_DIR/naclac.tar.gz"
 
 echo "📥 Downloading pre-compiled binary..."
-curl -sSfL "$DOWNLOAD_URL" -o "$archive"
+curl -#fL "$DOWNLOAD_URL" -o "$archive"
 
 # 4. Extract and Install
 echo "🚚 Installing to $INSTALL_DIR..."
