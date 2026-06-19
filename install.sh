@@ -27,7 +27,7 @@ case "$OS" in
     ;;
 esac
 
-# 2. Get the latest release version from GitHub API (silent curl is fine here to fetch tag)
+# 2. Get the latest release version from GitHub API
 LATEST_RELEASE_URL="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
 VERSION=$(curl -sSfL "$LATEST_RELEASE_URL" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
@@ -37,13 +37,88 @@ if [ -z "$VERSION" ]; then
 fi
 echo "🔍 Found latest version: $VERSION"
 
-# 3. Download the pre-compiled archive (using default curl progress meter showing MB/KB speed)
+# 3. Download the pre-compiled archive
 DOWNLOAD_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/naclac-$TARGET.tar.gz"
 TEMP_DIR=$(mktemp -d)
 archive="$TEMP_DIR/naclac.tar.gz"
 
-echo "📥 Downloading pre-compiled binary..."
-curl -fL "$DOWNLOAD_URL" -o "$archive"
+# Fetch content length by following redirects
+total_bytes=$(curl -sIL "$DOWNLOAD_URL" | grep -i "content-length" | tail -n 1 | awk '{print $2}' | tr -d '\r\n ')
+if [ -z "$total_bytes" ]; then
+    total_bytes=0
+fi
+
+# Run download in background
+curl -sL "$DOWNLOAD_URL" -o "$archive" &
+PID=$!
+
+# Spinner configuration
+spin="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+spin_idx=0
+bar_width=30
+
+while kill -0 $PID 2>/dev/null; do
+    if [ -f "$archive" ]; then
+        current_bytes=$(wc -c < "$archive" | tr -d ' ')
+    else
+        current_bytes=0
+    fi
+
+    # Rotate spinner
+    spin_char=$(echo "$spin" | cut -c $(( (spin_idx % 10) + 1 )))
+    spin_idx=$((spin_idx + 1))
+
+    if [ "$total_bytes" -gt 0 ]; then
+        pct=$((current_bytes * 100 / total_bytes))
+        filled=$((pct * bar_width / 100))
+        empty=$((bar_width - filled))
+
+        bar_str=""
+        i=0
+        while [ $i -lt $filled ]; do
+            bar_str="${bar_str}="
+            i=$((i + 1))
+        done
+
+        if [ $empty -gt 0 ]; then
+            bar_str="${bar_str}>"
+            empty=$((empty - 1))
+        fi
+
+        i=0
+        while [ $i -lt $empty ]; do
+            bar_str="${bar_str} "
+            i=$((i + 1))
+        done
+
+        mb_read=$(awk -v cb="$current_bytes" 'BEGIN {printf "%.2f", cb/1048576}')
+        mb_total=$(awk -v tb="$total_bytes" 'BEGIN {printf "%.2f", tb/1048576}')
+
+        printf "\r%s 🚚 Downloading [%s] %d%% (%s MiB / %s MiB)   " "$spin_char" "$bar_str" "$pct" "$mb_read" "$mb_total"
+    else
+        mb_read=$(awk -v cb="$current_bytes" 'BEGIN {printf "%.2f", cb/1048576}')
+        printf "\r%s 🚚 Downloading (%s MiB)..." "$spin_char" "$mb_read"
+    fi
+
+    sleep 0.1
+done
+
+# Wait for the background process to finish and check its exit code
+wait $PID
+
+# Ensure we print final 100% state
+if [ "$total_bytes" -gt 0 ]; then
+    bar_str=""
+    i=0
+    while [ $i -lt $bar_width ]; do
+        bar_str="${bar_str}="
+        i=$((i + 1))
+    done
+    mb_total=$(awk -v tb="$total_bytes" 'BEGIN {printf "%.2f", tb/1048576}')
+    printf "\r✅ 🚚 Downloading [%s] 100%% (%s MiB / %s MiB)   \n" "$bar_str" "$mb_total" "$mb_total"
+else
+    printf "\r✅ Download complete!\n"
+fi
 
 # 4. Extract and Install
 echo "🚚 Extracting binary to $INSTALL_DIR..."
@@ -77,7 +152,6 @@ fi
 
 path_added=false
 if [ -n "$shell_profile" ]; then
-    # check if it already contains the naclac directory
     if ! grep -q "naclac/bin" "$shell_profile"; then
         echo "" >> "$shell_profile"
         echo 'export PATH="$PATH:'"$INSTALL_DIR"'"' >> "$shell_profile"

@@ -32,9 +32,15 @@ function Download-FileWithProgress {
             $lastPercentage = -1
             $lastUpdate = [DateTime]::MinValue
 
+            $spin = @('⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏')
+            $spinIdx = 0
+
             while (($bytesRead = $responseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
                 $fileStream.Write($buffer, 0, $bytesRead)
                 $totalBytesRead += $bytesRead
+
+                $spinChar = $spin[$spinIdx % 10]
+                $spinIdx++
 
                 if ($totalBytes -gt 0) {
                     $percentage = [Math]::Round(($totalBytesRead / $totalBytes) * 100)
@@ -53,11 +59,11 @@ function Download-FileWithProgress {
                         $mbRead = [Math]::Round($totalBytesRead / 1MB, 2)
                         $mbTotal = [Math]::Round($totalBytes / 1MB, 2)
                         
-                        Write-Host -NoNewline "`rDownloading: $progressBar $percentage% ($mbRead MB / $mbTotal MB)   "
+                        Write-Host -NoNewline "`r$spinChar 🚚 Downloading [$progressBar] $percentage% ($mbRead MB / $mbTotal MB)   "
                     }
                 } else {
                     $mbRead = [Math]::Round($totalBytesRead / 1MB, 2)
-                    Write-Host -NoNewline "`rDownloading: ($mbRead MB)..."
+                    Write-Host -NoNewline "`r$spinChar 🚚 Downloading ($mbRead MB)..."
                 }
             }
         } finally {
@@ -66,6 +72,13 @@ function Download-FileWithProgress {
         }
     } finally {
         $webClient.Dispose()
+    }
+
+    # Ensure final state is printed cleanly
+    if ($totalBytes -gt 0) {
+        $finalBar = "=" * $progressBarLength
+        $mbTotal = [Math]::Round($totalBytes / 1MB, 2)
+        Write-Host -NoNewline "`r✅ 🚚 Downloading [$finalBar] 100% ($mbTotal MB / $mbTotal MB)   "
     }
     Write-Host "`nDownload complete!"
 }
