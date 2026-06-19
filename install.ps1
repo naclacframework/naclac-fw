@@ -24,10 +24,13 @@ function Download-FileWithProgress {
 
         $fileStream = [System.IO.File]::Create($OutFile)
         try {
-            $buffer = New-Object byte[] 8192
+            # 64 KB buffer
+            $buffer = New-Object byte[] 65536
             $bytesRead = 0
             $totalBytesRead = 0
             $progressBarLength = 30
+            $lastPercentage = -1
+            $lastUpdate = [DateTime]::MinValue
 
             while (($bytesRead = $responseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
                 $fileStream.Write($buffer, 0, $bytesRead)
@@ -35,15 +38,23 @@ function Download-FileWithProgress {
 
                 if ($totalBytes -gt 0) {
                     $percentage = [Math]::Round(($totalBytesRead / $totalBytes) * 100)
-                    $filledLength = [int][Math]::Round(($totalBytesRead / $totalBytes) * $progressBarLength)
-                    $unfilledLength = $progressBarLength - $filledLength
+                    $now = [DateTime]::Now
                     
-                    $progressBar = "[" + ("=" * $filledLength) + (">" * [int]($unfilledLength -gt 0)) + (" " * [Math]::Max(0, $unfilledLength - 1)) + "]"
-                    
-                    $mbRead = [Math]::Round($totalBytesRead / 1MB, 2)
-                    $mbTotal = [Math]::Round($totalBytes / 1MB, 2)
-                    
-                    Write-Host -NoNewline "`rDownloading: $progressBar $percentage% ($mbRead MB / $mbTotal MB)   "
+                    # Only update visual display if percentage changes, 100ms has passed, or download finished
+                    if ($percentage -ne $lastPercentage -or ($now - $lastUpdate).TotalMilliseconds -ge 100 -or $totalBytesRead -eq $totalBytes) {
+                        $lastPercentage = $percentage
+                        $lastUpdate = $now
+
+                        $filledLength = [int][Math]::Round(($totalBytesRead / $totalBytes) * $progressBarLength)
+                        $unfilledLength = $progressBarLength - $filledLength
+                        
+                        $progressBar = "[" + ("=" * $filledLength) + (">" * [int]($unfilledLength -gt 0)) + (" " * [Math]::Max(0, $unfilledLength - 1)) + "]"
+                        
+                        $mbRead = [Math]::Round($totalBytesRead / 1MB, 2)
+                        $mbTotal = [Math]::Round($totalBytes / 1MB, 2)
+                        
+                        Write-Host -NoNewline "`rDownloading: $progressBar $percentage% ($mbRead MB / $mbTotal MB)   "
+                    }
                 } else {
                     $mbRead = [Math]::Round($totalBytesRead / 1MB, 2)
                     Write-Host -NoNewline "`rDownloading: ($mbRead MB)..."
