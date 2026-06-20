@@ -64,6 +64,7 @@ jobs:
     - name: Upload Release Artifacts
       uses: softprops/action-gh-release@v3
       with:
+        prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-rc') || contains(github.ref, '-alpha') }}
         files: |
           naclac-${{ matrix.target }}.tar.gz
           naclac-${{ matrix.target }}.zip
