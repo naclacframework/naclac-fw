@@ -1,8 +1,11 @@
 use crate::config::Config;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::fs;
 use std::env;
 use colored::*;
+use std::thread;
+use std::time::Duration;
+use std::io::{self, Write};
 
 pub fn execute(config: &Config, version: &str) {
     let resolved_version = if version.to_lowercase() == "latest" {
@@ -73,27 +76,7 @@ pub fn execute(config: &Config, version: &str) {
 
     let temp_archive = env::temp_dir().join(format!("naclac-{}-{}.{}", resolved_version, target, extension));
     
-    println!("📥 Downloading pre-compiled binary from GitHub...");
-
-    let download_status = if os == "windows" {
-        Command::new("powershell")
-            .args(&[
-                "-Command",
-                &format!("$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '{}' -OutFile '{}'", download_url, temp_archive.to_string_lossy()),
-            ])
-            .status()
-    } else {
-        Command::new("curl")
-            .args(&[
-                "-fL",
-                "-o",
-                &temp_archive.to_string_lossy(),
-                &download_url,
-            ])
-            .status()
-    };
-
-    if download_status.is_err() || !download_status.unwrap().success() {
+    if !download_with_progress(&download_url, &temp_archive) {
         eprintln!("{} Failed to download pre-compiled binary.", "Error:".red().bold());
         let _ = fs::remove_dir_all(&root_path);
         let _ = fs::remove_file(&temp_archive);
@@ -137,5 +120,159 @@ pub fn execute(config: &Config, version: &str) {
         eprintln!("{} Expected binary {:?} was not found after extraction.", "Error:".red().bold(), expected_bin_path);
         let _ = fs::remove_dir_all(&root_path);
         std::process::exit(1);
+    }
+}
+
+fn get_content_length(url: &str) -> Option<u64> {
+    let os = std::env::consts::OS;
+    let output = if os == "windows" {
+        Command::new("powershell")
+            .args(&[
+                "-Command",
+                &format!(
+                    "$ProgressPreference = 'SilentlyContinue'; $req = [System.Net.WebRequest]::Create('{}'); $req.Method = 'HEAD'; try { $res = $req.GetResponse(); $res.ContentLength; $res.Close() } catch { 0 }",
+                    url
+                ),
+            ])
+            .output()
+            .ok()?
+    } else {
+        Command::new("curl")
+            .args(&["-sIL", url])
+            .output()
+            .ok()?
+    };
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    if os == "windows" {
+        stdout.trim().parse::<u64>().ok()
+    } else {
+        let mut length = None;
+        for line in stdout.lines() {
+            if line.to_lowercase().starts_with("content-length:") {
+                if let Some(val) = line.split_whitespace().nth(1) {
+                    if let Ok(num) = val.trim().parse::<u64>() {
+                        length = Some(num);
+                    }
+                }
+            }
+        }
+        length
+    }
+}
+
+fn download_with_progress(url: &str, dest: &std::path::Path) -> bool {
+    let os = std::env::consts::OS;
+    let total_bytes = get_content_length(url).unwrap_or(0);
+
+    if dest.exists() {
+        let _ = fs::remove_file(dest);
+    }
+
+    let mut child = if os == "windows" {
+        Command::new("powershell")
+            .args(&[
+                "-Command",
+                &format!(
+                    "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '{}' -OutFile '{}'",
+                    url,
+                    dest.to_string_lossy()
+                ),
+            ])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .ok()
+    } else {
+        Command::new("curl")
+            .args(&[
+                "-sSfL",
+                "-o",
+                &dest.to_string_lossy(),
+                url,
+            ])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .ok()
+    };
+
+    if child.is_none() {
+        return false;
+    }
+    let mut child = child.unwrap();
+
+    let spin = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    let mut spin_idx = 0;
+    let bar_width = 30;
+
+    loop {
+        if let Ok(Some(status)) = child.try_wait() {
+            if status.success() {
+                if total_bytes > 0 {
+                    let final_bar = "=".repeat(bar_width);
+                    let mb_total = total_bytes as f64 / 1048576.0;
+                    print!(
+                        "\r{} {} [ {} ] 100% ({:.2} MiB / {:.2} MiB)   \n",
+                        "✅".green(),
+                        "Downloading".green().bold(),
+                        final_bar,
+                        mb_total,
+                        mb_total
+                    );
+                } else {
+                    println!("\r{} Download complete!", "✅".green());
+                }
+                io::stdout().flush().unwrap();
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        let current_bytes = if dest.exists() {
+            fs::metadata(dest).map(|m| m.len()).unwrap_or(0)
+        } else {
+            0
+        };
+
+        let spin_char = spin[spin_idx % 10];
+        spin_idx += 1;
+
+        if total_bytes > 0 {
+            let pct = (current_bytes as f64 / total_bytes as f64 * 100.0) as usize;
+            let filled = (pct * bar_width / 100) as usize;
+            let empty = bar_width - filled;
+
+            let mut bar_str = "=".repeat(filled);
+            if empty > 0 {
+                bar_str.push('>');
+                if empty > 1 {
+                    bar_str.push_str(&" ".repeat(empty - 1));
+                }
+            }
+
+            let mb_read = current_bytes as f64 / 1048576.0;
+            let mb_total = total_bytes as f64 / 1048576.0;
+
+            print!(
+                "\r{} 🚚 Downloading [ {} ] {}% ({:.2} MiB / {:.2} MiB)   ",
+                spin_char,
+                bar_str,
+                pct,
+                mb_read,
+                mb_total
+            );
+        } else {
+            let mb_read = current_bytes as f64 / 1048576.0;
+            print!("\r{} 🚚 Downloading ({:.2} MiB)...", spin_char, mb_read);
+        }
+        io::stdout().flush().unwrap();
+
+        thread::sleep(Duration::from_millis(100));
     }
 }
