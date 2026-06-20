@@ -12,6 +12,7 @@ fn fetch_github_release(url: &str) -> Option<GitHubRelease> {
     let output = if os == "windows" {
         Command::new("powershell")
             .args(&[
+                "-NoProfile",
                 "-Command",
                 &format!("$ProgressPreference = 'SilentlyContinue'; Invoke-RestMethod -Uri '{}' | ConvertTo-Json", url),
             ])

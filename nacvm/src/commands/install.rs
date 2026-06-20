@@ -88,6 +88,7 @@ pub fn execute(config: &Config, version: &str) {
     let extract_status = if os == "windows" {
         Command::new("powershell")
             .args(&[
+                "-NoProfile",
                 "-Command",
                 &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force", temp_archive.to_string_lossy(), bin_path.to_string_lossy()),
             ])
@@ -128,6 +129,7 @@ fn get_content_length(url: &str) -> Option<u64> {
     let output = if os == "windows" {
         Command::new("powershell")
             .args(&[
+                "-NoProfile",
                 "-Command",
                 &format!(
                     "$ProgressPreference = 'SilentlyContinue'; $req = [System.Net.WebRequest]::Create('{}'); $req.Method = 'HEAD'; try {{ $res = $req.GetResponse(); $res.ContentLength; $res.Close() }} catch {{ 0 }}",
@@ -176,6 +178,7 @@ fn download_with_progress(url: &str, dest: &std::path::Path) -> bool {
     let child = if os == "windows" {
         Command::new("powershell")
             .args(&[
+                "-NoProfile",
                 "-Command",
                 &format!(
                     "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '{}' -OutFile '{}'",
