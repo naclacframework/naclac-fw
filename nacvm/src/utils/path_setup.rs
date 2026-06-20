@@ -2,7 +2,7 @@ use std::path::Path;
 use colored::*;
 
 #[cfg(target_family = "unix")]
-pub fn ensure_in_path(bin_dir: &std::path::Path) {
+pub fn ensure_in_path(bin_dir: &Path) {
     use std::fs::OpenOptions;
     use std::io::{Read, Write};
     use std::env;

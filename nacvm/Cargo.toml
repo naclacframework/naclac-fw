@@ -10,6 +10,8 @@ description = "The official version manager for the Naclac framework"
 clap = { workspace = true, features = ["derive"] }
 dirs = { workspace = true }
 colored = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"

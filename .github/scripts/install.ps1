@@ -1,4 +1,7 @@
 # Windows PowerShell Installer for naclac CLI
+param (
+    [string]$Version = $env:VERSION
+)
 $ProgressPreference = 'SilentlyContinue'
 
 $owner = "naclacframework"
@@ -82,10 +85,38 @@ function Download-FileWithProgress {
     Write-Host "`nDownload complete!"
 }
 
-# 1. Query latest release version
-$releaseUrl = "https://api.github.com/repos/$owner/$repo/releases/latest"
-$release = Invoke-RestMethod -Uri $releaseUrl
-$version = $release.tag_name
+# 1. Determine release version
+if ($null -ne $Version -and $Version -ne "") {
+    # Ensure version starts with 'v' if it doesn't already
+    if ($Version -notlike "v*") {
+        $Version = "v$Version"
+    }
+    $version = $Version
+    
+    $releaseUrl = "https://api.github.com/repos/$owner/$repo/releases/tags/$version"
+    try {
+        $release = Invoke-RestMethod -Uri $releaseUrl
+        if ($release.prerelease) {
+            Write-Host "⚠️  Downloading the pre-release version of $version" -ForegroundColor Yellow
+        } else {
+            Write-Host "🔍 Downloading stable version $version..."
+        }
+    } catch {
+        Write-Host "❌ Error: Version $version not found." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host "🔍 Querying latest stable release..."
+    $releaseUrl = "https://api.github.com/repos/$owner/$repo/releases/latest"
+    try {
+        $release = Invoke-RestMethod -Uri $releaseUrl
+        $version = $release.tag_name
+        Write-Host "🔍 Found latest stable version: $version"
+    } catch {
+        Write-Host "❌ Error: No stable version found. Specify a version if you have to download a pre-release version." -ForegroundColor Red
+        exit 1
+    }
+}
 
 # 2. Create directory
 if (-not (Test-Path $installDir)) {

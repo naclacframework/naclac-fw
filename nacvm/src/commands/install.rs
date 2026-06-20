@@ -5,20 +5,40 @@ use std::env;
 use colored::*;
 
 pub fn execute(config: &Config, version: &str) {
-    let mut resolved_version = version.to_string();
-
-    if version.to_lowercase() == "latest" {
-        println!("🔍 Resolving latest version from crates.io...");
-        if let Some(v) = crate::utils::resolve::get_latest_version() {
-            resolved_version = v;
-            println!("📦 Found latest version: v{}", resolved_version);
-        }
-        
-        if resolved_version.to_lowercase() == "latest" {
-            eprintln!("{} Failed to parse the latest version from crates.io.", "Error:".red().bold());
+    let resolved_version = if version.to_lowercase() == "latest" {
+        println!("🔍 Querying latest stable release from GitHub...");
+        if let Some(v) = crate::utils::resolve::get_latest_stable_version() {
+            println!("🔍 Found latest stable version: v{}", v);
+            v
+        } else {
+            eprintln!(
+                "{} No stable version found. Specify a version if you have to download a pre-release version.",
+                "Error:".red().bold()
+            );
             std::process::exit(1);
         }
-    }
+    } else {
+        println!("🔍 Querying version information from GitHub...");
+        if let Some((v, is_prerelease)) = crate::utils::resolve::get_specific_version_info(version) {
+            if is_prerelease {
+                println!(
+                    "{} Downloading the pre-release version of v{}",
+                    "Warning:".yellow().bold(),
+                    v
+                );
+            } else {
+                println!("🔍 Downloading stable version v{}...", v);
+            }
+            v
+        } else {
+            eprintln!(
+                "{} Version {} not found.",
+                "Error:".red().bold(),
+                version
+            );
+            std::process::exit(1);
+        }
+    };
 
     println!("{} naclac v{}...", "Installing".green().bold(), resolved_version);
 

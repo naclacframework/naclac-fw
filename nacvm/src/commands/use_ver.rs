@@ -7,16 +7,22 @@ pub fn execute(config: &Config, version: &str) {
     let mut resolved_version = version.to_string();
 
     if version.to_lowercase() == "latest" {
-        println!("🔍 Resolving latest version from crates.io...");
-        if let Some(v) = crate::utils::resolve::get_latest_version() {
+        println!("🔍 Querying latest stable release from GitHub...");
+        if let Some(v) = crate::utils::resolve::get_latest_stable_version() {
             resolved_version = v;
-            println!("📦 Found latest version: v{}", resolved_version);
-        }
-        
-        if resolved_version.to_lowercase() == "latest" {
-            eprintln!("{} Failed to parse the latest version from crates.io.", "Error:".red().bold());
+            println!("🔍 Found latest stable version: v{}", resolved_version);
+        } else {
+            eprintln!(
+                "{} No stable version found. Specify a version if you want to use a pre-release version.",
+                "Error:".red().bold()
+            );
             std::process::exit(1);
         }
+    }
+
+    // Strip leading 'v' if present for local directory matching
+    if resolved_version.starts_with('v') {
+        resolved_version = resolved_version[1..].to_string();
     }
 
     let root_path = config.versions_dir.join(&resolved_version);

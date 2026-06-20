@@ -27,15 +27,44 @@ case "$OS" in
     ;;
 esac
 
-# 2. Get the latest release version from GitHub API
-LATEST_RELEASE_URL="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
-VERSION=$(curl -sSfL "$LATEST_RELEASE_URL" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-
-if [ -z "$VERSION" ]; then
-  echo "❌ Error: Could not determine latest release version."
-  exit 1
+# 2. Determine release version
+if [ -n "$1" ]; then
+  VERSION="$1"
+else
+  VERSION="${VERSION:-}"
 fi
-echo "🔍 Found latest version: $VERSION"
+
+if [ -n "$VERSION" ]; then
+  # Ensure version starts with 'v' if it doesn't already
+  if [ "${VERSION#v}" = "$VERSION" ]; then
+    VERSION="v$VERSION"
+  fi
+  
+  RELEASE_URL="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/tags/$VERSION"
+  RELEASE_JSON=$(curl -sSfL "$RELEASE_URL" 2>/dev/null)
+  
+  if [ -z "$RELEASE_JSON" ]; then
+    echo "❌ Error: Version $VERSION not found."
+    exit 1
+  fi
+  
+  IS_PRERELEASE=$(echo "$RELEASE_JSON" | grep '"prerelease":' | head -n 1 | awk '{print $2}' | tr -d ', ')
+  if [ "$IS_PRERELEASE" = "true" ]; then
+    echo "⚠️  Downloading the pre-release version of $VERSION"
+  else
+    echo "🔍 Downloading stable version $VERSION..."
+  fi
+else
+  echo "🔍 Querying latest stable release..."
+  LATEST_RELEASE_URL="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
+  VERSION=$(curl -sSfL "$LATEST_RELEASE_URL" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  
+  if [ -z "$VERSION" ]; then
+    echo "❌ Error: No stable version found. Specify a version if you have to download a pre-release version."
+    exit 1
+  fi
+  echo "🔍 Found latest stable version: $VERSION"
+fi
 
 # 3. Download the pre-compiled archive with custom spinner and progress bar
 DOWNLOAD_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/naclac-$TARGET.tar.gz"
