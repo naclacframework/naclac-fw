@@ -130,7 +130,7 @@ fn get_content_length(url: &str) -> Option<u64> {
             .args(&[
                 "-Command",
                 &format!(
-                    "$ProgressPreference = 'SilentlyContinue'; $req = [System.Net.WebRequest]::Create('{}'); $req.Method = 'HEAD'; try { $res = $req.GetResponse(); $res.ContentLength; $res.Close() } catch { 0 }",
+                    "$ProgressPreference = 'SilentlyContinue'; $req = [System.Net.WebRequest]::Create('{}'); $req.Method = 'HEAD'; try {{ $res = $req.GetResponse(); $res.ContentLength; $res.Close() }} catch {{ 0 }}",
                     url
                 ),
             ])
@@ -173,7 +173,7 @@ fn download_with_progress(url: &str, dest: &std::path::Path) -> bool {
         let _ = fs::remove_file(dest);
     }
 
-    let mut child = if os == "windows" {
+    let child = if os == "windows" {
         Command::new("powershell")
             .args(&[
                 "-Command",
