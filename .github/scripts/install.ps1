@@ -34,14 +34,14 @@ function Download-FileWithProgress {
             $lastPercentage = -1
             $lastUpdate = [DateTime]::MinValue
 
-            $spin = @('⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏')
+            $spin = @('|', '/', '-', '\')
             $spinIdx = 0
 
             while (($bytesRead = $responseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
                 $fileStream.Write($buffer, 0, $bytesRead)
                 $totalBytesRead += $bytesRead
 
-                $spinChar = $spin[$spinIdx % 10]
+                $spinChar = $spin[$spinIdx % 4]
                 $spinIdx++
 
                 if ($totalBytes -gt 0) {
@@ -61,11 +61,11 @@ function Download-FileWithProgress {
                         $mbRead = [Math]::Round($totalBytesRead / 1MB, 2)
                         $mbTotal = [Math]::Round($totalBytes / 1MB, 2)
                         
-                        Write-Host -NoNewline "`r$spinChar 🚚 Downloading [$progressBar] $percentage% ($mbRead MB / $mbTotal MB)   "
+                        Write-Host -NoNewline "`r$spinChar Downloading [$progressBar] $percentage% ($mbRead MB / $mbTotal MB)   "
                     }
                 } else {
                     $mbRead = [Math]::Round($totalBytesRead / 1MB, 2)
-                    Write-Host -NoNewline "`r$spinChar 🚚 Downloading ($mbRead MB)..."
+                    Write-Host -NoNewline "`r$spinChar Downloading ($mbRead MB)..."
                 }
             }
         } finally {
@@ -80,7 +80,7 @@ function Download-FileWithProgress {
     if ($totalBytes -gt 0) {
         $finalBar = "=" * $progressBarLength
         $mbTotal = [Math]::Round($totalBytes / 1MB, 2)
-        Write-Host -NoNewline "`r✅ 🚚 Downloading [$finalBar] 100% ($mbTotal MB / $mbTotal MB)   "
+        Write-Host -NoNewline "`r[OK] Downloading [$finalBar] 100% ($mbTotal MB / $mbTotal MB)   "
     }
     Write-Host "`nDownload complete!"
 }
@@ -97,23 +97,23 @@ if ($null -ne $Version -and $Version -ne "") {
     try {
         $release = Invoke-RestMethod -Uri $releaseUrl
         if ($release.prerelease) {
-            Write-Host "⚠️  Downloading the pre-release version of $version" -ForegroundColor Yellow
+            Write-Host "WARNING: Downloading the pre-release version of $version" -ForegroundColor Yellow
         } else {
-            Write-Host "🔍 Downloading stable version $version..."
+            Write-Host "Downloading stable version $version..."
         }
     } catch {
-        Write-Host "❌ Error: Version $version not found." -ForegroundColor Red
+        Write-Host "ERROR: Version $version not found." -ForegroundColor Red
         exit 1
     }
 } else {
-    Write-Host "🔍 Querying latest stable release..."
+    Write-Host "Querying latest stable release..."
     $releaseUrl = "https://api.github.com/repos/$owner/$repo/releases/latest"
     try {
         $release = Invoke-RestMethod -Uri $releaseUrl
         $version = $release.tag_name
-        Write-Host "🔍 Found latest stable version: $version"
+        Write-Host "Found latest stable version: $version"
     } catch {
-        Write-Host "❌ Error: No stable version found. Specify a version if you have to download a pre-release version." -ForegroundColor Red
+        Write-Host "ERROR: No stable version found. Specify a version if you have to download a pre-release version." -ForegroundColor Red
         exit 1
     }
 }
@@ -146,5 +146,5 @@ if ($userPath -notlike "*$installDir*") {
     Write-Host "Added $installDir to User PATH."
 }
 
-Write-Host "`n✅ naclac CLI installed successfully!" -ForegroundColor Green
+Write-Host "`n[OK] naclac CLI installed successfully!" -ForegroundColor Green
 Write-Host "Please restart your PowerShell window to start using 'naclac'!" -ForegroundColor Yellow
