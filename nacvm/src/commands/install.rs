@@ -21,6 +21,17 @@ pub fn execute(config: &Config, version: &str) {
             std::process::exit(1);
         }
     } else {
+        let mut clean_ver = version.to_string();
+        if clean_ver.starts_with('v') {
+            clean_ver = clean_ver[1..].to_string();
+        }
+        let root_path = config.versions_dir.join(&clean_ver);
+        let exe_name = format!("naclac{}", env::consts::EXE_SUFFIX);
+        if root_path.join("bin").join(&exe_name).exists() {
+            println!("{} Version {} is already installed.", "Info:".blue().bold(), clean_ver);
+            return;
+        }
+
         println!("🔍 Querying version information from GitHub...");
         if let Some((v, is_prerelease)) = crate::utils::resolve::get_specific_version_info(version) {
             if is_prerelease {
@@ -43,9 +54,18 @@ pub fn execute(config: &Config, version: &str) {
         }
     };
 
-    println!("{} naclac v{}...", "Installing".green().bold(), resolved_version);
 
     let root_path = config.versions_dir.join(&resolved_version);
+    let exe_name = format!("naclac{}", env::consts::EXE_SUFFIX);
+    let expected_bin_path = root_path.join("bin").join(&exe_name);
+
+    if expected_bin_path.exists() {
+        println!("{} Version {} is already installed.", "Info:".blue().bold(), resolved_version);
+        return;
+    }
+
+    println!("{} naclac v{}...", "Installing".green().bold(), resolved_version);
+
     let bin_path = root_path.join("bin");
 
     if let Err(e) = fs::create_dir_all(&bin_path) {
