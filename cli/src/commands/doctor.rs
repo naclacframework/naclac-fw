@@ -2,7 +2,7 @@ use std::process::Command;
 
 pub fn execute() {
     println!("🩺 Running Naclac Environment Diagnosis...");
-    
+
     let checks = [
         ("Naclac CLI Router", "cargo-build-sbf", vec!["--version"]),
         ("Rust Compiler", "rustc", vec!["--version"]),

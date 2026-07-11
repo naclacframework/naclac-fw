@@ -1,0 +1,43 @@
+[package]
+name = "naclac-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The core Rust framework for writing hyper-optimized Solana smart contracts."
+
+[dependencies]
+solana-program = { workspace = true, optional = true }
+bytemuck = { workspace = true, features = ["derive"] }
+naclac-macros = { workspace = true }
+borsh = { workspace = true, features = ["derive"], optional = true }
+solana-system-interface = { workspace = true, features = ["bincode"], optional = true }
+pinocchio = { workspace = true, optional = true }
+pinocchio-system = { workspace = true, optional = true }
+pinocchio-log = { workspace = true, optional = true }
+pinocchio-pubkey = { workspace = true, optional = true }
+pinocchio-log-macro = { workspace = true, optional = true }
+pinocchio-memo = { workspace = true, optional = true }
+solana-address = { workspace = true, optional = true }
+
+[features]
+no-std = []
+default = ["solana"]
+solana = ["dep:solana-program", "dep:solana-system-interface", "dep:solana-address"]
+idl-build = []
+borsh = ["dep:borsh", "naclac-macros/borsh"]
+pinocchio = [
+    "dep:pinocchio",
+    "dep:pinocchio-system",
+    "dep:pinocchio-log",
+    "dep:pinocchio-pubkey",
+    "dep:pinocchio-log-macro",
+    "dep:pinocchio-memo",
+    "naclac-macros/pinocchio"
+]
+debug-mode = ["naclac-macros/debug-mode"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+] }

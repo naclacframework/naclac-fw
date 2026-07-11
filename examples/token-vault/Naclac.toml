@@ -1,0 +1,19 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+token_vault_zc = "GuuwA59rpuqEaQW5zZzdkteq1Tsrm1qWfnwZQHx9abwD"
+token_vault_borsh = "7k26iY4NVrPDcieY89YgTRVKRG9BufFJ7Nm2MkxmcbR1"
+token_vault = "3X4YMwzg8Fxzm71wk5o1oNRvpNZGpUZxDKzTPRVVPxGA"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"
+test-node = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""

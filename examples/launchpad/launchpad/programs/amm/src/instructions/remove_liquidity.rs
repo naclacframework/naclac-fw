@@ -1,0 +1,104 @@
+use naclac_lang::prelude::*;
+use crate::components::pool_state::PoolState;
+use crate::constants::SEED_POOL;
+
+#[derive(Accounts)]
+pub struct RemoveLiquidity {
+    #[account(mut)]
+    pub user: Signer,
+
+    #[account(mut)]
+    pub pool_state: Account<PoolState>,
+
+    #[account(mut)]
+    pub vault_a: Account<TokenAccount>,
+
+    #[account(mut)]
+    pub vault_b: Account<TokenAccount>,
+
+    #[account(mut)]
+    pub lp_mint: Account<Mint>,
+
+    #[account(mut)]
+    pub user_token_a: Account<TokenAccount>,
+
+    #[account(mut)]
+    pub user_token_b: Account<TokenAccount>,
+
+    #[account(mut)]
+    pub user_lp: Account<TokenAccount>,
+
+    pub token_program: Program<Token>,
+}
+
+#[instruction]
+pub fn remove_liquidity(
+    ctx: Context<RemoveLiquidity>,
+    lp_amount: u64,
+) -> Result {
+    let x = ctx.accounts.vault_a.amount();
+    let y = ctx.accounts.vault_b.amount();
+    let lp_supply = ctx.accounts.lp_mint.supply();
+
+    // Call remove liquidity math system function
+    let (amount_a, amount_b) = crate::systems::process_remove_liquidity_math(
+        x,
+        y,
+        lp_supply,
+        lp_amount,
+    )?;
+
+    // 1. Burn user's LP tokens
+    ctx.accounts.token_program.burn(
+        BurnAccounts {
+            mint: &mut ctx.accounts.lp_mint,
+            from: &mut ctx.accounts.user_lp,
+            authority: &ctx.accounts.user,
+        },
+        lp_amount,
+    )?;
+
+    // 2. Prepare signer seeds for the pool state PDA
+    let token_a_ref = ctx.accounts.pool_state.token_a_mint;
+    let token_b_ref = ctx.accounts.pool_state.token_b_mint;
+    let id_bytes = ctx.accounts.pool_state.id.to_le_bytes();
+    let pool_seeds: &[&[u8]] = &[
+        SEED_POOL,
+        token_a_ref.as_ref(),
+        token_b_ref.as_ref(),
+        &id_bytes,
+        &[ctx.accounts.pool_state.bump],
+    ];
+    let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
+
+    // 3. Transfer Token A and B from pool vaults to user
+    ctx.accounts.token_program.transfer_signed(
+        TransferAccounts {
+            from: &mut ctx.accounts.vault_a,
+            to: &mut ctx.accounts.user_token_a,
+            authority: &ctx.accounts.pool_state,
+        },
+        amount_a,
+        signer_seeds,
+    )?;
+
+    ctx.accounts.token_program.transfer_signed(
+        TransferAccounts {
+            from: &mut ctx.accounts.vault_b,
+            to: &mut ctx.accounts.user_token_b,
+            authority: &ctx.accounts.pool_state,
+        },
+        amount_b,
+        signer_seeds,
+    )?;
+
+    emit!(crate::events::LiquidityRemoved {
+        token_a_mint: ctx.accounts.pool_state.token_a_mint,
+        token_b_mint: ctx.accounts.pool_state.token_b_mint,
+        amount_a,
+        amount_b,
+        lp_burned: lp_amount,
+    });
+
+    Ok(())
+}

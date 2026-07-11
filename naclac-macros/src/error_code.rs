@@ -16,7 +16,8 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     let expanded = quote! {
-        #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+        #[cfg_attr(feature = "debug-mode", derive(Debug))]
+        #[derive(Copy, Clone, Eq, PartialEq)]
         #input
 
         // Automatically converts custom errors into native SBF ProgramErrors.
@@ -27,6 +28,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
 
+        #[cfg(feature = "debug-mode")]
         impl naclac_lang::prelude::fmt::Display for #name {
             fn fmt(&self, f: &mut naclac_lang::prelude::fmt::Formatter<'_>) -> naclac_lang::prelude::fmt::Result {
                 write!(f, "Naclac Error: {:?}", self)

@@ -25,7 +25,10 @@ pub fn execute(hard: bool) {
 
         println!("⚠️  WARNING: You are executing a HARD clean!");
         println!("   This will permanently delete the entire 'target/' directory,");
-        println!("   including your deployed program keypairs located in 'target/deploy/'.{}", extras);
+        println!(
+            "   including your deployed program keypairs located in 'target/deploy/'.{}",
+            extras
+        );
         print!("   Are you entirely sure you want to proceed? [y/N]: ");
 
         io::stdout().flush().unwrap();
@@ -104,11 +107,12 @@ pub fn execute(hard: bool) {
     // Set up cancellation
     let cancelled = Arc::new(AtomicBool::new(false));
     let r = cancelled.clone();
-    
+
     // ctrlc::set_handler replaces any previous handler, making sure our atomic bool updates
     ctrlc::set_handler(move || {
         r.store(true, Ordering::SeqCst);
-    }).expect("Error setting Ctrl-C handler");
+    })
+    .expect("Error setting Ctrl-C handler");
 
     // Setup Spinner
     let pb = ProgressBar::new_spinner();
@@ -125,7 +129,7 @@ pub fn execute(hard: bool) {
     // We walk the tree and delete file-by-file so we can check `cancelled`.
     let c = cancelled.clone();
     let trash_dir_clone = trash_dir.clone();
-    
+
     let handle = thread::spawn(move || {
         fn safe_delete_recursive(path: &Path, c: &Arc<AtomicBool>) -> bool {
             if c.load(Ordering::SeqCst) {
@@ -171,27 +175,30 @@ pub fn execute(hard: bool) {
                 let path = entry.path();
                 let name = path.file_name().unwrap();
                 let original_path = current_dir.join(name);
-                
+
                 if name == "target" && !hard {
                     // Marge back into current target safely
                     if let Ok(sub_entries) = fs::read_dir(&path) {
-                         for s_entry in sub_entries.flatten() {
-                             let s_path = s_entry.path();
-                             let s_name = s_path.file_name().unwrap();
-                             let dest = original_path.join(s_name);
-                             
-                             if s_name == "deploy" && dest.exists() {
-                                 // merge deploy
-                                 if let Ok(d_entries) = fs::read_dir(&s_path) {
-                                     for d in d_entries.flatten() {
-                                         let _ = fs::rename(d.path(), dest.join(d.path().file_name().unwrap()));
-                                     }
-                                 }
-                             } else {
-                                 fs::create_dir_all(&original_path).unwrap();
-                                 let _ = fs::rename(&s_path, dest);
-                             }
-                         }
+                        for s_entry in sub_entries.flatten() {
+                            let s_path = s_entry.path();
+                            let s_name = s_path.file_name().unwrap();
+                            let dest = original_path.join(s_name);
+
+                            if s_name == "deploy" && dest.exists() {
+                                // merge deploy
+                                if let Ok(d_entries) = fs::read_dir(&s_path) {
+                                    for d in d_entries.flatten() {
+                                        let _ = fs::rename(
+                                            d.path(),
+                                            dest.join(d.path().file_name().unwrap()),
+                                        );
+                                    }
+                                }
+                            } else {
+                                fs::create_dir_all(&original_path).unwrap();
+                                let _ = fs::rename(&s_path, dest);
+                            }
+                        }
                     }
                 } else {
                     let _ = fs::rename(&path, &original_path);
@@ -199,7 +206,9 @@ pub fn execute(hard: bool) {
             }
         }
         let _ = fs::remove_dir_all(&trash_dir);
-        pb.finish_with_message("🛑 Clean aborted entirely by user. Recoverable files were restored!");
+        pb.finish_with_message(
+            "🛑 Clean aborted entirely by user. Recoverable files were restored!",
+        );
     } else {
         if hard {
             pb.finish_with_message("✨ Workspace completely wiped!");

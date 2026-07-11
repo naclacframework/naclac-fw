@@ -1,0 +1,27 @@
+[package]
+name = "amm"
+version = "0.1.0"
+description = "Created with Naclac Framework"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["token", "borsh"]  }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+amm-client = { path = "../../clients/rust/amm" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))', 
+    'cfg(feature, values("idl-build", "pinocchio", "solana", "borsh"))'
+] }

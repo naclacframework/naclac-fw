@@ -1,0 +1,25 @@
+[package]
+name = "discriminator_zc"
+version = "0.1.0"
+description = "Regression test: discriminator-checked account type confusion (solana-zerocopy backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+discriminator-zc-client = { version = "0.1.0", path = "../../clients/rust/discriminator_zc" }
+
+[lints]
+workspace = true

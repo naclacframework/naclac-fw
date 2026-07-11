@@ -1,0 +1,16 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+single_file_layout = "HAdzYqmdPxrpGjafmpfb7ETZkst9xXhWaJf4F5S9e4jC"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"

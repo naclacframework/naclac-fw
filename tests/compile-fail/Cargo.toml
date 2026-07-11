@@ -1,0 +1,13 @@
+[workspace]
+
+[package]
+name = "naclac-compile-fail-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+naclac-lang = { path = "../../naclac-lang" }
+
+[dev-dependencies]
+trybuild = "1"

@@ -18,8 +18,8 @@ pub fn generate_realloc_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
         if let Some(realloc_config) = &field.realloc {
             let target_ident = &field.ident;
 
-            // In V2, we are operating on the hydrated struct, so we reference `self`
-            let target_info = quote! { self.#target_ident };
+            // In V2, we retrieve the raw AccountInfo for metadata accesses
+            let target_info = quote! { naclac_lang::prelude::ToAccountInfo::to_account_info(&self.#target_ident) };
 
             let space_expr = &realloc_config.space;
             let payer_ident = format_ident!("{}", realloc_config.payer);
@@ -37,17 +37,19 @@ pub fn generate_realloc_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
                     if required_lamports > current_lamports {
                         let diff = required_lamports.saturating_sub(current_lamports);
 
-                        naclac_lang::solana_program::program::invoke(
-                            &naclac_lang::prelude::solana_system_interface::instruction::transfer(
-                                #payer_info.key(),
-                                #target_info.key(),
-                                diff,
-                            ),
-                            &[
-                                #payer_info.clone(),
-                                #target_info.clone(),
-                            ],
-                        )?;
+                        unsafe {
+                            naclac_lang::solana_program::program::invoke(
+                                &naclac_lang::prelude::solana_system_interface::instruction::transfer(
+                                    #payer_info.address(),
+                                    #target_info.address(),
+                                    diff,
+                                ),
+                                &[
+                                    #payer_info.to_lifetime(),
+                                    #target_info.to_lifetime(),
+                                ],
+                            )?;
+                        }
                     }
 
                     #target_info.resize(new_space)?;

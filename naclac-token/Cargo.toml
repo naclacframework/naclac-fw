@@ -1,0 +1,29 @@
+[package]
+name = "naclac-token"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Token (SPL / Pinocchio) and Associated Token Account support for the Naclac Solana Framework."
+
+[dependencies]
+naclac-core = { workspace = true }
+spl-token = { workspace = true, features = ["no-entrypoint"], optional = true }
+spl-token-2022 = { workspace = true, features = ["no-entrypoint"], optional = true }
+spl-associated-token-account = { workspace = true, features = ["no-entrypoint"], optional = true }
+pinocchio-token = { workspace = true, optional = true }
+pinocchio-token-2022 = { workspace = true, optional = true }
+pinocchio-associated-token-account = { workspace = true, optional = true }
+solana-program = { workspace = true, optional = true }
+pinocchio = { workspace = true, optional = true }
+
+[features]
+default = ["solana"]
+solana = ["dep:solana-program", "dep:spl-token", "dep:spl-token-2022", "dep:spl-associated-token-account", "naclac-core/solana"]
+pinocchio = ["dep:pinocchio-token", "dep:pinocchio-token-2022", "dep:pinocchio-associated-token-account", "dep:pinocchio", "naclac-core/pinocchio"]
+borsh = ["naclac-core/borsh"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+] }

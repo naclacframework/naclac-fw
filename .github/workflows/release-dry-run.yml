@@ -1,0 +1,25 @@
+name: Release Dry-run
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - Cargo.toml
+      - client/package.json
+      - .github/workflows/release.yml
+      - .github/workflows/publish-crates.yml
+      - .github/workflows/publish-npm.yml
+      - .github/workflows/release-dry-run.yml
+
+jobs:
+  publish-crates-dryrun:
+    name: Publish crates (dry-run)
+    uses: ./.github/workflows/publish-crates.yml
+    with:
+      dry_run: true
+
+  publish-npm-dryrun:
+    name: Publish npm package (dry-run)
+    uses: ./.github/workflows/publish-npm.yml
+    with:
+      dry_run: true

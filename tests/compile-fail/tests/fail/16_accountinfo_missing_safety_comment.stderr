@@ -1,0 +1,5 @@
+error: Naclac Error: `AccountInfo` fields receive no automatic validation. Add a `/// SAFETY: ...` doc comment directly above this field explaining why skipping validation is safe here.
+ --> tests/fail/16_accountinfo_missing_safety_comment.rs:9:9
+  |
+9 |     pub unchecked: AccountInfo,
+  |         ^^^^^^^^^

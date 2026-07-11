@@ -33,17 +33,22 @@ enum Commands {
         features: Vec<String>,
     },
     /// Generates a TypeScript SDK from the IDL
-    Generate {
-        program_id: Option<String>,
-    },
+    Generate { program_id: Option<String> },
     /// Deploys all programs in the workspace to the configured network
-    Deploy {
-        program_id: Option<String>,
-    },
+    Deploy { program_id: Option<String> },
     /// Runs the test suite defined in Naclac.toml
     Test {
-        /// Optional specific test file to run (e.g., counter_test.test.ts)
+        /// Optional specific test file to run (e.g. counter_test.test.ts)
         file: Option<String>,
+        /// Optional program name to run tests for (e.g. counter)
+        #[arg(short, long)]
+        program: Option<String>,
+        /// Runs the Rust test suite (default)
+        #[arg(short, long)]
+        rust: bool,
+        /// Runs the Node (TypeScript) test suite
+        #[arg(short, long)]
+        node: bool,
         /// Builds and deploys programs before running tests
         #[arg(short, long)]
         all: bool,
@@ -93,8 +98,16 @@ enum Commands {
     },
     /// Profiles the compute unit usage of the program in real-time
     Profile {
-        /// Optional specific test file to run
-        file: Option<String>,
+        /// Optional specific program name to profile
+        program: Option<String>,
+    },
+    /// Runs `cargo clippy` against each program in the workspace, one by one,
+    /// automatically using each program's own correct feature flags (e.g.
+    /// pinocchio programs get --no-default-features --features pinocchio)
+    Check {
+        program_id: Option<String>,
+        #[arg(short, long)]
+        features: Vec<String>,
     },
 }
 
@@ -115,7 +128,10 @@ fn get_target_programs(cli_arg: Option<&String>) -> Vec<String> {
     let toml_path = if current_dir.join("Naclac.toml").exists() {
         current_dir.join("Naclac.toml")
     } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../../Naclac.toml").canonicalize().unwrap()
+        current_dir
+            .join("../../Naclac.toml")
+            .canonicalize()
+            .unwrap()
     } else {
         eprintln!("❌ Not a Naclac workspace.");
         std::process::exit(1);
@@ -132,7 +148,11 @@ fn get_target_programs(cli_arg: Option<&String>) -> Vec<String> {
 
     let mut programs = Vec::new();
 
-    if let Some(programs_table) = parsed.get("programs").and_then(|p| p.get(cluster)).and_then(|c| c.as_table()) {
+    if let Some(programs_table) = parsed
+        .get("programs")
+        .and_then(|p| p.get(cluster))
+        .and_then(|c| c.as_table())
+    {
         for val in programs_table.values() {
             if let Some(pid) = val.as_str() {
                 programs.push(pid.to_string());
@@ -159,7 +179,13 @@ fn main() {
         } => commands::build::execute(program_id.as_deref(), features.clone()),
         Commands::Generate { program_id } => commands::generate::execute(program_id.as_deref()),
         Commands::Deploy { program_id } => commands::deploy::execute(program_id.as_deref()),
-        Commands::Test { file, all } => commands::test::execute(file.as_deref(), *all),
+        Commands::Test {
+            file,
+            program,
+            rust,
+            node,
+            all,
+        } => commands::test::execute(file.as_deref(), program.as_deref(), *rust, *node, *all),
         Commands::Account { address } => commands::account::execute(address),
         Commands::Idl { action } => match action {
             IdlAction::Init { program_id } => {
@@ -194,9 +220,14 @@ fn main() {
             let pid = program_id.clone();
             commands::logs::execute(pid.as_deref());
         }
-        Commands::Expand { program_id, features } => {
-            commands::expand::execute(program_id.as_deref(), features.clone())
-        }
-        Commands::Profile { file } => commands::profile::execute(file.as_deref()),
+        Commands::Expand {
+            program_id,
+            features,
+        } => commands::expand::execute(program_id.as_deref(), features.clone()),
+        Commands::Profile { program } => commands::profile::execute(program.as_deref()),
+        Commands::Check {
+            program_id,
+            features,
+        } => commands::check::execute(program_id.as_deref(), features.clone()),
     }
 }

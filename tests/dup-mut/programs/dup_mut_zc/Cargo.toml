@@ -1,0 +1,25 @@
+[package]
+name = "dup_mut_zc"
+version = "0.1.0"
+description = "Regression test: duplicate mutable account aliasing guard (solana-zerocopy backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+dup-mut-zc-client = { version = "0.1.0", path = "../../clients/rust/dup_mut_zc" }
+
+[lints]
+workspace = true

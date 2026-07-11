@@ -1,13 +1,17 @@
 use crate::config::Config;
 use crate::utils::active;
-use std::fs;
 use colored::*;
+use std::fs;
 
 pub fn execute(config: &Config, version: &str) {
     let root_path = config.versions_dir.join(version);
 
     if !root_path.exists() {
-        println!("{} Version {} is not installed.", "Error:".red().bold(), version);
+        println!(
+            "{} Version {} is not installed.",
+            "Error:".red().bold(),
+            version
+        );
         return;
     }
 
@@ -15,19 +19,28 @@ pub fn execute(config: &Config, version: &str) {
 
     match fs::remove_dir_all(&root_path) {
         Ok(_) => {
-            println!("{} Successfully uninstalled version {}", "Success:".green().bold(), version);
-            
+            println!(
+                "{} Successfully uninstalled version {}",
+                "Success:".green().bold(),
+                version
+            );
+
             if is_active {
                 let bin_path = config.bin_dir.join("naclac");
                 let cmd_path = config.bin_dir.join("naclac.cmd");
                 let ps1_path = config.bin_dir.join("naclac.ps1");
-                
+
                 let _ = fs::remove_file(bin_path);
                 let _ = fs::remove_file(cmd_path);
                 let _ = fs::remove_file(ps1_path);
                 println!("{} The active version was uninstalled. Run `nacvm use <version>` to select a new one.", "Note:".yellow().bold());
             }
         }
-        Err(e) => println!("{} Failed to uninstall version {}: {}", "Error:".red().bold(), version, e),
+        Err(e) => println!(
+            "{} Failed to uninstall version {}: {}",
+            "Error:".red().bold(),
+            version,
+            e
+        ),
     }
 }

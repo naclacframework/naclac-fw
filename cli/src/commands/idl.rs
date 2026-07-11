@@ -1,15 +1,14 @@
 use crate::IdlAction;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
-use solana_rpc_client::rpc_client::RpcClient;
-use solana_program::pubkey::Pubkey;
 use solana_address::Address;
+use solana_rpc_client::rpc_client::RpcClient;
 
+use sha2::{Digest, Sha256};
+use solana_instruction::{AccountMeta, Instruction};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 use solana_transaction::Transaction;
-use solana_instruction::{Instruction, AccountMeta};
-use sha2::{Sha256, Digest};
 use std::fs;
 use std::io::Write;
 use std::str::FromStr;
@@ -144,16 +143,18 @@ fn init_idl(program_id_str: &String) {
     };
 
     // 2. Parse program ID
-    let program_id: Pubkey = match Pubkey::from_str(program_id_str) {
+    let program_id: Address = match Address::from_str(program_id_str) {
         Ok(pk) => pk,
         Err(_) => {
-            eprintln!("❌ Invalid programmatic pubkey string.");
+            eprintln!("❌ Invalid programmatic address string.");
             return;
         }
     };
 
-
-    eprintln!("🚀 Initialize deterministic IDL context structure for: {}", program_id);
+    eprintln!(
+        "🚀 Initialize deterministic IDL context structure for: {}",
+        program_id
+    );
 
     // 3. Find workspace_root (Needed for Pre-flight Check)
     let current_dir = std::env::current_dir().unwrap();
@@ -166,19 +167,29 @@ fn init_idl(program_id_str: &String) {
     // --- Pre-flight Check: Verify idl-build feature is enabled ---
     if let Some(name) = find_program_name_by_id(&workspace_root, program_id_str, &config.cluster) {
         if !is_idl_feature_enabled(&workspace_root, &name) {
-            eprintln!("\n❌ Error: On-chain IDL logic is not enabled for program '{}'.", name);
-            eprintln!("   Naclac keeps programs lightweight by default to reduce deployment costs.");
-            eprintln!("\nTo enable on-chain IDL storage, add this to your programs/{}/Cargo.toml:", name);
+            eprintln!(
+                "\n❌ Error: On-chain IDL logic is not enabled for program '{}'.",
+                name
+            );
+            eprintln!(
+                "   Naclac keeps programs lightweight by default to reduce deployment costs."
+            );
+            eprintln!(
+                "\nTo enable on-chain IDL storage, add this to your programs/{}/Cargo.toml:",
+                name
+            );
             eprintln!("\n[features]");
             eprintln!("idl-build = [\"naclac-lang/idl-build\"]");
-            eprintln!("\nThen rebuild and redeploy your program before running `naclac idl init` again.");
+            eprintln!(
+                "\nThen rebuild and redeploy your program before running `naclac idl init` again."
+            );
             return;
         }
     }
 
     // 4. Derive IDL PDA
     let seed = b"anchor:idl";
-    let (idl_pda, _bump) = Pubkey::find_program_address(&[seed, program_id.as_ref()], &program_id);
+    let (idl_pda, _bump) = Address::find_program_address(&[seed, program_id.as_ref()], &program_id);
     eprintln!("🔐 Derived Anchor-Compatible IDL PDA: {}", idl_pda);
 
     // 5. Find and load IDL file
@@ -187,13 +198,11 @@ fn init_idl(program_id_str: &String) {
     let mut idl_content = None;
 
     if idl_dir.exists() {
-        for entry in fs::read_dir(&idl_dir).unwrap() {
-            if let Ok(entry) = entry {
-                if let Ok(content) = fs::read_to_string(entry.path()) {
-                    if content.contains(program_id_str) {
-                        idl_content = Some(content);
-                        break;
-                    }
+        for entry in fs::read_dir(&idl_dir).unwrap().flatten() {
+            if let Ok(content) = fs::read_to_string(entry.path()) {
+                if content.contains(program_id_str) {
+                    idl_content = Some(content);
+                    break;
                 }
             }
         }
@@ -220,7 +229,10 @@ fn init_idl(program_id_str: &String) {
         compressed_bytes.len()
     );
 
-    eprintln!("💰 IDL Transaction Configured: Rent size evaluation mapped to length: {}.", storage_length);
+    eprintln!(
+        "💰 IDL Transaction Configured: Rent size evaluation mapped to length: {}.",
+        storage_length
+    );
 
     // 6. Load keypair from wallet path in Naclac.toml
     let payer = match load_keypair(&config.wallet_path) {
@@ -228,19 +240,24 @@ fn init_idl(program_id_str: &String) {
         None => return,
     };
 
-
     // 7. Connect to RPC
-    eprintln!("🌐 Connecting to cluster: {} ({})", config.cluster, config.rpc_url);
+    eprintln!(
+        "🌐 Connecting to cluster: {} ({})",
+        config.cluster, config.rpc_url
+    );
     let client = RpcClient::new(config.rpc_url.clone());
 
     // 8. Check if IDL account already exists
-    let idl_account = client.get_account(&Address::new_from_array(idl_pda.to_bytes())).ok();
-    
+    let idl_account = client.get_account(&idl_pda).ok();
+
     if let Some(account) = idl_account {
         let current_size = account.data.len();
         if current_size != storage_length {
-            eprintln!("⚠️  IDL account exists but has size {} (required: {}). Resizing...", current_size, storage_length);
-            
+            eprintln!(
+                "⚠️  IDL account exists but has size {} (required: {}). Resizing...",
+                current_size, storage_length
+            );
+
             let recent_blockhash = match client.get_latest_blockhash() {
                 Ok(bh) => bh,
                 Err(e) => {
@@ -258,11 +275,11 @@ fn init_idl(program_id_str: &String) {
             resize_data.extend_from_slice(&(storage_length as u64).to_le_bytes());
 
             let resize_ix = Instruction {
-                program_id: Address::new_from_array(program_id.to_bytes()),
+                program_id,
                 accounts: vec![
                     AccountMeta::new(payer.pubkey(), true),
-                    AccountMeta::new(Address::new_from_array(idl_pda.to_bytes()), false),
-                    AccountMeta::new_readonly(Address::new_from_array(solana_system_interface::program::id().to_bytes()), false),
+                    AccountMeta::new(idl_pda, false),
+                    AccountMeta::new_readonly(solana_system_interface::program::id(), false),
                 ],
                 data: resize_data,
             };
@@ -284,7 +301,10 @@ fn init_idl(program_id_str: &String) {
                 }
             }
         } else {
-            eprintln!("⚠️  IDL account already exists at {}. Bypassing initialization...", idl_pda);
+            eprintln!(
+                "⚠️  IDL account already exists at {}. Bypassing initialization...",
+                idl_pda
+            );
         }
     } else {
         // 9. Calculate rent
@@ -296,7 +316,11 @@ fn init_idl(program_id_str: &String) {
             }
         };
 
-        eprintln!("💸 Rent required: {} lamports ({:.6} SOL)", rent, rent as f64 / 1_000_000_000_f64);
+        eprintln!(
+            "💸 Rent required: {} lamports ({:.6} SOL)",
+            rent,
+            rent as f64 / 1_000_000_000_f64
+        );
 
         // 10. Check payer balance
         let balance = match client.get_balance(&payer.pubkey()) {
@@ -337,11 +361,11 @@ fn init_idl(program_id_str: &String) {
         init_data.extend_from_slice(&(storage_length as u64).to_le_bytes());
 
         let create_ix = Instruction {
-            program_id: Address::new_from_array(program_id.to_bytes()),
+            program_id,
             accounts: vec![
                 AccountMeta::new(payer.pubkey(), true),
-                AccountMeta::new(Address::new_from_array(idl_pda.to_bytes()), false),
-                AccountMeta::new_readonly(Address::new_from_array(solana_system_interface::program::id().to_bytes()), false),
+                AccountMeta::new(idl_pda, false),
+                AccountMeta::new_readonly(solana_system_interface::program::id(), false),
             ],
             data: init_data,
         };
@@ -357,7 +381,10 @@ fn init_idl(program_id_str: &String) {
             Ok(sig) => {
                 eprintln!("✅ IDL initialize transaction successful!");
                 eprintln!("📝 Transaction Signature: {}", sig);
-                eprintln!("🔗 View on Explorer: https://explorer.solana.com/tx/{}?cluster={}", sig, config.cluster);
+                eprintln!(
+                    "🔗 View on Explorer: https://explorer.solana.com/tx/{}?cluster={}",
+                    sig, config.cluster
+                );
             }
             Err(e) => {
                 let err_msg = e.to_string();
@@ -405,10 +432,10 @@ fn init_idl(program_id_str: &String) {
         write_data.extend_from_slice(chunk);
 
         let write_ix = Instruction {
-            program_id: Address::new_from_array(program_id.to_bytes()),
+            program_id,
             accounts: vec![
                 AccountMeta::new(payer.pubkey(), true),
-                AccountMeta::new(Address::new_from_array(idl_pda.to_bytes()), false),
+                AccountMeta::new(idl_pda, false),
             ],
             data: write_data,
         };
@@ -430,7 +457,10 @@ fn init_idl(program_id_str: &String) {
 
         match client.send_and_confirm_transaction(&chunk_tx) {
             Ok(_) => {
-                eprintln!("✅ Programmed confirmed onchain: {}/{} bytes", end, total_len);
+                eprintln!(
+                    "✅ Programmed confirmed onchain: {}/{} bytes",
+                    end, total_len
+                );
             }
             Err(e) => {
                 eprintln!("❌ Write chunk failed at offset {}: {}", offset, e);
@@ -442,7 +472,11 @@ fn init_idl(program_id_str: &String) {
 
     eprintln!("🎉 IDL successfully deployed and is 100% Anchor-Compatible!");
 }
-fn find_program_name_by_id(workspace_root: &std::path::Path, id: &str, cluster: &str) -> Option<String> {
+fn find_program_name_by_id(
+    workspace_root: &std::path::Path,
+    id: &str,
+    cluster: &str,
+) -> Option<String> {
     let toml_path = workspace_root.join("Naclac.toml");
     let content = fs::read_to_string(toml_path).ok()?;
     let parsed: Value = toml::from_str(&content).ok()?;
@@ -457,7 +491,10 @@ fn find_program_name_by_id(workspace_root: &std::path::Path, id: &str, cluster: 
 }
 
 fn is_idl_feature_enabled(workspace_root: &std::path::Path, program_name: &str) -> bool {
-    let toml_path = workspace_root.join("programs").join(program_name).join("Cargo.toml");
+    let toml_path = workspace_root
+        .join("programs")
+        .join(program_name)
+        .join("Cargo.toml");
     let content = match fs::read_to_string(toml_path) {
         Ok(c) => c,
         Err(_) => return false,

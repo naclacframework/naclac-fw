@@ -22,7 +22,9 @@ pub fn get_active_version(config: &Config) -> Option<String> {
         if let Ok(contents) = fs::read_to_string(cmd_path) {
             if let Some(versions_idx) = contents.find("versions") {
                 let remainder = &contents[versions_idx + 9..];
-                let end_idx = remainder.find('/').unwrap_or_else(|| remainder.find('\\').unwrap_or(0));
+                let end_idx = remainder
+                    .find('/')
+                    .unwrap_or_else(|| remainder.find('\\').unwrap_or(0));
                 if end_idx > 0 {
                     return Some(remainder[..end_idx].to_string());
                 }

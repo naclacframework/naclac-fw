@@ -16,17 +16,11 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Install a specific version of naclac
-    Install {
-        version: String,
-    },
+    Install { version: String },
     /// Use a specific version of naclac globally
-    Use {
-        version: String,
-    },
+    Use { version: String },
     /// Uninstall a specific version of naclac
-    Uninstall {
-        version: String,
-    },
+    Uninstall { version: String },
     /// List all installed versions
     List,
 }

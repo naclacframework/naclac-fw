@@ -25,7 +25,11 @@ pub fn create_router(config: &Config, version: &str) -> io::Result<()> {
         fs::remove_file(&ps1_path)?;
     }
 
-    let target_path = config.versions_dir.join(version).join("bin").join("naclac.exe");
+    let target_path = config
+        .versions_dir
+        .join(version)
+        .join("bin")
+        .join("naclac.exe");
     let target_str = target_path.to_string_lossy();
 
     let cmd_contents = format!("@\"{}\" %*\r\n", target_str);

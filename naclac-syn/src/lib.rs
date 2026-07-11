@@ -1,13 +1,17 @@
-pub mod types;
+pub mod instruction;
 pub mod parser;
 pub mod pda;
-pub mod instruction;
+pub mod types;
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 use types::NaclacProgram;
 
-pub fn parse_workspace_program(program_dir: &PathBuf, program_name: &str, is_zero_copy: bool) -> NaclacProgram {
+pub fn parse_workspace_program(
+    program_dir: &Path,
+    program_name: &str,
+    is_zero_copy: bool,
+) -> NaclacProgram {
     let mut idl = NaclacProgram {
         name: program_name.to_string(),
         is_zero_copy,
@@ -25,14 +29,12 @@ pub fn parse_workspace_program(program_dir: &PathBuf, program_name: &str, is_zer
 
     while let Some(dir) = dirs_to_visit.pop() {
         if let Ok(entries) = fs::read_dir(&dir) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        dirs_to_visit.push(path);
-                    } else if path.extension().unwrap_or_default() == "rs" {
-                        rs_files.push(path);
-                    }
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    dirs_to_visit.push(path);
+                } else if path.extension().unwrap_or_default() == "rs" {
+                    rs_files.push(path);
                 }
             }
         }
@@ -72,7 +74,11 @@ pub fn parse_workspace_program(program_dir: &PathBuf, program_name: &str, is_zer
     let mut ordered_instructions = Vec::new();
     for target in &func_order {
         let camel_target = heck::ToLowerCamelCase::to_lower_camel_case(target.as_str());
-        if let Some(pos) = idl.instructions.iter().position(|ix| ix.name == camel_target) {
+        if let Some(pos) = idl
+            .instructions
+            .iter()
+            .position(|ix| ix.name == camel_target)
+        {
             ordered_instructions.push(idl.instructions.remove(pos));
         }
     }

@@ -9,7 +9,7 @@ pub fn ensure_dir(path: &Path) {
 }
 
 pub fn write_file(path: &Path, content: &str) {
-    fs::write(path, content).expect(&format!("Failed to write file: {:?}", path));
+    fs::write(path, content).unwrap_or_else(|_| panic!("Failed to write file: {:?}", path));
 }
 
 pub fn generate_keypair(keypair_path: &Path) -> String {
@@ -23,11 +23,13 @@ pub fn generate_keypair(keypair_path: &Path) -> String {
         .output()
         .expect("Failed to initialize system program keypair.");
 
-    let pubkey_output = Command::new("solana-keygen")
+    let address_output = Command::new("solana-keygen")
         .arg("pubkey")
         .arg(keypair_path)
         .output()
         .expect("Failed to derive valid public address from generator hash.");
 
-    String::from_utf8_lossy(&pubkey_output.stdout).trim().to_string()
+    String::from_utf8_lossy(&address_output.stdout)
+        .trim()
+        .to_string()
 }

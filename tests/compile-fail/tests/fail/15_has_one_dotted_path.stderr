@@ -1,0 +1,5 @@
+error: Expected relation field name
+  --> tests/fail/15_has_one_dotted_path.rs:11:15
+   |
+11 |     #[account(foo::bar = owner)]
+   |               ^^^^^^^^

@@ -1,11 +1,11 @@
 use crate::config::Config;
-use std::process::{Command, Stdio};
-use std::fs;
-use std::env;
 use colored::*;
+use std::env;
+use std::fs;
+use std::io::{self, Write};
+use std::process::{Command, Stdio};
 use std::thread;
 use std::time::Duration;
-use std::io::{self, Write};
 
 pub fn execute(config: &Config, version: &str) {
     let resolved_version = if version.to_lowercase() == "latest" {
@@ -28,12 +28,17 @@ pub fn execute(config: &Config, version: &str) {
         let root_path = config.versions_dir.join(&clean_ver);
         let exe_name = format!("naclac{}", env::consts::EXE_SUFFIX);
         if root_path.join("bin").join(&exe_name).exists() {
-            println!("{} Version {} is already installed.", "Info:".blue().bold(), clean_ver);
+            println!(
+                "{} Version {} is already installed.",
+                "Info:".blue().bold(),
+                clean_ver
+            );
             return;
         }
 
         println!("🔍 Querying version information from GitHub...");
-        if let Some((v, is_prerelease)) = crate::utils::resolve::get_specific_version_info(version) {
+        if let Some((v, is_prerelease)) = crate::utils::resolve::get_specific_version_info(version)
+        {
             if is_prerelease {
                 println!(
                     "{} Downloading the pre-release version of v{}",
@@ -45,31 +50,38 @@ pub fn execute(config: &Config, version: &str) {
             }
             v
         } else {
-            eprintln!(
-                "{} Version {} not found.",
-                "Error:".red().bold(),
-                version
-            );
+            eprintln!("{} Version {} not found.", "Error:".red().bold(), version);
             std::process::exit(1);
         }
     };
-
 
     let root_path = config.versions_dir.join(&resolved_version);
     let exe_name = format!("naclac{}", env::consts::EXE_SUFFIX);
     let expected_bin_path = root_path.join("bin").join(&exe_name);
 
     if expected_bin_path.exists() {
-        println!("{} Version {} is already installed.", "Info:".blue().bold(), resolved_version);
+        println!(
+            "{} Version {} is already installed.",
+            "Info:".blue().bold(),
+            resolved_version
+        );
         return;
     }
 
-    println!("{} naclac v{}...", "Installing".green().bold(), resolved_version);
+    println!(
+        "{} naclac v{}...",
+        "Installing".green().bold(),
+        resolved_version
+    );
 
     let bin_path = root_path.join("bin");
 
     if let Err(e) = fs::create_dir_all(&bin_path) {
-        eprintln!("{} Failed to create bin directory: {}", "Error:".red().bold(), e);
+        eprintln!(
+            "{} Failed to create bin directory: {}",
+            "Error:".red().bold(),
+            e
+        );
         std::process::exit(1);
     }
 
@@ -82,7 +94,12 @@ pub fn execute(config: &Config, version: &str) {
         ("macos", "aarch64") => "aarch64-apple-darwin",
         ("windows", "x86_64") => "x86_64-pc-windows-msvc",
         _ => {
-            eprintln!("{} Unsupported platform: {} - {}", "Error:".red().bold(), os, arch);
+            eprintln!(
+                "{} Unsupported platform: {} - {}",
+                "Error:".red().bold(),
+                os,
+                arch
+            );
             let _ = fs::remove_dir_all(&root_path);
             std::process::exit(1);
         }
@@ -94,10 +111,16 @@ pub fn execute(config: &Config, version: &str) {
         resolved_version, target, extension
     );
 
-    let temp_archive = env::temp_dir().join(format!("naclac-{}-{}.{}", resolved_version, target, extension));
-    
+    let temp_archive = env::temp_dir().join(format!(
+        "naclac-{}-{}.{}",
+        resolved_version, target, extension
+    ));
+
     if !download_with_progress(&download_url, &temp_archive) {
-        eprintln!("{} Failed to download pre-compiled binary.", "Error:".red().bold());
+        eprintln!(
+            "{} Failed to download pre-compiled binary.",
+            "Error:".red().bold()
+        );
         let _ = fs::remove_dir_all(&root_path);
         let _ = fs::remove_file(&temp_archive);
         std::process::exit(1);
@@ -107,15 +130,19 @@ pub fn execute(config: &Config, version: &str) {
 
     let extract_status = if os == "windows" {
         Command::new("powershell")
-            .args(&[
+            .args([
                 "-NoProfile",
                 "-Command",
-                &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force", temp_archive.to_string_lossy(), bin_path.to_string_lossy()),
+                &format!(
+                    "Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
+                    temp_archive.to_string_lossy(),
+                    bin_path.to_string_lossy()
+                ),
             ])
             .status()
     } else {
         Command::new("tar")
-            .args(&[
+            .args([
                 "-xzf",
                 &temp_archive.to_string_lossy(),
                 "-C",
@@ -136,9 +163,18 @@ pub fn execute(config: &Config, version: &str) {
     let expected_bin_path = bin_path.join(&exe_name);
 
     if expected_bin_path.exists() {
-        println!("{} v{} installed successfully at {:?}", "Version".green().bold(), resolved_version, root_path);
+        println!(
+            "{} v{} installed successfully at {:?}",
+            "Version".green().bold(),
+            resolved_version,
+            root_path
+        );
     } else {
-        eprintln!("{} Expected binary {:?} was not found after extraction.", "Error:".red().bold(), expected_bin_path);
+        eprintln!(
+            "{} Expected binary {:?} was not found after extraction.",
+            "Error:".red().bold(),
+            expected_bin_path
+        );
         let _ = fs::remove_dir_all(&root_path);
         std::process::exit(1);
     }
@@ -148,7 +184,7 @@ fn get_content_length(url: &str) -> Option<u64> {
     let os = std::env::consts::OS;
     let output = if os == "windows" {
         Command::new("powershell")
-            .args(&[
+            .args([
                 "-NoProfile",
                 "-Command",
                 &format!(
@@ -159,10 +195,7 @@ fn get_content_length(url: &str) -> Option<u64> {
             .output()
             .ok()?
     } else {
-        Command::new("curl")
-            .args(&["-sIL", url])
-            .output()
-            .ok()?
+        Command::new("curl").args(["-sIL", url]).output().ok()?
     };
 
     if !output.status.success() {
@@ -197,7 +230,7 @@ fn download_with_progress(url: &str, dest: &std::path::Path) -> bool {
 
     let child = if os == "windows" {
         Command::new("powershell")
-            .args(&[
+            .args([
                 "-NoProfile",
                 "-Command",
                 &format!(
@@ -212,12 +245,7 @@ fn download_with_progress(url: &str, dest: &std::path::Path) -> bool {
             .ok()
     } else {
         Command::new("curl")
-            .args(&[
-                "-sSfL",
-                "-o",
-                &dest.to_string_lossy(),
-                url,
-            ])
+            .args(["-sSfL", "-o", &dest.to_string_lossy(), url])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
@@ -284,11 +312,7 @@ fn download_with_progress(url: &str, dest: &std::path::Path) -> bool {
 
             print!(
                 "\r{} 🚚 Downloading [ {} ] {}% ({:.2} MiB / {:.2} MiB)   ",
-                spin_char,
-                bar_str,
-                pct,
-                mb_read,
-                mb_total
+                spin_char, bar_str, pct, mb_read, mb_total
             );
         } else {
             let mb_read = current_bytes as f64 / 1048576.0;

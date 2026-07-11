@@ -1,0 +1,5 @@
+error: Naclac Error: 'Pubkey' has been deprecated in favor of 'Address' in Solana v3. Please replace it with 'Address'.
+ --> tests/fail/01_accounts_pubkey_field.rs:9:14
+  |
+9 |     pub bad: Pubkey,
+  |              ^^^^^^

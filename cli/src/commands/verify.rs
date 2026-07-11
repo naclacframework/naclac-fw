@@ -1,8 +1,7 @@
-use std::process::Command;
-use sha2::{Sha256, Digest};
-use std::fs;
-use solana_pubkey::Pubkey;
+use sha2::{Digest, Sha256};
 use solana_address::Address;
+use std::fs;
+use std::process::Command;
 
 use solana_keypair::Keypair;
 use solana_signer::Signer;
@@ -15,19 +14,22 @@ pub fn execute(program_id_str: &String) {
         return;
     }
 
-    println!("🔍 Initializing Trust Protocol Verifier against Program ID: {}", program_id_str);
+    println!(
+        "🔍 Initializing Trust Protocol Verifier against Program ID: {}",
+        program_id_str
+    );
 
     // ==========================================
     // 1. DOCKER DEPENDENCY VERIFICATION
     // ==========================================
-    let docker_check = Command::new("docker")
-        .arg("--version")
-        .output();
+    let docker_check = Command::new("docker").arg("--version").output();
 
     match docker_check {
         Ok(out) if out.status.success() => {
-            println!("🐳 Native Docker runtime located. Initiating standardized verifiable bounds.");
-        },
+            println!(
+                "🐳 Native Docker runtime located. Initiating standardized verifiable bounds."
+            );
+        }
         _ => {
             eprintln!("
 ❌ Error: Docker is not running or missing from systemic PATH.
@@ -53,7 +55,7 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
     // ==========================================
     println!("📦 Spinning up ellipsislabs/solana:latest standardization container...");
     println!("🔄 Mounting workspace and synthesizing verifiable SBF payload...");
-    
+
     let parent_dir = workspace_root.parent().unwrap();
     let project_name = workspace_root.file_name().unwrap().to_str().unwrap();
 
@@ -83,7 +85,9 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
         .spawn()
         .expect("Failed to initialize Docker runtime.");
 
-    let build_status = build_cmd.wait().expect("Docker wrapper unexpectedly failed.");
+    let build_status = build_cmd
+        .wait()
+        .expect("Docker wrapper unexpectedly failed.");
 
     // Restore the host's lockfile immediately after the isolation drops
     if let Some(content) = lock_content {
@@ -91,7 +95,9 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
     }
 
     if !build_status.success() {
-        eprintln!("❌ Dockerized Deterministic Compilation failed. Resolve errors to continue verifying.");
+        eprintln!(
+            "❌ Dockerized Deterministic Compilation failed. Resolve errors to continue verifying."
+        );
         return;
     }
 
@@ -99,12 +105,12 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
     // 3. HASH COMPARISON
     // ==========================================
     println!("🗜 Hashing target buffer payload...");
-    
+
     // Find matching SO file bypassing simple string names
     let deploy_dir = workspace_root.join("target/deploy");
     let mut matching_so = None;
 
-    let target_pubkey = Pubkey::from_str(program_id_str).unwrap();
+    let target_address = Address::from_str(program_id_str).unwrap();
 
     if deploy_dir.exists() {
         if let Ok(entries) = fs::read_dir(&deploy_dir) {
@@ -114,15 +120,26 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
                 if let Some(ext) = path.extension() {
                     if ext == "so" {
                         so_files.push(path.clone());
-                    } else if ext == "json" && path.file_stem().unwrap().to_string_lossy().ends_with("-keypair") {
+                    } else if ext == "json"
+                        && path
+                            .file_stem()
+                            .unwrap()
+                            .to_string_lossy()
+                            .ends_with("-keypair")
+                    {
                         if let Ok(key_bytes) = fs::read_to_string(&path) {
                             if let Ok(bytes) = serde_json::from_str::<Vec<u8>>(&key_bytes) {
                                 if bytes.len() >= 32 {
                                     let secret: [u8; 32] = bytes[..32].try_into().unwrap();
                                     let kp = Keypair::new_from_array(secret);
-                                    if kp.pubkey() == Address::new_from_array(target_pubkey.to_bytes()) {
-                                        let base_name = path.file_stem().unwrap().to_string_lossy().replace("-keypair", "");
-                                        let target_so = deploy_dir.join(format!("{}.so", base_name));
+                                    if kp.pubkey() == target_address {
+                                        let base_name = path
+                                            .file_stem()
+                                            .unwrap()
+                                            .to_string_lossy()
+                                            .replace("-keypair", "");
+                                        let target_so =
+                                            deploy_dir.join(format!("{}.so", base_name));
                                         if target_so.exists() {
                                             matching_so = Some(target_so);
                                             break;
@@ -150,8 +167,9 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
             println!("🔒 Local Checksum: {}", local_hash);
 
             println!("🌐 Fetching true on-chain buffer dump securely over RPC...");
-            
-            let tmp_onchain_dump = std::env::temp_dir().join(format!("{}_onchain.so", program_id_str));
+
+            let tmp_onchain_dump =
+                std::env::temp_dir().join(format!("{}_onchain.so", program_id_str));
             let dump_cmd = Command::new("solana")
                 .arg("program")
                 .arg("dump")
@@ -161,12 +179,15 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
                 .expect("Failed to execute solana program dump fetching process.");
 
             if !dump_cmd.status.success() {
-                eprintln!("❌ Failed querying network. Are you connected to the right cluster? {}", String::from_utf8_lossy(&dump_cmd.stderr));
+                eprintln!(
+                    "❌ Failed querying network. Are you connected to the right cluster? {}",
+                    String::from_utf8_lossy(&dump_cmd.stderr)
+                );
                 return;
             }
 
             if let Ok(onchain_bytes) = fs::read(&tmp_onchain_dump) {
-                // Slicing algorithm: Solana deploys pad `.so` bytecodes to support future Reallocs (Usually +2x size in zeros). 
+                // Slicing algorithm: Solana deploys pad `.so` bytecodes to support future Reallocs (Usually +2x size in zeros).
                 // We strictly map and isolate their verification length boundaries to emulate flawless determinism comparisons against local artifacts.
                 let comparable_length = std::cmp::min(onchain_bytes.len(), local_bytes.len());
                 let comparable_onchain_slice = &onchain_bytes[..comparable_length];
@@ -174,11 +195,13 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
                 let mut chain_hasher = Sha256::new();
                 chain_hasher.update(comparable_onchain_slice);
                 let on_chain_hash = hex::encode(chain_hasher.finalize());
-                
+
                 println!("🌍 Mainnet Checksum: {}", on_chain_hash);
 
                 if local_hash == on_chain_hash {
-                    println!("✅ Verification Successful: On-chain code perfectly matches local source.");
+                    println!(
+                        "✅ Verification Successful: On-chain code perfectly matches local source."
+                    );
                 } else {
                     eprintln!("❌ VERIFICATION FAILED: Detected divergence between real On-Chain code and local SBF targets!");
                 }
@@ -191,6 +214,9 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
             eprintln!("❌ Failed to read matching `.so` file arrays.");
         }
     } else {
-        eprintln!("❌ No verifiable program artifacts found for Program ID: {}", program_id_str);
+        eprintln!(
+            "❌ No verifiable program artifacts found for Program ID: {}",
+            program_id_str
+        );
     }
 }

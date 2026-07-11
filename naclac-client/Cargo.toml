@@ -1,0 +1,36 @@
+[package]
+name = "naclac-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Naclac Framework Rust Client & Testing Runtime Library"
+
+[dependencies]
+solana-rpc-client = { workspace = true }
+solana-rpc-client-api = { workspace = true }
+solana-keypair = { workspace = true }
+solana-signer = { workspace = true }
+solana-transaction = { workspace = true }
+solana-instruction = { workspace = true }
+solana-address = { workspace = true, features = ["curve25519"] }
+solana-signature = { workspace = true }
+solana-system-interface = { workspace = true }
+solana-program = { workspace = true }
+litesvm = { workspace = true }
+borsh = { workspace = true, default-features = false, features = ["derive"] }
+bytemuck = { workspace = true, features = ["derive"] }
+sha2 = { workspace = true }
+solana-account = { workspace = true }
+solana-transaction-status = { workspace = true }
+solana-commitment-config = { workspace = true }
+solana-message = { workspace = true }
+bs58 = { workspace = true }
+spl-token = { workspace = true }
+spl-token-2022 = { workspace = true }
+spl-associated-token-account = { workspace = true }
+solana-account-decoder = { workspace = true }
+thiserror = { workspace = true } 
+serde_json = { workspace = true }
+base64 = { workspace = true }
+hex = { workspace = true }

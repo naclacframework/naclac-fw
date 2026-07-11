@@ -1,12 +1,11 @@
-use solana_rpc_client::rpc_client::RpcClient;
-use solana_pubkey::Pubkey;
 use solana_address::Address;
+use solana_rpc_client::rpc_client::RpcClient;
 
+use bs58;
+use serde_json::{Map, Value};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::str::FromStr;
-use sha2::{Digest, Sha256};
-use serde_json::{Value, Map};
-use bs58;
 
 // Re-defining parts of IDL for decoding
 use serde::Deserialize;
@@ -36,7 +35,9 @@ struct IdlField {
 }
 
 fn get_rpc_url() -> String {
-    let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_else(|_| ".".to_string());
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| ".".to_string());
     let config_path = format!("{}/.config/solana/cli/config.yml", home);
     if let Ok(content) = std::fs::read_to_string(&config_path) {
         for line in content.lines() {
@@ -48,11 +49,11 @@ fn get_rpc_url() -> String {
     "http://127.0.0.1:8899".to_string()
 }
 
-pub fn execute(address: &String) {
-    let pubkey = match Pubkey::from_str(address) {
+pub fn execute(address: &str) {
+    let address_val = match Address::from_str(address) {
         Ok(pk) => pk,
         Err(_) => {
-            eprintln!("❌ Invalid base58 pubkey string.");
+            eprintln!("❌ Invalid base58 address string.");
             return;
         }
     };
@@ -61,7 +62,7 @@ pub fn execute(address: &String) {
     println!("📡 Connecting to RPC: {}", rpc_url);
     let client = RpcClient::new(rpc_url);
 
-    let account_data = match client.get_account_data(&Address::new_from_array(pubkey.to_bytes())) {
+    let account_data = match client.get_account_data(&address_val) {
         Ok(data) => data,
         Err(err) => {
             eprintln!("❌ Failed to fetch account data: {}", err);
@@ -83,7 +84,9 @@ pub fn execute(address: &String) {
     } else if current_dir.join("../../Naclac.toml").exists() {
         current_dir.join("../..").canonicalize().unwrap()
     } else {
-        eprintln!("❌ Error: Could not find Naclac.toml. Please run from within a Naclac workspace.");
+        eprintln!(
+            "❌ Error: Could not find Naclac.toml. Please run from within a Naclac workspace."
+        );
         return;
     };
 
@@ -95,19 +98,17 @@ pub fn execute(address: &String) {
 
     let mut matched_def = None;
 
-    for entry in fs::read_dir(&idl_dir).unwrap() {
-        if let Ok(entry) = entry {
-            if let Ok(content) = fs::read_to_string(entry.path()) {
-                if let Ok(idl) = serde_json::from_str::<Idl>(&content) {
-                    for acc in idl.accounts {
-                        let preimage = format!("account:{}", acc.name);
-                        let mut hasher = Sha256::new();
-                        hasher.update(preimage.as_bytes());
-                        let hashed = hasher.finalize();
-                        if &hashed[0..8] == discriminator {
-                            matched_def = Some(acc);
-                            break;
-                        }
+    for entry in fs::read_dir(&idl_dir).unwrap().flatten() {
+        if let Ok(content) = fs::read_to_string(entry.path()) {
+            if let Ok(idl) = serde_json::from_str::<Idl>(&content) {
+                for acc in idl.accounts {
+                    let preimage = format!("account:{}", acc.name);
+                    let mut hasher = Sha256::new();
+                    hasher.update(preimage.as_bytes());
+                    let hashed = hasher.finalize();
+                    if &hashed[0..8] == discriminator {
+                        matched_def = Some(acc);
+                        break;
                     }
                 }
             }
@@ -149,50 +150,65 @@ pub fn execute(address: &String) {
                 }
             }
             "u8" | "i8" => {
-                if offset + 1 <= account_data.len() {
+                if offset < account_data.len() {
                     let val = account_data[offset];
-                    result_obj.insert(field.name.clone(), Value::Number(serde_json::Number::from(val)));
+                    result_obj.insert(
+                        field.name.clone(),
+                        Value::Number(serde_json::Number::from(val)),
+                    );
                     offset += 1;
                 }
             }
             "u16" | "i16" => {
                 if offset + 2 <= account_data.len() {
                     let mut arr = [0u8; 2];
-                    arr.copy_from_slice(&account_data[offset..offset+2]);
+                    arr.copy_from_slice(&account_data[offset..offset + 2]);
                     let val = u16::from_le_bytes(arr);
-                    result_obj.insert(field.name.clone(), Value::Number(serde_json::Number::from(val)));
+                    result_obj.insert(
+                        field.name.clone(),
+                        Value::Number(serde_json::Number::from(val)),
+                    );
                     offset += 2;
                 }
             }
             "u32" | "i32" => {
                 if offset + 4 <= account_data.len() {
                     let mut arr = [0u8; 4];
-                    arr.copy_from_slice(&account_data[offset..offset+4]);
+                    arr.copy_from_slice(&account_data[offset..offset + 4]);
                     let val = u32::from_le_bytes(arr);
-                    result_obj.insert(field.name.clone(), Value::Number(serde_json::Number::from(val)));
+                    result_obj.insert(
+                        field.name.clone(),
+                        Value::Number(serde_json::Number::from(val)),
+                    );
                     offset += 4;
                 }
             }
             "u64" | "i64" => {
                 if offset + 8 <= account_data.len() {
                     let mut arr = [0u8; 8];
-                    arr.copy_from_slice(&account_data[offset..offset+8]);
+                    arr.copy_from_slice(&account_data[offset..offset + 8]);
                     let val = u64::from_le_bytes(arr);
-                    result_obj.insert(field.name.clone(), Value::Number(serde_json::Number::from(val)));
+                    result_obj.insert(
+                        field.name.clone(),
+                        Value::Number(serde_json::Number::from(val)),
+                    );
                     offset += 8;
                 }
             }
             "bool" => {
-                if offset + 1 <= account_data.len() {
+                if offset < account_data.len() {
                     let val = account_data[offset] != 0;
                     result_obj.insert(field.name.clone(), Value::Bool(val));
                     offset += 1;
                 }
             }
             _ => {
-                result_obj.insert(field.name.clone(), Value::String(format!("unsupported type: {}", ty_str)));
+                result_obj.insert(
+                    field.name.clone(),
+                    Value::String(format!("unsupported type: {}", ty_str)),
+                );
                 // We cannot safely advance offset for dynamic lengths without robust parsing
-                break; 
+                break;
             }
         }
     }

@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::utils::router;
+use colored::*;
 use std::env;
 use std::fs;
-use colored::*;
 
 fn get_active_version(config: &Config) -> Option<String> {
     let os = std::env::consts::OS;
@@ -13,7 +13,8 @@ fn get_active_version(config: &Config) -> Option<String> {
                 let versions_dir_str = config.versions_dir.to_string_lossy().to_string();
                 if let Some(start_idx) = contents.find(&versions_dir_str) {
                     let sub = &contents[start_idx + versions_dir_str.len()..];
-                    let parts: Vec<&str> = sub.split(|c| c == '\\' || c == '/').filter(|s| !s.is_empty()).collect();
+                    let parts: Vec<&str> =
+                        sub.split(['\\', '/']).filter(|s| !s.is_empty()).collect();
                     if !parts.is_empty() {
                         return Some(parts[0].to_string());
                     }
@@ -27,7 +28,7 @@ fn get_active_version(config: &Config) -> Option<String> {
             let versions_dir_str = config.versions_dir.to_string_lossy().to_string();
             if let Some(start_idx) = target_str.find(&versions_dir_str) {
                 let sub = &target_str[start_idx + versions_dir_str.len()..];
-                let parts: Vec<&str> = sub.split(|c| c == '/' || c == '\\').filter(|s| !s.is_empty()).collect();
+                let parts: Vec<&str> = sub.split(['/', '\\']).filter(|s| !s.is_empty()).collect();
                 if !parts.is_empty() {
                     return Some(parts[0].to_string());
                 }
@@ -64,25 +65,41 @@ pub fn execute(config: &Config, version: &str) {
     let bin_path = root_path.join("bin").join(&bin_name);
 
     if !bin_path.exists() {
-        println!("{} Version {} is not installed. Run `nacvm install {}` first.", "Error:".red().bold(), resolved_version, version);
+        println!(
+            "{} Version {} is not installed. Run `nacvm install {}` first.",
+            "Error:".red().bold(),
+            resolved_version,
+            version
+        );
         return;
     }
 
     // Check if the requested version is already active
     if let Some(active_version) = get_active_version(config) {
         if active_version == resolved_version {
-            println!("{} Version {} is already in use.", "Info:".blue().bold(), resolved_version);
+            println!(
+                "{} Version {} is already in use.",
+                "Info:".blue().bold(),
+                resolved_version
+            );
             return;
         }
     }
 
-
     match router::create_router(config, &resolved_version) {
         Ok(_) => {
-            println!("{} Using version {}", "Success:".green().bold(), resolved_version);
+            println!(
+                "{} Using version {}",
+                "Success:".green().bold(),
+                resolved_version
+            );
         }
         Err(e) => {
-            println!("{} Failed to update active version: {}", "Error:".red().bold(), e);
+            println!(
+                "{} Failed to update active version: {}",
+                "Error:".red().bold(),
+                e
+            );
         }
     }
 }

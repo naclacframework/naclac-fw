@@ -1,0 +1,27 @@
+[package]
+name = "accounts_constraints"
+version = "0.1.0"
+description = "Regression test: one instruction per #[account(...)] constraint keyword (pinocchio backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["pinocchio"]
+pinocchio = ["naclac-lang/pinocchio"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", default-features = false }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+accounts-constraints-client = { version = "0.1.0", path = "../../clients/rust/accounts_constraints" }
+
+[lints]
+workspace = true

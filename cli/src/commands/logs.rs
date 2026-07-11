@@ -1,5 +1,5 @@
-use std::process::Command;
 use std::fs;
+use std::process::Command;
 use toml::Value;
 
 pub fn execute(program_id: Option<&str>) {
@@ -7,7 +7,10 @@ pub fn execute(program_id: Option<&str>) {
     let toml_path = if current_dir.join("Naclac.toml").exists() {
         current_dir.join("Naclac.toml")
     } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../../Naclac.toml").canonicalize().unwrap()
+        current_dir
+            .join("../../Naclac.toml")
+            .canonicalize()
+            .unwrap()
     } else {
         eprintln!("❌ Not a Naclac workspace. Please run this inside a naclac project or specify a target '--url' manually via raw solana CLI.");
         std::process::exit(1);
@@ -31,7 +34,7 @@ pub fn execute(program_id: Option<&str>) {
 
     let mut cmd = Command::new("solana");
     cmd.arg("logs");
-    
+
     if let Some(pid) = program_id {
         println!("📡 Tailing logs for program: {} on {}", pid, cluster);
         cmd.arg(pid);

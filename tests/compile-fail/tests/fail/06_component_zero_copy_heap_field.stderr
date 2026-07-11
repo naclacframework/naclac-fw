@@ -1,0 +1,5 @@
+error: Naclac Error: field 'bad' uses a heap-allocated type ('Vec'/'String') in a zero-copy #[component]. Persisted zero-copy account data is read via raw byte-casting, and a heap pointer cannot survive being written to an account and read back in a later transaction. Please use a fixed-size array (e.g. '[u8; 64]') instead.
+  --> tests/fail/06_component_zero_copy_heap_field.rs:11:14
+   |
+11 |     pub bad: Vec<u8>,
+   |              ^^^^^^^

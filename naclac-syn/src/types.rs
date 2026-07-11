@@ -46,6 +46,9 @@ pub struct NaclacAccount {
     pub name: String,
     pub writable: bool,
     pub signer: bool,
+    /// Whether this account is marked `optional` in the instruction context attribute.
+    /// `None` means not explicitly set (treated as `false` by the IDL emitter).
+    pub optional: Option<bool>,
     pub pda: Option<NaclacPda>,
     pub address: Option<String>,
 }
@@ -67,7 +70,17 @@ pub enum NaclacSeed {
     #[serde(rename = "arg")]
     Arg { path: String },
     #[serde(rename = "account")]
-    Account { path: String },
+    Account {
+        path: String,
+        /// Set only when `path` is a dotted field access (e.g. `registry.bump`)
+        /// AND the referenced field's type was resolved from the backing
+        /// component's own struct definition — a plain IDL type string like
+        /// `"u8"` or `"publicKey"`. `None` for a plain whole-account
+        /// reference (`path` has no dot), or when the field's type couldn't
+        /// be resolved (e.g. it's a nested/complex type, not a primitive).
+        #[serde(skip_serializing_if = "Option::is_none")]
+        field_type: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

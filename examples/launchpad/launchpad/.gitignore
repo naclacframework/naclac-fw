@@ -1,0 +1,16 @@
+target/
+Cargo.lock
+**/*.rs.bk
+node_modules/
+dist/
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+test-ledger/
+.anchor/
+*.log
+.env
+keys/
+*.json
+!package.json
+!tsconfig.json

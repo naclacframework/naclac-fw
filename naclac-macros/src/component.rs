@@ -15,18 +15,34 @@ use syn::{parse_macro_input, ItemStruct};
 /// - **Zero-Copy Mode**: Forces `#[repr(C)]`, derives `Pod`/`Zeroable`, and replaces `Vec`/`String`
 ///   with their memory-mapped equivalents (`Span`/`ZcString`).
 /// - **Borsh Mode**: Derives `BorshSerialize` and `BorshDeserialize` for standard heap-allocated SBF execution.
-pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as ItemStruct);
     let struct_name = &ast.ident;
     let vis = &ast.vis;
     let fields = &ast.fields;
 
-    // 1. Check if the developer explicitly asked for zero-copy
-    let is_zero_copy = if cfg!(feature = "pinocchio") {
-        true
-    } else {
-        attr.to_string().contains("zero_copy")
-    };
+    // Validate that no fields use the Pubkey type
+    for field in fields.iter() {
+        let ty = &field.ty;
+        let ty_str = quote! { #ty }.to_string().replace(" ", "");
+        if ty_str.contains("Pubkey") {
+            return syn::Error::new_spanned(
+                ty,
+                "Naclac Error: 'Pubkey' has been deprecated in favor of 'Address' in Solana v3. Please replace it with 'Address'."
+            )
+            .to_compile_error()
+            .into();
+        }
+    }
+
+    // Zero-copy vs Borsh is determined automatically: pinocchio is always
+    // zero-copy, and otherwise the presence of the `borsh` feature is a
+    // complete signal (there is no third representation for account data).
+    // Any legacy `#[component(zero_copy)]`-style argument is silently
+    // ignored rather than rejected — it has no effect on codegen either way.
+
+    let is_zero_copy =
+        crate::caller_has_feature("pinocchio") || !crate::caller_has_feature("borsh");
 
     // 2. Compute the 8-byte Anchor-standard hash ONCE during compilation
     let struct_str = struct_name.to_string();
@@ -44,7 +60,19 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let b6 = disc[6];
     let b7 = disc[7];
 
-    // 3. Prepare cleaned fields (remove #[max_len] and perform type rewriting if zero-copy)
+    // 3. Prepare cleaned fields (remove #[max_len]).
+    //
+    // NOTE: zero-copy component fields must NOT be silently rewritten from
+    // `Vec<T>`/`String` to `Span<T>`/`ZcString` here. Unlike an instruction
+    // argument (parsed fresh from the current instruction's byte buffer, used
+    // and discarded within that same call), a `#[component]` field is *persisted*
+    // account data — it gets round-tripped through `unsafe impl Pod`/raw byte
+    // casting across separate transactions. `Span<T>` is a raw pointer + length;
+    // a pointer value written into on-chain bytes in one transaction is
+    // meaningless (or attacker-controlled) when read back in a later one —
+    // dereferencing it then is a real, exploitable memory-safety bug, not just
+    // a missed optimization. There is no sound way to make this rewrite work,
+    // so it's rejected below instead of silently generating unsound code.
     let mut cleaned_ast = ast.clone();
     if let syn::Fields::Named(fields_named) = &mut cleaned_ast.fields {
         for field in &mut fields_named.named {
@@ -53,16 +81,22 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             if is_zero_copy {
                 let ty = &field.ty;
                 let ty_str = quote! { #ty }.to_string().replace(" ", "");
-                if ty_str.contains("Vec<") {
-                    let inner_ty = ty_str.split("Vec<").nth(1).unwrap().trim_end_matches('>');
-                    let new_ty: syn::Type =
-                        syn::parse_str(&format!("naclac_lang::prelude::Span<'info, {}>", inner_ty))
-                            .unwrap();
-                    field.ty = new_ty;
-                } else if ty_str == "String" {
-                    let new_ty: syn::Type =
-                        syn::parse_str("naclac_lang::prelude::ZcString<'info>").unwrap();
-                    field.ty = new_ty;
+                if ty_str.contains("Vec<") || ty_str == "String" {
+                    let field_name = field
+                        .ident
+                        .as_ref()
+                        .map(|i| i.to_string())
+                        .unwrap_or_default();
+                    return syn::Error::new_spanned(
+                        ty,
+                        format!(
+                            "Naclac Error: field '{}' uses a heap-allocated type ('Vec'/'String') in a zero-copy \
+                             #[component]. Persisted zero-copy account data is read via raw byte-casting, and a \
+                             heap pointer cannot survive being written to an account and read back in a later \
+                             transaction. Please use a fixed-size array (e.g. '[u8; 64]') instead.",
+                            field_name
+                        )
+                    ).to_compile_error().into();
                 }
             }
         }
@@ -70,7 +104,6 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let cleaned_fields = &cleaned_ast.fields;
 
     let expanded = if is_zero_copy {
-        // ... (Zero-copy logic remains unchanged)
         quote! {
             #[repr(C)]
             #vis struct #struct_name #cleaned_fields
@@ -81,16 +114,14 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
             impl core::marker::Copy for #struct_name {}
 
-            // SAFETY: #[component(zero_copy)] forcefully applies #[repr(C)] to the struct above.
-            // This guarantees a stable memory layout, making it safe to transmute to/from byte slices.
             unsafe impl naclac_lang::prelude::bytemuck::Pod for #struct_name {}
-            // SAFETY: A fully zeroed out block of memory represents a valid state for this Pod type.
             unsafe impl naclac_lang::prelude::bytemuck::Zeroable for #struct_name {}
 
             impl #struct_name {
                 pub const DISCRIMINATOR: [u8; 8] = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
                 pub const SPACE: usize = core::mem::size_of::<Self>() + 8;
 
+                #[cfg(not(target_os = "solana"))]
                 #[inline(always)]
                 pub fn load(data: &[u8]) -> naclac_lang::prelude::Result<&Self> {
                     if data.len() < Self::SPACE {
@@ -102,6 +133,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                     Ok(naclac_lang::prelude::bytemuck::from_bytes(&data[8..Self::SPACE]))
                 }
 
+                #[cfg(not(target_os = "solana"))]
                 #[inline(always)]
                 pub fn load_mut(data: &mut [u8]) -> naclac_lang::prelude::Result<&mut Self> {
                     if data.len() < Self::SPACE {
@@ -114,14 +146,11 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            impl naclac_lang::prelude::NaclacZeroCopy for #struct_name {
-                #[inline(always)]
-                fn load(data: &[u8]) -> naclac_lang::prelude::Result<&Self> { Self::load(data) }
-                #[inline(always)]
-                fn load_mut(data: &mut [u8]) -> naclac_lang::prelude::Result<&mut Self> { Self::load_mut(data) }
-            }
+            impl naclac_lang::prelude::NaclacZeroCopy for #struct_name {}
 
-            impl naclac_lang::prelude::Discriminator for #struct_name {}
+            impl naclac_lang::prelude::Discriminator for #struct_name {
+                const DISCRIMINATOR: [u8; 8] = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
+            }
         }
     } else {
         // --- Borsh Engine Generation ---
@@ -129,7 +158,6 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         let field_sizes: Vec<proc_macro2::TokenStream> = fields
             .iter()
             .map(|f| {
-                // ... (rest of the field_sizes logic)
                 let ty = &f.ty;
                 let mut max_len = None;
 
@@ -151,7 +179,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                         "u32" | "i32" | "f32" => quote! { 4 },
                         "u64" | "i64" | "f64" => quote! { 8 },
                         "u128" | "i128" => quote! { 16 },
-                        "Pubkey" | "naclac_lang::prelude::Pubkey" => quote! { 32 },
+                        "Address" | "naclac_lang::prelude::Address" => quote! { 32 },
                         _ => quote! { core::mem::size_of::<#ty>() },
                     }
                 }
@@ -159,9 +187,6 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             .collect();
 
         quote! {
-            #[cfg(feature = "pinocchio")]
-            compile_error!("Naclac Error: Component must be marked with `#[component(zero_copy)]` when building for Pinocchio.");
-
             #[cfg(not(feature = "pinocchio"))]
             #[derive(Clone, naclac_lang::prelude::BorshSerialize, naclac_lang::prelude::BorshDeserialize)]
             #[cfg_attr(not(feature = "pinocchio"), borsh(crate = "naclac_lang::prelude::borsh"))]
@@ -193,7 +218,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             #[cfg(not(feature = "pinocchio"))]
-            impl naclac_lang::prelude::Discriminator for #struct_name {}
+            impl naclac_lang::prelude::Discriminator for #struct_name {
+                const DISCRIMINATOR: [u8; 8] = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
+            }
         }
     };
 

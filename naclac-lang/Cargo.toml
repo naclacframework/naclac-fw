@@ -7,50 +7,25 @@ repository.workspace = true
 description = "The core Rust framework for writing hyper-optimized Solana smart contracts."
 
 [dependencies]
-solana-program = { workspace = true, optional = true }
-bytemuck = { workspace = true, features = ["derive"] }
-naclac-macros = { workspace = true }
-borsh = { workspace = true, features = ["derive"], optional = true }
-spl-token = { workspace = true, features = ["no-entrypoint"], optional = true }
-spl-token-2022 = { workspace = true, features = ["no-entrypoint"], optional = true }
-solana-system-interface = { workspace = true, features = ["bincode"], optional = true }
-spl-associated-token-account = { workspace = true, features = ["no-entrypoint"], optional = true }
-pinocchio = { workspace = true, optional = true }
-pinocchio-system = { workspace = true, optional = true }
-pinocchio-token = { workspace = true, optional = true }
-pinocchio-token-2022 = { workspace = true, optional = true }
-pinocchio-log = { workspace = true, optional = true }
-pinocchio-pubkey = { workspace = true, optional = true }
-pinocchio-log-macro = { workspace = true, optional = true }
-pinocchio-associated-token-account = { workspace = true, optional = true }
-pinocchio-memo = { workspace = true, optional = true }
-solana-address = { workspace = true, optional = true }
-blake3 = { workspace = true }
+naclac-core = { workspace = true, default-features = false }
+naclac-macros = { workspace = true, default-features = false }
+naclac-token = { workspace = true, optional = true }
 
 [features]
-no-std = []
-default = ["borsh", "solana"]
-solana = ["dep:solana-program", "dep:solana-system-interface"]
-# Standard Solana Token Features
-spl-token = ["dep:spl-token", "dep:spl-token-2022"]
-spl-associated-token-account = ["dep:spl-associated-token-account"]
-# Pinocchio Token Features
-pinocchio-token = ["dep:pinocchio-token", "dep:pinocchio-token-2022"]
-pinocchio-ata = ["dep:pinocchio-associated-token-account"]
-idl-build = []
-debug-mode = ["naclac-macros/debug-mode"]
-pinocchio = [
-    "dep:pinocchio", 
-    "dep:pinocchio-system", 
-    "dep:pinocchio-log", 
-    "dep:pinocchio-pubkey",
-    "dep:pinocchio-log-macro",
-    "dep:pinocchio-memo",
-    "pinocchio-ata",
-    "naclac-macros/pinocchio",
-    "zero-copy"
-]
-zero-copy = []
+no-std = ["naclac-core/no-std"]
+default = ["solana"]
+
+# Backend selection — forwards to naclac-core, and (via weak `?/` features)
+# to naclac-token IF naclac-token is already active via the `token` feature.
+solana = ["naclac-core/solana", "naclac-token?/solana"]
+pinocchio = ["naclac-core/pinocchio", "naclac-macros/pinocchio", "naclac-token?/pinocchio"]
+
+# Single unified token toggle — ATA is always included with token support now, not a separate opt-in.
+token = ["dep:naclac-token"]
+
+idl-build = ["naclac-core/idl-build"]
+debug-mode = ["naclac-core/debug-mode", "naclac-macros/debug-mode"]
+borsh = ["naclac-core/borsh", "naclac-token?/borsh", "naclac-macros/borsh"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

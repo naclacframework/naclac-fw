@@ -1,0 +1,59 @@
+name: Publish npm
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        description: "If true, use --dry-run instead of actually publishing"
+        required: true
+        type: boolean
+
+jobs:
+  publish-npm-dry-run:
+    name: Publish npm package (dry-run)
+    if: ${{ inputs.dry_run }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: pnpm/action-setup@v4
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: npm publish --dry-run --access public
+
+  publish-npm:
+    name: Publish npm package
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    environment:
+      name: release
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: pnpm/action-setup@v4
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: npm publish --provenance --access public

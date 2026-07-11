@@ -1,0 +1,18 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+amm = "9Ka4d8GiqS72JDJNqNFvUpXBS1LZ6BTCskjCaCS34vuE"
+token_creator = "9j8UexsZ6UFq7B8as4vXPLtzVN4XyBsZzqhfvmGpNfCB"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"
+test-node = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""

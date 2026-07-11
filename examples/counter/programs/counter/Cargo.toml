@@ -1,0 +1,27 @@
+[package]
+name = "counter"
+version = "0.1.0"
+description = "Created with Naclac Framework"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["pinocchio"]
+pinocchio = ["naclac-lang/pinocchio"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", default-features = false }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+counter-client = { version = "0.1.0", path = "../../clients/rust/counter" }
+
+[lints]
+workspace = true

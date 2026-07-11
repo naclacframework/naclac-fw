@@ -1,11 +1,11 @@
-use std::path::Path;
 use colored::*;
+use std::path::Path;
 
 #[cfg(target_family = "unix")]
 pub fn ensure_in_path(bin_dir: &Path) {
+    use std::env;
     use std::fs::OpenOptions;
     use std::io::{Read, Write};
-    use std::env;
 
     let home_dir = match dirs::home_dir() {
         Some(dir) => dir,
@@ -13,28 +13,35 @@ pub fn ensure_in_path(bin_dir: &Path) {
     };
 
     let shell = env::var("SHELL").unwrap_or_default();
-    
+
     let target_config = if shell.contains("zsh") {
         ".zshrc"
     } else if shell.contains("bash") {
         ".bashrc"
     } else {
-        ".profile" 
+        ".profile"
     };
 
     let config_path = home_dir.join(target_config);
-    let export_line = format!("\n# Naclac Version Manager\nexport PATH=\"{}:$PATH\"\n", bin_dir.to_string_lossy());
+    let export_line = format!(
+        "\n# Naclac Version Manager\nexport PATH=\"{}:$PATH\"\n",
+        bin_dir.to_string_lossy()
+    );
 
     if config_path.exists() {
         if let Ok(mut file) = std::fs::File::open(&config_path) {
             let mut contents = String::new();
             if file.read_to_string(&mut contents).is_ok() && contents.contains(".nacvm/bin") {
-                return; 
+                return;
             }
         }
     }
 
-    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&config_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&config_path)
+    {
         if file.write_all(export_line.as_bytes()).is_ok() {
             println!(
                 "{} Automatically added nacvm to your ~/{}",
@@ -62,7 +69,7 @@ pub fn ensure_in_path(bin_dir: &Path) {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let env_key = match hkcu.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE) {
         Ok(key) => key,
-        Err(_) => return, 
+        Err(_) => return,
     };
 
     let current_path: String = env_key.get_value("Path").unwrap_or_default();
@@ -85,9 +92,7 @@ pub fn ensure_in_path(bin_dir: &Path) {
                 "{} You must restart your terminal or manually run this command to apply changes:",
                 "Note:".yellow().bold()
             );
-            println!(
-                "      $env:PATH = \"$HOME\\.nacvm\\bin;$env:PATH\""
-            );
+            println!("      $env:PATH = \"$HOME\\.nacvm\\bin;$env:PATH\"");
             println!(
                 "{} Test it by running: naclac --version",
                 "Note:".yellow().bold()

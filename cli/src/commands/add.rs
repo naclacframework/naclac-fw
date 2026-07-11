@@ -1,10 +1,10 @@
-use std::fs;
-use heck::ToSnakeCase;
-use dialoguer::Select;
 use dialoguer::theme::ColorfulTheme;
+use dialoguer::Select;
+use heck::ToSnakeCase;
+use std::fs;
 
 use crate::commands::init::templates::{generate_program, ProgramMode};
-use crate::commands::init::utils::{generate_keypair};
+use crate::commands::init::utils::generate_keypair;
 
 pub fn execute(name: &str, mode_flag: Option<&str>) {
     let current_dir = std::env::current_dir().unwrap();
@@ -33,7 +33,10 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
             "standard" | "borsh" => ProgramMode::Standard,
             "optimized" | "zero-copy" => ProgramMode::Optimized,
             _ => {
-                eprintln!("❌ Error: Invalid mode '{}'. Available: pinocchio, standard, optimized", m);
+                eprintln!(
+                    "❌ Error: Invalid mode '{}'. Available: pinocchio, standard, optimized",
+                    m
+                );
                 std::process::exit(1);
             }
         }
@@ -41,9 +44,14 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
         prompt_mode_selection()
     };
 
-    println!("🏗️  Initializing new Naclac program: '{}' (Mode: {:?})...", snake_name, mode);
+    println!(
+        "🏗️  Initializing new Naclac program: '{}' (Mode: {:?})...",
+        snake_name, mode
+    );
 
-    let keypair_path = workspace_root.join("target/deploy").join(format!("{}-keypair.json", snake_name));
+    let keypair_path = workspace_root
+        .join("target/deploy")
+        .join(format!("{}-keypair.json", snake_name));
     let address = generate_keypair(&keypair_path);
 
     // --- Generate Program using shared template engine ---
@@ -52,7 +60,7 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
     // --- Sync Naclac.toml ---
     let config_path = workspace_root.join("Naclac.toml");
     let mut config_text = fs::read_to_string(&config_path).unwrap_or_default();
-    
+
     let target_section = if config_text.contains("[programs.localnet]") {
         "[programs.localnet]"
     } else if config_text.contains("[programs.devnet]") {
@@ -68,12 +76,18 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
             fs::write(&config_path, config_text).unwrap();
         }
     } else {
-        config_text.push_str(&format!("\n\n[programs.localnet]\n{} = \"{}\"", snake_name, address));
+        config_text.push_str(&format!(
+            "\n\n[programs.localnet]\n{} = \"{}\"",
+            snake_name, address
+        ));
         fs::write(&config_path, config_text).unwrap();
     }
 
     println!("✅ Securely mapped Program ID: {}", address);
-    println!("🎉 '{}' is locked, loaded, and ready to disrupt!", snake_name);
+    println!(
+        "🎉 '{}' is locked, loaded, and ready to disrupt!",
+        snake_name
+    );
 }
 
 fn prompt_mode_selection() -> ProgramMode {

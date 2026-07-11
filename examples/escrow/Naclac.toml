@@ -1,0 +1,19 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+escrow_zc = "Di894aop1JkErnkf5DKFHuHtFdLkYH8ZC5XDv4cdnZwm"
+escrow_borsh = "2nJawW5tL4ab5M7CW8ut8www49GPkkZs6oMqaoSM34rN"
+escrow = "CftDHdXFWzSiY7AbXsJcBWVhWGx1qpk2TYbRtEeDvrX1"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"
+test-node = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""

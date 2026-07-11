@@ -1,0 +1,16 @@
+[package]
+name = "accounts-constraints-borsh-client"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["offchain", "borsh"]
+offchain = ["dep:naclac-client"]
+cpi = ["dep:naclac-lang"]
+zero_copy = ["naclac-lang/solana"]
+pinocchio = ["naclac-lang/pinocchio"]
+borsh = ["naclac-lang/borsh", "zero_copy"]
+
+[dependencies]
+naclac-client = { path = "../../../../../naclac-client", version = "0.1.0", optional = true }
+naclac-lang = { path = "../../../../../naclac-lang", version = "0.1.0", optional = true, default-features = false }

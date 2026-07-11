@@ -1,14 +1,14 @@
+use dialoguer::theme::ColorfulTheme;
+use dialoguer::Select;
+use heck::ToSnakeCase;
 use std::path::Path;
 use std::process::Command;
-use heck::ToSnakeCase;
-use dialoguer::Select;
-use dialoguer::theme::ColorfulTheme;
 
 pub mod templates;
 pub mod utils;
 
 use self::templates::{generate_program, ProgramMode};
-use self::utils::{ensure_dir, write_file, generate_keypair};
+use self::utils::{ensure_dir, generate_keypair, write_file};
 
 pub fn execute(name: &str, mode_flag: Option<&str>) {
     let root = Path::new(name);
@@ -27,7 +27,10 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
             "standard" | "borsh" => ProgramMode::Standard,
             "optimized" | "zero-copy" => ProgramMode::Optimized,
             _ => {
-                eprintln!("❌ Error: Invalid mode '{}'. Available: pinocchio, standard, optimized", m);
+                eprintln!(
+                    "❌ Error: Invalid mode '{}'. Available: pinocchio, standard, optimized",
+                    m
+                );
                 std::process::exit(1);
             }
         }
@@ -41,7 +44,9 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
     ensure_dir(&root.join("tests"));
     ensure_dir(&root.join("target/deploy"));
 
-    let keypair_path = root.join("target/deploy").join(format!("{}-keypair.json", snake_name));
+    let keypair_path = root
+        .join("target/deploy")
+        .join(format!("{}-keypair.json", snake_name));
     let program_id = generate_keypair(&keypair_path);
     println!("✅ Program ID generated: {}", program_id);
 
@@ -111,7 +116,9 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
     );
     write_file(&root.join("package.json"), &package_json);
 
-    write_file(&root.join("tsconfig.json"), r#"{
+    write_file(
+        &root.join("tsconfig.json"),
+        r#"{
   "compilerOptions": {
     "types": ["mocha", "node"],
     "typeRoots": ["./node_modules/@types"],
@@ -126,13 +133,17 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
   },
   "include": ["tests/**/*.ts"]
 }
-"#);
+"#,
+    );
 
     write_file(&root.join(".gitignore"), "target/\nCargo.lock\n**/*.rs.bk\nnode_modules/\ndist/\nyarn.lock\npackage-lock.json\npnpm-lock.yaml\ntest-ledger/\n.anchor/\n*.log\n.env\nkeys/\n*.json\n!package.json\n!tsconfig.json\n");
-    write_file(&root.join(".prettierignore"), "node_modules/\ntarget/\ntest-ledger/\ndist/\n");
+    write_file(
+        &root.join(".prettierignore"),
+        "node_modules/\ntarget/\ntest-ledger/\ndist/\n",
+    );
 
     // --- Generate Program ---
-    generate_program(&root, name, &program_id, mode, true);
+    generate_program(root, name, &program_id, mode, true);
 
     // --- Finalize ---
     println!("📦 Installing Node dependencies...");
@@ -140,7 +151,7 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
     for pm in ["yarn", "pnpm", "npm"].iter() {
         if Command::new(pm).arg("--version").output().is_ok() {
             println!("   Using {} to install...", pm);
-            if let Ok(status) = Command::new(pm).arg("install").current_dir(&root).status() {
+            if let Ok(status) = Command::new(pm).arg("install").current_dir(root).status() {
                 if status.success() {
                     deps_installed = true;
                     break;
@@ -150,11 +161,20 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
     }
 
     if !deps_installed {
-        println!("   ❌ Warning: Dependency installation failed. You can install them manually later.");
+        println!(
+            "   ❌ Warning: Dependency installation failed. You can install them manually later."
+        );
     }
 
-    Command::new("git").arg("init").current_dir(&root).output().ok();
-    println!("\n✅ Success! Naclac Workspace '{}' generated (Mode: {:?}).", name, mode);
+    Command::new("git")
+        .arg("init")
+        .current_dir(root)
+        .output()
+        .ok();
+    println!(
+        "\n✅ Success! Naclac Workspace '{}' generated (Mode: {:?}).",
+        name, mode
+    );
 }
 
 fn prompt_mode_selection() -> ProgramMode {

@@ -16,14 +16,27 @@ use syn::{parse_macro_input, ItemStruct};
 ///   the raw runtime logging syscall (`sol_log_data`) with the pre-computed discriminator.
 /// - **Borsh Mode**: Serializes the struct dynamically using Borsh and passes it to the
 ///   event emitter.
-pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as ItemStruct);
     let struct_name = &ast.ident;
     let vis = &ast.vis;
 
-    // Check for explicit zero_copy override: #[event(zero_copy)]
-    let attr_str = attr.to_string();
-    let is_zero_copy_explicit = attr_str.contains("zero_copy");
+    // Validate that no fields use the Pubkey type
+    for field in ast.fields.iter() {
+        let ty = &field.ty;
+        let ty_str = quote! { #ty }.to_string().replace(" ", "");
+        if ty_str.contains("Pubkey") {
+            return syn::Error::new_spanned(
+                ty,
+                "Naclac Error: 'Pubkey' has been deprecated in favor of 'Address' in Solana v3. Please replace it with 'Address'."
+            )
+            .to_compile_error()
+            .into();
+        }
+    }
+
+    // Zero-copy vs Borsh mode is auto-detected from the `borsh` feature; any
+    // legacy `#[event(zero_copy)]`-style argument is silently ignored.
 
     let discriminator_preimage = format!("event:{}", struct_name);
     let mut hasher = Sha256::new();
@@ -39,11 +52,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let b6 = result[6];
     let b7 = result[7];
 
-    let zero_copy_predicate = if is_zero_copy_explicit {
-        quote! { all() }
-    } else {
-        quote! { feature = "pinocchio" }
-    };
+    let zero_copy_predicate = quote! { any(feature = "pinocchio", not(feature = "borsh")) };
 
     // --- Size Calculation for Automatic Padding ---
     // Zero-copy structs must be properly padded and aligned to prevent memory faults
@@ -59,7 +68,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         let ty_str = quote!(#f_ty).to_string().replace(" ", "");
         let size = match ty_str.as_str() {
-            "Pubkey" => 32,
+            "Address" => 32,
             "u128" | "i128" => 16,
             "u64" | "i64" => 8,
             "u32" | "i32" => 4,
@@ -69,7 +78,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                 // Opt<T> is T + 1 byte tag + 7 bytes padding = T + 8
                 let inner = s.trim_start_matches("Opt<").trim_end_matches(">");
                 let inner_size = match inner {
-                    "Pubkey" => 32,
+                    "Address" => 32,
                     "u128" | "i128" => 16,
                     "u64" | "i64" => 8,
                     "u32" | "i32" => 4,
@@ -98,7 +107,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let alignment = if has_u128 { 16 } else { 8 };
-    let padding_size = if total_size % alignment == 0 {
+    let padding_size = if total_size.is_multiple_of(alignment) {
         0
     } else {
         alignment - (total_size % alignment)
@@ -118,7 +127,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #ast
 
         #[cfg(#zero_copy_predicate)]
-        #[derive(Clone, Copy, Debug, Default, naclac_lang::prelude::Pod, naclac_lang::prelude::Zeroable)]
+        #[cfg_attr(feature = "debug-mode", derive(Debug))]
+        #[derive(Clone, Copy, Default, naclac_lang::prelude::Pod, naclac_lang::prelude::Zeroable)]
         #[bytemuck(crate = "naclac_lang::bytemuck")]
         #[repr(C)]
         #vis struct #struct_name {

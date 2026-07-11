@@ -1,0 +1,51 @@
+{
+  "name": "discriminator-client",
+  "version": "0.1.0",
+  "description": "Auto-generated TypeScript SDK. Run 'npm install && npm run build' to bundle for production.",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./kit": {
+      "types": "./dist/client-kit.d.ts",
+      "import": "./dist/client-kit.mjs",
+      "require": "./dist/client-kit.js"
+    },
+    "./legacy": {
+      "types": "./dist/client-legacy.d.ts",
+      "import": "./dist/client-legacy.mjs",
+      "require": "./dist/client-legacy.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "kit": [
+        "./dist/client-kit.d.ts"
+      ],
+      "legacy": [
+        "./dist/client-legacy.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "peerDependencies": {
+    "@naclac-fw/client": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.3"
+  }
+}

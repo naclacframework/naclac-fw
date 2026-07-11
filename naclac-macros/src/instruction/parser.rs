@@ -14,24 +14,31 @@ pub struct ParsedField {
     pub type_str: String,
     pub is_signer: bool,
     pub is_mut: bool,
+    pub is_alias: bool,
+    pub is_executable: bool,
     pub pda_program: Option<String>,
     pub pda_seed: Option<syn::ExprArray>,
     pub pda_bump: Option<String>,
     pub init_config: Option<InitConfig>,
     pub is_init_if_needed: bool,
     pub close_destination: Option<String>,
-    pub has_one: Vec<HasOneConfig>,
+    pub relations: Vec<RelationConfig>,
     pub owner: Option<syn::Expr>,
     pub address: Option<syn::Expr>,
     pub realloc: Option<ReallocConfig>,
     pub token_mint: Option<syn::Expr>,
     pub token_authority: Option<syn::Expr>,
     pub token_program: Option<syn::Expr>,
+    pub mint_decimals: Option<syn::Expr>,
+    pub mint_authority: Option<syn::Expr>,
+    pub mint_freeze_authority: Option<syn::Expr>,
     pub index: usize,
 }
 
-pub struct HasOneConfig {
-    pub target: String,
+#[derive(Clone)]
+pub struct RelationConfig {
+    pub field: Ident,
+    pub target: syn::Expr,
     pub custom_error: Option<syn::Expr>,
 }
 
@@ -44,6 +51,29 @@ pub struct ReallocConfig {
     pub space: proc_macro2::TokenStream,
     pub payer: String,
     pub zero: bool,
+}
+
+/// True if any doc-comment line on this field (once desugared from `///`/`#[doc = "..."]`
+/// and trimmed of leading whitespace) starts with `SAFETY:`. Used to require an explicit,
+/// human-written justification on every unchecked `AccountInfo` field — mirroring the
+/// `// SAFETY:` convention this codebase already uses for `unsafe` blocks.
+fn has_safety_doc_comment(attrs: &[syn::Attribute]) -> bool {
+    attrs.iter().any(|attr| {
+        if !attr.path().is_ident("doc") {
+            return false;
+        }
+        let syn::Meta::NameValue(nv) = &attr.meta else {
+            return false;
+        };
+        let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) = &nv.value
+        else {
+            return false;
+        };
+        s.value().trim_start().starts_with("SAFETY:")
+    })
 }
 
 /// Parses the named fields of an `Accounts` struct.
@@ -60,19 +90,24 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
 
         let mut is_signer = false;
         let mut is_mut = false;
+        let mut is_alias = false;
+        let mut is_executable = false;
         let mut pda_program = None;
         let mut pda_seed = None;
         let mut pda_bump = None;
         let mut init_config = None;
         let mut is_init_if_needed = false;
         let mut close_destination = None;
-        let mut has_one = Vec::new();
+        let mut relations = Vec::new();
         let mut owner = None;
         let mut address = None;
         let mut realloc = None;
         let mut token_mint: Option<syn::Expr> = None;
         let mut token_authority: Option<syn::Expr> = None;
         let mut token_program: Option<syn::Expr> = None;
+        let mut mint_decimals: Option<syn::Expr> = None;
+        let mut mint_authority: Option<syn::Expr> = None;
+        let mut mint_freeze_authority: Option<syn::Expr> = None;
 
         for attr in &field.attrs {
             if attr.path().is_ident("account") {
@@ -85,6 +120,26 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                         is_mut = true;
                         return Ok(());
                     }
+                    if meta.path.is_ident("executable") {
+                        is_executable = true;
+                        return Ok(());
+                    }
+                    if meta.path.is_ident("unsafe") {
+                        let content;
+                        syn::parenthesized!(content in meta.input);
+                        let inner: syn::Ident = content.parse()?;
+                        if inner == "alias" {
+                            is_alias = true;
+                        }
+                        return Ok(());
+                    }
+                    if meta.path.is_ident("alias") {
+                        return Err(syn::Error::new_spanned(
+                            &meta.path,
+                            "Naclac Error: bare `alias` is rejected for safety. \
+                             Use `unsafe(alias)` to explicitly opt out of duplicate mutable account protection.",
+                        ));
+                    }
                     if meta.path.is_ident("init") {
                         is_mut = true;
                         return Ok(());
@@ -95,7 +150,30 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                         return Ok(());
                     }
 
-                    if meta.path.is_ident("has_one") {
+                    let path = &meta.path;
+                    let is_reserved = path.is_ident("signer")
+                        || path.is_ident("mut")
+                        || path.is_ident("init")
+                        || path.is_ident("init_if_needed")
+                        || path.is_ident("owner")
+                        || path.is_ident("address")
+                        || path.is_ident("seeds")
+                        || path.is_ident("bump")
+                        || path.is_ident("executable")
+                        || path.is_ident("unsafe")
+                        || path.is_ident("alias")
+                        || path.is_ident("payer")
+                        || path.is_ident("space")
+                        || path.is_ident("close")
+                        || path.is_ident("rent_exempt")
+                        || (path.segments.len() == 2 && path.segments[0].ident == "token")
+                        || (path.segments.len() == 2 && path.segments[0].ident == "mint")
+                        || (path.segments.len() == 2 && path.segments[0].ident == "seeds" && path.segments[1].ident == "program");
+
+                    if !is_reserved {
+                        let field_ident = path.get_ident().cloned().ok_or_else(|| {
+                            syn::Error::new_spanned(path, "Expected relation field name")
+                        })?;
                         let value = meta.value()?;
 
                         // Manually parse tokens until we hit a comma or the end of the attribute
@@ -108,17 +186,21 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                         let token_str = tokens.to_string();
 
                         if let Some(at_idx) = token_str.find('@') {
-                            let target = token_str[..at_idx].trim().to_string();
+                            let target_str = token_str[..at_idx].trim().to_string();
+                            let target: syn::Expr = syn::parse_str(&target_str)?;
                             let error_str = token_str[at_idx + 1..].trim();
                             let custom_error: syn::Expr = syn::parse_str(error_str)?;
 
-                            has_one.push(HasOneConfig {
+                            relations.push(RelationConfig {
+                                field: field_ident,
                                 target,
                                 custom_error: Some(custom_error),
                             });
                         } else {
-                            has_one.push(HasOneConfig {
-                                target: token_str.trim().to_string(),
+                            let target: syn::Expr = syn::parse_str(&token_str)?;
+                            relations.push(RelationConfig {
+                                field: field_ident,
+                                target,
                                 custom_error: None,
                             });
                         }
@@ -168,6 +250,20 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                             token_authority = Some(expr);
                         } else if key == "program" {
                             token_program = Some(expr);
+                        }
+                        return Ok(());
+                    }
+
+                    if meta.path.segments.len() == 2 && meta.path.segments[0].ident == "mint" {
+                        let key = meta.path.segments[1].ident.to_string();
+                        let value = meta.value()?;
+                        let expr = value.parse::<syn::Expr>()?;
+                        if key == "decimals" {
+                            mint_decimals = Some(expr);
+                        } else if key == "authority" {
+                            mint_authority = Some(expr);
+                        } else if key == "freeze_authority" {
+                            mint_freeze_authority = Some(expr);
                         }
                         return Ok(());
                     }
@@ -228,11 +324,18 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                             .unwrap(),
                     );
                 }
-            } else if type_str.contains("Sysvar") || type_str.contains("Rent") {
-                if type_str.contains("Rent") {
-                    final_address = Some(syn::parse_str("naclac_lang::prelude::RENT_ID").unwrap());
-                }
+            } else if type_str.contains("Rent") {
+                final_address = Some(syn::parse_str("naclac_lang::prelude::RENT_ID").unwrap());
             }
+        }
+
+        if type_str == "AccountInfo" && !has_safety_doc_comment(&field.attrs) {
+            return Err(syn::Error::new_spanned(
+                &ident,
+                "Naclac Error: `AccountInfo` fields receive no automatic validation. \
+                 Add a `/// SAFETY: ...` doc comment directly above this field explaining \
+                 why skipping validation is safe here.",
+            ));
         }
 
         parsed_fields.push(ParsedField {
@@ -241,19 +344,24 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
             type_str,
             is_signer,
             is_mut,
+            is_alias,
+            is_executable,
             pda_program,
             pda_seed,
             pda_bump,
             init_config,
             is_init_if_needed,
             close_destination,
-            has_one,
+            relations,
             owner,
             address: final_address,
             realloc,
             token_mint,
             token_authority,
             token_program,
+            mint_decimals,
+            mint_authority,
+            mint_freeze_authority,
             index: idx,
         });
     }

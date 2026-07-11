@@ -1,0 +1,25 @@
+[package]
+name = "token_creator"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["token"]  }
+amm-client = { path = "../../clients/rust/amm", default-features = false, features = ["cpi"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+token-creator-client = { version = "0.1.0", path = "../../clients/rust/token_creator" }
+amm-client = { path = "../../clients/rust/amm" }
+
+[lints]
+workspace = true

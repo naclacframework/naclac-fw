@@ -12,11 +12,14 @@ proc-macro = true
 [dependencies]
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
-syn = { workspace = true, features = ["full", "extra-traits"] }
+syn = { workspace = true, features = ["full", "extra-traits", "visit", "visit-mut"] }
 sha2 = { workspace = true }
-naclac-cpi-core = { path = "../naclac-cpi-core" }
+
 heck = "0.5.0"
+solana-address = { workspace = true }
+bs58 = { workspace = true }
 
 [features]
 debug-mode = []
 pinocchio = []
+borsh = []

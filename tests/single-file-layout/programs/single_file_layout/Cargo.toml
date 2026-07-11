@@ -1,0 +1,27 @@
+[package]
+name = "single_file_layout"
+version = "0.1.0"
+description = "Regression test: naclac-syn's source discovery is a plain recursive src/ walk, not a components/instructions folder convention — everything lives in lib.rs"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["pinocchio"]
+pinocchio = ["naclac-lang/pinocchio"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", default-features = false }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+single-file-layout-client = { version = "0.1.0", path = "../../clients/rust/single_file_layout" }
+
+[lints]
+workspace = true

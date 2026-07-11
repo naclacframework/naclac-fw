@@ -1,0 +1,7 @@
+error: Field 'does_not_exist' not found in struct for relation constraint on 'account'
+ --> tests/fail/18_has_one_unknown_field.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^
+  |
+  = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)

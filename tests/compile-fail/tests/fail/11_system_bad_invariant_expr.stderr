@@ -1,0 +1,8 @@
+error: [naclac::system] Could not parse invariant expression `result <=`.
+       It must be a valid Rust boolean expression that may reference `result` and any of the function's parameter names.
+ --> tests/fail/11_system_bad_invariant_expr.rs:6:1
+  |
+6 | #[system(invariant = "result <=")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `system` (in Nightly builds, run with -Z macro-backtrace for more info)

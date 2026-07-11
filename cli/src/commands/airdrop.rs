@@ -1,5 +1,5 @@
-use std::process::Command;
 use std::fs;
+use std::process::Command;
 use toml::Value;
 
 pub fn execute(amount: f64) {
@@ -7,7 +7,10 @@ pub fn execute(amount: f64) {
     let toml_path = if current_dir.join("Naclac.toml").exists() {
         current_dir.join("Naclac.toml")
     } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../../Naclac.toml").canonicalize().unwrap()
+        current_dir
+            .join("../../Naclac.toml")
+            .canonicalize()
+            .unwrap()
     } else {
         eprintln!("❌ Not a Naclac workspace.");
         std::process::exit(1);
@@ -26,11 +29,14 @@ pub fn execute(amount: f64) {
         "localnet" => "http://127.0.0.1:8899",
         "devnet" => "https://api.devnet.solana.com",
         "testnet" => "https://api.testnet.solana.com",
-        _ => cluster, 
+        _ => cluster,
     };
 
-    println!("🪂 Requesting airdrop of {} SOL to cluster: {}", amount, cluster);
-    
+    println!(
+        "🪂 Requesting airdrop of {} SOL to cluster: {}",
+        amount, cluster
+    );
+
     let status = Command::new("solana")
         .arg("airdrop")
         .arg(amount.to_string())
@@ -40,6 +46,8 @@ pub fn execute(amount: f64) {
 
     match status {
         Ok(s) if s.success() => println!("✅ Airdrop successful!"),
-        Ok(_) | Err(_) => println!("❌ Airdrop failed. Please check network connectivity or rate limits."),
+        Ok(_) | Err(_) => {
+            println!("❌ Airdrop failed. Please check network connectivity or rate limits.")
+        }
     }
 }

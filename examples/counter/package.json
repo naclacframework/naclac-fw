@@ -1,0 +1,28 @@
+{
+  "name": "counter",
+  "version": "0.1.0",
+  "description": "counter — a Solana program built with the Naclac Framework",
+  "license": "MIT",
+  "scripts": {
+    "test": "ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\"",
+    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+  },
+  "dependencies": {
+    "@naclac-fw/client": "link:../../client",
+    "@solana-program/system": "^0.12.1",
+    "@solana-program/token-2022": "^0.9.0",
+    "@solana/kit": "^6.9.0",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.13.1",
+    "mocha": "^11.1.0",
+    "prettier": "^3.5.0",
+    "ts-mocha": "^11.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

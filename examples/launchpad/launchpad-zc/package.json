@@ -1,0 +1,23 @@
+{
+  "name": "launchpad-zc",
+  "version": "0.1.0",
+  "description": "launchpad-zc — a Solana program built with the Naclac Framework",
+  "license": "MIT",
+  "scripts": {
+    "test": "ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\"",
+    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+  },
+  "dependencies": {
+    "@naclac-fw/client": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "@types/mocha": "^10.0.10",
+    "mocha": "^11.1.0",
+    "prettier": "^3.5.0",
+    "ts-mocha": "^11.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

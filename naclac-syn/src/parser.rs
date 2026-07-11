@@ -3,7 +3,7 @@ use heck::ToLowerCamelCase;
 use syn::Item;
 
 use quote::ToTokens;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 fn get_type_size(ty: &syn::Type) -> usize {
     match ty {
@@ -16,14 +16,18 @@ fn get_type_size(ty: &syn::Type) -> usize {
                 "u32" | "i32" | "f32" => 4,
                 "u64" | "i64" | "f64" => 8,
                 "u128" | "i128" => 16,
-                "Pubkey" | "publicKey" => 32,
+                "Pubkey" | "publicKey" | "Address" => 32,
                 "Opt" => 48, // Opt<T> always 48 for simplicity (32+1+7 or 8+1+7 padded to 8)
                 _ => 8,      // Default fallback
             }
         }
         syn::Type::Array(type_array) => {
             let inner_size = get_type_size(&type_array.elem);
-            let len_str = type_array.len.to_token_stream().to_string().replace(" ", "");
+            let len_str = type_array
+                .len
+                .to_token_stream()
+                .to_string()
+                .replace(" ", "");
             if let Ok(len_num) = len_str.parse::<usize>() {
                 return inner_size * len_num;
             }
@@ -38,7 +42,7 @@ pub fn rust_type_to_idl(ty: &syn::Type) -> Value {
         syn::Type::Path(type_path) => {
             let last_segment = type_path.path.segments.last().unwrap();
             let ident_str = last_segment.ident.to_string();
-            
+
             if ident_str == "Option" {
                 if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                     if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
@@ -46,7 +50,7 @@ pub fn rust_type_to_idl(ty: &syn::Type) -> Value {
                     }
                 }
             }
-            
+
             if ident_str == "Vec" {
                 if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                     if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
@@ -56,38 +60,44 @@ pub fn rust_type_to_idl(ty: &syn::Type) -> Value {
             }
 
             match ident_str.as_str() {
-                "Pubkey" => json!("publicKey"),
-                "u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32" | "i64" | "i128" | "f32" | "f64" => json!(ident_str),
+                "Pubkey" | "Address" => json!("publicKey"),
+                "u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32" | "i64" | "i128"
+                | "f32" | "f64" => json!(ident_str),
                 "bool" => json!("bool"),
                 "Bool" => json!({ "defined": "Bool" }),
                 "Opt" => {
                     if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                         if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                            let inner_ident = inner_ty.to_token_stream().to_string().replace(" ", "");
+                            let inner_ident =
+                                inner_ty.to_token_stream().to_string().replace(" ", "");
                             let normalized_ident = match inner_ident.as_str() {
                                 "u64" => "U64",
-                                "Pubkey" | "publicKey" => "Pubkey",
+                                "Pubkey" | "publicKey" | "Address" => "Pubkey",
                                 _ => &inner_ident,
                             };
                             return json!({ "defined": format!("Opt{}", normalized_ident) });
                         }
                     }
                     json!({ "defined": "Opt" })
-                },
+                }
                 "String" => json!("string"),
-                _ => json!({ "defined": ident_str }), 
+                _ => json!({ "defined": ident_str }),
             }
         }
         syn::Type::Slice(type_slice) => {
             let inner = rust_type_to_idl(&type_slice.elem);
             if inner == json!("u8") {
-                return json!("bytes")
+                return json!("bytes");
             }
             json!({ "vec": inner })
         }
         syn::Type::Array(type_array) => {
             let inner_ty = rust_type_to_idl(&type_array.elem);
-            let len_str = type_array.len.to_token_stream().to_string().replace(" ", "");
+            let len_str = type_array
+                .len
+                .to_token_stream()
+                .to_string()
+                .replace(" ", "");
             if let Ok(len_num) = len_str.parse::<usize>() {
                 return json!({ "array": [inner_ty, len_num] });
             }
@@ -114,11 +124,21 @@ pub fn parse_file(idl: &mut NaclacProgram, code: &str) {
             match item {
                 Item::Struct(item_struct) => {
                     // Check #[component]
-                    let is_component = item_struct.attrs.iter().any(|a| a.path().is_ident("component"));
+                    let is_component = item_struct
+                        .attrs
+                        .iter()
+                        .any(|a| a.path().is_ident("component"));
                     if is_component {
                         let mut fields = Vec::new();
                         for field in &item_struct.fields {
-                            let field_name = field.ident.as_ref().unwrap().to_string().trim_start_matches('_').to_string().to_lower_camel_case();
+                            let field_name = field
+                                .ident
+                                .as_ref()
+                                .unwrap()
+                                .to_string()
+                                .trim_start_matches('_')
+                                .to_string()
+                                .to_lower_camel_case();
                             fields.push(NaclacField {
                                 name: field_name,
                                 ty: rust_type_to_idl(&field.ty),
@@ -137,7 +157,14 @@ pub fn parse_file(idl: &mut NaclacProgram, code: &str) {
                         let mut fields = Vec::new();
                         let mut total_size = 0;
                         for field in &item_struct.fields {
-                            let field_name = field.ident.as_ref().unwrap().to_string().trim_start_matches('_').to_string().to_lower_camel_case();
+                            let field_name = field
+                                .ident
+                                .as_ref()
+                                .unwrap()
+                                .to_string()
+                                .trim_start_matches('_')
+                                .to_string()
+                                .to_lower_camel_case();
                             let ty_val = rust_type_to_idl(&field.ty);
                             let field_size = get_type_size(&field.ty);
                             total_size += field_size;
@@ -165,12 +192,52 @@ pub fn parse_file(idl: &mut NaclacProgram, code: &str) {
                         });
                         continue;
                     }
+
+                    // Check if it derives Accounts (this also matches the legacy,
+                    // now-removed `AccountsLoader` name, since "AccountsLoader"
+                    // itself contains "Accounts" as a substring).
+                    let is_accounts = item_struct.attrs.iter().any(|a| {
+                        if a.path().is_ident("derive") {
+                            let token_str = a.to_token_stream().to_string();
+                            token_str.contains("Accounts")
+                        } else {
+                            false
+                        }
+                    });
+                    if is_accounts {
+                        continue;
+                    }
+
+                    // Check if it has named fields to parse as a generic defined struct type
+                    if let syn::Fields::Named(_) = &item_struct.fields {
+                        let mut fields = Vec::new();
+                        for field in &item_struct.fields {
+                            let field_name = field
+                                .ident
+                                .as_ref()
+                                .unwrap()
+                                .to_string()
+                                .trim_start_matches('_')
+                                .to_string()
+                                .to_lower_camel_case();
+                            fields.push(NaclacField {
+                                name: field_name,
+                                ty: rust_type_to_idl(&field.ty),
+                            });
+                        }
+                        idl.types.push(NaclacTypeDef {
+                            name: item_struct.ident.to_string(),
+                            ty: NaclacTypeDefTy::Struct { fields },
+                        });
+                    }
                 }
                 Item::Enum(item_enum) => {
-                    let is_error = item_enum.attrs.iter().any(|a| a.path().is_ident("error_code"));
+                    let is_error = item_enum
+                        .attrs
+                        .iter()
+                        .any(|a| a.path().is_ident("error_code"));
                     if is_error {
-                        let mut code_offset = 6000;
-                        for variant in &item_enum.variants {
+                        for (code_offset, variant) in (6000..).zip(&item_enum.variants) {
                             let name = variant.ident.to_string();
                             let mut msg = None;
                             for attr in &variant.attrs {
@@ -194,7 +261,6 @@ pub fn parse_file(idl: &mut NaclacProgram, code: &str) {
                                 name,
                                 msg,
                             });
-                            code_offset += 1;
                         }
                     } else {
                         // Generic Data Enum
@@ -212,9 +278,16 @@ pub fn parse_file(idl: &mut NaclacProgram, code: &str) {
                 }
                 Item::Const(item_const) => {
                     let is_pub = matches!(item_const.vis, syn::Visibility::Public(_));
-                    let is_exported = item_const.attrs.iter().any(|a| a.path().is_ident("constant"));
+                    let is_exported = item_const
+                        .attrs
+                        .iter()
+                        .any(|a| a.path().is_ident("constant"));
                     if is_pub || is_exported {
-                        let expr_str = item_const.expr.to_token_stream().to_string().replace(" ", "");
+                        let expr_str = item_const
+                            .expr
+                            .to_token_stream()
+                            .to_string()
+                            .replace(" ", "");
                         idl.constants.push(NaclacConstant {
                             name: item_const.ident.to_string(),
                             ty: rust_type_to_idl(&item_const.ty),

@@ -1,0 +1,15 @@
+error: [naclac::system] Floating-point type `f64` is not allowed.
+       Floating-point arithmetic is non-deterministic across Solana/SBF validators and will produce inconsistent state.
+       Use integer arithmetic with a fixed decimal scale instead.
+ --> tests/fail/12_system_float_ban.rs:8:15
+  |
+8 | pub fn foo(x: f64) -> f64 {
+  |               ^^^
+
+error: [naclac::system] Floating-point type `f64` is not allowed.
+       Floating-point arithmetic is non-deterministic across Solana/SBF validators and will produce inconsistent state.
+       Use integer arithmetic with a fixed decimal scale instead.
+ --> tests/fail/12_system_float_ban.rs:8:23
+  |
+8 | pub fn foo(x: f64) -> f64 {
+  |                       ^^^

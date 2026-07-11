@@ -1,0 +1,17 @@
+error: Naclac Error: PDA validation seeds constraint requires a 'bump' value or attribute to enable hash-and-compare optimization. On-chain 'find_program_address' is strictly banned in Naclac. Example: #[account(seeds = [...], bump)]
+  --> tests/fail/17_seeds_missing_bump.rs:21:23
+   |
+21 |     #[account(seeds = [b"foo"])]
+   |                       ^^^^^^^^
+
+error[E0425]: cannot find value `expected_pda` in this scope
+  --> tests/fail/17_seeds_missing_bump.rs:21:23
+   |
+21 |     #[account(seeds = [b"foo"])]
+   |                       ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `expected_bump` in this scope
+  --> tests/fail/17_seeds_missing_bump.rs:21:23
+   |
+21 |     #[account(seeds = [b"foo"])]
+   |                       ^^^^^^^^ not found in this scope

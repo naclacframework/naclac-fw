@@ -1,0 +1,25 @@
+[package]
+name = "discriminator_borsh"
+version = "0.1.0"
+description = "Regression test: discriminator-checked account type confusion (solana-borsh backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["borsh"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+discriminator-borsh-client = { version = "0.1.0", path = "../../clients/rust/discriminator_borsh" }
+
+[lints]
+workspace = true

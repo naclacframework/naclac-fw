@@ -16,7 +16,6 @@ heck = { workspace = true }
 sha2 = { workspace = true }
 naclac-idl = { workspace = true }
 naclac-client-gen = { workspace = true }
-solana-pubkey = { workspace = true }
 solana-program = { workspace = true }
 solana-address = { workspace = true }
 solana-instruction = { workspace = true }
@@ -26,7 +25,7 @@ solana-rpc-client-api = { workspace = true }
 solana-transaction-status = { workspace = true }
 solana-keypair = { workspace = true }
 solana-transaction = { workspace = true }
-solana-system-interface = { workspace = true, features = ["bincode"] }
+solana-system-interface = { workspace = true, features = ["wincode"] }
 solana-signer = { workspace = true }
 flate2 = { workspace = true }
 bs58 = { workspace = true }
@@ -36,3 +35,4 @@ indicatif = { workspace = true }
 ctrlc = { workspace = true }
 colored = { workspace = true }
 dialoguer = "0.12.0"
+portable-pty = { workspace = true }

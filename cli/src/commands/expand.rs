@@ -22,7 +22,7 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
             .unwrap()
             .filter_map(|entry| {
                 let path = entry.unwrap().path();
-                let is_target = program_id.map_or(true, |tgt| path.file_name().unwrap() == tgt);
+                let is_target = program_id.is_none_or(|tgt| path.file_name().unwrap() == tgt);
                 if path.is_dir() && path.join("src/lib.rs").exists() && is_target {
                     Some(path)
                 } else {
@@ -61,20 +61,23 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
             if trimmed.starts_with("[") {
                 in_features = false;
             }
-            
-            if in_features {
-                if trimmed.starts_with("idl-build") {
-                    active_features.push("idl-build");
-                }
+
+            if in_features && trimmed.starts_with("idl-build") {
+                active_features.push("idl-build");
             }
 
-            if trimmed.starts_with("pinocchio") || (trimmed.starts_with("default") && trimmed.contains("pinocchio")) {
+            if trimmed.starts_with("pinocchio")
+                || (trimmed.starts_with("default") && trimmed.contains("pinocchio"))
+            {
                 active_features.push("pinocchio");
             }
         }
     }
 
-    eprintln!("⚡ Expanding macros with features: {:?}...", active_features);
+    eprintln!(
+        "⚡ Expanding macros with features: {:?}...",
+        active_features
+    );
 
     let mut cmd = Command::new("cargo");
     cmd.arg("expand")
@@ -82,7 +85,10 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
         .arg(cargo_toml_path.to_str().unwrap())
         .current_dir(&workspace_root);
 
-    let mut final_features = active_features.iter().map(|s| s.to_string()).collect::<Vec<String>>();
+    let mut final_features = active_features
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
     for f in features {
         if !final_features.contains(&f) {
             final_features.push(f);

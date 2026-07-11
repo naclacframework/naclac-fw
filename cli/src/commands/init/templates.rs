@@ -1,23 +1,22 @@
-use std::path::Path;
-use heck::{ToSnakeCase, ToUpperCamelCase};
 use super::utils::{ensure_dir, write_file};
+use heck::{ToSnakeCase, ToUpperCamelCase};
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ProgramMode {
     Pinocchio,
-    Standard, // Borsh
+    Standard,  // Borsh
     Optimized, // Zero-Copy
 }
 
-impl ProgramMode {
-}
+impl ProgramMode {}
 
 pub fn generate_program(
     root_path: &Path,
     name: &str,
     program_id: &str,
     mode: ProgramMode,
-    is_new_workspace: bool,
+    _is_new_workspace: bool,
 ) {
     let snake_name = name.to_snake_case();
     let type_name = snake_name.to_upper_camel_case();
@@ -90,9 +89,13 @@ unexpected_cfgs = {{ level = "warn", check-cfg = [
     write_file(&program_dir.join("Cargo.toml"), &cargo_toml);
 
     // --- lib.rs ---
-    let lib_header = if mode == ProgramMode::Pinocchio { "#![no_std]\n" } else { "" };
-    let program_attr = if mode == ProgramMode::Optimized { "#[naclac_program(zero_copy)]" } else { "#[naclac_program]" };
-    
+    let lib_header = if mode == ProgramMode::Pinocchio {
+        "#![no_std]\n"
+    } else {
+        ""
+    };
+    let program_attr = "#[program]";
+
     let lib_rs = format!(
         r#"{header}use naclac_lang::prelude::*;
 
@@ -126,18 +129,24 @@ pub mod {snake_name} {{
     write_file(&program_dir.join("src/lib.rs"), &lib_rs);
 
     // --- constants.rs ---
-    write_file(&program_dir.join("src/constants.rs"), "pub const SEED_COUNTER: &[u8] = b\"counter_v2\";\n");
+    write_file(
+        &program_dir.join("src/constants.rs"),
+        "pub const SEED_COUNTER: &[u8] = b\"counter_v2\";\n",
+    );
 
     // --- components/mod.rs & counter.rs ---
-    write_file(&program_dir.join("src/components/mod.rs"), "pub mod counter;\npub use counter::*;\n");
-    let component_attr = if mode == ProgramMode::Optimized { "#[component(zero_copy)]" } else { "#[component]" };
+    write_file(
+        &program_dir.join("src/components/mod.rs"),
+        "pub mod counter;\npub use counter::*;\n",
+    );
+    let component_attr = "#[component]";
     let counter_rs = format!(
         r#"use naclac_lang::prelude::*;
 
 {}
 pub struct Counter {{
     pub count: u64,
-    pub authority: Pubkey,
+    pub authority: Address,
     pub bump: u8,
 }}
 "#,
@@ -146,7 +155,10 @@ pub struct Counter {{
     write_file(&program_dir.join("src/components/counter.rs"), &counter_rs);
 
     // --- systems/mod.rs & math.rs ---
-    write_file(&program_dir.join("src/systems/mod.rs"), "pub mod math;\npub use math::*;\n");
+    write_file(
+        &program_dir.join("src/systems/mod.rs"),
+        "pub mod math;\npub use math::*;\n",
+    );
     let math_rs = r#"use naclac_lang::prelude::*;
 use crate::components::counter::Counter;
 
@@ -159,7 +171,7 @@ pub fn process_increment(counter: &mut Counter) -> Result<u64> {
     write_file(&program_dir.join("src/systems/math.rs"), math_rs);
 
     // --- events.rs ---
-    let event_attr = if mode == ProgramMode::Optimized { "#[event(zero_copy)]" } else { "#[event]" };
+    let event_attr = "#[event]";
     write_file(
         &program_dir.join("src/events.rs"),
         &format!(
@@ -195,9 +207,9 @@ pub enum CounterError {
     );
 
     // --- instructions/initialize.rs ---
-    let accounts_derive = if mode == ProgramMode::Standard { "#[derive(Accounts)]" } else { "#[derive(AccountsLoader)]" };
-    let account_type = if mode == ProgramMode::Standard { "Account" } else { "AccountLoader" };
-    let instruction_attr = if mode == ProgramMode::Optimized { "#[instruction(zero_copy)]" } else { "#[instruction]" };
+    let accounts_derive = "#[derive(Accounts)]";
+    let account_type = "Account";
+    let instruction_attr = "#[instruction]";
 
     let initialize_rs = format!(
         r#"use naclac_lang::prelude::*;
@@ -205,20 +217,19 @@ use crate::components::counter::Counter;
 use crate::constants::SEED_COUNTER;
 
 {accounts_derive}
-pub struct Initialize<'info> {{
+pub struct Initialize {{
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub payer: Signer,
 
     #[account(
         init,
         payer = payer,
-        space = Counter::SPACE,
         seeds = [SEED_COUNTER], 
         bump
     )]
-    pub counter_account: {account_type}<'info, Counter>,
+    pub counter_account: {account_type}<Counter>,
 
-    pub system_program: Program<'info, System>,
+    pub system_program: Program<System>,
 }}
 
 {instruction_attr}
@@ -236,7 +247,10 @@ pub fn initialize(ctx: Context<Initialize>) -> Result {{
         account_type = account_type,
         instruction_attr = instruction_attr
     );
-    write_file(&program_dir.join("src/instructions/initialize.rs"), &initialize_rs);
+    write_file(
+        &program_dir.join("src/instructions/initialize.rs"),
+        &initialize_rs,
+    );
 
     // --- instructions/increment.rs ---
     let increment_rs = format!(
@@ -247,17 +261,17 @@ use crate::events::CounterIncremented;
 use crate::constants::SEED_COUNTER;
 
 {accounts_derive}
-pub struct Increment<'info> {{
+pub struct Increment {{
     #[account(mut)]
-    pub authority: Signer<'info>,
+    pub authority: Signer,
 
     #[account(
         mut,
         seeds = [SEED_COUNTER], 
         bump,
-        has_one = authority
+        authority = authority
     )]
-    pub counter_account: {account_type}<'info, Counter>,
+    pub counter_account: {account_type}<Counter>,
 }}
 
 {instruction_attr}
@@ -278,7 +292,10 @@ pub fn increment(ctx: Context<Increment>) -> Result {{
         account_type = account_type,
         instruction_attr = instruction_attr
     );
-    write_file(&program_dir.join("src/instructions/increment.rs"), &increment_rs);
+    write_file(
+        &program_dir.join("src/instructions/increment.rs"),
+        &increment_rs,
+    );
 
     // --- Test Template ---
     let test_ts = format!(
@@ -344,10 +361,6 @@ describe("Naclac {type_name} Test Suite", () => {{
         type_name = type_name,
         snake_name = snake_name
     );
-    let test_path = if is_new_workspace {
-        root_path.join(format!("tests/{}.test.ts", snake_name))
-    } else {
-        root_path.join(format!("tests/{}.test.ts", snake_name))
-    };
+    let test_path = root_path.join(format!("tests/{}.test.ts", snake_name));
     write_file(&test_path, &test_ts);
 }

@@ -9,13 +9,17 @@ pub fn execute(program_id: Option<&str>) {
     } else if current_dir.join("../../Naclac.toml").exists() {
         current_dir.join("../..").canonicalize().unwrap()
     } else {
-        eprintln!("❌ Error: Could not find Naclac.toml. Please run from within a Naclac workspace.");
+        eprintln!(
+            "❌ Error: Could not find Naclac.toml. Please run from within a Naclac workspace."
+        );
         std::process::exit(1);
     };
 
     let deploy_dir = workspace_root.join("target/deploy");
     if !deploy_dir.exists() {
-        eprintln!("❌ Error: 'target/deploy' directory not found. Please run `naclac build` first.");
+        eprintln!(
+            "❌ Error: 'target/deploy' directory not found. Please run `naclac build` first."
+        );
         std::process::exit(1);
     }
 
@@ -50,7 +54,9 @@ pub fn execute(program_id: Option<&str>) {
     };
 
     // Resolve the '~' in the wallet path to the actual Home Directory
-    let home_dir = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_default();
+    let home_dir = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_default();
     let expanded_wallet = wallet_setting.replace("~", &home_dir);
 
     let mut so_files = Vec::new();
@@ -58,7 +64,7 @@ pub fn execute(program_id: Option<&str>) {
         let path = entry.unwrap().path();
         if path.extension().unwrap_or_default() == "so" {
             let program_name = path.file_stem().unwrap().to_str().unwrap();
-            let is_target = program_id.map_or(true, |tgt| program_name == tgt);
+            let is_target = program_id.is_none_or(|tgt| program_name == tgt);
             if is_target {
                 so_files.push(path);
             }
@@ -80,7 +86,7 @@ pub fn execute(program_id: Option<&str>) {
         println!("Program path: {}\n", so_file.display());
 
         // Execute the native Solana deploy command with the exact URL and Wallet.
-        // NOTE: If this fails midway, running it again will automatically RESUME 
+        // NOTE: If this fails midway, running it again will automatically RESUME
         // because the Solana CLI detects the existing buffer account for this keypair!
         let mut child = Command::new("solana")
             .arg("program")
@@ -100,7 +106,10 @@ pub fn execute(program_id: Option<&str>) {
         if status.success() {
             println!("\n✅ Successfully deployed '{}'!", program_name);
         } else {
-            eprintln!("\n❌ Failed to deploy '{}'. Run `naclac deploy` again to resume the deployment.", program_name);
+            eprintln!(
+                "\n❌ Failed to deploy '{}'. Run `naclac deploy` again to resume the deployment.",
+                program_name
+            );
             std::process::exit(1);
         }
     }

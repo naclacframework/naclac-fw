@@ -1,0 +1,17 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+pda_seeds = "G2V85CrtmdvgCCTr1e38gSWhw4Leo5p9EYM89bFNrPAa"
+pda_seeds_zc = "8SNGg4Fq9Xevbkgh8X1vjm1GUHNBYfmAeV1t3YUkvove"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"

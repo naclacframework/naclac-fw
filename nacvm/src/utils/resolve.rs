@@ -1,5 +1,5 @@
-use std::process::Command;
 use serde::Deserialize;
+use std::process::Command;
 
 #[derive(Deserialize)]
 struct GitHubRelease {
@@ -11,7 +11,7 @@ fn fetch_github_release(url: &str) -> Option<GitHubRelease> {
     let os = std::env::consts::OS;
     let output = if os == "windows" {
         Command::new("powershell")
-            .args(&[
+            .args([
                 "-NoProfile",
                 "-Command",
                 &format!("$ProgressPreference = 'SilentlyContinue'; Invoke-RestMethod -Uri '{}' | ConvertTo-Json", url),
@@ -19,10 +19,7 @@ fn fetch_github_release(url: &str) -> Option<GitHubRelease> {
             .output()
             .ok()?
     } else {
-        Command::new("curl")
-            .args(&["-sSfL", url])
-            .output()
-            .ok()?
+        Command::new("curl").args(["-sSfL", url]).output().ok()?
     };
 
     if !output.status.success() {
@@ -51,7 +48,10 @@ pub fn get_specific_version_info(version: &str) -> Option<(String, bool)> {
     } else {
         format!("v{}", version)
     };
-    let url = format!("https://api.github.com/repos/naclacframework/naclac-fw/releases/tags/{}", check_version);
+    let url = format!(
+        "https://api.github.com/repos/naclacframework/naclac-fw/releases/tags/{}",
+        check_version
+    );
     let release = fetch_github_release(&url)?;
     let clean_version = if release.tag_name.starts_with('v') {
         release.tag_name[1..].to_string()
