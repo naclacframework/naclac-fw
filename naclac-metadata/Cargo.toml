@@ -1,0 +1,23 @@
+[package]
+name = "naclac-metadata"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Metaplex Core (NFT/metadata) support for the Naclac Solana Framework."
+
+[dependencies]
+naclac-core = { workspace = true }
+mpl-core = { workspace = true, optional = true }
+solana-program = { workspace = true, optional = true }
+pinocchio = { workspace = true, optional = true }
+
+[features]
+default = ["solana"]
+solana = ["dep:solana-program", "dep:mpl-core", "naclac-core/solana"]
+pinocchio = ["dep:pinocchio", "naclac-core/pinocchio"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+] }

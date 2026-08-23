@@ -18,15 +18,17 @@ naclac-idl = { workspace = true }
 naclac-client-gen = { workspace = true }
 solana-program = { workspace = true }
 solana-address = { workspace = true }
-solana-instruction = { workspace = true }
+solana-instruction = "=3.4.0"
 solana-signature = { workspace = true }
 solana-rpc-client = { workspace = true }
 solana-rpc-client-api = { workspace = true }
 solana-transaction-status = { workspace = true }
 solana-keypair = { workspace = true }
 solana-transaction = { workspace = true }
-solana-system-interface = { workspace = true, features = ["wincode"] }
+solana-system-interface = { version = "=3.2.0", features = ["wincode"] }
 solana-signer = { workspace = true }
+wincode = "=0.5.5"
+solana-reward-info = "=6.2.0"
 flate2 = { workspace = true }
 bs58 = { workspace = true }
 toml = { workspace = true }
@@ -35,4 +37,3 @@ indicatif = { workspace = true }
 ctrlc = { workspace = true }
 colored = { workspace = true }
 dialoguer = "0.12.0"
-portable-pty = { workspace = true }

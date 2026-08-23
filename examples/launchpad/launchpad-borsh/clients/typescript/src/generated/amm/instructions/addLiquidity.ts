@@ -3,26 +3,26 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `addLiquidity` instruction. */
-export const ADDLIQUIDITY_DISCRIMINATOR = new Uint8Array([181, 157, 89, 67, 143, 182, 52, 72]);
+/** 8-byte discriminator for the `add_liquidity` instruction. */
+export const ADD_LIQUIDITY_DISCRIMINATOR = new Uint8Array([181, 157, 89, 67, 143, 182, 52, 72]);
 
 /** Instruction arguments for `addLiquidity`. */
 export interface AddLiquidityArgs {
-  maxAmountA: bigint | number;
-  maxAmountB: bigint | number;
+  max_amount_a: bigint | number;
+  max_amount_b: bigint | number;
 }
 
 /** Accounts for the `addLiquidity` instruction. */
 export interface AddLiquidityAccounts {
   user: naclac.Address | string;
-  poolState: naclac.Address | string;
-  vaultA: naclac.Address | string;
-  vaultB: naclac.Address | string;
-  lpMint: naclac.Address | string;
-  userTokenA: naclac.Address | string;
-  userTokenB: naclac.Address | string;
-  userLp: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
+  pool_state: naclac.Address | string;
+  vault_a: naclac.Address | string;
+  vault_b: naclac.Address | string;
+  lp_mint: naclac.Address | string;
+  user_token_a: naclac.Address | string;
+  user_token_b: naclac.Address | string;
+  user_lp: naclac.Address | string;
+  token_program?: naclac.Address | string;
 }
 
 /**
@@ -34,7 +34,7 @@ export function addLiquidity(
   args: AddLiquidityArgs,
   accounts?: Partial<AddLiquidityAccounts>
 ) {
-  const builder = program.methods.addLiquidity(args ?? {});
+  const builder = program.methods.add_liquidity(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

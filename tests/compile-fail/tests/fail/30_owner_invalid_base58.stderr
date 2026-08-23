@@ -1,0 +1,5 @@
+error: Naclac Error: invalid base58 address in `owner = "..."`.
+  --> tests/fail/30_owner_invalid_base58.rs:11:23
+   |
+11 |     #[account(owner = "not-valid-base58!!!")]
+   |                       ^^^^^^^^^^^^^^^^^^^^^

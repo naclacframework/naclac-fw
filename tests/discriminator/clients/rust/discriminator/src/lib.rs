@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -54,9 +54,9 @@ pub fn get_vault_pda(
 pub struct Discriminator;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for Discriminator {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([192, 8, 32, 81, 39, 19, 181, 150, 57, 12, 111, 51, 100, 143, 123, 98, 7, 59, 59, 241, 21, 28, 31, 161, 19, 211, 126, 157, 225, 200, 30, 94])
+impl sdk_core_cpi::Id for Discriminator {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([192, 8, 32, 81, 39, 19, 181, 150, 57, 12, 111, 51, 100, 143, 123, 98, 7, 59, 59, 241, 21, 28, 31, 161, 19, 211, 126, 157, 225, 200, 30, 94])
     }
 }
 

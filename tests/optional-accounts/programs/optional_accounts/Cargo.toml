@@ -1,0 +1,27 @@
+[package]
+name = "optional_accounts"
+version = "0.1.0"
+description = "Regression test: Option<T> accounts sentinel scheme (pinocchio backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["pinocchio"]
+pinocchio = ["naclac-lang/pinocchio"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", default-features = false }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+optional-accounts-client = { version = "0.1.0", path = "../../clients/rust/optional_accounts" }
+
+[lints]
+workspace = true

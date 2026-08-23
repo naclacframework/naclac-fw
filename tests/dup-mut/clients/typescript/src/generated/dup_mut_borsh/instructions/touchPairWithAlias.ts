@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touchPairWithAlias` instruction. */
-export const TOUCHPAIRWITHALIAS_DISCRIMINATOR = new Uint8Array([219, 171, 202, 60, 127, 192, 17, 249]);
+/** 8-byte discriminator for the `touch_pair_with_alias` instruction. */
+export const TOUCH_PAIR_WITH_ALIAS_DISCRIMINATOR = new Uint8Array([219, 171, 202, 60, 127, 192, 17, 249]);
 
 /** Accounts for the `touchPairWithAlias` instruction. */
 export interface TouchPairWithAliasAccounts {
@@ -21,7 +21,7 @@ export function touchPairWithAlias(
   args?: Record<string, never>,
   accounts?: Partial<TouchPairWithAliasAccounts>
 ) {
-  const builder = program.methods.touchPairWithAlias(args ?? {});
+  const builder = program.methods.touch_pair_with_alias(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

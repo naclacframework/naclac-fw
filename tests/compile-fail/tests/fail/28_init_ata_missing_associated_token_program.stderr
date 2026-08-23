@@ -1,0 +1,5 @@
+error: Naclac Error: associated_token_program (Program<AssociatedToken>) must be defined in the Accounts struct for associated token account initialization.
+  --> tests/fail/28_init_ata_missing_associated_token_program.rs:27:9
+   |
+27 |     pub vault: AccountInfo,
+   |         ^^^^^

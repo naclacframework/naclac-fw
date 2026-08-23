@@ -76,11 +76,35 @@ export class AccountsConstraintsClient {
   }
 
   /**
+   * Builds the `checkOwnerRelational` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkOwnerRelational(args?: Record<string, never>, accounts?: Partial<instructions.CheckOwnerRelationalAccounts>) {
+    return instructions.checkOwnerRelational(this.program, args ?? {}, accounts);
+  }
+
+  /**
    * Builds the `checkAddress` instruction pipeline.
    * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
    */
   public checkAddress(args?: Record<string, never>, accounts?: Partial<instructions.CheckAddressAccounts>) {
     return instructions.checkAddress(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkAddressRelational` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkAddressRelational(args?: Record<string, never>, accounts?: Partial<instructions.CheckAddressRelationalAccounts>) {
+    return instructions.checkAddressRelational(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkExecutable` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkExecutable(args?: Record<string, never>, accounts?: Partial<instructions.CheckExecutableAccounts>) {
+    return instructions.checkExecutable(this.program, args ?? {}, accounts);
   }
 
   /**
@@ -123,6 +147,38 @@ export class AccountsConstraintsClient {
     return instructions.closeVault(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `closeVaultSelf` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public closeVaultSelf(args?: Record<string, never>, accounts?: Partial<instructions.CloseVaultSelfAccounts>) {
+    return instructions.closeVaultSelf(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkRentExempt` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkRentExempt(args?: Record<string, never>, accounts?: Partial<instructions.CheckRentExemptAccounts>) {
+    return instructions.checkRentExempt(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `relatedVaultCustomError` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public relatedVaultCustomError(args?: Record<string, never>, accounts?: Partial<instructions.RelatedVaultCustomErrorAccounts>) {
+    return instructions.relatedVaultCustomError(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkExternalPda` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkExternalPda(args: instructions.CheckExternalPdaArgs, accounts?: Partial<instructions.CheckExternalPdaAccounts>) {
+    return instructions.checkExternalPda(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `ledger` account. */
   public async getLedgerPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
@@ -141,6 +197,17 @@ export class AccountsConstraintsClient {
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([115, 101, 101, 100, 101, 100])
+      ]
+    });
+  }
+
+  /** Derives the PDA for a `target` account. */
+  public async getTargetPda(seeds: {
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([101, 120, 116, 101, 114, 110, 97, 108, 95, 112, 100, 97])
       ]
     });
   }

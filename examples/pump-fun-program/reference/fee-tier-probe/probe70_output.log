@@ -1,0 +1,15 @@
+   Compiling fee-tier-probe v0.1.0 (/mnt/c/Users/hp/Documents/naclac-fw/examples/pump-fun-program/reference/fee-tier-probe)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 34.39s
+     Running `/mnt/d/naclac-fw/examples/pump-fun-program/reference/fee-tier-probe/target/debug/probe70`
+sharing_config PDA = G7YxHuDCGZfCCpoDAnbbuNZGL9xkKQxpsmCkBhyzrGN5
+(before call) exists = false
+RESULT: SUCCESS (56029 CU)
+  LOG: Program log: Instruction: CreateFeeSharingConfig
+  LOG: Program log: Instruction: MigrateBondingCurveCreator
+
+sharing_config REAL created account:
+  data.len() = 1024 bytes
+  lamports = 8017920
+  owner = pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ
+  discriminator matches real SharingConfig disc? true
+  raw hex (first 128 bytes or less): d84a0900388c5d4bfe02010000000190707bc3ef25bdc98ed75cb70d61c8b106dc248d8ef61e1d1db1ca4017fd9a38b60ce523850553bca95e474dfc46a7af7cba4a8f31ed294ede4e3d13000100000017fd9a38b60ce523850553bca95e474dfc46a7af7cba4a8f31ed294ede4e3d1310270000000000000000000000000000

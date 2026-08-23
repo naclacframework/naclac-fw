@@ -1,13 +1,20 @@
 use naclac_client::*;
 use accounts_constraints_borsh_client::{
-    fetch_ledger, fetch_vault,
-    get_ledger_pda, get_seeded_pda, get_vault_pda,
+    fetch_ledger, fetch_note, fetch_vault,
+    get_ledger_pda, get_note_pda, get_seeded_pda, get_vault_pda,
     instructions::{
-        build_check_address, build_check_owner, build_close_vault, build_init_if_needed_ledger,
-        build_init_seeded, build_init_vault, build_related_vault, build_require_signer,
-        build_touch_mut_vault, build_touch_seeded, CheckAddressAccounts, CheckOwnerAccounts,
-        CloseVaultAccounts, InitIfNeededLedgerAccounts, InitSeededAccounts, InitVaultAccounts,
-        RelatedVaultAccounts, RequireSignerAccounts, TouchMutVaultAccounts, TouchSeededAccounts,
+        build_check_address, build_check_address_relational, build_check_executable,
+        build_check_external_pda, build_check_owner, build_check_owner_relational,
+        build_check_rent_exempt, build_close_vault, build_close_vault_self,
+        build_init_if_needed_ledger, build_init_note, build_init_seeded, build_init_vault, build_related_vault,
+        build_related_vault_custom_error, build_require_signer, build_touch_mut_vault,
+        build_touch_seeded, CheckAddressAccounts, CheckAddressRelationalAccounts,
+        CheckExecutableAccounts, CheckExternalPdaAccounts, CheckOwnerAccounts,
+        CheckOwnerRelationalAccounts, CheckRentExemptAccounts,
+        CloseVaultAccounts, CloseVaultSelfAccounts, InitIfNeededLedgerAccounts,
+        InitNoteAccounts, InitSeededAccounts, InitVaultAccounts, RelatedVaultAccounts,
+        RelatedVaultCustomErrorAccounts, RequireSignerAccounts, TouchMutVaultAccounts,
+        TouchSeededAccounts,
     },
     types::PROGRAM_ID,
 };
@@ -28,6 +35,23 @@ fn setup() -> NaclacProvider {
     let provider = NaclacProvider::new("litesvm", payer);
     load_program(&provider);
     provider
+}
+
+/// Asserts a transaction failed with exactly the given `Custom` error code
+/// — not just "any error", the specific numeric `NaclacError` (framework
+/// errors, 3000s) the failure actually produces. Mirrors
+/// `tests/error-codes/programs/error_codes/tests/error_codes_test.rs`'s
+/// helper of the same name and shape.
+fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientError>, expected: u32) {
+    match result {
+        Err(NaclacClientError::TransactionFailed {
+            instruction_err: InstructionError::Custom(code),
+            ..
+        }) => {
+            assert_eq!(code, expected, "wrong custom error code");
+        }
+        other => panic!("expected a Custom({expected}) transaction failure, got {other:?}"),
+    }
 }
 
 /// `init` + `payer` + `space`: account created, discriminator written,
@@ -184,10 +208,9 @@ fn owner_constraint_rejects_wrong_owning_program() {
         CheckOwnerAccounts { target: vault_pda },
     )
     .send_and_confirm();
-    assert!(
-        wrong_owner_result.is_err(),
-        "an account owned by our own program must be rejected when `owner` expects the System Program"
-    );
+    // `CheckOwner { target }` — `target` is field index 0 ->
+    // 3000 + 0*100 + ConstraintOwner(4) = 3004.
+    assert_custom_code(wrong_owner_result, 3004);
 }
 
 /// `address`: rejects an account whose own key doesn't match the expected
@@ -215,10 +238,87 @@ fn address_constraint_rejects_mismatched_key() {
         },
     )
     .send_and_confirm();
-    assert!(
-        mismatched_result.is_err(),
-        "address must reject an account whose own key doesn't match the expected constant"
-    );
+    // `CheckAddress { target }` — `target` is field index 0 ->
+    // 3000 + 0*100 + ConstraintAddress(3) = 3003.
+    assert_custom_code(mismatched_result, 3003);
+}
+
+/// `owner = <another field>` (relational form): `expected_owner` is
+/// declared after `target` in the Accounts struct, proving the check
+/// resolves it by index into the raw accounts slice rather than by
+/// referencing an already-loaded local variable.
+#[test]
+fn owner_constraint_relational_rejects_wrong_owning_program() {
+    let provider = setup();
+
+    let system_owned = Keypair::new();
+    build_check_owner_relational(
+        &provider,
+        PROGRAM_ID,
+        CheckOwnerRelationalAccounts {
+            target: system_owned.address(),
+            expected_owner: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .send_and_confirm()
+    .expect("a fresh, System-owned account must be accepted when expected_owner is the System Program");
+
+    let (vault_pda, _bump) = get_vault_pda(&PROGRAM_ID);
+    build_init_vault(
+        &provider,
+        PROGRAM_ID,
+        InitVaultAccounts {
+            payer: provider.payer.address(),
+            vault: vault_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_vault should succeed");
+
+    let wrong_owner_result = build_check_owner_relational(
+        &provider,
+        PROGRAM_ID,
+        CheckOwnerRelationalAccounts {
+            target: vault_pda,
+            expected_owner: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .send_and_confirm();
+    // `CheckOwnerRelational { target, expected_owner }` — `target` is field
+    // index 0 -> 3000 + 0*100 + ConstraintOwner(4) = 3004.
+    assert_custom_code(wrong_owner_result, 3004);
+}
+
+/// `address = <another field>` (relational form) — same ordering proof as
+/// the `owner` relational test above.
+#[test]
+fn address_constraint_relational_rejects_mismatched_key() {
+    let provider = setup();
+
+    build_check_address_relational(
+        &provider,
+        PROGRAM_ID,
+        CheckAddressRelationalAccounts {
+            target: SYSTEM_PROGRAM_ID,
+            expected_address: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .send_and_confirm()
+    .expect("matching target/expected_address must be accepted");
+
+    let mismatched_result = build_check_address_relational(
+        &provider,
+        PROGRAM_ID,
+        CheckAddressRelationalAccounts {
+            target: SYSTEM_PROGRAM_ID,
+            expected_address: provider.payer.address(),
+        },
+    )
+    .send_and_confirm();
+    // `CheckAddressRelational { target, expected_address }` — `target` is
+    // field index 0 -> 3000 + 0*100 + ConstraintAddress(3) = 3003.
+    assert_custom_code(mismatched_result, 3003);
 }
 
 /// `mut`: the framework requires the account actually be marked writable on
@@ -264,11 +364,9 @@ fn mut_constraint_rejects_non_writable_account_meta() {
     builder.accounts[vault_idx].is_writable = false;
 
     let result = builder.send_and_confirm();
-    assert!(
-        result.is_err(),
-        "the `mut` constraint must reject an account whose AccountMeta isn't actually writable, \
-         independent of what the SDK would normally produce"
-    );
+    // `TouchMutVault { vault }` — `vault` is field index 0 ->
+    // 3000 + 0*100 + ConstraintMut(1) = 3001.
+    assert_custom_code(result, 3001);
 }
 
 /// The `has_one`-equivalent relation mechanism (`admin = authority`):
@@ -303,10 +401,11 @@ fn relation_constraint_rejects_mismatched_admin() {
     )
     .signer(&stranger)
     .send_and_confirm();
-    assert!(
-        mismatched_result.is_err(),
-        "related_vault must reject when `authority` doesn't match `vault.admin`"
-    );
+    // `RelatedVault { vault, authority }` — the relation check (`admin =
+    // authority`) is attached to `vault`, field index 0, and (no
+    // `custom_error` given) emits `NaclacError::Unauthorized` ->
+    // 3000 + 0*100 + Unauthorized(21) = 3021.
+    assert_custom_code(mismatched_result, 3021);
 
     build_related_vault(
         &provider,
@@ -358,10 +457,9 @@ fn seeds_constraint_rejects_wrong_explicit_bump() {
         TouchSeededAccounts { seeded: seeded_pda },
     )
     .send_and_confirm();
-    assert!(
-        wrong_result.is_err(),
-        "touch_seeded must reject a wrong bump value, not just accept anything"
-    );
+    // `TouchSeeded { seeded }` — `seeded` is field index 0 ->
+    // 3000 + 0*100 + ConstraintSeeds(6) = 3006.
+    assert_custom_code(wrong_result, 3006);
 }
 
 /// `close`: drains the target's lamports to `destination` and zeroes its
@@ -414,8 +512,268 @@ fn close_drains_lamports_and_account_cannot_be_reused() {
         TouchMutVaultAccounts { vault: vault_pda },
     )
     .send_and_confirm();
-    assert!(
-        reuse_result.is_err(),
-        "a closed account must not be usable as a `Vault` again in a later instruction"
+    // `close = payer` reassigns `vault` to the System Program and zeroes its
+    // data (`close_account.rs`). Reloading it via `TouchMutVault { vault }`
+    // (field index 0) hits `security.rs`'s default owner check (metadata
+    // check, runs before `Account::try_from`'s discriminator check) first:
+    // owner is now the System Program, not our program -> ConstraintOwner(4).
+    // 3000 + 0*100 + 4 = 3004.
+    assert_custom_code(reuse_result, 3004);
+}
+
+/// `executable`: rejects an account whose `executable` flag isn't set.
+/// Meaningful specifically on a plain `AccountInfo` field (not `Program<T>`,
+/// which already enforces executable-ness internally on its own) — the real
+/// System Program account (genuinely executable) must be accepted, and the
+/// payer's own signer account (not executable) must be rejected.
+#[test]
+fn executable_constraint_rejects_non_executable_account() {
+    let provider = setup();
+
+    build_check_executable(
+        &provider,
+        PROGRAM_ID,
+        CheckExecutableAccounts {
+            target: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .send_and_confirm()
+    .expect("the real System Program account (executable) must be accepted");
+
+    let non_executable_result = build_check_executable(
+        &provider,
+        PROGRAM_ID,
+        CheckExecutableAccounts {
+            target: provider.payer.address(),
+        },
+    )
+    .send_and_confirm();
+    // `CheckExecutable { target }` — `target` is field index 0 ->
+    // 3000 + 0*100 + ConstraintExecutable(7) = 3007.
+    assert_custom_code(non_executable_result, 3007);
+}
+
+/// `rent_exempt`: rejects an account whose lamport balance is below the
+/// rent-exempt minimum for its (0-byte) data length. The default payer is
+/// funded with a huge SOL balance by `NaclacProvider::new_litesvm`, so it
+/// trivially qualifies as rent-exempt for a 0-byte account (~890880
+/// lamports minimum); a freshly-airdropped account funded with only 1,000
+/// lamports does not.
+#[test]
+fn rent_exempt_constraint_rejects_underfunded_account() {
+    let provider = setup();
+
+    build_check_rent_exempt(
+        &provider,
+        PROGRAM_ID,
+        CheckRentExemptAccounts {
+            target: provider.payer.address(),
+        },
+    )
+    .send_and_confirm()
+    .expect("the well-funded payer account must be accepted as rent-exempt");
+
+    let underfunded = Keypair::new();
+    provider
+        .set_account_lamports(&underfunded.address(), 1_000)
+        .expect("setting a tiny, deliberately-underfunded lamport balance should succeed");
+
+    let underfunded_result = build_check_rent_exempt(
+        &provider,
+        PROGRAM_ID,
+        CheckRentExemptAccounts {
+            target: underfunded.address(),
+        },
+    )
+    .send_and_confirm();
+    // `CheckRentExempt { target }` — `target` is field index 0 ->
+    // 3000 + 0*100 + ConstraintRentExempt(5) = 3005.
+    assert_custom_code(underfunded_result, 3005);
+}
+
+/// `close`'s self-close guard: passing the *same* address for both the
+/// account being closed and its own destination must be rejected with
+/// `NaclacError::ConstraintClose`, unconditionally, before any other close
+/// logic (lamport transfer, data wipe, reassignment) runs. Every existing
+/// `close` test (`close_vault`) only exercises the success path with a
+/// distinct destination.
+#[test]
+fn close_rejects_self_close() {
+    let provider = setup();
+
+    let target = Keypair::new();
+
+    let result = build_close_vault_self(
+        &provider,
+        PROGRAM_ID,
+        CloseVaultSelfAccounts {
+            target: target.address(),
+            destination: target.address(),
+        },
+    )
+    .send_and_confirm();
+    // `CloseVaultSelf { target, destination }` — the self-close guard
+    // (`close_account.rs`, target == dest check) fires on `target`, field
+    // index 0 -> 3000 + 0*100 + ConstraintClose(26) = 3026.
+    assert_custom_code(result, 3026);
+}
+
+/// Relation constraint custom error (`field @ CustomError` syntax):
+/// `admin = authority @ VaultError::WrongAdmin` replaces the default
+/// `NaclacError::Unauthorized` with the custom error's own code on a
+/// mismatch — never exercised elsewhere, since `related_vault` only takes
+/// the default-error path.
+#[test]
+fn relation_constraint_custom_error_replaces_default_unauthorized() {
+    let provider = setup();
+    let (vault_pda, _bump) = get_vault_pda(&PROGRAM_ID);
+
+    build_init_vault(
+        &provider,
+        PROGRAM_ID,
+        InitVaultAccounts {
+            payer: provider.payer.address(),
+            vault: vault_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_vault should succeed");
+
+    let stranger = Keypair::new();
+    let mismatched_result = build_related_vault_custom_error(
+        &provider,
+        PROGRAM_ID,
+        RelatedVaultCustomErrorAccounts {
+            vault: vault_pda,
+            authority: stranger.address(),
+        },
+    )
+    .signer(&stranger)
+    .send_and_confirm();
+    // `admin = authority @ VaultError::WrongAdmin` — the `@` custom-error
+    // suffix replaces the default `NaclacError::Unauthorized` with
+    // `VaultError::WrongAdmin`'s own code. `#[error_code]` offsets custom
+    // discriminants by 6000 (`naclac-macros/src/error_code.rs`); with no
+    // explicit discriminant, `WrongAdmin` (the enum's only variant) lands
+    // at exactly 6000 — a genuinely different codespace from
+    // `NaclacError`'s 3000s, proving the custom-error path fired instead
+    // of the default (which would have been 3021, as in
+    // `relation_constraint_rejects_mismatched_admin` above).
+    assert_custom_code(mismatched_result, 6000);
+
+    build_related_vault_custom_error(
+        &provider,
+        PROGRAM_ID,
+        RelatedVaultCustomErrorAccounts {
+            vault: vault_pda,
+            authority: provider.payer.address(),
+        },
+    )
+    .send_and_confirm()
+    .expect("related_vault_custom_error must succeed when `authority` matches `vault.admin`");
+}
+
+/// `seeds::program`: derives/validates a PDA against a program ID other
+/// than the current program — here the real, well-known System Program
+/// ID. The correctly-derived PDA (matching bump) must be accepted; a
+/// deliberately wrong bump must be rejected with
+/// `NaclacError::ConstraintSeeds`, the same as an on-program PDA would be.
+#[test]
+fn seeds_program_constraint_derives_pda_against_external_program() {
+    let provider = setup();
+
+    let seed: &[u8] = b"external_pda";
+    let (external_pda, external_bump) =
+        Address::find_program_address(&[seed], &SYSTEM_PROGRAM_ID);
+
+    build_check_external_pda(
+        &provider,
+        PROGRAM_ID,
+        external_bump,
+        CheckExternalPdaAccounts {
+            target: external_pda,
+        },
+    )
+    .send_and_confirm()
+    .expect(
+        "a PDA correctly derived against the external (System) program with the right bump must be accepted",
     );
+
+    let wrong_bump = external_bump.wrapping_sub(1);
+    let wrong_result = build_check_external_pda(
+        &provider,
+        PROGRAM_ID,
+        wrong_bump,
+        CheckExternalPdaAccounts {
+            target: external_pda,
+        },
+    )
+    .send_and_confirm();
+    // `CheckExternalPda { target }` — `target` is field index 0 ->
+    // 3000 + 0*100 + ConstraintSeeds(6) = 3006.
+    assert_custom_code(wrong_result, 3006);
+}
+
+/// Real end-to-end proof that `init` on a Borsh `#[component]` with a
+/// `#[max_len]` `Vec`/`String` field allocates the real serialized size
+/// (`Note::SPACE`) by default, not `size_of::<Note>()` (naclac-macros gap
+/// #3). Writes a 190-byte name (close to the 200-byte `#[max_len]` cap) with
+/// no explicit `space =` on the `init` — this only succeeds if the account
+/// was allocated with real room for the string, not the much smaller
+/// in-memory `String` pointer/len/cap representation.
+#[test]
+fn init_note_allocates_real_max_len_space_not_in_memory_struct_size() {
+    let provider = setup();
+    let (note_pda, _bump) = get_note_pda(&PROGRAM_ID);
+
+    let name = "x".repeat(190);
+
+    build_init_note(
+        &provider,
+        PROGRAM_ID,
+        name.clone(),
+        InitNoteAccounts {
+            payer: provider.payer.address(),
+            note: note_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect(
+        "init_note with a 190-byte name and no explicit space= must succeed \
+         if the default space computation uses Note::SPACE",
+    );
+
+    let note = fetch_note(&provider, &note_pda).expect("note should be readable");
+    assert_eq!(note.name, name);
+}
+
+/// Real end-to-end proof that `init` handles a target account that already
+/// holds lamports (e.g. a PDA that received a plain SOL transfer before
+/// this instruction ran) — previously `create_account_signed` always used
+/// the raw `CreateAccount` System instruction, which requires a
+/// zero-lamport target and fails with `AccountAlreadyInUse` otherwise (see
+/// `naclac-macros/docs/derive-accounts-gaps-audit.md`'s gap #4). Pre-funds
+/// `seeded_pda` directly (a plain SOL transfer, not via the program at all)
+/// before calling `init_seeded` against it.
+#[test]
+fn init_succeeds_against_a_pre_funded_pda() {
+    let provider = setup();
+    let (seeded_pda, _bump) = get_seeded_pda(&PROGRAM_ID);
+
+    transfer_sol(&provider, &seeded_pda, 1_000_000)
+        .expect("pre-funding the PDA with a plain SOL transfer should succeed");
+
+    build_init_seeded(
+        &provider,
+        PROGRAM_ID,
+        InitSeededAccounts {
+            payer: provider.payer.address(),
+            seeded: seeded_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init should succeed against a pre-funded PDA, not fail with AccountAlreadyInUse");
 }

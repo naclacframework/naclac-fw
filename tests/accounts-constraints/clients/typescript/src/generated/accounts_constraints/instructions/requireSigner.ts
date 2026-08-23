@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `requireSigner` instruction. */
-export const REQUIRESIGNER_DISCRIMINATOR = new Uint8Array([5, 1, 181, 83, 233, 60, 65, 184]);
+/** 8-byte discriminator for the `require_signer` instruction. */
+export const REQUIRE_SIGNER_DISCRIMINATOR = new Uint8Array([5, 1, 181, 83, 233, 60, 65, 184]);
 
 /** Accounts for the `requireSigner` instruction. */
 export interface RequireSignerAccounts {
@@ -21,7 +21,7 @@ export function requireSigner(
   args?: Record<string, never>,
   accounts?: Partial<RequireSignerAccounts>
 ) {
-  const builder = program.methods.requireSigner(args ?? {});
+  const builder = program.methods.require_signer(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

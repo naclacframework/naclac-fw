@@ -5,3 +5,5 @@ export * from "./initVaultA";
 export * from "./initVaultB";
 export * from "./touchPairNoAlias";
 export * from "./touchPairWithAlias";
+export * from "./initVaultC";
+export * from "./touchTriplePartialAlias";

@@ -1,0 +1,22 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+:root {
+  --sl-font: "Inter", var(--sl-font-system);
+  --sl-font-mono: "JetBrains Mono", var(--sl-font-system-mono);
+
+  /* Dark mode (Starlight's default :root) */
+  --sl-color-accent-low: hsl(338, 45%, 20%);
+  --sl-color-accent: hsl(338, 66%, 58%);
+  --sl-color-accent-high: hsl(338, 90%, 88%);
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-high: hsl(338, 80%, 32%);
+  --sl-color-accent: hsl(338, 80%, 55%);
+  --sl-color-accent-low: hsl(338, 85%, 92%);
+}

@@ -13,9 +13,15 @@ pub fn generate_typescript_sdk(
     workspace_root: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut idl: Idl = serde_json::from_str(idl_json)?;
-    let temp_marker = workspace_root.join(format!("target/.{}-zero-copy", program_name));
-    if temp_marker.exists() {
+    let target_dir = crate::paths::resolve_target_dir(workspace_root);
+    let temp_marker = target_dir.join(format!(".{}-zero-copy", program_name));
+    if let Ok(marker_content) = fs::read_to_string(&temp_marker) {
         idl.is_zero_copy = true;
+        idl.alloc_event_names = marker_content
+            .split(',')
+            .map(str::to_string)
+            .filter(|s| !s.is_empty())
+            .collect();
     }
 
     let clients_dir =
@@ -29,7 +35,7 @@ pub fn generate_typescript_sdk(
     fs::create_dir_all(clients_dir.join("types")).unwrap();
     fs::create_dir_all(clients_dir.join("idl")).unwrap();
 
-    let target_types_dir = workspace_root.join("target/types");
+    let target_types_dir = target_dir.join("types");
     let ts_idl_path = target_types_dir.join(format!("{}.ts", program_name));
     if ts_idl_path.exists() {
         fs::copy(
@@ -38,7 +44,9 @@ pub fn generate_typescript_sdk(
         )
         .unwrap();
     }
-    let json_idl_path = workspace_root.join(format!("target/idl/{}.json", program_name));
+    let json_idl_path = target_dir
+        .join("idl")
+        .join(format!("{}.json", program_name));
     if json_idl_path.exists() {
         fs::copy(
             &json_idl_path,
@@ -56,9 +64,5 @@ pub fn generate_typescript_sdk(
     // 3. Generate Legacy Web3.js Client (client_legacy.ts)
     legacy::generate_legacy_client(&idl, program_name, &clients_dir)?;
 
-    println!(
-        "✅ Client SDK successfully generated in clients/typescript/src/generated/{}",
-        program_name
-    );
     Ok(())
 }

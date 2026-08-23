@@ -45,6 +45,7 @@ extern crate alloc;
 // Modules
 // ===========================================================================
 
+pub mod base58;
 pub mod context;
 pub mod cpi;
 pub mod error;
@@ -54,6 +55,8 @@ pub mod wrappers;
 
 // Account cursor and duplicate tracking
 pub mod cursor;
+// Manual account reallocation helper
+pub mod realloc;
 // system_program helper module
 pub mod system_program;
 

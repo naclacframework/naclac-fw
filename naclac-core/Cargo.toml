@@ -19,12 +19,12 @@ pinocchio-pubkey = { workspace = true, optional = true }
 pinocchio-log-macro = { workspace = true, optional = true }
 pinocchio-memo = { workspace = true, optional = true }
 solana-address = { workspace = true, optional = true }
+five8 = { workspace = true }
 
 [features]
 no-std = []
 default = ["solana"]
 solana = ["dep:solana-program", "dep:solana-system-interface", "dep:solana-address"]
-idl-build = []
 borsh = ["dep:borsh", "naclac-macros/borsh"]
 pinocchio = [
     "dep:pinocchio",

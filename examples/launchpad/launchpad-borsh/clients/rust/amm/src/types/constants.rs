@@ -3,11 +3,11 @@
 
 #[cfg(feature = "offchain")]
 pub const PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_array([
-    242, 179, 214, 205, 201, 33, 163, 107, 34, 53, 7, 62, 176, 76, 109, 54, 61, 75, 66, 46, 235, 211, 89, 65, 166, 179, 56, 154, 114, 177, 116, 75
+    198, 16, 213, 158, 229, 176, 191, 187, 155, 78, 53, 45, 3, 156, 108, 57, 154, 142, 164, 98, 71, 248, 12, 66, 0, 91, 188, 225, 63, 4, 180, 86
 ]);
 
 #[cfg(not(feature = "offchain"))]
-pub const PROGRAM_ID: crate::sdk_core::Address = crate::sdk_core::Address::new_from_array([
-    242, 179, 214, 205, 201, 33, 163, 107, 34, 53, 7, 62, 176, 76, 109, 54, 61, 75, 66, 46, 235, 211, 89, 65, 166, 179, 56, 154, 114, 177, 116, 75
+pub const PROGRAM_ID: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
+    198, 16, 213, 158, 229, 176, 191, 187, 155, 78, 53, 45, 3, 156, 108, 57, 154, 142, 164, 98, 71, 248, 12, 66, 0, 91, 188, 225, 63, 4, 180, 86
 ]);
 

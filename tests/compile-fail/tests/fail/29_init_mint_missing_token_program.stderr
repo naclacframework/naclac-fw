@@ -1,0 +1,5 @@
+error: Naclac Error: token_program must be defined in the Accounts struct for account initialization (or point at one explicitly via `token::program = <field>`).
+  --> tests/fail/29_init_mint_missing_token_program.rs:28:9
+   |
+28 |     pub mint: AccountInfo,
+   |         ^^^^

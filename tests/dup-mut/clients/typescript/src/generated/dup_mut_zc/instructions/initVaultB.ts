@@ -3,14 +3,14 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `initVaultB` instruction. */
-export const INITVAULTB_DISCRIMINATOR = new Uint8Array([148, 188, 44, 18, 76, 170, 255, 111]);
+/** 8-byte discriminator for the `init_vault_b` instruction. */
+export const INIT_VAULT_B_DISCRIMINATOR = new Uint8Array([148, 188, 44, 18, 76, 170, 255, 111]);
 
 /** Accounts for the `initVaultB` instruction. */
 export interface InitVaultBAccounts {
   payer: naclac.Address | string;
-  vaultB?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  vault_b?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**
@@ -22,7 +22,7 @@ export function initVaultB(
   args?: Record<string, never>,
   accounts?: Partial<InitVaultBAccounts>
 ) {
-  const builder = program.methods.initVaultB(args ?? {});
+  const builder = program.methods.init_vault_b(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

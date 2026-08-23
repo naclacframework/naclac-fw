@@ -1,0 +1,10 @@
+[workspace]
+
+[package]
+name = "donation-relay-probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+litesvm = "*"
+solana-sdk = "*"

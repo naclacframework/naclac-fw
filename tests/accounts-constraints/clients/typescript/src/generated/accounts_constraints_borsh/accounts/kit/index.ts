@@ -2,5 +2,6 @@
 // Re-run `naclac generate` to refresh this file.
 
 export * from "./ledger";
+export * from "./note";
 export * from "./seededthing";
 export * from "./vault";

@@ -1,3 +1,4 @@
+use crate::ui;
 use sha2::{Digest, Sha256};
 use solana_address::Address;
 use std::fs;
@@ -10,32 +11,20 @@ use std::str::FromStr;
 pub fn execute(program_id_str: &String) {
     // Validate the pubkey format early even though we use it as a string for display
     if bs58::decode(program_id_str).into_vec().is_err() {
-        eprintln!("❌ Invalid base58 program ID.");
+        ui::error_line("Invalid base58 program ID.");
         return;
     }
 
-    println!(
-        "🔍 Initializing Trust Protocol Verifier against Program ID: {}",
-        program_id_str
-    );
-
-    // ==========================================
-    // 1. DOCKER DEPENDENCY VERIFICATION
-    // ==========================================
     let docker_check = Command::new("docker").arg("--version").output();
 
     match docker_check {
-        Ok(out) if out.status.success() => {
-            println!(
-                "🐳 Native Docker runtime located. Initiating standardized verifiable bounds."
-            );
-        }
+        Ok(out) if out.status.success() => {}
         _ => {
-            eprintln!("
-❌ Error: Docker is not running or missing from systemic PATH.
-Naclac requires Docker to perform verifiable, deterministic builds to eliminate OS disparities (Mac vs Windows). 
-Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemon is running before running 'naclac verify'.
-");
+            ui::error_line(
+                "Docker is not running or missing from PATH — naclac needs Docker for \
+                 deterministic verify builds. Install it (docs.docker.com/get-docker) and \
+                 make sure the daemon is running.",
+            );
             return;
         }
     }
@@ -46,15 +35,20 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
     } else if current_dir.join("../../Naclac.toml").exists() {
         current_dir.join("../..").canonicalize().unwrap()
     } else {
-        eprintln!("❌ Error: Could not find Naclac.toml.");
+        ui::error_line("Could not find Naclac.toml.");
         return;
     };
 
-    // ==========================================
-    // 2. DETERMINISTIC BUILD
-    // ==========================================
-    println!("📦 Spinning up ellipsislabs/solana:latest standardization container...");
-    println!("🔄 Mounting workspace and synthesizing verifiable SBF payload...");
+    // Docker's own build output is inherited straight through to the
+    // terminal, so no live spinner runs alongside it here — a
+    // steady-ticking spinner and a subprocess writing to the same inherited
+    // stdio at the same time would corrupt each other's output (see the
+    // same reasoning that ruled out a PTY for `naclac build`'s own compile
+    // step in build.rs).
+    ui::info(format!(
+        "Verifying {} (dockerized build)...",
+        program_id_str
+    ));
 
     let parent_dir = workspace_root.parent().unwrap();
     let project_name = workspace_root.file_name().unwrap().to_str().unwrap();
@@ -95,19 +89,12 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
     }
 
     if !build_status.success() {
-        eprintln!(
-            "❌ Dockerized Deterministic Compilation failed. Resolve errors to continue verifying."
-        );
+        ui::error_line("Dockerized build failed — resolve errors to continue verifying.");
         return;
     }
 
-    // ==========================================
-    // 3. HASH COMPARISON
-    // ==========================================
-    println!("🗜 Hashing target buffer payload...");
-
     // Find matching SO file bypassing simple string names
-    let deploy_dir = workspace_root.join("target/deploy");
+    let deploy_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("deploy");
     let mut matching_so = None;
 
     let target_address = Address::from_str(program_id_str).unwrap();
@@ -164,9 +151,6 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
             hasher.update(&local_bytes);
             let hash_bytes = hasher.finalize();
             let local_hash = hex::encode(hash_bytes);
-            println!("🔒 Local Checksum: {}", local_hash);
-
-            println!("🌐 Fetching true on-chain buffer dump securely over RPC...");
 
             let tmp_onchain_dump =
                 std::env::temp_dir().join(format!("{}_onchain.so", program_id_str));
@@ -179,10 +163,10 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
                 .expect("Failed to execute solana program dump fetching process.");
 
             if !dump_cmd.status.success() {
-                eprintln!(
-                    "❌ Failed querying network. Are you connected to the right cluster? {}",
+                ui::error_line(format!(
+                    "Failed querying network — wrong cluster? {}",
                     String::from_utf8_lossy(&dump_cmd.stderr)
-                );
+                ));
                 return;
             }
 
@@ -196,27 +180,30 @@ Please install Docker (https://docs.docker.com/get-docker/) and ensure the daemo
                 chain_hasher.update(comparable_onchain_slice);
                 let on_chain_hash = hex::encode(chain_hasher.finalize());
 
-                println!("🌍 Mainnet Checksum: {}", on_chain_hash);
-
                 if local_hash == on_chain_hash {
-                    println!(
-                        "✅ Verification Successful: On-chain code perfectly matches local source."
-                    );
+                    ui::success(format!(
+                        "On-chain code matches local source ({})",
+                        local_hash
+                    ));
                 } else {
-                    eprintln!("❌ VERIFICATION FAILED: Detected divergence between real On-Chain code and local SBF targets!");
+                    ui::error_line(format!(
+                        "Verification failed — on-chain code diverges from local build \
+                         (local {} vs on-chain {}).",
+                        local_hash, on_chain_hash
+                    ));
                 }
 
                 fs::remove_file(&tmp_onchain_dump).unwrap_or_default();
             } else {
-                eprintln!("❌ Core Dump processing array missing!");
+                ui::error_line("Failed to read the fetched on-chain dump.");
             }
         } else {
-            eprintln!("❌ Failed to read matching `.so` file arrays.");
+            ui::error_line("Failed to read the local `.so` file.");
         }
     } else {
-        eprintln!(
-            "❌ No verifiable program artifacts found for Program ID: {}",
+        ui::error_line(format!(
+            "No verifiable program artifacts found for {}",
             program_id_str
-        );
+        ));
     }
 }

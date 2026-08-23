@@ -3,14 +3,14 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `initConfig` instruction. */
-export const INITCONFIG_DISCRIMINATOR = new Uint8Array([23, 235, 115, 232, 168, 96, 1, 231]);
+/** 8-byte discriminator for the `init_config` instruction. */
+export const INIT_CONFIG_DISCRIMINATOR = new Uint8Array([23, 235, 115, 232, 168, 96, 1, 231]);
 
 /** Accounts for the `initConfig` instruction. */
 export interface InitConfigAccounts {
   payer: naclac.Address | string;
   config?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**
@@ -22,7 +22,7 @@ export function initConfig(
   args?: Record<string, never>,
   accounts?: Partial<InitConfigAccounts>
 ) {
-  const builder = program.methods.initConfig(args ?? {});
+  const builder = program.methods.init_config(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

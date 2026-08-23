@@ -8,3 +8,4 @@ export const PROGRAM_ID = naclac.address("4brUZ7qbbQvHFLoVZuUdVejWXUx8WWZpZEgbBs
 export const SEED_VAULT: Uint8Array = Uint8Array.from([118, 97, 117, 108, 116]);
 export const SEED_LEDGER: Uint8Array = Uint8Array.from([108, 101, 100, 103, 101, 114]);
 export const SEED_SEEDED: Uint8Array = Uint8Array.from([115, 101, 101, 100, 101, 100]);
+export const SEED_EXTERNAL_PDA: Uint8Array = Uint8Array.from([101, 120, 116, 101, 114, 110, 97, 108, 95, 112, 100, 97]);

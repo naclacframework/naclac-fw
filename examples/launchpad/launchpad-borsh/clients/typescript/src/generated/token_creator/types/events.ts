@@ -10,8 +10,8 @@ export const TOKENLAUNCHED_EVENT_DISCRIMINATOR = new Uint8Array([225, 232, 190, 
 export interface TokenLaunched {
   id: bigint | number;
   mint: naclac.Address | string;
-  amountToken: bigint | number;
-  amountQuote: bigint | number;
+  amount_token: bigint | number;
+  amount_quote: bigint | number;
 }
 
 /** Subscribes to `TokenLaunched` events. Returns a listener ID for cleanup. */
@@ -28,6 +28,14 @@ export async function waitForTokenLaunched(
   options?: { timeoutMs?: number }
 ): Promise<TokenLaunched | null> {
   return program.waitForEvent("TokenLaunched", options) as Promise<TokenLaunched | null>;
+}
+
+/** Decodes every `TokenLaunched` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForTokenLaunched`/`addTokenLaunchedListener` — prefer this when you already know which transaction you're checking. */
+export function parseTokenLaunchedEvents(
+  program: any,
+  logs: readonly string[]
+): TokenLaunched[] {
+  return program.parseEvents("TokenLaunched", logs) as TokenLaunched[];
 }
 
 /** 8-byte discriminator for `MintCreated` events in transaction logs. */
@@ -54,6 +62,14 @@ export async function waitForMintCreated(
   options?: { timeoutMs?: number }
 ): Promise<MintCreated | null> {
   return program.waitForEvent("MintCreated", options) as Promise<MintCreated | null>;
+}
+
+/** Decodes every `MintCreated` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForMintCreated`/`addMintCreatedListener` — prefer this when you already know which transaction you're checking. */
+export function parseMintCreatedEvents(
+  program: any,
+  logs: readonly string[]
+): MintCreated[] {
+  return program.parseEvents("MintCreated", logs) as MintCreated[];
 }
 
 /** Removes a previously registered event listener. */

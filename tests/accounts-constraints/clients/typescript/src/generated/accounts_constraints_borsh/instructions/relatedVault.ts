@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `relatedVault` instruction. */
-export const RELATEDVAULT_DISCRIMINATOR = new Uint8Array([211, 244, 86, 173, 76, 192, 89, 93]);
+/** 8-byte discriminator for the `related_vault` instruction. */
+export const RELATED_VAULT_DISCRIMINATOR = new Uint8Array([211, 244, 86, 173, 76, 192, 89, 93]);
 
 /** Accounts for the `relatedVault` instruction. */
 export interface RelatedVaultAccounts {
@@ -21,7 +21,7 @@ export function relatedVault(
   args?: Record<string, never>,
   accounts?: Partial<RelatedVaultAccounts>
 ) {
-  const builder = program.methods.relatedVault(args ?? {});
+  const builder = program.methods.related_vault(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

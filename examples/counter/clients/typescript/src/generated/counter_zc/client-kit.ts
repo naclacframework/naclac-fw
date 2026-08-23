@@ -59,7 +59,7 @@ export class CounterZcClient {
     return instructions.increment(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `counterAccount` account. */
+  /** Derives the PDA for a `counter_account` account. */
   public async getCounterAccountPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({

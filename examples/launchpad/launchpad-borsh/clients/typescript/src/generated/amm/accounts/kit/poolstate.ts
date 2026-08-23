@@ -11,11 +11,11 @@ export const POOLSTATE_DISCRIMINATOR = new Uint8Array([247, 237, 227, 245, 215, 
 export function getPoolStateEncoder(): naclac.FixedSizeEncoder<PoolState> {
   return naclac.getStructEncoder([
     ["id", naclac.getU64Encoder()],
-    ["tokenAMint", naclac.getAddressEncoder()],
-    ["tokenBMint", naclac.getAddressEncoder()],
-    ["vaultA", naclac.getAddressEncoder()],
-    ["vaultB", naclac.getAddressEncoder()],
-    ["lpMint", naclac.getAddressEncoder()],
+    ["token_a_mint", naclac.getAddressEncoder()],
+    ["token_b_mint", naclac.getAddressEncoder()],
+    ["vault_a", naclac.getAddressEncoder()],
+    ["vault_b", naclac.getAddressEncoder()],
+    ["lp_mint", naclac.getAddressEncoder()],
     ["bump", naclac.getU8Encoder()],
   ]) as naclac.FixedSizeEncoder<PoolState>;
 }
@@ -24,11 +24,11 @@ export function getPoolStateEncoder(): naclac.FixedSizeEncoder<PoolState> {
 export function getPoolStateDecoder(): naclac.FixedSizeDecoder<PoolState> {
   return naclac.getStructDecoder([
     ["id", naclac.getU64Decoder()],
-    ["tokenAMint", naclac.getAddressDecoder()],
-    ["tokenBMint", naclac.getAddressDecoder()],
-    ["vaultA", naclac.getAddressDecoder()],
-    ["vaultB", naclac.getAddressDecoder()],
-    ["lpMint", naclac.getAddressDecoder()],
+    ["token_a_mint", naclac.getAddressDecoder()],
+    ["token_b_mint", naclac.getAddressDecoder()],
+    ["vault_a", naclac.getAddressDecoder()],
+    ["vault_b", naclac.getAddressDecoder()],
+    ["lp_mint", naclac.getAddressDecoder()],
     ["bump", naclac.getU8Decoder()],
   ]) as naclac.FixedSizeDecoder<PoolState>;
 }

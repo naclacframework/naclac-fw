@@ -3,11 +3,15 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `checkOwner` instruction. */
-export const CHECKOWNER_DISCRIMINATOR = new Uint8Array([215, 161, 49, 182, 161, 8, 67, 193]);
+/** 8-byte discriminator for the `check_owner` instruction. */
+export const CHECK_OWNER_DISCRIMINATOR = new Uint8Array([215, 161, 49, 182, 161, 8, 67, 193]);
 
 /** Accounts for the `checkOwner` instruction. */
 export interface CheckOwnerAccounts {
+  /**
+   * SAFETY: only the account's owner field is inspected via the `owner`
+   * constraint below; its data is never read or deserialized.
+   */
   target: naclac.Address | string;
 }
 
@@ -20,7 +24,7 @@ export function checkOwner(
   args?: Record<string, never>,
   accounts?: Partial<CheckOwnerAccounts>
 ) {
-  const builder = program.methods.checkOwner(args ?? {});
+  const builder = program.methods.check_owner(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

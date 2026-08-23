@@ -7,92 +7,33 @@ export const IDL = {
   },
   "instructions": [
     {
-      "name": "initCounter",
+      "name": "init_counter",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        247,
-        168,
-        146,
-        45,
-        125,
-        26,
-        142,
-        80
-      ],
+      "discriminator": [247,168,146,45,125,26,142,80],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "counter",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "counter", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  117,
-                  110,
-                  116,
-                  101,
-                  114
-                ],
-                "name": "SEED_COUNTER"
-              }
+              { "kind": "const", "value": [99,111,117,110,116,101,114], "name": "SEED_COUNTER" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": []
     },
     {
-      "name": "incrementCounter",
+      "name": "increment_counter",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        16,
-        125,
-        2,
-        171,
-        73,
-        24,
-        207,
-        229
-      ],
+      "discriminator": [16,125,2,171,73,24,207,229],
       "accounts": [
         {
-          "name": "counter",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "counter", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  117,
-                  110,
-                  116,
-                  101,
-                  114
-                ],
-                "name": "SEED_COUNTER"
-              }
+              { "kind": "const", "value": [99,111,117,110,116,101,114], "name": "SEED_COUNTER" }
             ]
           }
         }
@@ -103,27 +44,12 @@ export const IDL = {
   "accounts": [
     {
       "name": "Counter",
-      "discriminator": [
-        255,
-        176,
-        4,
-        245,
-        188,
-        253,
-        124,
-        25
-      ],
+      "discriminator": [255,176,4,245,188,253,124,25],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "value",
-            "type": "u64"
-          }
+          { "name": "bump", "type": "u8" },
+          { "name": "value", "type": "u64" }
         ]
       }
     }
@@ -134,7 +60,7 @@ export const IDL = {
     {
       "name": "SEED_COUNTER",
       "type": "bytes",
-      "value": "b\"counter\""
+      "value": "[99, 111, 117, 110, 116, 101, 114]"
     }
   ],
   "definedTypes": [],
@@ -142,19 +68,7 @@ export const IDL = {
     {
       "name": "counter",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            99,
-            111,
-            117,
-            110,
-            116,
-            101,
-            114
-          ],
-          "name": "SEED_COUNTER"
-        }
+        { "kind": "const", "value": [99,111,117,110,116,101,114], "name": "SEED_COUNTER" }
       ]
     }
   ]

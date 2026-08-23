@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `initTaggedChild` instruction. */
-export const INITTAGGEDCHILD_DISCRIMINATOR = new Uint8Array([40, 46, 85, 175, 69, 80, 143, 191]);
+/** 8-byte discriminator for the `init_tagged_child` instruction. */
+export const INIT_TAGGED_CHILD_DISCRIMINATOR = new Uint8Array([40, 46, 85, 175, 69, 80, 143, 191]);
 
 /** Instruction arguments for `initTaggedChild`. */
 export interface InitTaggedChildArgs {
@@ -15,8 +15,8 @@ export interface InitTaggedChildArgs {
 export interface InitTaggedChildAccounts {
   payer: naclac.Address | string;
   registry: naclac.Address | string;
-  taggedChild?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  tagged_child?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**
@@ -28,7 +28,7 @@ export function initTaggedChild(
   args: InitTaggedChildArgs,
   accounts?: Partial<InitTaggedChildAccounts>
 ) {
-  const builder = program.methods.initTaggedChild(args ?? {});
+  const builder = program.methods.init_tagged_child(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

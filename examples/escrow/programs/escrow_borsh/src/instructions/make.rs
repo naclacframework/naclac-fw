@@ -41,11 +41,16 @@ pub fn make(ctx: Context<Make>, _seed: u64, escrow_bump: u8, amount_a: u64, amou
     escrow.amount_b = amount_b;
     escrow.bump = escrow_bump;
     // Transfer Token A from maker's token account to the vault token account
-    ctx.accounts.token_program.transfer(
-        &ctx.accounts.maker_token_account_a,
-        &ctx.accounts.vault_token_account,
-        &ctx.accounts.maker,
+    let decimals = ctx.accounts.mint_a.decimals();
+    ctx.accounts.token_program.transfer_checked(
+        TransferCheckedAccounts {
+            from: &mut ctx.accounts.maker_token_account_a,
+            mint: &ctx.accounts.mint_a,
+            to: &mut ctx.accounts.vault_token_account,
+            authority: &ctx.accounts.maker,
+        },
         amount_a,
+        decimals,
     )?;
     emit!(EscrowCreated {
         maker: ctx.accounts.maker.address(),

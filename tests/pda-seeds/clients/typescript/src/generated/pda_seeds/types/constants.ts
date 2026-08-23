@@ -9,3 +9,4 @@ export const SEED_REGISTRY: Uint8Array = Uint8Array.from([114, 101, 103, 105, 11
 export const SEED_ENTRY: Uint8Array = Uint8Array.from([101, 110, 116, 114, 121]);
 export const SEED_CHILD: Uint8Array = Uint8Array.from([99, 104, 105, 108, 100]);
 export const SEED_TAGGED_CHILD: Uint8Array = Uint8Array.from([116, 97, 103, 103, 101, 100, 95, 99, 104, 105, 108, 100]);
+export const SEED_CONFIG_ENTRY: Uint8Array = Uint8Array.from([99, 111, 110, 102, 105, 103, 95, 101, 110, 116, 114, 121]);

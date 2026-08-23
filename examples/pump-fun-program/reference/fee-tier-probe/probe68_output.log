@@ -1,0 +1,34 @@
+   Compiling fee-tier-probe v0.1.0 (/mnt/c/Users/hp/Documents/naclac-fw/examples/pump-fun-program/reference/fee-tier-probe)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 28s
+     Running `/mnt/d/naclac-fw/examples/pump-fun-program/reference/fee-tier-probe/target/debug/probe68`
+whitelist_1 = 11157t3sqMV725NVRLrVQbAu98Jjfk1uCKehJnXXQs
+
+=== Call 1: whitelist_pda arg, 0 accounts ===
+  whitelist_pda arg = 11157t3sqMV725NVRLrVQbAu98Jjfk1uCKehJnXXQs
+  remaining_accounts count = 0
+  RESULT: FAILED: InstructionError(1, Custom(6027))
+  LOG: Program log: Instruction: SetReservedFeeRecipients
+  LOG: Program log: AnchorError thrown in programs/pump/src/set_reserved_fee_recipients.rs:40. Error Code: NotEnoughRemainingAccounts. Error Number: 6027. Error Message: Not enough remaining accounts.
+  LOG: Program log: Left: 0
+  LOG: Program log: Right: 8
+
+whitelist_2 = 1117mWrzzrZr312ebPDHu8tbfMwFNvCvMbr6WepCNG
+marker_8 (8 accounts for call 2):
+  [0] 1119DWteoLSdjvrT6g6L8C2PfDD2faiTQUpsjY2RiF
+  [1] 111BuZ6b86gm7XhxjvTakhRvxSMjXp2GqgifkNUmDK
+  [2] 111FJo4zLAGU9nzTWa6EnbV4VAmtG4FR8kcokrtZYr
+  [3] 111JV6iBiRLoJUtNieRJ9QmcpE2KPE3gLpDzAUkbNW
+  [4] 111MqiH3tDg8KtkQYkCteems4APA9GgUsEFQavs8Vb
+  [5] 111Q7zKqw7vEw6U5Mf3qDU1UrV3MRubjPcCrT1QftA
+  [6] 111S1d9dJA6NS2j95MQ7A2eDjAgdAKXDjvxQg5d8pa
+  [7] 111V4D5zGGPzhpX2QHduCfQfYQLv3gY5jrvGPnWRff
+
+=== Call 2: whitelist_pda arg, 8 funded accounts (marker_8) ===
+  whitelist_pda arg = 1117mWrzzrZr312ebPDHu8tbfMwFNvCvMbr6WepCNG
+  remaining_accounts count = 8
+  RESULT: SUCCESS (21892 CU)
+  LOG: Program log: Instruction: SetReservedFeeRecipients
+  Global.whitelist_pda after call            = 1117mWrzzrZr312ebPDHu8tbfMwFNvCvMbr6WepCNG
+  Global.reserved_fee_recipient after call    = 1119DWteoLSdjvrT6g6L8C2PfDD2faiTQUpsjY2RiF
+  Global.reserved_fee_recipients[7] after call = [111BuZ6b86gm7XhxjvTakhRvxSMjXp2GqgifkNUmDK, 111FJo4zLAGU9nzTWa6EnbV4VAmtG4FR8kcokrtZYr, 111JV6iBiRLoJUtNieRJ9QmcpE2KPE3gLpDzAUkbNW, 111MqiH3tDg8KtkQYkCteems4APA9GgUsEFQavs8Vb, 111Q7zKqw7vEw6U5Mf3qDU1UrV3MRubjPcCrT1QftA, 111S1d9dJA6NS2j95MQ7A2eDjAgdAKXDjvxQg5d8pa, 111V4D5zGGPzhpX2QHduCfQfYQLv3gY5jrvGPnWRff]
+

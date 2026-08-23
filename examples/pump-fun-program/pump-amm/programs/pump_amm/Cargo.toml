@@ -1,0 +1,26 @@
+[package]
+name = "pump_amm"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["pinocchio"]
+pinocchio = ["naclac-lang/pinocchio"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../../naclac-lang", default-features = false, features = ["token"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../../naclac-client" }
+pump-amm-client = { version = "0.1.0", path = "../../clients/rust/pump_amm" }
+
+[lints]
+workspace = true

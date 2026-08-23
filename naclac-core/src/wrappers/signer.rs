@@ -17,7 +17,6 @@ pub struct Signer {
     pub info: AccountInfo,
     #[cfg(feature = "pinocchio")]
     pub view: AccountView,
-    pub index: usize,
 }
 
 #[cfg(not(feature = "pinocchio"))]
@@ -26,10 +25,7 @@ impl Signer {
         if !info.is_signer {
             return Err(NaclacError::ConstraintSigner.err(index));
         }
-        Ok(Self {
-            info: info.clone(),
-            index,
-        })
+        Ok(Self { info: info.clone() })
     }
 }
 
@@ -114,10 +110,7 @@ impl Signer {
         if !info.is_signer() {
             return Err(NaclacError::ConstraintSigner.err(index));
         }
-        Ok(Self {
-            view: info.view,
-            index,
-        })
+        Ok(Self { view: info.view })
     }
 }
 
@@ -164,7 +157,7 @@ impl Signer {
         let new_lamports = view
             .lamports()
             .checked_sub(amount)
-            .ok_or(pinocchio::error::ProgramError::InsufficientFunds)?;
+            .ok_or(NaclacError::InsufficientFunds.err(0))?;
         view.set_lamports(new_lamports);
         Ok(())
     }
@@ -174,7 +167,7 @@ impl Signer {
         let new_lamports = view
             .lamports()
             .checked_add(amount)
-            .ok_or(pinocchio::error::ProgramError::InvalidArgument)?;
+            .ok_or(NaclacError::ArithmeticOverflow.err(0))?;
         view.set_lamports(new_lamports);
         Ok(())
     }

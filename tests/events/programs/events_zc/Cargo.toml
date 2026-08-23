@@ -1,0 +1,25 @@
+[package]
+name = "events_zc"
+version = "0.1.0"
+description = "Regression test: event emission round-trips correctly in all three backends (solana-zerocopy)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+events-zc-client = { version = "0.1.0", path = "../../clients/rust/events_zc" }
+
+[lints]
+workspace = true

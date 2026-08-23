@@ -1,4 +1,4 @@
-error: Naclac Error: In Zero-Copy mode, heap-based types like 'Vec' and 'String' are not valid Accounts-struct field wrapper types for 'bad'. Account fields must be an account wrapper type (Account<T>, AccountLoader<T>, Signer, Program<T>, etc.).
+error: Naclac Error: In Zero-Copy mode, heap-based types like 'Vec' and 'String' are not valid Accounts-struct field wrapper types for 'bad'. Account fields must be an account wrapper type (Account<T>, Signer, Program<T>, etc.).
  --> tests/fail/03_accounts_zero_copy_heap_field.rs:9:14
   |
 9 |     pub bad: Vec<u8>,

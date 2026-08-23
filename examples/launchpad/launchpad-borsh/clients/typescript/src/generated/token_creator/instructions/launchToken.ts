@@ -4,8 +4,8 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `launchToken` instruction. */
-export const LAUNCHTOKEN_DISCRIMINATOR = new Uint8Array([10, 128, 86, 171, 3, 137, 161, 244]);
+/** 8-byte discriminator for the `launch_token` instruction. */
+export const LAUNCH_TOKEN_DISCRIMINATOR = new Uint8Array([10, 128, 86, 171, 3, 137, 161, 244]);
 
 /** Instruction arguments for `launchToken`. */
 export interface LaunchTokenArgs {
@@ -15,20 +15,25 @@ export interface LaunchTokenArgs {
 /** Accounts for the `launchToken` instruction. */
 export interface LaunchTokenAccounts {
   payer: naclac.Address | string;
-  quoteMint: naclac.Address | string;
+  quote_mint: naclac.Address | string;
+  /** SAFETY: the PDA address is validated by the seeds/bump constraint above and the field is only used as a mint target and signer authority input. */
   mint?: naclac.Address | string;
-  launchRecord?: naclac.Address | string;
-  launcherTokenA: naclac.Address | string;
-  launcherTokenB: naclac.Address | string;
-  launcherLp: naclac.Address | string;
-  payerTokenB: naclac.Address | string;
-  poolState: naclac.Address | string;
-  poolVaultA: naclac.Address | string;
-  poolVaultB: naclac.Address | string;
-  poolLpMint: naclac.Address | string;
-  ammProgram: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  launch_record?: naclac.Address | string;
+  launcher_token_a: naclac.Address | string;
+  launcher_token_b: naclac.Address | string;
+  launcher_lp: naclac.Address | string;
+  payer_token_b: naclac.Address | string;
+  /** SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target. */
+  pool_state: naclac.Address | string;
+  /** SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target. */
+  pool_vault_a: naclac.Address | string;
+  /** SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target. */
+  pool_vault_b: naclac.Address | string;
+  /** SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target. */
+  pool_lp_mint: naclac.Address | string;
+  amm_program: naclac.Address | string;
+  token_program?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**
@@ -40,7 +45,7 @@ export function launchToken(
   args: LaunchTokenArgs,
   accounts?: Partial<LaunchTokenAccounts>
 ) {
-  const builder = program.methods.launchToken(args ?? {});
+  const builder = program.methods.launch_token(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

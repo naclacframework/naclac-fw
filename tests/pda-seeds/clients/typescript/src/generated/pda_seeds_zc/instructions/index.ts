@@ -7,3 +7,6 @@ export * from "./touchEntryBareBump";
 export * from "./touchRegistryExplicitBump";
 export * from "./initChild";
 export * from "./initTaggedChild";
+export * from "./touchConfigEntryBareBump";
+export * from "./touchConfigEntryBareBumpWithArgs";
+export * from "./readConfigEntryBareBump";

@@ -1,0 +1,18 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+token = "ExLoWWAhvnCCaLd59rMMUrqZzqgMiNcRWLJ5YuaWEQ28"
+token_borsh = "8DTHBNwgntuWuXuZqNjbJh8veVuptcQnhsZrPTzLgW2x"
+token_zc = "BzKMREPDamgu2dCwbRmLHpmP8LAxob4Ng3we2acY97uW"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"

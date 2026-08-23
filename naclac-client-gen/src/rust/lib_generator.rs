@@ -12,15 +12,40 @@ pub fn generate_lib(
     let mut lib_content = header.to_string();
     lib_content
         .push_str("#![cfg_attr(all(feature = \"cpi\", feature = \"pinocchio\"), no_std)]\n\n");
-    lib_content.push_str("#[cfg(feature = \"cpi\")]\npub use naclac_lang::prelude as sdk_core;\n");
-    lib_content.push_str("#[cfg(all(feature = \"offchain\", not(feature = \"cpi\")))]\npub use naclac_client as sdk_core;\n\n");
-    lib_content.push_str("#[cfg(feature = \"offchain\")]\n");
-    lib_content.push_str("pub mod components;\n");
-    lib_content.push_str("pub mod instructions;\n");
+    // Two independent aliases, each resolved only by its own feature — never
+    // by the absence of the other. `cpi` and `offchain` can both be active in
+    // the same build (e.g. a downstream crate's own tests CPI-calling a
+    // different program), and `naclac_client`/`naclac_lang::prelude` each
+    // define their own, non-interchangeable `Address`/`Bool`/etc., so a
+    // single shared alias name can't correctly serve both at once.
+    lib_content
+        .push_str("#[cfg(feature = \"cpi\")]\npub use naclac_lang::prelude as sdk_core_cpi;\n");
+    lib_content.push_str(
+        "#[cfg(feature = \"offchain\")]\npub use naclac_client as sdk_core_offchain;\n\n",
+    );
+    // `mod components`/`mod instructions` are only emitted when there's
+    // actually something for them to declare — `naclac-client-gen/src/rust/mod.rs`
+    // only creates the `src/components`/`src/instructions` directories (and
+    // so only `naclac-client-gen/src/rust/components.rs`/`instructions.rs`
+    // only ever write a `mod.rs` into them) when `idl.accounts`/
+    // `idl.instructions` are non-empty — declaring the module unconditionally
+    // here produced `E0583: file not found for module` for any program with
+    // zero components (a pure-logic program, e.g. `tests/error-codes/`).
+    if !idl.accounts.is_empty() {
+        lib_content.push_str("#[cfg(feature = \"offchain\")]\n");
+        lib_content.push_str("pub mod components;\n");
+    }
+    if !idl.instructions.is_empty() {
+        lib_content.push_str("pub mod instructions;\n");
+    }
     lib_content.push_str("pub mod types;\n\n");
-    lib_content.push_str("#[cfg(feature = \"offchain\")]\n");
-    lib_content.push_str("pub use components::*;\n");
-    lib_content.push_str("pub use instructions::*;\n");
+    if !idl.accounts.is_empty() {
+        lib_content.push_str("#[cfg(feature = \"offchain\")]\n");
+        lib_content.push_str("pub use components::*;\n");
+    }
+    if !idl.instructions.is_empty() {
+        lib_content.push_str("pub use instructions::*;\n");
+    }
     lib_content.push_str("pub use types::*;\n\n");
 
     lib_content.push_str(&format!(
@@ -87,7 +112,34 @@ pub fn generate_lib(
             })
             .unwrap();
 
-        let mut params = vec!["program_id: &naclac_client::Address".to_string()];
+        // A `seeds::program = X` override means this PDA is derived under a
+        // *different* program than the current one — the derivation program
+        // is fixed at compile time, not something a caller should be able to
+        // vary, so such a PDA takes no `program_id` param at all (unlike
+        // every other helper here, which derives under the current program
+        // and takes one). Only a `const` override is resolvable to a fixed
+        // address; anything else (an arg/account-derived foreign program,
+        // not expected in practice) is skipped like `unresolvable_field_seed`
+        // below, rather than guessed at.
+        let foreign_program_bytes: Option<&[u8]> = match &pda.program {
+            None => None,
+            Some(IdlSeed::Const { value, .. }) => Some(value.as_slice()),
+            Some(_) => {
+                lib_content.push_str(&format!(
+                    "// get_{}_pda intentionally not generated: this PDA's `seeds::program`\n\
+                     // override isn't a plain constant, so there's no fixed address to\n\
+                     // derive against. Derive it manually.\n\n",
+                    AsSnakeCase(&acc_name)
+                ));
+                continue;
+            }
+        };
+
+        let mut params = if foreign_program_bytes.is_some() {
+            Vec::new()
+        } else {
+            vec!["program_id: &naclac_client::Address".to_string()]
+        };
         let mut local_defs = Vec::new();
         let mut seed_slices = Vec::new();
         let mut seen_params = std::collections::HashSet::new();
@@ -118,9 +170,9 @@ pub fn generate_lib(
                     if !seen_params.contains(&param_name) {
                         seen_params.insert(param_name.clone());
                         params.push(format!("{}: {}", param_name, arg_ty));
-                        if arg_ty == "naclac_client::Address" {
+                        if arg_ty == "crate::sdk_core_offchain::Address" {
                             // Direct
-                        } else if arg_ty == "String" || arg_ty == "&str" {
+                        } else if arg_ty == "crate::sdk_core_offchain::String" || arg_ty == "&str" {
                             // Bytes
                         } else if arg_ty == "u8" {
                             local_defs
@@ -133,9 +185,9 @@ pub fn generate_lib(
                         }
                     }
 
-                    if arg_ty == "naclac_client::Address" {
+                    if arg_ty == "crate::sdk_core_offchain::Address" {
                         seed_slices.push(format!("{}.as_ref()", param_name));
-                    } else if arg_ty == "String" || arg_ty == "&str" {
+                    } else if arg_ty == "crate::sdk_core_offchain::String" || arg_ty == "&str" {
                         seed_slices.push(format!("{}.as_bytes()", param_name));
                     } else if arg_ty == "u8" {
                         seed_slices.push(format!("&{}_arr", param_name));
@@ -215,20 +267,42 @@ pub fn generate_lib(
             continue;
         }
 
+        let params_str = if params.is_empty() {
+            String::new()
+        } else {
+            format!("\n    {}\n", params.join(",\n    "))
+        };
         lib_content.push_str(&format!(
             "#[cfg(feature = \"offchain\")]\n\
-             pub fn get_{}_pda(\n    {}\n) -> (naclac_client::Address, u8) {{\n",
+             pub fn get_{}_pda({}) -> (naclac_client::Address, u8) {{\n",
             AsSnakeCase(&acc_name),
-            params.join(",\n    ")
+            params_str
         ));
         for def in &local_defs {
             lib_content.push_str(&format!("{}\n", def));
         }
+        let derivation_program_expr = if let Some(bytes) = foreign_program_bytes {
+            let bytes_str = bytes
+                .iter()
+                .map(|b| b.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            lib_content.push_str(&format!(
+                "    let __derivation_program = naclac_client::Address::new_from_array([{}]);\n",
+                bytes_str
+            ));
+            "&__derivation_program".to_string()
+        } else {
+            "program_id".to_string()
+        };
         lib_content.push_str("    naclac_client::Address::find_program_address(\n        &[\n");
         for slice in &seed_slices {
             lib_content.push_str(&format!("            {},\n", slice));
         }
-        lib_content.push_str("        ],\n        program_id,\n    )\n}\n\n");
+        lib_content.push_str(&format!(
+            "        ],\n        {},\n    )\n}}\n\n",
+            derivation_program_expr
+        ));
     }
 
     let program_camel = idl.metadata.name.to_upper_camel_case();
@@ -244,9 +318,9 @@ pub fn generate_lib(
         "#[derive(Clone, Copy)]\n\
          pub struct {};\n\n\
          #[cfg(feature = \"cpi\")]\n\
-         impl sdk_core::Id for {} {{\n\
-         \x20   fn id() -> sdk_core::Address {{\n\
-         \x20       sdk_core::Address::new_from_array([{}])\n\
+         impl sdk_core_cpi::Id for {} {{\n\
+         \x20   fn id() -> sdk_core_cpi::Address {{\n\
+         \x20       sdk_core_cpi::Address::new_from_array([{}])\n\
          \x20   }}\n\
          }}\n\n",
         program_camel, program_camel, bytes_str

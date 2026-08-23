@@ -11,7 +11,7 @@ export const CONFIG_DISCRIMINATOR = new Uint8Array([155, 12, 170, 224, 30, 250, 
 export function getConfigEncoder(): naclac.FixedSizeEncoder<Config> {
   return naclac.getStructEncoder([
     ["admin", naclac.getAddressEncoder()],
-    ["feeBps", naclac.getU16Encoder()],
+    ["fee_bps", naclac.getU16Encoder()],
   ]) as naclac.FixedSizeEncoder<Config>;
 }
 
@@ -19,7 +19,7 @@ export function getConfigEncoder(): naclac.FixedSizeEncoder<Config> {
 export function getConfigDecoder(): naclac.FixedSizeDecoder<Config> {
   return naclac.getStructDecoder([
     ["admin", naclac.getAddressDecoder()],
-    ["feeBps", naclac.getU16Decoder()],
+    ["fee_bps", naclac.getU16Decoder()],
   ]) as naclac.FixedSizeDecoder<Config>;
 }
 

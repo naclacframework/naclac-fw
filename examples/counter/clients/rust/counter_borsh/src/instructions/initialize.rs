@@ -14,18 +14,25 @@ pub fn build_initialize<'a>(
     program_id: naclac_client::Address,
     accounts: InitializeAccounts,
 ) -> naclac_client::InstructionBuilder<'a> {
-    let ix_data = crate::sdk_core::vec![175, 175, 109, 31, 13, 152, 155, 237];
+    let ix_data = crate::sdk_core_offchain::vec![175, 175, 109, 31, 13, 152, 155, 237];
     naclac_client::InstructionBuilder::new(provider, program_id, ix_data)
         .account(naclac_client::AccountMeta { address: accounts.payer, is_signer: true, is_writable: true }, "payer")
-        .account(naclac_client::AccountMeta { address: accounts.counter_account, is_signer: false, is_writable: true }, "counterAccount")
-        .account(naclac_client::AccountMeta { address: accounts.system_program, is_signer: false, is_writable: false }, "systemProgram")
+        .account(naclac_client::AccountMeta { address: accounts.counter_account, is_signer: false, is_writable: true }, "counter_account")
+        .account(naclac_client::AccountMeta { address: accounts.system_program, is_signer: false, is_writable: false }, "system_program")
 }
 
 #[cfg(feature = "cpi")]
 pub struct InitializeCpiAccounts<'a> {
-    pub payer: crate::sdk_core::CpiHandleMut<'a>,
-    pub counter_account: crate::sdk_core::CpiHandleMut<'a>,
-    pub system_program: crate::sdk_core::CpiHandle<'a>,
+    pub payer: crate::sdk_core_cpi::CpiHandleMut<'a>,
+    pub counter_account: crate::sdk_core_cpi::CpiHandleMut<'a>,
+    pub system_program: crate::sdk_core_cpi::CpiHandle<'a>,
+}
+
+#[cfg(feature = "cpi")]
+pub struct InitializeCpiCall<'a> {
+    pub accounts: InitializeCpiAccounts<'a>,
+    pub signer_seeds: &'a [&'a [&'a [u8]]],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]
@@ -33,92 +40,97 @@ pub trait InitializeCpi<'info> {
     fn initialize<'a>(
         &self,
         accounts: InitializeCpiAccounts<'a>
-    ) -> crate::sdk_core::Result<()> {
-        self.initialize_with_remaining_accounts(accounts, &[], &[])
+    ) -> crate::sdk_core_cpi::Result<()> {
+        self.initialize_with_remaining_accounts(InitializeCpiCall {
+        accounts,
+        signer_seeds: &[],
+        remaining_accounts: &[],
+    })
     }
 
     fn initialize_signed<'a>(
         &self,
         accounts: InitializeCpiAccounts<'a>,
         signer_seeds: &[&[&[u8]]]
-    ) -> crate::sdk_core::Result<()> {
-        self.initialize_with_remaining_accounts(accounts, signer_seeds, &[])
+    ) -> crate::sdk_core_cpi::Result<()> {
+        self.initialize_with_remaining_accounts(InitializeCpiCall {
+        accounts,
+        signer_seeds,
+        remaining_accounts: &[],
+    })
     }
 
     fn initialize_with_remaining_accounts<'a>(
         &self,
-        accounts: InitializeCpiAccounts<'a>,
-        signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
-    ) -> crate::sdk_core::Result<()>;
+        call: InitializeCpiCall<'a>
+    ) -> crate::sdk_core_cpi::Result<()>;
 
 }
 
 #[cfg(feature = "cpi")]
-impl<'info> InitializeCpi<'info> for crate::sdk_core::Program<crate::CounterBorsh> {
+impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::CounterBorsh> {
     fn initialize_with_remaining_accounts<'a>(
         &self,
-        accounts: InitializeCpiAccounts<'a>,
-        signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
-    ) -> crate::sdk_core::Result<()> {
-        let mut ix_data = crate::sdk_core::Vec::new();
+        call: InitializeCpiCall<'a>
+    ) -> crate::sdk_core_cpi::Result<()> {
+        let InitializeCpiCall { accounts, signer_seeds, remaining_accounts } = call;
+        let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[175, 175, 109, 31, 13, 152, 155, 237]);
         #[cfg(feature = "pinocchio")]
         {
-            let mut metas_arr = [const { core::mem::MaybeUninit::<crate::sdk_core::pinocchio::instruction::InstructionAccount>::uninit() }; 32];
+            let mut metas_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount>::uninit() }; 32];
             let mut idx = 0;
-            metas_arr[idx].write(crate::sdk_core::pinocchio::instruction::InstructionAccount::writable_signer(accounts.payer.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(accounts.payer.info.view.address()));
             idx += 1;
-            metas_arr[idx].write(crate::sdk_core::pinocchio::instruction::InstructionAccount::writable(accounts.counter_account.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.counter_account.info.view.address()));
             idx += 1;
-            metas_arr[idx].write(crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly(accounts.system_program.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.system_program.info.view.address()));
             idx += 1;
             for (acc, is_writable, is_signer) in remaining_accounts {
                 if idx >= 32 { break; }
                 let meta = if *is_writable {
                     if *is_signer {
-                        crate::sdk_core::pinocchio::instruction::InstructionAccount::writable_signer(acc.view.address())
+                        crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(acc.view.address())
                     } else {
-                        crate::sdk_core::pinocchio::instruction::InstructionAccount::writable(acc.view.address())
+                        crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(acc.view.address())
                     }
                 } else {
                     if *is_signer {
-                        crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly_signer(acc.view.address())
+                        crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly_signer(acc.view.address())
                     } else {
-                        crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly(acc.view.address())
+                        crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(acc.view.address())
                     }
                 };
                 metas_arr[idx].write(meta);
                 idx += 1;
             }
-            let account_metas = unsafe { core::slice::from_raw_parts(metas_arr.as_ptr() as *const crate::sdk_core::pinocchio::instruction::InstructionAccount, idx) };
+            let account_metas = unsafe { core::slice::from_raw_parts(metas_arr.as_ptr() as *const crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount, idx) };
             let program_id_address = self.address();
-            let instruction = crate::sdk_core::pinocchio::instruction::InstructionView {
+            let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView {
                 program_id: program_id_address.as_address(),
                 accounts: account_metas,
                 data: &ix_data,
             };
-            let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core::CpiHandle>::uninit() }; 32];
+            let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::CpiHandle>::uninit() }; 32];
             let mut h_idx = 0;
-            handles_arr[h_idx].write(crate::sdk_core::CpiHandle::from(accounts.payer));
+            handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.payer));
             h_idx += 1;
-            handles_arr[h_idx].write(crate::sdk_core::CpiHandle::from(accounts.counter_account));
+            handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.counter_account));
             h_idx += 1;
             handles_arr[h_idx].write(accounts.system_program);
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }
-                handles_arr[h_idx].write(crate::sdk_core::ToCpiHandle::to_cpi_handle(acc));
+                handles_arr[h_idx].write(crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(acc));
                 h_idx += 1;
             }
-            let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core::CpiHandle, h_idx) };
-            crate::sdk_core::cpi::invoke_signed_pinocchio_handles(&instruction, account_handles, signer_seeds)
+            let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_handles(&instruction, account_handles, signer_seeds)
         }
         #[cfg(not(feature = "pinocchio"))]
         {
-            use crate::sdk_core::ToAddress;
-            let mut account_metas = crate::sdk_core::vec![
+            use crate::sdk_core_cpi::ToAddress;
+            let mut account_metas = crate::sdk_core_cpi::vec![
                 ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
                 ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.counter_account.address(), false),
                 ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
@@ -136,21 +148,21 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core::Program<crate::CounterBors
                 accounts: account_metas,
                 data: ix_data,
             };
-            let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core::CpiHandle>::uninit() }; 32];
+            let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::CpiHandle>::uninit() }; 32];
             let mut h_idx = 0;
-            handles_arr[h_idx].write(crate::sdk_core::CpiHandle::from(accounts.payer));
+            handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.payer));
             h_idx += 1;
-            handles_arr[h_idx].write(crate::sdk_core::CpiHandle::from(accounts.counter_account));
+            handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.counter_account));
             h_idx += 1;
             handles_arr[h_idx].write(accounts.system_program);
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }
-                handles_arr[h_idx].write(crate::sdk_core::ToCpiHandle::to_cpi_handle(acc));
+                handles_arr[h_idx].write(crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(acc));
                 h_idx += 1;
             }
-            let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core::CpiHandle, h_idx) };
-            crate::sdk_core::cpi::invoke_signed(&instruction, account_handles, signer_seeds)
+            let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
+            crate::sdk_core_cpi::cpi::invoke_signed(&instruction, account_handles, signer_seeds)
         }
     }
 }

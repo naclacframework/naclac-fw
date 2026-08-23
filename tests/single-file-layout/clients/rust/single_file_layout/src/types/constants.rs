@@ -7,7 +7,7 @@ pub const PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_
 ]);
 
 #[cfg(not(feature = "offchain"))]
-pub const PROGRAM_ID: crate::sdk_core::Address = crate::sdk_core::Address::new_from_array([
+pub const PROGRAM_ID: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
     240, 51, 11, 155, 171, 228, 65, 88, 234, 186, 204, 246, 203, 172, 163, 110, 148, 126, 18, 6, 81, 59, 172, 11, 182, 252, 163, 208, 228, 214, 196, 227
 ]);
 

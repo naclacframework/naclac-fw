@@ -1,0 +1,32 @@
+[package]
+name = "token_borsh"
+version = "0.1.0"
+description = "Regression test: token::*/mint::* account constraints and real SPL token CPI (solana-borsh backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["token", "borsh"] }
+spl-memo-interface = "2.1.0"
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+token-borsh-client = { version = "0.1.0", path = "../../clients/rust/token_borsh" }
+solana-message = "^4"
+spl-transfer-hook-interface = "2.1.0"
+spl-tlv-account-resolution = "0.11.1"
+spl-token-metadata-interface = "1.0.1"
+spl-type-length-value = "0.9.1"
+spl-token-2022-interface = "3.1.1"
+
+[lints]
+workspace = true

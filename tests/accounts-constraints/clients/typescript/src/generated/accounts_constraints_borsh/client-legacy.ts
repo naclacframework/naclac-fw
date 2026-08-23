@@ -80,11 +80,35 @@ export class AccountsConstraintsBorshClient {
   }
 
   /**
+   * Builds the `checkOwnerRelational` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkOwnerRelational(args?: Record<string, never>, accounts?: Partial<instructions.CheckOwnerRelationalAccounts>) {
+    return instructions.checkOwnerRelational(this.program, args ?? {}, accounts);
+  }
+
+  /**
    * Builds the `checkAddress` instruction pipeline.
    * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
    */
   public checkAddress(args?: Record<string, never>, accounts?: Partial<instructions.CheckAddressAccounts>) {
     return instructions.checkAddress(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkAddressRelational` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkAddressRelational(args?: Record<string, never>, accounts?: Partial<instructions.CheckAddressRelationalAccounts>) {
+    return instructions.checkAddressRelational(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkExecutable` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkExecutable(args?: Record<string, never>, accounts?: Partial<instructions.CheckExecutableAccounts>) {
+    return instructions.checkExecutable(this.program, args ?? {}, accounts);
   }
 
   /**
@@ -112,6 +136,14 @@ export class AccountsConstraintsBorshClient {
   }
 
   /**
+   * Builds the `initNote` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public initNote(args: instructions.InitNoteArgs, accounts?: Partial<instructions.InitNoteAccounts>) {
+    return instructions.initNote(this.program, args ?? {}, accounts);
+  }
+
+  /**
    * Builds the `touchSeeded` instruction pipeline.
    * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
    */
@@ -127,6 +159,38 @@ export class AccountsConstraintsBorshClient {
     return instructions.closeVault(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `closeVaultSelf` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public closeVaultSelf(args?: Record<string, never>, accounts?: Partial<instructions.CloseVaultSelfAccounts>) {
+    return instructions.closeVaultSelf(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkRentExempt` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkRentExempt(args?: Record<string, never>, accounts?: Partial<instructions.CheckRentExemptAccounts>) {
+    return instructions.checkRentExempt(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `relatedVaultCustomError` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public relatedVaultCustomError(args?: Record<string, never>, accounts?: Partial<instructions.RelatedVaultCustomErrorAccounts>) {
+    return instructions.relatedVaultCustomError(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkExternalPda` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkExternalPda(args: instructions.CheckExternalPdaArgs, accounts?: Partial<instructions.CheckExternalPdaAccounts>) {
+    return instructions.checkExternalPda(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `ledger` account. Returns `[PublicKey, bumpSeed]`. */
   public getLedgerPda(seeds: {
   }): [naclac.PublicKey, number] {
@@ -139,12 +203,36 @@ export class AccountsConstraintsBorshClient {
     return [pda, bump];
   }
 
+  /** Derives the PDA for a `note` account. Returns `[PublicKey, bumpSeed]`. */
+  public getNotePda(seeds: {
+  }): [naclac.PublicKey, number] {
+    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
+      [
+                new Uint8Array([110, 111, 116, 101])
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
   /** Derives the PDA for a `seeded` account. Returns `[PublicKey, bumpSeed]`. */
   public getSeededPda(seeds: {
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([115, 101, 101, 100, 101, 100])
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
+  /** Derives the PDA for a `target` account. Returns `[PublicKey, bumpSeed]`. */
+  public getTargetPda(seeds: {
+  }): [naclac.PublicKey, number] {
+    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
+      [
+                new Uint8Array([101, 120, 116, 101, 114, 110, 97, 108, 95, 112, 100, 97])
       ],
       this.programId
     );
@@ -182,6 +270,27 @@ export class AccountsConstraintsBorshClient {
   /** Fetches all on-chain `Ledger` accounts owned by this program. */
   public fetchAllLedgerByOwner(options?: { dropCorrupted?: boolean; filters?: any[] }) {
     return this.program.account['Ledger'].all(options);
+  }
+
+  /** Fetches a `Note` account. Throws if it does not exist. */
+  public fetchNote(address: naclac.PublicKey | string) {
+    return this.program.account['Note'].fetch(address);
+  }
+
+  /** Fetches a `Note` account. Returns `null` if it does not exist. */
+  public async fetchMaybeNote(address: naclac.PublicKey | string) {
+    try { return await this.program.account['Note'].fetch(address); }
+    catch { return null; }
+  }
+
+  /** Fetches multiple `Note` accounts in a single RPC call. */
+  public fetchAllNotes(addresses: Array<naclac.PublicKey | string>, opts?: { dropCorrupted?: boolean }) {
+    return this.program.account['Note'].fetchMultiple(addresses, opts);
+  }
+
+  /** Fetches all on-chain `Note` accounts owned by this program. */
+  public fetchAllNoteByOwner(options?: { dropCorrupted?: boolean; filters?: any[] }) {
+    return this.program.account['Note'].all(options);
   }
 
   /** Fetches a `SeededThing` account. Throws if it does not exist. */

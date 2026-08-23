@@ -1,0 +1,12 @@
+[workspace]
+
+[package]
+name = "fee-tier-probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+litesvm = "*"
+solana-sdk = "*"
+solana-rpc-client = "^3"
+solana-rpc-client-api = "^3"

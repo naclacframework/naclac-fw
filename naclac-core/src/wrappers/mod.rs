@@ -8,22 +8,16 @@
 //! These traits and wrappers are heavily utilized by the macro engine to seamlessly route
 //! logic between Solana and Pinocchio backends without exposing backend-specific types to the developer.
 
-#[cfg(any(feature = "pinocchio", all(feature = "solana", feature = "borsh")))]
-pub mod account;
-pub mod account_loader;
+pub mod accounts;
 pub mod cpi_handle;
 pub mod interface;
-pub mod keyed_ref;
 pub mod program;
 pub mod signer;
 pub mod span;
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
-pub use account::*;
-pub use account_loader::*;
+pub use accounts::*;
 pub use cpi_handle::*;
 pub use interface::*;
-pub use keyed_ref::*;
 pub use program::*;
 pub use signer::*;
 pub use span::*;
@@ -54,6 +48,38 @@ pub trait Discriminator {
     const DISCRIMINATOR: [u8; 8] = [0u8; 8];
     fn discriminator_len() -> usize {
         8
+    }
+
+    /// Extra per-type validation run once at account-wrapper construction
+    /// beyond what the discriminator/size check alone can verify from
+    /// the raw data slice — e.g. the account's owner, which lives on
+    /// `AccountInfo`, not in the data itself. No-op by default; overridden
+    /// by types (like naclac-token's `TokenAccount`/`Mint`) that must always
+    /// be owned by a specific external program regardless of what
+    /// `#[account(...)]` attributes the app author did or didn't write on
+    /// that field.
+    #[inline(always)]
+    fn validate_account(_info: &AccountInfo, _index: usize) -> crate::prelude::Result<()> {
+        Ok(())
+    }
+}
+
+/// Extra per-type validation `InterfaceAccount<T>` runs on `T`'s own raw
+/// byte region (the account's data slice past the discriminator) once the
+/// owner check has passed. Unlike `Discriminator::validate_account`,
+/// `InterfaceAccount<T>::try_from`/`try_from_mut` never call
+/// `T::validate_account` (that hook's owner check is what `InterfaceAccount`
+/// exists to relax), so this is the only place a `T` used with
+/// `InterfaceAccount<T>` can enforce additional layout invariants — e.g.
+/// naclac-token's `TokenAccount`/`Mint` validating canonical `COption` tag
+/// bytes and initialized-state, permissively (`>=` minimum length) to allow
+/// for Token-2022's appended TLV extension region. No-op by default.
+pub trait ValidateInterfaceLayout {
+    #[inline(always)]
+    fn validate_interface_layout(
+        _data: &[u8],
+    ) -> core::result::Result<(), crate::prelude::NaclacError> {
+        Ok(())
     }
 }
 

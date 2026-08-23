@@ -1,9 +1,12 @@
+use crate::ui;
+use colored::Colorize;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 pub fn execute(program_id: Option<&str>, features: Vec<String>) {
+    let build_start = std::time::Instant::now();
     let current_dir = std::env::current_dir().unwrap();
 
     let workspace_root = if current_dir.join("Naclac.toml").exists() {
@@ -11,14 +14,12 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
     } else if current_dir.join("../../Naclac.toml").exists() {
         current_dir.join("../..").canonicalize().unwrap()
     } else {
-        eprintln!(
-            "❌ Error: Could not find Naclac.toml. Please run from within a Naclac workspace."
-        );
-        std::process::exit(1);
+        ui::error("Could not find Naclac.toml — run this from within a Naclac workspace.")
     };
 
     let programs_dir = workspace_root.join("programs");
-    let target_deploy_dir = workspace_root.join("target/deploy");
+    let target_dir = naclac_client_gen::resolve_target_dir(&workspace_root);
+    let target_deploy_dir = target_dir.join("deploy");
     fs::create_dir_all(&target_deploy_dir).unwrap();
 
     let program_dirs: Vec<PathBuf> = if programs_dir.exists() {
@@ -35,11 +36,9 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
             })
             .collect()
     } else {
-        eprintln!("❌ Error: No valid Naclac programs found in workspace.");
-        std::process::exit(1);
+        ui::error("No valid Naclac programs found in workspace.")
     };
 
-    eprintln!("🔍 Checking Program ID sync status...");
     for program_dir in &program_dirs {
         let program_name = program_dir
             .file_name()
@@ -50,10 +49,10 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
         let keypair_path = target_deploy_dir.join(format!("{}-keypair.json", program_name));
 
         if !keypair_path.exists() {
-            eprintln!(
-                "   🔑 Keypair missing for '{}'. Auto-generating...",
+            ui::warn(format!(
+                "Keypair missing for '{}' — generated",
                 program_name
-            );
+            ));
             Command::new("solana-keygen")
                 .arg("new")
                 .arg("--no-bip39-passphrase")
@@ -81,10 +80,7 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
                 if let Some(end_offset) = lib_code[addr_start..].find("\")") {
                     let current_address = &lib_code[addr_start..addr_start + end_offset];
                     if current_address != actual_address {
-                        eprintln!(
-                            "   🔄 Auto-Syncing lib.rs for '{}' to {}",
-                            program_name, actual_address
-                        );
+                        ui::warn(format!("Synced program ID -> lib.rs ({})", program_name));
                         lib_code
                             .replace_range(addr_start..addr_start + end_offset, &actual_address);
                         fs::write(&lib_path, lib_code).unwrap();
@@ -102,7 +98,10 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
                 if let Some(end_offset) = toml_code[addr_start..].find("\"") {
                     let current_address = &toml_code[addr_start..addr_start + end_offset];
                     if current_address != actual_address {
-                        eprintln!("   🔄 Auto-Syncing Naclac.toml for '{}'...", program_name);
+                        ui::warn(format!(
+                            "Synced program ID -> Naclac.toml ({})",
+                            program_name
+                        ));
                         toml_code
                             .replace_range(addr_start..addr_start + end_offset, &actual_address);
                         fs::write(&toml_path, toml_code).unwrap();
@@ -111,8 +110,6 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
             }
         }
     }
-
-    eprintln!("🔨 Compiling Native SBF...");
 
     // For each program, detect if pinocchio feature is enabled and build accordingly.
     // If running a workspace-wide build (no specific program), we check all programs.
@@ -134,16 +131,12 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
     //
     // Solution: ensure every program has a minimal valid generated-client stub BEFORE
     // we invoke cargo build-sbf on any program. The real client overwrites the stub
-    // once `generate::execute` runs later in this loop.
+    // once `generate::execute_client` runs later in this loop.
     for prog_dir in &programs_to_build {
         let pname = prog_dir.file_name().unwrap().to_str().unwrap();
         let pname_kebab = pname.replace('_', "-");
         let rust_client_dir = workspace_root.join("clients/rust").join(pname);
         if !rust_client_dir.join("Cargo.toml").exists() {
-            eprintln!(
-                "   📦 Generated Rust client missing — creating stub for '{}'...",
-                pname
-            );
             let src_dir = rust_client_dir.join("src");
             let mut result = fs::create_dir_all(&src_dir);
             if result.is_err() {
@@ -156,14 +149,12 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
                 }
             }
             if let Err(e) = result {
-                eprintln!(
-                    "❌ Error: Failed to create directory {:?}: {}\n\
-                     This often occurs on Windows/WSL when a directory was recently deleted but remains\n\
-                     locked in a 'delete pending' state by a background process (e.g. VS Code, rust-analyzer, or terminal).\n\
-                     Please close any tools accessing the clients folder and try again.",
+                ui::error(format!(
+                    "Failed to create directory {:?}: {} — often a Windows/WSL 'delete pending' \
+                     lock from VS Code/rust-analyzer/a terminal; close anything touching the \
+                     clients folder and retry.",
                     src_dir, e
-                );
-                std::process::exit(1);
+                ));
             }
             // Feature set here must stay in sync with the real generator's template
             // in naclac-client-gen/src/rust/mod.rs (generate_rust_sdk) — that's what
@@ -173,8 +164,10 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
             // Cargo.toml that requests e.g. `features = ["borsh"]` on its generated
             // client dev-dependency fails `cargo metadata` during this bootstrap
             // window, before the real client ever gets a chance to replace the stub.
+            let (naclac_lang_path, naclac_client_path) =
+                naclac_client_gen::naclac_dep_path_fragments(&workspace_root, &rust_client_dir);
             let stub_cargo = format!(
-                "[package]\nname = \"{pname_kebab}-client\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[features]\ndefault = [\"offchain\"]\noffchain = [\"dep:naclac-client\"]\ncpi = [\"dep:naclac-lang\"]\nzero_copy = [\"naclac-lang/solana\"]\npinocchio = [\"naclac-lang/pinocchio\"]\nborsh = [\"naclac-lang/borsh\", \"zero_copy\"]\n\n[dependencies]\nnaclac-client = {{ path = \"../../../../../naclac-client\", version = \"0.1.0\", optional = true }}\nnaclac-lang = {{ path = \"../../../../../naclac-lang\", version = \"0.1.0\", optional = true, default-features = false }}\n"
+                "[package]\nname = \"{pname_kebab}-client\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[features]\ndefault = [\"offchain\"]\noffchain = [\"dep:naclac-client\"]\ncpi = [\"dep:naclac-lang\"]\nzero_copy = [\"naclac-lang/solana\"]\npinocchio = [\"naclac-lang/pinocchio\"]\nborsh = [\"naclac-lang/borsh\", \"zero_copy\"]\n\n[dependencies]\nnaclac-client = {{ version = \"0.1.0\", optional = true{naclac_client_path} }}\nnaclac-lang = {{ version = \"0.1.0\", optional = true, default-features = false{naclac_lang_path} }}\n"
             );
             fs::write(rust_client_dir.join("Cargo.toml"), &stub_cargo).unwrap();
             fs::write(
@@ -189,225 +182,212 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
         let prog_name = build_dir.file_name().unwrap().to_str().unwrap();
         let cargo_toml_path = build_dir.join("Cargo.toml");
 
-        // Detect if specific features are active for this program.
-        let mut use_pinocchio = false;
-        let mut use_idl_build = false;
-        let mut use_borsh = false;
-        if cargo_toml_path.exists() {
-            if let Ok(content) = fs::read_to_string(&cargo_toml_path) {
-                if let Ok(parsed) = toml::from_str::<toml::Value>(&content) {
-                    if let Some(features) = parsed.get("features").and_then(|f| f.as_table()) {
-                        if let Some(default_feats) =
-                            features.get("default").and_then(|d| d.as_array())
-                        {
-                            use_pinocchio = default_feats
-                                .iter()
-                                .any(|val| val.as_str() == Some("pinocchio"));
-                            use_borsh = default_feats
-                                .iter()
-                                .any(|val| val.as_str() == Some("borsh"));
-                        }
-                        if !use_pinocchio {
-                            use_pinocchio = features.contains_key("pinocchio");
-                        }
-                        use_idl_build = features.contains_key("idl-build");
-                    }
-                    // `borsh` may also be requested directly on the naclac-lang dependency
-                    // rather than declared as the program's own default feature.
-                    if !use_borsh {
-                        use_borsh = parsed
-                            .get("dependencies")
-                            .and_then(|d| d.get("naclac-lang"))
-                            .and_then(|dep| dep.get("features"))
-                            .and_then(|f| f.as_array())
-                            .map(|arr| arr.iter().any(|v| v.as_str() == Some("borsh")))
-                            .unwrap_or(false);
-                    }
-                }
-            }
-        }
+        // Shared with `naclac generate idl` — see generate.rs, the single
+        // implementation of "what does regenerating a program's IDL mean."
+        let prog_features = crate::commands::generate::detect_program_features(build_dir);
+        let use_pinocchio = prog_features.use_pinocchio;
+        let is_zero_copy = prog_features.is_zero_copy;
 
-        // is_zero_copy = true when the program is Pinocchio, or when it isn't
-        // requesting the `borsh` feature at all — there is no third
-        // representation for account data in this framework, so `!borsh` is
-        // a complete signal, not a heuristic.
-        let is_zero_copy = use_pinocchio || !use_borsh;
-
-        let mut cmd_builder = portable_pty::CommandBuilder::new("cargo");
-        cmd_builder.arg("build-sbf");
-        cmd_builder.arg("--manifest-path");
-        cmd_builder.arg(cargo_toml_path.to_str().unwrap());
-        cmd_builder.env("CARGO_TERM_COLOR", "always");
-        cmd_builder.cwd(&workspace_root);
-
+        let mode_label = if use_pinocchio {
+            "pinocchio"
+        } else {
+            "standard"
+        };
         let mut all_features = features.clone();
         if use_pinocchio {
-            eprintln!(
-                "   ⚡ Pinocchio feature detected for '{}' — building optimized no_std binary...",
-                prog_name
-            );
             all_features.push("pinocchio".to_string());
-            cmd_builder.arg("--no-default-features");
-        } else {
-            eprintln!(
-                "   📦 Building standard Solana program for '{}'...",
-                prog_name
-            );
-            if use_idl_build {
-                eprintln!(
-                    "   📜 IDL-Build feature detected — injecting on-chain IDL instructions..."
-                );
-                all_features.push("idl-build".to_string());
-            }
         }
 
+        let mut cmd = Command::new("cargo");
+        cmd.arg("build-sbf")
+            .arg("--manifest-path")
+            .arg(cargo_toml_path.to_str().unwrap())
+            .env("CARGO_TERM_COLOR", "always")
+            .current_dir(&workspace_root)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::piped());
+        if use_pinocchio {
+            cmd.arg("--no-default-features");
+        }
         if !all_features.is_empty() {
-            cmd_builder.arg("--features");
-            cmd_builder.arg(all_features.join(","));
+            cmd.arg("--features").arg(all_features.join(","));
         }
 
-        // A real pseudo-terminal — not a plain pipe — so cargo's own TTY check
-        // passes and it draws its normal colored "Building [====>] N/M: ..."
-        // progress bar exactly like it would in a real terminal. A plain pipe
-        // makes cargo *decide not to generate those bytes at all*, which no
-        // amount of reading/forwarding on our end can work around.
-        let (term_rows, term_cols) = {
-            let (rows, cols) = dialoguer::console::Term::stdout().size();
-            (
-                if rows > 0 { rows } else { 24 },
-                if cols > 0 { cols } else { 80 },
-            )
-        };
+        let mut child = cmd.spawn().expect("Failed to execute cargo build-sbf");
+        let stderr = child
+            .stderr
+            .take()
+            .expect("Failed to capture cargo build-sbf stderr");
 
-        let pty_system = portable_pty::native_pty_system();
-        let pty_pair = pty_system
-            .openpty(portable_pty::PtySize {
-                rows: term_rows,
-                cols: term_cols,
-                pixel_width: 0,
-                pixel_height: 0,
-            })
-            .expect("Failed to allocate a pseudo-terminal for cargo build-sbf");
-
-        let mut child = pty_pair
-            .slave
-            .spawn_command(cmd_builder)
-            .expect("Failed to execute cargo build-sbf");
-        drop(pty_pair.slave);
-
-        let mut pty_reader = pty_pair
-            .master
-            .try_clone_reader()
-            .expect("Failed to read from cargo build-sbf's pseudo-terminal");
-        let capture_thread = std::thread::spawn(move || {
-            let mut captured = Vec::new();
-            let mut buf = [0u8; 8192];
-            loop {
-                match pty_reader.read(&mut buf) {
-                    Ok(0) => break,
-                    Ok(n) => {
-                        let chunk = &buf[..n];
-                        let _ = std::io::stdout().write_all(chunk);
-                        let _ = std::io::stdout().flush();
-                        captured.extend_from_slice(chunk);
-                    }
-                    Err(_) => break,
+        // Piped (not a pseudo-terminal), so cargo skips its own cursor-redrawn
+        // progress bar and just prints one plain "Compiling <crate>" line per
+        // crate on stderr as they start — parsed below to drive our own
+        // single-line spinner instead, since forwarding cargo's raw redraw
+        // bytes while dropping lines from the stream desyncs its cursor math
+        // (it moves the cursor up assuming every line it emitted is still on
+        // screen).
+        let step = ui::Step::start(format!("Compiling {} ({})...", prog_name, mode_label));
+        let mut combined = String::new();
+        let mut compiled = 0u32;
+        let mut printed_output_header = false;
+        let mut cargo_error_summary: Option<String> = None;
+        for line in BufReader::new(stderr).lines() {
+            let Ok(line) = line else { break };
+            combined.push_str(&line);
+            combined.push('\n');
+            if let Some(crate_name) = cargo_compiling_crate_name(&line) {
+                compiled += 1;
+                step.set_message(format!(
+                    "Compiling {} ({})... {} crate{} built ({})",
+                    prog_name,
+                    mode_label,
+                    compiled,
+                    if compiled == 1 { "" } else { "s" },
+                    crate_name
+                ));
+            } else if !line.trim().is_empty() && !is_cargo_finished_line(&line) {
+                if !printed_output_header {
+                    step.print_above("── compiler output ──────────────────────".dimmed());
+                    printed_output_header = true;
                 }
+                // cargo's own final tally line ("error: could not compile `X` ...
+                // due to N previous errors" / "error: aborting due to N previous
+                // errors") — the authoritative error count, straight from cargo
+                // itself rather than naclac re-deriving one by pattern-matching
+                // individual diagnostics.
+                let stripped = strip_ansi(&line);
+                let trimmed = stripped.trim();
+                if trimmed.starts_with("error: could not compile")
+                    || trimmed.starts_with("error: aborting due to")
+                {
+                    cargo_error_summary = Some(trimmed.to_string());
+                }
+                step.print_above(line);
             }
-            captured
-        });
+        }
 
         let build_status = child.wait().expect("Failed to wait on cargo build-sbf");
-        drop(pty_pair.master);
-        let combined_bytes = capture_thread.join().unwrap();
-        let combined = String::from_utf8_lossy(&combined_bytes).to_string();
         let stack_overflow_detected = combined
             .contains("overflows the maximum allowed frame space")
             || combined.contains("exceeded max offset");
 
         if !build_status.success() || stack_overflow_detected {
             if stack_overflow_detected {
-                eprintln!(
-                    "❌ SBF Compilation for '{}' produced a stack-frame overflow. \
-                     This does not always fail cargo build-sbf's own exit code, so naclac is \
-                     treating it as fatal — see the 'overflows the maximum allowed frame space' \
-                     message above for which function to fix.",
+                step.fail(format!(
+                    "'{}' hit a stack-frame overflow — see 'overflows the maximum allowed frame \
+                     space' above for which function to fix.",
                     prog_name
-                );
+                ));
             } else {
-                eprintln!("❌ SBF Compilation failed for '{}'.", prog_name);
+                match cargo_error_summary {
+                    Some(summary) => {
+                        step.fail(format!("Compile failed for '{}' — {}", prog_name, summary))
+                    }
+                    None => step.fail(format!("Compile failed for '{}'", prog_name)),
+                }
             }
-            std::process::exit(1);
         }
+        step.done(format!(
+            "Compiled {} ({} crates built)",
+            prog_name, compiled
+        ));
 
-        eprintln!("📄 Generating Naclac IDL & Types for '{}'...", prog_name);
+        let idl_step = ui::Step::start(format!("Generating IDL & TS types ({})...", prog_name));
 
-        let keypair_path = target_deploy_dir.join(format!("{}-keypair.json", prog_name));
-        let address_output = Command::new("solana-keygen")
-            .arg("pubkey")
-            .arg(&keypair_path)
-            .output()
-            .unwrap();
-        let actual_address = String::from_utf8_lossy(&address_output.stdout)
-            .trim()
-            .to_string();
+        // Shared with `naclac generate idl` — see generate.rs. Writes the
+        // zero-copy marker (if any) with the real alloc-event names; left in
+        // place deliberately so the client-gen call below sees it unmodified.
+        let (idl_json_pretty, _alloc_event_names) =
+            crate::commands::generate::generate_idl_for_program(
+                &workspace_root,
+                build_dir,
+                prog_name,
+                is_zero_copy,
+            );
 
-        let idl_json_pretty = match naclac_idl::generate_idl(
-            build_dir,
-            prog_name,
-            &actual_address,
-            env!("CARGO_PKG_VERSION"),
-            is_zero_copy,
-        ) {
-            Ok(json) => json,
-            Err(e) => {
-                eprintln!("❌ Failed to generate IDL: {}", e);
-                std::process::exit(1);
-            }
-        };
-
-        let target_idl_dir = workspace_root.join("target/idl");
-        fs::create_dir_all(&target_idl_dir).unwrap();
-        let idl_path = target_idl_dir.join(format!("{}.json", prog_name));
-        fs::write(&idl_path, &idl_json_pretty).unwrap();
-        eprintln!(
-            "✅ IDL written to: {:?}",
-            idl_path.canonicalize().unwrap_or(idl_path)
-        );
-
-        let target_types_dir = workspace_root.join("target/types");
+        let target_types_dir = target_dir.join("types");
         fs::create_dir_all(&target_types_dir).unwrap();
-
-        if is_zero_copy {
-            let marker_path = workspace_root.join(format!("target/.{}-zero-copy", prog_name));
-            let _ = fs::write(&marker_path, "");
-        }
 
         let ts_content = match naclac_client_gen::generate_ts(&idl_json_pretty) {
             Ok(code) => code,
             Err(e) => {
-                eprintln!("❌ Failed to generate TS Types: {}", e);
                 if is_zero_copy {
-                    let marker_path =
-                        workspace_root.join(format!("target/.{}-zero-copy", prog_name));
+                    let marker_path = target_dir.join(format!(".{}-zero-copy", prog_name));
                     let _ = fs::remove_file(marker_path);
                 }
-                std::process::exit(1);
+                idl_step.fail(format!(
+                    "Failed to generate TS types for '{}': {}",
+                    prog_name, e
+                ));
             }
         };
 
         let ts_path = target_types_dir.join(format!("{}.ts", prog_name));
         fs::write(&ts_path, ts_content).unwrap();
-        eprintln!(
-            "✅ Types written to: {:?}",
-            ts_path.canonicalize().unwrap_or(ts_path)
-        );
-        eprintln!("🔄 Auto-generating TypeScript SDK for '{}'...", prog_name);
-        crate::commands::generate::execute(Some(prog_name));
+        idl_step.done(format!("IDL + TS types written ({})", prog_name));
+        crate::commands::generate::execute_client(Some(prog_name), None);
 
         if is_zero_copy {
-            let marker_path = workspace_root.join(format!("target/.{}-zero-copy", prog_name));
+            let marker_path = target_dir.join(format!(".{}-zero-copy", prog_name));
             let _ = fs::remove_file(marker_path);
         }
     }
+
+    ui::milestone(format!(
+        "Build complete — {} program{}, {}",
+        programs_to_build.len(),
+        if programs_to_build.len() == 1 {
+            ""
+        } else {
+            "s"
+        },
+        ui::format_duration(build_start.elapsed())
+    ));
+}
+
+/// Removes ANSI CSI escape sequences (`\x1b[...<letter>`), the only kind
+/// cargo emits, so line-content checks on a captured line see the same text
+/// a human reads.
+fn strip_ansi(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\u{1b}' && chars.peek() == Some(&'[') {
+            chars.next();
+            for c2 in chars.by_ref() {
+                if c2.is_ascii_alphabetic() {
+                    break;
+                }
+            }
+            continue;
+        }
+        out.push(c);
+    }
+    out
+}
+
+/// Extracts the crate name from one of cargo's own per-crate
+/// "Compiling <name> v<version> (<path>)" stderr lines, or `None` for any
+/// other line (warnings, errors, the final "Finished" line, etc.).
+fn cargo_compiling_crate_name(raw: &str) -> Option<String> {
+    let line = strip_ansi(raw);
+    let trimmed = line.trim();
+    let rest = trimmed.strip_prefix("Compiling ")?;
+    let v_pos = rest.find(" v")?;
+    let after_v = &rest[v_pos + 2..];
+    if after_v.starts_with(|c: char| c.is_ascii_digit())
+        && after_v.contains('(')
+        && trimmed.ends_with(')')
+    {
+        Some(rest[..v_pos].to_string())
+    } else {
+        None
+    }
+}
+
+/// True for cargo's own final "Finished `<profile>` profile [...] target(s)
+/// in <N>s" line — dropped because naclac's own timed `✓ <elapsed> Compiled
+/// ...` result line (see [`ui::Step::done`]) already reports the same thing.
+fn is_cargo_finished_line(raw: &str) -> bool {
+    strip_ansi(raw).trim().starts_with("Finished `")
 }

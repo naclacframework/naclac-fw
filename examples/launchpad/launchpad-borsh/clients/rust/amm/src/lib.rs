@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("HLQiP3fsqRMgFYzTbXCFYPGqktcP27Npt5QaWp9qsx3C");
+declare_id!("ELAcXuQJ9UHTCcrrSHfnMRxzyxy8yh51oMu5BVJPCy8h");
 
 #[cfg(feature = "offchain")]
 pub fn get_pool_state_pda(
@@ -49,9 +49,9 @@ pub fn get_pool_state_pda(
 pub struct Amm;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for Amm {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([242, 179, 214, 205, 201, 33, 163, 107, 34, 53, 7, 62, 176, 76, 109, 54, 61, 75, 66, 46, 235, 211, 89, 65, 166, 179, 56, 154, 114, 177, 116, 75])
+impl sdk_core_cpi::Id for Amm {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([198, 16, 213, 158, 229, 176, 191, 187, 155, 78, 53, 45, 3, 156, 108, 57, 154, 142, 164, 98, 71, 248, 12, 66, 0, 91, 188, 225, 63, 4, 180, 86])
     }
 }
 

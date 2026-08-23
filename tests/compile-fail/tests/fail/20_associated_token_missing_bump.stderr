@@ -1,0 +1,5 @@
+error: Naclac Error: associated_token::bump must be specified on existing (non-init) associated_token accounts. On-chain 'find_program_address' is strictly banned in Naclac, so the canonical ATA bump must be supplied explicitly. Example: #[account(associated_token::mint = mint, associated_token::authority = owner, associated_token::bump = <precomputed_bump>)]
+  --> tests/fail/20_associated_token_missing_bump.rs:22:9
+   |
+22 |     pub associated_token: Account<TokenAccount>,
+   |         ^^^^^^^^^^^^^^^^

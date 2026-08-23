@@ -1,0 +1,396 @@
+#[cfg(feature = "borsh")]
+use crate::sdk_core::borsh::BorshSerialize;
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+pub struct MakeIxArgs {
+    pub seed: u64,
+    pub escrow_bump: u8,
+    pub amount_a: u64,
+    pub amount_b: u64,
+}
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core::bytemuck::Zeroable for MakeIxArgs {}
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core::bytemuck::Pod for MakeIxArgs {}
+#[cfg(feature = "offchain")]
+pub struct MakeAccounts {
+    pub maker: naclac_client::Address,
+    pub mint_a: naclac_client::Address,
+    pub mint_b: naclac_client::Address,
+    pub escrow_state: naclac_client::Address,
+    pub vault_token_account: naclac_client::Address,
+    pub maker_token_account_a: naclac_client::Address,
+    pub token_program: naclac_client::Address,
+    pub system_program: naclac_client::Address,
+}
+#[cfg(feature = "offchain")]
+pub fn build_make<'a>(
+    provider: &'a naclac_client::NaclacProvider,
+    program_id: naclac_client::Address,
+    seed: u64,
+    escrow_bump: u8,
+    amount_a: u64,
+    amount_b: u64,
+    accounts: MakeAccounts,
+) -> naclac_client::InstructionBuilder<'a> {
+    let mut ix_data = crate::sdk_core::vec![138, 227, 232, 77, 223, 166, 96, 197];
+    let args = MakeIxArgs {
+        seed,
+        escrow_bump,
+        amount_a,
+        amount_b,
+    };
+    #[cfg(not(feature = "borsh"))]
+    {
+        ix_data.extend_from_slice(crate::sdk_core::bytemuck::bytes_of(&args));
+    }
+    #[cfg(feature = "borsh")]
+    {
+        crate::sdk_core::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+    }
+    naclac_client::InstructionBuilder::new(provider, program_id, ix_data)
+        .account(
+            naclac_client::AccountMeta {
+                address: accounts.maker,
+                is_signer: true,
+                is_writable: true,
+            },
+            "maker",
+        )
+        .account(
+            naclac_client::AccountMeta {
+                address: accounts.mint_a,
+                is_signer: false,
+                is_writable: false,
+            },
+            "mintA",
+        )
+        .account(
+            naclac_client::AccountMeta {
+                address: accounts.mint_b,
+                is_signer: false,
+                is_writable: false,
+            },
+            "mintB",
+        )
+        .account(
+            naclac_client::AccountMeta {
+                address: accounts.escrow_state,
+                is_signer: false,
+                is_writable: true,
+            },
+            "escrowState",
+        )
+        .account(
+            naclac_client::AccountMeta {
+                address: accounts.vault_token_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            "vaultTokenAccount",
+        )
+        .account(
+            naclac_client::AccountMeta {
+                address: accounts.maker_token_account_a,
+                is_signer: false,
+                is_writable: true,
+            },
+            "makerTokenAccountA",
+        )
+        .account(
+            naclac_client::AccountMeta {
+                address: accounts.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            "tokenProgram",
+        )
+        .account(
+            naclac_client::AccountMeta {
+                address: accounts.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            "systemProgram",
+        )
+}
+#[cfg(feature = "cpi")]
+#[derive(Clone)]
+#[cfg_attr(feature = "pinocchio", derive(Copy))]
+pub struct MakeCpiAccounts {
+    pub maker: crate::sdk_core::AccountInfo,
+    pub mint_a: crate::sdk_core::AccountInfo,
+    pub mint_b: crate::sdk_core::AccountInfo,
+    pub escrow_state: crate::sdk_core::AccountInfo,
+    pub vault_token_account: crate::sdk_core::AccountInfo,
+    pub maker_token_account_a: crate::sdk_core::AccountInfo,
+    pub token_program: crate::sdk_core::AccountInfo,
+    pub system_program: crate::sdk_core::AccountInfo,
+}
+#[cfg(feature = "cpi")]
+#[derive(Clone)]
+pub struct MakeCpiBuilder<'a> {
+    pub program_id: &'a crate::sdk_core::Address,
+    pub args: MakeIxArgs,
+    pub accounts: MakeCpiAccounts,
+    pub remaining_accounts: crate::sdk_core::Vec<
+        (crate::sdk_core::AccountInfo, bool, bool),
+    >,
+}
+#[cfg(feature = "cpi")]
+impl<'a> MakeCpiBuilder<'a> {
+    pub fn new(
+        program_id: &'a crate::sdk_core::Address,
+        accounts: MakeCpiAccounts,
+        seed: u64,
+        escrow_bump: u8,
+        amount_a: u64,
+        amount_b: u64,
+    ) -> Self {
+        Self {
+            program_id,
+            args: MakeIxArgs {
+                seed,
+                escrow_bump,
+                amount_a,
+                amount_b,
+            },
+            accounts,
+            remaining_accounts: crate::sdk_core::Vec::new(),
+        }
+    }
+    pub fn add_remaining_account(
+        mut self,
+        account: crate::sdk_core::AccountInfo,
+        is_writable: bool,
+        is_signer: bool,
+    ) -> Self {
+        self.remaining_accounts.push((account, is_writable, is_signer));
+        self
+    }
+    pub fn invoke(&self) -> crate::sdk_core::Result<()> {
+        self.invoke_signed(&[])
+    }
+    pub fn invoke_signed(
+        &self,
+        signers_seeds: &[&[&[u8]]],
+    ) -> crate::sdk_core::Result<()> {
+        let mut ix_data = crate::sdk_core::Vec::new();
+        ix_data.extend_from_slice(&[138, 227, 232, 77, 223, 166, 96, 197]);
+        #[cfg(not(feature = "borsh"))]
+        {
+            ix_data.extend_from_slice(crate::sdk_core::bytemuck::bytes_of(&self.args));
+        }
+        #[cfg(feature = "borsh")]
+        {
+            crate::sdk_core::borsh::BorshSerialize::serialize(&self.args, &mut ix_data)
+                .unwrap();
+        }
+        #[cfg(feature = "pinocchio")]
+        {
+            let mut account_metas = crate::sdk_core::Vec::new();
+            let mut account_infos = crate::sdk_core::Vec::new();
+            account_metas
+                .push(
+                    crate::sdk_core::pinocchio::instruction::InstructionAccount::writable_signer(
+                        self.accounts.maker.view.address(),
+                    ),
+                );
+            account_infos.push(self.accounts.maker.view);
+            account_metas
+                .push(
+                    crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly(
+                        self.accounts.mint_a.view.address(),
+                    ),
+                );
+            account_infos.push(self.accounts.mint_a.view);
+            account_metas
+                .push(
+                    crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly(
+                        self.accounts.mint_b.view.address(),
+                    ),
+                );
+            account_infos.push(self.accounts.mint_b.view);
+            account_metas
+                .push(
+                    crate::sdk_core::pinocchio::instruction::InstructionAccount::writable(
+                        self.accounts.escrow_state.view.address(),
+                    ),
+                );
+            account_infos.push(self.accounts.escrow_state.view);
+            account_metas
+                .push(
+                    crate::sdk_core::pinocchio::instruction::InstructionAccount::writable(
+                        self.accounts.vault_token_account.view.address(),
+                    ),
+                );
+            account_infos.push(self.accounts.vault_token_account.view);
+            account_metas
+                .push(
+                    crate::sdk_core::pinocchio::instruction::InstructionAccount::writable(
+                        self.accounts.maker_token_account_a.view.address(),
+                    ),
+                );
+            account_infos.push(self.accounts.maker_token_account_a.view);
+            account_metas
+                .push(
+                    crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly(
+                        self.accounts.token_program.view.address(),
+                    ),
+                );
+            account_infos.push(self.accounts.token_program.view);
+            account_metas
+                .push(
+                    crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly(
+                        self.accounts.system_program.view.address(),
+                    ),
+                );
+            account_infos.push(self.accounts.system_program.view);
+            for (acc, is_writable, is_signer) in &self.remaining_accounts {
+                let meta = if *is_writable {
+                    if *is_signer {
+                        crate::sdk_core::pinocchio::instruction::InstructionAccount::writable_signer(
+                            acc.view.address(),
+                        )
+                    } else {
+                        crate::sdk_core::pinocchio::instruction::InstructionAccount::writable(
+                            acc.view.address(),
+                        )
+                    }
+                } else {
+                    if *is_signer {
+                        crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly_signer(
+                            acc.view.address(),
+                        )
+                    } else {
+                        crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly(
+                            acc.view.address(),
+                        )
+                    }
+                };
+                account_metas.push(meta);
+                account_infos.push(acc.view);
+            }
+            let instruction = crate::sdk_core::pinocchio::instruction::InstructionView {
+                program_id: self.program_id.as_address(),
+                accounts: &account_metas,
+                data: &ix_data,
+            };
+            crate::sdk_core::invoke_signed_pinocchio(
+                &instruction,
+                &account_infos,
+                signers_seeds,
+            )
+        }
+        #[cfg(not(feature = "pinocchio"))]
+        {
+            let mut account_metas = crate::sdk_core::Vec::new();
+            let mut account_infos = crate::sdk_core::Vec::new();
+            account_metas
+                .push(
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new(
+                        *self.accounts.maker.key,
+                        true,
+                    ),
+                );
+            account_infos.push(self.accounts.maker.clone());
+            account_metas
+                .push(
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(
+                        *self.accounts.mint_a.key,
+                        false,
+                    ),
+                );
+            account_infos.push(self.accounts.mint_a.clone());
+            account_metas
+                .push(
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(
+                        *self.accounts.mint_b.key,
+                        false,
+                    ),
+                );
+            account_infos.push(self.accounts.mint_b.clone());
+            account_metas
+                .push(
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new(
+                        *self.accounts.escrow_state.key,
+                        false,
+                    ),
+                );
+            account_infos.push(self.accounts.escrow_state.clone());
+            account_metas
+                .push(
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new(
+                        *self.accounts.vault_token_account.key,
+                        false,
+                    ),
+                );
+            account_infos.push(self.accounts.vault_token_account.clone());
+            account_metas
+                .push(
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new(
+                        *self.accounts.maker_token_account_a.key,
+                        false,
+                    ),
+                );
+            account_infos.push(self.accounts.maker_token_account_a.clone());
+            account_metas
+                .push(
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(
+                        *self.accounts.token_program.key,
+                        false,
+                    ),
+                );
+            account_infos.push(self.accounts.token_program.clone());
+            account_metas
+                .push(
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(
+                        *self.accounts.system_program.key,
+                        false,
+                    ),
+                );
+            account_infos.push(self.accounts.system_program.clone());
+            for (acc, is_writable, is_signer) in &self.remaining_accounts {
+                let meta = if *is_writable {
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new(
+                        *acc.key,
+                        *is_signer,
+                    )
+                } else {
+                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(
+                        *acc.key,
+                        *is_signer,
+                    )
+                };
+                account_metas.push(meta);
+                account_infos.push(acc.clone());
+            }
+            let instruction = ::naclac_lang::solana_program::instruction::Instruction {
+                program_id: *self.program_id,
+                accounts: account_metas,
+                data: ix_data,
+            };
+            let solana_account_infos = unsafe {
+                core::slice::from_raw_parts(
+                    account_infos.as_ptr()
+                        as *const ::naclac_lang::solana_program::account_info::AccountInfo,
+                    account_infos.len(),
+                )
+            };
+            if signers_seeds.is_empty() {
+                ::naclac_lang::solana_program::program::invoke(
+                    &instruction,
+                    solana_account_infos,
+                )
+            } else {
+                ::naclac_lang::solana_program::program::invoke_signed(
+                    &instruction,
+                    solana_account_infos,
+                    signers_seeds,
+                )
+            }
+        }
+    }
+}

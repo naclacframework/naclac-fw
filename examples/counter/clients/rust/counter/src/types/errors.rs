@@ -3,6 +3,7 @@
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProgramError {
+    /// User is not authorized to perform this action.
     Unauthorized,
 }
 

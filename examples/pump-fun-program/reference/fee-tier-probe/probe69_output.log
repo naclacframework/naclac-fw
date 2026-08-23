@@ -1,0 +1,87 @@
+   Compiling fee-tier-probe v0.1.0 (/mnt/c/Users/hp/Documents/naclac-fw/examples/pump-fun-program/reference/fee-tier-probe)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 19s
+     Running `/mnt/d/naclac-fw/examples/pump-fun-program/reference/fee-tier-probe/target/debug/probe69`
+already_set_creator (seeded on bonding_curve for the already-set scenarios) = 11157t3sqMV725NVRLrVQbAu98Jjfk1uCKehJnXXQs
+metadata_creator_verified (creators[1], verified)  = 1117mWrzzrZr312ebPDHu8tbfMwFNvCvMbr6WepCNG
+metadata_creator_unverified (creators[0], unverified) = 1119DWteoLSdjvrT6g6L8C2PfDD2faiTQUpsjY2RiF
+
+=== set_metaplex_creator: creator unset, metadata account does not exist ===
+  RESULT: FAILED: InstructionError(1, Custom(3012))
+  LOG: Program log: Instruction: SetMetaplexCreator
+  LOG: Program log: AnchorError caused by account: metadata. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.
+  bonding_curve.creator after call = 11111111111111111111111111111111
+
+=== set_metaplex_creator: creator unset, metadata exists, creators = None ===
+  RESULT: SUCCESS (14391 CU)
+  LOG: Program log: Instruction: SetMetaplexCreator
+  LOG: Program log: Missing metaplex creators
+  bonding_curve.creator after call = 11111111111111111111111111111111
+
+=== set_metaplex_creator: creator unset, metadata exists, creators = [unverified, verified] ===
+  RESULT: SUCCESS (17080 CU)
+  LOG: Program log: Instruction: SetMetaplexCreator
+  bonding_curve.creator after call = 1119DWteoLSdjvrT6g6L8C2PfDD2faiTQUpsjY2RiF
+
+mint_j (subject) = 111MqiH3tDg8KtkQYkCteems4APA9GgUsEFQavs8Vb, mint_k (different mint whose metadata we substitute) = 111Q7zKqw7vEw6U5Mf3qDU1UrV3MRubjPcCrT1QftA
+metadata_creator_wrong_mint (creators[0] on mint_k's metadata) = 111S1d9dJA6NS2j95MQ7A2eDjAgdAKXDjvxQg5d8pa
+
+=== set_metaplex_creator: metadata account is a REAL Metadata PDA, but for a DIFFERENT mint (wrong-mint substitution) ===
+  RESULT: FAILED: InstructionError(1, Custom(2006))
+  LOG: Program log: Instruction: SetMetaplexCreator
+  LOG: Program log: AnchorError caused by account: metadata. Error Code: ConstraintSeeds. Error Number: 2006. Error Message: A seeds constraint was violated.
+  LOG: Program log: Left:
+  LOG: Program log: AH4b6LMDRfiu2sk2USbd86tDbVMu7zNgBEmRs8GPX5ky
+  LOG: Program log: Right:
+  LOG: Program log: J88UjSM5LeoQXwfFcNkNWLKv98MSCTztkxz3otsC84ke
+  bonding_curve.creator after call = 11111111111111111111111111111111
+
+=== set_metaplex_creator: creator ALREADY set, metadata has a different creator (expect no-op) ===
+  RESULT: SUCCESS (13028 CU)
+  LOG: Program log: Instruction: SetMetaplexCreator
+  LOG: Program log: Bonding curve has creator already set
+  bonding_curve.creator after call = 11157t3sqMV725NVRLrVQbAu98Jjfk1uCKehJnXXQs
+
+=== set_creator: creator unset, arg = default/zero, metadata has a verified creator (arg=11111111111111111111111111111111) ===
+  RESULT: SUCCESS (20993 CU)
+  LOG: Program log: Instruction: SetCreator
+  bonding_curve.creator after call = 1117mWrzzrZr312ebPDHu8tbfMwFNvCvMbr6WepCNG
+
+explicit_arg_creator (scenario E's set_creator arg) = 111buTJDRoVnAuqg2RiXyiYFLbyHXBXSuEjLFdarkn
+
+=== set_creator: creator unset, arg = explicit non-zero, metadata also has a (different) creator (arg=111buTJDRoVnAuqg2RiXyiYFLbyHXBXSuEjLFdarkn) ===
+  RESULT: SUCCESS (28493 CU)
+  LOG: Program log: Instruction: SetCreator
+  bonding_curve.creator after call = 1117mWrzzrZr312ebPDHu8tbfMwFNvCvMbr6WepCNG
+
+=== set_creator: creator unset, arg = explicit non-zero, metadata does not exist (arg=111buTJDRoVnAuqg2RiXyiYFLbyHXBXSuEjLFdarkn) ===
+  RESULT: FAILED: InstructionError(1, Custom(3012))
+  LOG: Program log: Instruction: SetCreator
+  LOG: Program log: AnchorError caused by account: metadata. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.
+  bonding_curve.creator after call = 11111111111111111111111111111111
+
+=== set_creator: creator unset, metadata exists with creators = None, arg = explicit non-zero (arg=111buTJDRoVnAuqg2RiXyiYFLbyHXBXSuEjLFdarkn) ===
+  RESULT: SUCCESS (29492 CU)
+  LOG: Program log: Instruction: SetCreator
+  bonding_curve.creator after call = 111buTJDRoVnAuqg2RiXyiYFLbyHXBXSuEjLFdarkn
+
+=== set_creator: creator unset, metadata exists with creators = None, arg = default/zero (nothing usable anywhere) (arg=11111111111111111111111111111111) ===
+  RESULT: SUCCESS (18992 CU)
+  LOG: Program log: Instruction: SetCreator
+  bonding_curve.creator after call = 11111111111111111111111111111111
+
+=== set_creator: creator ALREADY set, metadata has a creator, arg = explicit non-zero (does the arg override it?) (arg=111buTJDRoVnAuqg2RiXyiYFLbyHXBXSuEjLFdarkn) ===
+  RESULT: SUCCESS (15531 CU)
+  LOG: Program log: Instruction: SetCreator
+  LOG: Program log: Bonding curve has creator already set
+  bonding_curve.creator after call = 11157t3sqMV725NVRLrVQbAu98Jjfk1uCKehJnXXQs
+
+=== set_creator: signed by a non-set_creator_authority key (expect failure) (arg=111buTJDRoVnAuqg2RiXyiYFLbyHXBXSuEjLFdarkn) ===
+  RESULT: FAILED: InstructionError(1, Custom(6000))
+  LOG: Program log: Instruction: SetCreator
+  LOG: Program log: AnchorError caused by account: global. Error Code: NotAuthorized. Error Number: 6000. Error Message: The given account is not authorized to execute this instruction..
+  LOG: Program log: Left:
+  LOG: Program log: 4TBtXDhJwdLENcxdxzMAwntkpFxuWTugMQu1MbG5gfvh
+  LOG: Program log: Right:
+  LOG: Program log: 7QKoE6iGTFiGwcbe4qJUYGkMPaMDKvSPEZjRhYwwVG3T
+  bonding_curve.creator after call = 11111111111111111111111111111111
+

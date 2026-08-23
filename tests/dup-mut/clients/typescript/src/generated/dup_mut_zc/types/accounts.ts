@@ -3,6 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
+/** 8-byte discriminator prefix for `Note` accounts on-chain. */
+export const NOTE_DISCRIMINATOR = new Uint8Array([203, 75, 252, 196, 81, 210, 122, 126]);
+
+/** Auto-generated account interface from the program IDL. */
+export interface Note {
+  bump: number;
+  len: number;
+  message: string | Uint8Array;
+}
+
 /** 8-byte discriminator prefix for `Vault` accounts on-chain. */
 export const VAULT_DISCRIMINATOR = new Uint8Array([211, 8, 232, 43, 2, 152, 117, 119]);
 

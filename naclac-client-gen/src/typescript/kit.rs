@@ -1,6 +1,6 @@
 use super::shared::map_type_to_ts;
 use crate::{Idl, IdlInstruction, IdlPda, IdlSeed};
-use heck::ToUpperCamelCase;
+use heck::{ToLowerCamelCase, ToUpperCamelCase};
 use std::fs;
 
 pub fn generate_kit_client(
@@ -56,6 +56,10 @@ pub fn generate_kit_client(
 
     // ── Instruction methods ───────────────────────────────────────────────────
     for ix in &idl.instructions {
+        // `instructions.{ix_camel}` must match the export name shared.rs's
+        // per-instruction generator actually writes — the class method name
+        // itself is a separate, purely cosmetic choice.
+        let ix_camel = ix.name.to_lower_camel_case();
         let ix_name_pascal = ix.name.to_upper_camel_case();
         // Determine if we have non-ctx args
         let has_args = ix.args.iter().any(|a| a.name != "ctx");
@@ -67,12 +71,10 @@ pub fn generate_kit_client(
         };
 
         client_content.push_str(&format!(
-            "  /**\n   * Builds the `{}` instruction pipeline.\n   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.\n   */\n  public {}({args_param}, accounts?: Partial<instructions.{ix_name_pascal}Accounts>) {{\n",
-            ix.name, ix.name
+            "  /**\n   * Builds the `{ix_camel}` instruction pipeline.\n   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.\n   */\n  public {ix_camel}({args_param}, accounts?: Partial<instructions.{ix_name_pascal}Accounts>) {{\n"
         ));
         client_content.push_str(&format!(
-            "    return instructions.{}(this.program, args ?? {{}}, accounts);\n",
-            ix.name
+            "    return instructions.{ix_camel}(this.program, args ?? {{}}, accounts);\n"
         ));
         client_content.push_str("  }\n\n");
     }
@@ -212,8 +214,7 @@ pub fn generate_kit_client(
                         let ts_ty = map_type_to_ts(&serde_json::json!(field_ty), idl.is_zero_copy);
                         client_content.push_str(&format!("    {key}: {ts_ty};\n"));
                     } else {
-                        client_content
-                            .push_str(&format!("    {path}: naclac.Address | string;\n"));
+                        client_content.push_str(&format!("    {path}: naclac.Address | string;\n"));
                     }
                 }
                 _ => {}
@@ -262,8 +263,17 @@ pub fn generate_kit_client(
                 }
             }
         }
+        // `seeds::program = X` means this PDA belongs to a different program
+        // than the one this client targets — derive against that program's ID
+        // instead of `this.programId`, or the computed address is simply wrong.
+        let owner_program_expr = match &pda.program {
+            Some(IdlSeed::Const { value, .. }) => {
+                format!("naclac.address(\"{}\")", bs58::encode(value).into_string())
+            }
+            _ => "this.programId".to_string(),
+        };
         client_content.push_str(&format!(
-            "    return naclac.getProgramDerivedAddress({{\n      programAddress: this.programId,\n      seeds: [\n        {}\n      ]\n    }});\n",
+            "    return naclac.getProgramDerivedAddress({{\n      programAddress: {owner_program_expr},\n      seeds: [\n        {}\n      ]\n    }});\n",
             seeds_exprs.iter().map(|s| format!("        {s}")).collect::<Vec<String>>().join(",\n")
         ));
         client_content.push_str("  }\n\n");

@@ -7,190 +7,131 @@ export const IDL = {
   },
   "instructions": [
     {
-      "name": "initVaultA",
+      "name": "init_vault_a",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        143,
-        170,
-        60,
-        61,
-        53,
-        112,
-        187,
-        2
-      ],
+      "discriminator": [143,170,60,61,53,112,187,2],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "vaultA",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "vault_a", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116,
-                  95,
-                  97
-                ],
-                "name": "SEED_VAULT_A"
-              }
+              { "kind": "const", "value": [118,97,117,108,116,95,97], "name": "SEED_VAULT_A" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": []
     },
     {
-      "name": "initVaultB",
+      "name": "init_vault_b",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        148,
-        188,
-        44,
-        18,
-        76,
-        170,
-        255,
-        111
-      ],
+      "discriminator": [148,188,44,18,76,170,255,111],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "vaultB",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "vault_b", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116,
-                  95,
-                  98
-                ],
-                "name": "SEED_VAULT_B"
-              }
+              { "kind": "const", "value": [118,97,117,108,116,95,98], "name": "SEED_VAULT_B" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": []
     },
     {
-      "name": "touchPairNoAlias",
+      "name": "touch_pair_no_alias",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        190,
-        215,
-        73,
-        163,
-        169,
-        6,
-        238,
-        225
-      ],
+      "discriminator": [190,215,73,163,169,6,238,225],
       "accounts": [
-        {
-          "name": "a",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "b",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        }
+        { "name": "a", "writable": true },
+        { "name": "b", "writable": true }
       ],
       "args": []
     },
     {
-      "name": "touchPairWithAlias",
+      "name": "touch_pair_with_alias",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        219,
-        171,
-        202,
-        60,
-        127,
-        192,
-        17,
-        249
-      ],
+      "discriminator": [219,171,202,60,127,192,17,249],
       "accounts": [
-        {
-          "name": "a",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "b",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        }
+        { "name": "a", "writable": true },
+        { "name": "b", "writable": true }
       ],
       "args": []
+    },
+    {
+      "name": "init_vault_c",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [121,83,62,0,42,66,213,40],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        {
+          "name": "vault_c", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [118,97,117,108,116,95,99], "name": "SEED_VAULT_C" }
+            ]
+          }
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": []
+    },
+    {
+      "name": "touch_triple_partial_alias",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [199,187,142,135,160,156,113,105],
+      "accounts": [
+        { "name": "a", "writable": true },
+        { "name": "b", "writable": true },
+        { "name": "c", "writable": true }
+      ],
+      "args": []
+    },
+    {
+      "name": "write_note",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [14,21,145,112,180,89,37,76],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        {
+          "name": "note", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [110,111,116,101], "name": "SEED_NOTE" }
+            ]
+          }
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "text", "type": "string" }
+      ]
     }
   ],
   "accounts": [
     {
-      "name": "Vault",
-      "discriminator": [
-        211,
-        8,
-        232,
-        43,
-        2,
-        152,
-        117,
-        119
-      ],
+      "name": "Note",
+      "discriminator": [203,75,252,196,81,210,122,126],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "balance",
-            "type": "u64"
-          }
+          { "name": "bump", "type": "u8" },
+          { "name": "len", "type": "u8" },
+          { "name": "message", "type": { "array": ["u8",32] } }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "discriminator": [211,8,232,43,2,152,117,119],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "balance", "type": "u64" }
         ]
       }
     }
@@ -201,50 +142,48 @@ export const IDL = {
     {
       "name": "SEED_VAULT_A",
       "type": "bytes",
-      "value": "b\"vault_a\""
+      "value": "[118, 97, 117, 108, 116, 95, 97]"
     },
     {
       "name": "SEED_VAULT_B",
       "type": "bytes",
-      "value": "b\"vault_b\""
+      "value": "[118, 97, 117, 108, 116, 95, 98]"
+    },
+    {
+      "name": "SEED_VAULT_C",
+      "type": "bytes",
+      "value": "[118, 97, 117, 108, 116, 95, 99]"
+    },
+    {
+      "name": "SEED_NOTE",
+      "type": "bytes",
+      "value": "[110, 111, 116, 101]"
     }
   ],
   "definedTypes": [],
   "pdas": [
     {
-      "name": "vaultA",
+      "name": "note",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            118,
-            97,
-            117,
-            108,
-            116,
-            95,
-            97
-          ],
-          "name": "SEED_VAULT_A"
-        }
+        { "kind": "const", "value": [110,111,116,101], "name": "SEED_NOTE" }
       ]
     },
     {
-      "name": "vaultB",
+      "name": "vault_a",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            118,
-            97,
-            117,
-            108,
-            116,
-            95,
-            98
-          ],
-          "name": "SEED_VAULT_B"
-        }
+        { "kind": "const", "value": [118,97,117,108,116,95,97], "name": "SEED_VAULT_A" }
+      ]
+    },
+    {
+      "name": "vault_b",
+      "seeds": [
+        { "kind": "const", "value": [118,97,117,108,116,95,98], "name": "SEED_VAULT_B" }
+      ]
+    },
+    {
+      "name": "vault_c",
+      "seeds": [
+        { "kind": "const", "value": [118,97,117,108,116,95,99], "name": "SEED_VAULT_C" }
       ]
     }
   ]

@@ -1,0 +1,30 @@
+[package]
+name = "pump"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["pinocchio"]
+pinocchio = ["naclac-lang/pinocchio", "pump-fees-client/pinocchio", "pump-amm-client/pinocchio"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../../naclac-lang", default-features = false, features = ["token"] }
+pump-fees-client = { path = "../../../pump-fees/clients/rust/pump_fees", default-features = false, features = ["cpi"] }
+pump-amm-client = { path = "../../../pump-amm/clients/rust/pump_amm", default-features = false, features = ["cpi"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../../naclac-client" }
+pump-client = { version = "0.1.0", path = "../../clients/rust/pump" }
+pump-fees-client = { version = "0.1.0", path = "../../../pump-fees/clients/rust/pump_fees", features = ["offchain"] }
+pump-amm-client = { version = "0.1.0", path = "../../../pump-amm/clients/rust/pump_amm", features = ["offchain"] }
+
+[lints]
+workspace = true

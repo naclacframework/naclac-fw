@@ -1,5 +1,6 @@
 use naclac_lang::prelude::*;
 use crate::components::SeededThing;
+use crate::constants::SEED_SEEDED;
 
 // `seeds` + explicit `bump = <expr>` on an existing (non-`init`) account —
 // the on-chain-`find_program_address`-banned hash-and-compare path

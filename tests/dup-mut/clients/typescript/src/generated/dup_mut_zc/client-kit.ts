@@ -75,7 +75,42 @@ export class DupMutZcClient {
     return instructions.touchPairWithAlias(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `vaultA` account. */
+  /**
+   * Builds the `initVaultC` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public initVaultC(args?: Record<string, never>, accounts?: Partial<instructions.InitVaultCAccounts>) {
+    return instructions.initVaultC(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchTriplePartialAlias` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public touchTriplePartialAlias(args?: Record<string, never>, accounts?: Partial<instructions.TouchTriplePartialAliasAccounts>) {
+    return instructions.touchTriplePartialAlias(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `writeNote` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public writeNote(args: instructions.WriteNoteArgs, accounts?: Partial<instructions.WriteNoteAccounts>) {
+    return instructions.writeNote(this.program, args ?? {}, accounts);
+  }
+
+  /** Derives the PDA for a `note` account. */
+  public async getNotePda(seeds: {
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([110, 111, 116, 101])
+      ]
+    });
+  }
+
+  /** Derives the PDA for a `vault_a` account. */
   public async getVaultAPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
@@ -86,7 +121,7 @@ export class DupMutZcClient {
     });
   }
 
-  /** Derives the PDA for a `vaultB` account. */
+  /** Derives the PDA for a `vault_b` account. */
   public async getVaultBPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
@@ -95,6 +130,37 @@ export class DupMutZcClient {
                 new Uint8Array([118, 97, 117, 108, 116, 95, 98])
       ]
     });
+  }
+
+  /** Derives the PDA for a `vault_c` account. */
+  public async getVaultCPda(seeds: {
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([118, 97, 117, 108, 116, 95, 99])
+      ]
+    });
+  }
+
+  /** Fetches a `Note` account. Throws if it does not exist. */
+  public fetchNote(address: naclac.Address | string) {
+    return accounts.fetchNote(this.program.provider.rpc as any, naclac.address(address as string));
+  }
+
+  /** Fetches a `Note` account. Returns a MaybeAccount (check `.exists`) if it does not exist. */
+  public fetchMaybeNote(address: naclac.Address | string) {
+    return accounts.fetchMaybeNote(this.program.provider.rpc as any, naclac.address(address as string));
+  }
+
+  /** Fetches multiple `Note` accounts by address. Throws if any do not exist. */
+  public fetchAllNotes(addresses: Array<naclac.Address | string>) {
+    return accounts.fetchAllNote(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
+  }
+
+  /** Fetches multiple `Note` accounts. Missing accounts have `.exists = false`. */
+  public fetchAllMaybeNotes(addresses: Array<naclac.Address | string>) {
+    return accounts.fetchAllMaybeNote(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
   }
 
   /** Fetches a `Vault` account. Throws if it does not exist. */
@@ -115,6 +181,11 @@ export class DupMutZcClient {
   /** Fetches multiple `Vault` accounts. Missing accounts have `.exists = false`. */
   public fetchAllMaybeVaults(addresses: Array<naclac.Address | string>) {
     return accounts.fetchAllMaybeVault(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
+  }
+
+  /** Fetches ALL `Note` accounts owned by this program. */
+  public fetchAllNoteByOwner(options?: { commitment?: any; filters?: unknown[] }) {
+    return accounts.fetchAllNoteByOwner(this.program.provider.rpc as any, this.programId, options);
   }
 
   /** Fetches ALL `Vault` accounts owned by this program. */

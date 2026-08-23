@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touchEntryBareBump` instruction. */
-export const TOUCHENTRYBAREBUMP_DISCRIMINATOR = new Uint8Array([80, 160, 133, 100, 61, 110, 159, 113]);
+/** 8-byte discriminator for the `touch_entry_bare_bump` instruction. */
+export const TOUCH_ENTRY_BARE_BUMP_DISCRIMINATOR = new Uint8Array([80, 160, 133, 100, 61, 110, 159, 113]);
 
 /** Accounts for the `touchEntryBareBump` instruction. */
 export interface TouchEntryBareBumpAccounts {
@@ -21,7 +21,7 @@ export function touchEntryBareBump(
   args?: Record<string, never>,
   accounts?: Partial<TouchEntryBareBumpAccounts>
 ) {
-  const builder = program.methods.touchEntryBareBump(args ?? {});
+  const builder = program.methods.touch_entry_bare_bump(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

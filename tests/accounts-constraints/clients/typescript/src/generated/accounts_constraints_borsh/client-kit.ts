@@ -76,11 +76,35 @@ export class AccountsConstraintsBorshClient {
   }
 
   /**
+   * Builds the `checkOwnerRelational` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkOwnerRelational(args?: Record<string, never>, accounts?: Partial<instructions.CheckOwnerRelationalAccounts>) {
+    return instructions.checkOwnerRelational(this.program, args ?? {}, accounts);
+  }
+
+  /**
    * Builds the `checkAddress` instruction pipeline.
    * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
    */
   public checkAddress(args?: Record<string, never>, accounts?: Partial<instructions.CheckAddressAccounts>) {
     return instructions.checkAddress(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkAddressRelational` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkAddressRelational(args?: Record<string, never>, accounts?: Partial<instructions.CheckAddressRelationalAccounts>) {
+    return instructions.checkAddressRelational(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkExecutable` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkExecutable(args?: Record<string, never>, accounts?: Partial<instructions.CheckExecutableAccounts>) {
+    return instructions.checkExecutable(this.program, args ?? {}, accounts);
   }
 
   /**
@@ -108,6 +132,14 @@ export class AccountsConstraintsBorshClient {
   }
 
   /**
+   * Builds the `initNote` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public initNote(args: instructions.InitNoteArgs, accounts?: Partial<instructions.InitNoteAccounts>) {
+    return instructions.initNote(this.program, args ?? {}, accounts);
+  }
+
+  /**
    * Builds the `touchSeeded` instruction pipeline.
    * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
    */
@@ -123,6 +155,38 @@ export class AccountsConstraintsBorshClient {
     return instructions.closeVault(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `closeVaultSelf` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public closeVaultSelf(args?: Record<string, never>, accounts?: Partial<instructions.CloseVaultSelfAccounts>) {
+    return instructions.closeVaultSelf(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkRentExempt` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkRentExempt(args?: Record<string, never>, accounts?: Partial<instructions.CheckRentExemptAccounts>) {
+    return instructions.checkRentExempt(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `relatedVaultCustomError` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public relatedVaultCustomError(args?: Record<string, never>, accounts?: Partial<instructions.RelatedVaultCustomErrorAccounts>) {
+    return instructions.relatedVaultCustomError(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkExternalPda` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public checkExternalPda(args: instructions.CheckExternalPdaArgs, accounts?: Partial<instructions.CheckExternalPdaAccounts>) {
+    return instructions.checkExternalPda(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `ledger` account. */
   public async getLedgerPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
@@ -134,6 +198,17 @@ export class AccountsConstraintsBorshClient {
     });
   }
 
+  /** Derives the PDA for a `note` account. */
+  public async getNotePda(seeds: {
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([110, 111, 116, 101])
+      ]
+    });
+  }
+
   /** Derives the PDA for a `seeded` account. */
   public async getSeededPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
@@ -141,6 +216,17 @@ export class AccountsConstraintsBorshClient {
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([115, 101, 101, 100, 101, 100])
+      ]
+    });
+  }
+
+  /** Derives the PDA for a `target` account. */
+  public async getTargetPda(seeds: {
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([101, 120, 116, 101, 114, 110, 97, 108, 95, 112, 100, 97])
       ]
     });
   }
@@ -174,6 +260,26 @@ export class AccountsConstraintsBorshClient {
   /** Fetches multiple `Ledger` accounts. Missing accounts have `.exists = false`. */
   public fetchAllMaybeLedgers(addresses: Array<naclac.Address | string>) {
     return accounts.fetchAllMaybeLedger(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
+  }
+
+  /** Fetches a `Note` account. Throws if it does not exist. */
+  public fetchNote(address: naclac.Address | string) {
+    return accounts.fetchNote(this.program.provider.rpc as any, naclac.address(address as string));
+  }
+
+  /** Fetches a `Note` account. Returns a MaybeAccount (check `.exists`) if it does not exist. */
+  public fetchMaybeNote(address: naclac.Address | string) {
+    return accounts.fetchMaybeNote(this.program.provider.rpc as any, naclac.address(address as string));
+  }
+
+  /** Fetches multiple `Note` accounts by address. Throws if any do not exist. */
+  public fetchAllNotes(addresses: Array<naclac.Address | string>) {
+    return accounts.fetchAllNote(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
+  }
+
+  /** Fetches multiple `Note` accounts. Missing accounts have `.exists = false`. */
+  public fetchAllMaybeNotes(addresses: Array<naclac.Address | string>) {
+    return accounts.fetchAllMaybeNote(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
   }
 
   /** Fetches a `SeededThing` account. Throws if it does not exist. */
@@ -219,6 +325,11 @@ export class AccountsConstraintsBorshClient {
   /** Fetches ALL `Ledger` accounts owned by this program. */
   public fetchAllLedgerByOwner(options?: { commitment?: any; filters?: unknown[] }) {
     return accounts.fetchAllLedgerByOwner(this.program.provider.rpc as any, this.programId, options);
+  }
+
+  /** Fetches ALL `Note` accounts owned by this program. */
+  public fetchAllNoteByOwner(options?: { commitment?: any; filters?: unknown[] }) {
+    return accounts.fetchAllNoteByOwner(this.program.provider.rpc as any, this.programId, options);
   }
 
   /** Fetches ALL `SeededThing` accounts owned by this program. */

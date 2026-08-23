@@ -7,467 +7,347 @@ export const IDL = {
   },
   "instructions": [
     {
-      "name": "initVault",
+      "name": "init_vault",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        77,
-        79,
-        85,
-        150,
-        33,
-        217,
-        52,
-        106
-      ],
+      "discriminator": [77,79,85,150,33,217,52,106],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "vault",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "vault", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ],
-                "name": "SEED_VAULT"
-              }
+              { "kind": "const", "value": [118,97,117,108,116], "name": "SEED_VAULT" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": []
     },
     {
-      "name": "initIfNeededLedger",
+      "name": "init_if_needed_ledger",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        22,
-        82,
-        120,
-        44,
-        13,
-        132,
-        41,
-        18
-      ],
+      "discriminator": [22,82,120,44,13,132,41,18],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "ledger",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "ledger", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  101,
-                  100,
-                  103,
-                  101,
-                  114
-                ],
-                "name": "SEED_LEDGER"
-              }
+              { "kind": "const", "value": [108,101,100,103,101,114], "name": "SEED_LEDGER" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        {
-          "name": "value",
-          "type": "u64"
-        }
+        { "name": "value", "type": "u64" }
       ]
     },
     {
-      "name": "requireSigner",
+      "name": "require_signer",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        5,
-        1,
-        181,
-        83,
-        233,
-        60,
-        65,
-        184
-      ],
+      "discriminator": [5,1,181,83,233,60,65,184],
       "accounts": [
-        {
-          "name": "vault",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "authority",
-          "writable": false,
-          "signer": true,
-          "optional": false
-        }
+        { "name": "vault", "writable": true },
+        { "name": "authority", "signer": true }
       ],
       "args": []
     },
     {
-      "name": "checkOwner",
+      "name": "check_owner",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        215,
-        161,
-        49,
-        182,
-        161,
-        8,
-        67,
-        193
-      ],
+      "discriminator": [215,161,49,182,161,8,67,193],
       "accounts": [
         {
           "name": "target",
-          "writable": false,
-          "signer": false,
-          "optional": false
+          "docs": [
+            "SAFETY: only the account's owner field is inspected via the `owner`",
+            "constraint below; its data is never read or deserialized."
+          ]
         }
       ],
       "args": []
     },
     {
-      "name": "checkAddress",
+      "name": "check_owner_relational",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        59,
-        51,
-        114,
-        147,
-        41,
-        214,
-        123,
-        101
-      ],
+      "discriminator": [179,162,242,171,88,217,216,174],
       "accounts": [
         {
           "name": "target",
-          "writable": false,
-          "signer": false,
-          "optional": false
+          "docs": [
+            "SAFETY: only the account's owner field is inspected via the `owner`",
+            "constraint below; its data is never read or deserialized."
+          ]
+        },
+        {
+          "name": "expected_owner",
+          "docs": [
+            "SAFETY: only its own address is read, as the expected owning program;",
+            "never deserialized."
+          ]
         }
       ],
       "args": []
     },
     {
-      "name": "touchMutVault",
+      "name": "check_address",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        70,
-        22,
-        63,
-        237,
-        108,
-        82,
-        188,
-        171
-      ],
+      "discriminator": [59,51,114,147,41,214,123,101],
       "accounts": [
         {
-          "name": "vault",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "relatedVault",
-      "optionalAccountStrategy": "programId",
-      "discriminator": [
-        211,
-        244,
-        86,
-        173,
-        76,
-        192,
-        89,
-        93
-      ],
-      "accounts": [
-        {
-          "name": "vault",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "authority",
-          "writable": false,
-          "signer": true,
-          "optional": false
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "initSeeded",
-      "optionalAccountStrategy": "programId",
-      "discriminator": [
-        194,
-        72,
-        3,
-        113,
-        154,
-        190,
-        21,
-        206
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "seeded",
-          "writable": true,
-          "signer": false,
-          "optional": false,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  101,
-                  101,
-                  100,
-                  101,
-                  100
-                ],
-                "name": "SEED_SEEDED"
-              }
-            ]
-          }
-        },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
+          "name": "target",
+          "docs": [
+            "SAFETY: only the account's own address is inspected via the",
+            "`address` constraint below; its data is never read or deserialized."
+          ],
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
     },
     {
-      "name": "touchSeeded",
+      "name": "check_address_relational",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        113,
-        221,
-        0,
-        65,
-        190,
-        116,
-        9,
-        205
-      ],
+      "discriminator": [171,64,177,170,149,28,7,185],
       "accounts": [
         {
-          "name": "seeded",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "target",
+          "docs": [
+            "SAFETY: only the account's own address is inspected via the",
+            "`address` constraint below; its data is never read or deserialized."
+          ],
+          "address": "expected_address"
+        },
+        {
+          "name": "expected_address",
+          "docs": [
+            "SAFETY: only its own address is read, as the expected value; never",
+            "deserialized."
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "check_executable",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [27,192,107,127,85,227,212,55],
+      "accounts": [
+        {
+          "name": "target",
+          "docs": [
+            "SAFETY: only the account's `executable` flag is inspected via the",
+            "`executable` constraint below; its data is never read or deserialized."
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "touch_mut_vault",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [70,22,63,237,108,82,188,171],
+      "accounts": [
+        { "name": "vault", "writable": true }
+      ],
+      "args": []
+    },
+    {
+      "name": "related_vault",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [211,244,86,173,76,192,89,93],
+      "accounts": [
+        { "name": "vault", "writable": true },
+        { "name": "authority", "signer": true }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_seeded",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [194,72,3,113,154,190,21,206],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        {
+          "name": "seeded", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  101,
-                  101,
-                  100,
-                  101,
-                  100
-                ],
-                "name": "SEED_SEEDED"
-              }
+              { "kind": "const", "value": [115,101,101,100,101,100], "name": "SEED_SEEDED" }
+            ]
+          }
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": []
+    },
+    {
+      "name": "touch_seeded",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [113,221,0,65,190,116,9,205],
+      "accounts": [
+        {
+          "name": "seeded", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [115,101,101,100,101,100], "name": "SEED_SEEDED" }
             ]
           }
         }
       ],
       "args": [
-        {
-          "name": "bump",
-          "type": "u8"
-        }
+        { "name": "bump", "type": "u8" }
       ]
     },
     {
-      "name": "closeVault",
+      "name": "close_vault",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        141,
-        103,
-        17,
-        126,
-        72,
-        75,
-        29,
-        29
+      "discriminator": [141,103,17,126,72,75,29,29],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "vault", "writable": true }
       ],
+      "args": []
+    },
+    {
+      "name": "close_vault_self",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [165,27,184,217,241,90,203,86],
       "accounts": [
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
+          "name": "target",
+          "docs": [
+            "SAFETY: bare `AccountInfo` close target — this test exercises only",
+            "the self-close guard (target == dest), which fires before any",
+            "owner/data check, so no other validation is meaningful here."
+          ],
+          "writable": true
         },
         {
-          "name": "vault",
-          "writable": true,
-          "signer": false,
-          "optional": false
+          "name": "destination",
+          "docs": [
+            "SAFETY: bare `AccountInfo` close destination — see `target` above."
+          ],
+          "writable": true
         }
       ],
       "args": []
+    },
+    {
+      "name": "check_rent_exempt",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [218,238,171,16,41,107,170,172],
+      "accounts": [
+        {
+          "name": "target",
+          "docs": [
+            "SAFETY: only this account's lamport balance and data length are",
+            "inspected via the `rent_exempt` constraint below; its data is never",
+            "read or deserialized."
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "related_vault_custom_error",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [236,194,253,54,114,172,30,101],
+      "accounts": [
+        { "name": "vault", "writable": true },
+        { "name": "authority", "signer": true }
+      ],
+      "args": []
+    },
+    {
+      "name": "check_external_pda",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [77,75,166,158,13,14,11,209],
+      "accounts": [
+        {
+          "name": "target",
+          "docs": [
+            "SAFETY: only this account's own address is compared against the PDA",
+            "derived from `SEED_EXTERNAL_PDA` + `bump` against the System",
+            "Program's ID; its data is never read or deserialized."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [101,120,116,101,114,110,97,108,95,112,100,97], "name": "SEED_EXTERNAL_PDA" }
+            ]
+          }
+        }
+      ],
+      "args": [
+        { "name": "bump", "type": "u8" }
+      ]
     }
   ],
   "accounts": [
     {
       "name": "Ledger",
-      "discriminator": [
-        43,
-        41,
-        21,
-        213,
-        180,
-        176,
-        95,
-        32
-      ],
+      "discriminator": [43,41,21,213,180,176,95,32],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "value",
-            "type": "u64"
-          }
+          { "name": "bump", "type": "u8" },
+          { "name": "value", "type": "u64" }
         ]
       }
     },
     {
       "name": "SeededThing",
-      "discriminator": [
-        108,
-        26,
-        3,
-        60,
-        128,
-        59,
-        161,
-        172
-      ],
+      "discriminator": [108,26,3,60,128,59,161,172],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "value",
-            "type": "u64"
-          }
+          { "name": "bump", "type": "u8" },
+          { "name": "value", "type": "u64" }
         ]
       }
     },
     {
       "name": "Vault",
-      "discriminator": [
-        211,
-        8,
-        232,
-        43,
-        2,
-        152,
-        117,
-        119
-      ],
+      "discriminator": [211,8,232,43,2,152,117,119],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "admin",
-            "type": "publicKey"
-          },
-          {
-            "name": "value",
-            "type": "u64"
-          }
+          { "name": "bump", "type": "u8" },
+          { "name": "admin", "type": "publicKey" },
+          { "name": "value", "type": "u64" }
         ]
       }
     }
   ],
   "events": [],
-  "errors": [],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "WrongAdmin",
+      "message": "the provided authority does not match `vault.admin`"
+    }
+  ],
   "constants": [
     {
       "name": "SEED_VAULT",
       "type": "bytes",
-      "value": "b\"vault\""
+      "value": "[118, 97, 117, 108, 116]"
     },
     {
       "name": "SEED_LEDGER",
       "type": "bytes",
-      "value": "b\"ledger\""
+      "value": "[108, 101, 100, 103, 101, 114]"
     },
     {
       "name": "SEED_SEEDED",
       "type": "bytes",
-      "value": "b\"seeded\""
+      "value": "[115, 101, 101, 100, 101, 100]"
+    },
+    {
+      "name": "SEED_EXTERNAL_PDA",
+      "type": "bytes",
+      "value": "[101, 120, 116, 101, 114, 110, 97, 108, 95, 112, 100, 97]"
     }
   ],
   "definedTypes": [],
@@ -475,51 +355,25 @@ export const IDL = {
     {
       "name": "ledger",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            108,
-            101,
-            100,
-            103,
-            101,
-            114
-          ],
-          "name": "SEED_LEDGER"
-        }
+        { "kind": "const", "value": [108,101,100,103,101,114], "name": "SEED_LEDGER" }
       ]
     },
     {
       "name": "seeded",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            115,
-            101,
-            101,
-            100,
-            101,
-            100
-          ],
-          "name": "SEED_SEEDED"
-        }
+        { "kind": "const", "value": [115,101,101,100,101,100], "name": "SEED_SEEDED" }
+      ]
+    },
+    {
+      "name": "target",
+      "seeds": [
+        { "kind": "const", "value": [101,120,116,101,114,110,97,108,95,112,100,97], "name": "SEED_EXTERNAL_PDA" }
       ]
     },
     {
       "name": "vault",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            118,
-            97,
-            117,
-            108,
-            116
-          ],
-          "name": "SEED_VAULT"
-        }
+        { "kind": "const", "value": [118,97,117,108,116], "name": "SEED_VAULT" }
       ]
     }
   ]

@@ -1,0 +1,5 @@
+error: Naclac Error: `associated_token::authority` must be specified alongside `associated_token::mint`.
+  --> tests/fail/26_associated_token_mint_missing_authority.rs:21:9
+   |
+21 |     pub vault: AccountInfo,
+   |         ^^^^^

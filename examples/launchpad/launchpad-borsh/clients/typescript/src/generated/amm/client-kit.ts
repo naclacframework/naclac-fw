@@ -75,18 +75,18 @@ export class AmmClient {
     return instructions.removeLiquidity(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `poolState` account. */
+  /** Derives the PDA for a `pool_state` account. */
   public async getPoolStatePda(seeds: {
-    tokenAMint: naclac.Address | string;
-    tokenBMint: naclac.Address | string;
+    token_a_mint: naclac.Address | string;
+    token_b_mint: naclac.Address | string;
     id: bigint | number;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([112, 111, 111, 108]),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenAMint === 'string' ? naclac.address(seeds.tokenAMint) : seeds.tokenAMint)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenBMint === 'string' ? naclac.address(seeds.tokenBMint) : seeds.tokenBMint)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token_a_mint === 'string' ? naclac.address(seeds.token_a_mint) : seeds.token_a_mint)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token_b_mint === 'string' ? naclac.address(seeds.token_b_mint) : seeds.token_b_mint)),
         new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.id))
       ]
     });
@@ -122,6 +122,11 @@ export class AmmClient {
     return this.program.waitForEvent<types.PoolInitialized>("PoolInitialized", options);
   }
 
+  /** Decodes every `PoolInitialized` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForPoolInitialized` — prefer this when you already know which transaction you're checking. */
+  public parsePoolInitializedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.PoolInitialized>("PoolInitialized", logs);
+  }
+
   /** Subscribes to `SwapExecuted` events. Returns a listener ID. */
   public onSwapExecuted(callback: (event: types.SwapExecuted, slot: number, signature: string) => void) {
     return types.addSwapExecutedListener(this.program, callback);
@@ -130,6 +135,11 @@ export class AmmClient {
   /** Awaits the next `SwapExecuted` event. Resolves `null` on timeout. */
   public waitForSwapExecuted(options?: { timeoutMs?: number }) {
     return this.program.waitForEvent<types.SwapExecuted>("SwapExecuted", options);
+  }
+
+  /** Decodes every `SwapExecuted` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSwapExecuted` — prefer this when you already know which transaction you're checking. */
+  public parseSwapExecutedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.SwapExecuted>("SwapExecuted", logs);
   }
 
   /** Subscribes to `LiquidityAdded` events. Returns a listener ID. */
@@ -142,6 +152,11 @@ export class AmmClient {
     return this.program.waitForEvent<types.LiquidityAdded>("LiquidityAdded", options);
   }
 
+  /** Decodes every `LiquidityAdded` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForLiquidityAdded` — prefer this when you already know which transaction you're checking. */
+  public parseLiquidityAddedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.LiquidityAdded>("LiquidityAdded", logs);
+  }
+
   /** Subscribes to `LiquidityRemoved` events. Returns a listener ID. */
   public onLiquidityRemoved(callback: (event: types.LiquidityRemoved, slot: number, signature: string) => void) {
     return types.addLiquidityRemovedListener(this.program, callback);
@@ -150,6 +165,11 @@ export class AmmClient {
   /** Awaits the next `LiquidityRemoved` event. Resolves `null` on timeout. */
   public waitForLiquidityRemoved(options?: { timeoutMs?: number }) {
     return this.program.waitForEvent<types.LiquidityRemoved>("LiquidityRemoved", options);
+  }
+
+  /** Decodes every `LiquidityRemoved` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForLiquidityRemoved` — prefer this when you already know which transaction you're checking. */
+  public parseLiquidityRemovedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.LiquidityRemoved>("LiquidityRemoved", logs);
   }
 
   /** Removes a registered event listener by its ID. */

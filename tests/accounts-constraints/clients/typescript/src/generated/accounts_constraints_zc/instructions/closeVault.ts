@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `closeVault` instruction. */
-export const CLOSEVAULT_DISCRIMINATOR = new Uint8Array([141, 103, 17, 126, 72, 75, 29, 29]);
+/** 8-byte discriminator for the `close_vault` instruction. */
+export const CLOSE_VAULT_DISCRIMINATOR = new Uint8Array([141, 103, 17, 126, 72, 75, 29, 29]);
 
 /** Accounts for the `closeVault` instruction. */
 export interface CloseVaultAccounts {
@@ -21,7 +21,7 @@ export function closeVault(
   args?: Record<string, never>,
   accounts?: Partial<CloseVaultAccounts>
 ) {
-  const builder = program.methods.closeVault(args ?? {});
+  const builder = program.methods.close_vault(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

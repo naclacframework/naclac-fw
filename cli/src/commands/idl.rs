@@ -1,24 +1,34 @@
-use crate::IdlAction;
-use flate2::write::ZlibEncoder;
-use flate2::Compression;
-use solana_address::Address;
-use solana_rpc_client::rpc_client::RpcClient;
+//! `naclac idl <action>` — manages a program's on-chain IDL metadata via
+//! Solana's Program Metadata Program, through `naclac_idl::program_metadata`:
+//! `upload` (create/update), `set-immutable`, `close`, `trim`, and
+//! `set-authority`.
 
-use sha2::{Digest, Sha256};
-use solana_instruction::{AccountMeta, Instruction};
+use flate2::read::{GzDecoder, ZlibDecoder};
+use flate2::write::ZlibEncoder;
+use flate2::Compression as ZlibCompression;
+use naclac_idl::program_metadata::{
+    self, compression, data_source, encoding, format, header, MetadataAccounts, Seed,
+    SetDataSource, HEADER_LEN,
+};
+use solana_address::Address;
+use solana_instruction::Instruction;
 use solana_keypair::Keypair;
+use solana_rpc_client::rpc_client::RpcClient;
 use solana_signer::Signer;
 use solana_transaction::Transaction;
 use std::fs;
-use std::io::Write;
+use std::io::Read as _;
+use std::io::Write as _;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use toml::Value;
 
-pub fn execute(action: &IdlAction) {
-    match action {
-        IdlAction::Init { program_id } => init_idl(program_id.as_ref().unwrap()),
-    }
-}
+use crate::ui;
+
+/// Conservative per-transaction payload budget for `write`/inline calls —
+/// Solana caps total transaction size at 1232 bytes; this leaves headroom
+/// for signatures, account keys, and the fixed instruction header.
+const CHUNK_SIZE: usize = 800;
 
 struct NaclacConfig {
     cluster: String,
@@ -28,7 +38,6 @@ struct NaclacConfig {
 
 fn load_naclac_config() -> Option<NaclacConfig> {
     let current_dir = std::env::current_dir().unwrap();
-
     let toml_path = if current_dir.join("Naclac.toml").exists() {
         current_dir.join("Naclac.toml")
     } else if current_dir.join("../../Naclac.toml").exists() {
@@ -37,14 +46,14 @@ fn load_naclac_config() -> Option<NaclacConfig> {
             .canonicalize()
             .unwrap()
     } else {
-        eprintln!("❌ Not a Naclac workspace. Run `naclac init` to initialize a new one.");
+        ui::error_line("Not a Naclac workspace. Run `naclac init` to initialize a new one.");
         return None;
     };
 
     let content = match fs::read_to_string(&toml_path) {
         Ok(c) => c,
         Err(_) => {
-            eprintln!("❌ Found Naclac.toml but could not read it.");
+            ui::error_line("Found Naclac.toml but could not read it.");
             return None;
         }
     };
@@ -52,12 +61,11 @@ fn load_naclac_config() -> Option<NaclacConfig> {
     let parsed: Value = match toml::from_str(&content) {
         Ok(v) => v,
         Err(_) => {
-            eprintln!("❌ Naclac.toml is malformed. Please check its format.");
+            ui::error_line("Naclac.toml is malformed — check its format.");
             return None;
         }
     };
 
-    // Extract [provider] cluster
     let cluster = parsed
         .get("provider")
         .and_then(|p| p.get("cluster"))
@@ -65,7 +73,6 @@ fn load_naclac_config() -> Option<NaclacConfig> {
         .unwrap_or("devnet")
         .to_string();
 
-    // Extract [provider] wallet
     let raw_wallet = parsed
         .get("provider")
         .and_then(|p| p.get("wallet"))
@@ -73,38 +80,28 @@ fn load_naclac_config() -> Option<NaclacConfig> {
         .unwrap_or("~/.config/solana/id.json")
         .to_string();
 
-    // Expand ~ to actual home directory
     let wallet_path = if raw_wallet.starts_with("~/") {
-        let home = std::env::var("HOME").unwrap_or_else(|_| {
-            // fallback for Windows/WSL
-            std::env::var("USERPROFILE").unwrap_or_else(|_| ".".to_string())
-        });
+        let home = std::env::var("HOME")
+            .unwrap_or_else(|_| std::env::var("USERPROFILE").unwrap_or_else(|_| ".".to_string()));
         raw_wallet.replacen("~", &home, 1)
     } else {
         raw_wallet
     };
 
-    // Map cluster name to RPC URL
     let rpc_url = match cluster.to_lowercase().as_str() {
         "mainnet" | "mainnet-beta" => "https://api.mainnet-beta.solana.com".to_string(),
         "devnet" => "https://api.devnet.solana.com".to_string(),
         "testnet" => "https://api.testnet.solana.com".to_string(),
         "localnet" | "localhost" => "http://127.0.0.1:8899".to_string(),
-        // If they put a raw URL directly in the toml, use it as-is
         url if url.starts_with("http") => url.to_string(),
         other => {
-            eprintln!(
-                "⚠️  Unknown cluster '{}' in Naclac.toml, defaulting to devnet.",
+            ui::warn(format!(
+                "Unknown cluster '{}' in Naclac.toml — defaulting to devnet.",
                 other
-            );
+            ));
             "https://api.devnet.solana.com".to_string()
         }
     };
-
-    eprintln!(
-        "📋 Naclac.toml loaded → cluster: {}, wallet: {}",
-        cluster, wallet_path
-    );
 
     Some(NaclacConfig {
         cluster,
@@ -117,8 +114,10 @@ fn load_keypair(wallet_path: &str) -> Option<Keypair> {
     let key_bytes = match fs::read_to_string(wallet_path) {
         Ok(content) => content,
         Err(_) => {
-            eprintln!("❌ Could not read wallet keypair at: {}", wallet_path);
-            eprintln!("   Make sure the path in Naclac.toml [provider] wallet is correct.");
+            ui::error_line(format!(
+                "Could not read wallet keypair at {} — check [provider] wallet in Naclac.toml.",
+                wallet_path
+            ));
             return None;
         }
     };
@@ -126,7 +125,7 @@ fn load_keypair(wallet_path: &str) -> Option<Keypair> {
     let bytes: Vec<u8> = match serde_json::from_str(&key_bytes) {
         Ok(b) => b,
         Err(_) => {
-            eprintln!("❌ Wallet file is not a valid Solana keypair JSON.");
+            ui::error_line("Wallet file is not a valid Solana keypair JSON.");
             return None;
         }
     };
@@ -135,352 +134,19 @@ fn load_keypair(wallet_path: &str) -> Option<Keypair> {
     Some(Keypair::new_from_array(secret))
 }
 
-fn init_idl(program_id_str: &String) {
-    // 1. Load Naclac.toml config
-    let config = match load_naclac_config() {
-        Some(c) => c,
-        None => return,
-    };
-
-    // 2. Parse program ID
-    let program_id: Address = match Address::from_str(program_id_str) {
-        Ok(pk) => pk,
-        Err(_) => {
-            eprintln!("❌ Invalid programmatic address string.");
-            return;
-        }
-    };
-
-    eprintln!(
-        "🚀 Initialize deterministic IDL context structure for: {}",
-        program_id
-    );
-
-    // 3. Find workspace_root (Needed for Pre-flight Check)
+fn workspace_root() -> PathBuf {
     let current_dir = std::env::current_dir().unwrap();
-    let workspace_root = if current_dir.join("Naclac.toml").exists() {
-        current_dir.clone()
+    if current_dir.join("Naclac.toml").exists() {
+        current_dir
     } else {
         current_dir.join("../..").canonicalize().unwrap()
-    };
-
-    // --- Pre-flight Check: Verify idl-build feature is enabled ---
-    if let Some(name) = find_program_name_by_id(&workspace_root, program_id_str, &config.cluster) {
-        if !is_idl_feature_enabled(&workspace_root, &name) {
-            eprintln!(
-                "\n❌ Error: On-chain IDL logic is not enabled for program '{}'.",
-                name
-            );
-            eprintln!(
-                "   Naclac keeps programs lightweight by default to reduce deployment costs."
-            );
-            eprintln!(
-                "\nTo enable on-chain IDL storage, add this to your programs/{}/Cargo.toml:",
-                name
-            );
-            eprintln!("\n[features]");
-            eprintln!("idl-build = [\"naclac-lang/idl-build\"]");
-            eprintln!(
-                "\nThen rebuild and redeploy your program before running `naclac idl init` again."
-            );
-            return;
-        }
     }
-
-    // 4. Derive IDL PDA
-    let seed = b"anchor:idl";
-    let (idl_pda, _bump) = Address::find_program_address(&[seed, program_id.as_ref()], &program_id);
-    eprintln!("🔐 Derived Anchor-Compatible IDL PDA: {}", idl_pda);
-
-    // 5. Find and load IDL file
-
-    let idl_dir = workspace_root.join("target/idl");
-    let mut idl_content = None;
-
-    if idl_dir.exists() {
-        for entry in fs::read_dir(&idl_dir).unwrap().flatten() {
-            if let Ok(content) = fs::read_to_string(entry.path()) {
-                if content.contains(program_id_str) {
-                    idl_content = Some(content);
-                    break;
-                }
-            }
-        }
-    }
-
-    let payload = match idl_content {
-        Some(c) => c,
-        None => {
-            eprintln!("❌ Error: Could not find a compiled IDL matched to this program.");
-            return;
-        }
-    };
-
-    // 5. Compress IDL
-    eprintln!("🗜  Compressing local target IDL via exact Zlib/deflate standard...");
-    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(payload.as_bytes()).unwrap();
-    let compressed_bytes = encoder.finish().unwrap();
-
-    let storage_length = 8 + 32 + 4 + compressed_bytes.len();
-
-    eprintln!(
-        "✅ Compression Output: ~{} bytes mapped from raw json.",
-        compressed_bytes.len()
-    );
-
-    eprintln!(
-        "💰 IDL Transaction Configured: Rent size evaluation mapped to length: {}.",
-        storage_length
-    );
-
-    // 6. Load keypair from wallet path in Naclac.toml
-    let payer = match load_keypair(&config.wallet_path) {
-        Some(kp) => kp,
-        None => return,
-    };
-
-    // 7. Connect to RPC
-    eprintln!(
-        "🌐 Connecting to cluster: {} ({})",
-        config.cluster, config.rpc_url
-    );
-    let client = RpcClient::new(config.rpc_url.clone());
-
-    // 8. Check if IDL account already exists
-    let idl_account = client.get_account(&idl_pda).ok();
-
-    if let Some(account) = idl_account {
-        let current_size = account.data.len();
-        if current_size != storage_length {
-            eprintln!(
-                "⚠️  IDL account exists but has size {} (required: {}). Resizing...",
-                current_size, storage_length
-            );
-
-            let recent_blockhash = match client.get_latest_blockhash() {
-                Ok(bh) => bh,
-                Err(e) => {
-                    eprintln!("❌ Failed to fetch latest blockhash: {}", e);
-                    return;
-                }
-            };
-
-            let idl_resize_disc = {
-                let mut hasher = Sha256::new();
-                hasher.update(b"naclac:idl_resize");
-                hasher.finalize()
-            };
-            let mut resize_data = idl_resize_disc[0..8].to_vec();
-            resize_data.extend_from_slice(&(storage_length as u64).to_le_bytes());
-
-            let resize_ix = Instruction {
-                program_id,
-                accounts: vec![
-                    AccountMeta::new(payer.pubkey(), true),
-                    AccountMeta::new(idl_pda, false),
-                    AccountMeta::new_readonly(solana_system_interface::program::id(), false),
-                ],
-                data: resize_data,
-            };
-
-            let tx = Transaction::new_signed_with_payer(
-                &[resize_ix],
-                Some(&payer.pubkey()),
-                &[&payer],
-                recent_blockhash,
-            );
-
-            match client.send_and_confirm_transaction(&tx) {
-                Ok(sig) => {
-                    eprintln!("✅ IDL resize successful! Signature: {}", sig);
-                }
-                Err(e) => {
-                    eprintln!("❌ Resize transaction failed: {}", e);
-                    return;
-                }
-            }
-        } else {
-            eprintln!(
-                "⚠️  IDL account already exists at {}. Bypassing initialization...",
-                idl_pda
-            );
-        }
-    } else {
-        // 9. Calculate rent
-        let rent: u64 = match client.get_minimum_balance_for_rent_exemption(storage_length) {
-            Ok(r) => r,
-            Err(e) => {
-                eprintln!("❌ Failed to fetch rent exemption amount: {}", e);
-                return;
-            }
-        };
-
-        eprintln!(
-            "💸 Rent required: {} lamports ({:.6} SOL)",
-            rent,
-            rent as f64 / 1_000_000_000_f64
-        );
-
-        // 10. Check payer balance
-        let balance = match client.get_balance(&payer.pubkey()) {
-            Ok(b) => b,
-            Err(e) => {
-                eprintln!("❌ Failed to fetch wallet balance: {}", e);
-                return;
-            }
-        };
-
-        if balance < rent {
-            eprintln!(
-                "❌ Insufficient balance. You have {} lamports but need {} lamports.",
-                balance, rent
-            );
-            eprintln!("   Run `solana airdrop 1` if you are on devnet.");
-            return;
-        }
-
-        eprintln!("🔄 Pre-flight checklist completed. Sending initialization transaction...");
-
-        // 11. Build and send create account transaction
-        let recent_blockhash = match client.get_latest_blockhash() {
-            Ok(bh) => bh,
-            Err(e) => {
-                eprintln!("❌ Failed to fetch latest blockhash: {}", e);
-                return;
-            }
-        };
-
-        let idl_create_disc = {
-            let mut hasher = Sha256::new();
-            hasher.update(b"naclac:idl_create");
-            hasher.finalize()
-        };
-        let mut init_data = idl_create_disc[0..8].to_vec();
-        init_data.extend_from_slice(&rent.to_le_bytes());
-        init_data.extend_from_slice(&(storage_length as u64).to_le_bytes());
-
-        let create_ix = Instruction {
-            program_id,
-            accounts: vec![
-                AccountMeta::new(payer.pubkey(), true),
-                AccountMeta::new(idl_pda, false),
-                AccountMeta::new_readonly(solana_system_interface::program::id(), false),
-            ],
-            data: init_data,
-        };
-
-        let tx = Transaction::new_signed_with_payer(
-            &[create_ix],
-            Some(&payer.pubkey()),
-            &[&payer],
-            recent_blockhash,
-        );
-
-        match client.send_and_confirm_transaction(&tx) {
-            Ok(sig) => {
-                eprintln!("✅ IDL initialize transaction successful!");
-                eprintln!("📝 Transaction Signature: {}", sig);
-                eprintln!(
-                    "🔗 View on Explorer: https://explorer.solana.com/tx/{}?cluster={}",
-                    sig, config.cluster
-                );
-            }
-            Err(e) => {
-                let err_msg = e.to_string();
-                eprintln!("❌ Transaction failed: {}", err_msg);
-                if err_msg.contains("invalid instruction data") {
-                    eprintln!("\n💡 Tip: This usually means the on-chain program does not include IDL management instructions.");
-                    eprintln!("   Ensure you have enabled the 'idl-build' feature in Cargo.toml and REBUILT/REDEPLOYED your program.");
-                }
-                return; // Exit if init fails
-            }
-        }
-    }
-
-    // 12. Write compressed IDL data in chunks
-    // The exact Anchor bytes payload structure: discriminator(8) + authority(32) + length(4) + payload(N)
-    let idl_write_disc = {
-        let mut hasher = Sha256::new();
-        hasher.update(b"naclac:idl_write");
-        hasher.finalize()
-    };
-    let anchor_disc = {
-        let mut hasher = Sha256::new();
-        hasher.update(b"account:IdlAccount");
-        hasher.finalize()
-    };
-
-    let mut full_payload = vec![0u8; 8];
-    full_payload.copy_from_slice(&anchor_disc[0..8]);
-    full_payload.extend_from_slice(payer.pubkey().as_ref());
-    full_payload.extend_from_slice(&(compressed_bytes.len() as u32).to_le_bytes());
-    full_payload.extend_from_slice(&compressed_bytes);
-
-    let chunk_size = 600;
-    let total_len = full_payload.len();
-    let mut offset = 0;
-
-    eprintln!("🔄 Starting chunked upload for {} bytes...", total_len);
-
-    while offset < total_len {
-        let end = std::cmp::min(offset + chunk_size, total_len);
-        let chunk = &full_payload[offset..end];
-
-        let mut write_data = idl_write_disc[0..8].to_vec();
-        write_data.extend_from_slice(&(offset as u32).to_le_bytes());
-        write_data.extend_from_slice(chunk);
-
-        let write_ix = Instruction {
-            program_id,
-            accounts: vec![
-                AccountMeta::new(payer.pubkey(), true),
-                AccountMeta::new(idl_pda, false),
-            ],
-            data: write_data,
-        };
-
-        let current_blockhash = match client.get_latest_blockhash() {
-            Ok(bh) => bh,
-            Err(e) => {
-                eprintln!("❌ Failed to fetch latest blockhash for chunk: {}", e);
-                return;
-            }
-        };
-
-        let chunk_tx = Transaction::new_signed_with_payer(
-            &[write_ix],
-            Some(&payer.pubkey()),
-            &[&payer],
-            current_blockhash,
-        );
-
-        match client.send_and_confirm_transaction(&chunk_tx) {
-            Ok(_) => {
-                eprintln!(
-                    "✅ Programmed confirmed onchain: {}/{} bytes",
-                    end, total_len
-                );
-            }
-            Err(e) => {
-                eprintln!("❌ Write chunk failed at offset {}: {}", offset, e);
-                return;
-            }
-        }
-        offset += chunk_size;
-    }
-
-    eprintln!("🎉 IDL successfully deployed and is 100% Anchor-Compatible!");
 }
-fn find_program_name_by_id(
-    workspace_root: &std::path::Path,
-    id: &str,
-    cluster: &str,
-) -> Option<String> {
+
+fn find_program_name(workspace_root: &Path, id: &str, cluster: &str) -> Option<String> {
     let toml_path = workspace_root.join("Naclac.toml");
     let content = fs::read_to_string(toml_path).ok()?;
     let parsed: Value = toml::from_str(&content).ok()?;
-
     let programs = parsed.get("programs")?.get(cluster)?.as_table()?;
     for (name, val) in programs {
         if val.as_str()? == id {
@@ -490,22 +156,607 @@ fn find_program_name_by_id(
     None
 }
 
-fn is_idl_feature_enabled(workspace_root: &std::path::Path, program_name: &str) -> bool {
-    let toml_path = workspace_root
-        .join("programs")
-        .join(program_name)
-        .join("Cargo.toml");
-    let content = match fs::read_to_string(toml_path) {
-        Ok(c) => c,
-        Err(_) => return false,
-    };
-    let parsed: Value = match toml::from_str(&content) {
-        Ok(v) => v,
-        Err(_) => return false,
+/// True if it's safe to proceed — `naclac idl` commands only support
+/// devnet/testnet/mainnet, since the Program Metadata Program isn't
+/// reliably usable on a local validator (it isn't in the default genesis at
+/// all, and even cloned in, its System Program CPIs can mismatch an older
+/// local validator build).
+fn require_non_local_cluster(config: &NaclacConfig) -> bool {
+    if matches!(
+        config.cluster.to_lowercase().as_str(),
+        "localnet" | "localhost"
+    ) {
+        ui::error_line(
+            "`naclac idl` commands only support devnet/testnet/mainnet — set [provider] \
+             cluster in Naclac.toml to \"devnet\" or higher.",
+        );
+        return false;
+    }
+    true
+}
+
+pub fn execute_upload(program_id_str: &str) {
+    let config = match load_naclac_config() {
+        Some(c) => c,
+        None => return,
     };
 
-    if let Some(features) = parsed.get("features").and_then(|f| f.as_table()) {
-        return features.contains_key("idl-build");
+    if !require_non_local_cluster(&config) {
+        return;
     }
-    false
+
+    let program_id = match Address::from_str(program_id_str) {
+        Ok(pk) => pk,
+        Err(_) => {
+            ui::error_line("Invalid program address string.");
+            return;
+        }
+    };
+
+    let root = workspace_root();
+
+    let program_name = match find_program_name(&root, program_id_str, &config.cluster) {
+        Some(name) => name,
+        None => {
+            ui::error_line(format!(
+                "Could not find program '{}' in Naclac.toml under [programs.{}].",
+                program_id_str, config.cluster
+            ));
+            return;
+        }
+    };
+
+    let idl_path = naclac_client_gen::resolve_target_dir(&root)
+        .join("idl")
+        .join(format!("{}.json", program_name));
+    let idl_content = match fs::read_to_string(&idl_path) {
+        Ok(c) => c,
+        Err(_) => {
+            ui::error_line(format!(
+                "No compiled IDL found at {} — run `naclac build` first.",
+                idl_path.display()
+            ));
+            return;
+        }
+    };
+
+    let mut encoder = ZlibEncoder::new(Vec::new(), ZlibCompression::default());
+    encoder.write_all(idl_content.as_bytes()).unwrap();
+    let compressed = encoder.finish().unwrap();
+
+    let seed = program_metadata::seed_from_str("idl");
+    let (metadata_pda, _bump) = program_metadata::derive_canonical_metadata_pda(&program_id, &seed);
+    let (program_data, _bump) = program_metadata::derive_program_data_address(&program_id);
+
+    let payer = match load_keypair(&config.wallet_path) {
+        Some(kp) => kp,
+        None => return,
+    };
+    let authority = payer.pubkey();
+
+    let client = RpcClient::new(config.rpc_url.clone());
+
+    let already_exists = client.get_account(&metadata_pda).is_ok();
+
+    if already_exists {
+        update_existing(
+            &client,
+            &payer,
+            &program_id,
+            &program_data,
+            &metadata_pda,
+            &authority,
+            &compressed,
+        );
+    } else {
+        let accounts = MetadataAccounts {
+            metadata: &metadata_pda,
+            authority: &authority,
+            program: &program_id,
+            program_data: &program_data,
+        };
+        create_new(&client, &payer, accounts, &seed, &compressed);
+    }
+}
+
+/// Tops up `target`'s lamport balance to at least the rent-exempt minimum
+/// for `size` bytes, if it isn't there already. Required before
+/// `allocate`/`initialize`/`set_data`: none of them transfer lamports
+/// themselves — the on-chain program's own account-validation comments are
+/// explicit that the caller must pre-fund the account first, and the
+/// runtime enforces rent-exemption on any resize regardless.
+fn ensure_rent_exempt(client: &RpcClient, payer: &Keypair, target: &Address, size: usize) -> bool {
+    let required = match client.get_minimum_balance_for_rent_exemption(size) {
+        Ok(r) => r,
+        Err(e) => {
+            ui::error_line(format!("Failed to fetch rent-exemption amount: {}", e));
+            return false;
+        }
+    };
+    let current = client.get_balance(target).unwrap_or(0);
+    if current >= required {
+        return true;
+    }
+    let ix =
+        solana_system_interface::instruction::transfer(&payer.pubkey(), target, required - current);
+    send(client, payer, ix, "Fund account for rent-exemption")
+}
+
+fn send(client: &RpcClient, payer: &Keypair, ix: Instruction, label: &str) -> bool {
+    let recent_blockhash = match client.get_latest_blockhash() {
+        Ok(bh) => bh,
+        Err(e) => {
+            ui::error_line(format!("Failed to fetch latest blockhash: {}", e));
+            return false;
+        }
+    };
+    let tx = Transaction::new_signed_with_payer(
+        &[ix],
+        Some(&payer.pubkey()),
+        &[payer],
+        recent_blockhash,
+    );
+    match client.send_and_confirm_transaction(&tx) {
+        Ok(sig) => {
+            ui::success(format!("{} — {}", label, sig));
+            true
+        }
+        Err(e) => {
+            ui::error_line(format!("{} failed: {}", label, e));
+            false
+        }
+    }
+}
+
+fn write_chunks(
+    client: &RpcClient,
+    payer: &Keypair,
+    buffer: &Address,
+    authority: &Address,
+    data: &[u8],
+) -> bool {
+    let mut offset = 0u32;
+    let total = data.len();
+    while (offset as usize) < total {
+        let end = std::cmp::min(offset as usize + CHUNK_SIZE, total);
+        let chunk = &data[offset as usize..end];
+        let ix = program_metadata::write(buffer, authority, offset, chunk);
+        if !send(
+            client,
+            payer,
+            ix,
+            &format!("Write ({}/{} bytes)", end, total),
+        ) {
+            return false;
+        }
+        offset = end as u32;
+    }
+    true
+}
+
+fn create_new(
+    client: &RpcClient,
+    payer: &Keypair,
+    accounts: MetadataAccounts<'_>,
+    seed: &Seed,
+    compressed: &[u8],
+) {
+    let metadata_pda = *accounts.metadata;
+    let final_size = HEADER_LEN + compressed.len();
+
+    if compressed.len() <= CHUNK_SIZE {
+        if !ensure_rent_exempt(client, payer, accounts.metadata, final_size) {
+            return;
+        }
+        let ix = program_metadata::initialize(
+            accounts,
+            seed,
+            encoding::UTF8,
+            compression::ZLIB,
+            format::JSON,
+            data_source::DIRECT,
+            Some(compressed),
+        );
+        if send(client, payer, ix, "Initialize (inline)") {
+            ui::success(format!("IDL uploaded ({})", metadata_pda));
+        }
+        return;
+    }
+
+    // Large payload: fund the metadata PDA upfront for its *final* size
+    // (avoids needing per-chunk top-ups as `write` grows it), allocate it
+    // as a buffer, write it in chunks, then finalize with an empty-data
+    // initialize.
+    if !ensure_rent_exempt(client, payer, accounts.metadata, final_size) {
+        return;
+    }
+    let allocate_ix = program_metadata::allocate(
+        accounts.metadata,
+        accounts.authority,
+        accounts.program,
+        accounts.program_data,
+        seed,
+    );
+    if !send(client, payer, allocate_ix, "Allocate") {
+        return;
+    }
+
+    if !write_chunks(
+        client,
+        payer,
+        accounts.metadata,
+        accounts.authority,
+        compressed,
+    ) {
+        return;
+    }
+
+    let init_ix = program_metadata::initialize(
+        accounts,
+        seed,
+        encoding::UTF8,
+        compression::ZLIB,
+        format::JSON,
+        data_source::DIRECT,
+        None,
+    );
+    if send(client, payer, init_ix, "Initialize (finalize buffer)") {
+        ui::success(format!("IDL uploaded ({})", metadata_pda));
+    }
+}
+
+fn update_existing(
+    client: &RpcClient,
+    payer: &Keypair,
+    program_id: &Address,
+    program_data: &Address,
+    metadata_pda: &Address,
+    authority: &Address,
+    compressed: &[u8],
+) {
+    let accounts = MetadataAccounts {
+        metadata: metadata_pda,
+        authority,
+        program: program_id,
+        program_data,
+    };
+
+    let final_size = HEADER_LEN + compressed.len();
+
+    if compressed.len() <= CHUNK_SIZE {
+        // Only actually transfers anything if the new (possibly larger)
+        // payload needs more than the account currently holds.
+        if !ensure_rent_exempt(client, payer, metadata_pda, final_size) {
+            return;
+        }
+        let ix = program_metadata::set_data(
+            accounts,
+            encoding::UTF8,
+            compression::ZLIB,
+            format::JSON,
+            SetDataSource::Inline {
+                data_source: data_source::DIRECT,
+                data: compressed,
+            },
+        );
+        if send(client, payer, ix, "SetData (inline)") {
+            ui::success(format!("IDL updated ({})", metadata_pda));
+        }
+        return;
+    }
+
+    // Large update: the real metadata PDA is already occupied, so write
+    // into a separate temporary buffer PDA instead, point set_data at it,
+    // then close the buffer to reclaim its rent.
+    let buffer_seed = program_metadata::seed_from_str("idl-buffer");
+    let (buffer_pda, _bump) =
+        program_metadata::derive_canonical_metadata_pda(program_id, &buffer_seed);
+
+    if !ensure_rent_exempt(client, payer, &buffer_pda, final_size) {
+        return;
+    }
+    let allocate_ix = program_metadata::allocate(
+        &buffer_pda,
+        authority,
+        program_id,
+        program_data,
+        &buffer_seed,
+    );
+    if !send(client, payer, allocate_ix, "Allocate (temp buffer)") {
+        return;
+    }
+
+    if !write_chunks(client, payer, &buffer_pda, authority, compressed) {
+        return;
+    }
+
+    let set_data_ix = program_metadata::set_data(
+        accounts,
+        encoding::UTF8,
+        compression::ZLIB,
+        format::JSON,
+        SetDataSource::FromBuffer {
+            data_source: data_source::DIRECT,
+            buffer: buffer_pda,
+        },
+    );
+    if !send(client, payer, set_data_ix, "SetData (from buffer)") {
+        return;
+    }
+
+    let close_ix =
+        program_metadata::close(&buffer_pda, authority, program_id, program_data, authority);
+    if send(client, payer, close_ix, "Close (temp buffer cleanup)") {
+        ui::success(format!("IDL updated ({})", metadata_pda));
+    }
+}
+
+/// Resolves the shared config/keypair/PDA/RPC-client setup every `naclac
+/// idl <action>` command (besides `upload`, which has its own extra IDL-
+/// compression steps) needs. `None` on any failure — the callee has already
+/// printed the reason.
+fn common_setup(
+    program_id_str: &str,
+) -> Option<(NaclacConfig, Address, Address, Address, Keypair, RpcClient)> {
+    let config = load_naclac_config()?;
+    if !require_non_local_cluster(&config) {
+        return None;
+    }
+
+    let program_id = match Address::from_str(program_id_str) {
+        Ok(pk) => pk,
+        Err(_) => {
+            ui::error_line("Invalid program address string.");
+            return None;
+        }
+    };
+
+    let seed = program_metadata::seed_from_str("idl");
+    let (metadata_pda, _bump) = program_metadata::derive_canonical_metadata_pda(&program_id, &seed);
+    let (program_data, _bump) = program_metadata::derive_program_data_address(&program_id);
+
+    let payer = load_keypair(&config.wallet_path)?;
+
+    let client = RpcClient::new(config.rpc_url.clone());
+
+    Some((
+        config,
+        program_id,
+        metadata_pda,
+        program_data,
+        payer,
+        client,
+    ))
+}
+
+pub fn execute_set_immutable(program_id_str: &str) {
+    let Some((_config, program_id, metadata_pda, program_data, payer, client)) =
+        common_setup(program_id_str)
+    else {
+        return;
+    };
+    let authority = payer.pubkey();
+
+    let ix = program_metadata::set_immutable(&metadata_pda, &authority, &program_id, &program_data);
+    if send(&client, &payer, ix, "SetImmutable") {
+        ui::success(format!(
+            "IDL metadata is now permanently immutable ({})",
+            metadata_pda
+        ));
+    }
+}
+
+pub fn execute_close(program_id_str: &str, destination: Option<&str>) {
+    let Some((_config, program_id, metadata_pda, program_data, payer, client)) =
+        common_setup(program_id_str)
+    else {
+        return;
+    };
+    let authority = payer.pubkey();
+
+    let destination_addr = match destination {
+        Some(d) => match Address::from_str(d) {
+            Ok(addr) => addr,
+            Err(_) => {
+                ui::error_line("Invalid destination address string.");
+                return;
+            }
+        },
+        None => authority,
+    };
+
+    let ix = program_metadata::close(
+        &metadata_pda,
+        &authority,
+        &program_id,
+        &program_data,
+        &destination_addr,
+    );
+    if send(&client, &payer, ix, "Close") {
+        ui::success(format!("IDL metadata account closed ({})", metadata_pda));
+    }
+}
+
+pub fn execute_trim(program_id_str: &str, destination: Option<&str>) {
+    let Some((_config, program_id, metadata_pda, program_data, payer, client)) =
+        common_setup(program_id_str)
+    else {
+        return;
+    };
+    let authority = payer.pubkey();
+
+    let destination_addr = match destination {
+        Some(d) => match Address::from_str(d) {
+            Ok(addr) => addr,
+            Err(_) => {
+                ui::error_line("Invalid destination address string.");
+                return;
+            }
+        },
+        None => authority,
+    };
+
+    let ix = program_metadata::trim(
+        &metadata_pda,
+        &authority,
+        &program_id,
+        &program_data,
+        &destination_addr,
+    );
+    if send(&client, &payer, ix, "Trim") {
+        ui::success(format!("IDL metadata account trimmed ({})", metadata_pda));
+    }
+}
+
+pub fn execute_set_authority(program_id_str: &str, new_authority: Option<&str>, remove: bool) {
+    if remove && new_authority.is_some() {
+        ui::error_line("Pass either --new-authority or --remove, not both.");
+        return;
+    }
+    if !remove && new_authority.is_none() {
+        ui::error_line(
+            "Pass --new-authority <PUBKEY> to set a new authority, or --remove to remove it.",
+        );
+        return;
+    }
+
+    let new_authority_addr = match new_authority {
+        Some(a) => match Address::from_str(a) {
+            Ok(addr) => Some(addr),
+            Err(_) => {
+                ui::error_line("Invalid new-authority address string.");
+                return;
+            }
+        },
+        None => None,
+    };
+
+    let Some((_config, program_id, metadata_pda, program_data, payer, client)) =
+        common_setup(program_id_str)
+    else {
+        return;
+    };
+    let authority = payer.pubkey();
+
+    let label = match &new_authority_addr {
+        Some(a) => format!("SetAuthority (-> {})", a),
+        None => "SetAuthority (remove)".to_string(),
+    };
+    let ix = program_metadata::set_authority(
+        &metadata_pda,
+        &authority,
+        &program_id,
+        &program_data,
+        new_authority_addr.as_ref(),
+    );
+    if send(&client, &payer, ix, &label) {
+        ui::success("Authority updated.");
+    }
+}
+
+pub fn execute_fetch(program_id_str: &str, output: Option<&str>) {
+    let config = match load_naclac_config() {
+        Some(c) => c,
+        None => return,
+    };
+
+    if !require_non_local_cluster(&config) {
+        return;
+    }
+
+    let program_id = match Address::from_str(program_id_str) {
+        Ok(pk) => pk,
+        Err(_) => {
+            ui::error_line("Invalid program address string.");
+            return;
+        }
+    };
+
+    let seed = program_metadata::seed_from_str("idl");
+    let (metadata_pda, _bump) = program_metadata::derive_canonical_metadata_pda(&program_id, &seed);
+
+    let client = RpcClient::new(config.rpc_url.clone());
+
+    let account_data = match client.get_account_data(&metadata_pda) {
+        Ok(data) => data,
+        Err(_) => {
+            ui::error_line(format!(
+                "No metadata account found at {} — has this program's IDL been uploaded?",
+                metadata_pda
+            ));
+            return;
+        }
+    };
+
+    let parsed = match header::parse_header(&account_data) {
+        Some(h) => h,
+        None => {
+            ui::error_line(format!(
+                "Metadata account {} has an unrecognized layout.",
+                metadata_pda
+            ));
+            return;
+        }
+    };
+
+    let raw_payload = match header::payload(&account_data, &parsed) {
+        Some(p) => p,
+        None => {
+            ui::error_line(format!(
+                "Metadata account {} is truncated or corrupt.",
+                metadata_pda
+            ));
+            return;
+        }
+    };
+
+    let mut decompressed = Vec::new();
+    let decompress_result = match parsed.compression {
+        compression::NONE => {
+            decompressed.extend_from_slice(raw_payload);
+            Ok(())
+        }
+        compression::GZIP => GzDecoder::new(raw_payload)
+            .read_to_end(&mut decompressed)
+            .map(|_| ()),
+        compression::ZLIB => ZlibDecoder::new(raw_payload)
+            .read_to_end(&mut decompressed)
+            .map(|_| ()),
+        other => {
+            ui::error_line(format!(
+                "Unrecognized compression byte {} on metadata account.",
+                other
+            ));
+            return;
+        }
+    };
+    if let Err(e) = decompress_result {
+        ui::error_line(format!("Failed to decompress IDL payload: {}", e));
+        return;
+    }
+
+    let default_path = || {
+        let root = workspace_root();
+        let name = find_program_name(&root, program_id_str, &config.cluster)?;
+        Some(
+            naclac_client_gen::resolve_target_dir(&root)
+                .join("idl")
+                .join(format!("{}.onchain.json", name)),
+        )
+    };
+
+    match output.map(PathBuf::from).or_else(default_path) {
+        Some(path) => {
+            if let Some(parent) = path.parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+            match fs::write(&path, &decompressed) {
+                Ok(_) => ui::success(format!("IDL written to {}", path.display())),
+                Err(e) => ui::error_line(format!("Failed to write to {}: {}", path.display(), e)),
+            }
+        }
+        None => {
+            print!("{}", String::from_utf8_lossy(&decompressed));
+        }
+    }
 }

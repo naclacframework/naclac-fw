@@ -7,134 +7,48 @@
   },
   "instructions": [
     {
-      "name": "initVault",
+      "name": "init_vault",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        77,
-        79,
-        85,
-        150,
-        33,
-        217,
-        52,
-        106
-      ],
+      "discriminator": [77,79,85,150,33,217,52,106],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "vault",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "vault", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ],
-                "name": "SEED_VAULT"
-              }
+              { "kind": "const", "value": [118,97,117,108,116], "name": "SEED_VAULT" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": []
     },
     {
-      "name": "initConfig",
+      "name": "init_config",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        23,
-        235,
-        115,
-        232,
-        168,
-        96,
-        1,
-        231
-      ],
+      "discriminator": [23,235,115,232,168,96,1,231],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "config",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "config", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ],
-                "name": "SEED_CONFIG"
-              }
+              { "kind": "const", "value": [99,111,110,102,105,103], "name": "SEED_CONFIG" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": []
     },
     {
-      "name": "readVault",
+      "name": "read_vault",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        124,
-        195,
-        48,
-        97,
-        68,
-        153,
-        234,
-        245
-      ],
+      "discriminator": [124,195,48,97,68,153,234,245],
       "accounts": [
-        {
-          "name": "caller",
-          "writable": false,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "vault",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        }
+        { "name": "caller", "signer": true },
+        { "name": "vault" }
       ],
       "args": []
     }
@@ -142,53 +56,23 @@
   "accounts": [
     {
       "name": "Config",
-      "discriminator": [
-        155,
-        12,
-        170,
-        224,
-        30,
-        250,
-        204,
-        130
-      ],
+      "discriminator": [155,12,170,224,30,250,204,130],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "admin",
-            "type": "publicKey"
-          },
-          {
-            "name": "feeBps",
-            "type": "u16"
-          }
+          { "name": "admin", "type": "publicKey" },
+          { "name": "fee_bps", "type": "u16" }
         ]
       }
     },
     {
       "name": "Vault",
-      "discriminator": [
-        211,
-        8,
-        232,
-        43,
-        2,
-        152,
-        117,
-        119
-      ],
+      "discriminator": [211,8,232,43,2,152,117,119],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "owner",
-            "type": "publicKey"
-          },
-          {
-            "name": "balance",
-            "type": "u64"
-          }
+          { "name": "owner", "type": "publicKey" },
+          { "name": "balance", "type": "u64" }
         ]
       }
     }
@@ -199,12 +83,12 @@
     {
       "name": "SEED_VAULT",
       "type": "bytes",
-      "value": "b\"vault\""
+      "value": "[118, 97, 117, 108, 116]"
     },
     {
       "name": "SEED_CONFIG",
       "type": "bytes",
-      "value": "b\"config\""
+      "value": "[99, 111, 110, 102, 105, 103]"
     }
   ],
   "definedTypes": [],
@@ -212,34 +96,13 @@
     {
       "name": "config",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            99,
-            111,
-            110,
-            102,
-            105,
-            103
-          ],
-          "name": "SEED_CONFIG"
-        }
+        { "kind": "const", "value": [99,111,110,102,105,103], "name": "SEED_CONFIG" }
       ]
     },
     {
       "name": "vault",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            118,
-            97,
-            117,
-            108,
-            116
-          ],
-          "name": "SEED_VAULT"
-        }
+        { "kind": "const", "value": [118,97,117,108,116], "name": "SEED_VAULT" }
       ]
     }
   ]

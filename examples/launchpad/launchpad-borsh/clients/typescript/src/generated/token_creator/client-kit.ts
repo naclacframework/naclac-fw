@@ -59,7 +59,7 @@ export class TokenCreatorClient {
     return instructions.createMint(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `launchRecord` account. */
+  /** Derives the PDA for a `launch_record` account. */
   public async getLaunchRecordPda(seeds: {
     payer: naclac.Address | string;
     id: bigint | number;
@@ -117,6 +117,11 @@ export class TokenCreatorClient {
     return this.program.waitForEvent<types.TokenLaunched>("TokenLaunched", options);
   }
 
+  /** Decodes every `TokenLaunched` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForTokenLaunched` — prefer this when you already know which transaction you're checking. */
+  public parseTokenLaunchedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.TokenLaunched>("TokenLaunched", logs);
+  }
+
   /** Subscribes to `MintCreated` events. Returns a listener ID. */
   public onMintCreated(callback: (event: types.MintCreated, slot: number, signature: string) => void) {
     return types.addMintCreatedListener(this.program, callback);
@@ -125,6 +130,11 @@ export class TokenCreatorClient {
   /** Awaits the next `MintCreated` event. Resolves `null` on timeout. */
   public waitForMintCreated(options?: { timeoutMs?: number }) {
     return this.program.waitForEvent<types.MintCreated>("MintCreated", options);
+  }
+
+  /** Decodes every `MintCreated` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForMintCreated` — prefer this when you already know which transaction you're checking. */
+  public parseMintCreatedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.MintCreated>("MintCreated", logs);
   }
 
   /** Removes a registered event listener by its ID. */

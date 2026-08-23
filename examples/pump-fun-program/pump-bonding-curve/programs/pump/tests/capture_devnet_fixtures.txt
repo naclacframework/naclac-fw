@@ -1,0 +1,86 @@
+//! Captures real on-chain account bytes from devnet into
+//! `tests/fixtures/*.bin`, which `extend_account_test.rs` loads at compile
+//! time via `include_bytes!`. Not part of the normal LiteSVM suite -- needs
+//! a live devnet RPC connection, so it's `#[ignore]`d by default. Run
+//! explicitly, once, whenever the fixtures need refreshing:
+//!   cargo test -p pump --test capture_devnet_fixtures -- --ignored --nocapture
+
+use naclac_client::*;
+use pump_client::{
+    get_global_pda, get_global_volume_accumulator_pda, BONDINGCURVE_DISCRIMINATOR, PROGRAM_ID,
+    SHARINGCONFIG_DISCRIMINATOR, USERVOLUMEACCUMULATOR_DISCRIMINATOR,
+};
+
+fn fixtures_dir() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
+}
+
+fn write_fixture(name: &str, data: &[u8]) {
+    let dir = fixtures_dir();
+    std::fs::create_dir_all(&dir).expect("create tests/fixtures");
+    let path = dir.join(name);
+    std::fs::write(&path, data).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
+    println!("wrote {} ({} bytes)", path.display(), data.len());
+}
+
+/// Any one real instance of a non-singleton component -- `extend_account`
+/// doesn't care which specific account it is, only that its discriminator
+/// and current byte length are genuine. `None` when no such account exists
+/// on this cluster yet, so the caller can keep capturing the rest instead
+/// of aborting the whole run on the first missing type.
+fn first_account_with_discriminator(
+    provider: &NaclacProvider,
+    discriminator: &[u8; 8],
+    label: &str,
+) -> Option<Vec<u8>> {
+    let accounts = provider
+        .get_program_accounts(&PROGRAM_ID, Some(discriminator))
+        .unwrap_or_else(|e| panic!("get_program_accounts for {label}: {e}"));
+    accounts.into_iter().next().map(|(_, data)| data)
+}
+
+#[test]
+#[ignore = "needs a live devnet RPC connection; run explicitly with --ignored"]
+fn capture_devnet_fixtures() {
+    let payer = load_node_wallet().expect("Failed to load local Solana keypair");
+    let provider = NaclacProvider::new("devnet", payer);
+
+    let (global_pda, _bump) = get_global_pda(&PROGRAM_ID);
+    let global_data = provider.get_account_data(&global_pda).expect("fetch Global from devnet");
+    write_fixture("global.bin", &global_data);
+
+    let (gva_pda, _bump) = get_global_volume_accumulator_pda(&PROGRAM_ID);
+    let gva_data = provider
+        .get_account_data(&gva_pda)
+        .expect("fetch GlobalVolumeAccumulator from devnet");
+    write_fixture("global_volume_accumulator.bin", &gva_data);
+
+    let mut missing = Vec::new();
+
+    match first_account_with_discriminator(&provider, &BONDINGCURVE_DISCRIMINATOR, "BondingCurve")
+    {
+        Some(data) => write_fixture("bonding_curve.bin", &data),
+        None => missing.push("BondingCurve"),
+    }
+
+    match first_account_with_discriminator(&provider, &SHARINGCONFIG_DISCRIMINATOR, "SharingConfig")
+    {
+        Some(data) => write_fixture("sharing_config.bin", &data),
+        None => missing.push("SharingConfig"),
+    }
+
+    match first_account_with_discriminator(
+        &provider,
+        &USERVOLUMEACCUMULATOR_DISCRIMINATOR,
+        "UserVolumeAccumulator",
+    ) {
+        Some(data) => write_fixture("user_volume_accumulator.bin", &data),
+        None => missing.push("UserVolumeAccumulator"),
+    }
+
+    assert!(
+        missing.is_empty(),
+        "no real devnet instance found for: {missing:?} -- create one on devnet first (or point \
+         at a devnet deployment that already has one), then rerun to capture its fixture"
+    );
+}

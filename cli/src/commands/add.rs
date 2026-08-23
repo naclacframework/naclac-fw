@@ -49,8 +49,8 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
         snake_name, mode
     );
 
-    let keypair_path = workspace_root
-        .join("target/deploy")
+    let keypair_path = naclac_client_gen::resolve_target_dir(&workspace_root)
+        .join("deploy")
         .join(format!("{}-keypair.json", snake_name));
     let address = generate_keypair(&keypair_path);
 

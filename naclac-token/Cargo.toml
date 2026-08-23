@@ -11,6 +11,11 @@ naclac-core = { workspace = true }
 spl-token = { workspace = true, features = ["no-entrypoint"], optional = true }
 spl-token-2022 = { workspace = true, features = ["no-entrypoint"], optional = true }
 spl-associated-token-account = { workspace = true, features = ["no-entrypoint"], optional = true }
+spl-transfer-hook-interface = { workspace = true, optional = true }
+spl-token-metadata-interface = { workspace = true, optional = true }
+spl-token-group-interface = { workspace = true, optional = true }
+solana-nullable = { workspace = true, optional = true }
+solana-instruction = { workspace = true, optional = true }
 pinocchio-token = { workspace = true, optional = true }
 pinocchio-token-2022 = { workspace = true, optional = true }
 pinocchio-associated-token-account = { workspace = true, optional = true }
@@ -19,8 +24,8 @@ pinocchio = { workspace = true, optional = true }
 
 [features]
 default = ["solana"]
-solana = ["dep:solana-program", "dep:spl-token", "dep:spl-token-2022", "dep:spl-associated-token-account", "naclac-core/solana"]
-pinocchio = ["dep:pinocchio-token", "dep:pinocchio-token-2022", "dep:pinocchio-associated-token-account", "dep:pinocchio", "naclac-core/pinocchio"]
+solana = ["dep:solana-program", "dep:spl-token", "dep:spl-token-2022", "dep:spl-associated-token-account", "dep:spl-transfer-hook-interface", "dep:spl-token-metadata-interface", "dep:spl-token-group-interface", "dep:solana-nullable", "dep:solana-instruction", "naclac-core/solana"]
+pinocchio = ["dep:pinocchio-token", "dep:pinocchio-token-2022", "dep:pinocchio-associated-token-account", "dep:pinocchio", "dep:spl-token-metadata-interface", "dep:spl-token-group-interface", "dep:solana-nullable", "dep:solana-instruction", "naclac-core/pinocchio"]
 borsh = ["naclac-core/borsh"]
 
 [lints.rust]

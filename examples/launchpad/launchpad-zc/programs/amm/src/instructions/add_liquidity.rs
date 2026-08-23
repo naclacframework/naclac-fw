@@ -10,6 +10,9 @@ pub struct AddLiquidity {
     #[account(mut)]
     pub pool_state: Account<PoolState>,
 
+    pub token_a_mint: Account<Mint>,
+    pub token_b_mint: Account<Mint>,
+
     #[account(mut)]
     pub vault_a: Account<TokenAccount>,
 
@@ -37,6 +40,15 @@ pub fn add_liquidity(
     max_amount_a: u64,
     max_amount_b: u64,
 ) -> Result {
+    require!(
+        ctx.accounts.token_a_mint.address() == ctx.accounts.pool_state.token_a_mint,
+        crate::errors::AmmError::InvalidMint
+    );
+    require!(
+        ctx.accounts.token_b_mint.address() == ctx.accounts.pool_state.token_b_mint,
+        crate::errors::AmmError::InvalidMint
+    );
+
     let x = ctx.accounts.vault_a.amount();
     let y = ctx.accounts.vault_b.amount();
     let lp_supply = ctx.accounts.lp_mint.supply();
@@ -50,23 +62,30 @@ pub fn add_liquidity(
         max_amount_b,
     )?;
 
+    let token_a_decimals = ctx.accounts.token_a_mint.decimals();
+    let token_b_decimals = ctx.accounts.token_b_mint.decimals();
+
     // 1. Transfer Token A and B from user to pool vaults
-    ctx.accounts.token_program.transfer(
-        TransferAccounts {
+    ctx.accounts.token_program.transfer_checked(
+        TransferCheckedAccounts {
             from: &mut ctx.accounts.user_token_a,
+            mint: &ctx.accounts.token_a_mint,
             to: &mut ctx.accounts.vault_a,
             authority: &ctx.accounts.user,
         },
         deposit_a,
+        token_a_decimals,
     )?;
 
-    ctx.accounts.token_program.transfer(
-        TransferAccounts {
+    ctx.accounts.token_program.transfer_checked(
+        TransferCheckedAccounts {
             from: &mut ctx.accounts.user_token_b,
+            mint: &ctx.accounts.token_b_mint,
             to: &mut ctx.accounts.vault_b,
             authority: &ctx.accounts.user,
         },
         deposit_b,
+        token_b_decimals,
     )?;
 
     // 2. Prepare signer seeds for the pool state PDA

@@ -1,0 +1,5 @@
+error: Naclac Error: `owner = "..."` must decode to exactly 32 bytes.
+  --> tests/fail/31_owner_wrong_length.rs:12:23
+   |
+12 |     #[account(owner = "11111111")]
+   |                       ^^^^^^^^^^

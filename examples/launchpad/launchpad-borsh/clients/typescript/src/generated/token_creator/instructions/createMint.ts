@@ -2,26 +2,27 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client";
-import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `createMint` instruction. */
-export const CREATEMINT_DISCRIMINATOR = new Uint8Array([69, 44, 215, 132, 253, 214, 41, 45]);
+/** 8-byte discriminator for the `create_mint` instruction. */
+export const CREATE_MINT_DISCRIMINATOR = new Uint8Array([69, 44, 215, 132, 253, 214, 41, 45]);
 
 /** Instruction arguments for `createMint`. */
 export interface CreateMintArgs {
   id: bigint | number;
-  mintBump: number;
-  launchRecordBump: number;
+  mint_bump: number;
+  launch_record_bump: number;
   decimals: number;
 }
 
 /** Accounts for the `createMint` instruction. */
 export interface CreateMintAccounts {
   payer: naclac.Address | string;
+  /** SAFETY: the PDA address is fully constrained by the seeds/bump above and this field is only used as the mint target for the token program. */
   mint?: naclac.Address | string;
-  launchRecord?: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  /** SAFETY: the PDA address is validated by the seeds/bump constraint above and the field is only used as a signer authority target. */
+  launch_record?: naclac.Address | string;
+  token_program?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**
@@ -33,7 +34,7 @@ export function createMint(
   args: CreateMintArgs,
   accounts?: Partial<CreateMintAccounts>
 ) {
-  const builder = program.methods.createMint(args ?? {});
+  const builder = program.methods.create_mint(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

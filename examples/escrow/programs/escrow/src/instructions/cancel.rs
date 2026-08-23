@@ -9,7 +9,7 @@ pub struct Cancel {
     #[account(mut)]
     pub maker: Signer,
 
-    pub mint_a: AccountInfo,
+    pub mint_a: Account<Mint>,
 
     #[account(
         mut,
@@ -64,19 +64,26 @@ pub fn cancel(ctx: Context<Cancel>, seed: u64) -> Result {
     let signer_seeds: &[&[&[u8]]] = &[seeds];
 
     // 2. Refund Token A from the vault token account back to the Maker
-    ctx.accounts.token_program.transfer_signed(
-        &ctx.accounts.vault_token_account,
-        &ctx.accounts.maker_token_account_a,
-        &ctx.accounts.escrow_state,
+    let decimals = ctx.accounts.mint_a.decimals();
+    ctx.accounts.token_program.transfer_checked_signed(
+        TransferCheckedAccounts {
+            from: &mut ctx.accounts.vault_token_account,
+            mint: &ctx.accounts.mint_a,
+            to: &mut ctx.accounts.maker_token_account_a,
+            authority: &ctx.accounts.escrow_state,
+        },
         ctx.accounts.escrow_state.amount_a,
+        decimals,
         signer_seeds,
     )?;
 
     // 3. Close the vault token account
     ctx.accounts.token_program.close_account_signed(
-        &ctx.accounts.vault_token_account,
-        &ctx.accounts.maker,
-        &ctx.accounts.escrow_state,
+        CloseAccountAccounts {
+            account: &mut ctx.accounts.vault_token_account,
+            destination: &mut ctx.accounts.maker,
+            authority: &ctx.accounts.escrow_state,
+        },
         signer_seeds,
     )?;
 

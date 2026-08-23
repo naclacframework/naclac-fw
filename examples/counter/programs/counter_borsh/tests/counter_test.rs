@@ -25,10 +25,10 @@ fn test_counter_integration() {
     println!("   Derived PDA: {}", counter_pda);
 
     // 3. Load the program binary
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // counter workspace root
-    so_path.push("target/deploy/counter_borsh.so");
+    let mut workspace_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    workspace_root.pop(); // programs
+    workspace_root.pop(); // pump-amm workspace root
+    let so_path = resolve_cargo_target_dir(&workspace_root).join("deploy/counter_borsh.so");
 
     provider
         .add_program(&program_id, so_path.to_str().unwrap())

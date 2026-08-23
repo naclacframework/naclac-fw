@@ -6,13 +6,24 @@ pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     let ix_snake = AsSnakeCase(&ix.name).to_string();
     let ix_camel = ix.name.to_upper_camel_case();
 
-    // Accounts struct for off-chain
+    // Accounts struct for off-chain. `Option<Address>` only for a genuinely
+    // optional account (`acc.optional`). Every declared account gets exactly
+    // one meta in declared order, matching `#[derive(Accounts)]`'s own
+    // sentinel scheme (`naclac-macros/src/accounts.rs`): a `None` optional
+    // is filled with `program_id` rather than omitted, since omitting it
+    // would shift every subsequent account's position — same requirement
+    // the CPI generator's builder already honors (`instructions/cpi.rs`).
+    // Every other field, including ones with a well-known resolved address
+    // (e.g. `system_program`/`rent`), is a plain mandatory `Address` the
+    // caller always supplies explicitly.
     if !ix.accounts.is_empty() {
         offchain_content.push_str("#[cfg(feature = \"offchain\")]\n");
+        offchain_content.push_str(&super::super::render_docs(&ix.docs, ""));
         offchain_content.push_str(&format!("pub struct {}Accounts {{\n", ix_camel));
         for acc in &ix.accounts {
             let acc_snake = AsSnakeCase(&acc.name).to_string();
             let is_optional = acc.optional.unwrap_or(false);
+            offchain_content.push_str(&super::super::render_docs(&acc.docs, "    "));
             if is_optional {
                 offchain_content.push_str(&format!(
                     "    pub {}: Option<naclac_client::Address>,\n",
@@ -44,6 +55,7 @@ pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     }
 
     offchain_content.push_str("#[cfg(feature = \"offchain\")]\n");
+    offchain_content.push_str(&super::super::render_docs(&ix.docs, ""));
     offchain_content.push_str(&format!(
         "pub fn build_{}<'a>(\n    {},\n) -> naclac_client::InstructionBuilder<'a> {{\n",
         ix_snake,
@@ -59,12 +71,12 @@ pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         .join(", ");
     if ix.args.is_empty() {
         offchain_content.push_str(&format!(
-            "    let ix_data = crate::sdk_core::vec![{}];\n",
+            "    let ix_data = crate::sdk_core_offchain::vec![{}];\n",
             disc_str
         ));
     } else {
         offchain_content.push_str(&format!(
-            "    let mut ix_data = crate::sdk_core::vec![{}];\n",
+            "    let mut ix_data = crate::sdk_core_offchain::vec![{}];\n",
             disc_str
         ));
     }
@@ -77,57 +89,39 @@ pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         }
         offchain_content.push_str("    };\n");
 
+        offchain_content.push_str("    #[cfg(not(feature = \"borsh\"))]\n    {\n");
+        offchain_content.push_str(&super::super::generate_zero_copy_arg_bytes(
+            ix,
+            false,
+            idl.is_zero_copy,
+            &idl.defined_types,
+        ));
+        offchain_content.push_str("    }\n");
         offchain_content.push_str(
-            "    #[cfg(not(feature = \"borsh\"))]\n\
+            "    #[cfg(feature = \"borsh\")]\n\
              \x20   {\n\
-             \x20       ix_data.extend_from_slice(crate::sdk_core::bytemuck::bytes_of(&args));\n\
-             \x20   }\n\
-             \x20   #[cfg(feature = \"borsh\")]\n\
-             \x20   {\n\
-             \x20       crate::sdk_core::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();\n\
+             \x20       crate::sdk_core_offchain::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();\n\
              \x20   }\n"
         );
     }
 
-    // Build the instruction builder
-    let has_optional = ix.accounts.iter().any(|a| a.optional.unwrap_or(false));
-    let has_accounts = !ix.accounts.is_empty();
-
-    if has_accounts && has_optional {
-        offchain_content.push_str("    let mut builder = naclac_client::InstructionBuilder::new(provider, program_id, ix_data)\n");
-        for acc in &ix.accounts {
-            let acc_snake = AsSnakeCase(&acc.name).to_string();
-            if !acc.optional.unwrap_or(false) {
-                offchain_content.push_str(&format!(
-                    "        .account(naclac_client::AccountMeta {{ address: accounts.{acc_snake}, is_signer: {}, is_writable: {} }}, \"{}\")\n",
-                    acc.signer, acc.writable, acc.name
-                ));
-            }
-        }
-        offchain_content.push_str(";\n");
-        for acc in &ix.accounts {
-            let acc_snake = AsSnakeCase(&acc.name).to_string();
-            if acc.optional.unwrap_or(false) {
-                offchain_content.push_str(&format!(
-                    "    if let Some(addr) = accounts.{acc_snake} {{\n\
-                     \x20       builder = builder.account(naclac_client::AccountMeta {{ address: addr, is_signer: {}, is_writable: {} }}, \"{}\");\n\
-                     \x20   }}\n",
-                    acc.signer, acc.writable, acc.name
-                ));
-            }
-        }
-        offchain_content.push_str("    builder\n");
-    } else {
-        offchain_content.push_str(
-            "    naclac_client::InstructionBuilder::new(provider, program_id, ix_data)\n",
-        );
-        for acc in &ix.accounts {
-            let acc_snake = AsSnakeCase(&acc.name).to_string();
-            offchain_content.push_str(&format!(
-                "        .account(naclac_client::AccountMeta {{ address: accounts.{acc_snake}, is_signer: {}, is_writable: {} }}, \"{}\")\n",
-                acc.signer, acc.writable, acc.name
-            ));
-        }
+    // Build the instruction builder. Single pass, in declared order — an
+    // optional account's address resolves to `program_id` (the sentinel)
+    // when `None`, rather than being skipped, so every account keeps its
+    // declared position regardless of which optionals are present.
+    offchain_content
+        .push_str("    naclac_client::InstructionBuilder::new(provider, program_id, ix_data)\n");
+    for acc in &ix.accounts {
+        let acc_snake = AsSnakeCase(&acc.name).to_string();
+        let address_expr = if acc.optional.unwrap_or(false) {
+            format!("accounts.{acc_snake}.unwrap_or(program_id)")
+        } else {
+            format!("accounts.{acc_snake}")
+        };
+        offchain_content.push_str(&format!(
+            "        .account(naclac_client::AccountMeta {{ address: {address_expr}, is_signer: {}, is_writable: {} }}, \"{}\")\n",
+            acc.signer, acc.writable, acc.name
+        ));
     }
     offchain_content.push_str("}\n\n");
 

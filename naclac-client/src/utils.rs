@@ -14,6 +14,8 @@ pub const ASSOCIATED_TOKEN_PROGRAM_ID: Address =
     Address::new_from_array(spl_associated_token_account::ID.to_bytes());
 pub const TOKEN_2022_PROGRAM_ID: Address = Address::new_from_array(spl_token_2022::ID.to_bytes());
 pub const SYSTEM_PROGRAM_ID: Address = Address::new_from_array([0; 32]);
+pub const RENT_SYSVAR_ID: Address =
+    Address::new_from_array(solana_program::sysvar::rent::ID.to_bytes());
 
 pub trait SignerAddressExt {
     fn address(&self) -> Address;
@@ -46,6 +48,32 @@ pub fn get_discriminator(name: &str) -> [u8; 8] {
     let mut disc = [0u8; 8];
     disc.copy_from_slice(&Sha256::digest(preimage.as_bytes())[0..8]);
     disc
+}
+
+/// Resolves the real cargo target directory for the crate at `manifest_dir`
+/// (typically `env!("CARGO_MANIFEST_DIR")`), honoring `CARGO_TARGET_DIR` and
+/// `.cargo/config.toml`'s `target-dir` the same way `cargo` itself does — by
+/// asking `cargo metadata` directly rather than re-implementing cargo's own
+/// env-var/config-file resolution order. Falls back to `<manifest_dir>/target`
+/// if `cargo metadata` can't be run at all.
+pub fn resolve_cargo_target_dir(manifest_dir: &std::path::Path) -> std::path::PathBuf {
+    if let Ok(output) = std::process::Command::new("cargo")
+        .arg("metadata")
+        .arg("--no-deps")
+        .arg("--format-version")
+        .arg("1")
+        .current_dir(manifest_dir)
+        .output()
+    {
+        if output.status.success() {
+            if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                if let Some(dir) = json.get("target_directory").and_then(|v| v.as_str()) {
+                    return std::path::PathBuf::from(dir);
+                }
+            }
+        }
+    }
+    manifest_dir.join("target")
 }
 
 pub fn load_node_wallet() -> Result<Keypair, NaclacClientError> {
@@ -304,10 +332,34 @@ pub fn create_token_account_with_program(
     owner: &Address,
     token_program_id: &Address,
 ) -> Result<Signature, NaclacClientError> {
+    create_token_account_with_program_and_space(
+        provider,
+        account_signer,
+        mint,
+        owner,
+        token_program_id,
+        165, // spl_token::state::Account::LEN
+    )
+}
+
+/// Same as `create_token_account_with_program`, but with an explicit
+/// account `space` rather than the fixed unextended 165 bytes. Needed for
+/// any Token-2022 mint carrying an extension that requires a matching
+/// per-account extension (e.g. `TransferFeeConfig` on the mint requires
+/// `TransferFeeAmount` space on every token account of that mint) —
+/// `InitializeAccount3` fails with `InvalidAccountData` if the account
+/// wasn't allocated enough room for the extensions Token-2022 auto-adds.
+pub fn create_token_account_with_program_and_space(
+    provider: &NaclacProvider,
+    account_signer: &Keypair,
+    mint: &Address,
+    owner: &Address,
+    token_program_id: &Address,
+    space: usize,
+) -> Result<Signature, NaclacClientError> {
     let payer_address = provider.payer.address();
     let account_address = account_signer.address();
 
-    let space = 165; // spl_token::state::Account::LEN
     let lamports = provider.get_minimum_balance_for_rent_exemption(space)?;
 
     let sys_ix = solana_system_interface::instruction::create_account(

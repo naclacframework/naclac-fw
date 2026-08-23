@@ -3,6 +3,8 @@
 
 pub mod child;
 pub use child::*;
+pub mod config_entry;
+pub use config_entry::*;
 pub mod entry;
 pub use entry::*;
 pub mod registry;

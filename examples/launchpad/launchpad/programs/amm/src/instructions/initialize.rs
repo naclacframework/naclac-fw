@@ -76,22 +76,28 @@ pub fn initialize(ctx: Context<Initialize>, id: u64, pool_bump: u8, amount_a: u6
     pool.bump = pool_bump;
 
     // Transfer token A and B to the vaults
-    ctx.accounts.token_program.transfer(
-        TransferAccounts {
+    let token_a_decimals = ctx.accounts.token_a_mint.decimals();
+    ctx.accounts.token_program.transfer_checked(
+        TransferCheckedAccounts {
             from: &mut ctx.accounts.depositor_token_a,
+            mint: &ctx.accounts.token_a_mint,
             to: &mut ctx.accounts.vault_a,
             authority: &ctx.accounts.depositor_authority,
         },
         amount_a,
+        token_a_decimals,
     )?;
 
-    ctx.accounts.token_program.transfer(
-        TransferAccounts {
+    let token_b_decimals = ctx.accounts.token_b_mint.decimals();
+    ctx.accounts.token_program.transfer_checked(
+        TransferCheckedAccounts {
             from: &mut ctx.accounts.depositor_token_b,
+            mint: &ctx.accounts.token_b_mint,
             to: &mut ctx.accounts.vault_b,
             authority: &ctx.accounts.depositor_authority,
         },
         amount_b,
+        token_b_decimals,
     )?;
 
     // Calculate LP amount to mint using system math

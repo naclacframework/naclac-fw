@@ -79,7 +79,31 @@ export class DupMutBorshClient {
     return instructions.touchPairWithAlias(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `vaultA` account. Returns `[PublicKey, bumpSeed]`. */
+  /**
+   * Builds the `initVaultC` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public initVaultC(args?: Record<string, never>, accounts?: Partial<instructions.InitVaultCAccounts>) {
+    return instructions.initVaultC(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchTriplePartialAlias` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public touchTriplePartialAlias(args?: Record<string, never>, accounts?: Partial<instructions.TouchTriplePartialAliasAccounts>) {
+    return instructions.touchTriplePartialAlias(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchBoxedVault` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public touchBoxedVault(args?: Record<string, never>, accounts?: Partial<instructions.TouchBoxedVaultAccounts>) {
+    return instructions.touchBoxedVault(this.program, args ?? {}, accounts);
+  }
+
+  /** Derives the PDA for a `vault_a` account. Returns `[PublicKey, bumpSeed]`. */
   public getVaultAPda(seeds: {
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
@@ -91,12 +115,24 @@ export class DupMutBorshClient {
     return [pda, bump];
   }
 
-  /** Derives the PDA for a `vaultB` account. Returns `[PublicKey, bumpSeed]`. */
+  /** Derives the PDA for a `vault_b` account. Returns `[PublicKey, bumpSeed]`. */
   public getVaultBPda(seeds: {
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([118, 97, 117, 108, 116, 95, 98])
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
+  /** Derives the PDA for a `vault_c` account. Returns `[PublicKey, bumpSeed]`. */
+  public getVaultCPda(seeds: {
+  }): [naclac.PublicKey, number] {
+    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
+      [
+                new Uint8Array([118, 97, 117, 108, 116, 95, 99])
       ],
       this.programId
     );

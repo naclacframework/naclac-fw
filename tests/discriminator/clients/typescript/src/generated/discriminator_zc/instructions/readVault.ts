@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `readVault` instruction. */
-export const READVAULT_DISCRIMINATOR = new Uint8Array([124, 195, 48, 97, 68, 153, 234, 245]);
+/** 8-byte discriminator for the `read_vault` instruction. */
+export const READ_VAULT_DISCRIMINATOR = new Uint8Array([124, 195, 48, 97, 68, 153, 234, 245]);
 
 /** Accounts for the `readVault` instruction. */
 export interface ReadVaultAccounts {
@@ -21,7 +21,7 @@ export function readVault(
   args?: Record<string, never>,
   accounts?: Partial<ReadVaultAccounts>
 ) {
-  const builder = program.methods.readVault(args ?? {});
+  const builder = program.methods.read_vault(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

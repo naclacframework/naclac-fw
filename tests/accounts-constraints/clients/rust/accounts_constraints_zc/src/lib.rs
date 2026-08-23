@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -50,6 +50,18 @@ pub fn get_seeded_pda(
 }
 
 #[cfg(feature = "offchain")]
+pub fn get_target_pda(
+    program_id: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[101, 120, 116, 101, 114, 110, 97, 108, 95, 112, 100, 97],
+        ],
+        program_id,
+    )
+}
+
+#[cfg(feature = "offchain")]
 pub fn get_vault_pda(
     program_id: &naclac_client::Address
 ) -> (naclac_client::Address, u8) {
@@ -66,9 +78,9 @@ pub fn get_vault_pda(
 pub struct AccountsConstraintsZc;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for AccountsConstraintsZc {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([53, 128, 191, 250, 222, 51, 146, 183, 42, 235, 28, 213, 145, 152, 221, 101, 104, 184, 147, 76, 58, 154, 219, 7, 159, 37, 44, 6, 56, 182, 243, 10])
+impl sdk_core_cpi::Id for AccountsConstraintsZc {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([53, 128, 191, 250, 222, 51, 146, 183, 42, 235, 28, 213, 145, 152, 221, 101, 104, 184, 147, 76, 58, 154, 219, 7, 159, 37, 44, 6, 56, 182, 243, 10])
     }
 }
 

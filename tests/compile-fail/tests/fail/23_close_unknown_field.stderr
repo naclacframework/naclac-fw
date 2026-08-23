@@ -1,0 +1,7 @@
+error: Field 'nonexistent_field' not found in struct for `close = nonexistent_field` on 'account'
+  --> tests/fail/23_close_unknown_field.rs:10:10
+   |
+10 | #[derive(Accounts)]
+   |          ^^^^^^^^
+   |
+   = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -25,5 +25,5 @@ escrow-client = { version = "0.1.0", path = "../../clients/rust/escrow" }
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("idl-build", "pinocchio", "solana", "borsh"))'
+    'cfg(feature, values("pinocchio", "solana", "borsh"))'
 ] }

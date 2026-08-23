@@ -1,5 +1,6 @@
+use crate::rust::{collect_defined_type_names, references_defined_type};
 use crate::{Idl, IdlTypeDefVariants};
-use heck::ToUpperCamelCase;
+use heck::{ToLowerCamelCase, ToUpperCamelCase};
 use std::fs;
 
 // ─── Type Mapping ─────────────────────────────────────────────────────────────────────────────────
@@ -79,22 +80,35 @@ pub fn map_type_to_ts(idl_type: &serde_json::Value, is_zero_copy: bool) -> Strin
     map_type_to_ts_with_prefix(idl_type, is_zero_copy, "")
 }
 
+/// Renders IDL `docs` lines as a JSDoc comment block, prefixed with `indent`.
+/// A single line collapses to `/** line */`; multiple lines use a full
+/// `/** \n * ... \n */` block. Returns an empty string when there are no docs.
+pub fn render_docs_ts(docs: &[String], indent: &str) -> String {
+    match docs {
+        [] => String::new(),
+        [line] => format!("{}/** {} */\n", indent, line),
+        lines => {
+            let mut out = format!("{}/**\n", indent);
+            for line in lines {
+                out.push_str(&format!("{} * {}\n", indent, line));
+            }
+            out.push_str(&format!("{} */\n", indent));
+            out
+        }
+    }
+}
+
 /// Formats a constant value string for TypeScript output.
 pub fn format_const_value(val_str: &str, ty_str: &str) -> String {
     let val = val_str.trim();
 
-    // Handle byte string literals: b"..."
-    if val.starts_with("b\"") && val.ends_with("\"") {
-        let inner = &val[2..val.len() - 1];
-        let bytes: Vec<u8> = inner.as_bytes().to_vec();
-        return format!(
-            "Uint8Array.from([{}])",
-            bytes
-                .iter()
-                .map(|b| b.to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
+    // Handle decimal byte-array values (`bytes`- or `{"array": ["u8", N]}`-typed constants)
+    if val.starts_with('[') && val.ends_with(']') {
+        return format!("Uint8Array.from({})", val);
+    }
+
+    if ty_str == "publicKey" {
+        return format!("naclac.address(\"{}\")", val);
     }
 
     // Handle bigints
@@ -158,20 +172,26 @@ pub fn generate_shared_files(
             if t.name == "Bool" || t.name.starts_with("Opt") {
                 continue;
             }
+            let type_docs = if t.docs.is_empty() {
+                "/** Auto-generated from the program IDL. */\n".to_string()
+            } else {
+                render_docs_ts(&t.docs, "")
+            };
             match &t.ty {
                 IdlTypeDefVariants::Enum { variants } => {
-                    typedefs_content.push_str(&format!(
-                        "/** Auto-generated enum from the program IDL. */\nexport enum {} {{\n",
-                        t.name
-                    ));
+                    typedefs_content.push_str(&type_docs);
+                    typedefs_content.push_str(&format!("export enum {} {{\n", t.name));
                     for v in variants {
+                        typedefs_content.push_str(&render_docs_ts(&v.docs, "  "));
                         typedefs_content.push_str(&format!("  {},\n", v.name));
                     }
                     typedefs_content.push_str("}\n\n");
                 }
                 IdlTypeDefVariants::Struct { fields } => {
-                    typedefs_content.push_str(&format!("/** Auto-generated struct from the program IDL. */\nexport interface {} {{\n", t.name));
+                    typedefs_content.push_str(&type_docs);
+                    typedefs_content.push_str(&format!("export interface {} {{\n", t.name));
                     for f in fields {
+                        typedefs_content.push_str(&render_docs_ts(&f.docs, "  "));
                         typedefs_content.push_str(&format!(
                             "  {}: {};\n",
                             f.name,
@@ -190,13 +210,13 @@ pub fn generate_shared_files(
     // ── 2. types/accounts.ts ──────────────────────────────────────────────────
     let mut accounts_content = header.to_string();
     accounts_content.push_str("import * as naclac from \"@naclac-fw/client\";\n");
-    if !idl.defined_types.is_empty() {
-        let idents: Vec<String> = idl
-            .defined_types
-            .iter()
-            .map(|t| t.name.clone())
-            .filter(|name| name != "Bool" && !name.starts_with("Opt"))
-            .collect();
+    {
+        let mut idents: Vec<String> = Vec::new();
+        for acc in &idl.accounts {
+            for field in &acc.ty.fields {
+                collect_defined_type_names(&field.ty, &mut idents);
+            }
+        }
         if !idents.is_empty() {
             accounts_content.push_str(&format!(
                 "import {{ {} }} from \"./typedefs\";\n",
@@ -222,8 +242,15 @@ pub fn generate_shared_files(
             ));
         }
 
-        accounts_content.push_str(&format!("/** Auto-generated account interface from the program IDL. */\nexport interface {} {{\n", type_def.name));
+        if type_def.docs.is_empty() {
+            accounts_content
+                .push_str("/** Auto-generated account interface from the program IDL. */\n");
+        } else {
+            accounts_content.push_str(&render_docs_ts(&type_def.docs, ""));
+        }
+        accounts_content.push_str(&format!("export interface {} {{\n", type_def.name));
         for field in &type_def.ty.fields {
+            accounts_content.push_str(&render_docs_ts(&field.docs, "  "));
             accounts_content.push_str(&format!(
                 "  {}: {};\n",
                 field.name,
@@ -238,7 +265,22 @@ pub fn generate_shared_files(
 
     // ── 3. types/events.ts ────────────────────────────────────────────────────
     let mut events_content = header.to_string();
-    events_content.push_str("import * as naclac from \"@naclac-fw/client\";\n\n");
+    events_content.push_str("import * as naclac from \"@naclac-fw/client\";\n");
+    {
+        let mut idents: Vec<String> = Vec::new();
+        for event_def in &idl.events {
+            for field in &event_def.fields {
+                collect_defined_type_names(&field.ty, &mut idents);
+            }
+        }
+        if !idents.is_empty() {
+            events_content.push_str(&format!(
+                "import {{ {} }} from \"./typedefs\";\n",
+                idents.join(", ")
+            ));
+        }
+    }
+    events_content.push('\n');
     if !idl.events.is_empty() {
         for event_def in &idl.events {
             // Emit discriminator constant for event matching
@@ -256,8 +298,15 @@ pub fn generate_shared_files(
                 ));
             }
 
-            events_content.push_str(&format!("/** Auto-generated event interface from the program IDL. */\nexport interface {} {{\n", event_def.name));
+            if event_def.docs.is_empty() {
+                events_content
+                    .push_str("/** Auto-generated event interface from the program IDL. */\n");
+            } else {
+                events_content.push_str(&render_docs_ts(&event_def.docs, ""));
+            }
+            events_content.push_str(&format!("export interface {} {{\n", event_def.name));
             for field in &event_def.fields {
+                events_content.push_str(&render_docs_ts(&field.docs, "  "));
                 events_content.push_str(&format!(
                     "  {}: {};\n",
                     field.name,
@@ -296,6 +345,7 @@ pub fn generate_shared_files(
     ));
     for constant in &idl.constants {
         let ty = map_type_to_ts(&constant.ty, idl.is_zero_copy);
+        constants_content.push_str(&render_docs_ts(&constant.docs, ""));
         constants_content.push_str(&format!(
             "export const {}: {} = {};\n",
             constant.name,
@@ -347,14 +397,19 @@ pub fn generate_shared_files(
     // ── 7. Generate instructions ───────────────────────────────────────────────
     let mut instructions_index = header.to_string();
     for ix in &idl.instructions {
+        // `ix_name` is the raw IDL instruction name — the client library keys
+        // `program.methods` by this exact string at runtime, so any call
+        // through that lookup must use it unmodified. `ix_camel` is purely
+        // the cosmetic export/file/symbol name for the generated wrapper.
         let ix_name = &ix.name;
+        let ix_camel = ix_name.to_lower_camel_case();
         let ix_name_pascal = ix_name.to_upper_camel_case();
-        instructions_index.push_str(&format!("export * from \"./{ix_name}\";\n"));
+        instructions_index.push_str(&format!("export * from \"./{ix_camel}\";\n"));
 
         let mut ix_content = header.to_string();
         // All imports come from @naclac-fw/client — zero direct @solana/* imports
         ix_content.push_str("import * as naclac from \"@naclac-fw/client\";\n");
-        if !idl.defined_types.is_empty() {
+        if ix.args.iter().any(|a| references_defined_type(&a.ty)) {
             ix_content.push_str("import * as types from \"../types/typedefs\";\n");
         }
 
@@ -372,11 +427,12 @@ pub fn generate_shared_files(
 
         // Args type alias — named for discoverability
         if ix.args.iter().any(|a| a.name != "ctx") {
-            ix_content.push_str(&format!("\n/** Instruction arguments for `{ix_name}`. */\nexport interface {ix_name_pascal}Args {{\n"));
+            ix_content.push_str(&format!("\n/** Instruction arguments for `{ix_camel}`. */\nexport interface {ix_name_pascal}Args {{\n"));
             for arg in &ix.args {
                 if arg.name == "ctx" {
                     continue;
                 }
+                ix_content.push_str(&render_docs_ts(&arg.docs, "  "));
                 ix_content.push_str(&format!(
                     "  {}: {};\n",
                     arg.name,
@@ -387,7 +443,7 @@ pub fn generate_shared_files(
         }
 
         // Accounts type alias — required vs optional clearly typed
-        ix_content.push_str(&format!("\n/** Accounts for the `{ix_name}` instruction. */\nexport interface {ix_name_pascal}Accounts {{\n"));
+        ix_content.push_str(&format!("\n/** Accounts for the `{ix_camel}` instruction. */\nexport interface {ix_name_pascal}Accounts {{\n"));
         for acc in &ix.accounts {
             let name_lower = acc.name.to_lowercase();
             let is_auto = [
@@ -407,6 +463,7 @@ pub fn generate_shared_files(
             } else {
                 ""
             };
+            ix_content.push_str(&render_docs_ts(&acc.docs, "  "));
             ix_content.push_str(&format!(
                 "  {}{}: naclac.Address | string;\n",
                 acc.name, optional_marker
@@ -420,8 +477,18 @@ pub fn generate_shared_files(
         } else {
             "args?: Record<string, never>".to_string()
         };
+        let mut builder_doc_lines = vec![
+            format!("Builds the `{ix_camel}` instruction pipeline."),
+            "Call `.rpc()` to send or `.instruction()` to get the raw instruction.".to_string(),
+        ];
+        if !ix.docs.is_empty() {
+            builder_doc_lines.push(String::new());
+            builder_doc_lines.extend(ix.docs.iter().cloned());
+        }
+        ix_content.push('\n');
+        ix_content.push_str(&render_docs_ts(&builder_doc_lines, ""));
         ix_content.push_str(&format!(
-            "\n/**\n * Builds the `{ix_name}` instruction pipeline.\n * Call `.rpc()` to send or `.instruction()` to get the raw instruction.\n */\nexport function {ix_name}(\n  program: any,\n  {args_param},\n  accounts?: Partial<{ix_name_pascal}Accounts>\n) {{\n"
+            "export function {ix_camel}(\n  program: any,\n  {args_param},\n  accounts?: Partial<{ix_name_pascal}Accounts>\n) {{\n"
         ));
         ix_content.push_str(&format!(
             "  const builder = program.methods.{ix_name}(args ?? {{}});\n"
@@ -429,7 +496,7 @@ pub fn generate_shared_files(
         ix_content.push_str("  if (accounts) {\n    return builder.accounts(accounts);\n  }\n  return builder;\n}\n");
 
         fs::write(
-            clients_dir.join(format!("instructions/{ix_name}.ts")),
+            clients_dir.join(format!("instructions/{ix_camel}.ts")),
             ix_content,
         )?;
     }

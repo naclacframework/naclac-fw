@@ -1,0 +1,32 @@
+[package]
+name = "pump_fees"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["pinocchio"]
+pinocchio = ["naclac-lang/pinocchio", "pump-client/pinocchio", "pump-amm-client/pinocchio", "donation-relay-client/pinocchio"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../../naclac-lang", default-features = false, features = ["token"] }
+pump-client = { path = "../../../pump-bonding-curve/clients/rust/pump", default-features = false, features = ["cpi"] }
+pump-amm-client = { path = "../../../pump-amm/clients/rust/pump_amm", default-features = false, features = ["cpi"] }
+donation-relay-client = { path = "../../../../donation-relay/clients/rust/donation_relay", default-features = false, features = ["cpi"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../../naclac-client" }
+pump-fees-client = { version = "0.1.0", path = "../../clients/rust/pump_fees" }
+pump-client = { path = "../../../pump-bonding-curve/clients/rust/pump", features = ["offchain"] }
+pump-amm-client = { path = "../../../pump-amm/clients/rust/pump_amm", features = ["offchain"] }
+donation-relay-client = { path = "../../../../donation-relay/clients/rust/donation_relay", features = ["offchain"] }
+
+[lints]
+workspace = true

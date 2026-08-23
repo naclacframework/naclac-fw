@@ -1,8 +1,7 @@
 //! # Instruction Macro Module
 //!
-//! Houses the expansion logic for the `#[instruction]` macro. This macro rewrites
-//! instruction function signatures to properly enforce Zero-Copy `Hydrated` accounts
-//! and manages the generation of security checks, CPI initializers, and account reallocation.
+//! Houses the expansion logic for the `#[instruction]` macro, and the submodules that
+//! generate an instruction's security checks, CPI initializers, and account reallocation.
 
 use proc_macro::TokenStream;
 use quote::quote;
@@ -14,12 +13,13 @@ pub mod parser;
 pub mod realloc;
 pub mod security;
 
-/// This macro rewrites the developer's instruction function signature, automatically converting
-/// `Context<T>` to `Context<THydrated>`. This ensures that all accounts within
-/// the instruction body are safely type-guarded.
+/// Re-emits the annotated function unchanged. Type-guarding of accounts within
+/// the instruction body is already enforced by `#[derive(Accounts)]`'s generated
+/// `load_and_validate`, not by any rewrite this macro performs.
 pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    // Zero-copy vs Borsh mode is auto-detected from the `borsh` feature; any
-    // legacy `#[instruction(zero_copy)]`-style argument is silently ignored.
+    // Zero-copy vs Borsh mode is auto-detected from the `borsh` feature.
+    // `#[instruction]` takes no argument at all — enforced by `lib.rs`'s
+    // `reject_nonempty_attr` before this function is ever called.
     let input_fn = parse_macro_input!(item as ItemFn);
     let fn_vis = &input_fn.vis;
     let fn_block = &input_fn.block;

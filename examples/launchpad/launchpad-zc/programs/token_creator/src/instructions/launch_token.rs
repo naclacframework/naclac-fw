@@ -28,6 +28,7 @@ pub struct LaunchToken {
         seeds = [SEED_MINT, &args.id.to_le_bytes()],
         bump = args.mint_bump
     )]
+    /// SAFETY: the PDA address is validated by the seeds/bump constraint above and the field is only used as a mint target and signer authority input.
     pub mint: AccountInfo,
 
     #[account(
@@ -51,15 +52,19 @@ pub struct LaunchToken {
     pub payer_token_b: Account<TokenAccount>,
 
     #[account(mut)]
+    /// SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target.
     pub pool_state: AccountInfo,
 
     #[account(mut)]
+    /// SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target.
     pub pool_vault_a: AccountInfo,
 
     #[account(mut)]
+    /// SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target.
     pub pool_vault_b: AccountInfo,
 
     #[account(mut)]
+    /// SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target.
     pub pool_lp_mint: AccountInfo,
 
     pub amm_program: Program<Amm>,
@@ -75,13 +80,16 @@ pub fn launch_token(
     let id_bytes = args.id.to_le_bytes();
 
     // 3. Transfer Token B (quote) from payer to launcher_token_b (vault owned by launch_record)
-    ctx.accounts.token_program.transfer(
-        naclac_lang::prelude::TransferAccounts {
+    let quote_decimals = ctx.accounts.quote_mint.decimals();
+    ctx.accounts.token_program.transfer_checked(
+        naclac_lang::prelude::TransferCheckedAccounts {
             from: &mut ctx.accounts.payer_token_b,
+            mint: &ctx.accounts.quote_mint,
             to: &mut ctx.accounts.launcher_token_b,
             authority: &ctx.accounts.payer,
         },
         args.amount_quote,
+        quote_decimals,
     )?;
 
     // 4. Mint total supply of Token A to launcher_token_a

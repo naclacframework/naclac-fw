@@ -8,6 +8,23 @@ use discriminator_borsh_client::{
     types::PROGRAM_ID,
 };
 
+/// Asserts a transaction failed with exactly the given `Custom` error code
+/// — not just "any error", the specific numeric `NaclacError` (framework
+/// errors, 3000s) the failure actually produces. Mirrors
+/// `tests/error-codes/programs/error_codes/tests/error_codes_test.rs`'s
+/// helper of the same name and shape.
+fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientError>, expected: u32) {
+    match result {
+        Err(NaclacClientError::TransactionFailed {
+            instruction_err: InstructionError::Custom(code),
+            ..
+        }) => {
+            assert_eq!(code, expected, "wrong custom error code");
+        }
+        other => panic!("expected a Custom({expected}) transaction failure, got {other:?}"),
+    }
+}
+
 fn load_program(provider: &NaclacProvider) {
     let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     so_path.pop(); // programs
@@ -54,12 +71,15 @@ fn rejects_type_confused_account_in_vault_slot() {
     )
     .send_and_confirm();
 
-    assert!(
-        result.is_err(),
-        "read_vault must reject a Config account passed in the Vault slot — \
-         if this assertion fails, the discriminator check has regressed \
-         (see ZERO_COPY_BORSH_PARITY_AUDIT.md finding #1)"
-    );
+    // `ReadVault { caller, vault }` — `vault` is field index 1, not `mut`
+    // (so `try_from`, not `try_from_mut`, is used — `accounts.rs`). This is
+    // the solana-borsh backend, so `Account<Vault>` is the real Borsh
+    // wrapper (`account.rs`'s `try_from`), whose discriminator mismatch
+    // emits `AccountNotInitialized` (15) — a genuinely different variant
+    // from the zero-copy backends' `InvalidAccountDiscriminator`, confirmed
+    // by reading both `try_from` implementations directly.
+    // 3000 + 1*100 + 15 = 3115.
+    assert_custom_code(result, 3115);
 }
 
 /// Positive-path companion: a correctly-typed Vault account must still be

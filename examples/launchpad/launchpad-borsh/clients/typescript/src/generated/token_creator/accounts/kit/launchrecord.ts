@@ -12,8 +12,8 @@ export function getLaunchRecordEncoder(): naclac.FixedSizeEncoder<LaunchRecord> 
   return naclac.getStructEncoder([
     ["creator", naclac.getAddressEncoder()],
     ["mint", naclac.getAddressEncoder()],
-    ["amountToken", naclac.getU64Encoder()],
-    ["amountQuote", naclac.getU64Encoder()],
+    ["amount_token", naclac.getU64Encoder()],
+    ["amount_quote", naclac.getU64Encoder()],
   ]) as naclac.FixedSizeEncoder<LaunchRecord>;
 }
 
@@ -22,8 +22,8 @@ export function getLaunchRecordDecoder(): naclac.FixedSizeDecoder<LaunchRecord> 
   return naclac.getStructDecoder([
     ["creator", naclac.getAddressDecoder()],
     ["mint", naclac.getAddressDecoder()],
-    ["amountToken", naclac.getU64Decoder()],
-    ["amountQuote", naclac.getU64Decoder()],
+    ["amount_token", naclac.getU64Decoder()],
+    ["amount_quote", naclac.getU64Decoder()],
   ]) as naclac.FixedSizeDecoder<LaunchRecord>;
 }
 

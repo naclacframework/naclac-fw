@@ -1,5 +1,6 @@
 use naclac_lang::prelude::*;
 use crate::components::Registry;
+use crate::constants::SEED_REGISTRY;
 
 // Baseline explicit-bump validation on an existing account. The test file
 // calls this twice: once with the real bump (must succeed) and once with a

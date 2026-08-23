@@ -13,16 +13,16 @@ custom-panic = []
 debug-mode = []
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["token", "borsh"]  }
+naclac-lang = { version = "0.1.0", path = "../../../../../naclac-lang", features = ["token", "borsh"]  }
 amm-client = { path = "../../clients/rust/amm", default-features = false, features = ["cpi", "borsh"] }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+naclac-client = { version = "0.1.0", path = "../../../../../naclac-client" }
 token-creator-client = { version = "0.1.0", path = "../../clients/rust/token_creator" }
 amm-client = { path = "../../clients/rust/amm" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("idl-build", "pinocchio", "solana", "borsh"))'
+    'cfg(feature, values("pinocchio", "solana", "borsh"))'
 ] }

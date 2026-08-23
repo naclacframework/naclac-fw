@@ -4,7 +4,7 @@
 // Feature routing:
 //   default ("solana")       → solana_program backend (std, lifetimes) — NO borsh by default
 //   "solana" + "borsh"       → solana_program + borsh serialization (Account<T>, #[component])
-//   "zero-copy"              → AccountLoader<T> path, zero-copy events via bytemuck::Pod
+//   "zero-copy"              → Account<T> zero-copy branch, zero-copy events via bytemuck::Pod
 //   "pinocchio"              → pinocchio backend (no_std, no lifetimes, zero-copy)
 //
 // The two backends are mutually exclusive. Enabling "pinocchio" hides every
@@ -13,7 +13,7 @@
 
 pub use crate::context::{Bumps, Context, LoadableAccounts, ValidationResult};
 #[cfg(feature = "pinocchio")]
-pub use crate::cpi::invoke_signed_pinocchio;
+pub use crate::cpi::{invoke_signed_pinocchio, invoke_signed_pinocchio_unchecked};
 pub use crate::cpi::{self, AccountMeta, ToAccountMetas};
 pub use naclac_macros::*;
 
@@ -22,38 +22,17 @@ pub use crate::error::NaclacError;
 
 // These traits/types exist in wrappers for BOTH Solana and Pinocchio backends
 pub use crate::wrappers::{
-    // Framework account wrapper types — abstract over both backends
-    AccountLoader,
-    AsRefByteSlice,
-    AssociatedToken,
-    CpiHandle,
-    CpiHandleMut,
-    Discriminator,
-    Id,
-    Ids,
-    Interface,
-    KeyedRef,
-    KeyedRefMut,
-    NaclacAccount,
-    NaclacZeroCopy,
-    Owner,
-    Program,
-    Signer,
-    Span,
-    System,
-    ToAccountInfo,
-    ToAddress,
-    ToCpiHandle,
-    ToCpiHandleMut,
-    Token,
-    Token2022,
-    TokenInterface,
-    ZcString,
+    Account, AsRefByteSlice, AssociatedToken, CpiHandle, CpiHandleMut, Discriminator, Id, Ids,
+    Interface, InterfaceAccount, NaclacAccount, NaclacZeroCopy, Owner, Program, Signer, Span,
+    System, ToAccountInfo, ToAddress, ToCpiHandle, ToCpiHandleMut, Token, Token2022,
+    TokenInterface, ValidateInterfaceLayout, ZcString,
 };
 
 pub type ZcVec<T> = Span<T>;
 
 pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};
+
+pub use crate::realloc::resize_with_rent;
 
 // ---------------------------------------------------------------------------
 // CPI Stack-Allocation Limits
@@ -79,25 +58,18 @@ pub const MAX_CPI_SIGNERS: usize = 4;
 /// Default: 16. Solana itself enforces a limit of 16 seeds per PDA.
 pub const MAX_CPI_SEEDS_PER_SIGNER: usize = 16;
 
-// Solana-only wrapper (the real `Account<T>` struct only exists in Borsh mode;
-// zero-copy modes get `Account<T>` via the `AccountLoader<T>` type aliases below).
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
-pub use crate::wrappers::Account;
+/// Maximum number of accounts the pinocchio-backend CPI helpers
+/// (`cpi::invoke_pinocchio`/`invoke_signed_pinocchio_handles`/
+/// `invoke_signed_pinocchio` and their `_unchecked` counterparts) will
+/// accept in one call — a stack-allocated array bound. Exceeding it is a
+/// hard error, not a silent truncation.
+pub const MAX_CPI_ACCOUNTS: usize = 32;
 
-// `ToAccountInfos` is implemented for both `Account<T>` (Borsh) and
-// `AccountLoader<T>` (Solana zero-copy) — only absent under pinocchio, where
-// the trait itself has no `to_account_infos` method to begin with.
+// `ToAccountInfos` is implemented for both branches of `Account<T>`/
+// `InterfaceAccount<T>` — only absent under pinocchio, where the trait
+// itself has no `to_account_infos` method to begin with.
 #[cfg(not(feature = "pinocchio"))]
 pub use crate::wrappers::ToAccountInfos;
-
-#[cfg(feature = "pinocchio")]
-pub type Account<T> = AccountLoader<T>;
-
-// Same alias for "solana zero-copy" (not pinocchio, not borsh) — otherwise
-// this configuration has no `Account<T>` at all, forcing `AccountLoader<T>`
-// to be spelled out explicitly unlike every other backend.
-#[cfg(all(not(feature = "pinocchio"), not(feature = "borsh")))]
-pub type Account<T> = AccountLoader<T>;
 
 // Pinocchio-only: AccountView is already exported from the pinocchio block below (line ~159)
 // Do NOT re-export it from wrappers here — that creates a circular private import
@@ -112,17 +84,14 @@ pub use std::fmt;
 // --- Alloc Routing (Vec, String, etc.) ---
 // In no_std environments (Pinocchio), alloc must be linked explicitly.
 // The full entrypoint path calls pinocchio::default_allocator!() which registers one.
-#[cfg(feature = "pinocchio")]
+#[cfg(any(feature = "no-std", feature = "pinocchio"))]
 extern crate alloc;
 
-#[cfg(feature = "no-std")]
+#[cfg(any(feature = "no-std", feature = "pinocchio"))]
 pub use alloc::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
 
 #[cfg(not(any(feature = "no-std", feature = "pinocchio")))]
 pub use std::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
-
-#[cfg(feature = "pinocchio")]
-pub use alloc::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
 
 // --- IO Routing ---
 #[cfg(all(feature = "no-std", not(feature = "pinocchio")))]
@@ -139,6 +108,8 @@ pub use crate::bytemuck::{Pod, Zeroable};
 // SOLANA-PROGRAM BACKEND  (feature = "solana")
 // ===========================================================================
 #[cfg(not(feature = "pinocchio"))]
+pub use solana_program;
+#[cfg(not(feature = "pinocchio"))]
 pub use solana_program::{
     clock::Clock,
     entrypoint::ProgramResult,
@@ -146,7 +117,6 @@ pub use solana_program::{
     program::{invoke, invoke_signed},
     program_error::ProgramError,
     sysvar::rent::Rent,
-    sysvar::rent::ID as RENT_ID,
     sysvar::Sysvar,
 };
 
@@ -163,6 +133,8 @@ pub type NaclacResult<T = (), E = solana_program::program_error::ProgramError> =
 pub use NaclacResult as Result;
 
 #[cfg(not(feature = "pinocchio"))]
+pub use solana_address;
+#[cfg(not(feature = "pinocchio"))]
 pub use solana_address::Address;
 
 // --- OFFICIAL PROGRAM IDS ---
@@ -175,10 +147,15 @@ pub const TOKEN_PROGRAM_ID: Address =
 #[cfg(not(feature = "pinocchio"))]
 pub const TOKEN_2022_PROGRAM_ID: Address =
     solana_address::address!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+#[cfg(not(feature = "pinocchio"))]
+pub const RENT_SYSVAR_ID: Address =
+    solana_address::address!("SysvarRent111111111111111111111111111111111");
 
 #[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
 pub use crate::borsh;
 
+#[cfg(not(feature = "pinocchio"))]
+pub use crate::base58;
 #[cfg(not(feature = "pinocchio"))]
 pub use crate::system_program;
 #[cfg(not(feature = "pinocchio"))]
@@ -211,7 +188,7 @@ impl AccountInfo {
         self.data
             .try_borrow()
             .map(|r| core::cell::Ref::map(r, |d| &**d))
-            .map_err(|_| solana_program::program_error::ProgramError::AccountBorrowFailed)
+            .map_err(|_| crate::error::NaclacError::AccountBorrowFailed.err(0))
     }
 
     pub fn try_borrow_mut_data(
@@ -220,7 +197,7 @@ impl AccountInfo {
         self.data
             .try_borrow_mut()
             .map(|r| core::cell::RefMut::map(r, |d| &mut **d))
-            .map_err(|_| solana_program::program_error::ProgramError::AccountBorrowFailed)
+            .map_err(|_| crate::error::NaclacError::AccountBorrowFailed.err(0))
     }
 
     /// # Safety
@@ -247,10 +224,10 @@ impl AccountInfo {
         let mut lamports = self
             .lamports
             .try_borrow_mut()
-            .map_err(|_| solana_program::program_error::ProgramError::AccountBorrowFailed)?;
+            .map_err(|_| crate::error::NaclacError::AccountBorrowFailed.err(0))?;
         **lamports = lamports
             .checked_sub(amount)
-            .ok_or(solana_program::program_error::ProgramError::InsufficientFunds)?;
+            .ok_or(crate::error::NaclacError::InsufficientFunds.err(0))?;
         Ok(())
     }
 
@@ -258,10 +235,10 @@ impl AccountInfo {
         let mut lamports = self
             .lamports
             .try_borrow_mut()
-            .map_err(|_| solana_program::program_error::ProgramError::AccountBorrowFailed)?;
+            .map_err(|_| crate::error::NaclacError::AccountBorrowFailed.err(0))?;
         **lamports = lamports
             .checked_add(amount)
-            .ok_or(solana_program::program_error::ProgramError::InvalidArgument)?;
+            .ok_or(crate::error::NaclacError::ArithmeticOverflow.err(0))?;
         Ok(())
     }
 
@@ -281,6 +258,16 @@ impl AccountInfo {
 
     pub fn address(&self) -> Address {
         *self.key
+    }
+
+    /// Resize the account's data, delegating to the real
+    /// `solana_program::account_info::AccountInfo::resize` (an inherent
+    /// `&self` method backed by unsafe raw-pointer manipulation into
+    /// runtime memory) via the same `to_lifetime()` cast already used by
+    /// `assign()` above.
+    pub fn resize(&self, new_len: usize) -> Result<()> {
+        unsafe { self.to_lifetime().resize(new_len) }
+            .map_err(|_| crate::error::NaclacError::InvalidRealloc.err(0))
     }
 }
 
@@ -344,6 +331,71 @@ unsafe impl bytemuck::ZeroableInOption for Address {}
 #[cfg(feature = "pinocchio")]
 unsafe impl bytemuck::PodInOption for Address {}
 
+/// Real Solana protocol limit on the number of seeds a PDA derivation may
+/// use (`solana_program::pubkey::MAX_SEEDS`) — mirrored here, not invented,
+/// since `derive_program_address` below needs a fixed-size scratch buffer
+/// (no heap allocation, so it works under pinocchio's `no_std`).
+pub const MAX_PDA_SEEDS: usize = 16;
+
+/// Derives a PDA address for arbitrary `seeds` under `program_id` at the
+/// given `bump`, via a single hash-and-compare (`create_program_address`-
+/// equivalent) rather than an on-chain `find_program_address` bump search —
+/// naclac never runs the search loop on-chain, so `bump` must already be
+/// known by the caller. The one shared implementation every PDA-verifying
+/// code path in naclac uses: the `#[account(seeds = [...], bump = ...)]`
+/// constraint naclac-macros generates and `associated_token::derive_ata_address`
+/// both call this internally rather than each hashing independently. It's
+/// also the function hand-written instruction code needs to verify an
+/// arbitrary `AccountInfo` — e.g. one of `ctx.remaining_accounts` — against
+/// an expected PDA, something no declarative `#[account(...)]` constraint
+/// can reach (those only attach to a named struct field).
+///
+/// Panics if `seeds.len() > MAX_PDA_SEEDS` — the same real protocol limit
+/// `find_program_address`/`create_program_address` themselves enforce, not
+/// an invented restriction.
+pub fn derive_program_address(seeds: &[&[u8]], bump: u8, program_id: &Address) -> Address {
+    assert!(
+        seeds.len() <= MAX_PDA_SEEDS,
+        "derive_program_address: too many seeds (max {MAX_PDA_SEEDS})"
+    );
+
+    let bump_arr = [bump];
+    let mut scratch: [&[u8]; MAX_PDA_SEEDS + 3] = [&[]; MAX_PDA_SEEDS + 3];
+    let mut n = 0;
+    for seed in seeds {
+        scratch[n] = seed;
+        n += 1;
+    }
+    scratch[n] = &bump_arr[..];
+    n += 1;
+    scratch[n] = program_id.as_ref();
+    n += 1;
+    scratch[n] = b"ProgramDerivedAddress";
+    n += 1;
+    let inputs = &scratch[..n];
+
+    #[cfg(not(feature = "pinocchio"))]
+    {
+        let hash_result = solana_program::hash::hashv(inputs);
+        Address::new_from_array(hash_result.to_bytes())
+    }
+
+    #[cfg(feature = "pinocchio")]
+    {
+        extern "C" {
+            fn sol_sha256(vals: *const u8, val_len: u64, hash_result: *mut u8) -> u32;
+        }
+        let mut hash_result = [0u8; 32];
+        // SAFETY: `sol_sha256` is a native Solana SBF syscall; `inputs`
+        // outlives the call and each slice element is a valid (ptr, len)
+        // pair, matching the syscall's expected array-of-`SolBytes` layout.
+        unsafe {
+            sol_sha256(inputs.as_ptr() as *const u8, inputs.len() as u64, hash_result.as_mut_ptr());
+        }
+        Address::new_from_array(hash_result)
+    }
+}
+
 /// Trait for Naclac-compatible POD types (including Option<T> support)
 pub trait NaclacPod: Sized {
     fn naclac_from_bytes(data: &[u8]) -> Self;
@@ -386,7 +438,52 @@ impl<T: NaclacPod> NaclacPod for Option<T> {
     }
 }
 
-impl_naclac_pod!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, Address, [u8; 32], [u8; 64]);
+impl_naclac_pod!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, Bool, Address);
+
+// Generic over `N` rather than hand-listed sizes (the macro above only
+// covers exact types) — any `[u8; N]` fixed-size instruction arg or event
+// field works, not just the specific lengths someone happened to enumerate.
+impl<const N: usize> NaclacPod for [u8; N] {
+    #[inline(always)]
+    fn naclac_from_bytes(data: &[u8]) -> Self {
+        // SAFETY: same contract as `impl_naclac_pod!`'s generated impls —
+        // `data` is expected to be at least `naclac_size()` bytes, valid for
+        // reading `Self`. `read_unaligned` avoids alignment requirements in
+        // zero-copy instruction-data buffers.
+        unsafe { core::ptr::read_unaligned(data.as_ptr() as *const Self) }
+    }
+    #[inline(always)]
+    fn naclac_size() -> usize {
+        N
+    }
+}
+
+/// Deserializes an instruction argument from `data` starting at `*offset`,
+/// advancing `*offset` past the consumed bytes. Unlike `NaclacPod` (fixed
+/// size, known without reading the buffer), this also covers argument types
+/// whose encoded length depends on their own content — namely an
+/// `#[instruction_args]`-grouped struct containing a `ZcString`/`ZcVec`
+/// field, whose macro-generated impl parses its fields one at a time instead
+/// of implementing `NaclacPod` (a length-prefixed dynamic field can never be
+/// read via a single raw `size_of`-based byte cast). `program.rs`'s
+/// instruction dispatch calls this uniformly for every non-collection
+/// instruction argument, fixed- or dynamic-size alike.
+pub trait NaclacArgs: Sized {
+    fn naclac_deserialize(data: &[u8], offset: &mut usize) -> NaclacResult<Self>;
+}
+
+impl<T: NaclacPod> NaclacArgs for T {
+    #[inline(always)]
+    fn naclac_deserialize(data: &[u8], offset: &mut usize) -> NaclacResult<Self> {
+        let sz = T::naclac_size();
+        if data.len() < *offset + sz {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let val = T::naclac_from_bytes(&data[*offset..*offset + sz]);
+        *offset += sz;
+        Ok(val)
+    }
+}
 
 #[cfg(feature = "pinocchio")]
 impl core::ops::Deref for Address {
@@ -536,7 +633,7 @@ impl AccountInfo {
         let new_lamports = view
             .lamports()
             .checked_sub(amount)
-            .ok_or(pinocchio::error::ProgramError::InsufficientFunds)?;
+            .ok_or(crate::error::NaclacError::InsufficientFunds.err(0))?;
         view.set_lamports(new_lamports);
         Ok(())
     }
@@ -546,9 +643,20 @@ impl AccountInfo {
         let new_lamports = view
             .lamports()
             .checked_add(amount)
-            .ok_or(pinocchio::error::ProgramError::InvalidArgument)?;
+            .ok_or(crate::error::NaclacError::ArithmeticOverflow.err(0))?;
         view.set_lamports(new_lamports);
         Ok(())
+    }
+
+    /// Resize the account's data. `AccountView` is `Copy` (it's just a raw
+    /// pointer into runtime memory — see `sub_lamports`/`add_lamports`
+    /// above for the same copy-then-mutate pattern), so calling the
+    /// `&mut self` `Resize::resize` on a local copy still mutates the real
+    /// underlying account.
+    pub fn resize(&self, new_len: usize) -> Result<()> {
+        let mut view = self.view;
+        pinocchio::Resize::resize(&mut view, new_len)
+            .map_err(|_| crate::error::NaclacError::InvalidRealloc.err(0))
     }
 
     pub fn address(&self) -> Address {
@@ -561,12 +669,47 @@ pub type NaclacResult<T = (), E = pinocchio::error::ProgramError> = core::result
 #[cfg(feature = "pinocchio")]
 pub use NaclacResult as Result;
 
+/// Generic instruction-return-data serialization for `#[instruction]` handlers
+/// declared `-> Result<T>`. `#[program]`'s dispatcher calls `to_return_data()`
+/// on `Ok(value)` and passes the bytes to `set_return_data` automatically —
+/// handlers never call `set_return_data` themselves. An `Option<T>` outer
+/// wrapper (e.g. a handler that may or may not have anything to return) is
+/// detected at macro-expansion time in `naclac-macros`, not via a blanket
+/// trait impl here, since a blanket `impl<T: Pod> for T` and a blanket
+/// `impl<T: NaclacReturnData> for Option<T>` are rejected by Rust's coherence
+/// checker as potentially overlapping.
+#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+pub trait NaclacReturnData {
+    fn to_return_data(&self) -> Vec<u8>;
+}
+
+#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+impl<T: crate::bytemuck::Pod> NaclacReturnData for T {
+    fn to_return_data(&self) -> Vec<u8> {
+        crate::bytemuck::bytes_of(self).to_vec()
+    }
+}
+
+#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+pub trait NaclacReturnData {
+    fn to_return_data(&self) -> Vec<u8>;
+}
+
+#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+impl<T: crate::borsh::BorshSerialize> NaclacReturnData for T {
+    fn to_return_data(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        T::serialize(self, &mut buf).expect("return data serialization failed");
+        buf
+    }
+}
+
 #[cfg(feature = "pinocchio")]
 pub fn next_account_info<'a, I: Iterator<Item = &'a AccountInfo>>(
     iter: &mut I,
 ) -> core::result::Result<&'a AccountInfo, pinocchio::error::ProgramError> {
     iter.next()
-        .ok_or(pinocchio::error::ProgramError::NotEnoughAccountKeys)
+        .ok_or(crate::error::NaclacError::NotEnoughAccountKeys.err(0))
 }
 
 #[cfg(not(feature = "pinocchio"))]
@@ -574,7 +717,7 @@ pub fn next_account_info<'a, I: Iterator<Item = &'a AccountInfo>>(
     iter: &mut I,
 ) -> core::result::Result<&'a AccountInfo, solana_program::program_error::ProgramError> {
     iter.next()
-        .ok_or(solana_program::program_error::ProgramError::NotEnoughAccountKeys)
+        .ok_or(crate::error::NaclacError::NotEnoughAccountKeys.err(0))
 }
 
 #[cfg(feature = "pinocchio")]
@@ -607,20 +750,29 @@ pub fn sol_log_compute_units() {
 
 // --- OFFICIAL PROGRAM IDS (PINOCCHIO) ---
 #[cfg(feature = "pinocchio")]
-pub const TOKEN_PROGRAM_ID: Address = Address([
-    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28, 180, 133, 237,
-    95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,
-]);
+pub const TOKEN_PROGRAM_ID: Address = unsafe {
+    core::mem::transmute(pinocchio::address::address!(
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+    ))
+};
 #[cfg(feature = "pinocchio")]
-pub const TOKEN_2022_PROGRAM_ID: Address = Address([
-    6, 221, 246, 225, 238, 117, 143, 222, 24, 66, 93, 188, 228, 108, 205, 218, 182, 26, 252, 77,
-    131, 185, 13, 39, 254, 189, 249, 40, 216, 161, 139, 252,
-]);
+pub const TOKEN_2022_PROGRAM_ID: Address = unsafe {
+    core::mem::transmute(pinocchio::address::address!(
+        "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+    ))
+};
 #[cfg(feature = "pinocchio")]
-pub const ASSOCIATED_TOKEN_PROGRAM_ID: Address = Address([
-    140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218,
-    255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89,
-]);
+pub const ASSOCIATED_TOKEN_PROGRAM_ID: Address = unsafe {
+    core::mem::transmute(pinocchio::address::address!(
+        "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+    ))
+};
+#[cfg(feature = "pinocchio")]
+pub const RENT_SYSVAR_ID: Address = unsafe {
+    core::mem::transmute(pinocchio::address::address!(
+        "SysvarRent111111111111111111111111111111111"
+    ))
+};
 
 #[cfg(not(feature = "pinocchio"))]
 pub type AccountType = AccountInfo;
@@ -635,7 +787,7 @@ pub use crate::msg;
 
 /// Pinocchio logging — bridges Naclac's `msg!` API to pinocchio_log's Logger.
 /// Uses a 128-byte stack-allocated buffer. For longer messages use Logger directly.
-#[cfg(all(feature = "pinocchio", feature = "debug-mode"))]
+#[cfg(feature = "pinocchio")]
 #[macro_export]
 macro_rules! msg {
     ($msg:expr) => {{
@@ -645,8 +797,8 @@ macro_rules! msg {
     }};
 }
 
-/// No-op msg! macro for non-debug builds to save space
-#[cfg(not(feature = "debug-mode"))]
+/// No-op msg! macro for non-pinocchio, non-debug builds to save space
+#[cfg(all(not(feature = "pinocchio"), not(feature = "debug-mode")))]
 #[macro_export]
 macro_rules! msg {
     ($($arg:tt)*) => {{}};
@@ -654,6 +806,9 @@ macro_rules! msg {
 
 #[cfg(feature = "pinocchio")]
 pub use crate::system_program;
+
+#[cfg(feature = "pinocchio")]
+pub use crate::base58;
 
 // ===========================================================================
 // Shared macros (both backends)
@@ -671,6 +826,7 @@ macro_rules! emit {
             emit!(@__set __event, $field $(, $val)?);
         )*
         __event.emit();
+        __event
     }};
     // Internal helper: explicit field: value
     (@__set $ev:ident, $field:ident, $val:expr) => {
@@ -681,9 +837,11 @@ macro_rules! emit {
         $ev.$field = ($field).into();
     };
     // Pass-through: emit!(my_event_instance)
-    ($event:expr) => {
-        ($event).emit();
-    };
+    ($event:expr) => {{
+        let __event = $event;
+        __event.emit();
+        __event
+    }};
 }
 
 /// Concise condition checking that returns a ProgramError.
@@ -697,7 +855,7 @@ macro_rules! require {
     };
 }
 
-pub use crate::{declare_id, emit, require};
+pub use crate::{address, declare_id, emit, require};
 pub use naclac_macros::{NaclacDeserialize, NaclacSerialize};
 
 /// Declares the program's static ID constant.
@@ -719,6 +877,28 @@ macro_rules! declare_id {
             ID
         }
     };
+}
+
+/// Parses a base58 address literal into a `$crate::prelude::Address` constant,
+/// usable anywhere (not just a crate's own program ID, unlike `declare_id!`).
+/// Resolves the same Pinocchio-vs-Solana backend split `declare_id!` does
+/// internally, so callers never need to know `pinocchio::address::address!`
+/// returns a different (structurally identical) `Address` type that needs an
+/// explicit conversion.
+#[macro_export]
+macro_rules! address {
+    ($id:expr) => {{
+        #[cfg(not(feature = "pinocchio"))]
+        {
+            $crate::solana_address::address!($id)
+        }
+        #[cfg(feature = "pinocchio")]
+        {
+            let __addr: $crate::prelude::Address =
+                unsafe { core::mem::transmute($crate::pinocchio::address::address!($id)) };
+            __addr
+        }
+    }};
 }
 
 // --- Zero-Copy Helper Types ---

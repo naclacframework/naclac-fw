@@ -1,0 +1,30 @@
+#![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
+#[cfg(feature = "cpi")]
+pub use naclac_lang::prelude as sdk_core;
+#[cfg(all(feature = "offchain", not(feature = "cpi")))]
+pub use naclac_client as sdk_core;
+#[cfg(feature = "offchain")]
+pub mod components;
+pub mod instructions;
+pub mod types;
+#[cfg(feature = "offchain")]
+pub use components::*;
+pub use instructions::*;
+pub use types::*;
+#[macro_export]
+macro_rules! declare_id {
+    ($id:expr) => {};
+}
+declare_id!("CftDHdXFWzSiY7AbXsJcBWVhWGx1qpk2TYbRtEeDvrX1");
+#[cfg(feature = "offchain")]
+pub fn get_escrow_state_pda(
+    program_id: &naclac_client::Address,
+    maker: &naclac_client::Address,
+    seed: u64,
+) -> (naclac_client::Address, u8) {
+    let seed_bytes = seed.to_le_bytes();
+    naclac_client::Address::find_program_address(
+        &[&[101, 115, 99, 114, 111, 119], maker.as_ref(), &seed_bytes],
+        program_id,
+    )
+}

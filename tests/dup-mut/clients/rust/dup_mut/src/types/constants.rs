@@ -7,9 +7,10 @@ pub const PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_
 ]);
 
 #[cfg(not(feature = "offchain"))]
-pub const PROGRAM_ID: crate::sdk_core::Address = crate::sdk_core::Address::new_from_array([
+pub const PROGRAM_ID: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
     206, 206, 117, 97, 218, 81, 170, 241, 72, 31, 181, 103, 148, 77, 190, 234, 224, 134, 93, 119, 227, 197, 240, 79, 48, 88, 127, 226, 146, 73, 162, 252
 ]);
 
 pub const SEED_VAULT_A: &[u8] = &[118, 97, 117, 108, 116, 95, 97];
 pub const SEED_VAULT_B: &[u8] = &[118, 97, 117, 108, 116, 95, 98];
+pub const SEED_VAULT_C: &[u8] = &[118, 97, 117, 108, 116, 95, 99];

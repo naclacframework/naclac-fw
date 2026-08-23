@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `initIfNeededLedger` instruction. */
-export const INITIFNEEDEDLEDGER_DISCRIMINATOR = new Uint8Array([22, 82, 120, 44, 13, 132, 41, 18]);
+/** 8-byte discriminator for the `init_if_needed_ledger` instruction. */
+export const INIT_IF_NEEDED_LEDGER_DISCRIMINATOR = new Uint8Array([22, 82, 120, 44, 13, 132, 41, 18]);
 
 /** Instruction arguments for `initIfNeededLedger`. */
 export interface InitIfNeededLedgerArgs {
@@ -15,7 +15,7 @@ export interface InitIfNeededLedgerArgs {
 export interface InitIfNeededLedgerAccounts {
   payer: naclac.Address | string;
   ledger?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**
@@ -27,7 +27,7 @@ export function initIfNeededLedger(
   args: InitIfNeededLedgerArgs,
   accounts?: Partial<InitIfNeededLedgerAccounts>
 ) {
-  const builder = program.methods.initIfNeededLedger(args ?? {});
+  const builder = program.methods.init_if_needed_ledger(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

@@ -23,7 +23,6 @@ pinocchio = ["naclac-core/pinocchio", "naclac-macros/pinocchio", "naclac-token?/
 # Single unified token toggle — ATA is always included with token support now, not a separate opt-in.
 token = ["dep:naclac-token"]
 
-idl-build = ["naclac-core/idl-build"]
 debug-mode = ["naclac-core/debug-mode", "naclac-macros/debug-mode"]
 borsh = ["naclac-core/borsh", "naclac-token?/borsh", "naclac-macros/borsh"]
 

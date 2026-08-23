@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -49,14 +49,26 @@ pub fn get_vault_b_pda(
     )
 }
 
+#[cfg(feature = "offchain")]
+pub fn get_vault_c_pda(
+    program_id: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[118, 97, 117, 108, 116, 95, 99],
+        ],
+        program_id,
+    )
+}
+
 #[cfg(feature = "cpi")]
 #[derive(Clone, Copy)]
 pub struct DupMut;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for DupMut {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([206, 206, 117, 97, 218, 81, 170, 241, 72, 31, 181, 103, 148, 77, 190, 234, 224, 134, 93, 119, 227, 197, 240, 79, 48, 88, 127, 226, 146, 73, 162, 252])
+impl sdk_core_cpi::Id for DupMut {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([206, 206, 117, 97, 218, 81, 170, 241, 72, 31, 181, 103, 148, 77, 190, 234, 224, 134, 93, 119, 227, 197, 240, 79, 48, 88, 127, 226, 146, 73, 162, 252])
     }
 }
 

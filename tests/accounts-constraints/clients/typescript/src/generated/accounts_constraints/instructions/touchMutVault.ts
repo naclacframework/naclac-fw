@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touchMutVault` instruction. */
-export const TOUCHMUTVAULT_DISCRIMINATOR = new Uint8Array([70, 22, 63, 237, 108, 82, 188, 171]);
+/** 8-byte discriminator for the `touch_mut_vault` instruction. */
+export const TOUCH_MUT_VAULT_DISCRIMINATOR = new Uint8Array([70, 22, 63, 237, 108, 82, 188, 171]);
 
 /** Accounts for the `touchMutVault` instruction. */
 export interface TouchMutVaultAccounts {
@@ -20,7 +20,7 @@ export function touchMutVault(
   args?: Record<string, never>,
   accounts?: Partial<TouchMutVaultAccounts>
 ) {
-  const builder = program.methods.touchMutVault(args ?? {});
+  const builder = program.methods.touch_mut_vault(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

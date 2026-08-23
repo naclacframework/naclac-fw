@@ -1,0 +1,26 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-border">
+  <div
+    class="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-sm text-fg-muted sm:flex-row sm:items-center sm:justify-between"
+  >
+    <div class="flex items-center gap-2">
+      <img src="/naclac-logo.png" alt="Naclac" class="size-5 rounded-full" />
+      <span>&copy; {year} naclac</span>
+    </div>
+
+    <div class="flex items-center gap-6">
+      <a href="https://docs.naclac.com" class="transition-colors hover:text-fg">
+        Docs
+      </a>
+      <a
+        href="https://github.com/naclacframework/naclac-fw"
+        class="transition-colors hover:text-fg"
+      >
+        GitHub
+      </a>
+    </div>
+  </div>
+</footer>

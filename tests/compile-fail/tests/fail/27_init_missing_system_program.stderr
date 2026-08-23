@@ -1,0 +1,5 @@
+error: Naclac Error: system_program (Program<System>) must be defined in the Accounts struct for account initialization.
+  --> tests/fail/27_init_missing_system_program.rs:13:9
+   |
+13 |     pub account: Account<FooData>,
+   |         ^^^^^^^

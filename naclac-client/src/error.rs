@@ -11,25 +11,26 @@ pub enum NaclacError {
     ConstraintSeeds = 6,
     ConstraintExecutable = 7,
     ConstraintAccountIsNone = 8,
-    ConstraintHasOne = 9,
-    ProgramIdMismatch = 10,
-    AccountDataTooSmall = 11,
-    AccountBorrowFailed = 12,
-    InvalidInstructionData = 13,
-    InsufficientFunds = 14,
-    AccountAlreadyInitialized = 15,
-    AccountNotInitialized = 16,
-    NotEnoughAccountKeys = 17,
-    MaxSeedLengthExceeded = 18,
-    UnsupportedSysvar = 19,
-    InvalidRealloc = 20,
-    ArithmeticOverflow = 21,
-    Unauthorized = 22,
-    InvalidAccountDiscriminator = 23,
-    DeserializationFailed = 24,
-    SerializationFailed = 25,
-    ConstraintDuplicateMutableAccount = 26,
-    ConstraintClose = 27,
+    ProgramIdMismatch = 9,
+    AccountDataTooSmall = 10,
+    AccountBorrowFailed = 11,
+    InvalidInstructionData = 12,
+    InsufficientFunds = 13,
+    AccountAlreadyInitialized = 14,
+    AccountNotInitialized = 15,
+    NotEnoughAccountKeys = 16,
+    MaxSeedLengthExceeded = 17,
+    UnsupportedSysvar = 18,
+    InvalidRealloc = 19,
+    ArithmeticOverflow = 20,
+    Unauthorized = 21,
+    InvalidAccountDiscriminator = 22,
+    DeserializationFailed = 23,
+    SerializationFailed = 24,
+    ConstraintDuplicateMutableAccount = 25,
+    ConstraintClose = 26,
+    TooManyCpiSigners = 27,
+    TooManyCpiSeeds = 28,
 }
 
 impl NaclacError {
@@ -43,7 +44,6 @@ impl NaclacError {
             NaclacError::ConstraintSeeds => "Account seeds derivation constraint mismatch",
             NaclacError::ConstraintExecutable => "Account must be executable (program)",
             NaclacError::ConstraintAccountIsNone => "Account is required but was not provided",
-            NaclacError::ConstraintHasOne => "Account relational constraint (has_one) failed",
             NaclacError::ProgramIdMismatch => "Program ID mismatch",
             NaclacError::AccountDataTooSmall => "Account data size is too small",
             NaclacError::AccountBorrowFailed => "Account borrow failed (concurrent borrow overlap)",
@@ -64,6 +64,12 @@ impl NaclacError {
                 "Duplicate mutable account detected in instruction"
             }
             NaclacError::ConstraintClose => "Cannot close account to itself",
+            NaclacError::TooManyCpiSigners => {
+                "Too many PDA signers in one CPI call (exceeds MAX_CPI_SIGNERS)"
+            }
+            NaclacError::TooManyCpiSeeds => {
+                "Too many seeds for one PDA signer in a CPI call (exceeds MAX_CPI_SEEDS_PER_SIGNER)"
+            }
         }
     }
 }
@@ -85,25 +91,26 @@ pub fn decode_custom_error(code: u32) -> Option<(NaclacError, usize)> {
         6 => NaclacError::ConstraintSeeds,
         7 => NaclacError::ConstraintExecutable,
         8 => NaclacError::ConstraintAccountIsNone,
-        9 => NaclacError::ConstraintHasOne,
-        10 => NaclacError::ProgramIdMismatch,
-        11 => NaclacError::AccountDataTooSmall,
-        12 => NaclacError::AccountBorrowFailed,
-        13 => NaclacError::InvalidInstructionData,
-        14 => NaclacError::InsufficientFunds,
-        15 => NaclacError::AccountAlreadyInitialized,
-        16 => NaclacError::AccountNotInitialized,
-        17 => NaclacError::NotEnoughAccountKeys,
-        18 => NaclacError::MaxSeedLengthExceeded,
-        19 => NaclacError::UnsupportedSysvar,
-        20 => NaclacError::InvalidRealloc,
-        21 => NaclacError::ArithmeticOverflow,
-        22 => NaclacError::Unauthorized,
-        23 => NaclacError::InvalidAccountDiscriminator,
-        24 => NaclacError::DeserializationFailed,
-        25 => NaclacError::SerializationFailed,
-        26 => NaclacError::ConstraintDuplicateMutableAccount,
-        27 => NaclacError::ConstraintClose,
+        9 => NaclacError::ProgramIdMismatch,
+        10 => NaclacError::AccountDataTooSmall,
+        11 => NaclacError::AccountBorrowFailed,
+        12 => NaclacError::InvalidInstructionData,
+        13 => NaclacError::InsufficientFunds,
+        14 => NaclacError::AccountAlreadyInitialized,
+        15 => NaclacError::AccountNotInitialized,
+        16 => NaclacError::NotEnoughAccountKeys,
+        17 => NaclacError::MaxSeedLengthExceeded,
+        18 => NaclacError::UnsupportedSysvar,
+        19 => NaclacError::InvalidRealloc,
+        20 => NaclacError::ArithmeticOverflow,
+        21 => NaclacError::Unauthorized,
+        22 => NaclacError::InvalidAccountDiscriminator,
+        23 => NaclacError::DeserializationFailed,
+        24 => NaclacError::SerializationFailed,
+        25 => NaclacError::ConstraintDuplicateMutableAccount,
+        26 => NaclacError::ConstraintClose,
+        27 => NaclacError::TooManyCpiSigners,
+        28 => NaclacError::TooManyCpiSeeds,
         _ => return None,
     };
     Some((error, index))
@@ -137,9 +144,30 @@ pub enum NaclacClientError {
     General(String),
 }
 
-pub fn translate_error_code(code: u32, account_names: Option<&[&str]>) -> String {
+/// Depth of the last "Program X invoke [N]" line in `logs` — the stack depth
+/// at which the actual failure most likely occurred. `1` means the top-level
+/// submitted instruction; anything deeper means the failure originated
+/// inside a CPI target, whose own account list `account_names` (always the
+/// top-level instruction's) cannot correctly describe — a valid-looking
+/// index there names an unrelated account from the wrong instruction.
+fn last_invoke_depth(logs: &[String]) -> Option<u32> {
+    logs.iter().rev().find_map(|line| {
+        let start = line.find("invoke [")? + "invoke [".len();
+        let end = line[start..].find(']')?;
+        line[start..start + end].parse::<u32>().ok()
+    })
+}
+
+pub fn translate_error_code(code: u32, account_names: Option<&[&str]>, logs: &[String]) -> String {
     if let Some((error, index)) = decode_custom_error(code) {
-        let account_desc = if let Some(names) = account_names {
+        let is_top_level = last_invoke_depth(logs).map(|d| d == 1).unwrap_or(true);
+        let account_desc = if !is_top_level {
+            format!(
+                "Account Index: {} (inside a nested CPI — the top-level instruction's own \
+                 account list can't name it; check the program logs for the real account)",
+                index
+            )
+        } else if let Some(names) = account_names {
             if index < names.len() {
                 format!("Account: '{}' (Index {})", names[index], index)
             } else {

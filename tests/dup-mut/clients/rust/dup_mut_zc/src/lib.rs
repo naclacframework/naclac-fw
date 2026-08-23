@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -24,6 +24,18 @@ macro_rules! declare_id {
 }
 
 declare_id!("H2NgEykTkDNkVsNgEoXUiSZ2A9UbyRhNbEXZnbrrFXjj");
+
+#[cfg(feature = "offchain")]
+pub fn get_note_pda(
+    program_id: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[110, 111, 116, 101],
+        ],
+        program_id,
+    )
+}
 
 #[cfg(feature = "offchain")]
 pub fn get_vault_a_pda(
@@ -49,14 +61,26 @@ pub fn get_vault_b_pda(
     )
 }
 
+#[cfg(feature = "offchain")]
+pub fn get_vault_c_pda(
+    program_id: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[118, 97, 117, 108, 116, 95, 99],
+        ],
+        program_id,
+    )
+}
+
 #[cfg(feature = "cpi")]
 #[derive(Clone, Copy)]
 pub struct DupMutZc;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for DupMutZc {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([238, 21, 20, 214, 254, 30, 189, 30, 129, 251, 12, 170, 232, 199, 234, 156, 39, 46, 114, 171, 191, 112, 192, 199, 200, 248, 221, 22, 206, 25, 18, 198])
+impl sdk_core_cpi::Id for DupMutZc {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([238, 21, 20, 214, 254, 30, 189, 30, 129, 251, 12, 170, 232, 199, 234, 156, 39, 46, 114, 171, 191, 112, 192, 199, 200, 248, 221, 22, 206, 25, 18, 198])
     }
 }
 

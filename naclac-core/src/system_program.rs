@@ -6,6 +6,19 @@
 //!
 //! Provides dual-backend wrappers for invoking native Solana System Program instructions.
 //! Enforces borrow-checking via CPI handles.
+//!
+//! `create_account`/`create_account_signed` always resolve to the *checked*
+//! path: borrow-checked on pinocchio (via the real `pinocchio_system`
+//! instruction structs, which verify no account is already borrowed before
+//! invoking) and, on both backends, aware that the target account may
+//! already hold lamports (e.g. a PDA pre-funded by a plain SOL transfer
+//! before this instruction ran) — falling back to `CreateAccountAllowPrefund`
+//! (SIMD-0312) instead of failing with `AccountAlreadyInUse`, the way plain
+//! `CreateAccount` would. `create_account_unchecked`/
+//! `create_account_signed_unchecked` are the raw, no-prefund-awareness,
+//! no-borrow-check primitives for callers who know what they're doing and
+//! want to skip that overhead — exposed for manual use, but never what the
+//! `#[derive(Accounts)]` macro's own `init`/`init_if_needed` codegen calls.
 
 use crate::prelude::{ToCpiHandle, ToCpiHandleMut};
 
@@ -67,7 +80,7 @@ mod solana_system {
         ) -> u64;
     }
 
-    pub fn create_account(
+    pub fn create_account_unchecked(
         from: CpiHandleMut<'_>,
         to: CpiHandleMut<'_>,
         program: CpiHandle<'_>,
@@ -75,10 +88,16 @@ mod solana_system {
         space: u64,
         owner: &solana_address::Address,
     ) -> Result<()> {
-        create_account_signed(from, to, program, lamports, space, owner, &[])
+        create_account_signed_unchecked(from, to, program, lamports, space, owner, &[])
     }
 
-    pub fn create_account_signed(
+    /// Raw, no-prefund-awareness `CreateAccount` CPI via the low-level FFI
+    /// `sol_invoke_signed_rust` entry point rather than `solana_program`'s
+    /// own `invoke_signed` — the pre-existing implementation this module
+    /// has always used. Fails with `AccountAlreadyInUse` if `to` already
+    /// holds lamports; see `create_account_signed` for the checked,
+    /// prefund-aware equivalent.
+    pub fn create_account_signed_unchecked(
         from: CpiHandleMut<'_>,
         to: CpiHandleMut<'_>,
         program: CpiHandle<'_>,
@@ -87,6 +106,16 @@ mod solana_system {
         owner: &solana_address::Address,
         signer_seeds: &[&[&[u8]]],
     ) -> Result<()> {
+        // The instruction below always targets the real, hardcoded `ID`
+        // regardless of `program` — but the low-level CPI mechanism still
+        // needs `program`'s `AccountInfo` present to locate/invoke it, so a
+        // caller passing the wrong account here would otherwise fail with
+        // an opaque "account not found"-style runtime error instead of a
+        // clear one.
+        if program.info.address() != ID {
+            return Err(crate::error::NaclacError::ProgramIdMismatch.into());
+        }
+
         let stable_accounts = [
             StableAccountMeta {
                 pubkey: from.info.address(),
@@ -144,6 +173,87 @@ mod solana_system {
         }
         Ok(())
     }
+
+    /// Fallback for a target account that already holds lamports (e.g. a
+    /// PDA that received a plain SOL transfer before this instruction ran)
+    /// — plain `CreateAccount` requires a zero-lamport target and fails
+    /// with `AccountAlreadyInUse` otherwise. Uses the real
+    /// `solana_system_interface::instruction::create_account_allow_prefund`
+    /// (SIMD-0312) rather than a hand-rolled `Allocate`+`Assign` sequence,
+    /// since the real instruction already handles crediting the shortfall
+    /// itself in one CPI.
+    fn create_account_allow_prefund_signed(
+        from: CpiHandleMut<'_>,
+        to: CpiHandleMut<'_>,
+        lamports: u64,
+        space: u64,
+        owner: &solana_address::Address,
+        signer_seeds: &[&[&[u8]]],
+    ) -> Result<()> {
+        let current = to.info.lamports();
+        let ix = solana_system_interface::instruction::create_account_allow_prefund(
+            &to.info.address(),
+            Some((&from.info.address(), lamports.saturating_sub(current))),
+            space,
+            owner,
+        );
+        // SAFETY: lifetime-erased for the duration of this CPI only, same
+        // as every other call site in this module.
+        let account_infos = unsafe { [to.info.to_lifetime(), from.info.to_lifetime()] };
+        solana_program::program::invoke_signed(&ix, &account_infos, signer_seeds)
+    }
+
+    /// Checked, prefund-aware `CreateAccount` — the real
+    /// `solana_system_interface::instruction::create_account` builder plus
+    /// the standard `solana_program::program::invoke_signed` (which enforces
+    /// the normal `AccountInfo` borrow rules), instead of this module's own
+    /// lower-level FFI path. Used only when `to` is confirmed empty; see
+    /// `create_account_allow_prefund_signed` for the pre-funded case.
+    fn create_account_checked_empty_signed(
+        from: CpiHandleMut<'_>,
+        to: CpiHandleMut<'_>,
+        lamports: u64,
+        space: u64,
+        owner: &solana_address::Address,
+        signer_seeds: &[&[&[u8]]],
+    ) -> Result<()> {
+        let ix = solana_system_interface::instruction::create_account(
+            &from.info.address(),
+            &to.info.address(),
+            lamports,
+            space,
+            owner,
+        );
+        let account_infos = unsafe { [from.info.to_lifetime(), to.info.to_lifetime()] };
+        solana_program::program::invoke_signed(&ix, &account_infos, signer_seeds)
+    }
+
+    pub fn create_account(
+        from: CpiHandleMut<'_>,
+        to: CpiHandleMut<'_>,
+        program: CpiHandle<'_>,
+        lamports: u64,
+        space: u64,
+        owner: &solana_address::Address,
+    ) -> Result<()> {
+        create_account_signed(from, to, program, lamports, space, owner, &[])
+    }
+
+    pub fn create_account_signed(
+        from: CpiHandleMut<'_>,
+        to: CpiHandleMut<'_>,
+        _program: CpiHandle<'_>,
+        lamports: u64,
+        space: u64,
+        owner: &solana_address::Address,
+        signer_seeds: &[&[&[u8]]],
+    ) -> Result<()> {
+        if to.info.lamports() > 0 {
+            create_account_allow_prefund_signed(from, to, lamports, space, owner, signer_seeds)
+        } else {
+            create_account_checked_empty_signed(from, to, lamports, space, owner, signer_seeds)
+        }
+    }
 }
 
 // PINOCCHIO BACKEND
@@ -185,8 +295,57 @@ mod pinocchio_system {
         crate::cpi::invoke_signed_pinocchio_handles(&instruction, &cpi_accounts, signer_seeds)
     }
 
+    /// Expands to a `let #signers_var: &[::pinocchio::cpi::Signer] = ...;`
+    /// binding, converting naclac's backend-uniform `&[&[&[u8]]]` signer
+    /// seeds (`$seeds`) into pinocchio's own `Signer`/`Seed` types without a
+    /// heap allocation. A macro rather than a function: each `Signer` built
+    /// here borrows from the seed buffer built in the same scope, and
+    /// threading that self-reference across a function boundary risks a
+    /// subtly wrong lifetime signature — expanding inline keeps the exact,
+    /// already-correct borrow shape at every call site. Shared by every
+    /// pinocchio `_unchecked`/checked `CreateAccount`-family function below
+    /// instead of duplicating this conversion in each one.
+    macro_rules! pinocchio_signers_from_seeds {
+        ($seeds:expr, $signers_var:ident) => {
+            let mut __signers: [::pinocchio::cpi::Signer; 4] = unsafe { core::mem::zeroed() };
+            let mut __seeds_buffer: [::pinocchio::cpi::Seed; 32] = unsafe { core::mem::zeroed() };
+            let mut __seed_ranges = [(0usize, 0usize); 4];
+
+            let mut __seed_idx = 0;
+            let mut __signer_idx = 0;
+
+            for (i, seed_parts) in $seeds.iter().enumerate() {
+                if i >= __signers.len() {
+                    break;
+                }
+                let start_seed = __seed_idx;
+                for part in seed_parts.iter() {
+                    if __seed_idx >= __seeds_buffer.len() {
+                        break;
+                    }
+                    __seeds_buffer[__seed_idx] = ::pinocchio::cpi::Seed::from(*part);
+                    __seed_idx += 1;
+                }
+                __seed_ranges[i] = (start_seed, __seed_idx);
+                __signer_idx += 1;
+            }
+
+            for i in 0..__signer_idx {
+                let (start, end) = __seed_ranges[i];
+                __signers[i] = ::pinocchio::cpi::Signer::from(&__seeds_buffer[start..end]);
+            }
+
+            let $signers_var: &[::pinocchio::cpi::Signer] = &__signers[..__signer_idx];
+        };
+    }
+
+    /// Raw, no-borrow-check `CreateAccount` — the pre-existing hand-rolled
+    /// `invoke_signed_unchecked` implementation this module has always
+    /// used. Fails with `AccountAlreadyInUse` if `to` already holds
+    /// lamports; see `create_account_checked_raw` for the checked,
+    /// prefund-aware equivalent.
     #[inline(always)]
-    pub fn create_account_unchecked(
+    fn create_account_unchecked_raw(
         from: &crate::prelude::AccountView,
         to: &crate::prelude::AccountView,
         lamports: u64,
@@ -223,6 +382,94 @@ mod pinocchio_system {
         Ok(())
     }
 
+    /// Checked, prefund-aware `CreateAccount`/`CreateAccountAllowPrefund` —
+    /// goes through the real `pinocchio_system::instructions::{CreateAccount,
+    /// CreateAccountAllowPrefund}` structs directly, both of which perform
+    /// their own `is_borrowed()` check on every account before invoking
+    /// (unlike `create_account_unchecked_raw` above, naclac's own hand-rolled
+    /// `invoke_signed_unchecked` call with no check of its own). Routes to
+    /// the prefund variant when `to` already holds lamports (e.g. a PDA
+    /// pre-funded by a plain SOL transfer before this instruction ran) —
+    /// plain `CreateAccount` requires a zero-lamport target and fails
+    /// otherwise.
+    #[inline(always)]
+    fn create_account_checked_raw(
+        from: &crate::prelude::AccountView,
+        to: &crate::prelude::AccountView,
+        lamports: u64,
+        space: u64,
+        owner: &crate::prelude::Address,
+        signer_seeds: &[::pinocchio::cpi::Signer],
+    ) -> Result<()> {
+        let current = to.lamports();
+        if current > 0 {
+            // `Funding.lamports` is the amount to *transfer*, i.e. the
+            // shortfall against what the account already holds, not the
+            // full target `lamports`.
+            let shortfall = lamports.saturating_sub(current);
+            ::pinocchio_system::instructions::CreateAccountAllowPrefund {
+                to,
+                space,
+                // The real struct wants pinocchio's own `Address` type, not
+                // naclac's — `as_address()` is the established,
+                // verified-safe bridge between the two (same type at the
+                // byte level, used the same way elsewhere in this
+                // codebase, e.g. `naclac-token/src/extensions/mod.rs`'s
+                // `ix_addr`).
+                owner: owner.as_address(),
+                funding: if shortfall == 0 {
+                    None
+                } else {
+                    Some(::pinocchio_system::instructions::Funding {
+                        from,
+                        lamports: shortfall,
+                    })
+                },
+            }
+            .invoke_signed(signer_seeds)
+        } else {
+            ::pinocchio_system::instructions::CreateAccount {
+                from,
+                to,
+                lamports,
+                space,
+                owner: owner.as_address(),
+            }
+            .invoke_signed(signer_seeds)
+        }
+    }
+
+    pub fn create_account_unchecked(
+        from: CpiHandleMut<'_>,
+        to: CpiHandleMut<'_>,
+        _program: CpiHandle<'_>,
+        lamports: u64,
+        space: u64,
+        owner: &crate::prelude::Address,
+    ) -> Result<()> {
+        create_account_signed_unchecked(from, to, _program, lamports, space, owner, &[])
+    }
+
+    pub fn create_account_signed_unchecked(
+        from: CpiHandleMut<'_>,
+        to: CpiHandleMut<'_>,
+        _program: CpiHandle<'_>,
+        lamports: u64,
+        space: u64,
+        owner: &crate::prelude::Address,
+        signer_seeds: &[&[&[u8]]],
+    ) -> Result<()> {
+        pinocchio_signers_from_seeds!(signer_seeds, signers);
+        create_account_unchecked_raw(
+            &from.info.view,
+            &to.info.view,
+            lamports,
+            space,
+            owner,
+            signers,
+        )
+    }
+
     pub fn create_account(
         from: CpiHandleMut<'_>,
         to: CpiHandleMut<'_>,
@@ -243,42 +490,34 @@ mod pinocchio_system {
         owner: &crate::prelude::Address,
         signer_seeds: &[&[&[u8]]],
     ) -> Result<()> {
-        let mut signers: [::pinocchio::cpi::Signer; 4] = unsafe { core::mem::zeroed() };
-        let mut seeds_buffer: [::pinocchio::cpi::Seed; 32] = unsafe { core::mem::zeroed() };
-        let mut seed_ranges = [(0usize, 0usize); 4];
-
-        let mut seed_idx = 0;
-        let mut signer_idx = 0;
-
-        for (i, seed_parts) in signer_seeds.iter().enumerate() {
-            if i >= signers.len() {
-                break;
-            }
-            let start_seed = seed_idx;
-            for part in seed_parts.iter() {
-                if seed_idx >= seeds_buffer.len() {
-                    break;
-                }
-                seeds_buffer[seed_idx] = ::pinocchio::cpi::Seed::from(*part);
-                seed_idx += 1;
-            }
-            seed_ranges[i] = (start_seed, seed_idx);
-            signer_idx += 1;
-        }
-
-        for i in 0..signer_idx {
-            let (start, end) = seed_ranges[i];
-            signers[i] = ::pinocchio::cpi::Signer::from(&seeds_buffer[start..end]);
-        }
-
-        create_account_unchecked(
+        pinocchio_signers_from_seeds!(signer_seeds, signers);
+        create_account_checked_raw(
             &from.info.view,
             &to.info.view,
             lamports,
             space,
             owner,
-            &signers[..signer_idx],
+            signers,
         )
+    }
+
+    /// Direct entry point for `naclac-macros`' `init`/`init_if_needed`
+    /// codegen on the pinocchio backend — takes already-built
+    /// `AccountView`s and already-converted `pinocchio::cpi::Signer`s
+    /// (both already in scope in the generated code) rather than
+    /// `CpiHandleMut`/raw seeds, avoiding a redundant round-trip through
+    /// `CpiHandleMut` and `pinocchio_signers_from_seeds!` for state the
+    /// caller already has. Always the checked, prefund-aware path — the
+    /// macro must never generate the unchecked one.
+    pub fn create_account_checked_for_init(
+        from: &crate::prelude::AccountView,
+        to: &crate::prelude::AccountView,
+        lamports: u64,
+        space: u64,
+        owner: &crate::prelude::Address,
+        signer_seeds: &[::pinocchio::cpi::Signer],
+    ) -> Result<()> {
+        create_account_checked_raw(from, to, lamports, space, owner, signer_seeds)
     }
 }
 
@@ -286,11 +525,15 @@ mod pinocchio_system {
 // Re-exports
 // ===========================================================================
 #[cfg(not(feature = "pinocchio"))]
-pub use solana_system::{create_account, create_account_signed, transfer, transfer_signed, ID};
+pub use solana_system::{
+    create_account, create_account_signed, create_account_signed_unchecked,
+    create_account_unchecked, transfer, transfer_signed, ID,
+};
 
 #[cfg(feature = "pinocchio")]
 pub use pinocchio_system::{
-    create_account, create_account_signed, create_account_unchecked, transfer, transfer_signed, ID,
+    create_account, create_account_checked_for_init, create_account_signed,
+    create_account_signed_unchecked, create_account_unchecked, transfer, transfer_signed, ID,
 };
 
 #[derive(Debug)]

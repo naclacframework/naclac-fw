@@ -3,7 +3,7 @@ use crate::components::{Child, Registry};
 use crate::constants::SEED_CHILD;
 
 // `registry.bump.to_le_bytes().as_ref()` — a struct-field access
-// (`registry.bump`, reachable via `AccountLoader<T>: Deref<Target = T>`)
+// (`registry.bump`, reachable via `Account<T>: Deref<Target = T>`)
 // followed by a method-call suffix chain (`.to_le_bytes()`, `.as_ref()`).
 // Distinct from `init_entry`'s whole-account `.as_ref()` case: this exercises
 // the generic seed-normalization fallback's handling of a nested

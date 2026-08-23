@@ -17,6 +17,11 @@ pub struct NaclacTransactionMetadata {
     pub signature: Signature,
     pub logs: Vec<String>,
     pub compute_units_consumed: u64,
+    /// The instruction's `set_return_data` payload, if any — populated on
+    /// every backend (litesvm, and RPC against localnet/devnet/mainnet
+    /// alike), not just litesvm. Empty when the instruction never called
+    /// `set_return_data`.
+    pub return_data: Vec<u8>,
 }
 
 fn extract_event_bytes(parts: &[&str]) -> Option<(Vec<u8>, Vec<u8>)> {
@@ -109,6 +114,49 @@ impl NaclacTransactionMetadata {
         }
         Ok(events)
     }
+
+    /// Parses `#[event(alloc)]` events of type `T` from the transaction logs.
+    /// Unlike [`parse_events_zero_copy`](Self::parse_events_zero_copy), `T` isn't
+    /// `bytemuck::Pod` (it may hold `Vec`/`String`/`Option` fields), so decoding
+    /// is delegated to `T`'s generated [`NaclacAllocEvent::decode`], which mirrors
+    /// the on-chain `emit()`'s sequential, length-prefixed write order.
+    pub fn parse_events_alloc<T: crate::NaclacAllocEvent>(
+        &self,
+    ) -> Result<Vec<T>, NaclacClientError> {
+        let full_name = std::any::type_name::<T>();
+        let struct_name = full_name.split("::").last().unwrap();
+        let preimage = format!("event:{}", struct_name);
+
+        let mut hasher = <sha2::Sha256 as sha2::Digest>::new();
+        hasher.update(preimage.as_bytes());
+        let hash_result = hasher.finalize();
+        let mut expected_disc = [0u8; 8];
+        expected_disc.copy_from_slice(&hash_result[0..8]);
+
+        let mut events = Vec::new();
+        for log in &self.logs {
+            if let Some(data_str) = log.strip_prefix("Program data: ") {
+                let parts: Vec<&str> = data_str.split_whitespace().collect();
+                if let Some((disc_bytes, payload_bytes)) = extract_event_bytes(&parts) {
+                    if disc_bytes == expected_disc {
+                        if let Some(event) = T::decode(&payload_bytes) {
+                            events.push(event);
+                        }
+                    }
+                }
+            }
+        }
+        Ok(events)
+    }
+}
+
+/// Implemented by client-generated `#[event(alloc)]` structs. `decode` reads
+/// the single-allocation, length-prefixed wire format `expand_alloc` writes
+/// on-chain: fields in declaration order, `Vec<T>`/`String` as a u32 LE
+/// length prefix followed by their bytes, `Option<T>` as a 1-byte tag plus
+/// `T`'s bytes when present, everything else as a raw `bytemuck` read.
+pub trait NaclacAllocEvent: Sized {
+    fn decode(bytes: &[u8]) -> Option<Self>;
 }
 
 #[derive(Clone)]
@@ -117,11 +165,42 @@ pub enum ClientBackend {
     Rpc(Arc<RpcClient>),
 }
 
+/// Which real cluster an RPC-backed `NaclacProvider` is talking to — inferred
+/// from the URL (matching the same known-endpoint strings `NaclacProvider::new`
+/// already dispatches on), since only `ClientBackend::Rpc` carries a bare
+/// `RpcClient` with no cluster identity of its own. Used by `airdrop` to
+/// decide whether to cap the requested amount — real cluster faucets differ
+/// wildly in how rate-limited they are.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RpcCluster {
+    Litesvm,
+    Localnet,
+    Devnet,
+    Testnet,
+    Mainnet,
+    Custom,
+}
+
+fn cluster_from_url(url: &str) -> RpcCluster {
+    if url.contains("devnet") {
+        RpcCluster::Devnet
+    } else if url.contains("testnet") {
+        RpcCluster::Testnet
+    } else if url.contains("mainnet") {
+        RpcCluster::Mainnet
+    } else if url.contains("127.0.0.1") || url.contains("localhost") {
+        RpcCluster::Localnet
+    } else {
+        RpcCluster::Custom
+    }
+}
+
 #[derive(Clone)]
 pub struct NaclacProvider {
     pub backend: ClientBackend,
     pub payer: Arc<Keypair>,
     pub commitment: CommitmentConfig,
+    pub cluster: RpcCluster,
 }
 
 impl NaclacProvider {
@@ -133,6 +212,7 @@ impl NaclacProvider {
             backend: ClientBackend::LiteSVM(Arc::new(Mutex::new(svm))),
             payer: Arc::new(payer),
             commitment: CommitmentConfig::confirmed(),
+            cluster: RpcCluster::Litesvm,
         }
     }
 
@@ -141,6 +221,7 @@ impl NaclacProvider {
             backend: ClientBackend::Rpc(Arc::new(RpcClient::new(url.to_string()))),
             payer: Arc::new(payer),
             commitment: CommitmentConfig::confirmed(),
+            cluster: cluster_from_url(url),
         }
     }
 
@@ -172,6 +253,7 @@ impl NaclacProvider {
                         signature: meta.signature,
                         logs: meta.logs,
                         compute_units_consumed: meta.compute_units_consumed,
+                        return_data: meta.return_data.data,
                     }),
                     Err(failed_meta) => {
                         let (ins_err, err_code) = match &failed_meta.err {
@@ -186,7 +268,7 @@ impl NaclacProvider {
                             _ => (InstructionError::GenericError, None),
                         };
                         let translated = if let Some(code) = err_code {
-                            translate_error_code(code, account_names)
+                            translate_error_code(code, account_names, &failed_meta.meta.logs)
                         } else {
                             format!("{:?}", failed_meta.err)
                         };
@@ -205,6 +287,7 @@ impl NaclacProvider {
                     Ok(sig) => {
                         let mut logs = Vec::new();
                         let mut compute_units_consumed = 0;
+                        let mut return_data = Vec::new();
                         if let Ok(tx_response) = client.get_transaction_with_config(
                             &sig,
                             solana_rpc_client_api::config::RpcTransactionConfig {
@@ -220,12 +303,19 @@ impl NaclacProvider {
                                     logs = l;
                                 }
                                 compute_units_consumed = meta.compute_units_consumed.unwrap_or(0);
+                                if let solana_transaction_status::option_serializer::OptionSerializer::Some(rd) = meta.return_data {
+                                    use base64::Engine;
+                                    return_data = base64::engine::general_purpose::STANDARD
+                                        .decode(&rd.data.0)
+                                        .unwrap_or_default();
+                                }
                             }
                         }
                         Ok(NaclacTransactionMetadata {
                             signature: sig,
                             logs,
                             compute_units_consumed,
+                            return_data,
                         })
                     }
                     Err(client_err) => {
@@ -275,7 +365,7 @@ impl NaclacProvider {
                         {
                             ins_err = ix_err.clone();
                             if let InstructionError::Custom(code) = ix_err {
-                                translated = translate_error_code(code, account_names);
+                                translated = translate_error_code(code, account_names, &tx_logs);
                             }
                         }
 
@@ -465,6 +555,18 @@ impl NaclacProvider {
                 Ok(())
             }
             ClientBackend::Rpc(client) => {
+                // Devnet's real faucet is rate-limited hard enough that a
+                // single over-large request routinely fails outright; cap
+                // requests there to what it reliably grants. Localnet's own
+                // faucet has no such limit (it's a local validator), and
+                // mainnet has no faucet at all — both pass the amount
+                // through unchanged.
+                const DEVNET_MAX_AIRDROP_LAMPORTS: u64 = 5_000_000_000;
+                let lamports = if self.cluster == RpcCluster::Devnet {
+                    lamports.min(DEVNET_MAX_AIRDROP_LAMPORTS)
+                } else {
+                    lamports
+                };
                 let sig = client.request_airdrop(&pubkey, lamports).map_err(|e| {
                     NaclacClientError::RpcError(format!("Airdrop request failed: {}", e))
                 })?;
@@ -490,6 +592,123 @@ impl NaclacProvider {
                 }
                 Ok(())
             }
+        }
+    }
+
+    /// Advances the litesvm backend's blockhash. Two transactions with
+    /// identical accounts, args, and signers produce identical signatures
+    /// under the same blockhash — real Solana rejects the resubmission as
+    /// `AlreadyProcessed`, and litesvm faithfully reproduces that, since it
+    /// doesn't auto-rotate its blockhash per transaction the way a real
+    /// validator rotates per slot. Call this between two otherwise-identical
+    /// transactions in a test.
+    pub fn expire_blockhash(&self) -> Result<(), NaclacClientError> {
+        match &self.backend {
+            ClientBackend::LiteSVM(svm_lock) => {
+                let mut svm = svm_lock.lock().map_err(|e| {
+                    NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
+                })?;
+                svm.expire_blockhash();
+                Ok(())
+            }
+            ClientBackend::Rpc(_) => Err(NaclacClientError::General(
+                "expire_blockhash is only supported on the litesvm backend".to_string(),
+            )),
+        }
+    }
+
+    /// Sets an account's lamport balance directly, bypassing normal transfer
+    /// execution (and its rent-exemption rule) — `airdrop` goes through a
+    /// real System Program transfer, which the runtime rejects if it would
+    /// leave a new account underfunded. Only supported on the litesvm
+    /// backend, since it writes ledger state that isn't reachable through a
+    /// real transaction.
+    pub fn set_account_lamports(
+        &self,
+        address: &solana_address::Address,
+        lamports: u64,
+    ) -> Result<(), NaclacClientError> {
+        let pubkey = Pubkey::new_from_array(address.to_bytes());
+        match &self.backend {
+            ClientBackend::LiteSVM(svm_lock) => {
+                let mut svm = svm_lock.lock().map_err(|e| {
+                    NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
+                })?;
+                let mut account = svm.get_account(&pubkey).unwrap_or_default();
+                account.lamports = lamports;
+                svm.set_account(pubkey, account).map_err(|e| {
+                    NaclacClientError::LiteSvmError(format!("set_account failed: {:?}", e))
+                })?;
+                Ok(())
+            }
+            ClientBackend::Rpc(_) => Err(NaclacClientError::General(
+                "set_account_lamports is only supported on the litesvm backend".to_string(),
+            )),
+        }
+    }
+
+    /// Overwrites the litesvm backend's `Clock` sysvar with `unix_timestamp`,
+    /// leaving every other `Clock` field (slot, epoch, ...) untouched.
+    /// Litesvm's default `Clock` starts at `unix_timestamp = 0` and nothing
+    /// advances it on its own, so any test relying on real-looking on-chain
+    /// timestamps (e.g. an emitted event's `timestamp` field, or a
+    /// rate-limit computed from elapsed time) needs to set this explicitly.
+    /// Only supported on the litesvm backend, since a real RPC target's
+    /// clock reflects genuine chain time and can't be overwritten this way.
+    pub fn set_clock_unix_timestamp(&self, unix_timestamp: i64) -> Result<(), NaclacClientError> {
+        match &self.backend {
+            ClientBackend::LiteSVM(svm_lock) => {
+                let mut svm = svm_lock.lock().map_err(|e| {
+                    NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
+                })?;
+                let mut clock: solana_program::clock::Clock = svm.get_sysvar();
+                clock.unix_timestamp = unix_timestamp;
+                svm.set_sysvar(&clock);
+                Ok(())
+            }
+            ClientBackend::Rpc(_) => Err(NaclacClientError::General(
+                "set_clock_unix_timestamp is only supported on the litesvm backend".to_string(),
+            )),
+        }
+    }
+
+    /// Directly injects an account into ledger state — data, owner, and
+    /// lamports all explicitly controlled — bypassing normal account
+    /// creation entirely. Only supported on the litesvm backend, since it
+    /// writes ledger state that isn't reachable through a real transaction.
+    /// Needed for fixtures owned by a program this test doesn't itself
+    /// deploy or control (e.g. a PDA whose real owner is a different,
+    /// possibly not-yet-built program) — there is no other way to give such
+    /// an account real backing data under test.
+    pub fn set_account(
+        &self,
+        address: &solana_address::Address,
+        data: Vec<u8>,
+        owner: &solana_address::Address,
+        lamports: u64,
+    ) -> Result<(), NaclacClientError> {
+        let pubkey = Pubkey::new_from_array(address.to_bytes());
+        let owner_pubkey = Pubkey::new_from_array(owner.to_bytes());
+        match &self.backend {
+            ClientBackend::LiteSVM(svm_lock) => {
+                let mut svm = svm_lock.lock().map_err(|e| {
+                    NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
+                })?;
+                let account = Account {
+                    lamports,
+                    data,
+                    owner: owner_pubkey,
+                    executable: false,
+                    rent_epoch: 0,
+                };
+                svm.set_account(pubkey, account).map_err(|e| {
+                    NaclacClientError::LiteSvmError(format!("set_account failed: {:?}", e))
+                })?;
+                Ok(())
+            }
+            ClientBackend::Rpc(_) => Err(NaclacClientError::General(
+                "set_account is only supported on the litesvm backend".to_string(),
+            )),
         }
     }
 
@@ -520,6 +739,8 @@ impl NaclacProvider {
     }
 }
 
+static PROFILE_WRITE_LOCK: Mutex<()> = Mutex::new(());
+
 fn write_profile_log(tx: &VersionedTransaction, meta: &NaclacTransactionMetadata) {
     if let Ok(file_path) = std::env::var("NACLAC_PROFILE_FILE") {
         let mut instructions = Vec::new();
@@ -549,6 +770,9 @@ fn write_profile_log(tx: &VersionedTransaction, meta: &NaclacTransactionMetadata
             if let Some(parent) = std::path::Path::new(&file_path).parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
+            let _guard = PROFILE_WRITE_LOCK
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             if let Ok(mut file) = OpenOptions::new()
                 .create(true)
                 .append(true)

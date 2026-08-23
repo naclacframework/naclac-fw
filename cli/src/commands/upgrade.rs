@@ -1,3 +1,4 @@
+use crate::ui;
 use solana_address::Address;
 
 use solana_keypair::Keypair;
@@ -10,18 +11,10 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
     let program_id = match Address::from_str(program_id_str) {
         Ok(pk) => pk,
         Err(_) => {
-            eprintln!("❌ Invalid programmatic address string.");
+            ui::error_line("Invalid program address string.");
             return;
         }
     };
-
-    println!(
-        "🔒 Performing Upgrade Pre-Flight Checklist for: {}",
-        program_id
-    );
-
-    // MOCK-Validation: Typically we query the BPF loader `ProgramData` to verify the upgrade authority against ~/.config/solana/id.json
-    println!("🔑 Verifying active configuration keypair against target Upgrade Authority...");
 
     let current_dir = std::env::current_dir().unwrap();
     let workspace_root = if current_dir.join("Naclac.toml").exists() {
@@ -29,7 +22,7 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
     } else if current_dir.join("../../Naclac.toml").exists() {
         current_dir.join("../..").canonicalize().unwrap()
     } else {
-        eprintln!("❌ Error: Could not find Naclac.toml.");
+        ui::error_line("Could not find Naclac.toml.");
         return;
     };
 
@@ -67,16 +60,12 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
         _ => "https://api.devnet.solana.com".to_string(),
     };
 
-    println!(
-        "🌐 Binding Upgrade Deployments to: {} ({}) via {}",
-        cluster, rpc_url, wallet_path
-    );
+    ui::info(format!(
+        "Upgrading {} on {} via {}",
+        program_id, cluster, wallet_path
+    ));
 
     if let Some(buf) = buffer {
-        println!(
-            "🚀 Upgrading Program {} directly via Buffer: {}",
-            program_id, buf
-        );
         let mut deploy_cmd = Command::new("solana")
             .arg("program")
             .arg("upgrade")
@@ -96,13 +85,12 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
             .expect("Failed to finalize buffer migration.");
 
         if deploy_status.success() {
-            println!("✨ Upgrade Successfully Rolled Up from Buffer!");
+            ui::success("Upgrade rolled up from buffer.");
         } else {
-            eprintln!("⚠️ Upgrade Deployment Exception Detected.");
-            std::process::exit(1);
+            ui::error("Upgrade deployment failed.");
         }
     } else {
-        let deploy_dir = workspace_root.join("target/deploy");
+        let deploy_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("deploy");
 
         let so_file_path = if let Some(path) = filepath {
             path.to_string()
@@ -156,29 +144,22 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
                     if resolved_so.is_none() && so_files.len() == 1 {
                         resolved_so = Some(so_files[0].to_string_lossy().into_owned());
                     } else if resolved_so.is_none() && so_files.len() > 1 {
-                        eprintln!("⚠️ Multiple .so files found in target/deploy/ without matching keypairs.");
-                        eprintln!(
-                            "❌ Please specify the filepath manually for program {}",
+                        ui::error(format!(
+                            "Multiple .so files found in target/deploy/ without matching \
+                             keypairs — specify the filepath manually for program {}",
                             program_id
-                        );
-                        std::process::exit(1);
+                        ));
                     }
                 }
             }
 
             resolved_so.unwrap_or_else(|| {
-                eprintln!(
-                    "❌ Error: No compiled .so program found for {}! Please run `naclac build`.",
+                ui::error(format!(
+                    "No compiled .so program found for {} — run `naclac build` first.",
                     program_id
-                );
-                std::process::exit(1);
+                ))
             })
         };
-
-        println!(
-            "🚀 Transmitting Upgrade Core Buffer to Network: {} -> {}",
-            so_file_path, program_id
-        );
 
         let mut deploy_cmd = Command::new("solana")
             .arg("program")
@@ -200,14 +181,11 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
             .expect("Failed to finalize buffer migration.");
 
         if deploy_status.success() {
-            println!("✨ Upgrade Successfully Rolled Up!");
+            ui::success("Upgrade rolled up.");
         } else {
-            eprintln!("⚠️ Upgrade Deployment Exception Detected.");
-            std::process::exit(1);
+            ui::error("Upgrade deployment failed.");
         }
     }
-
-    println!("🧹 Executing Smart-Buffer Network Cleanup Protocol...");
 
     let mut buffer_cmd = Command::new("solana")
         .arg("program")
@@ -225,10 +203,8 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
     let buffer_status = buffer_cmd.wait().unwrap();
 
     if buffer_status.success() {
-        println!("💸 Ghost Buffers Evicted. Unused SOL completely refunded to developer keypair!");
+        ui::success("Stale buffers closed, rent refunded.");
     } else {
-        println!(
-            "⚠️ Buffer cleanup executed with flags (Ensure valid balances or RPC configurations)."
-        );
+        ui::warn("Buffer cleanup didn't fully complete — check balances/RPC config.");
     }
 }

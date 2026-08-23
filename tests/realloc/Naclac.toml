@@ -1,0 +1,17 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+realloc = "61EMKahAphD6ceF3jHxPSGhtuhRZC3JuvqoEsuMYXwLD"
+realloc_borsh = "Djy4qEuibJRcS8baDaqT4xSrmgdVtq2bFgxoptFRts4u"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"

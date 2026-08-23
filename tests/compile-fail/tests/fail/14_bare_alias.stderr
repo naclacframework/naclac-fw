@@ -3,3 +3,9 @@ error: Naclac Error: bare `alias` is rejected for safety. Use `unsafe(alias)` to
   |
 9 |     #[account(mut, alias)]
   |                    ^^^^^
+
+error: Naclac Error: bare `alias` is rejected for safety. Use `unsafe(alias)` to explicitly opt out of duplicate mutable account protection.
+  --> tests/fail/14_bare_alias.rs:11:20
+   |
+11 |     #[account(mut, alias)]
+   |                    ^^^^^

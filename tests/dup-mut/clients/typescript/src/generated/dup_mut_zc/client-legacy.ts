@@ -79,7 +79,43 @@ export class DupMutZcClient {
     return instructions.touchPairWithAlias(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `vaultA` account. Returns `[PublicKey, bumpSeed]`. */
+  /**
+   * Builds the `initVaultC` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public initVaultC(args?: Record<string, never>, accounts?: Partial<instructions.InitVaultCAccounts>) {
+    return instructions.initVaultC(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchTriplePartialAlias` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public touchTriplePartialAlias(args?: Record<string, never>, accounts?: Partial<instructions.TouchTriplePartialAliasAccounts>) {
+    return instructions.touchTriplePartialAlias(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `writeNote` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public writeNote(args: instructions.WriteNoteArgs, accounts?: Partial<instructions.WriteNoteAccounts>) {
+    return instructions.writeNote(this.program, args ?? {}, accounts);
+  }
+
+  /** Derives the PDA for a `note` account. Returns `[PublicKey, bumpSeed]`. */
+  public getNotePda(seeds: {
+  }): [naclac.PublicKey, number] {
+    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
+      [
+                new Uint8Array([110, 111, 116, 101])
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
+  /** Derives the PDA for a `vault_a` account. Returns `[PublicKey, bumpSeed]`. */
   public getVaultAPda(seeds: {
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
@@ -91,7 +127,7 @@ export class DupMutZcClient {
     return [pda, bump];
   }
 
-  /** Derives the PDA for a `vaultB` account. Returns `[PublicKey, bumpSeed]`. */
+  /** Derives the PDA for a `vault_b` account. Returns `[PublicKey, bumpSeed]`. */
   public getVaultBPda(seeds: {
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
@@ -101,6 +137,39 @@ export class DupMutZcClient {
       this.programId
     );
     return [pda, bump];
+  }
+
+  /** Derives the PDA for a `vault_c` account. Returns `[PublicKey, bumpSeed]`. */
+  public getVaultCPda(seeds: {
+  }): [naclac.PublicKey, number] {
+    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
+      [
+                new Uint8Array([118, 97, 117, 108, 116, 95, 99])
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
+  /** Fetches a `Note` account. Throws if it does not exist. */
+  public fetchNote(address: naclac.PublicKey | string) {
+    return this.program.account['Note'].fetch(address);
+  }
+
+  /** Fetches a `Note` account. Returns `null` if it does not exist. */
+  public async fetchMaybeNote(address: naclac.PublicKey | string) {
+    try { return await this.program.account['Note'].fetch(address); }
+    catch { return null; }
+  }
+
+  /** Fetches multiple `Note` accounts in a single RPC call. */
+  public fetchAllNotes(addresses: Array<naclac.PublicKey | string>, opts?: { dropCorrupted?: boolean }) {
+    return this.program.account['Note'].fetchMultiple(addresses, opts);
+  }
+
+  /** Fetches all on-chain `Note` accounts owned by this program. */
+  public fetchAllNoteByOwner(options?: { dropCorrupted?: boolean; filters?: any[] }) {
+    return this.program.account['Note'].all(options);
   }
 
   /** Fetches a `Vault` account. Throws if it does not exist. */

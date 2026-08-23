@@ -51,20 +51,8 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
     let mut active_features = Vec::new();
     if cargo_toml_path.exists() {
         let content = fs::read_to_string(&cargo_toml_path).unwrap_or_default();
-        let mut in_features = false;
         for line in content.lines() {
             let trimmed = line.trim();
-            if trimmed.starts_with("[features]") {
-                in_features = true;
-                continue;
-            }
-            if trimmed.starts_with("[") {
-                in_features = false;
-            }
-
-            if in_features && trimmed.starts_with("idl-build") {
-                active_features.push("idl-build");
-            }
 
             if trimmed.starts_with("pinocchio")
                 || (trimmed.starts_with("default") && trimmed.contains("pinocchio"))

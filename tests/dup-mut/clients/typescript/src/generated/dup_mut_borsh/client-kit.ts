@@ -75,7 +75,31 @@ export class DupMutBorshClient {
     return instructions.touchPairWithAlias(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `vaultA` account. */
+  /**
+   * Builds the `initVaultC` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public initVaultC(args?: Record<string, never>, accounts?: Partial<instructions.InitVaultCAccounts>) {
+    return instructions.initVaultC(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchTriplePartialAlias` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public touchTriplePartialAlias(args?: Record<string, never>, accounts?: Partial<instructions.TouchTriplePartialAliasAccounts>) {
+    return instructions.touchTriplePartialAlias(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchBoxedVault` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public touchBoxedVault(args?: Record<string, never>, accounts?: Partial<instructions.TouchBoxedVaultAccounts>) {
+    return instructions.touchBoxedVault(this.program, args ?? {}, accounts);
+  }
+
+  /** Derives the PDA for a `vault_a` account. */
   public async getVaultAPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
@@ -86,13 +110,24 @@ export class DupMutBorshClient {
     });
   }
 
-  /** Derives the PDA for a `vaultB` account. */
+  /** Derives the PDA for a `vault_b` account. */
   public async getVaultBPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([118, 97, 117, 108, 116, 95, 98])
+      ]
+    });
+  }
+
+  /** Derives the PDA for a `vault_c` account. */
+  public async getVaultCPda(seeds: {
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([118, 97, 117, 108, 116, 95, 99])
       ]
     });
   }

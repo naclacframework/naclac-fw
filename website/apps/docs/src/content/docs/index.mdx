@@ -1,0 +1,42 @@
+---
+title: naclac
+description: A hyper-optimized native Solana framework generator.
+template: splash
+sidebar:
+  hidden: true
+hero:
+  tagline: A hyper-optimized native Solana framework generator, built in Rust.
+  image:
+    file: ../../assets/naclac-logo.png
+  actions:
+    - text: Get started
+      link: /installation/
+      icon: right-arrow
+    - text: Workspace overview
+      link: /workspace-overview/
+      icon: document
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why naclac
+
+<CardGrid stagger>
+	<Card title="Dual backend" icon="rocket">
+		Write Solana programs against a standard `solana-program` backend or a
+		hyper-optimized `pinocchio` backend, behind the same feature-gated API.
+	</Card>
+	<Card title="Codegen built in" icon="setting">
+		`naclac generate` produces the on-chain IDL plus Rust and TypeScript
+		clients directly from your program's source.
+	</Card>
+	<Card title="One CLI" icon="open-book">
+		`init`, `build`, `deploy`, `test`, `verify`, and more — one workspace,
+		one command-line surface.
+	</Card>
+	<Card title="Versioned tooling" icon="pencil">
+		`nacvm` manages installed versions of the `naclac` CLI itself, the same
+		way `rustup` manages Rust toolchains.
+	</Card>
+</CardGrid>

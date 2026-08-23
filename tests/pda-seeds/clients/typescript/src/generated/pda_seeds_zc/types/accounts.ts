@@ -12,6 +12,15 @@ export interface Child {
   value: bigint | number;
 }
 
+/** 8-byte discriminator prefix for `ConfigEntry` accounts on-chain. */
+export const CONFIGENTRY_DISCRIMINATOR = new Uint8Array([27, 123, 205, 1, 39, 158, 208, 211]);
+
+/** Auto-generated account interface from the program IDL. */
+export interface ConfigEntry {
+  bump: number;
+  value: bigint | number;
+}
+
 /** 8-byte discriminator prefix for `Entry` accounts on-chain. */
 export const ENTRY_DISCRIMINATOR = new Uint8Array([63, 18, 152, 113, 215, 246, 221, 250]);
 

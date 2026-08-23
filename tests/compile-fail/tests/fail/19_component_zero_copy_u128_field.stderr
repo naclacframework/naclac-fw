@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field's type) — Solana account buffers are only guaranteed 8-byte aligned, so Account's raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.
+  --> tests/fail/19_component_zero_copy_u128_field.rs:10:1
+   |
+10 | #[component]
+   | ^^^^^^^^^^^^ evaluation of `_` failed here

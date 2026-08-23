@@ -13,7 +13,7 @@ pub fn build_read_vault<'a>(
     program_id: naclac_client::Address,
     accounts: ReadVaultAccounts,
 ) -> naclac_client::InstructionBuilder<'a> {
-    let ix_data = crate::sdk_core::vec![124, 195, 48, 97, 68, 153, 234, 245];
+    let ix_data = crate::sdk_core_offchain::vec![124, 195, 48, 97, 68, 153, 234, 245];
     naclac_client::InstructionBuilder::new(provider, program_id, ix_data)
         .account(naclac_client::AccountMeta { address: accounts.caller, is_signer: true, is_writable: false }, "caller")
         .account(naclac_client::AccountMeta { address: accounts.vault, is_signer: false, is_writable: false }, "vault")
@@ -21,8 +21,15 @@ pub fn build_read_vault<'a>(
 
 #[cfg(feature = "cpi")]
 pub struct ReadVaultCpiAccounts<'a> {
-    pub caller: crate::sdk_core::CpiHandle<'a>,
-    pub vault: crate::sdk_core::CpiHandle<'a>,
+    pub caller: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub vault: crate::sdk_core_cpi::CpiHandle<'a>,
+}
+
+#[cfg(feature = "cpi")]
+pub struct ReadVaultCpiCall<'a> {
+    pub accounts: ReadVaultCpiAccounts<'a>,
+    pub signer_seeds: &'a [&'a [&'a [u8]]],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]
@@ -30,71 +37,76 @@ pub trait ReadVaultCpi<'info> {
     fn read_vault<'a>(
         &self,
         accounts: ReadVaultCpiAccounts<'a>
-    ) -> crate::sdk_core::Result<()> {
-        self.read_vault_with_remaining_accounts(accounts, &[], &[])
+    ) -> crate::sdk_core_cpi::Result<()> {
+        self.read_vault_with_remaining_accounts(ReadVaultCpiCall {
+        accounts,
+        signer_seeds: &[],
+        remaining_accounts: &[],
+    })
     }
 
     fn read_vault_signed<'a>(
         &self,
         accounts: ReadVaultCpiAccounts<'a>,
         signer_seeds: &[&[&[u8]]]
-    ) -> crate::sdk_core::Result<()> {
-        self.read_vault_with_remaining_accounts(accounts, signer_seeds, &[])
+    ) -> crate::sdk_core_cpi::Result<()> {
+        self.read_vault_with_remaining_accounts(ReadVaultCpiCall {
+        accounts,
+        signer_seeds,
+        remaining_accounts: &[],
+    })
     }
 
     fn read_vault_with_remaining_accounts<'a>(
         &self,
-        accounts: ReadVaultCpiAccounts<'a>,
-        signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
-    ) -> crate::sdk_core::Result<()>;
+        call: ReadVaultCpiCall<'a>
+    ) -> crate::sdk_core_cpi::Result<()>;
 
 }
 
 #[cfg(feature = "cpi")]
-impl<'info> ReadVaultCpi<'info> for crate::sdk_core::Program<crate::DiscriminatorZc> {
+impl<'info> ReadVaultCpi<'info> for crate::sdk_core_cpi::Program<crate::DiscriminatorZc> {
     fn read_vault_with_remaining_accounts<'a>(
         &self,
-        accounts: ReadVaultCpiAccounts<'a>,
-        signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
-    ) -> crate::sdk_core::Result<()> {
-        let mut ix_data = crate::sdk_core::Vec::new();
+        call: ReadVaultCpiCall<'a>
+    ) -> crate::sdk_core_cpi::Result<()> {
+        let ReadVaultCpiCall { accounts, signer_seeds, remaining_accounts } = call;
+        let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[124, 195, 48, 97, 68, 153, 234, 245]);
         #[cfg(feature = "pinocchio")]
         {
-            let mut metas_arr = [const { core::mem::MaybeUninit::<crate::sdk_core::pinocchio::instruction::InstructionAccount>::uninit() }; 32];
+            let mut metas_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount>::uninit() }; 32];
             let mut idx = 0;
-            metas_arr[idx].write(crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly_signer(accounts.caller.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly_signer(accounts.caller.info.view.address()));
             idx += 1;
-            metas_arr[idx].write(crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly(accounts.vault.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.vault.info.view.address()));
             idx += 1;
             for (acc, is_writable, is_signer) in remaining_accounts {
                 if idx >= 32 { break; }
                 let meta = if *is_writable {
                     if *is_signer {
-                        crate::sdk_core::pinocchio::instruction::InstructionAccount::writable_signer(acc.view.address())
+                        crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(acc.view.address())
                     } else {
-                        crate::sdk_core::pinocchio::instruction::InstructionAccount::writable(acc.view.address())
+                        crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(acc.view.address())
                     }
                 } else {
                     if *is_signer {
-                        crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly_signer(acc.view.address())
+                        crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly_signer(acc.view.address())
                     } else {
-                        crate::sdk_core::pinocchio::instruction::InstructionAccount::readonly(acc.view.address())
+                        crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(acc.view.address())
                     }
                 };
                 metas_arr[idx].write(meta);
                 idx += 1;
             }
-            let account_metas = unsafe { core::slice::from_raw_parts(metas_arr.as_ptr() as *const crate::sdk_core::pinocchio::instruction::InstructionAccount, idx) };
+            let account_metas = unsafe { core::slice::from_raw_parts(metas_arr.as_ptr() as *const crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount, idx) };
             let program_id_address = self.address();
-            let instruction = crate::sdk_core::pinocchio::instruction::InstructionView {
+            let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView {
                 program_id: program_id_address.as_address(),
                 accounts: account_metas,
                 data: &ix_data,
             };
-            let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core::CpiHandle>::uninit() }; 32];
+            let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::CpiHandle>::uninit() }; 32];
             let mut h_idx = 0;
             handles_arr[h_idx].write(accounts.caller);
             h_idx += 1;
@@ -102,16 +114,16 @@ impl<'info> ReadVaultCpi<'info> for crate::sdk_core::Program<crate::Discriminato
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }
-                handles_arr[h_idx].write(crate::sdk_core::ToCpiHandle::to_cpi_handle(acc));
+                handles_arr[h_idx].write(crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(acc));
                 h_idx += 1;
             }
-            let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core::CpiHandle, h_idx) };
-            crate::sdk_core::cpi::invoke_signed_pinocchio_handles(&instruction, account_handles, signer_seeds)
+            let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_handles(&instruction, account_handles, signer_seeds)
         }
         #[cfg(not(feature = "pinocchio"))]
         {
-            use crate::sdk_core::ToAddress;
-            let mut account_metas = crate::sdk_core::vec![
+            use crate::sdk_core_cpi::ToAddress;
+            let mut account_metas = crate::sdk_core_cpi::vec![
                 ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.caller.address(), true),
                 ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.vault.address(), false),
             ];
@@ -128,7 +140,7 @@ impl<'info> ReadVaultCpi<'info> for crate::sdk_core::Program<crate::Discriminato
                 accounts: account_metas,
                 data: ix_data,
             };
-            let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core::CpiHandle>::uninit() }; 32];
+            let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::CpiHandle>::uninit() }; 32];
             let mut h_idx = 0;
             handles_arr[h_idx].write(accounts.caller);
             h_idx += 1;
@@ -136,11 +148,11 @@ impl<'info> ReadVaultCpi<'info> for crate::sdk_core::Program<crate::Discriminato
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }
-                handles_arr[h_idx].write(crate::sdk_core::ToCpiHandle::to_cpi_handle(acc));
+                handles_arr[h_idx].write(crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(acc));
                 h_idx += 1;
             }
-            let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core::CpiHandle, h_idx) };
-            crate::sdk_core::cpi::invoke_signed(&instruction, account_handles, signer_seeds)
+            let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
+            crate::sdk_core_cpi::cpi::invoke_signed(&instruction, account_handles, signer_seeds)
         }
     }
 }

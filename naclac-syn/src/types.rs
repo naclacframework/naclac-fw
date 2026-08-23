@@ -17,6 +17,8 @@ pub struct NaclacTypeDef {
     pub name: String,
     #[serde(rename = "type")]
     pub ty: NaclacTypeDefTy,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -31,6 +33,8 @@ pub enum NaclacTypeDefTy {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NaclacEnumVariant {
     pub name: String,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -39,6 +43,12 @@ pub struct NaclacInstruction {
     pub discriminator: [u8; 8],
     pub accounts: Vec<NaclacAccount>,
     pub args: Vec<NaclacField>,
+    #[serde(default)]
+    pub docs: Vec<String>,
+    /// The `T` in a handler's `-> Result<T>` — `None` for bare `Result`
+    /// (`T` defaulted to `()`).
+    #[serde(default)]
+    pub returns: Option<serde_json::Value>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -51,11 +61,18 @@ pub struct NaclacAccount {
     pub optional: Option<bool>,
     pub pda: Option<NaclacPda>,
     pub address: Option<String>,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NaclacPda {
     pub seeds: Vec<NaclacSeed>,
+    /// The `seeds::program = X` override — set only when this PDA is derived
+    /// against a program other than the current one. `None` means the
+    /// current program, exactly like a bare `seeds = [...]` with no override.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program: Option<NaclacSeed>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -87,18 +104,27 @@ pub enum NaclacSeed {
 pub struct NaclacAccountStruct {
     pub name: String,
     pub fields: Vec<NaclacField>,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NaclacField {
     pub name: String,
     pub ty: serde_json::Value,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NaclacEvent {
     pub name: String,
     pub fields: Vec<NaclacEventField>,
+    /// True for `#[event(alloc)]` — sequential, length-prefixed encoding
+    /// (Vec/String/Option-capable), as opposed to a fixed-size bytemuck cast.
+    pub alloc: bool,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -106,6 +132,8 @@ pub struct NaclacEventField {
     pub name: String,
     pub ty: serde_json::Value,
     pub index: bool,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -121,4 +149,6 @@ pub struct NaclacConstant {
     pub ty: serde_json::Value,
     pub value: String,
     pub is_exported: bool,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }

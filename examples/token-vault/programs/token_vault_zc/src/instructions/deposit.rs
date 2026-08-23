@@ -12,7 +12,7 @@ pub struct Deposit {
     #[account(mut)]
     pub payer: Signer,
 
-    pub mint: AccountInfo,
+    pub mint: InterfaceAccount<Mint>,
 
     #[account(
         mut,
@@ -61,13 +61,17 @@ pub fn deposit(ctx: Context<Deposit>, _vault_id: u64, amount: u64, user_bump: u8
         crate::errors::VaultError::Unauthorized
     );
 
-    ctx.accounts.token_program.transfer(
-        TransferAccounts {
+    let decimals = ctx.accounts.mint.decimals();
+
+    ctx.accounts.token_program.transfer_checked(
+        TransferCheckedAccounts {
             from: &mut ctx.accounts.user_token_account,
+            mint: &ctx.accounts.mint,
             to: &mut ctx.accounts.vault_token_account,
             authority: &ctx.accounts.payer,
         },
         amount,
+        decimals,
     )?;
 
     let user = &mut ctx.accounts.user_account;

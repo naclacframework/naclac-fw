@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touchRegistryExplicitBump` instruction. */
-export const TOUCHREGISTRYEXPLICITBUMP_DISCRIMINATOR = new Uint8Array([198, 121, 5, 107, 43, 16, 230, 90]);
+/** 8-byte discriminator for the `touch_registry_explicit_bump` instruction. */
+export const TOUCH_REGISTRY_EXPLICIT_BUMP_DISCRIMINATOR = new Uint8Array([198, 121, 5, 107, 43, 16, 230, 90]);
 
 /** Instruction arguments for `touchRegistryExplicitBump`. */
 export interface TouchRegistryExplicitBumpArgs {
@@ -25,7 +25,7 @@ export function touchRegistryExplicitBump(
   args: TouchRegistryExplicitBumpArgs,
   accounts?: Partial<TouchRegistryExplicitBumpAccounts>
 ) {
-  const builder = program.methods.touchRegistryExplicitBump(args ?? {});
+  const builder = program.methods.touch_registry_explicit_bump(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

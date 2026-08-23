@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `initEntry` instruction. */
-export const INITENTRY_DISCRIMINATOR = new Uint8Array([207, 80, 17, 185, 229, 148, 170, 183]);
+/** 8-byte discriminator for the `init_entry` instruction. */
+export const INIT_ENTRY_DISCRIMINATOR = new Uint8Array([207, 80, 17, 185, 229, 148, 170, 183]);
 
 /** Instruction arguments for `initEntry`. */
 export interface InitEntryArgs {
@@ -16,7 +16,7 @@ export interface InitEntryAccounts {
   payer: naclac.Address | string;
   registry: naclac.Address | string;
   entry?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**
@@ -28,7 +28,7 @@ export function initEntry(
   args: InitEntryArgs,
   accounts?: Partial<InitEntryAccounts>
 ) {
-  const builder = program.methods.initEntry(args ?? {});
+  const builder = program.methods.init_entry(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

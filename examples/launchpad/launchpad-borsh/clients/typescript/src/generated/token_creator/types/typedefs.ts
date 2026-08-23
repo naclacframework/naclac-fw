@@ -3,15 +3,15 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** Auto-generated struct from the program IDL. */
+/** Auto-generated from the program IDL. */
 export interface LaunchTokenArgs {
   id: bigint | number;
-  mintBump: number;
-  launchRecordBump: number;
-  poolBump: number;
+  mint_bump: number;
+  launch_record_bump: number;
+  pool_bump: number;
   decimals: number;
-  amountTokenPool: bigint | number;
-  amountTokenLauncher: bigint | number;
-  amountQuote: bigint | number;
+  amount_token_pool: bigint | number;
+  amount_token_launcher: bigint | number;
+  amount_quote: bigint | number;
 }
 

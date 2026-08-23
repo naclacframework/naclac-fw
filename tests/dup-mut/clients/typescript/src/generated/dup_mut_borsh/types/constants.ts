@@ -7,3 +7,4 @@ import * as naclac from "@naclac-fw/client";
 export const PROGRAM_ID = naclac.address("9ckKeo7g3MRX7fWNh1obrJfyWcbobGSHFXZwBfvnmHCr");
 export const SEED_VAULT_A: Uint8Array = Uint8Array.from([118, 97, 117, 108, 116, 95, 97]);
 export const SEED_VAULT_B: Uint8Array = Uint8Array.from([118, 97, 117, 108, 116, 95, 98]);
+export const SEED_VAULT_C: Uint8Array = Uint8Array.from([118, 97, 117, 108, 116, 95, 99]);

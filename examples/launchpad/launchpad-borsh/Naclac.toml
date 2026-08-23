@@ -6,8 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-amm = "HLQiP3fsqRMgFYzTbXCFYPGqktcP27Npt5QaWp9qsx3C"
-token_creator = "5GNKxmbR5QUB4RVHPzvu4WCGfA9o8bkRXbfZez1D7Ay4"
+amm = "ELAcXuQJ9UHTCcrrSHfnMRxzyxy8yh51oMu5BVJPCy8h"
+token_creator = "6GzLQP11cDkRREyNqyPvJjfcHCARFKpRhQyGrwfoK4nv"
 
 [provider]
 cluster = "localnet"

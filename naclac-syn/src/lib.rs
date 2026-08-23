@@ -40,17 +40,30 @@ pub fn parse_workspace_program(
         }
     }
 
+    let lib_path = program_dir.join("src/lib.rs");
+
+    // Pass 1: collect every constant across the whole crate first. Array-length
+    // resolution and other constant lookups during pass 2 (`parser::parse_file`)
+    // need the complete, whole-crate constant set — not just whatever this one
+    // file happens to declare — regardless of which order `rs_files` (an
+    // unordered directory walk) happens to visit files in.
     let mut all_codes = Vec::new();
+    let mut is_lib_rs_flags = Vec::new();
     for file_path in &rs_files {
         if let Ok(code) = fs::read_to_string(file_path) {
-            parser::parse_file(&mut idl, &code);
+            parser::parse_constants_pass(&mut idl, &code);
+            is_lib_rs_flags.push(file_path == &lib_path);
             all_codes.push(code);
         }
     }
 
+    // Pass 2: everything else, now that idl.constants is complete.
+    for code in &all_codes {
+        parser::parse_file(&mut idl, code);
+    }
+
     // Determine instruction order from lib.rs
     let mut func_order = Vec::new();
-    let lib_path = program_dir.join("src/lib.rs");
     if let Ok(lib_code) = fs::read_to_string(&lib_path) {
         if let Ok(lib_tree) = syn::parse_file(&lib_code) {
             for item in lib_tree.items {
@@ -68,21 +81,18 @@ pub fn parse_workspace_program(
     }
 
     // Parse Instructions in 2 passes
-    instruction::extract_instructions(&mut idl, &all_codes, &func_order);
+    instruction::extract_instructions(&mut idl, &all_codes, &is_lib_rs_flags, &func_order);
 
     // Reorder instructions to match lib.rs module declaration
     let mut ordered_instructions = Vec::new();
     for target in &func_order {
-        let camel_target = heck::ToLowerCamelCase::to_lower_camel_case(target.as_str());
-        if let Some(pos) = idl
-            .instructions
-            .iter()
-            .position(|ix| ix.name == camel_target)
-        {
+        if let Some(pos) = idl.instructions.iter().position(|ix| ix.name == *target) {
             ordered_instructions.push(idl.instructions.remove(pos));
         }
     }
     idl.instructions = ordered_instructions;
+
+    parser::filter_unreachable_types(&mut idl);
 
     idl
 }

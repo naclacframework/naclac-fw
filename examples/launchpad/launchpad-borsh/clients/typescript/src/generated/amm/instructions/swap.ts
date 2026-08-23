@@ -8,19 +8,19 @@ export const SWAP_DISCRIMINATOR = new Uint8Array([248, 198, 158, 145, 225, 117, 
 
 /** Instruction arguments for `swap`. */
 export interface SwapArgs {
-  amountIn: bigint | number;
-  minimumAmountOut: bigint | number;
+  amount_in: bigint | number;
+  minimum_amount_out: bigint | number;
 }
 
 /** Accounts for the `swap` instruction. */
 export interface SwapAccounts {
   user: naclac.Address | string;
-  poolState: naclac.Address | string;
-  poolSourceVault: naclac.Address | string;
-  poolDestinationVault: naclac.Address | string;
-  userSourceToken: naclac.Address | string;
-  userDestinationToken: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
+  pool_state: naclac.Address | string;
+  pool_source_vault: naclac.Address | string;
+  pool_destination_vault: naclac.Address | string;
+  user_source_token: naclac.Address | string;
+  user_destination_token: naclac.Address | string;
+  token_program?: naclac.Address | string;
 }
 
 /**

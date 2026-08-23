@@ -2,7 +2,6 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client";
-import { LaunchTokenArgs } from "./typedefs";
 
 /** 8-byte discriminator prefix for `LaunchRecord` accounts on-chain. */
 export const LAUNCHRECORD_DISCRIMINATOR = new Uint8Array([146, 240, 197, 204, 6, 6, 87, 75]);
@@ -11,7 +10,7 @@ export const LAUNCHRECORD_DISCRIMINATOR = new Uint8Array([146, 240, 197, 204, 6,
 export interface LaunchRecord {
   creator: naclac.Address | string;
   mint: naclac.Address | string;
-  amountToken: bigint | number;
-  amountQuote: bigint | number;
+  amount_token: bigint | number;
+  amount_quote: bigint | number;
 }
 

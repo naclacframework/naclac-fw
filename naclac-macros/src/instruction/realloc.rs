@@ -17,53 +17,124 @@ pub fn generate_realloc_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
     for field in fields {
         if let Some(realloc_config) = &field.realloc {
             let target_ident = &field.ident;
+            let payer_ident = &realloc_config.payer;
+            // The space expression may reference an `#[instruction(...)]` argument,
+            // which only exists as a local inside `load_and_validate` — not here in
+            // `teardown`. It's pre-evaluated there and threaded through via a
+            // dedicated field on the `Bumps` companion struct (see accounts.rs),
+            // the same channel bump seeds already use to cross that boundary.
+            let space_var = format_ident!("__realloc_space_{}", target_ident);
 
-            // In V2, we retrieve the raw AccountInfo for metadata accesses
-            let target_info = quote! { naclac_lang::prelude::ToAccountInfo::to_account_info(&self.#target_ident) };
-
-            let space_expr = &realloc_config.space;
-            let payer_ident = format_ident!("{}", realloc_config.payer);
-            let payer_info = quote! { self.#payer_ident };
+            // `realloc::zero` is intentionally not threaded through as a
+            // separate step: both backends' own `resize()` primitives
+            // already unconditionally zero newly-grown bytes themselves
+            // (`solana-account-info`'s `sol_memset(&mut data[old_len..], 0, ...)`
+            // and pinocchio's `AccountView::resize`'s own `write_bytes(..., 0, ...)`,
+            // confirmed by reading both directly). So `zero = true` was
+            // always redundant, and there's no safe way to honor
+            // `zero = false` as an opt-out short of bypassing `resize()`
+            // for an unsafe, unchecked variant purely to skip work the
+            // runtime already does for free — not worth the risk for a
+            // marginal CU saving.
             let _zero_flag = realloc_config.zero;
 
-            reallocs.push(quote! {
-                #[cfg(not(feature = "pinocchio"))]
-                {
-                    let rent = naclac_lang::solana_program::rent::Rent::get()?;
-                    let new_space = (#space_expr) as usize;
-                    let current_lamports = **#target_info.lamports.borrow();
-                    let required_lamports = rent.minimum_balance(new_space);
+            // The rent/CPI logic itself lives in `naclac_lang::prelude::
+            // resize_with_rent` (naclac-core/src/realloc.rs) so this
+            // constraint and a handler calling that function manually can
+            // never drift apart.
+            let realloc_body = quote! {
+                let new_space = bumps.#space_var;
+                naclac_lang::prelude::resize_with_rent(__target, &mut self.#payer_ident, new_space)?;
+            };
 
-                    if required_lamports > current_lamports {
-                        let diff = required_lamports.saturating_sub(current_lamports);
-
-                        unsafe {
-                            naclac_lang::solana_program::program::invoke(
-                                &naclac_lang::prelude::solana_system_interface::instruction::transfer(
-                                    #payer_info.address(),
-                                    #target_info.address(),
-                                    diff,
-                                ),
-                                &[
-                                    #payer_info.to_lifetime(),
-                                    #target_info.to_lifetime(),
-                                ],
-                            )?;
-                        }
+            // An absent optional target has nothing to resize — skip
+            // entirely. A present one goes through exactly the same
+            // realloc logic a required field would, via `__target` bound
+            // to the inner value.
+            if field.is_optional {
+                reallocs.push(quote! {
+                    if let Some(__target) = self.#target_ident.as_mut() {
+                        #realloc_body
                     }
-
-                    #target_info.resize(new_space)?;
-                }
-                #[cfg(feature = "pinocchio")]
-                {
-                    let new_space = (#space_expr) as usize;
-                    // In no_std Pinocchio, dynamic rent-exemption checks are typically
-                    // skipped or done via custom CPI. Here we just resize.
-                    #target_info.resize(new_space)?;
-                }
-            });
+                });
+            } else {
+                reallocs.push(quote! {
+                    {
+                        let __target = &mut self.#target_ident;
+                        #realloc_body
+                    }
+                });
+            }
         }
     }
 
     reallocs
+}
+
+/// Builds the size-computing block for `realloc::any_of = [Type, ...]`:
+/// reads the field's own raw discriminator bytes and looks up the matching
+/// type's current compiled size, rejecting any discriminator not in the
+/// list. `field_name` must already be bound in scope as the field's raw
+/// `AccountInfo` local (true for every field inside `load_and_validate`,
+/// where this is spliced — see `accounts.rs`'s per-field `let #field_name
+/// = ...` binding).
+///
+/// `grow_only` (`realloc::grow_only = true`): clamps the result to never go
+/// below the account's current length, even if the matched type's compiled
+/// size is smaller. `any_of` has no dedicated authority account — any
+/// signer may call it against any account it matches — so an unrestricted
+/// shrink would let any caller collect the freed rent via `realloc::payer`
+/// from an account they don't own, the moment any listed type's compiled
+/// size ever decreases. Confirmed this also matches the real, deployed
+/// pump.fun program's own `ExtendAccount`: probed live with a deliberately
+/// oversized `Global`/`UserVolumeAccumulator`, both left unchanged with its
+/// own log line "Account already has more than N bytes" rather than
+/// shrinking.
+pub fn generate_any_of_space_expr(
+    field_name: &syn::Ident,
+    types: &[syn::Type],
+    idx: usize,
+    grow_only: bool,
+) -> TokenStream {
+    let arms = types.iter().map(|ty| {
+        quote! {
+            if __disc == <#ty as naclac_lang::prelude::Discriminator>::DISCRIMINATOR {
+                8 + core::mem::size_of::<#ty>()
+            }
+        }
+    });
+
+    let matched_size = quote! {
+        #(#arms else)* {
+            return Err(naclac_lang::prelude::NaclacError::InvalidAccountDiscriminator.err(#idx));
+        }
+    };
+
+    if grow_only {
+        quote! {
+            {
+                let __data = #field_name.try_borrow_data()?;
+                if __data.len() < 8 {
+                    return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(#idx));
+                }
+                let __disc: [u8; 8] = __data[..8].try_into().unwrap();
+                let __current_len = __data.len();
+                drop(__data);
+                let __matched_size = #matched_size;
+                core::cmp::max(__current_len, __matched_size)
+            }
+        }
+    } else {
+        quote! {
+            {
+                let __data = #field_name.try_borrow_data()?;
+                if __data.len() < 8 {
+                    return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(#idx));
+                }
+                let __disc: [u8; 8] = __data[..8].try_into().unwrap();
+                drop(__data);
+                #matched_size
+            }
+        }
+    }
 }

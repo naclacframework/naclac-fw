@@ -17,7 +17,6 @@ pub struct Interface<T: Clone = ()> {
     pub info: AccountInfo,
     #[cfg(feature = "pinocchio")]
     pub view: AccountView,
-    pub index: usize,
     pub _phantom: core::marker::PhantomData<T>,
 }
 
@@ -46,7 +45,6 @@ impl<T: Clone> Interface<T> {
 
         Ok(Self {
             info: info.clone(),
-            index,
             _phantom: core::marker::PhantomData,
         })
     }
@@ -128,7 +126,6 @@ impl<T: Clone> Interface<T> {
         }
         Ok(Self {
             view: info.view,
-            index,
             _phantom: core::marker::PhantomData,
         })
     }

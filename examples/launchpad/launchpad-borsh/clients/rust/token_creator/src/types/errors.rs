@@ -3,10 +3,15 @@
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProgramError {
+    /// Invalid program ID.
     InvalidProgramId,
+    /// Unauthorized action.
     Unauthorized,
+    /// Overflow or math error.
     Overflow,
+    /// Zero amount provided.
     ZeroAmount,
+    /// Mint failed.
     MintFailed,
 }
 

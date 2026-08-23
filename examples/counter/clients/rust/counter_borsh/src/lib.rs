@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("8QjSacvwyxnUvs3wBWus3e6P4ubhe2WbCQk8SfRRqPmJ");
+declare_id!("MqiMRvWB6ZjHwQGQvooZefAhDnEzfNV3JrBCCgZqHg9");
 
 #[cfg(feature = "offchain")]
 pub fn get_counter_account_pda(
@@ -42,9 +42,9 @@ pub fn get_counter_account_pda(
 pub struct CounterBorsh;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for CounterBorsh {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([110, 22, 39, 194, 218, 115, 122, 179, 61, 211, 41, 201, 243, 5, 18, 25, 135, 164, 35, 59, 66, 70, 203, 101, 190, 242, 82, 87, 216, 131, 0, 33])
+impl sdk_core_cpi::Id for CounterBorsh {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([5, 86, 178, 52, 98, 62, 183, 232, 194, 174, 138, 126, 96, 186, 30, 131, 18, 186, 214, 97, 2, 133, 103, 68, 158, 15, 37, 168, 150, 2, 64, 62])
     }
 }
 

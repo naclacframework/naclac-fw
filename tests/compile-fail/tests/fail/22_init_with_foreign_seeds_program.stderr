@@ -1,0 +1,5 @@
+error: Naclac Error: `init`/`init_if_needed` cannot be combined with `seeds::program = ...` on the same field — the account-creation CPI always signs under the currently executing program, so a `seeds::program` pointing anywhere else can never satisfy the signature check, and pointing at the current program is redundant. Remove `seeds::program` here.
+  --> tests/fail/22_init_with_foreign_seeds_program.rs:21:9
+   |
+21 |     pub account: Account<FooData>,
+   |         ^^^^^^^

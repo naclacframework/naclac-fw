@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "7eya8eU4wC8vfVSfa8gq68o5upVrREJwa4mKzT8uHEEs",
+  "address": "4rY4SAimzM1LzDaG8zdv2XV3tdKQbd12tck8Jzv7sZc8",
   "metadata": {
     "name": "counter",
     "version": "0.1.0",
@@ -9,102 +9,32 @@ export const IDL = {
     {
       "name": "initialize",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
-      ],
+      "discriminator": [175,175,109,31,13,152,155,237],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "counterAccount",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "counter_account", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  117,
-                  110,
-                  116,
-                  101,
-                  114,
-                  95,
-                  118,
-                  50
-                ],
-                "name": "SEED_COUNTER"
-              }
+              { "kind": "const", "value": [99,111,117,110,116,101,114,95,118,50], "name": "SEED_COUNTER" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": []
     },
     {
       "name": "increment",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        11,
-        18,
-        104,
-        9,
-        104,
-        174,
-        59,
-        33
-      ],
+      "discriminator": [11,18,104,9,104,174,59,33],
       "accounts": [
+        { "name": "authority", "writable": true, "signer": true },
         {
-          "name": "authority",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "counterAccount",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "counter_account", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  117,
-                  110,
-                  116,
-                  101,
-                  114,
-                  95,
-                  118,
-                  50
-                ],
-                "name": "SEED_COUNTER"
-              }
+              { "kind": "const", "value": [99,111,117,110,116,101,114,95,118,50], "name": "SEED_COUNTER" }
             ]
           }
         }
@@ -115,27 +45,12 @@ export const IDL = {
   "accounts": [
     {
       "name": "Counter",
-      "discriminator": [
-        255,
-        176,
-        4,
-        245,
-        188,
-        253,
-        124,
-        25
-      ],
+      "discriminator": [255,176,4,245,188,253,124,25],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "count",
-            "type": "u64"
-          },
-          {
-            "name": "authority",
-            "type": "publicKey"
-          }
+          { "name": "count", "type": "u64" },
+          { "name": "authority", "type": "publicKey" }
         ]
       }
     }
@@ -143,27 +58,10 @@ export const IDL = {
   "events": [
     {
       "name": "CounterIncremented",
-      "discriminator": [
-        219,
-        181,
-        183,
-        220,
-        88,
-        58,
-        114,
-        198
-      ],
+      "discriminator": [219,181,183,220,88,58,114,198],
       "fields": [
-        {
-          "name": "newCount",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "timestamp",
-          "type": "i64",
-          "index": false
-        }
+        { "name": "new_count", "type": "u64", "index": false },
+        { "name": "timestamp", "type": "i64", "index": false }
       ]
     }
   ],
@@ -178,30 +76,15 @@ export const IDL = {
     {
       "name": "SEED_COUNTER",
       "type": "bytes",
-      "value": "b\"counter_v2\""
+      "value": "[99, 111, 117, 110, 116, 101, 114, 95, 118, 50]"
     }
   ],
   "definedTypes": [],
   "pdas": [
     {
-      "name": "counterAccount",
+      "name": "counter_account",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            99,
-            111,
-            117,
-            110,
-            116,
-            101,
-            114,
-            95,
-            118,
-            50
-          ],
-          "name": "SEED_COUNTER"
-        }
+        { "kind": "const", "value": [99,111,117,110,116,101,114,95,118,50], "name": "SEED_COUNTER" }
       ]
     }
   ]

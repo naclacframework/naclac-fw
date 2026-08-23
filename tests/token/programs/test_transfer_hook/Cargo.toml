@@ -1,0 +1,21 @@
+[package]
+name = "test_transfer_hook"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal real spl-transfer-hook-interface program, used only to prove naclac-token's transfer_checked_with_hook actually resolves extra accounts and invokes a hook program during a real Token-2022 transfer."
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+solana-program = "3.0.0"
+solana-system-interface = { version = "3.2.0", features = ["wincode"] }
+spl-transfer-hook-interface = "2.1.0"
+spl-tlv-account-resolution = "0.11.1"
+
+[lints]
+workspace = true

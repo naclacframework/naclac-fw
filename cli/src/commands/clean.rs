@@ -49,16 +49,19 @@ pub fn execute(hard: bool) {
     }
     fs::create_dir_all(&trash_dir).unwrap();
 
+    let target_dir = naclac_client_gen::resolve_target_dir(&current_dir);
+
     let mut to_clean = Vec::new();
 
     if hard {
-        to_clean.push("target");
+        if target_dir.exists() {
+            let _ = fs::rename(&target_dir, trash_dir.join("target"));
+        }
         to_clean.push("node_modules");
         to_clean.push("dist");
         to_clean.push(".anchor");
     } else {
         // Safe clean: we want to clean target, but EXCLUDE deploy/*.json
-        let target_dir = current_dir.join("target");
         if target_dir.exists() {
             let trash_target = trash_dir.join("target");
             fs::create_dir_all(&trash_target).unwrap();
@@ -174,7 +177,11 @@ pub fn execute(hard: bool) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 let name = path.file_name().unwrap();
-                let original_path = current_dir.join(name);
+                let original_path = if name == "target" {
+                    target_dir.clone()
+                } else {
+                    current_dir.join(name)
+                };
 
                 if name == "target" && !hard {
                     // Marge back into current target safely

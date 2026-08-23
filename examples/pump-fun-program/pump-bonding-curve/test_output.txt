@@ -1,0 +1,1478 @@
+🧪 Running Naclac Test Suite...
+   > cargo test --test pump_test --package pump -- --show-output
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 27s
+     Running tests/pump_test.rs (/mnt/d/naclac-fw/examples/pump-fun-program/pump-bonding-curve/target/debug/deps/pump_test-a6e44755054672aa)
+
+running 15 tests
+test create_creates_bonding_curve_and_mint ... ok
+test add_quote_mint_enables_and_remove_quote_mint_disables_create_v2_with_that_mint ... ok
+test buy_v2_purchases_tokens_and_updates_reserves ... ok
+test buy_purchases_tokens_and_updates_reserves ... ok
+test create_v2_creates_token2022_mint_with_metadata_and_revokes_authorities ... ok
+test initialize_creates_global ... ok
+test migrate_moves_bonding_curve_reserves_into_a_new_pump_amm_pool ... ok
+test migrate_v2_moves_bonding_curve_reserves_into_a_new_pump_amm_pool_with_boost ... ok
+test sell_returns_tokens_and_updates_reserves ... ok
+test migrate_v2_moves_bonding_curve_reserves_with_a_whitelisted_quote_mint ... ok
+test set_buyback_fee_recipients_rejects_non_authority_signer ... ok
+test set_buyback_fee_recipients_updates_global ... ok
+test sell_v2_returns_tokens_and_updates_reserves ... ok
+test set_params_rejects_non_authority_signer ... ok
+test set_params_updates_admin_set_creator_authority ... ok
+
+successes:
+
+---- create_creates_bonding_curve_and_mint stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 196220 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 187853 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 182760 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 180296 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13517 of 193274 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 129 of 178026 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s invoke [2]
+Program log: IX: Create Metadata Accounts v3
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Allocate space for the account
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Assign the account to the owning program
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s consumed 34664 of 175905 compute units
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s success
+Program data: G3KpTd7rY3Y= CQAAAFRlc3QgQ29pbgQAAABURVNUIQAAAGh0dHBzOi8vZXhhbXBsZS5jb20vbWV0YWRhdGEuanNvbrMSODw/9H0qTRVGDOqyWfoh+X5+AIDYAVM+rUU/mVBbyv6LAkJuNxTdSaVu3vLuRanpCuf8ycDMvS05N5OoX1rUnve2i3Hnh3FWurSVWDwdajgKnDOUvHZrDaDBmC5g/jy7jDQNI1TRFmmwp7a8MqakooBe20nIOljAG6sFbeHcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 60234 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 60234
+
+---- add_quote_mint_enables_and_remove_quote_mint_disables_create_v2_with_that_mint stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: MetadataPointerInstruction::Initialize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 908 of 194244 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: InitializeMint2
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1770 of 192319 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: GetAccountDataSize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1443 of 181011 compute units
+Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeImmutableOwner
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 734 of 174746 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeAccount3
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1958 of 171676 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 19930 of 189344 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: TokenMetadataInstruction: Initialize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 3549 of 165312 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: TokenMetadataInstruction: UpdateAuthority
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 3792 of 160057 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: MintTo
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1696 of 155118 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: SetAuthority
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1033 of 152287 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 144557 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 139464 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 137000 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13517 of 149978 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program data: G3KpTd7rY3Y= DAAAAFRlc3QgQ29pbiBWMgYAAABURVNUVjIkAAAAaHR0cHM6Ly9leGFtcGxlLmNvbS9tZXRhZGF0YS12Mi5qc29uH9rmvDbD8XTHyyCGjqPUInoKfotZpwEdW4yWft5mi7YNt2kAxwlzH1Q3LypFQuwzElMdQbYjq1B6UHv8ES7Xr2sbkZ53ANxPna6iCJA43LUINlS7epW4NPlSQVU5bwl8YhtCMuAdodalyH8xSRoPeOe3xz4karTK8SxkTritp2IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABt324e51j94YQl285GzN2rYa/E2DuQ0n/r35KNihi/wAACH7ufmFkMhiZqOcrNG41CzgoAkCDanjrZTkb7npK/lIALnS/wAAAAA=
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 65030 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 65030
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: MetadataPointerInstruction::Initialize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 908 of 194244 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: InitializeMint2
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1770 of 192319 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: GetAccountDataSize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1443 of 182511 compute units
+Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeImmutableOwner
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 734 of 176246 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeAccount3
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1958 of 173176 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 18430 of 189344 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: TokenMetadataInstruction: Initialize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 3549 of 166812 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: TokenMetadataInstruction: UpdateAuthority
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 3792 of 161557 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: MintTo
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1696 of 156618 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: SetAuthority
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1033 of 153787 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 47316 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD failed: custom program error: 0x1775
+
+---- buy_v2_purchases_tokens_and_updates_reserves stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 196220 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 180353 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 175260 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 172796 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 21017 of 193274 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 119 of 170526 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s invoke [2]
+Program log: IX: Create Metadata Accounts v3
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Allocate space for the account
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Assign the account to the owning program
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s consumed 42164 of 168415 compute units
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s success
+Program data: G3KpTd7rY3Y= CQAAAFRlc3QgQ29pbgQAAABURVNUIQAAAGh0dHBzOi8vZXhhbXBsZS5jb20vbWV0YWRhdGEuanNvbnCuwsyJhVr7Yegm/e2sS91PhMY3Gd8JJz9l5AHs8VxvWddVbdEP5SQ7ZqwqHJ+p+zNx6GDbi8j9eaOHb7JdTUv+Pc8YClBO5+mHurtHqiGWUEFT/nxa9UHtXdJS/y99KZwaSqz1uUHWfjpkLDV3/5ze0qiU1OtFs1L3DIRckQMRAAAAAAAAAAAAENhH488DAACsI/wGAAAAAHjF+1HRAgAAgMakfo0DAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsI/wGAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 75224 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 75224
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 189160 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 184067 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 230 of 181603 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 16520 of 197589 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 171786 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 166693 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 230 of 164229 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13520 of 177215 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 152416 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 147323 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 230 of 144859 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 16520 of 160845 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ invoke [2]
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ consumed 631 of 141644 compute units
+Program return: 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ AAAAAAAAAABkAAAAAAAAADIAAAAAAAAA
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 134348 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program data: vdt/007mYe4= cK7CzImFWvth6Cb97axL3U+ExjcZ3wknP2XkAezxXG99CFoZAAAAAADwq3WkDQAAAXWiE45ZEQUrB8Xwce8sJfV4IlL26lwI5DKxXzpL+99EAAAAAAAAAAB9tH0VBwAAAAAgLNI+wgMAfQhaGQAAAAAAiBmGrcMCAE/M4uAs8rVmoIF4yDcPY5T3aSmV/EGNfEfnJdkOc74wZAAAAAAAAAB95kAAAAAAAJwaSqz1uUHWfjpkLDV3/5ze0qiU1OtFs1L3DIRckQMRMgAAAAAAAAA/cyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAABidXlfdjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABpuIV/6rgYT7aH9jRhjANdrEOdwa6ztVmKDwAAAAAAF9CFoZAAAAAH20fRUHAAAAfQhaGQAAAAA=
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 67264 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 67264
+
+---- buy_purchases_tokens_and_updates_reserves stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 196220 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 186353 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 181260 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 178796 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 15017 of 193274 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 119 of 176526 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s invoke [2]
+Program log: IX: Create Metadata Accounts v3
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Allocate space for the account
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Assign the account to the owning program
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s consumed 36164 of 174415 compute units
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s success
+Program data: G3KpTd7rY3Y= CQAAAFRlc3QgQ29pbgQAAABURVNUIQAAAGh0dHBzOi8vZXhhbXBsZS5jb20vbWV0YWRhdGEuanNvbqw7P7U8YEszBXSkqkDgD1sPHbJrQv9FC3lvCEo1kLCra8LvZ8txkPX6kbuStW42jNvouzuVvyfKwPGDnGEqUz0XQKB1/OBLNfvIrn6klj/HW8cRbkjgpHgIqVNSBPN52Qx2d6zPqFzCX2lvfQ6ku+5iCi/BDOCx8kxBL9kjTDLNAAAAAAAAAAAAENhH488DAACsI/wGAAAAAHjF+1HRAgAAgMakfo0DAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsI/wGAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 63224 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 63224
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ invoke [2]
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ consumed 631 of 192484 compute units
+Program return: 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ AAAAAAAAAABkAAAAAAAAADIAAAAAAAAA
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 185237 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program data: vdt/007mYe4= rDs/tTxgSzMFdKSqQOAPWw8dsmtC/0ULeW8ISjWQsKt9CFoZAAAAAADwq3WkDQAAAZK2BNO96XXBQ6qe65yVwUtVMeBsJtgCv3XxK5EBMhhXAAAAAAAAAAB9tH0VBwAAAAAgLNI+wgMAfQhaGQAAAAAAiBmGrcMCADixxBpeovR6P1ahM/dfbvvngC7l3ecW2VecqMoiChmwZAAAAAAAAAB95kAAAAAAAAx2d6zPqFzCX2lvfQ6ku+5iCi/BDOCx8kxBL9kjTDLNMgAAAAAAAAA/cyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAABidXkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB9CFoZAAAAAH20fRUHAAAAfQhaGQAAAAA=
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 16363 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 16363
+
+---- create_v2_creates_token2022_mint_with_metadata_and_revokes_authorities stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: MetadataPointerInstruction::Initialize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 908 of 194226 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: InitializeMint2
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1770 of 192301 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: GetAccountDataSize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1443 of 183993 compute units
+Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeImmutableOwner
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 734 of 177728 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeAccount3
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1958 of 174658 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 16930 of 189326 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: TokenMetadataInstruction: Initialize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 3549 of 168294 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: TokenMetadataInstruction: UpdateAuthority
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 3792 of 163039 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: MintTo
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1696 of 158100 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: SetAuthority
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1033 of 155269 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program data: G3KpTd7rY3Y= DAAAAFRlc3QgQ29pbiBWMgYAAABURVNUVjIkAAAAaHR0cHM6Ly9leGFtcGxlLmNvbS9tZXRhZGF0YS12Mi5qc29uopPjiMdEVvOpJvh/iRm9Y3jP/Ob/shXd5IiqTUOxS3OcFGWC5LpIiz+0cIj+1JNJT0p/NUmHf/d6CtbJkwL58nP3HXzo3bpVuhQuVxrQFPNRefnd8IJLENS2KPR+avOVAYh5J+pmoYpPgSlFQxqzrzcHGOtEYKRIJF+yAVnWucsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABt324e51j94YQl285GzN2rYa/E2DuQ0n/r35KNihi/wAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 47255 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 47255
+
+---- initialize_creates_global stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+
+---- migrate_moves_bonding_curve_reserves_into_a_new_pump_amm_pool stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 196220 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 183353 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 178260 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 175796 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 18017 of 193274 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 119 of 173526 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s invoke [2]
+Program log: IX: Create Metadata Accounts v3
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Allocate space for the account
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Assign the account to the owning program
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s consumed 36164 of 171415 compute units
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s success
+Program data: G3KpTd7rY3Y= CQAAAFRlc3QgQ29pbgQAAABURVNUIQAAAGh0dHBzOi8vZXhhbXBsZS5jb20vbWV0YWRhdGEuanNvbihgO1NpiOLYa+qw3zLZElcbSMJpEkuPgA4v8tpOuZEJeP2ndsA/9UlyFSgqjxyA598a8tUhVt6gc7Q/UBmOYnkQZ8+XO2MyduxR6VslTDwDIUuDkGES4wQ2Kxp7psdXuomBA03X4oY/CVvtmgOuS3riDVStx9MmmbdvrNZE5tbhAAAAAAAAAAAAENhH488DAACsI/wGAAAAAHjF+1HRAgAAgMakfo0DAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsI/wGAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 66224 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 66224
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ invoke [2]
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ consumed 631 of 192410 compute units
+Program return: 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ AAAAAAAAAABkAAAAAAAAADIAAAAAAAAA
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 185163 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program data: vdt/007mYe4= KGA7U2mI4thr6rDfMtkSVxtIwmkSS4+ADi/y2k65kQnR17bKEwAAAAB4xftR0QIAAbgAVUVdJUTWdKgb1QEOl8ezhUbuMDZxywNTudYYjTDbAAAAAAAAAADRg9rGGgAAAACYEkyR/gAA0de2yhMAAAAAAAAAAAAAAGRbYxN4+Uujy46iAxXKJGHFCQRzIrxfvdE6GXPuVEa8ZAAAAAAAAADXyaoyAAAAAImBA03X4oY/CVvtmgOuS3riDVStx9MmmbdvrNZE5tbhMgAAAAAAAADsZFUZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAABidXkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADR17bKEwAAANGD2sYaAAAA0de2yhMAAAA=
+Program data: X3JhnNQumAg= uABVRV0lRNZ0qBvVAQ6Xx7OFRu4wNnHLA1O51hiNMNsoYDtTaYji2GvqsN8y2RJXG0jCaRJLj4AOL/LaTrmRCXj9p3bAP/VJchUoKo8cgOffGvLVIVbeoHO0P1AZjmJ5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 16937 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 16937
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 188913 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 183820 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 181356 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13705 of 194488 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 173669 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 168576 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 230 of 166112 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13700 of 179244 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 158509 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 153416 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 150954 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13604 of 164006 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 143367 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 138274 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 230 of 135812 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13599 of 148864 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 134102 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 108 of 132757 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx invoke [2]
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeMint2
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1273 of 125475 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: Create
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [4]
+Program log: Instruction: GetAccountDataSize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1204 of 116953 compute units
+Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [4]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [4]
+Program log: Instruction: InitializeImmutableOwner
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 734 of 110927 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [4]
+Program log: Instruction: InitializeAccount3
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1612 of 107859 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 16244 of 122208 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: CreateIdempotent
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 4437 of 104712 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: CreateIdempotent
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 4438 of 99024 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 76 of 76570 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 83 of 75441 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: MintTo
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1289 of 74145 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program data: sTEM0qB2p3Q= AAAAAAAAAAC+5FD1sFFmA74Lx4b2dtQWAKk86M2AlyXnMsnL/RJv7yhgO1NpiOLYa+qw3zLZElcbSMJpEkuPgA4v8tpOuZEJBpuIV/6rgYT7aH9jRhjANdrEOdwa6ztVmKDwAAAAAAEACAGpLLwAAFEU7cgTAAAAAAgBqSy8AABRFO3IEwAAAGQAAAAAAAAA2ItcQ9ADAAB0i1xD0AMAAMxrvjrp7WntIWP0BSDtELhD/P7fNE072N2TYS/j10VR1rBJNxqrHlgS3lUaRjFOrAiBV9CiD2zrSD2InC/Y25w4+Gc2VgtWi002cOaU325gm+Fio8F0Mqwkym6BvWzwT1Lvog0Wv3oVu237lp1iw2V04XfQ0H9qJthxJFxd64xPiYEDTdfihj8JW+2aA65LeuINVK3H0yaZt2+s1kTm1uEAAAYJ/QAAAA==
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx consumed 58346 of 130234 compute units
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: Burn
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1434 of 70691 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: CloseAccount
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1445 of 68133 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program data: velduVyU6pQ= AAAAAAAAAAAACAGpLLwAANHXtsoTAAAAgMPJAQAAAAC4AFVFXSVE1nSoG9UBDpfHs4VG7jA2ccsDU7nWGI0w2yhgO1NpiOLYa+qw3zLZElcbSMJpEkuPgA4v8tpOuZEJeP2ndsA/9UlyFSgqjxyA598a8tUhVt6gc7Q/UBmOYnnMa7466e1p7SFj9AUg7RC4Q/z+3zRNO9jdk2Ev49dFUQabiFf+q4GE+2h/Y0YYwDXaxDncGus7VZig8AAAAAAB
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 135368 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 135368
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program log: Bonding curve already migrated
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 4023 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 4023
+
+---- migrate_v2_moves_bonding_curve_reserves_into_a_new_pump_amm_pool_with_boost stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 196220 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 187853 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 182760 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 180296 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13517 of 193274 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 119 of 178026 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s invoke [2]
+Program log: IX: Create Metadata Accounts v3
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Allocate space for the account
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Assign the account to the owning program
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s consumed 34664 of 175915 compute units
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s success
+Program data: G3KpTd7rY3Y= CQAAAFRlc3QgQ29pbgQAAABURVNUIQAAAGh0dHBzOi8vZXhhbXBsZS5jb20vbWV0YWRhdGEuanNvbnaMUPMv3fwyt5hxwbaCN3/AziwkFkZdkft500z426UFKGeynT8UAxVo9XgPODTjnhWFnCxDxb3weQfw2LdDgPTeEtsq6xHNl0gn01qrbA+AN+ao+gkK7NB78w5vuAfEoI6YtDZe3Q+iculPaYjnK7gFUbDpkTuvJs0uAlPD2bSnAAAAAAAAAAAAENhH488DAACsI/wGAAAAAHjF+1HRAgAAgMakfo0DAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsI/wGAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 60224 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 60224
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 182529 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 177436 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 174972 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 18025 of 192458 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 166235 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 161142 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 230 of 158678 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 15020 of 173164 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 151526 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 146433 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 143971 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13424 of 156877 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 135335 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 130242 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 230 of 127780 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 14919 of 142186 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 126109 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 108 of 124760 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 123493 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx invoke [2]
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeMint2
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1273 of 116206 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: Create
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [4]
+Program log: Instruction: GetAccountDataSize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1204 of 107684 compute units
+Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [4]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [4]
+Program log: Instruction: InitializeImmutableOwner
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 734 of 101658 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [4]
+Program log: Instruction: InitializeAccount3
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1612 of 98590 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 16244 of 112939 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: CreateIdempotent
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 8937 of 95443 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: CreateIdempotent
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 5938 of 85255 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 76 of 61299 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 83 of 60170 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: MintTo
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1289 of 58874 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program data: sTEM0qB2p3Q= AAAAAAAAAACU8lKzV0sFq7gPnoXLEo+a95zmhWSqtyO8AdxCkIlP1naMUPMv3fwyt5hxwbaCN3/AziwkFkZdkft500z426UFBpuIV/6rgYT7aH9jRhjANdrEOdwa6ztVmKDwAAAAAAEACAGpLLwAANHXtsoTAAAAAAgBqSy8AADR17bKEwAAAGQAAAAAAAAAo3p5b9ADAAA/enlv0AMAAKSYRyLG540oTS1IH1tAynCjr5P09jC7Avz9zc51F5tyfT4JSu2TiVSySvNpU6s73Ghp6lV2Nqb2a3Miug9M2tY07YJwDh1nTIWs7A9FmgTnq8SLZlgKoPltbN6xpLxP0/ciyia8/BxpizpZeM/QDB4dKYeojUQRVLqSDv/qsYh6jpi0Nl7dD6Jy6U9piOcruAVRsOmRO68mzS4CU8PZtKcAAAYJ/wAAAA==
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx consumed 64348 of 120965 compute units
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx success
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx invoke [2]
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [4]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 46723 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [4]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [4]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 41630 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [4]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 230 of 39166 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13512 of 52144 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 112 of 36668 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Log truncated
+   💰 Final CU consumed: 171326
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program log: Bonding curve already migrated
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 5127 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 5127
+
+---- sell_returns_tokens_and_updates_reserves stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 196220 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 187853 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 182760 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 180296 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13517 of 193274 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 119 of 178026 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s invoke [2]
+Program log: IX: Create Metadata Accounts v3
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Allocate space for the account
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Assign the account to the owning program
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s consumed 34664 of 175915 compute units
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s success
+Program data: G3KpTd7rY3Y= CQAAAFRlc3QgQ29pbgQAAABURVNUIQAAAGh0dHBzOi8vZXhhbXBsZS5jb20vbWV0YWRhdGEuanNvbhDdDK6DqEodBPVhLDN0yuABEhMP1m66M3Rio39fGs2gCvZgKaL0P3soEkWxOTgaVlEBvsP/8E36NPB8qUG11cX4ZkIELKzkOrYTeNkfsv9I+HN/1Vo0dkIcCpwbgIPk4P6GcqdL4KHMinIx7RHYJ+O+EM8Sh+zMdREUJ0nhsZsRAAAAAAAAAAAAENhH488DAACsI/wGAAAAAHjF+1HRAgAAgMakfo0DAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsI/wGAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 60224 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 60224
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ invoke [2]
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ consumed 631 of 195034 compute units
+Program return: 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ AAAAAAAAAABkAAAAAAAAADIAAAAAAAAA
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 192655 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program data: vdt/007mYe4= EN0MroOoSh0E9WEsM3TK4AESEw/WbrozdGKjf18azaCr28MMAAAAAAD41TrSBgAAAIEP0/wdi6J+u//2o/RMKGq1ij/pHG5CGs6sL2ipl4WMAAAAAAAAAADS2LkIBwAAAAAYAg0RyQMA0iyWDAAAAAAAgO/Af8oCAJAT82tEyAo34BDV3bZB126gYL372DpxFDsfFpYK1BxSZAAAAAAAAAC4rSAAAAAAAP6GcqdL4KHMinIx7RHYJ+O+EM8Sh+zMdREUJ0nhsZsRMgAAAAAAAADcVhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAABzZWxsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAq9vDDAAAAADS2LkIBwAAANIslgwAAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 9026 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 9026
+
+---- migrate_v2_moves_bonding_curve_reserves_with_a_whitelisted_quote_mint stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 196220 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 184853 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 179760 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 177296 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 16517 of 193274 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 119 of 175026 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s invoke [2]
+Program log: IX: Create Metadata Accounts v3
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Allocate space for the account
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Assign the account to the owning program
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s consumed 43664 of 172915 compute units
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s success
+Program data: G3KpTd7rY3Y= CQAAAFRlc3QgQ29pbgQAAABURVNUIQAAAGh0dHBzOi8vZXhhbXBsZS5jb20vbWV0YWRhdGEuanNvbkMrhAoLXHvv+FvuvueE21T6ff45T9Ej75GTpQyeXmahW7AYr9ZmtRVEuuxYpzMbP+hrfWkIdPjpFyr0GyCaD4uJLJmkiCL4EH3aOK4vAXdrWddFdkrtJecKJlkZYQHzmNNB3fgVFTsvRi21EZMwvbBtyYOu5+DHhjRpz95bZEXIAAAAAAAAAAAAENhH488DAACsI/wGAAAAAHjF+1HRAgAAgMakfo0DAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsI/wGAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 72224 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 72224
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: MetadataPointerInstruction::Initialize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 908 of 194244 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: InitializeMint2
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1770 of 192319 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: GetAccountDataSize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1443 of 179511 compute units
+Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeImmutableOwner
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 734 of 173246 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeAccount3
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1958 of 170176 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 21430 of 189344 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: TokenMetadataInstruction: Initialize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 3549 of 163812 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: TokenMetadataInstruction: UpdateAuthority
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 3792 of 158557 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: MintTo
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1696 of 153618 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: SetAuthority
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1033 of 150787 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 141557 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 136464 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 134000 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 15017 of 148478 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program data: G3KpTd7rY3Y= DAAAAFRlc3QgQ29pbiBWMgYAAABURVNUVjIkAAAAaHR0cHM6Ly9leGFtcGxlLmNvbS9tZXRhZGF0YS12Mi5qc29uTVAS2gxRABU1zDraw3uyLznSnsEty5S1gm/mVCoXmaj4edAXvu/H8HR2E9cqcw8VrqcpqBaP3mgx9MnXfSJJ2jgZvGVYieaITcjE2Mv+otHtEfSF54TXDGTDRF4AT+Fb00Hd+BUVOy9GLbURkzC9sG3Jg67n4MeGNGnP3ltkRcgAAAAAAAAAAAAQ2EfjzwMAAKwj/AYAAAAAeMX7UdECAACAxqR+jQMABt324e51j94YQl285GzN2rYa/E2DuQ0n/r35KNihi/wAAAsaNVKHEXqBiKx3RZlHgtNgfYC8EsVYpT8Z80kLkVNQALnS/wAAAAA=
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 68030 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 68030
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 189173 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 184080 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 181616 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 16525 of 197602 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 171790 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 166697 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 164233 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13525 of 177219 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 155415 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 150322 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 147858 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13525 of 160844 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ invoke [2]
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ consumed 631 of 144563 compute units
+Program return: 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ AAAAAAAAAACWAAAAAAAAAEsAAAAAAAAA
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 140932 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 139738 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 138541 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: TransferChecked
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2547 of 137244 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program data: vdt/007mYe4= TVAS2gxRABU1zDraw3uyLznSnsEty5S1gm/mVCoXmagav+DUAgAAAAB4xftR0QIAATLXCms0Z+DV/r5horIahXGxlJ0l4fNmZr1BmahlHcWmAAAAAAAAAAAaeLPUAwAAAACYEkyR/gAAGr/g1AIAAAAAAAAAAAAAAPa/UaESA1ChhTRQBRBcjz3v+sdFBwljTX7zHl1TgZrClgAAAAAAAAD9h98KAAAAANNB3fgVFTsvRi21EZMwvbBtyYOu5+DHhjRpz95bZEXISwAAAAAAAAD/w28FAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAABidXlfdjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACxo1UocReoGIrHdFmUeC02B9gLwSxVilPxnzSQuRU1Aav+DUAgAAABp4s9QDAAAAGr/g1AIAAAA=
+Program data: X3JhnNQumAg= MtcKazRn4NX+vmGishqFcbGUnSXh82ZmvUGZqGUdxaZNUBLaDFEAFTXMOtrDe7IvOdKewS3LlLWCb+ZUKheZqPh50Be+78fwdHYT1ypzDxWupymoFo/eaDH0ydd9IknaAAAAAAAAAAALGjVShxF6gYisd0WZR4LTYH2AvBLFWKU/GfNJC5FTUA==
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 67308 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 67308
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: GetAccountDataSize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1519 of 185615 compute units
+Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeImmutableOwner
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 734 of 179265 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeAccount3
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2142 of 176194 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 18709 of 192457 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 164050 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 158957 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 156493 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 16525 of 172479 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: GetAccountDataSize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1519 of 149420 compute units
+Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeImmutableOwner
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 734 of 143079 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeAccount3
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2142 of 140010 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 17099 of 154684 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 124967 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 119874 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 117412 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 19424 of 136318 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+Program log: Instruction: TransferChecked
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2547 of 115735 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 112027 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx invoke [2]
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: InitializeMint2
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1273 of 104744 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: Create
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [4]
+Program log: Instruction: GetAccountDataSize
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1204 of 94720 compute units
+Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program 11111111111111111111111111111111 invoke [4]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [4]
+Program log: Instruction: InitializeImmutableOwner
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 734 of 88694 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [4]
+Program log: Instruction: InitializeAccount3
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1612 of 85626 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 17744 of 101475 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: CreateIdempotent
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 5956 of 82474 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: CreateIdempotent
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 7437 of 75267 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: Transfer
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1865 of 50241 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 76 of 47323 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+Program log: Instruction: MintTo
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1289 of 46034 compute units
+Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+Program data: sTEM0qB2p3Q= AAAAAAAAAABxIOJ0Xm4nS27lwybMER7c8O+w2mTxi6UEaeMmfG4+s01QEtoMUQAVNcw62sN7si850p7BLcuUtYJv5lQqF5moCxo1UocReoGIrHdFmUeC02B9gLwSxVilPxnzSQuRU1AACAGpLLwAABq/4NQCAAAAAAgBqSy8AAAav+DUAgAAAGQAAAAAAAAAaXgVVHEBAAAFeBVUcQEAAIPXDIptZUDDqTntUTtlkhJA5DclNZSDikS7zqzjhsDntQ5XCVk3J+FvmUbntz3Z3PW2WIchE+8D1nXfsJt8waEjvkiCm/uIZBN60wadUAYeS4Ng00YXHj6kkScTlKAnq3QMAooqgXwu+PxA3x7L6csr2Gxcg7Qwjz0+tlv/EI4r00Hd+BUVOy9GLbURkzC9sG3Jg67n4MeGNGnP3ltkRcgAAAYJ/wAAAA==
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx consumed 65728 of 109505 compute units
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx success
+Program HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx invoke [2]
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [3]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [4]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 33878 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [4]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [4]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 28785 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [4]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 26321 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13517 of 39299 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Log truncated
+   💰 Final CU consumed: 184145
+
+---- set_buyback_fee_recipients_rejects_non_authority_signer stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 2142 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD failed: custom program error: 0x1770
+
+---- set_buyback_fee_recipients_updates_global stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 2271 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 2271
+
+---- sell_v2_returns_tokens_and_updates_reserves stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 201 of 196220 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: Create
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 183 of 187853 compute units
+Program return: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA pQAAAAAAAAA=
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Initialize the associated token account
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 38 of 182760 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [3]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 235 of 180296 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 13517 of 193274 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 119 of 178026 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s invoke [2]
+Program log: IX: Create Metadata Accounts v3
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Allocate space for the account
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program log: Assign the account to the owning program
+Program 11111111111111111111111111111111 invoke [3]
+Program 11111111111111111111111111111111 success
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s consumed 36164 of 175915 compute units
+Program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s success
+Program data: G3KpTd7rY3Y= CQAAAFRlc3QgQ29pbgQAAABURVNUIQAAAGh0dHBzOi8vZXhhbXBsZS5jb20vbWV0YWRhdGEuanNvbmzqdm+HWUq6tVf8GnawqWXSQpYjwDF6eN2VyH+tSZDGM89khF1X6YaWSwDTVNdrgjdvLbIPAPiRB4bXd2OGfDegIt/XHL/c1FNr8x2C34AaBsM9G16rvL5iPk5U9cflNRwzqmlzXwMBKHyiT3wa5GHdbEPjIzFerAPNkBufyBptAAAAAAAAAAAAENhH488DAACsI/wGAAAAAHjF+1HRAgAAgMakfo0DAAbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACsI/wGAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 61724 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 61724
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 4438 of 197613 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 10438 of 189322 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+Program log: CreateIdempotent
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 5938 of 177324 compute units
+Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ invoke [2]
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ consumed 631 of 168743 compute units
+Program return: 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ AAAAAAAAAABkAAAAAAAAADIAAAAAAAAA
+Program 8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ success
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA consumed 105 of 166287 compute units
+Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA success
+Program data: vdt/007mYe4= bOp2b4dZSrq1V/wadrCpZdJCliPAMXp43ZXIf61JkMar28MMAAAAAAD41TrSBgAAAIUQBlHgkke5ye/p5NQ1j7QEfHRw32qiWMHWC39uoBZXAAAAAAAAAADS2LkIBwAAAAAYAg0RyQMA0iyWDAAAAAAAgO/Af8oCAOqVgqkL1V7bomnYUCOS/61kYOJ9bh4Px1yK4KK0LEs8ZAAAAAAAAAC4rSAAAAAAABwzqmlzXwMBKHyiT3wa5GHdbEPjIzFerAPNkBufyBptMgAAAAAAAADcVhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcAAABzZWxsX3YyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAabiFf+q4GE+2h/Y0YYwDXaxDncGus7VZig8AAAAAABq9vDDAAAAADS2LkIBwAAANIslgwAAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 35422 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 35422
+
+---- set_params_rejects_non_authority_signer stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 261 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD failed: custom program error: 0x1770
+
+---- set_params_updates_admin_set_creator_authority stdout ----
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program 11111111111111111111111111111111 invoke [2]
+Program 11111111111111111111111111111111 success
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1510 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1510
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD invoke [1]
+Program data: 38Of9j4wj4M= AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAS9Uep1H/Cg52RcBcslEt+Y4HqBkD/gFodXVBAfUzceqSUDsIh+zsSq3ajnVJ/k1rtNd00iwCu/AyTWP2o/rCK3FcCrOqcI2jTgh7YhvGQ8TJye8D8+DXt8wRlHqhhHAdgbMAz0CjQsA9okZGq5ngeQo1SxkGWTW21xbjHszliaxomnvguRAgOjcXM6ndjYBqWFGsKZEN+QZ2TMwejh6VVn/4H1ywHZ0W+ttgRG1UyUV9q1S3hI89WSYFOteYWL6g6+6x8qvNlYwxX9mnwhiqC6xT+XDj055qtWOPEeEdc5zSyP5jVNhSc32Y8C8PFOQOUprKptoPeLXtJi6M5Gl5swAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABtNFw7j4Sy9sflEmNtfQZF+rmMFnzRBUx1KYVyZUgqMgAAAAAAAAAA
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD consumed 1919 of 200000 compute units
+Program FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD success
+   💰 Final CU consumed: 1919
+
+
+successes:
+    add_quote_mint_enables_and_remove_quote_mint_disables_create_v2_with_that_mint
+    buy_purchases_tokens_and_updates_reserves
+    buy_v2_purchases_tokens_and_updates_reserves
+    create_creates_bonding_curve_and_mint
+    create_v2_creates_token2022_mint_with_metadata_and_revokes_authorities
+    initialize_creates_global
+    migrate_moves_bonding_curve_reserves_into_a_new_pump_amm_pool
+    migrate_v2_moves_bonding_curve_reserves_into_a_new_pump_amm_pool_with_boost
+    migrate_v2_moves_bonding_curve_reserves_with_a_whitelisted_quote_mint
+    sell_returns_tokens_and_updates_reserves
+    sell_v2_returns_tokens_and_updates_reserves
+    set_buyback_fee_recipients_rejects_non_authority_signer
+    set_buyback_fee_recipients_updates_global
+    set_params_rejects_non_authority_signer
+    set_params_updates_admin_set_creator_authority
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.36s
+
+✅ All tests passed successfully!

@@ -17,6 +17,7 @@ pub struct InstructionBuilder<'a> {
     pub extra_signers: Vec<&'a Keypair>,
     pub pre_instructions: Vec<Instruction>,
     pub post_instructions: Vec<Instruction>,
+    pub verbose: bool,
 }
 
 impl<'a> InstructionBuilder<'a> {
@@ -30,6 +31,7 @@ impl<'a> InstructionBuilder<'a> {
             extra_signers: Vec::new(),
             pre_instructions: Vec::new(),
             post_instructions: Vec::new(),
+            verbose: false,
         }
     }
 
@@ -59,6 +61,16 @@ impl<'a> InstructionBuilder<'a> {
 
     pub fn signer(mut self, keypair: &'a Keypair) -> Self {
         self.extra_signers.push(keypair);
+        self
+    }
+
+    /// Prints this instruction's program logs (and compute units consumed) to
+    /// stdout once `send_and_confirm` resolves, on both success and failure.
+    /// Opt-in and per-call, since `InstructionBuilder` is also used outside
+    /// tests, where unconditional log output would just be noise with no way
+    /// to quiet it down.
+    pub fn log(mut self) -> Self {
+        self.verbose = true;
         self
     }
 
@@ -123,8 +135,35 @@ impl<'a> InstructionBuilder<'a> {
     /// Sends a versioned transaction and waits for confirmation.
     pub fn send_and_confirm(&self) -> Result<NaclacTransactionMetadata, NaclacClientError> {
         let tx = self.transaction()?;
-        self.provider
-            .send_transaction(&tx, Some(&self.account_names))
+        let result = self
+            .provider
+            .send_transaction(&tx, Some(&self.account_names));
+        if self.verbose {
+            use std::fmt::Write as _;
+            let mut block = String::new();
+            match &result {
+                Ok(meta) => {
+                    for line in &meta.logs {
+                        let _ = writeln!(block, "{line}");
+                    }
+                    let _ = writeln!(
+                        block,
+                        "   💰 Final CU consumed: {}",
+                        meta.compute_units_consumed
+                    );
+                }
+                Err(NaclacClientError::TransactionFailed { logs, .. }) => {
+                    for line in logs {
+                        let _ = writeln!(block, "{line}");
+                    }
+                }
+                Err(_) => {}
+            }
+            if !block.is_empty() {
+                print!("{block}");
+            }
+        }
+        result
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

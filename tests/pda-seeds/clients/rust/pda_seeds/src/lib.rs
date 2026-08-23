@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -35,6 +35,20 @@ pub fn get_child_pda(
         &[
             &[99, 104, 105, 108, 100],
             &registry_bump_arr,
+        ],
+        program_id,
+    )
+}
+
+#[cfg(feature = "offchain")]
+pub fn get_config_entry_pda(
+    program_id: &naclac_client::Address,
+    config_program_id: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[99, 111, 110, 102, 105, 103, 95, 101, 110, 116, 114, 121],
+            config_program_id.as_ref(),
         ],
         program_id,
     )
@@ -79,9 +93,9 @@ pub fn get_registry_pda(
 pub struct PdaSeeds;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for PdaSeeds {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([223, 64, 174, 170, 20, 181, 164, 46, 174, 148, 27, 255, 15, 248, 175, 250, 29, 239, 254, 148, 255, 77, 118, 85, 136, 45, 154, 251, 42, 218, 65, 123])
+impl sdk_core_cpi::Id for PdaSeeds {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([223, 64, 174, 170, 20, 181, 164, 46, 174, 148, 27, 255, 15, 248, 175, 250, 29, 239, 254, 148, 255, 77, 118, 85, 136, 45, 154, 251, 42, 218, 65, 123])
     }
 }
 

@@ -1,0 +1,25 @@
+[package]
+name = "error_codes"
+version = "0.1.0"
+description = "Regression test: #[error_code] custom errors and NaclacError framework errors don't collide in code-space (solana-borsh, macro-syntax-level so one mode suffices)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["borsh"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+error-codes-client = { version = "0.1.0", path = "../../clients/rust/error_codes" }
+
+[lints]
+workspace = true

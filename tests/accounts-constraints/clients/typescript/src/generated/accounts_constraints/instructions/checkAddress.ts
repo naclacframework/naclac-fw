@@ -3,12 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `checkAddress` instruction. */
-export const CHECKADDRESS_DISCRIMINATOR = new Uint8Array([59, 51, 114, 147, 41, 214, 123, 101]);
+/** 8-byte discriminator for the `check_address` instruction. */
+export const CHECK_ADDRESS_DISCRIMINATOR = new Uint8Array([59, 51, 114, 147, 41, 214, 123, 101]);
 
 /** Accounts for the `checkAddress` instruction. */
 export interface CheckAddressAccounts {
-  target: naclac.Address | string;
+  /**
+   * SAFETY: only the account's own address is inspected via the
+   * `address` constraint below; its data is never read or deserialized.
+   */
+  target?: naclac.Address | string;
 }
 
 /**
@@ -20,7 +24,7 @@ export function checkAddress(
   args?: Record<string, never>,
   accounts?: Partial<CheckAddressAccounts>
 ) {
-  const builder = program.methods.checkAddress(args ?? {});
+  const builder = program.methods.check_address(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

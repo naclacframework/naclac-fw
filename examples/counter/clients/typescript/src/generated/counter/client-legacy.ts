@@ -63,7 +63,7 @@ export class CounterClient {
     return instructions.increment(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `counterAccount` account. Returns `[PublicKey, bumpSeed]`. */
+  /** Derives the PDA for a `counter_account` account. Returns `[PublicKey, bumpSeed]`. */
   public getCounterAccountPda(seeds: {
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(

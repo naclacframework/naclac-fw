@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "HLQiP3fsqRMgFYzTbXCFYPGqktcP27Npt5QaWp9qsx3C",
+  "address": "ELAcXuQJ9UHTCcrrSHfnMRxzyxy8yh51oMu5BVJPCy8h",
   "metadata": {
     "name": "amm",
     "version": "0.1.0",
@@ -9,414 +9,111 @@ export const IDL = {
     {
       "name": "initialize",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
-      ],
+      "discriminator": [175,175,109,31,13,152,155,237],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "token_a_mint" },
+        { "name": "token_b_mint" },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "tokenAMint",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "tokenBMint",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "poolState",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "pool_state", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "tokenAMint"
-              },
-              {
-                "kind": "account",
-                "path": "tokenBMint"
-              },
-              {
-                "kind": "arg",
-                "path": "id"
-              }
+              { "kind": "const", "value": [112,111,111,108] },
+              { "kind": "account", "path": "token_a_mint" },
+              { "kind": "account", "path": "token_b_mint" },
+              { "kind": "arg", "path": "id" }
             ]
           }
         },
-        {
-          "name": "vaultA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "vaultB",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "lpMint",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "depositorTokenA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "depositorTokenB",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "depositorLp",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "depositorAuthority",
-          "writable": false,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "tokenProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "vault_a", "writable": true },
+        { "name": "vault_b", "writable": true },
+        { "name": "lp_mint", "writable": true },
+        { "name": "depositor_token_a", "writable": true },
+        { "name": "depositor_token_b", "writable": true },
+        { "name": "depositor_lp", "writable": true },
+        { "name": "depositor_authority", "signer": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        {
-          "name": "id",
-          "type": "u64"
-        },
-        {
-          "name": "poolBump",
-          "type": "u8"
-        },
-        {
-          "name": "amountA",
-          "type": "u64"
-        },
-        {
-          "name": "amountB",
-          "type": "u64"
-        }
+        { "name": "id", "type": "u64" },
+        { "name": "pool_bump", "type": "u8" },
+        { "name": "amount_a", "type": "u64" },
+        { "name": "amount_b", "type": "u64" }
       ]
     },
     {
       "name": "swap",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        248,
-        198,
-        158,
-        145,
-        225,
-        117,
-        135,
-        200
-      ],
+      "discriminator": [248,198,158,145,225,117,135,200],
       "accounts": [
-        {
-          "name": "user",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "poolState",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "poolSourceVault",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "poolDestinationVault",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "userSourceToken",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "userDestinationToken",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "tokenProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
+        { "name": "user", "writable": true, "signer": true },
+        { "name": "pool_state" },
+        { "name": "pool_source_vault", "writable": true },
+        { "name": "pool_destination_vault", "writable": true },
+        { "name": "user_source_token", "writable": true },
+        { "name": "user_destination_token", "writable": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
       ],
       "args": [
-        {
-          "name": "amountIn",
-          "type": "u64"
-        },
-        {
-          "name": "minimumAmountOut",
-          "type": "u64"
-        }
+        { "name": "amount_in", "type": "u64" },
+        { "name": "minimum_amount_out", "type": "u64" }
       ]
     },
     {
-      "name": "addLiquidity",
+      "name": "add_liquidity",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        181,
-        157,
-        89,
-        67,
-        143,
-        182,
-        52,
-        72
-      ],
+      "discriminator": [181,157,89,67,143,182,52,72],
       "accounts": [
-        {
-          "name": "user",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "poolState",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "vaultA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "vaultB",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "lpMint",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "userTokenA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "userTokenB",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "userLp",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "tokenProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
+        { "name": "user", "writable": true, "signer": true },
+        { "name": "pool_state", "writable": true },
+        { "name": "vault_a", "writable": true },
+        { "name": "vault_b", "writable": true },
+        { "name": "lp_mint", "writable": true },
+        { "name": "user_token_a", "writable": true },
+        { "name": "user_token_b", "writable": true },
+        { "name": "user_lp", "writable": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
       ],
       "args": [
-        {
-          "name": "maxAmountA",
-          "type": "u64"
-        },
-        {
-          "name": "maxAmountB",
-          "type": "u64"
-        }
+        { "name": "max_amount_a", "type": "u64" },
+        { "name": "max_amount_b", "type": "u64" }
       ]
     },
     {
-      "name": "removeLiquidity",
+      "name": "remove_liquidity",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        80,
-        85,
-        209,
-        72,
-        24,
-        206,
-        177,
-        108
-      ],
+      "discriminator": [80,85,209,72,24,206,177,108],
       "accounts": [
-        {
-          "name": "user",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "poolState",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "vaultA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "vaultB",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "lpMint",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "userTokenA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "userTokenB",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "userLp",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "tokenProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
+        { "name": "user", "writable": true, "signer": true },
+        { "name": "pool_state", "writable": true },
+        { "name": "vault_a", "writable": true },
+        { "name": "vault_b", "writable": true },
+        { "name": "lp_mint", "writable": true },
+        { "name": "user_token_a", "writable": true },
+        { "name": "user_token_b", "writable": true },
+        { "name": "user_lp", "writable": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
       ],
       "args": [
-        {
-          "name": "lpAmount",
-          "type": "u64"
-        }
+        { "name": "lp_amount", "type": "u64" }
       ]
     }
   ],
   "accounts": [
     {
       "name": "PoolState",
-      "discriminator": [
-        247,
-        237,
-        227,
-        245,
-        215,
-        195,
-        222,
-        70
-      ],
+      "discriminator": [247,237,227,245,215,195,222,70],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "id",
-            "type": "u64"
-          },
-          {
-            "name": "tokenAMint",
-            "type": "publicKey"
-          },
-          {
-            "name": "tokenBMint",
-            "type": "publicKey"
-          },
-          {
-            "name": "vaultA",
-            "type": "publicKey"
-          },
-          {
-            "name": "vaultB",
-            "type": "publicKey"
-          },
-          {
-            "name": "lpMint",
-            "type": "publicKey"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
+          { "name": "id", "type": "u64" },
+          { "name": "token_a_mint", "type": "publicKey" },
+          { "name": "token_b_mint", "type": "publicKey" },
+          { "name": "vault_a", "type": "publicKey" },
+          { "name": "vault_b", "type": "publicKey" },
+          { "name": "lp_mint", "type": "publicKey" },
+          { "name": "bump", "type": "u8" }
         ]
       }
     }
@@ -424,142 +121,42 @@ export const IDL = {
   "events": [
     {
       "name": "PoolInitialized",
-      "discriminator": [
-        100,
-        118,
-        173,
-        87,
-        12,
-        198,
-        254,
-        229
-      ],
+      "discriminator": [100,118,173,87,12,198,254,229],
       "fields": [
-        {
-          "name": "tokenAMint",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "tokenBMint",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "lpAmount",
-          "type": "u64",
-          "index": false
-        }
+        { "name": "token_a_mint", "type": "publicKey", "index": false },
+        { "name": "token_b_mint", "type": "publicKey", "index": false },
+        { "name": "lp_amount", "type": "u64", "index": false }
       ]
     },
     {
       "name": "SwapExecuted",
-      "discriminator": [
-        150,
-        166,
-        26,
-        225,
-        28,
-        89,
-        38,
-        79
-      ],
+      "discriminator": [150,166,26,225,28,89,38,79],
       "fields": [
-        {
-          "name": "user",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amountIn",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "amountOut",
-          "type": "u64",
-          "index": false
-        }
+        { "name": "user", "type": "publicKey", "index": false },
+        { "name": "amount_in", "type": "u64", "index": false },
+        { "name": "amount_out", "type": "u64", "index": false }
       ]
     },
     {
       "name": "LiquidityAdded",
-      "discriminator": [
-        154,
-        26,
-        221,
-        108,
-        238,
-        64,
-        217,
-        161
-      ],
+      "discriminator": [154,26,221,108,238,64,217,161],
       "fields": [
-        {
-          "name": "tokenAMint",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "tokenBMint",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amountA",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "amountB",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "lpMinted",
-          "type": "u64",
-          "index": false
-        }
+        { "name": "token_a_mint", "type": "publicKey", "index": false },
+        { "name": "token_b_mint", "type": "publicKey", "index": false },
+        { "name": "amount_a", "type": "u64", "index": false },
+        { "name": "amount_b", "type": "u64", "index": false },
+        { "name": "lp_minted", "type": "u64", "index": false }
       ]
     },
     {
       "name": "LiquidityRemoved",
-      "discriminator": [
-        225,
-        105,
-        216,
-        39,
-        124,
-        116,
-        169,
-        189
-      ],
+      "discriminator": [225,105,216,39,124,116,169,189],
       "fields": [
-        {
-          "name": "tokenAMint",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "tokenBMint",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amountA",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "amountB",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "lpBurned",
-          "type": "u64",
-          "index": false
-        }
+        { "name": "token_a_mint", "type": "publicKey", "index": false },
+        { "name": "token_b_mint", "type": "publicKey", "index": false },
+        { "name": "amount_a", "type": "u64", "index": false },
+        { "name": "amount_b", "type": "u64", "index": false },
+        { "name": "lp_burned", "type": "u64", "index": false }
       ]
     }
   ],
@@ -599,29 +196,12 @@ export const IDL = {
   "definedTypes": [],
   "pdas": [
     {
-      "name": "poolState",
+      "name": "pool_state",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            112,
-            111,
-            111,
-            108
-          ]
-        },
-        {
-          "kind": "account",
-          "path": "tokenAMint"
-        },
-        {
-          "kind": "account",
-          "path": "tokenBMint"
-        },
-        {
-          "kind": "arg",
-          "path": "id"
-        }
+        { "kind": "const", "value": [112,111,111,108] },
+        { "kind": "account", "path": "token_a_mint" },
+        { "kind": "account", "path": "token_b_mint" },
+        { "kind": "arg", "path": "id" }
       ]
     }
   ]

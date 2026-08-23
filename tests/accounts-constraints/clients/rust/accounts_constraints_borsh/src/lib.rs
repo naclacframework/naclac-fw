@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -38,12 +38,36 @@ pub fn get_ledger_pda(
 }
 
 #[cfg(feature = "offchain")]
+pub fn get_note_pda(
+    program_id: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[110, 111, 116, 101],
+        ],
+        program_id,
+    )
+}
+
+#[cfg(feature = "offchain")]
 pub fn get_seeded_pda(
     program_id: &naclac_client::Address
 ) -> (naclac_client::Address, u8) {
     naclac_client::Address::find_program_address(
         &[
             &[115, 101, 101, 100, 101, 100],
+        ],
+        program_id,
+    )
+}
+
+#[cfg(feature = "offchain")]
+pub fn get_target_pda(
+    program_id: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[101, 120, 116, 101, 114, 110, 97, 108, 95, 112, 100, 97],
         ],
         program_id,
     )
@@ -66,9 +90,9 @@ pub fn get_vault_pda(
 pub struct AccountsConstraintsBorsh;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for AccountsConstraintsBorsh {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([220, 191, 145, 180, 52, 26, 5, 24, 164, 79, 39, 18, 54, 152, 88, 115, 239, 167, 40, 41, 221, 74, 25, 5, 211, 165, 218, 234, 238, 117, 251, 38])
+impl sdk_core_cpi::Id for AccountsConstraintsBorsh {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([220, 191, 145, 180, 52, 26, 5, 24, 164, 79, 39, 18, 54, 152, 88, 115, 239, 167, 40, 41, 221, 74, 25, 5, 211, 165, 218, 234, 238, 117, 251, 38])
     }
 }
 

@@ -3,25 +3,25 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `removeLiquidity` instruction. */
-export const REMOVELIQUIDITY_DISCRIMINATOR = new Uint8Array([80, 85, 209, 72, 24, 206, 177, 108]);
+/** 8-byte discriminator for the `remove_liquidity` instruction. */
+export const REMOVE_LIQUIDITY_DISCRIMINATOR = new Uint8Array([80, 85, 209, 72, 24, 206, 177, 108]);
 
 /** Instruction arguments for `removeLiquidity`. */
 export interface RemoveLiquidityArgs {
-  lpAmount: bigint | number;
+  lp_amount: bigint | number;
 }
 
 /** Accounts for the `removeLiquidity` instruction. */
 export interface RemoveLiquidityAccounts {
   user: naclac.Address | string;
-  poolState: naclac.Address | string;
-  vaultA: naclac.Address | string;
-  vaultB: naclac.Address | string;
-  lpMint: naclac.Address | string;
-  userTokenA: naclac.Address | string;
-  userTokenB: naclac.Address | string;
-  userLp: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
+  pool_state: naclac.Address | string;
+  vault_a: naclac.Address | string;
+  vault_b: naclac.Address | string;
+  lp_mint: naclac.Address | string;
+  user_token_a: naclac.Address | string;
+  user_token_b: naclac.Address | string;
+  user_lp: naclac.Address | string;
+  token_program?: naclac.Address | string;
 }
 
 /**
@@ -33,7 +33,7 @@ export function removeLiquidity(
   args: RemoveLiquidityArgs,
   accounts?: Partial<RemoveLiquidityAccounts>
 ) {
-  const builder = program.methods.removeLiquidity(args ?? {});
+  const builder = program.methods.remove_liquidity(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

@@ -9,7 +9,7 @@ export const INCREMENT_DISCRIMINATOR = new Uint8Array([11, 18, 104, 9, 104, 174,
 /** Accounts for the `increment` instruction. */
 export interface IncrementAccounts {
   authority: naclac.Address | string;
-  counterAccount?: naclac.Address | string;
+  counter_account?: naclac.Address | string;
 }
 
 /**

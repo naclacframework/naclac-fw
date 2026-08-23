@@ -1,8 +1,20 @@
 use serde::{Deserialize, Serialize};
 
+/// For `#[serde(skip_serializing_if = "is_false")]` on a plain `bool` field —
+/// matches the real Anchor/Codama IDL convention of omitting `writable`/
+/// `signer` entirely when `false`, rather than writing it out.
+fn is_false(b: &bool) -> bool {
+    !b
+}
+
+pub mod paths;
 pub mod rust;
 pub mod typescript;
 
+pub use paths::{
+    find_naclac_framework_root, naclac_dep_path_fragments, naclac_dep_paths, relative_path,
+    resolve_target_dir,
+};
 pub use typescript::generate_ts;
 
 #[derive(Serialize, Deserialize, Default)]
@@ -22,6 +34,12 @@ pub struct Idl {
     /// Top-level PDA definitions — present in IDL but not used by generators.
     #[serde(default)]
     pub pdas: Vec<serde_json::Value>,
+    /// Names of every `#[event(alloc)]` event — not part of the IDL JSON
+    /// itself (see `naclac_idl::generate_idl`'s doc comment); populated from
+    /// the zero-copy marker file's contents by the caller after
+    /// deserializing, since that's the only place with filesystem access.
+    #[serde(skip)]
+    pub alloc_event_names: std::collections::HashSet<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,6 +47,8 @@ pub struct IdlType {
     pub name: String,
     #[serde(rename = "type")]
     pub ty: IdlTypeDefVariants,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -43,6 +63,8 @@ pub enum IdlTypeDefVariants {
 #[derive(Serialize, Deserialize)]
 pub struct IdlEnumVariant {
     pub name: String,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -61,12 +83,16 @@ pub struct IdlInstruction {
     pub optional_account_strategy: String,
     pub accounts: Vec<IdlAccount>,
     pub args: Vec<IdlField>,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct IdlAccount {
     pub name: String,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub writable: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub signer: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub optional: Option<bool>,
@@ -74,11 +100,17 @@ pub struct IdlAccount {
     pub pda: Option<IdlPda>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<String>,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct IdlPda {
     pub seeds: Vec<IdlSeed>,
+    /// The `seeds::program = X` override — set only when this PDA is derived
+    /// against a program other than the current one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program: Option<IdlSeed>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -112,6 +144,8 @@ pub struct IdlAccountDef {
     pub discriminator: Option<Vec<u8>>,
     #[serde(rename = "type")]
     pub ty: IdlTypeDef,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -125,6 +159,8 @@ pub struct IdlField {
     pub name: String,
     #[serde(rename = "type")]
     pub ty: serde_json::Value,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -133,6 +169,8 @@ pub struct IdlEventDef {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discriminator: Option<Vec<u8>>,
     pub fields: Vec<IdlEventField>,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -141,6 +179,8 @@ pub struct IdlEventField {
     #[serde(rename = "type")]
     pub ty: serde_json::Value,
     pub index: bool,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -160,6 +200,8 @@ pub struct IdlConstant {
     #[serde(rename = "type")]
     pub ty: serde_json::Value,
     pub value: String,
+    #[serde(default)]
+    pub docs: Vec<String>,
 }
 
 pub fn generate_sdk(

@@ -3,14 +3,14 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `initSeeded` instruction. */
-export const INITSEEDED_DISCRIMINATOR = new Uint8Array([194, 72, 3, 113, 154, 190, 21, 206]);
+/** 8-byte discriminator for the `init_seeded` instruction. */
+export const INIT_SEEDED_DISCRIMINATOR = new Uint8Array([194, 72, 3, 113, 154, 190, 21, 206]);
 
 /** Accounts for the `initSeeded` instruction. */
 export interface InitSeededAccounts {
   payer: naclac.Address | string;
   seeded?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**
@@ -22,7 +22,7 @@ export function initSeeded(
   args?: Record<string, never>,
   accounts?: Partial<InitSeededAccounts>
 ) {
-  const builder = program.methods.initSeeded(args ?? {});
+  const builder = program.methods.init_seeded(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

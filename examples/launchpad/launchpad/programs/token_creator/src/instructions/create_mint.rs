@@ -15,12 +15,14 @@ pub struct CreateMint {
         mint::decimals = _decimals,
         mint::authority = launch_record,
     )]
+    /// SAFETY: the PDA address is fully constrained by the seeds/bump above and this field is only used as the mint target for the token program.
     pub mint: AccountInfo,
 
     #[account(
         seeds = [b"launch", payer.address().as_ref(), &id.to_le_bytes()],
         bump = launch_record_bump
     )]
+    /// SAFETY: the PDA address is validated by the seeds/bump constraint above and the field is only used as a signer authority target.
     pub launch_record: AccountInfo,
 
     pub token_program: Program<Token>,

@@ -26,6 +26,9 @@ pub fn generate_program(
     ensure_dir(&program_dir.join("src/components"));
     ensure_dir(&program_dir.join("src/systems"));
 
+    let (naclac_lang_path, _) =
+        naclac_client_gen::naclac_dep_path_fragments(root_path, &program_dir);
+
     // --- Cargo.toml ---
     let cargo_toml = match mode {
         ProgramMode::Pinocchio => format!(
@@ -47,12 +50,12 @@ default = ["pinocchio"]
 pinocchio = ["naclac-lang/pinocchio"]
 
 [dependencies]
-naclac-lang = {{ version = "0.1.0", default-features = false }}
+naclac-lang = {{ version = "0.1.0", default-features = false{naclac_lang_path} }}
 
 [lints.rust]
 unexpected_cfgs = {{ level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("idl-build", "pinocchio", "solana", "borsh"))'
+    'cfg(target_os, values("solana"))',
+    'cfg(feature, values("pinocchio", "solana", "borsh"))'
 ] }}
 "#,
             snake_name
@@ -75,12 +78,12 @@ custom-panic = []
 debug-mode = []
 
 [dependencies]
-naclac-lang = "0.1.0"
+naclac-lang = {{ version = "0.1.0"{naclac_lang_path} }}
 
 [lints.rust]
 unexpected_cfgs = {{ level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("idl-build", "pinocchio", "solana", "borsh"))'
+    'cfg(target_os, values("solana"))',
+    'cfg(feature, values("pinocchio", "solana", "borsh"))'
 ] }}
 "#,
             snake_name

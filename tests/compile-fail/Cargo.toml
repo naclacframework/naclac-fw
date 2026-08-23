@@ -7,7 +7,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-naclac-lang = { path = "../../naclac-lang" }
+naclac-lang = { path = "../../naclac-lang", features = ["token"] }
 
 [dev-dependencies]
 trybuild = "1"

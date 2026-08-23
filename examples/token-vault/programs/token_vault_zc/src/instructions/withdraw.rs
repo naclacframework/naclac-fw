@@ -11,7 +11,7 @@ pub struct Withdraw {
     #[account(mut)]
     pub payer: Signer,
 
-    pub mint: AccountInfo,
+    pub mint: InterfaceAccount<Mint>,
 
     #[account(
         mut,
@@ -68,13 +68,17 @@ pub fn withdraw(ctx: Context<Withdraw>, vault_id: u64, amount: u64) -> Result {
     ];
     let signer_seeds: &[&[&[u8]]] = &[seeds];
 
-    ctx.accounts.token_program.transfer_signed(
-        TransferAccounts {
+    let decimals = ctx.accounts.mint.decimals();
+
+    ctx.accounts.token_program.transfer_checked_signed(
+        TransferCheckedAccounts {
             from: &mut ctx.accounts.vault_token_account,
+            mint: &ctx.accounts.mint,
             to: &mut ctx.accounts.user_token_account,
             authority: &ctx.accounts.vault_account,
         },
         amount,
+        decimals,
         signer_seeds,
     )?;
 

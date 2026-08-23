@@ -15,5 +15,5 @@ cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test-rust = "cargo test -- --nocapture"
+test-rust = "cargo test -- --show-output"
 test-node = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""

@@ -91,6 +91,30 @@ export class PdaSeedsZcClient {
     return instructions.initTaggedChild(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `touchConfigEntryBareBump` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public touchConfigEntryBareBump(args?: Record<string, never>, accounts?: Partial<instructions.TouchConfigEntryBareBumpAccounts>) {
+    return instructions.touchConfigEntryBareBump(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchConfigEntryBareBumpWithArgs` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public touchConfigEntryBareBumpWithArgs(args: instructions.TouchConfigEntryBareBumpWithArgsArgs, accounts?: Partial<instructions.TouchConfigEntryBareBumpWithArgsAccounts>) {
+    return instructions.touchConfigEntryBareBumpWithArgs(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `readConfigEntryBareBump` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public readConfigEntryBareBump(args: instructions.ReadConfigEntryBareBumpArgs, accounts?: Partial<instructions.ReadConfigEntryBareBumpAccounts>) {
+    return instructions.readConfigEntryBareBump(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `child` account. */
   public async getChildPda(seeds: {
     registry_bump: number;
@@ -100,6 +124,19 @@ export class PdaSeedsZcClient {
       seeds: [
                 new Uint8Array([99, 104, 105, 108, 100]),
         new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.registry_bump))
+      ]
+    });
+  }
+
+  /** Derives the PDA for a `config_entry` account. */
+  public async getConfigEntryPda(seeds: {
+    config_program_id: naclac.Address | string;
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([99, 111, 110, 102, 105, 103, 95, 101, 110, 116, 114, 121]),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.config_program_id === 'string' ? naclac.address(seeds.config_program_id) : seeds.config_program_id))
       ]
     });
   }
@@ -153,6 +190,26 @@ export class PdaSeedsZcClient {
   /** Fetches multiple `Child` accounts. Missing accounts have `.exists = false`. */
   public fetchAllMaybeChilds(addresses: Array<naclac.Address | string>) {
     return accounts.fetchAllMaybeChild(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
+  }
+
+  /** Fetches a `ConfigEntry` account. Throws if it does not exist. */
+  public fetchConfigEntry(address: naclac.Address | string) {
+    return accounts.fetchConfigEntry(this.program.provider.rpc as any, naclac.address(address as string));
+  }
+
+  /** Fetches a `ConfigEntry` account. Returns a MaybeAccount (check `.exists`) if it does not exist. */
+  public fetchMaybeConfigEntry(address: naclac.Address | string) {
+    return accounts.fetchMaybeConfigEntry(this.program.provider.rpc as any, naclac.address(address as string));
+  }
+
+  /** Fetches multiple `ConfigEntry` accounts by address. Throws if any do not exist. */
+  public fetchAllConfigEntrys(addresses: Array<naclac.Address | string>) {
+    return accounts.fetchAllConfigEntry(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
+  }
+
+  /** Fetches multiple `ConfigEntry` accounts. Missing accounts have `.exists = false`. */
+  public fetchAllMaybeConfigEntrys(addresses: Array<naclac.Address | string>) {
+    return accounts.fetchAllMaybeConfigEntry(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
   }
 
   /** Fetches a `Entry` account. Throws if it does not exist. */
@@ -218,6 +275,11 @@ export class PdaSeedsZcClient {
   /** Fetches ALL `Child` accounts owned by this program. */
   public fetchAllChildByOwner(options?: { commitment?: any; filters?: unknown[] }) {
     return accounts.fetchAllChildByOwner(this.program.provider.rpc as any, this.programId, options);
+  }
+
+  /** Fetches ALL `ConfigEntry` accounts owned by this program. */
+  public fetchAllConfigEntryByOwner(options?: { commitment?: any; filters?: unknown[] }) {
+    return accounts.fetchAllConfigEntryByOwner(this.program.provider.rpc as any, this.programId, options);
   }
 
   /** Fetches ALL `Entry` accounts owned by this program. */

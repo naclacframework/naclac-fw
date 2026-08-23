@@ -1,0 +1,5 @@
+error: Naclac Error: `bump` requires `seeds = [...]` on the same field — a bare `bump` with no `seeds` has no PDA to verify against and would otherwise be silently ignored. Example: #[account(seeds = [...], bump)]
+  --> tests/fail/21_bump_missing_seeds.rs:11:9
+   |
+11 |     pub account: Account<FooData>,
+   |         ^^^^^^^

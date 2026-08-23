@@ -3,6 +3,8 @@
 
 pub mod ledger;
 pub use ledger::*;
+pub mod note;
+pub use note::*;
 pub mod seeded_thing;
 pub use seeded_thing::*;
 pub mod vault;

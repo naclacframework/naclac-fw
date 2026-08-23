@@ -1,0 +1,17 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+cpi_callee = "9yvGp1y55GRHnswFv5UepRm9BHC4BpktqFkFzbDEJoZR"
+cpi_caller = "2pYvma2nEiPYHr3Ar6XzQkm3AxdKzNhhAi2VKLyrZ8hj"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"

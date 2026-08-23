@@ -4,7 +4,7 @@ use naclac_idl::Idl;
 use std::fs;
 use toml::Value;
 
-pub fn execute(target_file: Option<&str>) {
+pub fn execute(target_file: Option<&str>, run_order: bool) {
     let current_dir = std::env::current_dir().unwrap();
     let toml_path = if current_dir.join("Naclac.toml").exists() {
         current_dir.join("Naclac.toml")
@@ -61,7 +61,8 @@ pub fn execute(target_file: Option<&str>) {
 
     // Load IDLs to match discriminators
     let mut idls = Vec::new();
-    let idl_dir = workspace_root.join("target/idl");
+    let target_dir = naclac_client_gen::resolve_target_dir(workspace_root);
+    let idl_dir = target_dir.join("idl");
     if idl_dir.exists() {
         for entry in fs::read_dir(&idl_dir).unwrap() {
             let entry = entry.unwrap();
@@ -109,8 +110,7 @@ pub fn execute(target_file: Option<&str>) {
         return;
     }
 
-    // Configure profiling log file path (absolute path to workspace root/target/naclac_profile.jsonl)
-    let profile_file = workspace_root.join("target/naclac_profile.jsonl");
+    let profile_file = target_dir.join("naclac_profile.jsonl");
     let profile_file_str = profile_file.to_str().unwrap().to_string();
 
     let mut all_reports: Vec<(String, Vec<(String, u64)>)> = Vec::new();
@@ -216,6 +216,7 @@ pub fn execute(target_file: Option<&str>) {
 
         // Parse the generated jsonl file
         let mut raw_data = Vec::new();
+        let mut malformed_lines = 0usize;
         if profile_file.exists() {
             if let Ok(file_content) = fs::read_to_string(&profile_file) {
                 for line in file_content.lines() {
@@ -300,9 +301,18 @@ pub fn execute(target_file: Option<&str>) {
                                 }
                             }
                         }
+                    } else {
+                        malformed_lines += 1;
                     }
                 }
             }
+        }
+
+        if malformed_lines > 0 {
+            println!(
+                "⚠️  {} malformed profile log line(s) for {} were skipped (some CU data may be missing)",
+                malformed_lines, prog_name
+            );
         }
 
         if !raw_data.is_empty() {
@@ -322,7 +332,7 @@ pub fn execute(target_file: Option<&str>) {
     // Print reports
     for (test_file, report_data) in all_reports {
         println!("📝 {} {}", "Result for".magenta().bold(), test_file.white());
-        print_final_summary(&report_data);
+        print_final_summary(&report_data, run_order);
     }
 
     if !overall_success {
@@ -333,16 +343,29 @@ pub fn execute(target_file: Option<&str>) {
     }
 }
 
-fn print_final_summary(data: &[(String, u64)]) {
+fn print_final_summary(data: &[(String, u64)], run_order: bool) {
+    let mut grouped: Vec<(String, u64, usize)> = Vec::new();
+    for (name, cu) in data {
+        if let Some(entry) = grouped.iter_mut().find(|(n, c, _)| n == name && c == cu) {
+            entry.2 += 1;
+        } else {
+            grouped.push((name.clone(), *cu, 1));
+        }
+    }
+    if !run_order {
+        grouped.sort_by_key(|(_, cu, _)| *cu);
+    }
+
     println!("\n{}", "📊 NACLAC FINAL COMPUTE REPORT".bold().green());
     println!(
         "{}",
         "────────────────────────────────────────────────────────────────────────────────".dimmed()
     );
     println!(
-        "{:<30} {:<15} {:<15} {:<15}",
+        "{:<30} {:<15} {:<10} {:<15} {:<15}",
         "Instruction".bold(),
         "CU".bold(),
+        "Calls".bold(),
         "Est. Cost".bold(),
         "Visual".bold()
     );
@@ -351,7 +374,7 @@ fn print_final_summary(data: &[(String, u64)]) {
         "────────────────────────────────────────────────────────────────────────────────".dimmed()
     );
 
-    for (name, cu) in data {
+    for (name, cu, calls) in &grouped {
         let cu_color = if *cu > 180_000 {
             Color::Red
         } else if *cu > 100_000 {
@@ -369,9 +392,10 @@ fn print_final_summary(data: &[(String, u64)]) {
         let empty = "░".repeat(20 - bar_len);
 
         println!(
-            "{:<30} {:<15} {:<15} {}{}",
+            "{:<30} {:<15} {:<10} {:<15} {}{}",
             name.yellow(),
             format!("{} CU", cu).color(cu_color),
+            format!("×{}", calls),
             format!("{:.7} SOL", cost_sol).dimmed(),
             bar.color(cu_color),
             empty.dimmed()

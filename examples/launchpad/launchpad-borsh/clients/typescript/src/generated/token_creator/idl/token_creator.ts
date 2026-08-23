@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "5GNKxmbR5QUB4RVHPzvu4WCGfA9o8bkRXbfZez1D7Ay4",
+  "address": "6GzLQP11cDkRREyNqyPvJjfcHCARFKpRhQyGrwfoK4nv",
   "metadata": {
     "name": "token_creator",
     "version": "0.1.0",
@@ -7,302 +7,129 @@ export const IDL = {
   },
   "instructions": [
     {
-      "name": "launchToken",
+      "name": "launch_token",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        10,
-        128,
-        86,
-        171,
-        3,
-        137,
-        161,
-        244
-      ],
+      "discriminator": [10,128,86,171,3,137,161,244],
       "accounts": [
-        {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "quoteMint",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "quote_mint" },
         {
           "name": "mint",
+          "docs": [
+            "SAFETY: the PDA address is validated by the seeds/bump constraint above and the field is only used as a mint target and signer authority input."
+          ],
           "writable": true,
-          "signer": false,
-          "optional": false,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  105,
-                  110,
-                  116
-                ],
-                "name": "SEED_MINT"
-              },
-              {
-                "kind": "arg",
-                "path": "args.id"
-              }
+              { "kind": "const", "value": [109,105,110,116], "name": "SEED_MINT" },
+              { "kind": "arg", "path": "args.id" }
             ]
           }
         },
         {
-          "name": "launchRecord",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "launch_record", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  97,
-                  117,
-                  110,
-                  99,
-                  104
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "payer"
-              },
-              {
-                "kind": "arg",
-                "path": "args.id"
-              }
+              { "kind": "const", "value": [108,97,117,110,99,104] },
+              { "kind": "account", "path": "payer" },
+              { "kind": "arg", "path": "args.id" }
             ]
           }
         },
+        { "name": "launcher_token_a", "writable": true },
+        { "name": "launcher_token_b", "writable": true },
+        { "name": "launcher_lp", "writable": true },
+        { "name": "payer_token_b", "writable": true },
         {
-          "name": "launcherTokenA",
-          "writable": true,
-          "signer": false,
-          "optional": false
+          "name": "pool_state",
+          "docs": [
+            "SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target."
+          ],
+          "writable": true
         },
         {
-          "name": "launcherTokenB",
-          "writable": true,
-          "signer": false,
-          "optional": false
+          "name": "pool_vault_a",
+          "docs": [
+            "SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target."
+          ],
+          "writable": true
         },
         {
-          "name": "launcherLp",
-          "writable": true,
-          "signer": false,
-          "optional": false
+          "name": "pool_vault_b",
+          "docs": [
+            "SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target."
+          ],
+          "writable": true
         },
         {
-          "name": "payerTokenB",
-          "writable": true,
-          "signer": false,
-          "optional": false
+          "name": "pool_lp_mint",
+          "docs": [
+            "SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target."
+          ],
+          "writable": true
         },
-        {
-          "name": "poolState",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "poolVaultA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "poolVaultB",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "poolLpMint",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "ammProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "tokenProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "amm_program" },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "LaunchTokenArgs"
-          }
-        }
+        { "name": "args", "type": { "defined": "LaunchTokenArgs" } }
       ]
     },
     {
-      "name": "createMint",
+      "name": "create_mint",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        69,
-        44,
-        215,
-        132,
-        253,
-        214,
-        41,
-        45
-      ],
+      "discriminator": [69,44,215,132,253,214,41,45],
       "accounts": [
-        {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
+        { "name": "payer", "writable": true, "signer": true },
         {
           "name": "mint",
+          "docs": [
+            "SAFETY: the PDA address is fully constrained by the seeds/bump above and this field is only used as the mint target for the token program."
+          ],
           "writable": true,
-          "signer": false,
-          "optional": false,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  105,
-                  110,
-                  116
-                ],
-                "name": "SEED_MINT"
-              },
-              {
-                "kind": "arg",
-                "path": "id"
-              }
+              { "kind": "const", "value": [109,105,110,116], "name": "SEED_MINT" },
+              { "kind": "arg", "path": "id" }
             ]
           }
         },
         {
-          "name": "launchRecord",
-          "writable": false,
-          "signer": false,
-          "optional": false,
+          "name": "launch_record",
+          "docs": [
+            "SAFETY: the PDA address is validated by the seeds/bump constraint above and the field is only used as a signer authority target."
+          ],
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  97,
-                  117,
-                  110,
-                  99,
-                  104
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "payer"
-              },
-              {
-                "kind": "arg",
-                "path": "id"
-              }
+              { "kind": "const", "value": [108,97,117,110,99,104] },
+              { "kind": "account", "path": "payer" },
+              { "kind": "arg", "path": "id" }
             ]
           }
         },
-        {
-          "name": "tokenProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        {
-          "name": "id",
-          "type": "u64"
-        },
-        {
-          "name": "mintBump",
-          "type": "u8"
-        },
-        {
-          "name": "launchRecordBump",
-          "type": "u8"
-        },
-        {
-          "name": "decimals",
-          "type": "u8"
-        }
+        { "name": "id", "type": "u64" },
+        { "name": "mint_bump", "type": "u8" },
+        { "name": "launch_record_bump", "type": "u8" },
+        { "name": "decimals", "type": "u8" }
       ]
     }
   ],
   "accounts": [
     {
       "name": "LaunchRecord",
-      "discriminator": [
-        146,
-        240,
-        197,
-        204,
-        6,
-        6,
-        87,
-        75
-      ],
+      "discriminator": [146,240,197,204,6,6,87,75],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "creator",
-            "type": "publicKey"
-          },
-          {
-            "name": "mint",
-            "type": "publicKey"
-          },
-          {
-            "name": "amountToken",
-            "type": "u64"
-          },
-          {
-            "name": "amountQuote",
-            "type": "u64"
-          }
+          { "name": "creator", "type": "publicKey" },
+          { "name": "mint", "type": "publicKey" },
+          { "name": "amount_token", "type": "u64" },
+          { "name": "amount_quote", "type": "u64" }
         ]
       }
     }
@@ -310,67 +137,21 @@ export const IDL = {
   "events": [
     {
       "name": "TokenLaunched",
-      "discriminator": [
-        225,
-        232,
-        190,
-        147,
-        213,
-        192,
-        220,
-        168
-      ],
+      "discriminator": [225,232,190,147,213,192,220,168],
       "fields": [
-        {
-          "name": "id",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "mint",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amountToken",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "amountQuote",
-          "type": "u64",
-          "index": false
-        }
+        { "name": "id", "type": "u64", "index": false },
+        { "name": "mint", "type": "publicKey", "index": false },
+        { "name": "amount_token", "type": "u64", "index": false },
+        { "name": "amount_quote", "type": "u64", "index": false }
       ]
     },
     {
       "name": "MintCreated",
-      "discriminator": [
-        254,
-        157,
-        196,
-        76,
-        231,
-        48,
-        27,
-        150
-      ],
+      "discriminator": [254,157,196,76,231,48,27,150],
       "fields": [
-        {
-          "name": "id",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "mint",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "decimals",
-          "type": "u8",
-          "index": false
-        }
+        { "name": "id", "type": "u64", "index": false },
+        { "name": "mint", "type": "publicKey", "index": false },
+        { "name": "decimals", "type": "u8", "index": false }
       ]
     }
   ],
@@ -405,7 +186,7 @@ export const IDL = {
     {
       "name": "SEED_MINT",
       "type": "bytes",
-      "value": "b\"mint\""
+      "value": "[109, 105, 110, 116]"
     }
   ],
   "definedTypes": [
@@ -414,84 +195,32 @@ export const IDL = {
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "id",
-            "type": "u64"
-          },
-          {
-            "name": "mintBump",
-            "type": "u8"
-          },
-          {
-            "name": "launchRecordBump",
-            "type": "u8"
-          },
-          {
-            "name": "poolBump",
-            "type": "u8"
-          },
-          {
-            "name": "decimals",
-            "type": "u8"
-          },
-          {
-            "name": "amountTokenPool",
-            "type": "u64"
-          },
-          {
-            "name": "amountTokenLauncher",
-            "type": "u64"
-          },
-          {
-            "name": "amountQuote",
-            "type": "u64"
-          }
+          { "name": "id", "type": "u64" },
+          { "name": "mint_bump", "type": "u8" },
+          { "name": "launch_record_bump", "type": "u8" },
+          { "name": "pool_bump", "type": "u8" },
+          { "name": "decimals", "type": "u8" },
+          { "name": "amount_token_pool", "type": "u64" },
+          { "name": "amount_token_launcher", "type": "u64" },
+          { "name": "amount_quote", "type": "u64" }
         ]
       }
     }
   ],
   "pdas": [
     {
-      "name": "launchRecord",
+      "name": "launch_record",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            108,
-            97,
-            117,
-            110,
-            99,
-            104
-          ]
-        },
-        {
-          "kind": "account",
-          "path": "payer"
-        },
-        {
-          "kind": "arg",
-          "path": "args.id"
-        }
+        { "kind": "const", "value": [108,97,117,110,99,104] },
+        { "kind": "account", "path": "payer" },
+        { "kind": "arg", "path": "args.id" }
       ]
     },
     {
       "name": "mint",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            109,
-            105,
-            110,
-            116
-          ],
-          "name": "SEED_MINT"
-        },
-        {
-          "kind": "arg",
-          "path": "args.id"
-        }
+        { "kind": "const", "value": [109,105,110,116], "name": "SEED_MINT" },
+        { "kind": "arg", "path": "args.id" }
       ]
     }
   ]

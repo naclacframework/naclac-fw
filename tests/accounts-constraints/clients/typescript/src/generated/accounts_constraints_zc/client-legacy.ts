@@ -80,11 +80,35 @@ export class AccountsConstraintsZcClient {
   }
 
   /**
+   * Builds the `checkOwnerRelational` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkOwnerRelational(args?: Record<string, never>, accounts?: Partial<instructions.CheckOwnerRelationalAccounts>) {
+    return instructions.checkOwnerRelational(this.program, args ?? {}, accounts);
+  }
+
+  /**
    * Builds the `checkAddress` instruction pipeline.
    * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
    */
   public checkAddress(args?: Record<string, never>, accounts?: Partial<instructions.CheckAddressAccounts>) {
     return instructions.checkAddress(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkAddressRelational` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkAddressRelational(args?: Record<string, never>, accounts?: Partial<instructions.CheckAddressRelationalAccounts>) {
+    return instructions.checkAddressRelational(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkExecutable` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkExecutable(args?: Record<string, never>, accounts?: Partial<instructions.CheckExecutableAccounts>) {
+    return instructions.checkExecutable(this.program, args ?? {}, accounts);
   }
 
   /**
@@ -127,6 +151,38 @@ export class AccountsConstraintsZcClient {
     return instructions.closeVault(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `closeVaultSelf` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public closeVaultSelf(args?: Record<string, never>, accounts?: Partial<instructions.CloseVaultSelfAccounts>) {
+    return instructions.closeVaultSelf(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkRentExempt` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkRentExempt(args?: Record<string, never>, accounts?: Partial<instructions.CheckRentExemptAccounts>) {
+    return instructions.checkRentExempt(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `relatedVaultCustomError` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public relatedVaultCustomError(args?: Record<string, never>, accounts?: Partial<instructions.RelatedVaultCustomErrorAccounts>) {
+    return instructions.relatedVaultCustomError(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `checkExternalPda` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public checkExternalPda(args: instructions.CheckExternalPdaArgs, accounts?: Partial<instructions.CheckExternalPdaAccounts>) {
+    return instructions.checkExternalPda(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `ledger` account. Returns `[PublicKey, bumpSeed]`. */
   public getLedgerPda(seeds: {
   }): [naclac.PublicKey, number] {
@@ -145,6 +201,18 @@ export class AccountsConstraintsZcClient {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([115, 101, 101, 100, 101, 100])
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
+  /** Derives the PDA for a `target` account. Returns `[PublicKey, bumpSeed]`. */
+  public getTargetPda(seeds: {
+  }): [naclac.PublicKey, number] {
+    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
+      [
+                new Uint8Array([101, 120, 116, 101, 114, 110, 97, 108, 95, 112, 100, 97])
       ],
       this.programId
     );

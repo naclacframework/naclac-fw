@@ -1,0 +1,15 @@
+[workspace]
+
+[package]
+name = "donation-fee-pda-probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+solana-rpc-client = "^3"
+solana-rpc-client-api = "^3"
+solana-account-decoder = "^3"
+solana-transaction-status-client-types = "^3"
+solana-signature = "^3"
+solana-program = "^3"
+bs58 = "0.5.1"

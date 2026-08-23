@@ -1,5 +1,6 @@
 use naclac_lang::prelude::*;
 use crate::components::Registry;
+use crate::constants::SEED_REGISTRY;
 
 #[derive(Accounts)]
 #[instruction(bump: u8)]

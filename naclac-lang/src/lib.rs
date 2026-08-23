@@ -10,6 +10,3 @@ compile_error!("the `token` feature requires `solana` or `pinocchio` to also be 
 
 #[cfg(feature = "token")]
 pub use naclac_token::{associated_token, token};
-
-#[allow(unused_imports)]
-pub use naclac_macros::*;

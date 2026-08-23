@@ -2,12 +2,16 @@
 //!
 //! `tests/fail/*.rs` — one fixture per `compile_error!`/`syn::Error` site in
 //! `naclac-macros` (see `tests/TEST_PLAN.md` section 5 for the full site
-//! list this is meant to track). Each must fail to compile. Deliberately no
-//! `.stderr` snapshot files — we only assert *that* compilation fails, not
-//! the exact rustc/macro diagnostic text, to avoid churn from wording
-//! changes or rustc version differences. If a fixture starts compiling
-//! successfully, that's a real regression: the check it was testing no
-//! longer fires.
+//! list this is meant to track). Each must fail to compile, and each has a
+//! committed `tests/fail/*.stderr` snapshot that trybuild compares exactly
+//! — without one, trybuild writes the actual output to `wip/*.stderr` and
+//! fails the suite until that file is reviewed and moved into `tests/fail/`
+//! (`TRYBUILD=overwrite cargo test` regenerates it). This also means a
+//! fixture can fail for the *wrong* reason (an unrelated check firing first)
+//! without the exact-text comparison; only the committed `.stderr` catches
+//! that. If a fixture starts compiling successfully, or its `.stderr` stops
+//! matching, that's a real regression: the check it was testing changed or
+//! no longer fires.
 //!
 //! `tests/pass/*.rs` — the valid counterpart for checks that have one (e.g.
 //! `unsafe(alias)` as the correct spelling of what bare `alias` rejects).

@@ -1,0 +1,25 @@
+[package]
+name = "stack_safety"
+version = "0.1.0"
+description = "Regression test: naclac-macros/src/accounts.rs's stack-frame size asserts and the Box<Account<T>> escape hatch (solana-borsh backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["borsh"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+stack-safety-client = { version = "0.1.0", path = "../../clients/rust/stack_safety" }
+
+[lints]
+workspace = true

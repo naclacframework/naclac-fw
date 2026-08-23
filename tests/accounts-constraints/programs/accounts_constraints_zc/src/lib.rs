@@ -4,6 +4,7 @@ declare_id!("4brUZ7qbbQvHFLoVZuUdVejWXUx8WWZpZEgbBs5W49xm");
 
 pub mod components;
 pub mod constants;
+pub mod errors;
 pub mod instructions;
 
 use instructions::*;
@@ -26,8 +27,20 @@ pub mod accounts_constraints_zc {
         check_owner::check_owner(ctx)
     }
 
+    pub fn check_owner_relational(ctx: Context<CheckOwnerRelational>) -> Result {
+        check_owner_relational::check_owner_relational(ctx)
+    }
+
     pub fn check_address(ctx: Context<CheckAddress>) -> Result {
         check_address::check_address(ctx)
+    }
+
+    pub fn check_address_relational(ctx: Context<CheckAddressRelational>) -> Result {
+        check_address_relational::check_address_relational(ctx)
+    }
+
+    pub fn check_executable(ctx: Context<CheckExecutable>) -> Result {
+        check_executable::check_executable(ctx)
     }
 
     pub fn touch_mut_vault(ctx: Context<TouchMutVault>) -> Result {
@@ -48,5 +61,21 @@ pub mod accounts_constraints_zc {
 
     pub fn close_vault(ctx: Context<CloseVault>) -> Result {
         close_vault::close_vault(ctx)
+    }
+
+    pub fn close_vault_self(ctx: Context<CloseVaultSelf>) -> Result {
+        close_vault_self::close_vault_self(ctx)
+    }
+
+    pub fn check_rent_exempt(ctx: Context<CheckRentExempt>) -> Result {
+        check_rent_exempt::check_rent_exempt(ctx)
+    }
+
+    pub fn related_vault_custom_error(ctx: Context<RelatedVaultCustomError>) -> Result {
+        related_vault_custom_error::related_vault_custom_error(ctx)
+    }
+
+    pub fn check_external_pda(ctx: Context<CheckExternalPda>, bump: u8) -> Result {
+        check_external_pda::check_external_pda(ctx, bump)
     }
 }

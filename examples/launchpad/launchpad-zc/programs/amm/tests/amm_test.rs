@@ -129,6 +129,8 @@ fn test_amm_full_lifecycle() {
         AddLiquidityAccounts {
             user: provider.payer.address(),
             pool_state,
+            token_a_mint,
+            token_b_mint,
             vault_a: pool_vault_a_signer.address(),
             vault_b: pool_vault_b_signer.address(),
             lp_mint: pool_lp_mint_signer.address(),
@@ -167,6 +169,8 @@ fn test_amm_full_lifecycle() {
         SwapAccounts {
             user: provider.payer.address(),
             pool_state,
+            token_a_mint,
+            token_b_mint,
             pool_source_vault: pool_vault_a_signer.address(),
             pool_destination_vault: pool_vault_b_signer.address(),
             user_source_token: user_token_a,
@@ -199,6 +203,8 @@ fn test_amm_full_lifecycle() {
         RemoveLiquidityAccounts {
             user: provider.payer.address(),
             pool_state,
+            token_a_mint,
+            token_b_mint,
             vault_a: pool_vault_a_signer.address(),
             vault_b: pool_vault_b_signer.address(),
             lp_mint: pool_lp_mint_signer.address(),

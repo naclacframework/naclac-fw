@@ -1,4 +1,7 @@
-use super::map_type_to_rust;
+use super::{
+    map_type_to_rust_cpi, map_type_to_rust_with_prefix, references_defined_type, render_docs,
+    sdk_core_alias,
+};
 use crate::Idl;
 use heck::{AsSnakeCase, ToUpperCamelCase};
 use std::fs;
@@ -26,25 +29,91 @@ pub fn generate_components(
         let acc_camel = acc.name.to_upper_camel_case();
 
         let mut comp_content = header.to_string();
-        comp_content.push_str("#[cfg(feature = \"borsh\")]\n");
-        comp_content
-            .push_str("use crate::sdk_core::borsh::{BorshDeserialize, BorshSerialize};\n\n");
-
-        comp_content.push_str(&format!(
-            "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]\n\
-             #[cfg_attr(feature = \"borsh\", borsh(crate = \"crate::sdk_core::borsh\"))]\n\
-             #[cfg_attr(not(feature = \"borsh\"), derive(Copy, Clone, Debug))]\n\
-             #[cfg_attr(not(feature = \"borsh\"), repr(C))]\n\
-             pub struct {} {{\n",
-            acc_camel
-        ));
-
-        for field in &acc.ty.fields {
-            let field_snake = AsSnakeCase(&field.name).to_string();
-            let field_ty = map_type_to_rust(&field.ty, idl.is_zero_copy);
-            comp_content.push_str(&format!("    pub {}: {},\n", field_snake, field_ty));
+        comp_content.push_str(
+            "#[cfg(all(feature = \"borsh\", feature = \"offchain\"))]\n\
+             use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};\n\
+             #[cfg(all(feature = \"borsh\", not(feature = \"offchain\")))]\n\
+             use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};\n",
+        );
+        if acc.ty.fields.iter().any(|f| references_defined_type(&f.ty)) {
+            comp_content.push_str("use crate::types::typedefs::*;\n");
         }
-        comp_content.push_str("}\n");
+        comp_content.push('\n');
+
+        // Field types (e.g. `Address`/`Bool`) genuinely differ between
+        // `sdk_core_offchain` and `sdk_core_cpi` — not interchangeable, just
+        // same-shaped — so the whole struct must be duplicated per branch
+        // rather than sharing one body. Gated on `feature = "cpi"` / `feature
+        // = "offchain"` independently (not a mutually-exclusive `offchain`/
+        // `not(offchain)` pair) so both can coexist under their own distinct
+        // name when a crate is reached both ways at once (e.g. a normal
+        // `cpi`-only dependency and an `offchain`-only dev-dependency on the
+        // same package, unifying both features) — same reasoning as
+        // `types/typedefs.rs`'s struct branch, which this mirrors.
+        for for_cpi in [false, true] {
+            let sdk_core = sdk_core_alias(for_cpi);
+            let cfg = if for_cpi {
+                "#[cfg(feature = \"cpi\")]\n"
+            } else {
+                "#[cfg(feature = \"offchain\")]\n"
+            };
+            // Distinct names, not just distinct cfg gates — see
+            // `map_type_to_rust_inner`'s comment on the matching `Cpi`-suffix
+            // it appends for every reference to this type.
+            let struct_name = if for_cpi {
+                format!("{}Cpi", acc_camel)
+            } else {
+                acc_camel.clone()
+            };
+
+            comp_content.push_str(cfg);
+            comp_content.push_str(&render_docs(&acc.docs, ""));
+            comp_content.push_str(&format!(
+                "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]\n\
+                 #[cfg_attr(feature = \"borsh\", borsh(crate = \"{sdk_core}::borsh\"))]\n\
+                 #[cfg_attr(not(feature = \"borsh\"), derive(Copy, Clone, Debug))]\n\
+                 #[cfg_attr(not(feature = \"borsh\"), repr(C))]\n\
+                 pub struct {name} {{\n",
+                sdk_core = sdk_core,
+                name = struct_name
+            ));
+
+            for field in &acc.ty.fields {
+                let field_snake = AsSnakeCase(&field.name).to_string();
+                let field_ty = if for_cpi {
+                    map_type_to_rust_cpi(&field.ty, idl.is_zero_copy, "")
+                } else {
+                    map_type_to_rust_with_prefix(&field.ty, idl.is_zero_copy, "")
+                };
+                comp_content.push_str(&render_docs(&field.docs, "    "));
+                comp_content.push_str(&format!("    pub {}: {},\n", field_snake, field_ty));
+            }
+            comp_content.push_str("}\n\n");
+
+            comp_content.push_str(cfg);
+            comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+            comp_content.push_str(&format!(
+                "unsafe impl {}::bytemuck::Zeroable for {} {{}}\n",
+                sdk_core, struct_name
+            ));
+            comp_content.push_str(cfg);
+            comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+            comp_content.push_str(&format!(
+                "unsafe impl {}::bytemuck::Pod for {} {{}}\n",
+                sdk_core, struct_name
+            ));
+        }
+
+        // No alias from the plain name to `{name}Cpi`: `offchain` and `cpi`
+        // aren't mutually exclusive at the Cargo level (feature unification
+        // can activate both in one build), and an alias gated on
+        // `not(feature = "offchain")` would silently vanish the moment
+        // offchain is also active, leaving the plain name pointing at the
+        // *offchain* struct instead -- exactly the ambiguity this file's
+        // independent per-branch naming exists to avoid (see the loop
+        // above). Every on-chain CPI caller must reference the
+        // `Cpi`-suffixed name explicitly, the same way `instructions/mod.rs`
+        // requires `{Ix}CpiIxArgs` rather than a bare `{Ix}IxArgs` alias.
 
         // Discriminator check helper
         if let Some(disc) = &acc.discriminator {
@@ -89,18 +158,6 @@ impl naclac_client::NaclacDecode for {acc_camel} {{
             ));
         }
 
-        // Bytemuck impls (required for Zero-Copy / no-Borsh mode)
-        comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
-        comp_content.push_str(&format!(
-            "unsafe impl crate::sdk_core::bytemuck::Zeroable for {} {{}}\n",
-            acc_camel
-        ));
-        comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
-        comp_content.push_str(&format!(
-            "unsafe impl crate::sdk_core::bytemuck::Pod for {} {{}}\n",
-            acc_camel
-        ));
-
         // Network-fetching convenience functions. Identical in both modes —
         // each delegates entirely to `{acc_camel}`'s own `NaclacDecode` impl
         // above (the single source of truth for how to decode this type), so
@@ -141,9 +198,9 @@ pub fn fetch_maybe_{acc_snake}(
 pub fn fetch_all_{acc_snake}(
     provider: &naclac_client::NaclacProvider,
     program_id: &naclac_client::Address,
-) -> Result<crate::sdk_core::Vec<(naclac_client::Address, {acc_camel})>, naclac_client::NaclacClientError> {{
+) -> Result<crate::sdk_core_offchain::Vec<(naclac_client::Address, {acc_camel})>, naclac_client::NaclacClientError> {{
     let raw_accounts = provider.get_program_accounts(program_id, Some(&{disc_name}_DISCRIMINATOR))?;
-    let mut results = crate::sdk_core::Vec::new();
+    let mut results = crate::sdk_core_offchain::Vec::new();
     for (address, data) in raw_accounts {{
         if let Ok(value) = <{acc_camel} as naclac_client::NaclacDecode>::naclac_decode(&data) {{
             results.push((address, value));

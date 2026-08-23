@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -42,9 +42,9 @@ pub fn get_counter_pda(
 pub struct SingleFileLayout;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for SingleFileLayout {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([240, 51, 11, 155, 171, 228, 65, 88, 234, 186, 204, 246, 203, 172, 163, 110, 148, 126, 18, 6, 81, 59, 172, 11, 182, 252, 163, 208, 228, 214, 196, 227])
+impl sdk_core_cpi::Id for SingleFileLayout {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([240, 51, 11, 155, 171, 228, 65, 88, 234, 186, 204, 246, 203, 172, 163, 110, 148, 126, 18, 6, 81, 59, 172, 11, 182, 252, 163, 208, 228, 214, 196, 227])
     }
 }
 

@@ -8,9 +8,9 @@ export const POOLINITIALIZED_EVENT_DISCRIMINATOR = new Uint8Array([100, 118, 173
 
 /** Auto-generated event interface from the program IDL. */
 export interface PoolInitialized {
-  tokenAMint: naclac.Address | string;
-  tokenBMint: naclac.Address | string;
-  lpAmount: bigint | number;
+  token_a_mint: naclac.Address | string;
+  token_b_mint: naclac.Address | string;
+  lp_amount: bigint | number;
 }
 
 /** Subscribes to `PoolInitialized` events. Returns a listener ID for cleanup. */
@@ -29,14 +29,22 @@ export async function waitForPoolInitialized(
   return program.waitForEvent("PoolInitialized", options) as Promise<PoolInitialized | null>;
 }
 
+/** Decodes every `PoolInitialized` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForPoolInitialized`/`addPoolInitializedListener` — prefer this when you already know which transaction you're checking. */
+export function parsePoolInitializedEvents(
+  program: any,
+  logs: readonly string[]
+): PoolInitialized[] {
+  return program.parseEvents("PoolInitialized", logs) as PoolInitialized[];
+}
+
 /** 8-byte discriminator for `SwapExecuted` events in transaction logs. */
 export const SWAPEXECUTED_EVENT_DISCRIMINATOR = new Uint8Array([150, 166, 26, 225, 28, 89, 38, 79]);
 
 /** Auto-generated event interface from the program IDL. */
 export interface SwapExecuted {
   user: naclac.Address | string;
-  amountIn: bigint | number;
-  amountOut: bigint | number;
+  amount_in: bigint | number;
+  amount_out: bigint | number;
 }
 
 /** Subscribes to `SwapExecuted` events. Returns a listener ID for cleanup. */
@@ -55,16 +63,24 @@ export async function waitForSwapExecuted(
   return program.waitForEvent("SwapExecuted", options) as Promise<SwapExecuted | null>;
 }
 
+/** Decodes every `SwapExecuted` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSwapExecuted`/`addSwapExecutedListener` — prefer this when you already know which transaction you're checking. */
+export function parseSwapExecutedEvents(
+  program: any,
+  logs: readonly string[]
+): SwapExecuted[] {
+  return program.parseEvents("SwapExecuted", logs) as SwapExecuted[];
+}
+
 /** 8-byte discriminator for `LiquidityAdded` events in transaction logs. */
 export const LIQUIDITYADDED_EVENT_DISCRIMINATOR = new Uint8Array([154, 26, 221, 108, 238, 64, 217, 161]);
 
 /** Auto-generated event interface from the program IDL. */
 export interface LiquidityAdded {
-  tokenAMint: naclac.Address | string;
-  tokenBMint: naclac.Address | string;
-  amountA: bigint | number;
-  amountB: bigint | number;
-  lpMinted: bigint | number;
+  token_a_mint: naclac.Address | string;
+  token_b_mint: naclac.Address | string;
+  amount_a: bigint | number;
+  amount_b: bigint | number;
+  lp_minted: bigint | number;
 }
 
 /** Subscribes to `LiquidityAdded` events. Returns a listener ID for cleanup. */
@@ -83,16 +99,24 @@ export async function waitForLiquidityAdded(
   return program.waitForEvent("LiquidityAdded", options) as Promise<LiquidityAdded | null>;
 }
 
+/** Decodes every `LiquidityAdded` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForLiquidityAdded`/`addLiquidityAddedListener` — prefer this when you already know which transaction you're checking. */
+export function parseLiquidityAddedEvents(
+  program: any,
+  logs: readonly string[]
+): LiquidityAdded[] {
+  return program.parseEvents("LiquidityAdded", logs) as LiquidityAdded[];
+}
+
 /** 8-byte discriminator for `LiquidityRemoved` events in transaction logs. */
 export const LIQUIDITYREMOVED_EVENT_DISCRIMINATOR = new Uint8Array([225, 105, 216, 39, 124, 116, 169, 189]);
 
 /** Auto-generated event interface from the program IDL. */
 export interface LiquidityRemoved {
-  tokenAMint: naclac.Address | string;
-  tokenBMint: naclac.Address | string;
-  amountA: bigint | number;
-  amountB: bigint | number;
-  lpBurned: bigint | number;
+  token_a_mint: naclac.Address | string;
+  token_b_mint: naclac.Address | string;
+  amount_a: bigint | number;
+  amount_b: bigint | number;
+  lp_burned: bigint | number;
 }
 
 /** Subscribes to `LiquidityRemoved` events. Returns a listener ID for cleanup. */
@@ -109,6 +133,14 @@ export async function waitForLiquidityRemoved(
   options?: { timeoutMs?: number }
 ): Promise<LiquidityRemoved | null> {
   return program.waitForEvent("LiquidityRemoved", options) as Promise<LiquidityRemoved | null>;
+}
+
+/** Decodes every `LiquidityRemoved` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForLiquidityRemoved`/`addLiquidityRemovedListener` — prefer this when you already know which transaction you're checking. */
+export function parseLiquidityRemovedEvents(
+  program: any,
+  logs: readonly string[]
+): LiquidityRemoved[] {
+  return program.parseEvents("LiquidityRemoved", logs) as LiquidityRemoved[];
 }
 
 /** Removes a previously registered event listener. */

@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("5GNKxmbR5QUB4RVHPzvu4WCGfA9o8bkRXbfZez1D7Ay4");
+declare_id!("6GzLQP11cDkRREyNqyPvJjfcHCARFKpRhQyGrwfoK4nv");
 
 #[cfg(feature = "offchain")]
 pub fn get_launch_record_pda(
@@ -62,9 +62,9 @@ pub fn get_mint_pda(
 pub struct TokenCreator;
 
 #[cfg(feature = "cpi")]
-impl sdk_core::Id for TokenCreator {
-    fn id() -> sdk_core::Address {
-        sdk_core::Address::new_from_array([63, 94, 147, 3, 95, 85, 43, 111, 20, 13, 218, 234, 219, 83, 27, 190, 215, 155, 13, 67, 255, 134, 197, 210, 42, 60, 214, 188, 165, 129, 185, 103])
+impl sdk_core_cpi::Id for TokenCreator {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([78, 98, 249, 162, 105, 244, 203, 99, 198, 237, 102, 59, 178, 218, 93, 139, 202, 9, 240, 9, 83, 245, 64, 49, 223, 228, 99, 171, 240, 159, 6, 67])
     }
 }
 

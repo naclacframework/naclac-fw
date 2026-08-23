@@ -1,0 +1,125 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const crates = [
+  {
+    name: "naclac-core",
+    description:
+      "The core Rust framework for writing hyper-optimized Solana smart contracts.",
+  },
+  {
+    name: "naclac-lang",
+    description:
+      "Unified entry point re-exporting naclac-core, naclac-macros, and naclac-token behind one set of feature flags.",
+  },
+  {
+    name: "naclac-macros",
+    description: "Procedural macros for the Naclac Solana Framework.",
+  },
+  {
+    name: "naclac-token",
+    description:
+      "Token (SPL / Pinocchio) and Associated Token Account support for the Naclac Solana Framework.",
+  },
+  {
+    name: "naclac-metadata",
+    description:
+      "Metaplex Core (NFT/metadata) support for the Naclac Solana Framework.",
+  },
+  {
+    name: "naclac-syn",
+    description: "Syntax parsing and AST utilities for the Naclac framework.",
+  },
+  {
+    name: "naclac-idl",
+    description:
+      "IDL (Interface Definition Language) generation and parsing for Naclac.",
+  },
+  {
+    name: "naclac-client-gen",
+    description: "TypeScript client and SDK generator for Naclac programs.",
+  },
+  {
+    name: "naclac-client",
+    description: "Naclac Framework Rust Client & Testing Runtime Library.",
+  },
+  {
+    name: "cli",
+    description: "The command-line interface for the Naclac Solana Framework.",
+  },
+  {
+    name: "nacvm",
+    description: "The official version manager for the Naclac framework.",
+  },
+];
+---
+
+<BaseLayout
+  title="naclac — hyper-optimized Solana smart contracts"
+  description="A hyper-optimized native Solana framework generator for building Solana programs in Rust."
+>
+  <section class="relative overflow-hidden">
+    <div
+      class="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand/15 via-brand-violet/10 to-transparent"
+    >
+    </div>
+
+    <div class="mx-auto max-w-6xl px-6 pb-24 pt-20 text-center sm:pt-28">
+      <img
+        src="/naclac-logo.png"
+        alt="Naclac"
+        class="mx-auto mb-8 size-16 rounded-full"
+      />
+      <h1
+        class="mx-auto max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl"
+      >
+        A hyper-optimized native
+        <span
+          class="bg-gradient-to-r from-brand to-brand-violet bg-clip-text text-transparent"
+        >
+          Solana framework
+        </span>
+        generator
+      </h1>
+      <p class="mx-auto mt-6 max-w-xl text-lg text-fg-muted">
+        naclac is a Rust framework and CLI for building, testing, and
+        deploying hyper-optimized Solana smart contracts.
+      </p>
+
+      <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
+        <a
+          href="https://docs.naclac.com"
+          class="rounded-lg bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
+        >
+          Read the docs
+        </a>
+        <a
+          href="https://github.com/naclacframework/naclac-fw"
+          class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:border-brand hover:text-brand"
+        >
+          View on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-6 pb-24">
+    <h2 class="text-2xl font-semibold tracking-tight">The workspace</h2>
+    <p class="mt-2 max-w-2xl text-fg-muted">
+      naclac is a Cargo workspace of focused crates — core primitives, the
+      proc-macro layer, IDL/client codegen, and the CLI that ties it all
+      together.
+    </p>
+
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        crates.map((crate) => (
+          <div class="rounded-xl border border-border bg-bg-elevated p-5">
+            <p class="font-mono text-sm text-brand">{crate.name}</p>
+            <p class="mt-2 text-sm text-fg-muted">{crate.description}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

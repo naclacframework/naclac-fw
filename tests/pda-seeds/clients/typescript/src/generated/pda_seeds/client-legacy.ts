@@ -95,6 +95,30 @@ export class PdaSeedsClient {
     return instructions.initTaggedChild(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `touchConfigEntryBareBump` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public touchConfigEntryBareBump(args?: Record<string, never>, accounts?: Partial<instructions.TouchConfigEntryBareBumpAccounts>) {
+    return instructions.touchConfigEntryBareBump(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchConfigEntryBareBumpWithArgs` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public touchConfigEntryBareBumpWithArgs(args: instructions.TouchConfigEntryBareBumpWithArgsArgs, accounts?: Partial<instructions.TouchConfigEntryBareBumpWithArgsAccounts>) {
+    return instructions.touchConfigEntryBareBumpWithArgs(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `readConfigEntryBareBump` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public readConfigEntryBareBump(args: instructions.ReadConfigEntryBareBumpArgs, accounts?: Partial<instructions.ReadConfigEntryBareBumpAccounts>) {
+    return instructions.readConfigEntryBareBump(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `child` account. Returns `[PublicKey, bumpSeed]`. */
   public getChildPda(seeds: {
     registry_bump: number;
@@ -103,6 +127,20 @@ export class PdaSeedsClient {
       [
                 new Uint8Array([99, 104, 105, 108, 100]),
         new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.registry_bump))
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
+  /** Derives the PDA for a `config_entry` account. Returns `[PublicKey, bumpSeed]`. */
+  public getConfigEntryPda(seeds: {
+    config_program_id: naclac.PublicKey | string;
+  }): [naclac.PublicKey, number] {
+    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
+      [
+                new Uint8Array([99, 111, 110, 102, 105, 103, 95, 101, 110, 116, 114, 121]),
+        new naclac.PublicKey(seeds.config_program_id).toBuffer()
       ],
       this.programId
     );
@@ -162,6 +200,27 @@ export class PdaSeedsClient {
   /** Fetches all on-chain `Child` accounts owned by this program. */
   public fetchAllChildByOwner(options?: { dropCorrupted?: boolean; filters?: any[] }) {
     return this.program.account['Child'].all(options);
+  }
+
+  /** Fetches a `ConfigEntry` account. Throws if it does not exist. */
+  public fetchConfigEntry(address: naclac.PublicKey | string) {
+    return this.program.account['ConfigEntry'].fetch(address);
+  }
+
+  /** Fetches a `ConfigEntry` account. Returns `null` if it does not exist. */
+  public async fetchMaybeConfigEntry(address: naclac.PublicKey | string) {
+    try { return await this.program.account['ConfigEntry'].fetch(address); }
+    catch { return null; }
+  }
+
+  /** Fetches multiple `ConfigEntry` accounts in a single RPC call. */
+  public fetchAllConfigEntrys(addresses: Array<naclac.PublicKey | string>, opts?: { dropCorrupted?: boolean }) {
+    return this.program.account['ConfigEntry'].fetchMultiple(addresses, opts);
+  }
+
+  /** Fetches all on-chain `ConfigEntry` accounts owned by this program. */
+  public fetchAllConfigEntryByOwner(options?: { dropCorrupted?: boolean; filters?: any[] }) {
+    return this.program.account['ConfigEntry'].all(options);
   }
 
   /** Fetches a `Entry` account. Throws if it does not exist. */

@@ -9,8 +9,8 @@ export const INITIALIZE_DISCRIMINATOR = new Uint8Array([175, 175, 109, 31, 13, 1
 /** Accounts for the `initialize` instruction. */
 export interface InitializeAccounts {
   payer: naclac.Address | string;
-  counterAccount?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  counter_account?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**

@@ -1,0 +1,14 @@
+[workspace]
+
+[package]
+name = "naclac-stack-safety-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Regression test: naclac-macros/src/accounts.rs's per-field/aggregate stack-frame size asserts for solana-borsh Accounts-struct fields actually fire, and Box<Account<T>> clears them."
+
+[dependencies]
+naclac-lang = { path = "../../../naclac-lang", features = ["borsh"] }
+
+[dev-dependencies]
+trybuild = "1"

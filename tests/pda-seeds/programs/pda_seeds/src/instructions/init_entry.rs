@@ -3,7 +3,7 @@ use crate::components::{Entry, Registry};
 use crate::constants::SEED_ENTRY;
 
 // `registry.as_ref()` here is a METHOD CALL on the whole zero-copy account
-// (via `AccountLoader<T>: AsRefByteSlice`, returning the account's own
+// (via `Account<T>: AsRefByteSlice`, returning the account's own
 // address bytes) — not a struct-field path. This is the exact shape
 // ZERO_COPY_BORSH_PARITY_AUDIT.md finding #3 broke on (`token_a_mint.as_ref()`
 // misrewritten as a `Deref`-based field access instead of falling through to

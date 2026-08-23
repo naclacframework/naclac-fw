@@ -1,0 +1,10 @@
+   Compiling fee-tier-probe v0.1.0 (/mnt/c/Users/hp/Documents/naclac-fw/examples/pump-fun-program/reference/fee-tier-probe)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2m 44s
+     Running `/mnt/d/naclac-fw/examples/pump-fun-program/reference/fee-tier-probe/target/debug/probe66`
+attacker (patched into Global.buyback_fee_recipients[0]) = 11157t3sqMV725NVRLrVQbAu98Jjfk1uCKehJnXXQs
+
+RESULT: SUCCESS, 52781 CU
+attacker lamports: before=1000000000 after=1000003320 delta=3320
+
+!!! REAL pump.so paid real fee lamports into an attacker-chosen address !!!
+!!! Global.buyback_fee_recipients has NO independent on-chain verification !!!

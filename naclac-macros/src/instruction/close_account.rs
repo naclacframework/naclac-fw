@@ -6,7 +6,7 @@
 
 use crate::instruction::parser::ParsedField;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 
 /// Generates account closure logic for `#[account(close = ...)]` constraints.
 ///
@@ -17,16 +17,28 @@ pub fn generate_close_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
 
     for field in fields {
         if let Some(dest) = &field.close_destination {
-            let target_ident = &field.ident;
-            let target_info = quote! { naclac_lang::prelude::ToAccountInfo::to_account_info(&self.#target_ident) };
+            if !fields.iter().any(|f| f.ident == *dest) {
+                let error_msg = format!(
+                    "Field '{}' not found in struct for `close = {}` on '{}'",
+                    dest, dest, field.ident
+                );
+                closes.push(quote! {
+                    core::compile_error!(#error_msg);
+                });
+                continue;
+            }
 
-            let dest_ident = format_ident!("{}", dest);
+            let target_ident = &field.ident;
+            let target_info =
+                quote! { naclac_lang::prelude::ToAccountInfo::to_account_info(__target) };
+
+            let dest_ident = dest;
             let dest_info =
                 quote! { naclac_lang::prelude::ToAccountInfo::to_account_info(&self.#dest_ident) };
             let idx = field.index;
 
-            closes.push(quote! {
-                if naclac_lang::prelude::ToAddress::address(&self.#target_ident) == naclac_lang::prelude::ToAddress::address(&self.#dest_ident) {
+            let close_body = quote! {
+                if naclac_lang::prelude::ToAddress::address(__target) == naclac_lang::prelude::ToAddress::address(&self.#dest_ident) {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintClose.err(#idx));
                 }
 
@@ -65,7 +77,23 @@ pub fn generate_close_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
                         core::ptr::write_bytes(target_view.data_ptr() as *mut u8, 0, target_view.data_len());
                     }
                 }
-            });
+            };
+
+            // An absent optional target has nothing to close — skip entirely.
+            // A present one goes through exactly the same close logic a
+            // required field would, via `__target` bound to the inner value.
+            if field.is_optional {
+                closes.push(quote! {
+                    if let Some(__target) = &self.#target_ident {
+                        #close_body
+                    }
+                });
+            } else {
+                closes.push(quote! {
+                    let __target = &self.#target_ident;
+                    #close_body
+                });
+            }
         }
     }
 

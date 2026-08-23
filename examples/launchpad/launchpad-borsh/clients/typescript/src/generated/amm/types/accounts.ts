@@ -9,11 +9,11 @@ export const POOLSTATE_DISCRIMINATOR = new Uint8Array([247, 237, 227, 245, 215, 
 /** Auto-generated account interface from the program IDL. */
 export interface PoolState {
   id: bigint | number;
-  tokenAMint: naclac.Address | string;
-  tokenBMint: naclac.Address | string;
-  vaultA: naclac.Address | string;
-  vaultB: naclac.Address | string;
-  lpMint: naclac.Address | string;
+  token_a_mint: naclac.Address | string;
+  token_b_mint: naclac.Address | string;
+  vault_a: naclac.Address | string;
+  vault_b: naclac.Address | string;
+  lp_mint: naclac.Address | string;
   bump: number;
 }
 

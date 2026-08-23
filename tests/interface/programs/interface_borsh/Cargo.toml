@@ -1,0 +1,25 @@
+[package]
+name = "interface_borsh"
+version = "0.1.0"
+description = "Regression test: Interface<T>/TokenInterface program-interface wrapper (solana-borsh)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["borsh"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+interface-borsh-client = { version = "0.1.0", path = "../../clients/rust/interface_borsh" }
+
+[lints]
+workspace = true

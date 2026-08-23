@@ -24,8 +24,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Validate that no fields use the Pubkey type
     for field in fields.iter() {
         let ty = &field.ty;
-        let ty_str = quote! { #ty }.to_string().replace(" ", "");
-        if ty_str.contains("Pubkey") {
+        if crate::type_classify::is_deprecated_pubkey(ty) {
             return syn::Error::new_spanned(
                 ty,
                 "Naclac Error: 'Pubkey' has been deprecated in favor of 'Address' in Solana v3. Please replace it with 'Address'."
@@ -38,8 +37,8 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Zero-copy vs Borsh is determined automatically: pinocchio is always
     // zero-copy, and otherwise the presence of the `borsh` feature is a
     // complete signal (there is no third representation for account data).
-    // Any legacy `#[component(zero_copy)]`-style argument is silently
-    // ignored rather than rejected — it has no effect on codegen either way.
+    // `#[component]` takes no argument at all — enforced by `lib.rs`'s
+    // `reject_nonempty_attr` before this function is ever called.
 
     let is_zero_copy =
         crate::caller_has_feature("pinocchio") || !crate::caller_has_feature("borsh");
@@ -80,8 +79,13 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
             if is_zero_copy {
                 let ty = &field.ty;
-                let ty_str = quote! { #ty }.to_string().replace(" ", "");
-                if ty_str.contains("Vec<") || ty_str == "String" {
+                if matches!(
+                    crate::type_classify::base_ident(ty)
+                        .as_ref()
+                        .map(syn::Ident::to_string)
+                        .as_deref(),
+                    Some("Vec") | Some("String")
+                ) {
                     let field_name = field
                         .ident
                         .as_ref()
@@ -151,40 +155,58 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
             impl naclac_lang::prelude::Discriminator for #struct_name {
                 const DISCRIMINATOR: [u8; 8] = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
             }
+            const _: () = assert!(
+                core::mem::align_of::<#struct_name>() <= 8,
+                "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment \
+                 (a u128 field, directly or nested inside another field's type) — Solana account \
+                 buffers are only guaranteed 8-byte aligned, so Account's raw pointer cast \
+                 would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128."
+            );
         }
     } else {
         // --- Borsh Engine Generation ---
         // Emits dynamic heap-allocated serialization logic for standard Solana environments.
-        let field_sizes: Vec<proc_macro2::TokenStream> = fields
+        let field_sizes: Vec<proc_macro2::TokenStream> = match fields
             .iter()
-            .map(|f| {
+            .map(|f| -> syn::Result<proc_macro2::TokenStream> {
                 let ty = &f.ty;
                 let mut max_len = None;
 
                 for attr in &f.attrs {
                     if attr.path().is_ident("max_len") {
-                        if let Ok(lit) = attr.parse_args::<syn::LitInt>() {
-                            max_len = Some(lit.base10_parse::<usize>().unwrap());
-                        }
+                        let lit = attr.parse_args::<syn::LitInt>()?;
+                        max_len = Some(lit.base10_parse::<usize>()?);
                     }
                 }
 
-                if let Some(len) = max_len {
+                Ok(if let Some(len) = max_len {
                     quote! { (4 + #len) }
                 } else {
-                    let type_str = quote! { #ty }.to_string().replace(" ", "");
-                    match type_str.as_str() {
-                        "u8" | "i8" | "bool" => quote! { 1 },
-                        "u16" | "i16" => quote! { 2 },
-                        "u32" | "i32" | "f32" => quote! { 4 },
-                        "u64" | "i64" | "f64" => quote! { 8 },
-                        "u128" | "i128" => quote! { 16 },
-                        "Address" | "naclac_lang::prelude::Address" => quote! { 32 },
+                    // `base_ident` only inspects the last path segment, so this
+                    // matches both a bare `Address` and a fully-qualified
+                    // `naclac_lang::prelude::Address` with one arm — no need for
+                    // the two spellings the old substring check had to list
+                    // separately.
+                    match crate::type_classify::base_ident(ty)
+                        .as_ref()
+                        .map(syn::Ident::to_string)
+                        .as_deref()
+                    {
+                        Some("u8") | Some("i8") | Some("bool") => quote! { 1 },
+                        Some("u16") | Some("i16") => quote! { 2 },
+                        Some("u32") | Some("i32") | Some("f32") => quote! { 4 },
+                        Some("u64") | Some("i64") | Some("f64") => quote! { 8 },
+                        Some("u128") | Some("i128") => quote! { 16 },
+                        Some("Address") => quote! { 32 },
                         _ => quote! { core::mem::size_of::<#ty>() },
                     }
-                }
+                })
             })
-            .collect();
+            .collect::<syn::Result<Vec<_>>>()
+        {
+            Ok(sizes) => sizes,
+            Err(err) => return err.to_compile_error().into(),
+        };
 
         quote! {
             #[cfg(not(feature = "pinocchio"))]

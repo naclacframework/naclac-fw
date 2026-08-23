@@ -1,2 +1,14 @@
 /target
 .claude
+/vendor
+/wallets
+*.md
+/website/node_modules
+/website/dist
+/website/.astro
+/website/.env
+/website/.env.production
+/examples/magicblock-labs/delegation-program
+/examples/magicblock-labs/ephemeral-rollups-sdk
+/examples/magicblock-labs/magicblock-validator
+/examples/pump-fun-program/pump-public-docs

@@ -2,6 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 export * from "./child";
+export * from "./configentry";
 export * from "./entry";
 export * from "./registry";
 export * from "./taggedchild";

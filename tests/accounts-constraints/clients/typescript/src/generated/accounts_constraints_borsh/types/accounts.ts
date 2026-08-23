@@ -12,6 +12,15 @@ export interface Ledger {
   value: bigint | number;
 }
 
+/** 8-byte discriminator prefix for `Note` accounts on-chain. */
+export const NOTE_DISCRIMINATOR = new Uint8Array([203, 75, 252, 196, 81, 210, 122, 126]);
+
+/** Auto-generated account interface from the program IDL. */
+export interface Note {
+  bump: number;
+  name: string;
+}
+
 /** 8-byte discriminator prefix for `SeededThing` accounts on-chain. */
 export const SEEDEDTHING_DISCRIMINATOR = new Uint8Array([108, 26, 3, 60, 128, 59, 161, 172]);
 

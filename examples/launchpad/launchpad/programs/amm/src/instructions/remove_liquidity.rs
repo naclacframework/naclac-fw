@@ -10,6 +10,9 @@ pub struct RemoveLiquidity {
     #[account(mut)]
     pub pool_state: Account<PoolState>,
 
+    pub token_a_mint: Account<Mint>,
+    pub token_b_mint: Account<Mint>,
+
     #[account(mut)]
     pub vault_a: Account<TokenAccount>,
 
@@ -36,6 +39,15 @@ pub fn remove_liquidity(
     ctx: Context<RemoveLiquidity>,
     lp_amount: u64,
 ) -> Result {
+    require!(
+        ctx.accounts.token_a_mint.address() == ctx.accounts.pool_state.token_a_mint,
+        crate::errors::AmmError::InvalidMint
+    );
+    require!(
+        ctx.accounts.token_b_mint.address() == ctx.accounts.pool_state.token_b_mint,
+        crate::errors::AmmError::InvalidMint
+    );
+
     let x = ctx.accounts.vault_a.amount();
     let y = ctx.accounts.vault_b.amount();
     let lp_supply = ctx.accounts.lp_mint.supply();
@@ -71,24 +83,31 @@ pub fn remove_liquidity(
     ];
     let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
 
+    let token_a_decimals = ctx.accounts.token_a_mint.decimals();
+    let token_b_decimals = ctx.accounts.token_b_mint.decimals();
+
     // 3. Transfer Token A and B from pool vaults to user
-    ctx.accounts.token_program.transfer_signed(
-        TransferAccounts {
+    ctx.accounts.token_program.transfer_checked_signed(
+        TransferCheckedAccounts {
             from: &mut ctx.accounts.vault_a,
+            mint: &ctx.accounts.token_a_mint,
             to: &mut ctx.accounts.user_token_a,
             authority: &ctx.accounts.pool_state,
         },
         amount_a,
+        token_a_decimals,
         signer_seeds,
     )?;
 
-    ctx.accounts.token_program.transfer_signed(
-        TransferAccounts {
+    ctx.accounts.token_program.transfer_checked_signed(
+        TransferCheckedAccounts {
             from: &mut ctx.accounts.vault_b,
+            mint: &ctx.accounts.token_b_mint,
             to: &mut ctx.accounts.user_token_b,
             authority: &ctx.accounts.pool_state,
         },
         amount_b,
+        token_b_decimals,
         signer_seeds,
     )?;
 

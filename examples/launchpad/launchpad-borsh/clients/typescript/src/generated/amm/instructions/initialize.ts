@@ -9,26 +9,26 @@ export const INITIALIZE_DISCRIMINATOR = new Uint8Array([175, 175, 109, 31, 13, 1
 /** Instruction arguments for `initialize`. */
 export interface InitializeArgs {
   id: bigint | number;
-  poolBump: number;
-  amountA: bigint | number;
-  amountB: bigint | number;
+  pool_bump: number;
+  amount_a: bigint | number;
+  amount_b: bigint | number;
 }
 
 /** Accounts for the `initialize` instruction. */
 export interface InitializeAccounts {
   payer: naclac.Address | string;
-  tokenAMint: naclac.Address | string;
-  tokenBMint: naclac.Address | string;
-  poolState?: naclac.Address | string;
-  vaultA: naclac.Address | string;
-  vaultB: naclac.Address | string;
-  lpMint: naclac.Address | string;
-  depositorTokenA: naclac.Address | string;
-  depositorTokenB: naclac.Address | string;
-  depositorLp: naclac.Address | string;
-  depositorAuthority: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
-  systemProgram?: naclac.Address | string;
+  token_a_mint: naclac.Address | string;
+  token_b_mint: naclac.Address | string;
+  pool_state?: naclac.Address | string;
+  vault_a: naclac.Address | string;
+  vault_b: naclac.Address | string;
+  lp_mint: naclac.Address | string;
+  depositor_token_a: naclac.Address | string;
+  depositor_token_b: naclac.Address | string;
+  depositor_lp: naclac.Address | string;
+  depositor_authority: naclac.Address | string;
+  token_program?: naclac.Address | string;
+  system_program?: naclac.Address | string;
 }
 
 /**

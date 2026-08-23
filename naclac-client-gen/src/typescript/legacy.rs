@@ -1,6 +1,6 @@
 use super::shared::map_type_to_ts;
 use crate::{Idl, IdlInstruction, IdlPda, IdlSeed};
-use heck::ToUpperCamelCase;
+use heck::{ToLowerCamelCase, ToUpperCamelCase};
 use std::fs;
 
 pub fn generate_legacy_client(
@@ -67,6 +67,10 @@ pub fn generate_legacy_client(
 
     // ── Instruction methods ───────────────────────────────────────────────────
     for ix in &idl.instructions {
+        // `instructions.{ix_camel}` must match the export name shared.rs's
+        // per-instruction generator actually writes — the class method name
+        // itself is a separate, purely cosmetic choice.
+        let ix_camel = ix.name.to_lower_camel_case();
         let ix_name_pascal = ix.name.to_upper_camel_case();
         let has_args = ix.args.iter().any(|a| a.name != "ctx");
 
@@ -77,12 +81,10 @@ pub fn generate_legacy_client(
         };
 
         client_content.push_str(&format!(
-            "  /**\n   * Builds the `{}` instruction pipeline.\n   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.\n   */\n  public {}({args_param}, accounts?: Partial<instructions.{ix_name_pascal}Accounts>) {{\n",
-            ix.name, ix.name
+            "  /**\n   * Builds the `{ix_camel}` instruction pipeline.\n   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.\n   */\n  public {ix_camel}({args_param}, accounts?: Partial<instructions.{ix_name_pascal}Accounts>) {{\n"
         ));
         client_content.push_str(&format!(
-            "    return instructions.{}(this.program, args ?? {{}}, accounts);\n",
-            ix.name
+            "    return instructions.{ix_camel}(this.program, args ?? {{}}, accounts);\n"
         ));
         client_content.push_str("  }\n\n");
     }
@@ -267,8 +269,22 @@ pub fn generate_legacy_client(
                 }
             }
         }
+        // `seeds::program = X` means this PDA belongs to a different program
+        // than the one this client targets — derive against that program's ID
+        // instead of `this.programId`, or the computed address is simply wrong.
+        let owner_program_expr = match &pda.program {
+            Some(IdlSeed::Const { value, .. }) => {
+                let bytes_str = value
+                    .iter()
+                    .map(|b| b.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                format!("new naclac.PublicKey(new Uint8Array([{bytes_str}]))")
+            }
+            _ => "this.programId".to_string(),
+        };
         client_content.push_str(&format!(
-            "    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(\n      [\n        {}\n      ],\n      this.programId\n    );\n    return [pda, bump];\n",
+            "    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(\n      [\n        {}\n      ],\n      {owner_program_expr}\n    );\n    return [pda, bump];\n",
             seeds_exprs.iter().map(|s| format!("        {s}")).collect::<Vec<String>>().join(",\n")
         ));
         client_content.push_str("  }\n\n");

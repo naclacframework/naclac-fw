@@ -200,7 +200,7 @@ impl<'a> AccountFetcher<'a> {
 
                 let mapped = accounts.into_iter()
                     .filter_map(|(pk, ui_acc)| {
-                        ui_acc.decode().map(|acc| (Address::new_from_array(pk.to_bytes()), acc))
+                        ui_acc.to_account().map(|acc| (Address::new_from_array(pk.to_bytes()), acc))
                     })
                     .collect();
                 Ok(mapped)

@@ -1,0 +1,132 @@
+//! Confirms `extend_account`'s `realloc::any_of` constraint (see
+//! `naclac-macros/src/instruction/parser.rs` and `realloc.rs`) against real
+//! on-chain byte layouts for every component it lists, replayed inside
+//! LiteSVM from fixtures captured off devnet (`capture_devnet_fixtures.rs`,
+//! `tests/fixtures/*.bin`) rather than hand-typed approximations of what an
+//! account's bytes should look like. Run `capture_devnet_fixtures` first
+//! (`cargo test -p pump --test capture_devnet_fixtures -- --ignored`) to
+//! produce the fixture files these tests `include_bytes!`.
+//!
+//! `SharingConfig` has no test here: as of the last capture run, this
+//! devnet deployment has no real instance of it (`capture_devnet_fixtures`
+//! reports it missing rather than fabricating a fixture). Add its test once
+//! a real instance exists on-chain and its fixture has been captured.
+
+use naclac_client::*;
+use pump_client::{
+    instructions::{build_extend_account, ExtendAccountAccounts},
+    PROGRAM_ID, USERVOLUMEACCUMULATOR_DISCRIMINATOR,
+};
+
+fn setup() -> NaclacProvider {
+    let payer = load_node_wallet().expect("Failed to load local Solana keypair");
+    let provider = NaclacProvider::new("litesvm", payer);
+    let mut workspace_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    workspace_root.pop(); // programs
+    workspace_root.pop(); // pump-bonding-curve workspace root
+    let so_path = resolve_cargo_target_dir(&workspace_root).join("deploy/pump.so");
+    provider.add_program(&PROGRAM_ID, so_path.to_str().unwrap()).expect("Failed to load pump.so");
+    provider
+}
+
+/// Injects `fixture` at a fresh throwaway address -- no need for a real PDA,
+/// `extend_account` only checks `owner`, not seeds -- calls `extend_account`
+/// against it, and returns the resulting account bytes.
+fn extend_fixture(provider: &NaclacProvider, fixture: &[u8]) -> Vec<u8> {
+    let account = Keypair::new().address();
+    provider
+        .set_account(&account, fixture.to_vec(), &PROGRAM_ID, 10_000_000_000)
+        .expect("inject devnet-captured fixture");
+
+    build_extend_account(
+        provider,
+        PROGRAM_ID,
+        ExtendAccountAccounts {
+            account,
+            user: provider.payer.address(),
+            system_program: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .log()
+    .send_and_confirm()
+    .expect("extend_account should succeed against a real devnet-captured account");
+
+    provider.get_account_data(&account).expect("account should still exist")
+}
+
+#[test]
+fn extend_account_handles_a_real_global() {
+    let provider = setup();
+    let fixture = include_bytes!("fixtures/global.bin");
+    let old_len = fixture.len();
+
+    let result = extend_fixture(&provider, fixture);
+    let expected_new_len = 8 + core::mem::size_of::<pump_client::components::Global>();
+    println!(
+        "global.bin: old_len={old_len} expected_new_len={expected_new_len} grew={}",
+        old_len < expected_new_len
+    );
+    assert_eq!(result.len(), expected_new_len, "account should be exactly the current compiled size");
+    assert!(
+        old_len <= expected_new_len,
+        "a captured fixture should never be larger than the current compiled size"
+    );
+}
+
+#[test]
+fn extend_account_handles_a_real_bonding_curve() {
+    let provider = setup();
+    let fixture = include_bytes!("fixtures/bonding_curve.bin");
+    let result = extend_fixture(&provider, fixture);
+    let expected_new_len = 8 + core::mem::size_of::<pump_client::components::BondingCurve>();
+    assert_eq!(result.len(), expected_new_len, "account should be exactly the current compiled size");
+}
+
+#[test]
+fn extend_account_handles_a_real_global_volume_accumulator() {
+    let provider = setup();
+    let fixture = include_bytes!("fixtures/global_volume_accumulator.bin");
+    let result = extend_fixture(&provider, fixture);
+    let expected_new_len =
+        8 + core::mem::size_of::<pump_client::components::GlobalVolumeAccumulator>();
+    assert_eq!(result.len(), expected_new_len, "account should be exactly the current compiled size");
+}
+
+#[test]
+fn extend_account_handles_a_real_user_volume_accumulator() {
+    let provider = setup();
+    let fixture = include_bytes!("fixtures/user_volume_accumulator.bin");
+    let result = extend_fixture(&provider, fixture);
+    let expected_new_len =
+        8 + core::mem::size_of::<pump_client::components::UserVolumeAccumulator>();
+    assert_eq!(result.len(), expected_new_len, "account should be exactly the current compiled size");
+}
+
+/// Direct test of `realloc::grow_only` (see `extend_account.rs`'s accounts
+/// struct): a fixture deliberately *larger* than the current compiled
+/// `UserVolumeAccumulator` size must come back unchanged, never shrunk down
+/// to it -- matches the real, deployed pump.fun program's own proven
+/// behavior (probed live in `reference/fee-tier-probe/src/bin/
+/// probe_extend_account_shrink.rs`: an oversized `Global`/
+/// `UserVolumeAccumulator` both left untouched).
+#[test]
+fn extend_account_refuses_to_shrink_an_oversized_user_volume_accumulator() {
+    let provider = setup();
+    let compiled_len = 8 + core::mem::size_of::<pump_client::components::UserVolumeAccumulator>();
+    let oversized_len = compiled_len + 64;
+
+    let mut fixture = vec![0u8; oversized_len];
+    fixture[..8].copy_from_slice(&USERVOLUMEACCUMULATOR_DISCRIMINATOR);
+
+    let result = extend_fixture(&provider, &fixture);
+    println!(
+        "user_volume_accumulator (oversized fixture): old_len={oversized_len} compiled_len={compiled_len} new_len={} shrunk={}",
+        result.len(),
+        result.len() < oversized_len
+    );
+    assert_eq!(
+        result.len(),
+        oversized_len,
+        "an oversized account must never be shrunk back down to the compiled size"
+    );
+}

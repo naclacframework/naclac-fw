@@ -1,0 +1,28 @@
+[package]
+name = "cpi_caller"
+version = "0.1.0"
+description = "Regression test: cross-program invocation — system-program CPI, cross-program CPI (unsigned + PDA-signed), mirroring examples/launchpad's token_creator/amm wiring exactly"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["pinocchio"]
+pinocchio = ["naclac-lang/pinocchio", "cpi-callee-client/pinocchio"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", default-features = false }
+cpi-callee-client = { path = "../../clients/rust/cpi_callee", default-features = false, features = ["cpi"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+cpi-caller-client = { version = "0.1.0", path = "../../clients/rust/cpi_caller" }
+cpi-callee-client = { path = "../../clients/rust/cpi_callee" }
+
+[lints]
+workspace = true

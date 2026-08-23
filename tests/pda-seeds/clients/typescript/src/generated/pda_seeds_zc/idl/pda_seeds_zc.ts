@@ -7,167 +7,57 @@ export const IDL = {
   },
   "instructions": [
     {
-      "name": "initRegistry",
+      "name": "init_registry",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        131,
-        22,
-        4,
-        103,
-        24,
-        94,
-        163,
-        239
-      ],
+      "discriminator": [131,22,4,103,24,94,163,239],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "registry",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "registry", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ],
-                "name": "SEED_REGISTRY"
-              }
+              { "kind": "const", "value": [114,101,103,105,115,116,114,121], "name": "SEED_REGISTRY" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": []
     },
     {
-      "name": "initEntry",
+      "name": "init_entry",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        207,
-        80,
-        17,
-        185,
-        229,
-        148,
-        170,
-        183
-      ],
+      "discriminator": [207,80,17,185,229,148,170,183],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "registry" },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "registry",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "entry",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "entry", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  110,
-                  116,
-                  114,
-                  121
-                ],
-                "name": "SEED_ENTRY"
-              },
-              {
-                "kind": "account",
-                "path": "registry"
-              }
+              { "kind": "const", "value": [101,110,116,114,121], "name": "SEED_ENTRY" },
+              { "kind": "account", "path": "registry" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        {
-          "name": "bump",
-          "type": "u8"
-        }
+        { "name": "bump", "type": "u8" }
       ]
     },
     {
-      "name": "touchEntryBareBump",
+      "name": "touch_entry_bare_bump",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        80,
-        160,
-        133,
-        100,
-        61,
-        110,
-        159,
-        113
-      ],
+      "discriminator": [80,160,133,100,61,110,159,113],
       "accounts": [
+        { "name": "registry" },
         {
-          "name": "registry",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "entry",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "entry", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  110,
-                  116,
-                  114,
-                  121
-                ],
-                "name": "SEED_ENTRY"
-              },
-              {
-                "kind": "account",
-                "path": "registry"
-              }
+              { "kind": "const", "value": [101,110,116,114,121], "name": "SEED_ENTRY" },
+              { "kind": "account", "path": "registry" }
             ]
           }
         }
@@ -175,303 +65,205 @@ export const IDL = {
       "args": []
     },
     {
-      "name": "touchRegistryExplicitBump",
+      "name": "touch_registry_explicit_bump",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        198,
-        121,
-        5,
-        107,
-        43,
-        16,
-        230,
-        90
-      ],
+      "discriminator": [198,121,5,107,43,16,230,90],
       "accounts": [
         {
-          "name": "registry",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "registry", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ],
-                "name": "SEED_REGISTRY"
-              }
+              { "kind": "const", "value": [114,101,103,105,115,116,114,121], "name": "SEED_REGISTRY" }
             ]
           }
         }
       ],
       "args": [
-        {
-          "name": "bump",
-          "type": "u8"
-        }
+        { "name": "bump", "type": "u8" }
       ]
     },
     {
-      "name": "initChild",
+      "name": "init_child",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        132,
-        124,
-        156,
-        240,
-        193,
-        211,
-        5,
-        207
-      ],
+      "discriminator": [132,124,156,240,193,211,5,207],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "registry" },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "registry",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "child",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "child", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  105,
-                  108,
-                  100
-                ],
-                "name": "SEED_CHILD"
-              },
-              {
-                "kind": "account",
-                "path": "registry.bump",
-                "fieldType": "u8"
-              }
+              { "kind": "const", "value": [99,104,105,108,100], "name": "SEED_CHILD" },
+              { "kind": "account", "path": "registry.bump", "fieldType": "u8" }
             ]
           }
         },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        {
-          "name": "bump",
-          "type": "u8"
-        }
+        { "name": "bump", "type": "u8" }
       ]
     },
     {
-      "name": "initTaggedChild",
+      "name": "init_tagged_child",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        40,
-        46,
-        85,
-        175,
-        69,
-        80,
-        143,
-        191
-      ],
+      "discriminator": [40,46,85,175,69,80,143,191],
       "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "registry" },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "registry",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "taggedChild",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "tagged_child", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  116,
-                  97,
-                  103,
-                  103,
-                  101,
-                  100,
-                  95,
-                  99,
-                  104,
-                  105,
-                  108,
-                  100
-                ],
-                "name": "SEED_TAGGED_CHILD"
-              },
-              {
-                "kind": "account",
-                "path": "registry.label"
-              }
+              { "kind": "const", "value": [116,97,103,103,101,100,95,99,104,105,108,100], "name": "SEED_TAGGED_CHILD" },
+              { "kind": "account", "path": "registry.label" }
             ]
           }
         },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "bump", "type": "u8" }
+      ]
+    },
+    {
+      "name": "touch_config_entry_bare_bump",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [138,240,56,162,1,92,68,26],
+      "accounts": [
         {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
+          "name": "config_program_id",
+          "docs": [
+            "SAFETY: only used as PDA seed material for `config_entry` below; never",
+            "deserialized, invoked, or otherwise trusted for its own contents."
+          ]
+        },
+        {
+          "name": "config_entry", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [99,111,110,102,105,103,95,101,110,116,114,121], "name": "SEED_CONFIG_ENTRY" },
+              { "kind": "account", "path": "config_program_id" }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "touch_config_entry_bare_bump_with_args",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [69,181,74,168,31,97,37,192],
+      "accounts": [
+        {
+          "name": "config_program_id",
+          "docs": [
+            "SAFETY: only used as PDA seed material for `config_entry` below; never",
+            "deserialized, invoked, or otherwise trusted for its own contents."
+          ]
+        },
+        {
+          "name": "config_entry", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [99,111,110,102,105,103,95,101,110,116,114,121], "name": "SEED_CONFIG_ENTRY" },
+              { "kind": "account", "path": "config_program_id" }
+            ]
+          }
         }
       ],
       "args": [
-        {
-          "name": "bump",
-          "type": "u8"
-        }
+        { "name": "is_pump_pool", "type": { "defined": "Bool" } },
+        { "name": "market_cap_lamports", "type": "u128" },
+        { "name": "trade_size_lamports", "type": "u64" },
+        { "name": "is_new_quote_mint", "type": { "defined": "Bool" } }
       ]
+    },
+    {
+      "name": "read_config_entry_bare_bump",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [210,17,27,227,111,244,4,34],
+      "accounts": [
+        {
+          "name": "config_program_id",
+          "docs": [
+            "SAFETY: only used as PDA seed material for `config_entry` below; never",
+            "deserialized, invoked, or otherwise trusted for its own contents."
+          ]
+        },
+        {
+          "name": "config_entry",
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [99,111,110,102,105,103,95,101,110,116,114,121], "name": "SEED_CONFIG_ENTRY" },
+              { "kind": "account", "path": "config_program_id" }
+            ]
+          }
+        }
+      ],
+      "args": [
+        { "name": "is_pump_pool", "type": { "defined": "Bool" } },
+        { "name": "market_cap_lamports", "type": "u128" },
+        { "name": "trade_size_lamports", "type": "u64" },
+        { "name": "is_new_quote_mint", "type": { "defined": "Bool" } }
+      ],
+      "returns": "u64"
     }
   ],
   "accounts": [
     {
       "name": "Child",
-      "discriminator": [
-        161,
-        191,
-        179,
-        184,
-        153,
-        88,
-        25,
-        203
-      ],
+      "discriminator": [161,191,179,184,153,88,25,203],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "value",
-            "type": "u64"
-          }
+          { "name": "bump", "type": "u8" },
+          { "name": "value", "type": "u64" }
+        ]
+      }
+    },
+    {
+      "name": "ConfigEntry",
+      "discriminator": [27,123,205,1,39,158,208,211],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "bump", "type": "u8" },
+          { "name": "value", "type": "u64" }
         ]
       }
     },
     {
       "name": "Entry",
-      "discriminator": [
-        63,
-        18,
-        152,
-        113,
-        215,
-        246,
-        221,
-        250
-      ],
+      "discriminator": [63,18,152,113,215,246,221,250],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "value",
-            "type": "u64"
-          }
+          { "name": "bump", "type": "u8" },
+          { "name": "value", "type": "u64" }
         ]
       }
     },
     {
       "name": "Registry",
-      "discriminator": [
-        47,
-        174,
-        110,
-        246,
-        184,
-        182,
-        252,
-        218
-      ],
+      "discriminator": [47,174,110,246,184,182,252,218],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "tag",
-            "type": "u32"
-          },
-          {
-            "name": "label",
-            "type": {
-              "array": [
-                "u8",
-                4
-              ]
-            }
-          }
+          { "name": "bump", "type": "u8" },
+          { "name": "tag", "type": "u32" },
+          { "name": "label", "type": { "array": ["u8",4] } }
         ]
       }
     },
     {
       "name": "TaggedChild",
-      "discriminator": [
-        232,
-        255,
-        227,
-        60,
-        79,
-        70,
-        12,
-        111
-      ],
+      "discriminator": [232,255,227,60,79,70,12,111],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "value",
-            "type": "u64"
-          }
+          { "name": "bump", "type": "u8" },
+          { "name": "value", "type": "u64" }
         ]
       }
     }
@@ -482,22 +274,27 @@ export const IDL = {
     {
       "name": "SEED_REGISTRY",
       "type": "bytes",
-      "value": "b\"registry\""
+      "value": "[114, 101, 103, 105, 115, 116, 114, 121]"
     },
     {
       "name": "SEED_ENTRY",
       "type": "bytes",
-      "value": "b\"entry\""
+      "value": "[101, 110, 116, 114, 121]"
     },
     {
       "name": "SEED_CHILD",
       "type": "bytes",
-      "value": "b\"child\""
+      "value": "[99, 104, 105, 108, 100]"
     },
     {
       "name": "SEED_TAGGED_CHILD",
       "type": "bytes",
-      "value": "b\"tagged_child\""
+      "value": "[116, 97, 103, 103, 101, 100, 95, 99, 104, 105, 108, 100]"
+    },
+    {
+      "name": "SEED_CONFIG_ENTRY",
+      "type": "bytes",
+      "value": "[99, 111, 110, 102, 105, 103, 95, 101, 110, 116, 114, 121]"
     }
   ],
   "definedTypes": [],
@@ -505,88 +302,35 @@ export const IDL = {
     {
       "name": "child",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            99,
-            104,
-            105,
-            108,
-            100
-          ],
-          "name": "SEED_CHILD"
-        },
-        {
-          "kind": "account",
-          "path": "registry.bump",
-          "fieldType": "u8"
-        }
+        { "kind": "const", "value": [99,104,105,108,100], "name": "SEED_CHILD" },
+        { "kind": "account", "path": "registry.bump", "fieldType": "u8" }
+      ]
+    },
+    {
+      "name": "config_entry",
+      "seeds": [
+        { "kind": "const", "value": [99,111,110,102,105,103,95,101,110,116,114,121], "name": "SEED_CONFIG_ENTRY" },
+        { "kind": "account", "path": "config_program_id" }
       ]
     },
     {
       "name": "entry",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            101,
-            110,
-            116,
-            114,
-            121
-          ],
-          "name": "SEED_ENTRY"
-        },
-        {
-          "kind": "account",
-          "path": "registry"
-        }
+        { "kind": "const", "value": [101,110,116,114,121], "name": "SEED_ENTRY" },
+        { "kind": "account", "path": "registry" }
       ]
     },
     {
       "name": "registry",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            114,
-            101,
-            103,
-            105,
-            115,
-            116,
-            114,
-            121
-          ],
-          "name": "SEED_REGISTRY"
-        }
+        { "kind": "const", "value": [114,101,103,105,115,116,114,121], "name": "SEED_REGISTRY" }
       ]
     },
     {
-      "name": "taggedChild",
+      "name": "tagged_child",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            116,
-            97,
-            103,
-            103,
-            101,
-            100,
-            95,
-            99,
-            104,
-            105,
-            108,
-            100
-          ],
-          "name": "SEED_TAGGED_CHILD"
-        },
-        {
-          "kind": "account",
-          "path": "registry.label"
-        }
+        { "kind": "const", "value": [116,97,103,103,101,100,95,99,104,105,108,100], "name": "SEED_TAGGED_CHILD" },
+        { "kind": "account", "path": "registry.label" }
       ]
     }
   ]

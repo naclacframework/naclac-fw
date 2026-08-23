@@ -1,0 +1,12 @@
+{
+  "name": "naclac-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:main": "pnpm --filter @naclac/site-main dev",
+    "dev:docs": "pnpm --filter @naclac/site-docs dev",
+    "build:main": "pnpm --filter @naclac/site-main build",
+    "build:docs": "pnpm --filter @naclac/site-docs build",
+    "build": "pnpm -r build"
+  }
+}
