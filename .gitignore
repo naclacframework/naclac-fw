@@ -17,3 +17,5 @@
 .stavreng-ignore
 .cargo/
 target
+
+!/client/README.md
