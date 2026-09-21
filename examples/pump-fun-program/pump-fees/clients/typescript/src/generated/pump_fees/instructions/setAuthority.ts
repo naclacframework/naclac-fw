@@ -8,13 +8,13 @@ export const SET_AUTHORITY_DISCRIMINATOR = new Uint8Array([133, 250, 37, 21, 110
 
 /** Instruction arguments for `setAuthority`. */
 export interface SetAuthorityArgs {
-  new_authority: naclac.Address | string;
+  newAuthority: naclac.Address | string;
 }
 
 /** Accounts for the `setAuthority` instruction. */
 export interface SetAuthorityAccounts {
   authority: naclac.Address | string;
-  fee_program_global?: naclac.Address | string;
+  feeProgramGlobal?: naclac.Address | string;
 }
 
 /**

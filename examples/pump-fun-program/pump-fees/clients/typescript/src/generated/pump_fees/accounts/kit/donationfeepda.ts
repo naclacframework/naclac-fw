@@ -10,11 +10,11 @@ export const DONATIONFEEPDA_DISCRIMINATOR = new Uint8Array([246, 197, 96, 9, 193
 /** Gets the encoder for {@link DonationFeePda} account data. */
 export function getDonationFeePdaEncoder(): naclac.FixedSizeEncoder<DonationFeePda> {
   return naclac.getStructEncoder([
-    ["total_donated", naclac.getU64Encoder()],
-    ["last_crank_ts", naclac.getI64Encoder()],
-    ["config_id", naclac.getAddressEncoder()],
-    ["base_mint", naclac.getAddressEncoder()],
-    ["quote_mint", naclac.getAddressEncoder()],
+    ["totalDonated", naclac.getU64Encoder()],
+    ["lastCrankTs", naclac.getI64Encoder()],
+    ["configId", naclac.getAddressEncoder()],
+    ["baseMint", naclac.getAddressEncoder()],
+    ["quoteMint", naclac.getAddressEncoder()],
     ["creator", naclac.getAddressEncoder()],
     ["bump", naclac.getU8Encoder()],
     ["version", naclac.getU8Encoder()],
@@ -25,11 +25,11 @@ export function getDonationFeePdaEncoder(): naclac.FixedSizeEncoder<DonationFeeP
 /** Gets the decoder for {@link DonationFeePda} account data. */
 export function getDonationFeePdaDecoder(): naclac.FixedSizeDecoder<DonationFeePda> {
   return naclac.getStructDecoder([
-    ["total_donated", naclac.getU64Decoder()],
-    ["last_crank_ts", naclac.getI64Decoder()],
-    ["config_id", naclac.getAddressDecoder()],
-    ["base_mint", naclac.getAddressDecoder()],
-    ["quote_mint", naclac.getAddressDecoder()],
+    ["totalDonated", naclac.getU64Decoder()],
+    ["lastCrankTs", naclac.getI64Decoder()],
+    ["configId", naclac.getAddressDecoder()],
+    ["baseMint", naclac.getAddressDecoder()],
+    ["quoteMint", naclac.getAddressDecoder()],
     ["creator", naclac.getAddressDecoder()],
     ["bump", naclac.getU8Decoder()],
     ["version", naclac.getU8Decoder()],

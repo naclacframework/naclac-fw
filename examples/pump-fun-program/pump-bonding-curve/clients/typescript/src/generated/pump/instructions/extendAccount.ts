@@ -18,7 +18,7 @@ export interface ExtendAccountAccounts {
    */
   account: naclac.Address | string;
   user: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

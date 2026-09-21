@@ -14,7 +14,7 @@ export interface ExerciseTransferCheckedWithHookArgs {
 
 /** Accounts for the `exerciseTransferCheckedWithHook` instruction. */
 export interface ExerciseTransferCheckedWithHookAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
   source: naclac.Address | string;
   destination: naclac.Address | string;
@@ -25,8 +25,8 @@ export interface ExerciseTransferCheckedWithHookAccounts {
    * Token-2022/`spl-transfer-hook-interface` rules; its data is never
    * read or deserialized here.
    */
-  hook_program: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  hookProgram: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -9,9 +9,9 @@ export const CREATE_MINT2022_WITH_SCALED_UI_AMOUNT_DISCRIMINATOR = new Uint8Arra
 /** Instruction arguments for `createMint2022WithScaledUiAmount`. */
 export interface CreateMint2022WithScaledUiAmountArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  multiplier_bits: bigint | number;
+  multiplierBits: bigint | number;
 }
 
 /** Accounts for the `createMint2022WithScaledUiAmount` instruction. */
@@ -24,9 +24,9 @@ export interface CreateMint2022WithScaledUiAmountAccounts {
    * `ScaledUiAmountConfig` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

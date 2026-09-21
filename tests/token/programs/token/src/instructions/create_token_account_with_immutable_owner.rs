@@ -35,7 +35,6 @@ pub struct CreateTokenAccountWithImmutableOwner {
 /// `ImmutableOwner` value.
 const TOKEN_ACCOUNT_WITH_IMMUTABLE_OWNER_SPACE: u64 = 165 + 1 + 4;
 
-#[instruction]
 pub fn create_token_account_with_immutable_owner(
     ctx: Context<CreateTokenAccountWithImmutableOwner>,
 ) -> Result {

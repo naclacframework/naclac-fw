@@ -8,8 +8,8 @@ export const CHECK_PAUSABLE_CONFIG_DISCRIMINATOR = new Uint8Array([248, 215, 7, 
 
 /** Instruction arguments for `checkPausableConfig`. */
 export interface CheckPausableConfigArgs {
-  expected_authority: naclac.Address | string | null;
-  expected_paused: number;
+  expectedAuthority: naclac.Address | string | null;
+  expectedPaused: number;
 }
 
 /** Accounts for the `checkPausableConfig` instruction. */

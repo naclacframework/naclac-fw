@@ -40,7 +40,6 @@ pub struct CreateMint2022 {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn create_mint2022(
     _ctx: Context<CreateMint2022>,
     _id: u64,

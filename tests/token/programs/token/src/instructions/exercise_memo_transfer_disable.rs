@@ -15,7 +15,6 @@ pub struct ExerciseMemoTransferDisable {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_memo_transfer_disable(ctx: Context<ExerciseMemoTransferDisable>) -> Result {
     disable_required_memo_transfers(
         ctx.accounts.token_program.to_cpi_handle(),

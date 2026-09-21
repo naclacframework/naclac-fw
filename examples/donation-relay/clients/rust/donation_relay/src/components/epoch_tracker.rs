@@ -12,11 +12,11 @@ use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 #[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(feature = "borsh"), repr(C))]
 pub struct EpochTracker {
-    pub bump: u8,
-    pub state: u8,
+    pub current_epoch: u64,
     pub config_id: crate::sdk_core_offchain::Address,
     pub mint: crate::sdk_core_offchain::Address,
-    pub current_epoch: u64,
+    pub bump: u8,
+    pub state: u8,
 }
 
 #[cfg(feature = "offchain")]
@@ -31,11 +31,11 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for EpochTracker {}
 #[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(feature = "borsh"), repr(C))]
 pub struct EpochTrackerCpi {
-    pub bump: u8,
-    pub state: u8,
+    pub current_epoch: u64,
     pub config_id: crate::sdk_core_cpi::Address,
     pub mint: crate::sdk_core_cpi::Address,
-    pub current_epoch: u64,
+    pub bump: u8,
+    pub state: u8,
 }
 
 #[cfg(feature = "cpi")]
@@ -44,9 +44,6 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for EpochTrackerCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for EpochTrackerCpi {}
-#[cfg(all(feature = "cpi", not(feature = "offchain")))]
-pub type EpochTracker = EpochTrackerCpi;
-
 
 /// 8-byte on-chain discriminator for `EpochTracker` accounts.
 pub const EPOCHTRACKER_DISCRIMINATOR: [u8; 8] = [224, 134, 45, 78, 214, 142, 233, 244];

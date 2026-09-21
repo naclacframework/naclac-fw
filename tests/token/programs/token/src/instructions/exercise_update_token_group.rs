@@ -24,7 +24,6 @@ pub struct ExerciseUpdateTokenGroup {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_update_token_group(
     ctx: Context<ExerciseUpdateTokenGroup>,
     new_max_size: u64,

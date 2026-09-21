@@ -11,7 +11,6 @@ pub struct SetSocialClaimAuthority {
     pub fee_program_global: Account<FeeProgramGlobal>,
 }
 
-#[instruction]
 pub fn set_social_claim_authority(
     ctx: Context<SetSocialClaimAuthority>,
     social_claim_authority: Address,

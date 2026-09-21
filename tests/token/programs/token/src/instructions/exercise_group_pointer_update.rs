@@ -19,7 +19,6 @@ pub struct ExerciseGroupPointerUpdate {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_group_pointer_update(
     ctx: Context<ExerciseGroupPointerUpdate>,
     new_group_address: Address,

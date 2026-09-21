@@ -15,7 +15,6 @@ pub struct CheckFixedAddress {
     pub target: AccountInfo,
 }
 
-#[instruction]
 pub fn check_fixed_address(_ctx: Context<CheckFixedAddress>) -> Result {
     Ok(())
 }

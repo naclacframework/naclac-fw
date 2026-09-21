@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("H2NgEykTkDNkVsNgEoXUiSZ2A9UbyRhNbEXZnbrrFXjj");
+declare_id!("7WK1WtJA64Tii13vPp9p7h4mM8Skzd319DkHQzG2SQb6");
 
 #[cfg(feature = "offchain")]
 pub fn get_note_pda(
@@ -80,7 +80,7 @@ pub struct DupMutZc;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for DupMutZc {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([238, 21, 20, 214, 254, 30, 189, 30, 129, 251, 12, 170, 232, 199, 234, 156, 39, 46, 114, 171, 191, 112, 192, 199, 200, 248, 221, 22, 206, 25, 18, 198])
+        sdk_core_cpi::Address::new_from_array([96, 168, 83, 230, 43, 228, 67, 139, 51, 199, 129, 64, 1, 40, 157, 48, 218, 35, 163, 38, 182, 170, 233, 6, 72, 157, 242, 226, 198, 169, 137, 13])
     }
 }
 

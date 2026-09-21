@@ -29,7 +29,6 @@ pub struct CreateMint {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn create_mint(
     ctx: Context<CreateMint>,
     id: u64,

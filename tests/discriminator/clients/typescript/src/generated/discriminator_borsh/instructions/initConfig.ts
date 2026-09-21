@@ -10,7 +10,7 @@ export const INIT_CONFIG_DISCRIMINATOR = new Uint8Array([23, 235, 115, 232, 168,
 export interface InitConfigAccounts {
   payer: naclac.Address | string;
   config?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

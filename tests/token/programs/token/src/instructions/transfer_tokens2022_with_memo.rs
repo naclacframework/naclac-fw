@@ -40,7 +40,6 @@ pub struct TransferTokens2022WithMemo {
     pub memo_program: AccountInfo,
 }
 
-#[instruction]
 pub fn transfer_tokens2022_with_memo(
     ctx: Context<TransferTokens2022WithMemo>,
     amount: u64,

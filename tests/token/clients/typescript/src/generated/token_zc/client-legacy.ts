@@ -30,21 +30,16 @@ export class TokenZcClient {
   }
 
   constructor(
-    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | string,
+    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | "litesvm" | string,
     payer?: naclac.Keypair
   ) {
     let provider: naclac.LegacyProvider;
     if (typeof providerOrCluster === "string") {
-      let url = providerOrCluster;
-      if (providerOrCluster === "devnet") url = "https://api.devnet.solana.com";
-      else if (providerOrCluster === "mainnet") url = "https://api.mainnet-beta.solana.com";
-      else if (providerOrCluster === "localnet") url = "http://127.0.0.1:8899";
-      const connection = new naclac.Connection(url, "confirmed");
-      provider = { connection, payer, publicKey: payer ? payer.publicKey : undefined };
+      provider = naclac.createProvider(providerOrCluster, payer);
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider);
+    this.program = new naclac.LegacyProgram(IDL, provider, true);
   }
 
   /**

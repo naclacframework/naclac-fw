@@ -20,7 +20,6 @@ pub struct SetReservedFeeRecipients {
 // (`reference/fee-tier-probe/src/bin/probe68.rs`), mirroring `set_params`'s own
 // `fee_recipient`/`fee_recipients` split. Each of the 8 must be rent-exempt,
 // matching the real `ConstraintRentExempt` check.
-#[instruction]
 pub fn set_reserved_fee_recipients(ctx: Context<SetReservedFeeRecipients>, whitelist_pda: Address) -> Result {
     require!(ctx.remaining_accounts.len() == 8, PumpError::NotEnoughRemainingAccounts);
     let rent_exempt_minimum = Rent::get()?.try_minimum_balance(0)?;

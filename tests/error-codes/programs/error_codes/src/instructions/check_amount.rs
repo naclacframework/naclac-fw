@@ -6,7 +6,6 @@ pub struct CheckAmount {
     pub payer: Signer,
 }
 
-#[instruction]
 pub fn check_amount(_ctx: Context<CheckAmount>, amount: u64) -> Result {
     require!(amount > 0, TestError::ZeroAmount);
     require!(amount <= 1000, TestError::TooLarge);

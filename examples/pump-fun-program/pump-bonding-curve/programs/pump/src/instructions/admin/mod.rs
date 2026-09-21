@@ -1,3 +1,4 @@
+pub mod initialize;
 pub mod add_quote_mint;
 pub mod remove_quote_mint;
 pub mod set_virtual_quote_reserves;
@@ -12,6 +13,7 @@ pub mod set_reserved_fee_recipients;
 pub mod set_creator;
 pub mod set_metaplex_creator;
 
+pub use initialize::*;
 pub use add_quote_mint::*;
 pub use remove_quote_mint::*;
 pub use set_virtual_quote_reserves::*;

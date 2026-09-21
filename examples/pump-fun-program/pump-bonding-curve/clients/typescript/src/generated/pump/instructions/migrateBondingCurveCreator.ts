@@ -8,8 +8,8 @@ export const MIGRATE_BONDING_CURVE_CREATOR_DISCRIMINATOR = new Uint8Array([87, 1
 
 /** Instruction arguments for `migrateBondingCurveCreator`. */
 export interface MigrateBondingCurveCreatorArgs {
-  bonding_curve_bump: number;
-  sharing_config_bump: number;
+  bondingCurveBump: number;
+  sharingConfigBump: number;
 }
 
 /** Accounts for the `migrateBondingCurveCreator` instruction. */
@@ -19,12 +19,12 @@ export interface MigrateBondingCurveCreatorAccounts {
    * read or written — a wrong value just fails those seed checks.
    */
   mint: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump`/`seeds::program` constraint already verifies its address;
    * only the address is used below, never its data, so no further validation is needed.
    */
-  sharing_config?: naclac.Address | string;
+  sharingConfig?: naclac.Address | string;
   /**
    * SAFETY: `signer` + the `seeds`/`seeds::program` constraint together
    * prove this call was CPI'd (via `invoke_signed`) by `pump_fees` itself
@@ -32,7 +32,7 @@ export interface MigrateBondingCurveCreatorAccounts {
    * `PUMP_FEES_AUTHORITY_SEED` PDA. This is the entire authorization
    * model for this instruction; never deserialized.
    */
-  pump_fees_authority?: naclac.Address | string;
+  pumpFeesAuthority?: naclac.Address | string;
 }
 
 /**

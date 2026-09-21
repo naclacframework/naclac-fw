@@ -11,7 +11,6 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Backend-neutral `MasterEdition` payload — `fetch_collection_master_edition`
@@ -25,6 +24,16 @@ pub struct MasterEditionData {
     pub uri: Option<crate::prelude::String>,
 }
 
+/// Maximum `name`/`uri` byte length `attach_master_edition_signed` accepts
+/// on `pinocchio` — no real protocol maximum exists on this plugin-level
+/// override, so this reuses the same cap agreed for the base `Asset`/
+/// `Collection` `name`/`uri` fields (`create_asset_signed`/
+/// `create_collection_signed`).
+#[cfg(feature = "pinocchio")]
+pub const MAX_MASTER_EDITION_NAME_LEN: usize = 32;
+#[cfg(feature = "pinocchio")]
+pub const MAX_MASTER_EDITION_URI_LEN: usize = 200;
+
 /// Attaches `MasterEdition` to a `Collection` via `add_collection_plugin`.
 pub fn attach_master_edition_signed(
     program: CpiHandle<'_>,
@@ -36,52 +45,62 @@ pub fn attach_master_edition_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin = ::mpl_core::types::Plugin::MasterEdition(::mpl_core::types::MasterEdition {
-            max_supply,
-            name: name.map(|s| s.to_string()),
-            uri: uri.map(|s| s.to_string()),
-        });
-        add_collection_plugin_signed(program, accounts, plugin, signer_seeds)
+        let mut data = crate::prelude::Vec::new();
+        data.push(3u8); // AddCollectionPluginV1 discriminator
+        data.push(plugin_type::MASTER_EDITION);
+        match max_supply {
+            Some(v) => {
+                data.push(1u8);
+                data.extend_from_slice(&v.to_le_bytes());
+            }
+            None => data.push(0u8),
+        }
+        for field in [name, uri] {
+            match field {
+                Some(s) => {
+                    data.push(1u8);
+                    data.extend_from_slice(&(s.len() as u32).to_le_bytes());
+                    data.extend_from_slice(s.as_bytes());
+                }
+                None => data.push(0u8),
+            }
+        }
+        data.push(0u8); // init_authority: None
+        add_collection_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let payload = encode_master_edition_payload(max_supply, name, uri);
-        add_collection_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::MASTER_EDITION,
-            &payload,
-            signer_seeds,
-        )
-    }
-}
-
-#[cfg(feature = "pinocchio")]
-fn encode_master_edition_payload(
-    max_supply: Option<u32>,
-    name: Option<&str>,
-    uri: Option<&str>,
-) -> crate::prelude::Vec<u8> {
-    let mut data = crate::prelude::Vec::new();
-    match max_supply {
-        Some(v) => {
-            data.push(1u8);
-            data.extend_from_slice(&v.to_le_bytes());
+        if name.is_some_and(|s| s.len() > MAX_MASTER_EDITION_NAME_LEN)
+            || uri.is_some_and(|s| s.len() > MAX_MASTER_EDITION_URI_LEN)
+        {
+            return Err(NaclacError::InvalidInstructionData.err(0));
         }
-        None => data.push(0u8),
-    }
-    for field in [name, uri] {
-        match field {
-            Some(s) => {
+        let mut data = crate::fixed_buf::FixedBuf::<
+            { 3 + 5 + 5 + MAX_MASTER_EDITION_NAME_LEN + 5 + MAX_MASTER_EDITION_URI_LEN },
+        >::new();
+        data.push(3u8); // AddCollectionPluginV1 discriminator
+        data.push(plugin_type::MASTER_EDITION);
+        match max_supply {
+            Some(v) => {
                 data.push(1u8);
-                data.extend_from_slice(&(s.len() as u32).to_le_bytes());
-                data.extend_from_slice(s.as_bytes());
+                data.extend_from_slice(&v.to_le_bytes());
             }
             None => data.push(0u8),
         }
+        for field in [name, uri] {
+            match field {
+                Some(s) => {
+                    data.push(1u8);
+                    data.extend_from_slice(&(s.len() as u32).to_le_bytes());
+                    data.extend_from_slice(s.as_bytes());
+                }
+                None => data.push(0u8),
+            }
+        }
+        data.push(0u8); // init_authority: None
+        add_collection_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
     }
-    data
 }
 
 /// Reads a `Collection`'s `MasterEdition` plugin, if attached. Callable
@@ -95,16 +114,18 @@ pub fn fetch_collection_master_edition(info: &AccountInfo) -> Result<Option<Mast
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let collection = ::mpl_core::Collection::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(collection
-        .plugin_list
-        .master_edition
-        .map(|p| MasterEditionData {
-            max_supply: p.master_edition.max_supply,
-            name: p.master_edition.name,
-            uri: p.master_edition.uri,
-        }))
+    let collection_view = crate::collection::CollectionView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    match read_master_edition(&data, plugin_header_offset)? {
+        Some(view) => Ok(Some(MasterEditionData {
+            max_supply: view.max_supply(),
+            name: view.name().map(|s| s.into()),
+            uri: view.uri().map(|s| s.into()),
+        })),
+        None => Ok(None),
+    }
 }
 
 /// Reads a `Collection`'s `MasterEdition` plugin, if attached. Callable
@@ -127,8 +148,7 @@ pub fn fetch_collection_master_edition(info: &AccountInfo) -> Result<Option<Mast
 
 /// Zero-copy, sequential-offset view into a `MasterEdition` plugin's raw
 /// payload bytes — same walking approach as `AssetView`/`CollectionView`
-/// (see `asset.rs`'s header).
-#[cfg(feature = "pinocchio")]
+/// (see `asset.rs`'s header). Shared by both backends.
 #[derive(Clone, Copy)]
 pub struct MasterEditionView<'a> {
     data: &'a [u8],
@@ -139,19 +159,19 @@ pub struct MasterEditionView<'a> {
     uri_len: usize,
 }
 
-#[cfg(feature = "pinocchio")]
 impl<'a> MasterEditionView<'a> {
     fn from_bytes(data: &'a [u8], offset: usize) -> Result<Self> {
         let max_supply_offset = offset;
         if data.len() <= max_supply_offset {
             return Err(NaclacError::AccountDataTooSmall.err(0));
         }
-        let mut cursor = max_supply_offset + 1;
+        let mut cursor = checked_end(max_supply_offset, 1)?;
         if data[max_supply_offset] == 1 {
-            if data.len() < cursor + 4 {
+            let end = checked_end(cursor, 4)?;
+            if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            cursor += 4;
+            cursor = end;
         }
 
         let name_offset = cursor;
@@ -208,7 +228,6 @@ impl<'a> MasterEditionView<'a> {
 /// `Some(len)` if the `Option<String>` tag at `offset` is `Some` (and the
 /// full length-prefixed string fits within `data`), `None` if the tag is
 /// `None`. Shared shape for `MasterEditionView`'s `name`/`uri` fields.
-#[cfg(feature = "pinocchio")]
 fn read_option_string_len(data: &[u8], offset: usize) -> Result<Option<usize>> {
     if data.len() <= offset {
         return Err(NaclacError::AccountDataTooSmall.err(0));
@@ -216,11 +235,13 @@ fn read_option_string_len(data: &[u8], offset: usize) -> Result<Option<usize>> {
     if data[offset] == 0 {
         return Ok(None);
     }
-    if data.len() < offset + 5 {
+    let prefix_end = checked_end(offset, 5)?;
+    if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let len = u32::from_le_bytes(data[offset + 1..offset + 5].try_into().unwrap()) as usize;
-    if data.len() < offset + 5 + len {
+    let len = u32::from_le_bytes(data[offset + 1..prefix_end].try_into().unwrap()) as usize;
+    let payload_end = checked_end(prefix_end, len)?;
+    if data.len() < payload_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
     Ok(Some(len))
@@ -228,8 +249,7 @@ fn read_option_string_len(data: &[u8], offset: usize) -> Result<Option<usize>> {
 
 /// Reads a `Collection`'s `MasterEdition` plugin, if attached. `data` is
 /// the collection account's raw bytes; `plugin_header_offset` comes from
-/// `CollectionView::plugin_header_offset()`.
-#[cfg(feature = "pinocchio")]
+/// `CollectionView::plugin_header_offset()`. Shared by both backends.
 pub fn read_master_edition(
     data: &[u8],
     plugin_header_offset: usize,
@@ -237,5 +257,21 @@ pub fn read_master_edition(
     match find_plugin_offset(data, plugin_header_offset, plugin_type::MASTER_EDITION)? {
         Some(offset) => Ok(Some(MasterEditionView::from_bytes(data, offset as usize)?)),
         None => Ok(None),
+    }
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `read_master_edition` never panics end-to-end, including
+    /// through `find_plugin_offset` and `MasterEditionView::from_bytes`'s
+    /// now-`checked_end`-guarded offset arithmetic.
+    #[kani::proof]
+    #[kani::unwind(10)]
+    fn prove_read_master_edition_never_panics() {
+        let data: [u8; 32] = kani::any();
+        let plugin_header_offset: usize = kani::any();
+        let _ = read_master_edition(&data, plugin_header_offset);
     }
 }

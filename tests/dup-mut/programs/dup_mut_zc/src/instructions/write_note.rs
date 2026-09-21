@@ -29,7 +29,6 @@ pub struct WriteNote {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn write_note(ctx: Context<WriteNote>, text: ZcString) -> Result {
     let bytes = text.as_str().as_bytes();
     require!(bytes.len() <= 32, NaclacError::InvalidInstructionData);

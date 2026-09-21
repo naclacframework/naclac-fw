@@ -18,7 +18,6 @@ pub struct ExerciseInterestBearingMintUpdateRate {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_interest_bearing_mint_update_rate(
     ctx: Context<ExerciseInterestBearingMintUpdateRate>,
     new_rate: i16,

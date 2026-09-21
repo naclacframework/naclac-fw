@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("38kT2F7WBYF7bpZ8EUDqUSbMZXFH2pBQE3isMtHFKm4e");
+declare_id!("G2BmpsqrmJDX1QE8fKuaRYRZUmMCsF7gtZSAUzEFGCax");
 
 #[cfg(feature = "offchain")]
 pub fn get_counter_account_pda(
@@ -44,7 +44,7 @@ pub struct CounterZc;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for CounterZc {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([31, 179, 145, 42, 153, 125, 36, 84, 159, 46, 129, 132, 43, 17, 172, 28, 123, 74, 49, 70, 154, 169, 11, 12, 51, 29, 204, 143, 40, 213, 215, 115])
+        sdk_core_cpi::Address::new_from_array([223, 45, 16, 203, 171, 224, 167, 94, 133, 10, 246, 198, 46, 38, 54, 142, 204, 119, 61, 73, 248, 179, 190, 155, 45, 133, 105, 129, 199, 118, 171, 85])
     }
 }
 

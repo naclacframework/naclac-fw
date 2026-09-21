@@ -8,7 +8,7 @@ export const CHECK_PERMANENT_DELEGATE_DISCRIMINATOR = new Uint8Array([245, 167, 
 
 /** Instruction arguments for `checkPermanentDelegate`. */
 export interface CheckPermanentDelegateArgs {
-  expected_delegate: naclac.Address | string | null;
+  expectedDelegate: naclac.Address | string | null;
 }
 
 /** Accounts for the `checkPermanentDelegate` instruction. */

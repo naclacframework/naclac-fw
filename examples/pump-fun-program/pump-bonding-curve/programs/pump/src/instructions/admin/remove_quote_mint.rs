@@ -13,7 +13,6 @@ pub struct RemoveQuoteMint {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn remove_quote_mint(ctx: Context<RemoveQuoteMint>, quote_mint: Address) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.global.authority,

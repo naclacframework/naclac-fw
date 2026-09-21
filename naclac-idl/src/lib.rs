@@ -5,9 +5,22 @@
 use heck::ToUpperCamelCase;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
+pub mod converter;
+pub mod idl_build;
+pub mod idl_build_accounts;
 pub mod program_metadata;
+
+/// Re-exports used only by `naclac-macros`' generated `idl-build` code, so a
+/// program crate doesn't need `serde_json`/`std::collections` as its own
+/// direct dependencies just to compile the generated `NaclacIdlBuild` impls
+/// — mirrors Anchor's own `anchor_lang::__private` re-export shim.
+pub mod __private {
+    pub use serde_json;
+    pub use std::collections::BTreeMap;
+    pub use std::string::String;
+}
+pub use serde_json;
 
 /// For `#[serde(skip_serializing_if = "is_false")]` on a plain `bool` field —
 /// matches the real Anchor/Codama IDL convention of omitting `writable`/
@@ -57,7 +70,17 @@ pub enum IdlTypeDef {
     #[serde(rename = "struct")]
     Struct { fields: Vec<IdlField> },
     #[serde(rename = "enum")]
-    Enum { variants: Vec<IdlEnumVariant> },
+    Enum {
+        variants: Vec<IdlEnumVariant>,
+        /// The enum's `#[repr(uN)]` discriminant type, or `None` if none was
+        /// written explicitly — `#[defined_type]`'s zero-copy branch
+        /// defaults an absent repr to `u8` (`naclac-macros/src/lib.rs`), so
+        /// any consumer reading this field for the real discriminant width
+        /// must apply that same default rather than treating `None` as
+        /// "no discriminant".
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        repr: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -65,6 +88,23 @@ pub struct IdlEnumVariant {
     pub name: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub docs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fields: Option<IdlEnumFields>,
+    /// This variant's real, fully-resolved discriminant value (decimal
+    /// string, possibly negative) — see `naclac_syn::types::
+    /// NaclacEnumVariant::discriminant`'s doc comment for the full
+    /// rationale; carried through unchanged here.
+    pub discriminant: String,
+}
+
+/// Matches the real Anchor IDL spec's `IdlDefinedFields` shape exactly
+/// (untagged: named fields serialize as `[{name, type}, ...]`, tuple fields
+/// as a bare `[type, ...]` array).
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum IdlEnumFields {
+    Named(Vec<IdlField>),
+    Tuple(Vec<Value>),
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -205,17 +245,7 @@ pub struct IdlConstant {
 
 // ─── Discriminator Helpers ────────────────────────────────────────────────────
 
-/// Computes the 8-byte discriminator for a named item using sha256.
-/// - Instructions: `sha256("global:<name>")[0..8]`  
-/// - Accounts:     `sha256("account:<name>")[0..8]`
-/// - Events:       `sha256("event:<name>")[0..8]`
-fn compute_discriminator(prefix: &str, name: &str) -> [u8; 8] {
-    let input = format!("{}:{}", prefix, name);
-    let hash = Sha256::digest(input.as_bytes());
-    let mut disc = [0u8; 8];
-    disc.copy_from_slice(&hash[..8]);
-    disc
-}
+use naclac_syn::discriminator::compute_discriminator;
 
 fn to_idl_seed(seed: &naclac_syn::types::NaclacSeed) -> IdlSeed {
     match seed {
@@ -417,16 +447,36 @@ pub fn generate_idl(
                 }
                 IdlTypeDef::Struct { fields: idl_fields }
             }
-            naclac_syn::types::NaclacTypeDefTy::Enum { variants } => {
+            naclac_syn::types::NaclacTypeDefTy::Enum { variants, repr } => {
                 let mut idl_variants = Vec::new();
                 for v in variants {
+                    let fields = v.fields.as_ref().map(|f| match f {
+                        naclac_syn::types::NaclacEnumFields::Named(fields) => {
+                            IdlEnumFields::Named(
+                                fields
+                                    .iter()
+                                    .map(|f| IdlField {
+                                        name: f.name.clone(),
+                                        ty: f.ty.clone(),
+                                        docs: f.docs.clone(),
+                                    })
+                                    .collect(),
+                            )
+                        }
+                        naclac_syn::types::NaclacEnumFields::Tuple(tys) => {
+                            IdlEnumFields::Tuple(tys.clone())
+                        }
+                    });
                     idl_variants.push(IdlEnumVariant {
                         name: v.name.clone(),
                         docs: v.docs.clone(),
+                        fields,
+                        discriminant: v.discriminant.clone(),
                     });
                 }
                 IdlTypeDef::Enum {
                     variants: idl_variants,
+                    repr: repr.clone(),
                 }
             }
         };

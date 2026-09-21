@@ -16,7 +16,6 @@ const LOG_EVENT_FIXED_8_DISCRIMINATOR: [u8; 8] =
 /// Self-CPI carrying an 8-byte payload with no length prefix — the CU cost
 /// a real emit-cpi-for-fixed-events feature would actually pay, as opposed
 /// to `emit_via_self_cpi_sized`'s generic dynamic-payload encoding.
-#[instruction]
 pub fn emit_via_self_cpi_fixed_8(ctx: Context<EmitViaSelfCpiFixed8>) -> Result {
     let mut data = [0u8; 8 + 8];
     data[..8].copy_from_slice(&LOG_EVENT_FIXED_8_DISCRIMINATOR);

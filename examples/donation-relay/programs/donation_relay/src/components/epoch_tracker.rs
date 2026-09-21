@@ -9,11 +9,11 @@ use naclac_lang::prelude::*;
 // instruction that needs real epoch arithmetic — so `u64` is sufficient here.
 #[component]
 pub struct EpochTracker {
+    pub current_epoch: u64,
+    pub config_id: Address,
+    pub mint: Address,
     pub bump: u8,
     // 0 = Uninitialized, 1 = Initialized (real type is an enum; bytemuck::Pod
     // can't be derived for enums, so this stays a plain u8).
     pub state: u8,
-    pub config_id: Address,
-    pub mint: Address,
-    pub current_epoch: u64,
 }

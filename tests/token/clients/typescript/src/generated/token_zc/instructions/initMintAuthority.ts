@@ -9,8 +9,8 @@ export const INIT_MINT_AUTHORITY_DISCRIMINATOR = new Uint8Array([110, 95, 157, 1
 /** Accounts for the `initMintAuthority` instruction. */
 export interface InitMintAuthorityAccounts {
   payer: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

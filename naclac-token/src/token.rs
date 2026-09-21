@@ -19,10 +19,6 @@ use spl_token;
 #[cfg(all(feature = "solana", not(feature = "pinocchio")))]
 use spl_token_2022;
 
-// PINOCCHIO DEPS
-#[cfg(feature = "pinocchio")]
-use pinocchio::cpi::{Seed, Signer};
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum AuthorityType {
@@ -123,46 +119,15 @@ pub fn transfer_checked_signed(
             decimals,
         };
 
-        // Previously silently truncated any signers/seeds past these
-        // hardcoded limits and proceeded with a weaker signer set anyway —
-        // now rejected with a clear error instead (mirrors the same fix in
-        // naclac-core/src/cpi.rs's invoke_signed_pinocchio(_handles)).
-        if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        for parts in signer_seeds.iter() {
-            if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-        }
-
-        let mut signers =
-            [const { core::mem::MaybeUninit::<Signer>::uninit() }; crate::prelude::MAX_CPI_SIGNERS];
-        let mut all_seeds = [const {
-            [const { core::mem::MaybeUninit::<Seed>::uninit() };
-                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-        }; crate::prelude::MAX_CPI_SIGNERS];
-
-        let signer_len = signer_seeds.len();
-        for i in 0..signer_len {
-            unsafe {
-                let src_signer = *signer_seeds.get_unchecked(i);
-                let seed_len = src_signer.len();
-                for j in 0..seed_len {
-                    let src_seed = *src_signer.get_unchecked(j);
-                    let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                    seed_cell.write(Seed::from(src_seed));
-                }
-                let seeds_slice = core::slice::from_raw_parts(
-                    all_seeds.get_unchecked(i).as_ptr() as *const Seed,
-                    seed_len,
-                );
-                let signer_cell = &mut *signers.as_mut_ptr().add(i);
-                signer_cell.write(Signer::from(seeds_slice));
-            }
-        }
-        let signers =
-            unsafe { core::slice::from_raw_parts(signers.as_ptr() as *const Signer, signer_len) };
+        // Shared, single implementation (naclac-core/src/cpi.rs) instead of
+        // hand-rolling the same unsafe signer/seed-array construction here
+        // independently — this file used to duplicate it 9 times over via
+        // raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+        // `MaybeUninit` arrays; the shared macro does the same job with a
+        // safe zeroed-array-plus-index-range approach instead, and is
+        // formally verified once in naclac-core rather than trusted 9
+        // separate times here.
+        naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
 
         if signers.is_empty() {
             ix.invoke()?;
@@ -232,46 +197,15 @@ pub fn mint_to_signed(
             amount,
         };
 
-        // Previously silently truncated any signers/seeds past these
-        // hardcoded limits and proceeded with a weaker signer set anyway —
-        // now rejected with a clear error instead (mirrors the same fix in
-        // naclac-core/src/cpi.rs's invoke_signed_pinocchio(_handles)).
-        if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        for parts in signer_seeds.iter() {
-            if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-        }
-
-        let mut signers =
-            [const { core::mem::MaybeUninit::<Signer>::uninit() }; crate::prelude::MAX_CPI_SIGNERS];
-        let mut all_seeds = [const {
-            [const { core::mem::MaybeUninit::<Seed>::uninit() };
-                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-        }; crate::prelude::MAX_CPI_SIGNERS];
-
-        let signer_len = signer_seeds.len();
-        for i in 0..signer_len {
-            unsafe {
-                let src_signer = *signer_seeds.get_unchecked(i);
-                let seed_len = src_signer.len();
-                for j in 0..seed_len {
-                    let src_seed = *src_signer.get_unchecked(j);
-                    let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                    seed_cell.write(Seed::from(src_seed));
-                }
-                let seeds_slice = core::slice::from_raw_parts(
-                    all_seeds.get_unchecked(i).as_ptr() as *const Seed,
-                    seed_len,
-                );
-                let signer_cell = &mut *signers.as_mut_ptr().add(i);
-                signer_cell.write(Signer::from(seeds_slice));
-            }
-        }
-        let signers =
-            unsafe { core::slice::from_raw_parts(signers.as_ptr() as *const Signer, signer_len) };
+        // Shared, single implementation (naclac-core/src/cpi.rs) instead of
+        // hand-rolling the same unsafe signer/seed-array construction here
+        // independently — this file used to duplicate it 9 times over via
+        // raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+        // `MaybeUninit` arrays; the shared macro does the same job with a
+        // safe zeroed-array-plus-index-range approach instead, and is
+        // formally verified once in naclac-core rather than trusted 9
+        // separate times here.
+        naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
 
         if signers.is_empty() {
             ix.invoke()?;
@@ -341,46 +275,15 @@ pub fn burn_signed(
             amount,
         };
 
-        // Previously silently truncated any signers/seeds past these
-        // hardcoded limits and proceeded with a weaker signer set anyway —
-        // now rejected with a clear error instead (mirrors the same fix in
-        // naclac-core/src/cpi.rs's invoke_signed_pinocchio(_handles)).
-        if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        for parts in signer_seeds.iter() {
-            if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-        }
-
-        let mut signers =
-            [const { core::mem::MaybeUninit::<Signer>::uninit() }; crate::prelude::MAX_CPI_SIGNERS];
-        let mut all_seeds = [const {
-            [const { core::mem::MaybeUninit::<Seed>::uninit() };
-                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-        }; crate::prelude::MAX_CPI_SIGNERS];
-
-        let signer_len = signer_seeds.len();
-        for i in 0..signer_len {
-            unsafe {
-                let src_signer = *signer_seeds.get_unchecked(i);
-                let seed_len = src_signer.len();
-                for j in 0..seed_len {
-                    let src_seed = *src_signer.get_unchecked(j);
-                    let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                    seed_cell.write(Seed::from(src_seed));
-                }
-                let seeds_slice = core::slice::from_raw_parts(
-                    all_seeds.get_unchecked(i).as_ptr() as *const Seed,
-                    seed_len,
-                );
-                let signer_cell = &mut *signers.as_mut_ptr().add(i);
-                signer_cell.write(Signer::from(seeds_slice));
-            }
-        }
-        let signers =
-            unsafe { core::slice::from_raw_parts(signers.as_ptr() as *const Signer, signer_len) };
+        // Shared, single implementation (naclac-core/src/cpi.rs) instead of
+        // hand-rolling the same unsafe signer/seed-array construction here
+        // independently — this file used to duplicate it 9 times over via
+        // raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+        // `MaybeUninit` arrays; the shared macro does the same job with a
+        // safe zeroed-array-plus-index-range approach instead, and is
+        // formally verified once in naclac-core rather than trusted 9
+        // separate times here.
+        naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
 
         if signers.is_empty() {
             ix.invoke()?;
@@ -445,46 +348,15 @@ pub fn close_account_signed(
             authority: &authority.info.view,
         };
 
-        // Previously silently truncated any signers/seeds past these
-        // hardcoded limits and proceeded with a weaker signer set anyway —
-        // now rejected with a clear error instead (mirrors the same fix in
-        // naclac-core/src/cpi.rs's invoke_signed_pinocchio(_handles)).
-        if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        for parts in signer_seeds.iter() {
-            if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-        }
-
-        let mut signers =
-            [const { core::mem::MaybeUninit::<Signer>::uninit() }; crate::prelude::MAX_CPI_SIGNERS];
-        let mut all_seeds = [const {
-            [const { core::mem::MaybeUninit::<Seed>::uninit() };
-                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-        }; crate::prelude::MAX_CPI_SIGNERS];
-
-        let signer_len = signer_seeds.len();
-        for i in 0..signer_len {
-            unsafe {
-                let src_signer = *signer_seeds.get_unchecked(i);
-                let seed_len = src_signer.len();
-                for j in 0..seed_len {
-                    let src_seed = *src_signer.get_unchecked(j);
-                    let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                    seed_cell.write(Seed::from(src_seed));
-                }
-                let seeds_slice = core::slice::from_raw_parts(
-                    all_seeds.get_unchecked(i).as_ptr() as *const Seed,
-                    seed_len,
-                );
-                let signer_cell = &mut *signers.as_mut_ptr().add(i);
-                signer_cell.write(Signer::from(seeds_slice));
-            }
-        }
-        let signers =
-            unsafe { core::slice::from_raw_parts(signers.as_ptr() as *const Signer, signer_len) };
+        // Shared, single implementation (naclac-core/src/cpi.rs) instead of
+        // hand-rolling the same unsafe signer/seed-array construction here
+        // independently — this file used to duplicate it 9 times over via
+        // raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+        // `MaybeUninit` arrays; the shared macro does the same job with a
+        // safe zeroed-array-plus-index-range approach instead, and is
+        // formally verified once in naclac-core rather than trusted 9
+        // separate times here.
+        naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
 
         if signers.is_empty() {
             ix.invoke()?;
@@ -692,46 +564,15 @@ pub fn approve_signed(
             amount,
         };
 
-        // Previously silently truncated any signers/seeds past these
-        // hardcoded limits and proceeded with a weaker signer set anyway —
-        // now rejected with a clear error instead (mirrors the same fix in
-        // naclac-core/src/cpi.rs's invoke_signed_pinocchio(_handles)).
-        if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        for parts in signer_seeds.iter() {
-            if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-        }
-
-        let mut signers =
-            [const { core::mem::MaybeUninit::<Signer>::uninit() }; crate::prelude::MAX_CPI_SIGNERS];
-        let mut all_seeds = [const {
-            [const { core::mem::MaybeUninit::<Seed>::uninit() };
-                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-        }; crate::prelude::MAX_CPI_SIGNERS];
-
-        let signer_len = signer_seeds.len();
-        for i in 0..signer_len {
-            unsafe {
-                let src_signer = *signer_seeds.get_unchecked(i);
-                let seed_len = src_signer.len();
-                for j in 0..seed_len {
-                    let src_seed = *src_signer.get_unchecked(j);
-                    let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                    seed_cell.write(Seed::from(src_seed));
-                }
-                let seeds_slice = core::slice::from_raw_parts(
-                    all_seeds.get_unchecked(i).as_ptr() as *const Seed,
-                    seed_len,
-                );
-                let signer_cell = &mut *signers.as_mut_ptr().add(i);
-                signer_cell.write(Signer::from(seeds_slice));
-            }
-        }
-        let signers =
-            unsafe { core::slice::from_raw_parts(signers.as_ptr() as *const Signer, signer_len) };
+        // Shared, single implementation (naclac-core/src/cpi.rs) instead of
+        // hand-rolling the same unsafe signer/seed-array construction here
+        // independently — this file used to duplicate it 9 times over via
+        // raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+        // `MaybeUninit` arrays; the shared macro does the same job with a
+        // safe zeroed-array-plus-index-range approach instead, and is
+        // formally verified once in naclac-core rather than trusted 9
+        // separate times here.
+        naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
 
         if signers.is_empty() {
             ix.invoke()?;
@@ -786,46 +627,15 @@ pub fn revoke_signed(
             authority: &authority.info.view,
         };
 
-        // Previously silently truncated any signers/seeds past these
-        // hardcoded limits and proceeded with a weaker signer set anyway —
-        // now rejected with a clear error instead (mirrors the same fix in
-        // naclac-core/src/cpi.rs's invoke_signed_pinocchio(_handles)).
-        if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        for parts in signer_seeds.iter() {
-            if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-        }
-
-        let mut signers =
-            [const { core::mem::MaybeUninit::<Signer>::uninit() }; crate::prelude::MAX_CPI_SIGNERS];
-        let mut all_seeds = [const {
-            [const { core::mem::MaybeUninit::<Seed>::uninit() };
-                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-        }; crate::prelude::MAX_CPI_SIGNERS];
-
-        let signer_len = signer_seeds.len();
-        for i in 0..signer_len {
-            unsafe {
-                let src_signer = *signer_seeds.get_unchecked(i);
-                let seed_len = src_signer.len();
-                for j in 0..seed_len {
-                    let src_seed = *src_signer.get_unchecked(j);
-                    let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                    seed_cell.write(Seed::from(src_seed));
-                }
-                let seeds_slice = core::slice::from_raw_parts(
-                    all_seeds.get_unchecked(i).as_ptr() as *const Seed,
-                    seed_len,
-                );
-                let signer_cell = &mut *signers.as_mut_ptr().add(i);
-                signer_cell.write(Signer::from(seeds_slice));
-            }
-        }
-        let signers =
-            unsafe { core::slice::from_raw_parts(signers.as_ptr() as *const Signer, signer_len) };
+        // Shared, single implementation (naclac-core/src/cpi.rs) instead of
+        // hand-rolling the same unsafe signer/seed-array construction here
+        // independently — this file used to duplicate it 9 times over via
+        // raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+        // `MaybeUninit` arrays; the shared macro does the same job with a
+        // safe zeroed-array-plus-index-range approach instead, and is
+        // formally verified once in naclac-core rather than trusted 9
+        // separate times here.
+        naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
 
         if signers.is_empty() {
             ix.invoke()?;
@@ -1007,46 +817,15 @@ pub fn freeze_account_signed(
             freeze_authority: &authority.info.view,
         };
 
-        // Previously silently truncated any signers/seeds past these
-        // hardcoded limits and proceeded with a weaker signer set anyway —
-        // now rejected with a clear error instead (mirrors the same fix in
-        // naclac-core/src/cpi.rs's invoke_signed_pinocchio(_handles)).
-        if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        for parts in signer_seeds.iter() {
-            if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-        }
-
-        let mut signers =
-            [const { core::mem::MaybeUninit::<Signer>::uninit() }; crate::prelude::MAX_CPI_SIGNERS];
-        let mut all_seeds = [const {
-            [const { core::mem::MaybeUninit::<Seed>::uninit() };
-                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-        }; crate::prelude::MAX_CPI_SIGNERS];
-
-        let signer_len = signer_seeds.len();
-        for i in 0..signer_len {
-            unsafe {
-                let src_signer = *signer_seeds.get_unchecked(i);
-                let seed_len = src_signer.len();
-                for j in 0..seed_len {
-                    let src_seed = *src_signer.get_unchecked(j);
-                    let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                    seed_cell.write(Seed::from(src_seed));
-                }
-                let seeds_slice = core::slice::from_raw_parts(
-                    all_seeds.get_unchecked(i).as_ptr() as *const Seed,
-                    seed_len,
-                );
-                let signer_cell = &mut *signers.as_mut_ptr().add(i);
-                signer_cell.write(Signer::from(seeds_slice));
-            }
-        }
-        let signers =
-            unsafe { core::slice::from_raw_parts(signers.as_ptr() as *const Signer, signer_len) };
+        // Shared, single implementation (naclac-core/src/cpi.rs) instead of
+        // hand-rolling the same unsafe signer/seed-array construction here
+        // independently — this file used to duplicate it 9 times over via
+        // raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+        // `MaybeUninit` arrays; the shared macro does the same job with a
+        // safe zeroed-array-plus-index-range approach instead, and is
+        // formally verified once in naclac-core rather than trusted 9
+        // separate times here.
+        naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
 
         if signers.is_empty() {
             if is_token_2022 {
@@ -1121,46 +900,15 @@ pub fn thaw_account_signed(
             freeze_authority: &authority.info.view,
         };
 
-        // Previously silently truncated any signers/seeds past these
-        // hardcoded limits and proceeded with a weaker signer set anyway —
-        // now rejected with a clear error instead (mirrors the same fix in
-        // naclac-core/src/cpi.rs's invoke_signed_pinocchio(_handles)).
-        if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        for parts in signer_seeds.iter() {
-            if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-        }
-
-        let mut signers =
-            [const { core::mem::MaybeUninit::<Signer>::uninit() }; crate::prelude::MAX_CPI_SIGNERS];
-        let mut all_seeds = [const {
-            [const { core::mem::MaybeUninit::<Seed>::uninit() };
-                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-        }; crate::prelude::MAX_CPI_SIGNERS];
-
-        let signer_len = signer_seeds.len();
-        for i in 0..signer_len {
-            unsafe {
-                let src_signer = *signer_seeds.get_unchecked(i);
-                let seed_len = src_signer.len();
-                for j in 0..seed_len {
-                    let src_seed = *src_signer.get_unchecked(j);
-                    let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                    seed_cell.write(Seed::from(src_seed));
-                }
-                let seeds_slice = core::slice::from_raw_parts(
-                    all_seeds.get_unchecked(i).as_ptr() as *const Seed,
-                    seed_len,
-                );
-                let signer_cell = &mut *signers.as_mut_ptr().add(i);
-                signer_cell.write(Signer::from(seeds_slice));
-            }
-        }
-        let signers =
-            unsafe { core::slice::from_raw_parts(signers.as_ptr() as *const Signer, signer_len) };
+        // Shared, single implementation (naclac-core/src/cpi.rs) instead of
+        // hand-rolling the same unsafe signer/seed-array construction here
+        // independently — this file used to duplicate it 9 times over via
+        // raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+        // `MaybeUninit` arrays; the shared macro does the same job with a
+        // safe zeroed-array-plus-index-range approach instead, and is
+        // formally verified once in naclac-core rather than trusted 9
+        // separate times here.
+        naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
 
         if signers.is_empty() {
             if is_token_2022 {
@@ -1260,46 +1008,15 @@ pub fn set_authority_signed(
     {
         let is_token_2022 = program.address().as_ref() == ::pinocchio_token_2022::ID.as_ref();
 
-        // Previously silently truncated any signers/seeds past these
-        // hardcoded limits and proceeded with a weaker signer set anyway —
-        // now rejected with a clear error instead (mirrors the same fix in
-        // naclac-core/src/cpi.rs's invoke_signed_pinocchio(_handles)).
-        if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        for parts in signer_seeds.iter() {
-            if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-        }
-
-        let mut signers =
-            [const { core::mem::MaybeUninit::<Signer>::uninit() }; crate::prelude::MAX_CPI_SIGNERS];
-        let mut all_seeds = [const {
-            [const { core::mem::MaybeUninit::<Seed>::uninit() };
-                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-        }; crate::prelude::MAX_CPI_SIGNERS];
-
-        let signer_len = signer_seeds.len();
-        for i in 0..signer_len {
-            unsafe {
-                let src_signer = *signer_seeds.get_unchecked(i);
-                let seed_len = src_signer.len();
-                for j in 0..seed_len {
-                    let src_seed = *src_signer.get_unchecked(j);
-                    let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                    seed_cell.write(Seed::from(src_seed));
-                }
-                let seeds_slice = core::slice::from_raw_parts(
-                    all_seeds.get_unchecked(i).as_ptr() as *const Seed,
-                    seed_len,
-                );
-                let signer_cell = &mut *signers.as_mut_ptr().add(i);
-                signer_cell.write(Signer::from(seeds_slice));
-            }
-        }
-        let signers =
-            unsafe { core::slice::from_raw_parts(signers.as_ptr() as *const Signer, signer_len) };
+        // Shared, single implementation (naclac-core/src/cpi.rs) instead of
+        // hand-rolling the same unsafe signer/seed-array construction here
+        // independently — this file used to duplicate it 9 times over via
+        // raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+        // `MaybeUninit` arrays; the shared macro does the same job with a
+        // safe zeroed-array-plus-index-range approach instead, and is
+        // formally verified once in naclac-core rather than trusted 9
+        // separate times here.
+        naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
 
         if is_token_2022 {
             let auth_type = match authority_type {
@@ -2482,3 +2199,124 @@ macro_rules! impl_token_cpi_helpers {
 impl_token_cpi_helpers!(Program<Token>);
 impl_token_cpi_helpers!(Program<Token2022>);
 impl_token_cpi_helpers!(Interface<TokenInterface>);
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// `read_coption_address` panics by design when `data` is too short for
+    /// a 36-byte window at `tag_offset` — same "safe within its real
+    /// contract" shape used throughout this audit. Every real call site
+    /// passes a fixed, statically in-bounds offset into an already
+    /// length-checked `TokenAccount`/`Mint` buffer.
+    #[kani::proof]
+    fn prove_read_coption_address_within_contract_never_panics() {
+        let data: [u8; 165] = kani::any();
+        let tag_offset: usize = kani::any();
+        kani::assume(tag_offset <= data.len() - 36);
+        let _ = read_coption_address(&data, tag_offset);
+    }
+
+    /// Correctness: `read_coption_address` must return `None` only for the
+    /// canonical `[0,0,0,0]` tag, `Some` with the real 32 bytes for the
+    /// canonical `[1,0,0,0]` tag, and `None` for any other (non-canonical,
+    /// malformed) tag value too — the function's own doc comment says it
+    /// treats *anything but* `[1,0,0,0]` as `None`, not just `[0,0,0,0]`;
+    /// this proves that's actually what the code does.
+    #[kani::proof]
+    fn prove_read_coption_address_correctness() {
+        let data: [u8; 36] = kani::any();
+        let result = read_coption_address(&data, 0);
+        if data[0..4] == [1u8, 0, 0, 0] {
+            let got: Option<[u8; 32]> = result.map(|a| a.as_ref().try_into().unwrap());
+            assert_eq!(got, Some(data[4..36].try_into().unwrap()));
+        } else {
+            assert!(
+                result.is_none(),
+                "any tag other than the canonical Some encoding must decode as None"
+            );
+        }
+    }
+
+    /// `is_canonical_coption_tag` never panics for any slice length (a
+    /// `==` comparison against a fixed-size array is `false`, not a panic,
+    /// for a mismatched length) and correctly recognizes exactly the two
+    /// real SPL-written tag encodings.
+    #[kani::proof]
+    fn prove_is_canonical_coption_tag_correctness() {
+        let tag: [u8; 4] = kani::any();
+        let expected = tag == [0u8, 0, 0, 0] || tag == [1u8, 0, 0, 0];
+        assert_eq!(is_canonical_coption_tag(&tag), expected);
+    }
+
+    /// Proves `validate_token_account_layout` never panics for any account
+    /// bytes at least as long as the real SPL `Account` struct (165 bytes)
+    /// — every offset it indexes (72, 108, 109, 129) is a fixed literal
+    /// compared against the length-checked buffer, but this proves that
+    /// holds rather than eyeballing the offsets against the doc comment.
+    #[kani::proof]
+    fn prove_validate_token_account_layout_never_panics() {
+        let data: [u8; 165] = kani::any();
+        let exact_len: bool = kani::any();
+        let _ = validate_token_account_layout(&data, exact_len);
+    }
+
+    /// Same proof, but for a Token-2022 account with a TLV extension region
+    /// appended past the base 165 bytes — `exact_len = false`'s whole
+    /// reason to exist, per this function's own doc comment.
+    #[kani::proof]
+    fn prove_validate_token_account_layout_with_extensions_never_panics() {
+        let data: [u8; 200] = kani::any();
+        let _ = validate_token_account_layout(&data, false);
+    }
+
+    /// Same class of proof for the 82-byte `Mint` layout.
+    #[kani::proof]
+    fn prove_validate_mint_layout_never_panics() {
+        let data: [u8; 82] = kani::any();
+        let exact_len: bool = kani::any();
+        let _ = validate_mint_layout(&data, exact_len);
+    }
+
+    #[kani::proof]
+    fn prove_validate_mint_layout_with_extensions_never_panics() {
+        let data: [u8; 120] = kani::any();
+        let _ = validate_mint_layout(&data, false);
+    }
+
+    /// `TokenAccount::check_mint`/`check_authority` and
+    /// `Mint::check_decimals`/`check_authority`/`check_freeze_authority`
+    /// never panic for any account bytes and any expected value — each
+    /// backs a real `#[account(token::mint = ...)]`-style constraint, so a
+    /// panic here would abort a transaction that should have gotten a clean
+    /// constraint-violation error instead.
+    #[kani::proof]
+    fn prove_token_account_checks_never_panic() {
+        let data: [u8; 165] = kani::any();
+        let expected: Address = Address::new_from_array(kani::any());
+        let _ = TokenAccount::check_mint(&data, &expected);
+        let _ = TokenAccount::check_authority(&data, &expected);
+    }
+
+    #[kani::proof]
+    fn prove_mint_checks_never_panic() {
+        let data: [u8; 82] = kani::any();
+        let expected: Address = Address::new_from_array(kani::any());
+        let expected_decimals: u8 = kani::any();
+        let _ = Mint::check_decimals(&data, expected_decimals);
+        let _ = Mint::check_authority(&data, &expected);
+        let _ = Mint::check_freeze_authority(&data, &expected);
+    }
+
+    /// Correctness: `check_mint`/`check_authority` must return `Ok(())` if
+    /// and only if the compared field actually equals `expected` — not an
+    /// approximation that could, say, accept a prefix match.
+    #[kani::proof]
+    fn prove_check_mint_correctness() {
+        let data: [u8; 165] = kani::any();
+        let expected: Address = Address::new_from_array(kani::any());
+        let result = TokenAccount::check_mint(&data, &expected);
+        let actual = Address::new_from_array(data[0..32].try_into().unwrap());
+        assert_eq!(result.is_ok(), actual == expected);
+    }
+}

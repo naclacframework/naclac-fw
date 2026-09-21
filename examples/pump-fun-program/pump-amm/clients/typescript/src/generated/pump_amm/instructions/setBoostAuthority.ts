@@ -9,14 +9,14 @@ export const SET_BOOST_AUTHORITY_DISCRIMINATOR = new Uint8Array([227, 149, 76, 4
 /** Accounts for the `setBoostAuthority` instruction. */
 export interface SetBoostAuthorityAccounts {
   admin: naclac.Address | string;
-  global_config?: naclac.Address | string;
+  globalConfig?: naclac.Address | string;
   /**
    * SAFETY: the new `boost_authority` value is this account's own
    * address (real `set_boost_authority` takes zero args, matching this)
    * — never deserialized, only its address is read.
    */
-  boost_authority: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  boostAuthority: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

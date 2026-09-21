@@ -30,21 +30,16 @@ export class PumpAmmClient {
   }
 
   constructor(
-    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | string,
+    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | "litesvm" | string,
     payer?: naclac.Keypair
   ) {
     let provider: naclac.LegacyProvider;
     if (typeof providerOrCluster === "string") {
-      let url = providerOrCluster;
-      if (providerOrCluster === "devnet") url = "https://api.devnet.solana.com";
-      else if (providerOrCluster === "mainnet") url = "https://api.mainnet-beta.solana.com";
-      else if (providerOrCluster === "localnet") url = "http://127.0.0.1:8899";
-      const connection = new naclac.Connection(url, "confirmed");
-      provider = { connection, payer, publicKey: payer ? payer.publicKey : undefined };
+      provider = naclac.createProvider(providerOrCluster, payer);
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider);
+    this.program = new naclac.LegacyProgram(IDL, provider, true);
   }
 
   /**
@@ -127,12 +122,12 @@ export class PumpAmmClient {
 
   /** Derives the PDA for a `coin_creator_vault_authority` account. Returns `[PublicKey, bumpSeed]`. */
   public getCoinCreatorVaultAuthorityPda(seeds: {
-    coin_creator: naclac.PublicKey | string;
+    coinCreator: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([99, 114, 101, 97, 116, 111, 114, 95, 118, 97, 117, 108, 116]),
-        new naclac.PublicKey(seeds.coin_creator).toBuffer()
+        new naclac.PublicKey(seeds.coinCreator).toBuffer()
       ],
       this.programId
     );
@@ -169,16 +164,16 @@ export class PumpAmmClient {
   public getPoolPda(seeds: {
     args: types.CreatePoolArgs;
     creator: naclac.PublicKey | string;
-    base_mint: naclac.PublicKey | string;
-    quote_mint: naclac.PublicKey | string;
+    baseMint: naclac.PublicKey | string;
+    quoteMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([112, 111, 111, 108]),
         new Uint8Array(naclac.getIdlCodec(JSON.parse('"u16"')).encode(seeds.args.index)),
         new naclac.PublicKey(seeds.creator).toBuffer(),
-        new naclac.PublicKey(seeds.base_mint).toBuffer(),
-        new naclac.PublicKey(seeds.quote_mint).toBuffer()
+        new naclac.PublicKey(seeds.baseMint).toBuffer(),
+        new naclac.PublicKey(seeds.quoteMint).toBuffer()
       ],
       this.programId
     );
@@ -187,12 +182,12 @@ export class PumpAmmClient {
 
   /** Derives the PDA for a `pump_creator_vault` account. Returns `[PublicKey, bumpSeed]`. */
   public getPumpCreatorVaultPda(seeds: {
-    coin_creator: naclac.PublicKey | string;
+    coinCreator: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([99, 114, 101, 97, 116, 111, 114, 45, 118, 97, 117, 108, 116]),
-        new naclac.PublicKey(seeds.coin_creator).toBuffer()
+        new naclac.PublicKey(seeds.coinCreator).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([219, 228, 38, 61, 197, 238, 49, 67, 254, 52, 90, 137, 137, 108, 51, 148, 9, 123, 135, 93, 203, 217, 165, 115, 223, 190, 144, 135, 242, 216, 223, 192]))
     );

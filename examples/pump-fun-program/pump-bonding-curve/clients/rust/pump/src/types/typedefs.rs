@@ -7,10 +7,299 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+pub struct ClaimCashbackV2Args {
+    pub associated_user_volume_accumulator_bump: u8,
+    pub associated_quote_user_bump: u8,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ClaimCashbackV2Args {
+    pub associated_user_volume_accumulator_bump: u8,
+    pub __naclac_padding_0: [u8; __ClaimCashbackV2Args_GAP_0],
+    pub associated_quote_user_bump: u8,
+    pub __naclac_padding_1: [u8; __ClaimCashbackV2Args_GAP_1],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ClaimCashbackV2Args_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ClaimCashbackV2Args_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __ClaimCashbackV2Args_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ClaimCashbackV2Args > () == (::core::mem::size_of:: < u8
+        > () + __ClaimCashbackV2Args_GAP_0 + ::core::mem::size_of:: < u8 > () +
+        __ClaimCashbackV2Args_GAP_1),
+        "defined_type/#[component]: `ClaimCashbackV2Args`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for ClaimCashbackV2Args {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for ClaimCashbackV2Args {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for ClaimCashbackV2Args {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+pub struct ClaimCashbackV2ArgsCpi {
+    pub associated_user_volume_accumulator_bump: u8,
+    pub associated_quote_user_bump: u8,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ClaimCashbackV2ArgsCpi {
+    pub associated_user_volume_accumulator_bump: u8,
+    pub __naclac_padding_0: [u8; __ClaimCashbackV2ArgsCpi_GAP_0],
+    pub associated_quote_user_bump: u8,
+    pub __naclac_padding_1: [u8; __ClaimCashbackV2ArgsCpi_GAP_1],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ClaimCashbackV2ArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ClaimCashbackV2ArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __ClaimCashbackV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ClaimCashbackV2ArgsCpi > () == (::core::mem::size_of:: <
+        u8 > () + __ClaimCashbackV2ArgsCpi_GAP_0 + ::core::mem::size_of:: < u8 > () +
+        __ClaimCashbackV2ArgsCpi_GAP_1),
+        "defined_type/#[component]: `ClaimCashbackV2ArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for ClaimCashbackV2ArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for ClaimCashbackV2ArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for ClaimCashbackV2ArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+pub struct ClaimTokenIncentivesArgs {
+    pub global_incentive_token_account_bump: u8,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ClaimTokenIncentivesArgs {
+    pub global_incentive_token_account_bump: u8,
+    pub __naclac_padding_0: [u8; __ClaimTokenIncentivesArgs_GAP_0],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ClaimTokenIncentivesArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ClaimTokenIncentivesArgs > () == (::core::mem::size_of::
+        < u8 > () + __ClaimTokenIncentivesArgs_GAP_0),
+        "defined_type/#[component]: `ClaimTokenIncentivesArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for ClaimTokenIncentivesArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for ClaimTokenIncentivesArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for ClaimTokenIncentivesArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+pub struct ClaimTokenIncentivesArgsCpi {
+    pub global_incentive_token_account_bump: u8,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ClaimTokenIncentivesArgsCpi {
+    pub global_incentive_token_account_bump: u8,
+    pub __naclac_padding_0: [u8; __ClaimTokenIncentivesArgsCpi_GAP_0],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ClaimTokenIncentivesArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ClaimTokenIncentivesArgsCpi > () ==
+        (::core::mem::size_of:: < u8 > () + __ClaimTokenIncentivesArgsCpi_GAP_0),
+        "defined_type/#[component]: `ClaimTokenIncentivesArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for ClaimTokenIncentivesArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for ClaimTokenIncentivesArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for ClaimTokenIncentivesArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct BuyArgs {
     pub amount: u64,
     pub max_sol_cost: u64,
@@ -28,16 +317,297 @@ pub struct BuyArgs {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BuyArgs {
+    pub amount: u64,
+    pub __naclac_padding_0: [u8; __BuyArgs_GAP_0],
+    pub max_sol_cost: u64,
+    pub __naclac_padding_1: [u8; __BuyArgs_GAP_1],
+    pub track_volume: crate::sdk_core_offchain::Bool,
+    pub __naclac_padding_2: [u8; __BuyArgs_GAP_2],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __BuyArgs_GAP_3],
+    pub associated_bonding_curve_bump: u8,
+    pub __naclac_padding_4: [u8; __BuyArgs_GAP_4],
+    pub associated_user_bump: u8,
+    pub __naclac_padding_5: [u8; __BuyArgs_GAP_5],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_6: [u8; __BuyArgs_GAP_6],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_7: [u8; __BuyArgs_GAP_7],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_8: [u8; __BuyArgs_GAP_8],
+    pub buyback_index: u8,
+    pub __naclac_padding_9: [u8; __BuyArgs_GAP_9],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_10: [u8; __BuyArgs_GAP_10],
+    pub bonding_curve_v2_bump: u8,
+    pub __naclac_padding_11: [u8; __BuyArgs_GAP_11],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BuyArgs_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BuyArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_3 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BuyArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_4 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BuyArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_4 + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BuyArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_4 + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_6 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BuyArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_4 + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_6 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_7 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BuyArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_4 + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_6 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_7 + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BuyArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_4 + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_6 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_7 + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_9 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgs_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgs_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BuyArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_4 + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_6 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_7 + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyArgs_GAP_9 + ::core::mem::size_of::<u8>()
+        + __BuyArgs_GAP_10 + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BuyArgs > () == (::core::mem::size_of:: < u64 > () +
+        __BuyArgs_GAP_0 + ::core::mem::size_of:: < u64 > () + __BuyArgs_GAP_1 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Bool > () + __BuyArgs_GAP_2 +
+        ::core::mem::size_of:: < u8 > () + __BuyArgs_GAP_3 + ::core::mem::size_of:: < u8
+        > () + __BuyArgs_GAP_4 + ::core::mem::size_of:: < u8 > () + __BuyArgs_GAP_5 +
+        ::core::mem::size_of:: < u8 > () + __BuyArgs_GAP_6 + ::core::mem::size_of:: < u8
+        > () + __BuyArgs_GAP_7 + ::core::mem::size_of:: < u8 > () + __BuyArgs_GAP_8 +
+        ::core::mem::size_of:: < u8 > () + __BuyArgs_GAP_9 + ::core::mem::size_of:: < u8
+        > () + __BuyArgs_GAP_10 + ::core::mem::size_of:: < u8 > () + __BuyArgs_GAP_11),
+        "defined_type/#[component]: `BuyArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_offchain::Bool>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for BuyArgs {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for BuyArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BuyArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct BuyArgsCpi {
     pub amount: u64,
     pub max_sol_cost: u64,
@@ -55,16 +625,313 @@ pub struct BuyArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BuyArgsCpi {
+    pub amount: u64,
+    pub __naclac_padding_0: [u8; __BuyArgsCpi_GAP_0],
+    pub max_sol_cost: u64,
+    pub __naclac_padding_1: [u8; __BuyArgsCpi_GAP_1],
+    pub track_volume: crate::sdk_core_cpi::Bool,
+    pub __naclac_padding_2: [u8; __BuyArgsCpi_GAP_2],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __BuyArgsCpi_GAP_3],
+    pub associated_bonding_curve_bump: u8,
+    pub __naclac_padding_4: [u8; __BuyArgsCpi_GAP_4],
+    pub associated_user_bump: u8,
+    pub __naclac_padding_5: [u8; __BuyArgsCpi_GAP_5],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_6: [u8; __BuyArgsCpi_GAP_6],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_7: [u8; __BuyArgsCpi_GAP_7],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_8: [u8; __BuyArgsCpi_GAP_8],
+    pub buyback_index: u8,
+    pub __naclac_padding_9: [u8; __BuyArgsCpi_GAP_9],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_10: [u8; __BuyArgsCpi_GAP_10],
+    pub bonding_curve_v2_bump: u8,
+    pub __naclac_padding_11: [u8; __BuyArgsCpi_GAP_11],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BuyArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BuyArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BuyArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BuyArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BuyArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BuyArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BuyArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BuyArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyArgsCpi_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyArgsCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BuyArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>() + __BuyArgsCpi_GAP_10
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BuyArgsCpi > () == (::core::mem::size_of:: < u64 > () +
+        __BuyArgsCpi_GAP_0 + ::core::mem::size_of:: < u64 > () + __BuyArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::Bool > () + __BuyArgsCpi_GAP_2 +
+        ::core::mem::size_of:: < u8 > () + __BuyArgsCpi_GAP_3 + ::core::mem::size_of:: <
+        u8 > () + __BuyArgsCpi_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __BuyArgsCpi_GAP_5 + ::core::mem::size_of:: < u8 > () + __BuyArgsCpi_GAP_6 +
+        ::core::mem::size_of:: < u8 > () + __BuyArgsCpi_GAP_7 + ::core::mem::size_of:: <
+        u8 > () + __BuyArgsCpi_GAP_8 + ::core::mem::size_of:: < u8 > () +
+        __BuyArgsCpi_GAP_9 + ::core::mem::size_of:: < u8 > () + __BuyArgsCpi_GAP_10 +
+        ::core::mem::size_of:: < u8 > () + __BuyArgsCpi_GAP_11),
+        "defined_type/#[component]: `BuyArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_cpi::Bool>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for BuyArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for BuyArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BuyArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct BuyExactQuoteInV2Args {
     pub spendable_quote_in: u64,
     pub min_tokens_out: u64,
@@ -74,11 +941,8 @@ pub struct BuyExactQuoteInV2Args {
     pub associated_base_user_bump: u8,
     pub associated_quote_user_bump: u8,
     pub creator_vault_bump: u8,
-    pub associated_creator_vault_bump: u8,
-    pub associated_quote_fee_recipient_bump: u8,
     pub associated_quote_buyback_fee_recipient_bump: u8,
     pub user_volume_accumulator_bump: u8,
-    pub associated_user_volume_accumulator_bump: u8,
     pub fee_config_bump: u8,
     pub buyback_index: u8,
     pub buyback_vault_bump: u8,
@@ -86,16 +950,345 @@ pub struct BuyExactQuoteInV2Args {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BuyExactQuoteInV2Args {
+    pub spendable_quote_in: u64,
+    pub __naclac_padding_0: [u8; __BuyExactQuoteInV2Args_GAP_0],
+    pub min_tokens_out: u64,
+    pub __naclac_padding_1: [u8; __BuyExactQuoteInV2Args_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __BuyExactQuoteInV2Args_GAP_2],
+    pub associated_base_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __BuyExactQuoteInV2Args_GAP_3],
+    pub associated_quote_bonding_curve_bump: u8,
+    pub __naclac_padding_4: [u8; __BuyExactQuoteInV2Args_GAP_4],
+    pub associated_base_user_bump: u8,
+    pub __naclac_padding_5: [u8; __BuyExactQuoteInV2Args_GAP_5],
+    pub associated_quote_user_bump: u8,
+    pub __naclac_padding_6: [u8; __BuyExactQuoteInV2Args_GAP_6],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_7: [u8; __BuyExactQuoteInV2Args_GAP_7],
+    pub associated_quote_buyback_fee_recipient_bump: u8,
+    pub __naclac_padding_8: [u8; __BuyExactQuoteInV2Args_GAP_8],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_9: [u8; __BuyExactQuoteInV2Args_GAP_9],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_10: [u8; __BuyExactQuoteInV2Args_GAP_10],
+    pub buyback_index: u8,
+    pub __naclac_padding_11: [u8; __BuyExactQuoteInV2Args_GAP_11],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_12: [u8; __BuyExactQuoteInV2Args_GAP_12],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_9
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_10
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2Args_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactQuoteInV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_9
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_10
+        + ::core::mem::size_of::<u8>() + __BuyExactQuoteInV2Args_GAP_11
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BuyExactQuoteInV2Args > () == (::core::mem::size_of:: <
+        u64 > () + __BuyExactQuoteInV2Args_GAP_0 + ::core::mem::size_of:: < u64 > () +
+        __BuyExactQuoteInV2Args_GAP_1 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_2 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_6 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_8 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_9 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_10 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_11 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2Args_GAP_12),
+        "defined_type/#[component]: `BuyExactQuoteInV2Args`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for BuyExactQuoteInV2Args {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for BuyExactQuoteInV2Args {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BuyExactQuoteInV2Args {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct BuyExactQuoteInV2ArgsCpi {
     pub spendable_quote_in: u64,
     pub min_tokens_out: u64,
@@ -105,11 +1298,8 @@ pub struct BuyExactQuoteInV2ArgsCpi {
     pub associated_base_user_bump: u8,
     pub associated_quote_user_bump: u8,
     pub creator_vault_bump: u8,
-    pub associated_creator_vault_bump: u8,
-    pub associated_quote_fee_recipient_bump: u8,
     pub associated_quote_buyback_fee_recipient_bump: u8,
     pub user_volume_accumulator_bump: u8,
-    pub associated_user_volume_accumulator_bump: u8,
     pub fee_config_bump: u8,
     pub buyback_index: u8,
     pub buyback_vault_bump: u8,
@@ -117,16 +1307,345 @@ pub struct BuyExactQuoteInV2ArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BuyExactQuoteInV2ArgsCpi {
+    pub spendable_quote_in: u64,
+    pub __naclac_padding_0: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_0],
+    pub min_tokens_out: u64,
+    pub __naclac_padding_1: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_2],
+    pub associated_base_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_3],
+    pub associated_quote_bonding_curve_bump: u8,
+    pub __naclac_padding_4: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_4],
+    pub associated_base_user_bump: u8,
+    pub __naclac_padding_5: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_5],
+    pub associated_quote_user_bump: u8,
+    pub __naclac_padding_6: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_6],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_7: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_7],
+    pub associated_quote_buyback_fee_recipient_bump: u8,
+    pub __naclac_padding_8: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_8],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_9: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_9],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_10: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_10],
+    pub buyback_index: u8,
+    pub __naclac_padding_11: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_11],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_12: [u8; __BuyExactQuoteInV2ArgsCpi_GAP_12],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_4 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_4 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_5 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_4 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_6 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_4 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_6 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_7 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_4 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_6 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_7 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_8 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_4 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_6 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_7 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_8 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_9 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_4 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_6 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_7 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_8 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_9 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_10 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactQuoteInV2ArgsCpi_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_4 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_6 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_7 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_8 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_9 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_10 + ::core::mem::size_of::<u8>()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_11 + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BuyExactQuoteInV2ArgsCpi > () == (::core::mem::size_of::
+        < u64 > () + __BuyExactQuoteInV2ArgsCpi_GAP_0 + ::core::mem::size_of:: < u64 > ()
+        + __BuyExactQuoteInV2ArgsCpi_GAP_1 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_2 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_6 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_8 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_9 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_10 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_11 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactQuoteInV2ArgsCpi_GAP_12),
+        "defined_type/#[component]: `BuyExactQuoteInV2ArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for BuyExactQuoteInV2ArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for BuyExactQuoteInV2ArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BuyExactQuoteInV2ArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct BuyExactSolInArgs {
     pub spendable_sol_in: u64,
     pub min_tokens_out: u64,
@@ -142,16 +1661,261 @@ pub struct BuyExactSolInArgs {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BuyExactSolInArgs {
+    pub spendable_sol_in: u64,
+    pub __naclac_padding_0: [u8; __BuyExactSolInArgs_GAP_0],
+    pub min_tokens_out: u64,
+    pub __naclac_padding_1: [u8; __BuyExactSolInArgs_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __BuyExactSolInArgs_GAP_2],
+    pub associated_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __BuyExactSolInArgs_GAP_3],
+    pub associated_user_bump: u8,
+    pub __naclac_padding_4: [u8; __BuyExactSolInArgs_GAP_4],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_5: [u8; __BuyExactSolInArgs_GAP_5],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_6: [u8; __BuyExactSolInArgs_GAP_6],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_7: [u8; __BuyExactSolInArgs_GAP_7],
+    pub buyback_index: u8,
+    pub __naclac_padding_8: [u8; __BuyExactSolInArgs_GAP_8],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_9: [u8; __BuyExactSolInArgs_GAP_9],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgs_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgs_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BuyExactSolInArgs > () == (::core::mem::size_of:: < u64
+        > () + __BuyExactSolInArgs_GAP_0 + ::core::mem::size_of:: < u64 > () +
+        __BuyExactSolInArgs_GAP_1 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgs_GAP_2 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgs_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgs_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgs_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgs_GAP_6 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgs_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgs_GAP_8 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgs_GAP_9),
+        "defined_type/#[component]: `BuyExactSolInArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for BuyExactSolInArgs {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for BuyExactSolInArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BuyExactSolInArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct BuyExactSolInArgsCpi {
     pub spendable_sol_in: u64,
     pub min_tokens_out: u64,
@@ -167,16 +1931,261 @@ pub struct BuyExactSolInArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BuyExactSolInArgsCpi {
+    pub spendable_sol_in: u64,
+    pub __naclac_padding_0: [u8; __BuyExactSolInArgsCpi_GAP_0],
+    pub min_tokens_out: u64,
+    pub __naclac_padding_1: [u8; __BuyExactSolInArgsCpi_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __BuyExactSolInArgsCpi_GAP_2],
+    pub associated_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __BuyExactSolInArgsCpi_GAP_3],
+    pub associated_user_bump: u8,
+    pub __naclac_padding_4: [u8; __BuyExactSolInArgsCpi_GAP_4],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_5: [u8; __BuyExactSolInArgsCpi_GAP_5],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_6: [u8; __BuyExactSolInArgsCpi_GAP_6],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_7: [u8; __BuyExactSolInArgsCpi_GAP_7],
+    pub buyback_index: u8,
+    pub __naclac_padding_8: [u8; __BuyExactSolInArgsCpi_GAP_8],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_9: [u8; __BuyExactSolInArgsCpi_GAP_9],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyExactSolInArgsCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyExactSolInArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyExactSolInArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BuyExactSolInArgsCpi > () == (::core::mem::size_of:: <
+        u64 > () + __BuyExactSolInArgsCpi_GAP_0 + ::core::mem::size_of:: < u64 > () +
+        __BuyExactSolInArgsCpi_GAP_1 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgsCpi_GAP_2 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgsCpi_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgsCpi_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgsCpi_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgsCpi_GAP_6 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgsCpi_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgsCpi_GAP_8 + ::core::mem::size_of:: < u8 > () +
+        __BuyExactSolInArgsCpi_GAP_9),
+        "defined_type/#[component]: `BuyExactSolInArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for BuyExactSolInArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for BuyExactSolInArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BuyExactSolInArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct BuyV2Args {
     pub amount: u64,
     pub max_sol_cost: u64,
@@ -186,11 +2195,8 @@ pub struct BuyV2Args {
     pub associated_base_user_bump: u8,
     pub associated_quote_user_bump: u8,
     pub creator_vault_bump: u8,
-    pub associated_creator_vault_bump: u8,
-    pub associated_quote_fee_recipient_bump: u8,
     pub associated_quote_buyback_fee_recipient_bump: u8,
     pub user_volume_accumulator_bump: u8,
-    pub associated_user_volume_accumulator_bump: u8,
     pub fee_config_bump: u8,
     pub buyback_index: u8,
     pub buyback_vault_bump: u8,
@@ -198,16 +2204,324 @@ pub struct BuyV2Args {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BuyV2Args {
+    pub amount: u64,
+    pub __naclac_padding_0: [u8; __BuyV2Args_GAP_0],
+    pub max_sol_cost: u64,
+    pub __naclac_padding_1: [u8; __BuyV2Args_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __BuyV2Args_GAP_2],
+    pub associated_base_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __BuyV2Args_GAP_3],
+    pub associated_quote_bonding_curve_bump: u8,
+    pub __naclac_padding_4: [u8; __BuyV2Args_GAP_4],
+    pub associated_base_user_bump: u8,
+    pub __naclac_padding_5: [u8; __BuyV2Args_GAP_5],
+    pub associated_quote_user_bump: u8,
+    pub __naclac_padding_6: [u8; __BuyV2Args_GAP_6],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_7: [u8; __BuyV2Args_GAP_7],
+    pub associated_quote_buyback_fee_recipient_bump: u8,
+    pub __naclac_padding_8: [u8; __BuyV2Args_GAP_8],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_9: [u8; __BuyV2Args_GAP_9],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_10: [u8; __BuyV2Args_GAP_10],
+    pub buyback_index: u8,
+    pub __naclac_padding_11: [u8; __BuyV2Args_GAP_11],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_12: [u8; __BuyV2Args_GAP_12],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_3 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_3 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_3 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_3 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_6 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_3 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_6 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_3 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_6 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_3 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_6 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_8 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_9 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_3 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_6 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_8 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_9 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_10
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2Args_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_2 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_3 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_5 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_6 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_8 + ::core::mem::size_of::<u8>()
+        + __BuyV2Args_GAP_9 + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_10
+        + ::core::mem::size_of::<u8>() + __BuyV2Args_GAP_11
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BuyV2Args > () == (::core::mem::size_of:: < u64 > () +
+        __BuyV2Args_GAP_0 + ::core::mem::size_of:: < u64 > () + __BuyV2Args_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __BuyV2Args_GAP_2 + ::core::mem::size_of:: <
+        u8 > () + __BuyV2Args_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __BuyV2Args_GAP_4 + ::core::mem::size_of:: < u8 > () + __BuyV2Args_GAP_5 +
+        ::core::mem::size_of:: < u8 > () + __BuyV2Args_GAP_6 + ::core::mem::size_of:: <
+        u8 > () + __BuyV2Args_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __BuyV2Args_GAP_8 + ::core::mem::size_of:: < u8 > () + __BuyV2Args_GAP_9 +
+        ::core::mem::size_of:: < u8 > () + __BuyV2Args_GAP_10 + ::core::mem::size_of:: <
+        u8 > () + __BuyV2Args_GAP_11 + ::core::mem::size_of:: < u8 > () +
+        __BuyV2Args_GAP_12),
+        "defined_type/#[component]: `BuyV2Args`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for BuyV2Args {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for BuyV2Args {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BuyV2Args {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct BuyV2ArgsCpi {
     pub amount: u64,
     pub max_sol_cost: u64,
@@ -217,11 +2531,8 @@ pub struct BuyV2ArgsCpi {
     pub associated_base_user_bump: u8,
     pub associated_quote_user_bump: u8,
     pub creator_vault_bump: u8,
-    pub associated_creator_vault_bump: u8,
-    pub associated_quote_fee_recipient_bump: u8,
     pub associated_quote_buyback_fee_recipient_bump: u8,
     pub user_volume_accumulator_bump: u8,
-    pub associated_user_volume_accumulator_bump: u8,
     pub fee_config_bump: u8,
     pub buyback_index: u8,
     pub buyback_vault_bump: u8,
@@ -229,16 +2540,342 @@ pub struct BuyV2ArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BuyV2ArgsCpi {
+    pub amount: u64,
+    pub __naclac_padding_0: [u8; __BuyV2ArgsCpi_GAP_0],
+    pub max_sol_cost: u64,
+    pub __naclac_padding_1: [u8; __BuyV2ArgsCpi_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __BuyV2ArgsCpi_GAP_2],
+    pub associated_base_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __BuyV2ArgsCpi_GAP_3],
+    pub associated_quote_bonding_curve_bump: u8,
+    pub __naclac_padding_4: [u8; __BuyV2ArgsCpi_GAP_4],
+    pub associated_base_user_bump: u8,
+    pub __naclac_padding_5: [u8; __BuyV2ArgsCpi_GAP_5],
+    pub associated_quote_user_bump: u8,
+    pub __naclac_padding_6: [u8; __BuyV2ArgsCpi_GAP_6],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_7: [u8; __BuyV2ArgsCpi_GAP_7],
+    pub associated_quote_buyback_fee_recipient_bump: u8,
+    pub __naclac_padding_8: [u8; __BuyV2ArgsCpi_GAP_8],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_9: [u8; __BuyV2ArgsCpi_GAP_9],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_10: [u8; __BuyV2ArgsCpi_GAP_10],
+    pub buyback_index: u8,
+    pub __naclac_padding_11: [u8; __BuyV2ArgsCpi_GAP_11],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_12: [u8; __BuyV2ArgsCpi_GAP_12],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_10
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BuyV2ArgsCpi_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_10
+        + ::core::mem::size_of::<u8>() + __BuyV2ArgsCpi_GAP_11
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BuyV2ArgsCpi > () == (::core::mem::size_of:: < u64 > ()
+        + __BuyV2ArgsCpi_GAP_0 + ::core::mem::size_of:: < u64 > () + __BuyV2ArgsCpi_GAP_1
+        + ::core::mem::size_of:: < u8 > () + __BuyV2ArgsCpi_GAP_2 +
+        ::core::mem::size_of:: < u8 > () + __BuyV2ArgsCpi_GAP_3 + ::core::mem::size_of::
+        < u8 > () + __BuyV2ArgsCpi_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __BuyV2ArgsCpi_GAP_5 + ::core::mem::size_of:: < u8 > () + __BuyV2ArgsCpi_GAP_6 +
+        ::core::mem::size_of:: < u8 > () + __BuyV2ArgsCpi_GAP_7 + ::core::mem::size_of::
+        < u8 > () + __BuyV2ArgsCpi_GAP_8 + ::core::mem::size_of:: < u8 > () +
+        __BuyV2ArgsCpi_GAP_9 + ::core::mem::size_of:: < u8 > () + __BuyV2ArgsCpi_GAP_10 +
+        ::core::mem::size_of:: < u8 > () + __BuyV2ArgsCpi_GAP_11 + ::core::mem::size_of::
+        < u8 > () + __BuyV2ArgsCpi_GAP_12),
+        "defined_type/#[component]: `BuyV2ArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for BuyV2ArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for BuyV2ArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BuyV2ArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct MigrateArgs {
     pub bonding_curve_bump: u8,
     pub associated_bonding_curve_bump: u8,
@@ -255,16 +2892,285 @@ pub struct MigrateArgs {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct MigrateArgs {
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_0: [u8; __MigrateArgs_GAP_0],
+    pub associated_bonding_curve_bump: u8,
+    pub __naclac_padding_1: [u8; __MigrateArgs_GAP_1],
+    pub pool_authority_bump: u8,
+    pub __naclac_padding_2: [u8; __MigrateArgs_GAP_2],
+    pub pool_authority_mint_account_bump: u8,
+    pub __naclac_padding_3: [u8; __MigrateArgs_GAP_3],
+    pub pool_authority_wsol_account_bump: u8,
+    pub __naclac_padding_4: [u8; __MigrateArgs_GAP_4],
+    pub amm_global_config_bump: u8,
+    pub __naclac_padding_5: [u8; __MigrateArgs_GAP_5],
+    pub pool_bump: u8,
+    pub __naclac_padding_6: [u8; __MigrateArgs_GAP_6],
+    pub lp_mint_bump: u8,
+    pub __naclac_padding_7: [u8; __MigrateArgs_GAP_7],
+    pub user_pool_token_account_bump: u8,
+    pub __naclac_padding_8: [u8; __MigrateArgs_GAP_8],
+    pub pool_base_token_account_bump: u8,
+    pub __naclac_padding_9: [u8; __MigrateArgs_GAP_9],
+    pub pool_quote_token_account_bump: u8,
+    pub __naclac_padding_10: [u8; __MigrateArgs_GAP_10],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgs_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateArgs_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < MigrateArgs > () == (::core::mem::size_of:: < u8 > () +
+        __MigrateArgs_GAP_0 + ::core::mem::size_of:: < u8 > () + __MigrateArgs_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __MigrateArgs_GAP_2 + ::core::mem::size_of:: <
+        u8 > () + __MigrateArgs_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgs_GAP_4 + ::core::mem::size_of:: < u8 > () + __MigrateArgs_GAP_5 +
+        ::core::mem::size_of:: < u8 > () + __MigrateArgs_GAP_6 + ::core::mem::size_of:: <
+        u8 > () + __MigrateArgs_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgs_GAP_8 + ::core::mem::size_of:: < u8 > () + __MigrateArgs_GAP_9 +
+        ::core::mem::size_of:: < u8 > () + __MigrateArgs_GAP_10),
+        "defined_type/#[component]: `MigrateArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for MigrateArgs {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for MigrateArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for MigrateArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct MigrateArgsCpi {
     pub bonding_curve_bump: u8,
     pub associated_bonding_curve_bump: u8,
@@ -281,16 +3187,288 @@ pub struct MigrateArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct MigrateArgsCpi {
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_0: [u8; __MigrateArgsCpi_GAP_0],
+    pub associated_bonding_curve_bump: u8,
+    pub __naclac_padding_1: [u8; __MigrateArgsCpi_GAP_1],
+    pub pool_authority_bump: u8,
+    pub __naclac_padding_2: [u8; __MigrateArgsCpi_GAP_2],
+    pub pool_authority_mint_account_bump: u8,
+    pub __naclac_padding_3: [u8; __MigrateArgsCpi_GAP_3],
+    pub pool_authority_wsol_account_bump: u8,
+    pub __naclac_padding_4: [u8; __MigrateArgsCpi_GAP_4],
+    pub amm_global_config_bump: u8,
+    pub __naclac_padding_5: [u8; __MigrateArgsCpi_GAP_5],
+    pub pool_bump: u8,
+    pub __naclac_padding_6: [u8; __MigrateArgsCpi_GAP_6],
+    pub lp_mint_bump: u8,
+    pub __naclac_padding_7: [u8; __MigrateArgsCpi_GAP_7],
+    pub user_pool_token_account_bump: u8,
+    pub __naclac_padding_8: [u8; __MigrateArgsCpi_GAP_8],
+    pub pool_base_token_account_bump: u8,
+    pub __naclac_padding_9: [u8; __MigrateArgsCpi_GAP_9],
+    pub pool_quote_token_account_bump: u8,
+    pub __naclac_padding_10: [u8; __MigrateArgsCpi_GAP_10],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateArgsCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < MigrateArgsCpi > () == (::core::mem::size_of:: < u8 > ()
+        + __MigrateArgsCpi_GAP_0 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_1 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_2 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_6 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_8 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_9 + ::core::mem::size_of:: < u8 > () +
+        __MigrateArgsCpi_GAP_10),
+        "defined_type/#[component]: `MigrateArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for MigrateArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for MigrateArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for MigrateArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct MigrateV2Args {
     pub bonding_curve_bump: u8,
     pub associated_base_bonding_curve_bump: u8,
@@ -310,16 +3488,373 @@ pub struct MigrateV2Args {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct MigrateV2Args {
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_0: [u8; __MigrateV2Args_GAP_0],
+    pub associated_base_bonding_curve_bump: u8,
+    pub __naclac_padding_1: [u8; __MigrateV2Args_GAP_1],
+    pub associated_quote_bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __MigrateV2Args_GAP_2],
+    pub pool_authority_bump: u8,
+    pub __naclac_padding_3: [u8; __MigrateV2Args_GAP_3],
+    pub pool_authority_mint_account_bump: u8,
+    pub __naclac_padding_4: [u8; __MigrateV2Args_GAP_4],
+    pub pool_authority_quote_account_bump: u8,
+    pub __naclac_padding_5: [u8; __MigrateV2Args_GAP_5],
+    pub amm_global_config_bump: u8,
+    pub __naclac_padding_6: [u8; __MigrateV2Args_GAP_6],
+    pub pool_bump: u8,
+    pub __naclac_padding_7: [u8; __MigrateV2Args_GAP_7],
+    pub lp_mint_bump: u8,
+    pub __naclac_padding_8: [u8; __MigrateV2Args_GAP_8],
+    pub user_pool_token_account_bump: u8,
+    pub __naclac_padding_9: [u8; __MigrateV2Args_GAP_9],
+    pub pool_base_token_account_bump: u8,
+    pub __naclac_padding_10: [u8; __MigrateV2Args_GAP_10],
+    pub pool_quote_token_account_bump: u8,
+    pub __naclac_padding_11: [u8; __MigrateV2Args_GAP_11],
+    pub boost_vault_authority_bump: u8,
+    pub __naclac_padding_12: [u8; __MigrateV2Args_GAP_12],
+    pub boost_vault_bump: u8,
+    pub __naclac_padding_13: [u8; __MigrateV2Args_GAP_13],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_9
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_10
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_9
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_10
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_11
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2Args_GAP_13: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_9
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_10
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_11
+        + ::core::mem::size_of::<u8>() + __MigrateV2Args_GAP_12
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < MigrateV2Args > () == (::core::mem::size_of:: < u8 > ()
+        + __MigrateV2Args_GAP_0 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2Args_GAP_1 + ::core::mem::size_of:: < u8 > () + __MigrateV2Args_GAP_2
+        + ::core::mem::size_of:: < u8 > () + __MigrateV2Args_GAP_3 +
+        ::core::mem::size_of:: < u8 > () + __MigrateV2Args_GAP_4 + ::core::mem::size_of::
+        < u8 > () + __MigrateV2Args_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2Args_GAP_6 + ::core::mem::size_of:: < u8 > () + __MigrateV2Args_GAP_7
+        + ::core::mem::size_of:: < u8 > () + __MigrateV2Args_GAP_8 +
+        ::core::mem::size_of:: < u8 > () + __MigrateV2Args_GAP_9 + ::core::mem::size_of::
+        < u8 > () + __MigrateV2Args_GAP_10 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2Args_GAP_11 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2Args_GAP_12 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2Args_GAP_13),
+        "defined_type/#[component]: `MigrateV2Args`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for MigrateV2Args {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for MigrateV2Args {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for MigrateV2Args {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct MigrateV2ArgsCpi {
     pub bonding_curve_bump: u8,
     pub associated_base_bonding_curve_bump: u8,
@@ -339,16 +3874,375 @@ pub struct MigrateV2ArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct MigrateV2ArgsCpi {
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_0: [u8; __MigrateV2ArgsCpi_GAP_0],
+    pub associated_base_bonding_curve_bump: u8,
+    pub __naclac_padding_1: [u8; __MigrateV2ArgsCpi_GAP_1],
+    pub associated_quote_bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __MigrateV2ArgsCpi_GAP_2],
+    pub pool_authority_bump: u8,
+    pub __naclac_padding_3: [u8; __MigrateV2ArgsCpi_GAP_3],
+    pub pool_authority_mint_account_bump: u8,
+    pub __naclac_padding_4: [u8; __MigrateV2ArgsCpi_GAP_4],
+    pub pool_authority_quote_account_bump: u8,
+    pub __naclac_padding_5: [u8; __MigrateV2ArgsCpi_GAP_5],
+    pub amm_global_config_bump: u8,
+    pub __naclac_padding_6: [u8; __MigrateV2ArgsCpi_GAP_6],
+    pub pool_bump: u8,
+    pub __naclac_padding_7: [u8; __MigrateV2ArgsCpi_GAP_7],
+    pub lp_mint_bump: u8,
+    pub __naclac_padding_8: [u8; __MigrateV2ArgsCpi_GAP_8],
+    pub user_pool_token_account_bump: u8,
+    pub __naclac_padding_9: [u8; __MigrateV2ArgsCpi_GAP_9],
+    pub pool_base_token_account_bump: u8,
+    pub __naclac_padding_10: [u8; __MigrateV2ArgsCpi_GAP_10],
+    pub pool_quote_token_account_bump: u8,
+    pub __naclac_padding_11: [u8; __MigrateV2ArgsCpi_GAP_11],
+    pub boost_vault_authority_bump: u8,
+    pub __naclac_padding_12: [u8; __MigrateV2ArgsCpi_GAP_12],
+    pub boost_vault_bump: u8,
+    pub __naclac_padding_13: [u8; __MigrateV2ArgsCpi_GAP_13],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_10
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_10
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_11
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MigrateV2ArgsCpi_GAP_13: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_10
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_11
+        + ::core::mem::size_of::<u8>() + __MigrateV2ArgsCpi_GAP_12
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < MigrateV2ArgsCpi > () == (::core::mem::size_of:: < u8 >
+        () + __MigrateV2ArgsCpi_GAP_0 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_1 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_2 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_6 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_8 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_9 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_10 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_11 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_12 + ::core::mem::size_of:: < u8 > () +
+        __MigrateV2ArgsCpi_GAP_13),
+        "defined_type/#[component]: `MigrateV2ArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for MigrateV2ArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for MigrateV2ArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for MigrateV2ArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct SellArgs {
     pub amount: u64,
     pub min_sol_output: u64,
@@ -365,16 +4259,267 @@ pub struct SellArgs {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SellArgs {
+    pub amount: u64,
+    pub __naclac_padding_0: [u8; __SellArgs_GAP_0],
+    pub min_sol_output: u64,
+    pub __naclac_padding_1: [u8; __SellArgs_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __SellArgs_GAP_2],
+    pub associated_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __SellArgs_GAP_3],
+    pub associated_user_bump: u8,
+    pub __naclac_padding_4: [u8; __SellArgs_GAP_4],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_5: [u8; __SellArgs_GAP_5],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_6: [u8; __SellArgs_GAP_6],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_7: [u8; __SellArgs_GAP_7],
+    pub buyback_index: u8,
+    pub __naclac_padding_8: [u8; __SellArgs_GAP_8],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_9: [u8; __SellArgs_GAP_9],
+    pub bonding_curve_v2_bump: u8,
+    pub __naclac_padding_10: [u8; __SellArgs_GAP_10],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgs_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_2 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_2 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_2 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgs_GAP_4 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_2 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgs_GAP_4 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_5 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_2 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgs_GAP_4 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_5 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_2 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgs_GAP_4 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_5 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellArgs_GAP_7 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_2 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgs_GAP_4 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_5 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellArgs_GAP_7 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_8 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgs_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_2 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgs_GAP_4 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_5 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellArgs_GAP_7 + ::core::mem::size_of::<u8>()
+        + __SellArgs_GAP_8 + ::core::mem::size_of::<u8>() + __SellArgs_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SellArgs > () == (::core::mem::size_of:: < u64 > () +
+        __SellArgs_GAP_0 + ::core::mem::size_of:: < u64 > () + __SellArgs_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __SellArgs_GAP_2 + ::core::mem::size_of:: < u8
+        > () + __SellArgs_GAP_3 + ::core::mem::size_of:: < u8 > () + __SellArgs_GAP_4 +
+        ::core::mem::size_of:: < u8 > () + __SellArgs_GAP_5 + ::core::mem::size_of:: < u8
+        > () + __SellArgs_GAP_6 + ::core::mem::size_of:: < u8 > () + __SellArgs_GAP_7 +
+        ::core::mem::size_of:: < u8 > () + __SellArgs_GAP_8 + ::core::mem::size_of:: < u8
+        > () + __SellArgs_GAP_9 + ::core::mem::size_of:: < u8 > () + __SellArgs_GAP_10),
+        "defined_type/#[component]: `SellArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for SellArgs {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for SellArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for SellArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct SellArgsCpi {
     pub amount: u64,
     pub min_sol_output: u64,
@@ -391,16 +4536,285 @@ pub struct SellArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SellArgsCpi {
+    pub amount: u64,
+    pub __naclac_padding_0: [u8; __SellArgsCpi_GAP_0],
+    pub min_sol_output: u64,
+    pub __naclac_padding_1: [u8; __SellArgsCpi_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __SellArgsCpi_GAP_2],
+    pub associated_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __SellArgsCpi_GAP_3],
+    pub associated_user_bump: u8,
+    pub __naclac_padding_4: [u8; __SellArgsCpi_GAP_4],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_5: [u8; __SellArgsCpi_GAP_5],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_6: [u8; __SellArgsCpi_GAP_6],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_7: [u8; __SellArgsCpi_GAP_7],
+    pub buyback_index: u8,
+    pub __naclac_padding_8: [u8; __SellArgsCpi_GAP_8],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_9: [u8; __SellArgsCpi_GAP_9],
+    pub bonding_curve_v2_bump: u8,
+    pub __naclac_padding_10: [u8; __SellArgsCpi_GAP_10],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellArgsCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __SellArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SellArgsCpi > () == (::core::mem::size_of:: < u64 > () +
+        __SellArgsCpi_GAP_0 + ::core::mem::size_of:: < u64 > () + __SellArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __SellArgsCpi_GAP_2 + ::core::mem::size_of:: <
+        u8 > () + __SellArgsCpi_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __SellArgsCpi_GAP_4 + ::core::mem::size_of:: < u8 > () + __SellArgsCpi_GAP_5 +
+        ::core::mem::size_of:: < u8 > () + __SellArgsCpi_GAP_6 + ::core::mem::size_of:: <
+        u8 > () + __SellArgsCpi_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __SellArgsCpi_GAP_8 + ::core::mem::size_of:: < u8 > () + __SellArgsCpi_GAP_9 +
+        ::core::mem::size_of:: < u8 > () + __SellArgsCpi_GAP_10),
+        "defined_type/#[component]: `SellArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for SellArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for SellArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for SellArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct SellV2Args {
     pub amount: u64,
     pub min_sol_output: u64,
@@ -410,11 +4824,8 @@ pub struct SellV2Args {
     pub associated_base_user_bump: u8,
     pub associated_quote_user_bump: u8,
     pub creator_vault_bump: u8,
-    pub associated_creator_vault_bump: u8,
-    pub associated_quote_fee_recipient_bump: u8,
     pub associated_quote_buyback_fee_recipient_bump: u8,
     pub user_volume_accumulator_bump: u8,
-    pub associated_user_volume_accumulator_bump: u8,
     pub fee_config_bump: u8,
     pub buyback_index: u8,
     pub buyback_vault_bump: u8,
@@ -422,16 +4833,342 @@ pub struct SellV2Args {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SellV2Args {
+    pub amount: u64,
+    pub __naclac_padding_0: [u8; __SellV2Args_GAP_0],
+    pub min_sol_output: u64,
+    pub __naclac_padding_1: [u8; __SellV2Args_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __SellV2Args_GAP_2],
+    pub associated_base_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __SellV2Args_GAP_3],
+    pub associated_quote_bonding_curve_bump: u8,
+    pub __naclac_padding_4: [u8; __SellV2Args_GAP_4],
+    pub associated_base_user_bump: u8,
+    pub __naclac_padding_5: [u8; __SellV2Args_GAP_5],
+    pub associated_quote_user_bump: u8,
+    pub __naclac_padding_6: [u8; __SellV2Args_GAP_6],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_7: [u8; __SellV2Args_GAP_7],
+    pub associated_quote_buyback_fee_recipient_bump: u8,
+    pub __naclac_padding_8: [u8; __SellV2Args_GAP_8],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_9: [u8; __SellV2Args_GAP_9],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_10: [u8; __SellV2Args_GAP_10],
+    pub buyback_index: u8,
+    pub __naclac_padding_11: [u8; __SellV2Args_GAP_11],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_12: [u8; __SellV2Args_GAP_12],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_9
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_10
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2Args_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2Args_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2Args_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_8
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_9
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_10
+        + ::core::mem::size_of::<u8>() + __SellV2Args_GAP_11
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SellV2Args > () == (::core::mem::size_of:: < u64 > () +
+        __SellV2Args_GAP_0 + ::core::mem::size_of:: < u64 > () + __SellV2Args_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __SellV2Args_GAP_2 + ::core::mem::size_of:: <
+        u8 > () + __SellV2Args_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __SellV2Args_GAP_4 + ::core::mem::size_of:: < u8 > () + __SellV2Args_GAP_5 +
+        ::core::mem::size_of:: < u8 > () + __SellV2Args_GAP_6 + ::core::mem::size_of:: <
+        u8 > () + __SellV2Args_GAP_7 + ::core::mem::size_of:: < u8 > () +
+        __SellV2Args_GAP_8 + ::core::mem::size_of:: < u8 > () + __SellV2Args_GAP_9 +
+        ::core::mem::size_of:: < u8 > () + __SellV2Args_GAP_10 + ::core::mem::size_of:: <
+        u8 > () + __SellV2Args_GAP_11 + ::core::mem::size_of:: < u8 > () +
+        __SellV2Args_GAP_12),
+        "defined_type/#[component]: `SellV2Args`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for SellV2Args {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for SellV2Args {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for SellV2Args {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct SellV2ArgsCpi {
     pub amount: u64,
     pub min_sol_output: u64,
@@ -441,11 +5178,8 @@ pub struct SellV2ArgsCpi {
     pub associated_base_user_bump: u8,
     pub associated_quote_user_bump: u8,
     pub creator_vault_bump: u8,
-    pub associated_creator_vault_bump: u8,
-    pub associated_quote_fee_recipient_bump: u8,
     pub associated_quote_buyback_fee_recipient_bump: u8,
     pub user_volume_accumulator_bump: u8,
-    pub associated_user_volume_accumulator_bump: u8,
     pub fee_config_bump: u8,
     pub buyback_index: u8,
     pub buyback_vault_bump: u8,
@@ -453,16 +5187,547 @@ pub struct SellV2ArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SellV2ArgsCpi {
+    pub amount: u64,
+    pub __naclac_padding_0: [u8; __SellV2ArgsCpi_GAP_0],
+    pub min_sol_output: u64,
+    pub __naclac_padding_1: [u8; __SellV2ArgsCpi_GAP_1],
+    pub bonding_curve_bump: u8,
+    pub __naclac_padding_2: [u8; __SellV2ArgsCpi_GAP_2],
+    pub associated_base_bonding_curve_bump: u8,
+    pub __naclac_padding_3: [u8; __SellV2ArgsCpi_GAP_3],
+    pub associated_quote_bonding_curve_bump: u8,
+    pub __naclac_padding_4: [u8; __SellV2ArgsCpi_GAP_4],
+    pub associated_base_user_bump: u8,
+    pub __naclac_padding_5: [u8; __SellV2ArgsCpi_GAP_5],
+    pub associated_quote_user_bump: u8,
+    pub __naclac_padding_6: [u8; __SellV2ArgsCpi_GAP_6],
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_7: [u8; __SellV2ArgsCpi_GAP_7],
+    pub associated_quote_buyback_fee_recipient_bump: u8,
+    pub __naclac_padding_8: [u8; __SellV2ArgsCpi_GAP_8],
+    pub user_volume_accumulator_bump: u8,
+    pub __naclac_padding_9: [u8; __SellV2ArgsCpi_GAP_9],
+    pub fee_config_bump: u8,
+    pub __naclac_padding_10: [u8; __SellV2ArgsCpi_GAP_10],
+    pub buyback_index: u8,
+    pub __naclac_padding_11: [u8; __SellV2ArgsCpi_GAP_11],
+    pub buyback_vault_bump: u8,
+    pub __naclac_padding_12: [u8; __SellV2ArgsCpi_GAP_12],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_10
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SellV2ArgsCpi_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SellV2ArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_6
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_7
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_8
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_9
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_10
+        + ::core::mem::size_of::<u8>() + __SellV2ArgsCpi_GAP_11
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SellV2ArgsCpi > () == (::core::mem::size_of:: < u64 > ()
+        + __SellV2ArgsCpi_GAP_0 + ::core::mem::size_of:: < u64 > () +
+        __SellV2ArgsCpi_GAP_1 + ::core::mem::size_of:: < u8 > () + __SellV2ArgsCpi_GAP_2
+        + ::core::mem::size_of:: < u8 > () + __SellV2ArgsCpi_GAP_3 +
+        ::core::mem::size_of:: < u8 > () + __SellV2ArgsCpi_GAP_4 + ::core::mem::size_of::
+        < u8 > () + __SellV2ArgsCpi_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __SellV2ArgsCpi_GAP_6 + ::core::mem::size_of:: < u8 > () + __SellV2ArgsCpi_GAP_7
+        + ::core::mem::size_of:: < u8 > () + __SellV2ArgsCpi_GAP_8 +
+        ::core::mem::size_of:: < u8 > () + __SellV2ArgsCpi_GAP_9 + ::core::mem::size_of::
+        < u8 > () + __SellV2ArgsCpi_GAP_10 + ::core::mem::size_of:: < u8 > () +
+        __SellV2ArgsCpi_GAP_11 + ::core::mem::size_of:: < u8 > () +
+        __SellV2ArgsCpi_GAP_12),
+        "defined_type/#[component]: `SellV2ArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for SellV2ArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for SellV2ArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for SellV2ArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+pub struct CollectCreatorFeeV2Args {
+    pub creator_vault_bump: u8,
+    pub creator_token_account_bump: u8,
+    pub creator_vault_token_account_bump: u8,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CollectCreatorFeeV2Args {
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_0: [u8; __CollectCreatorFeeV2Args_GAP_0],
+    pub creator_token_account_bump: u8,
+    pub __naclac_padding_1: [u8; __CollectCreatorFeeV2Args_GAP_1],
+    pub creator_vault_token_account_bump: u8,
+    pub __naclac_padding_2: [u8; __CollectCreatorFeeV2Args_GAP_2],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CollectCreatorFeeV2Args_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CollectCreatorFeeV2Args_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __CollectCreatorFeeV2Args_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CollectCreatorFeeV2Args_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __CollectCreatorFeeV2Args_GAP_0
+        + ::core::mem::size_of::<u8>() + __CollectCreatorFeeV2Args_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CollectCreatorFeeV2Args > () == (::core::mem::size_of::
+        < u8 > () + __CollectCreatorFeeV2Args_GAP_0 + ::core::mem::size_of:: < u8 > () +
+        __CollectCreatorFeeV2Args_GAP_1 + ::core::mem::size_of:: < u8 > () +
+        __CollectCreatorFeeV2Args_GAP_2),
+        "defined_type/#[component]: `CollectCreatorFeeV2Args`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CollectCreatorFeeV2Args {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CollectCreatorFeeV2Args {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for CollectCreatorFeeV2Args {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+pub struct CollectCreatorFeeV2ArgsCpi {
+    pub creator_vault_bump: u8,
+    pub creator_token_account_bump: u8,
+    pub creator_vault_token_account_bump: u8,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CollectCreatorFeeV2ArgsCpi {
+    pub creator_vault_bump: u8,
+    pub __naclac_padding_0: [u8; __CollectCreatorFeeV2ArgsCpi_GAP_0],
+    pub creator_token_account_bump: u8,
+    pub __naclac_padding_1: [u8; __CollectCreatorFeeV2ArgsCpi_GAP_1],
+    pub creator_vault_token_account_bump: u8,
+    pub __naclac_padding_2: [u8; __CollectCreatorFeeV2ArgsCpi_GAP_2],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CollectCreatorFeeV2ArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CollectCreatorFeeV2ArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>()
+        + __CollectCreatorFeeV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CollectCreatorFeeV2ArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>()
+        + __CollectCreatorFeeV2ArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CollectCreatorFeeV2ArgsCpi_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CollectCreatorFeeV2ArgsCpi > () ==
+        (::core::mem::size_of:: < u8 > () + __CollectCreatorFeeV2ArgsCpi_GAP_0 +
+        ::core::mem::size_of:: < u8 > () + __CollectCreatorFeeV2ArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __CollectCreatorFeeV2ArgsCpi_GAP_2),
+        "defined_type/#[component]: `CollectCreatorFeeV2ArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CollectCreatorFeeV2ArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CollectCreatorFeeV2ArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for CollectCreatorFeeV2ArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct SetParamsArgs {
     pub initial_virtual_token_reserves: u64,
     pub initial_virtual_sol_reserves: u64,
@@ -479,16 +5744,294 @@ pub struct SetParamsArgs {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SetParamsArgs {
+    pub initial_virtual_token_reserves: u64,
+    pub __naclac_padding_0: [u8; __SetParamsArgs_GAP_0],
+    pub initial_virtual_sol_reserves: u64,
+    pub __naclac_padding_1: [u8; __SetParamsArgs_GAP_1],
+    pub initial_real_token_reserves: u64,
+    pub __naclac_padding_2: [u8; __SetParamsArgs_GAP_2],
+    pub token_total_supply: u64,
+    pub __naclac_padding_3: [u8; __SetParamsArgs_GAP_3],
+    pub fee_basis_points: u64,
+    pub __naclac_padding_4: [u8; __SetParamsArgs_GAP_4],
+    pub withdraw_authority: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_5: [u8; __SetParamsArgs_GAP_5],
+    pub enable_migrate: crate::sdk_core_offchain::Bool,
+    pub __naclac_padding_6: [u8; __SetParamsArgs_GAP_6],
+    pub pool_migration_fee: u64,
+    pub __naclac_padding_7: [u8; __SetParamsArgs_GAP_7],
+    pub creator_fee_basis_points: u64,
+    pub __naclac_padding_8: [u8; __SetParamsArgs_GAP_8],
+    pub set_creator_authority: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_9: [u8; __SetParamsArgs_GAP_9],
+    pub admin_set_creator_authority: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_10: [u8; __SetParamsArgs_GAP_10],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_1
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_2
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_3
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __SetParamsArgs_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __SetParamsArgs_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __SetParamsArgs_GAP_6 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __SetParamsArgs_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __SetParamsArgs_GAP_6 + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_7
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __SetParamsArgs_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __SetParamsArgs_GAP_6 + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_7
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_8
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgs_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __SetParamsArgs_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __SetParamsArgs_GAP_6 + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_7
+        + ::core::mem::size_of::<u64>() + __SetParamsArgs_GAP_8
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __SetParamsArgs_GAP_9
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SetParamsArgs > () == (::core::mem::size_of:: < u64 > ()
+        + __SetParamsArgs_GAP_0 + ::core::mem::size_of:: < u64 > () +
+        __SetParamsArgs_GAP_1 + ::core::mem::size_of:: < u64 > () + __SetParamsArgs_GAP_2
+        + ::core::mem::size_of:: < u64 > () + __SetParamsArgs_GAP_3 +
+        ::core::mem::size_of:: < u64 > () + __SetParamsArgs_GAP_4 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
+        __SetParamsArgs_GAP_5 + ::core::mem::size_of:: < crate ::sdk_core_offchain::Bool
+        > () + __SetParamsArgs_GAP_6 + ::core::mem::size_of:: < u64 > () +
+        __SetParamsArgs_GAP_7 + ::core::mem::size_of:: < u64 > () + __SetParamsArgs_GAP_8
+        + ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
+        __SetParamsArgs_GAP_9 + ::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Address > () + __SetParamsArgs_GAP_10),
+        "defined_type/#[component]: `SetParamsArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<crate::sdk_core_offchain::Bool>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for SetParamsArgs {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for SetParamsArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for SetParamsArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct SetParamsArgsCpi {
     pub initial_virtual_token_reserves: u64,
     pub initial_virtual_sol_reserves: u64,
@@ -505,16 +6048,499 @@ pub struct SetParamsArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SetParamsArgsCpi {
+    pub initial_virtual_token_reserves: u64,
+    pub __naclac_padding_0: [u8; __SetParamsArgsCpi_GAP_0],
+    pub initial_virtual_sol_reserves: u64,
+    pub __naclac_padding_1: [u8; __SetParamsArgsCpi_GAP_1],
+    pub initial_real_token_reserves: u64,
+    pub __naclac_padding_2: [u8; __SetParamsArgsCpi_GAP_2],
+    pub token_total_supply: u64,
+    pub __naclac_padding_3: [u8; __SetParamsArgsCpi_GAP_3],
+    pub fee_basis_points: u64,
+    pub __naclac_padding_4: [u8; __SetParamsArgsCpi_GAP_4],
+    pub withdraw_authority: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_5: [u8; __SetParamsArgsCpi_GAP_5],
+    pub enable_migrate: crate::sdk_core_cpi::Bool,
+    pub __naclac_padding_6: [u8; __SetParamsArgsCpi_GAP_6],
+    pub pool_migration_fee: u64,
+    pub __naclac_padding_7: [u8; __SetParamsArgsCpi_GAP_7],
+    pub creator_fee_basis_points: u64,
+    pub __naclac_padding_8: [u8; __SetParamsArgsCpi_GAP_8],
+    pub set_creator_authority: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_9: [u8; __SetParamsArgsCpi_GAP_9],
+    pub admin_set_creator_authority: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_10: [u8; __SetParamsArgsCpi_GAP_10],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_1
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_2
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_3
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __SetParamsArgsCpi_GAP_5 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __SetParamsArgsCpi_GAP_5 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __SetParamsArgsCpi_GAP_6 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __SetParamsArgsCpi_GAP_5 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __SetParamsArgsCpi_GAP_6 + ::core::mem::size_of::<u64>()
+        + __SetParamsArgsCpi_GAP_7 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __SetParamsArgsCpi_GAP_5 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __SetParamsArgsCpi_GAP_6 + ::core::mem::size_of::<u64>()
+        + __SetParamsArgsCpi_GAP_7 + ::core::mem::size_of::<u64>()
+        + __SetParamsArgsCpi_GAP_8
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SetParamsArgsCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __SetParamsArgsCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __SetParamsArgsCpi_GAP_5 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __SetParamsArgsCpi_GAP_6 + ::core::mem::size_of::<u64>()
+        + __SetParamsArgsCpi_GAP_7 + ::core::mem::size_of::<u64>()
+        + __SetParamsArgsCpi_GAP_8
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __SetParamsArgsCpi_GAP_9
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SetParamsArgsCpi > () == (::core::mem::size_of:: < u64 >
+        () + __SetParamsArgsCpi_GAP_0 + ::core::mem::size_of:: < u64 > () +
+        __SetParamsArgsCpi_GAP_1 + ::core::mem::size_of:: < u64 > () +
+        __SetParamsArgsCpi_GAP_2 + ::core::mem::size_of:: < u64 > () +
+        __SetParamsArgsCpi_GAP_3 + ::core::mem::size_of:: < u64 > () +
+        __SetParamsArgsCpi_GAP_4 + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address
+        > () + __SetParamsArgsCpi_GAP_5 + ::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Bool > () + __SetParamsArgsCpi_GAP_6 + ::core::mem::size_of:: <
+        u64 > () + __SetParamsArgsCpi_GAP_7 + ::core::mem::size_of:: < u64 > () +
+        __SetParamsArgsCpi_GAP_8 + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address
+        > () + __SetParamsArgsCpi_GAP_9 + ::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Address > () + __SetParamsArgsCpi_GAP_10),
+        "defined_type/#[component]: `SetParamsArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<crate::sdk_core_cpi::Bool>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for SetParamsArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for SetParamsArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for SetParamsArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+pub struct MinimumDistributableFeeEvent {
+    pub minimum_required: u64,
+    pub distributable_fees: u64,
+    pub can_distribute: crate::sdk_core_offchain::Bool,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct MinimumDistributableFeeEvent {
+    pub minimum_required: u64,
+    pub __naclac_padding_0: [u8; __MinimumDistributableFeeEvent_GAP_0],
+    pub distributable_fees: u64,
+    pub __naclac_padding_1: [u8; __MinimumDistributableFeeEvent_GAP_1],
+    pub can_distribute: crate::sdk_core_offchain::Bool,
+    pub __naclac_padding_2: [u8; __MinimumDistributableFeeEvent_GAP_2],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MinimumDistributableFeeEvent_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MinimumDistributableFeeEvent_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __MinimumDistributableFeeEvent_GAP_0 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MinimumDistributableFeeEvent_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __MinimumDistributableFeeEvent_GAP_0 + ::core::mem::size_of::<u64>()
+        + __MinimumDistributableFeeEvent_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < MinimumDistributableFeeEvent > () ==
+        (::core::mem::size_of:: < u64 > () + __MinimumDistributableFeeEvent_GAP_0 +
+        ::core::mem::size_of:: < u64 > () + __MinimumDistributableFeeEvent_GAP_1 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Bool > () +
+        __MinimumDistributableFeeEvent_GAP_2),
+        "defined_type/#[component]: `MinimumDistributableFeeEvent`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_offchain::Bool>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for MinimumDistributableFeeEvent {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for MinimumDistributableFeeEvent {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for MinimumDistributableFeeEvent {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+pub struct MinimumDistributableFeeEventCpi {
+    pub minimum_required: u64,
+    pub distributable_fees: u64,
+    pub can_distribute: crate::sdk_core_cpi::Bool,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct MinimumDistributableFeeEventCpi {
+    pub minimum_required: u64,
+    pub __naclac_padding_0: [u8; __MinimumDistributableFeeEventCpi_GAP_0],
+    pub distributable_fees: u64,
+    pub __naclac_padding_1: [u8; __MinimumDistributableFeeEventCpi_GAP_1],
+    pub can_distribute: crate::sdk_core_cpi::Bool,
+    pub __naclac_padding_2: [u8; __MinimumDistributableFeeEventCpi_GAP_2],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MinimumDistributableFeeEventCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MinimumDistributableFeeEventCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __MinimumDistributableFeeEventCpi_GAP_0 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __MinimumDistributableFeeEventCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __MinimumDistributableFeeEventCpi_GAP_0 + ::core::mem::size_of::<u64>()
+        + __MinimumDistributableFeeEventCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < MinimumDistributableFeeEventCpi > () ==
+        (::core::mem::size_of:: < u64 > () + __MinimumDistributableFeeEventCpi_GAP_0 +
+        ::core::mem::size_of:: < u64 > () + __MinimumDistributableFeeEventCpi_GAP_1 +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::Bool > () +
+        __MinimumDistributableFeeEventCpi_GAP_2),
+        "defined_type/#[component]: `MinimumDistributableFeeEventCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_cpi::Bool>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for MinimumDistributableFeeEventCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for MinimumDistributableFeeEventCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for MinimumDistributableFeeEventCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct Shareholder {
     pub address: crate::sdk_core_offchain::Address,
     pub share_bps: u16,
@@ -522,16 +6548,81 @@ pub struct Shareholder {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct Shareholder {
+    pub address: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_0: [u8; __Shareholder_GAP_0],
+    pub share_bps: u16,
+    pub __naclac_padding_1: [u8; __Shareholder_GAP_1],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __Shareholder_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __Shareholder_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __Shareholder_GAP_0 + ::core::mem::size_of::<u16>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < Shareholder > () == (::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Address > () + __Shareholder_GAP_0 + ::core::mem::size_of::
+        < u16 > () + __Shareholder_GAP_1),
+        "defined_type/#[component]: `Shareholder`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<u16>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for Shareholder {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for Shareholder {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for Shareholder {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct ShareholderCpi {
     pub address: crate::sdk_core_cpi::Address,
     pub share_bps: u16,
@@ -539,8 +6630,74 @@ pub struct ShareholderCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ShareholderCpi {
+    pub address: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_0: [u8; __ShareholderCpi_GAP_0],
+    pub share_bps: u16,
+    pub __naclac_padding_1: [u8; __ShareholderCpi_GAP_1],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ShareholderCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ShareholderCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __ShareholderCpi_GAP_0 + ::core::mem::size_of::<u16>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ShareholderCpi > () == (::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Address > () + __ShareholderCpi_GAP_0 + ::core::mem::size_of:: <
+        u16 > () + __ShareholderCpi_GAP_1),
+        "defined_type/#[component]: `ShareholderCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<u16>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for ShareholderCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for ShareholderCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for ShareholderCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 

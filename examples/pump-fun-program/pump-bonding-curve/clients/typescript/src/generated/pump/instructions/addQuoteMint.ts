@@ -8,7 +8,7 @@ export const ADD_QUOTE_MINT_DISCRIMINATOR = new Uint8Array([111, 121, 21, 56, 40
 
 /** Instruction arguments for `addQuoteMint`. */
 export interface AddQuoteMintArgs {
-  quote_mint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
 }
 
 /** Accounts for the `addQuoteMint` instruction. */

@@ -39,7 +39,6 @@ pub struct CreateMintWithFreeze {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn create_mint_with_freeze(
     _ctx: Context<CreateMintWithFreeze>,
     _id: u64,

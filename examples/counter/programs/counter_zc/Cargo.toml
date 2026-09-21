@@ -13,6 +13,7 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
+idl-build = ["naclac-lang/idl-build"]
 
 [dependencies]
 naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }

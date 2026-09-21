@@ -10,11 +10,11 @@ export const FEECONFIG_DISCRIMINATOR = new Uint8Array([143, 52, 146, 187, 219, 1
 /** Gets the encoder for {@link FeeConfig} account data. */
 export function getFeeConfigEncoder(): naclac.FixedSizeEncoder<FeeConfig> {
   return naclac.getStructEncoder([
-    ["flat_fees", naclac.getU8Encoder() /* TODO: complex type */],
-    ["fee_tiers", naclac.getU8Encoder() /* TODO: complex type */],
-    ["stable_fee_tiers", naclac.getU8Encoder() /* TODO: complex type */],
-    ["fee_tiers_len", naclac.getU32Encoder()],
-    ["stable_fee_tiers_len", naclac.getU32Encoder()],
+    ["flatFees", naclac.getU8Encoder() /* TODO: complex type */],
+    ["feeTiers", naclac.getU8Encoder() /* TODO: complex type */],
+    ["stableFeeTiers", naclac.getU8Encoder() /* TODO: complex type */],
+    ["feeTiersLen", naclac.getU32Encoder()],
+    ["stableFeeTiersLen", naclac.getU32Encoder()],
     ["bump", naclac.getU8Encoder()],
     ["admin", naclac.getAddressEncoder()],
   ]) as naclac.FixedSizeEncoder<FeeConfig>;
@@ -23,11 +23,11 @@ export function getFeeConfigEncoder(): naclac.FixedSizeEncoder<FeeConfig> {
 /** Gets the decoder for {@link FeeConfig} account data. */
 export function getFeeConfigDecoder(): naclac.FixedSizeDecoder<FeeConfig> {
   return naclac.getStructDecoder([
-    ["flat_fees", naclac.getU8Decoder() /* TODO: complex type */],
-    ["fee_tiers", naclac.getU8Decoder() /* TODO: complex type */],
-    ["stable_fee_tiers", naclac.getU8Decoder() /* TODO: complex type */],
-    ["fee_tiers_len", naclac.getU32Decoder()],
-    ["stable_fee_tiers_len", naclac.getU32Decoder()],
+    ["flatFees", naclac.getU8Decoder() /* TODO: complex type */],
+    ["feeTiers", naclac.getU8Decoder() /* TODO: complex type */],
+    ["stableFeeTiers", naclac.getU8Decoder() /* TODO: complex type */],
+    ["feeTiersLen", naclac.getU32Decoder()],
+    ["stableFeeTiersLen", naclac.getU32Decoder()],
     ["bump", naclac.getU8Decoder()],
     ["admin", naclac.getAddressDecoder()],
   ]) as naclac.FixedSizeDecoder<FeeConfig>;

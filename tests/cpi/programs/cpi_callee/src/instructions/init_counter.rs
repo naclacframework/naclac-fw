@@ -24,7 +24,6 @@ pub struct InitCounter {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_counter(ctx: Context<InitCounter>) -> Result {
     ctx.accounts.counter.value = 0;
     ctx.accounts.counter.authority = ctx.accounts.authority.address();

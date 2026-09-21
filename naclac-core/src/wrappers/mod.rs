@@ -421,3 +421,32 @@ impl<T: AsRefByteSlice + ?Sized> AsRefByteSlice for &T {
         T::as_ref_byte_slice(*self)
     }
 }
+
+#[cfg(kani)]
+mod address_kani_proofs {
+    use super::*;
+
+    /// Proves `<[u8; N] as ToAddress>::address` never panics/UB's and copies
+    /// exactly `min(N, 32)` bytes, zero-padding the rest — for `N` below,
+    /// at, and above 32. `N` is a const generic, so each width needs its own
+    /// concrete monomorphization; these three cover every size relationship
+    /// `min(N, 32)` can have.
+    macro_rules! prove_address_for_width {
+        ($proof_name:ident, $n:expr) => {
+            #[kani::proof]
+            fn $proof_name() {
+                let arr: [u8; $n] = kani::any();
+                let addr = arr.address();
+                let bytes = addr.as_ref_byte_slice();
+                let len = ($n as usize).min(32);
+                assert_eq!(bytes.len(), 32);
+                assert_eq!(&bytes[..len], &arr[..len]);
+                assert!(bytes[len..].iter().all(|b| *b == 0));
+            }
+        };
+    }
+
+    prove_address_for_width!(prove_address_width_below_32, 16);
+    prove_address_for_width!(prove_address_width_exactly_32, 32);
+    prove_address_for_width!(prove_address_width_above_32, 64);
+}

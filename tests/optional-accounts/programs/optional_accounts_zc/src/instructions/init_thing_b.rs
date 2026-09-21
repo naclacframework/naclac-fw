@@ -17,7 +17,6 @@ pub struct InitThingB {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_thing_b(ctx: Context<InitThingB>) -> Result {
     let thing_b = &mut ctx.accounts.thing_b;
     thing_b.value = 0;

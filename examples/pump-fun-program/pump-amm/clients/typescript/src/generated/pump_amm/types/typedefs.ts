@@ -6,17 +6,14 @@ import * as naclac from "@naclac-fw/client";
 /** Auto-generated from the program IDL. */
 export interface CreatePoolArgs {
   index: number;
-  base_amount_in: bigint | number;
-  quote_amount_in: bigint | number;
-  coin_creator: naclac.Address | string;
-  is_mayhem_mode: naclac.Bool;
-  is_cashback_coin: naclac.Bool;
-  pool_bump: number;
-  lp_mint_bump: number;
-  user_base_token_account_bump: number;
-  user_quote_token_account_bump: number;
-  user_pool_token_account_bump: number;
-  pool_base_token_account_bump: number;
-  pool_quote_token_account_bump: number;
+  baseAmountIn: bigint | number;
+  quoteAmountIn: bigint | number;
+  coinCreator: naclac.Address | string;
+  isMayhemMode: naclac.Bool;
+  isCashbackCoin: naclac.Bool;
+  poolBump: number;
+  lpMintBump: number;
+  userBaseTokenAccountBump: number;
+  userQuoteTokenAccountBump: number;
 }
 

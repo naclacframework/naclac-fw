@@ -8,7 +8,7 @@ export const CHECK_PERMISSIONED_BURN_DISCRIMINATOR = new Uint8Array([52, 89, 178
 
 /** Instruction arguments for `checkPermissionedBurn`. */
 export interface CheckPermissionedBurnArgs {
-  expected_authority: naclac.Address | string | null;
+  expectedAuthority: naclac.Address | string | null;
 }
 
 /** Accounts for the `checkPermissionedBurn` instruction. */

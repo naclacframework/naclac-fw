@@ -26,7 +26,6 @@ pub struct CheckMintFreezeAuthority {
     pub mint: Account<Mint>,
 }
 
-#[instruction]
 pub fn check_mint_freeze_authority(_ctx: Context<CheckMintFreezeAuthority>) -> Result {
     Ok(())
 }

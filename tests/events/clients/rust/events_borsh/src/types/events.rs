@@ -22,21 +22,21 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CounterIncremented 
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CounterIncremented {}
 
-#[cfg(not(feature = "offchain"))]
+#[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
 #[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(feature = "borsh"), repr(C))]
-pub struct CounterIncremented {
+pub struct CounterIncrementedCpi {
     pub new_count: u64,
 }
 
-#[cfg(not(feature = "offchain"))]
+#[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CounterIncremented {}
-#[cfg(not(feature = "offchain"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CounterIncrementedCpi {}
+#[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CounterIncremented {}
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CounterIncrementedCpi {}
 
 #[cfg(feature = "offchain")]
 /// Variable-length payload for the self-CPI vs. `sol_log_data` CU sweep —
@@ -56,21 +56,21 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for SizedPayload {}
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for SizedPayload {}
 
-#[cfg(not(feature = "offchain"))]
+#[cfg(feature = "cpi")]
 /// Variable-length payload for the self-CPI vs. `sol_log_data` CU sweep —
 /// `data`'s length is the swept variable.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
 #[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(feature = "borsh"), repr(C))]
-pub struct SizedPayload {
+pub struct SizedPayloadCpi {
     pub data: crate::sdk_core_cpi::Vec<u8>,
 }
 
-#[cfg(not(feature = "offchain"))]
+#[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for SizedPayload {}
-#[cfg(not(feature = "offchain"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for SizedPayloadCpi {}
+#[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for SizedPayload {}
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for SizedPayloadCpi {}
 

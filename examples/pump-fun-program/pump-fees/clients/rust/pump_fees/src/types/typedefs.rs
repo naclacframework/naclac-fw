@@ -7,10 +7,9 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct CrankDonationFeePdaArgs {
     pub donation_fee_pda_ata_bump: u8,
     pub epoch_tracker_bump: u8,
@@ -20,16 +19,120 @@ pub struct CrankDonationFeePdaArgs {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CrankDonationFeePdaArgs {
+    pub donation_fee_pda_ata_bump: u8,
+    pub __naclac_padding_0: [u8; __CrankDonationFeePdaArgs_GAP_0],
+    pub epoch_tracker_bump: u8,
+    pub __naclac_padding_1: [u8; __CrankDonationFeePdaArgs_GAP_1],
+    pub debouncer_bump: u8,
+    pub __naclac_padding_2: [u8; __CrankDonationFeePdaArgs_GAP_2],
+    pub debouncer_ata_bump: u8,
+    pub __naclac_padding_3: [u8; __CrankDonationFeePdaArgs_GAP_3],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CrankDonationFeePdaArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CrankDonationFeePdaArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __CrankDonationFeePdaArgs_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CrankDonationFeePdaArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __CrankDonationFeePdaArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __CrankDonationFeePdaArgs_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CrankDonationFeePdaArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __CrankDonationFeePdaArgs_GAP_0
+        + ::core::mem::size_of::<u8>() + __CrankDonationFeePdaArgs_GAP_1
+        + ::core::mem::size_of::<u8>() + __CrankDonationFeePdaArgs_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CrankDonationFeePdaArgs > () == (::core::mem::size_of::
+        < u8 > () + __CrankDonationFeePdaArgs_GAP_0 + ::core::mem::size_of:: < u8 > () +
+        __CrankDonationFeePdaArgs_GAP_1 + ::core::mem::size_of:: < u8 > () +
+        __CrankDonationFeePdaArgs_GAP_2 + ::core::mem::size_of:: < u8 > () +
+        __CrankDonationFeePdaArgs_GAP_3),
+        "defined_type/#[component]: `CrankDonationFeePdaArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CrankDonationFeePdaArgs {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CrankDonationFeePdaArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for CrankDonationFeePdaArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct CrankDonationFeePdaArgsCpi {
     pub donation_fee_pda_ata_bump: u8,
     pub epoch_tracker_bump: u8,
@@ -39,16 +142,120 @@ pub struct CrankDonationFeePdaArgsCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CrankDonationFeePdaArgsCpi {
+    pub donation_fee_pda_ata_bump: u8,
+    pub __naclac_padding_0: [u8; __CrankDonationFeePdaArgsCpi_GAP_0],
+    pub epoch_tracker_bump: u8,
+    pub __naclac_padding_1: [u8; __CrankDonationFeePdaArgsCpi_GAP_1],
+    pub debouncer_bump: u8,
+    pub __naclac_padding_2: [u8; __CrankDonationFeePdaArgsCpi_GAP_2],
+    pub debouncer_ata_bump: u8,
+    pub __naclac_padding_3: [u8; __CrankDonationFeePdaArgsCpi_GAP_3],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CrankDonationFeePdaArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CrankDonationFeePdaArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>()
+        + __CrankDonationFeePdaArgsCpi_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CrankDonationFeePdaArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>()
+        + __CrankDonationFeePdaArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CrankDonationFeePdaArgsCpi_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __CrankDonationFeePdaArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>()
+        + __CrankDonationFeePdaArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CrankDonationFeePdaArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CrankDonationFeePdaArgsCpi_GAP_2 + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CrankDonationFeePdaArgsCpi > () ==
+        (::core::mem::size_of:: < u8 > () + __CrankDonationFeePdaArgsCpi_GAP_0 +
+        ::core::mem::size_of:: < u8 > () + __CrankDonationFeePdaArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __CrankDonationFeePdaArgsCpi_GAP_2 +
+        ::core::mem::size_of:: < u8 > () + __CrankDonationFeePdaArgsCpi_GAP_3),
+        "defined_type/#[component]: `CrankDonationFeePdaArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CrankDonationFeePdaArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CrankDonationFeePdaArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for CrankDonationFeePdaArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct Fees {
     pub lp_fee_bps: u64,
     pub protocol_fee_bps: u64,
@@ -57,16 +264,98 @@ pub struct Fees {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct Fees {
+    pub lp_fee_bps: u64,
+    pub __naclac_padding_0: [u8; __Fees_GAP_0],
+    pub protocol_fee_bps: u64,
+    pub __naclac_padding_1: [u8; __Fees_GAP_1],
+    pub creator_fee_bps: u64,
+    pub __naclac_padding_2: [u8; __Fees_GAP_2],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __Fees_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __Fees_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __Fees_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __Fees_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __Fees_GAP_0
+        + ::core::mem::size_of::<u64>() + __Fees_GAP_1 + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < Fees > () == (::core::mem::size_of:: < u64 > () +
+        __Fees_GAP_0 + ::core::mem::size_of:: < u64 > () + __Fees_GAP_1 +
+        ::core::mem::size_of:: < u64 > () + __Fees_GAP_2),
+        "defined_type/#[component]: `Fees`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for Fees {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for Fees {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for Fees {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct FeesCpi {
     pub lp_fee_bps: u64,
     pub protocol_fee_bps: u64,
@@ -75,16 +364,99 @@ pub struct FeesCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct FeesCpi {
+    pub lp_fee_bps: u64,
+    pub __naclac_padding_0: [u8; __FeesCpi_GAP_0],
+    pub protocol_fee_bps: u64,
+    pub __naclac_padding_1: [u8; __FeesCpi_GAP_1],
+    pub creator_fee_bps: u64,
+    pub __naclac_padding_2: [u8; __FeesCpi_GAP_2],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeesCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeesCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeesCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeesCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeesCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __FeesCpi_GAP_1
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < FeesCpi > () == (::core::mem::size_of:: < u64 > () +
+        __FeesCpi_GAP_0 + ::core::mem::size_of:: < u64 > () + __FeesCpi_GAP_1 +
+        ::core::mem::size_of:: < u64 > () + __FeesCpi_GAP_2),
+        "defined_type/#[component]: `FeesCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for FeesCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for FeesCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for FeesCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct FeeTier {
     pub market_cap_lamports_threshold: u64,
     pub fees: crate::types::Fees,
@@ -92,16 +464,81 @@ pub struct FeeTier {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct FeeTier {
+    pub market_cap_lamports_threshold: u64,
+    pub __naclac_padding_0: [u8; __FeeTier_GAP_0],
+    pub fees: crate::types::Fees,
+    pub __naclac_padding_1: [u8; __FeeTier_GAP_1],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeTier_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::types::Fees>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeTier_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeTier_GAP_0
+        + ::core::mem::size_of::<crate::types::Fees>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::types::Fees>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < FeeTier > () == (::core::mem::size_of:: < u64 > () +
+        __FeeTier_GAP_0 + ::core::mem::size_of:: < crate ::types::Fees > () +
+        __FeeTier_GAP_1),
+        "defined_type/#[component]: `FeeTier`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<crate::types::Fees>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for FeeTier {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for FeeTier {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for FeeTier {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct FeeTierCpi {
     pub market_cap_lamports_threshold: u64,
     pub fees: crate::types::FeesCpi,
@@ -109,16 +546,81 @@ pub struct FeeTierCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct FeeTierCpi {
+    pub market_cap_lamports_threshold: u64,
+    pub __naclac_padding_0: [u8; __FeeTierCpi_GAP_0],
+    pub fees: crate::types::FeesCpi,
+    pub __naclac_padding_1: [u8; __FeeTierCpi_GAP_1],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeTierCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::types::FeesCpi>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeTierCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeTierCpi_GAP_0
+        + ::core::mem::size_of::<crate::types::FeesCpi>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::types::FeesCpi>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < FeeTierCpi > () == (::core::mem::size_of:: < u64 > () +
+        __FeeTierCpi_GAP_0 + ::core::mem::size_of:: < crate ::types::FeesCpi > () +
+        __FeeTierCpi_GAP_1),
+        "defined_type/#[component]: `FeeTierCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<crate::types::FeesCpi>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for FeeTierCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for FeeTierCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for FeeTierCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct Shareholder {
     pub address: crate::sdk_core_offchain::Address,
     pub share_bps: u16,
@@ -126,16 +628,81 @@ pub struct Shareholder {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct Shareholder {
+    pub address: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_0: [u8; __Shareholder_GAP_0],
+    pub share_bps: u16,
+    pub __naclac_padding_1: [u8; __Shareholder_GAP_1],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __Shareholder_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __Shareholder_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __Shareholder_GAP_0 + ::core::mem::size_of::<u16>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < Shareholder > () == (::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Address > () + __Shareholder_GAP_0 + ::core::mem::size_of::
+        < u16 > () + __Shareholder_GAP_1),
+        "defined_type/#[component]: `Shareholder`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<u16>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for Shareholder {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for Shareholder {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for Shareholder {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct ShareholderCpi {
     pub address: crate::sdk_core_cpi::Address,
     pub share_bps: u16,
@@ -143,8 +710,74 @@ pub struct ShareholderCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ShareholderCpi {
+    pub address: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_0: [u8; __ShareholderCpi_GAP_0],
+    pub share_bps: u16,
+    pub __naclac_padding_1: [u8; __ShareholderCpi_GAP_1],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ShareholderCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ShareholderCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __ShareholderCpi_GAP_0 + ::core::mem::size_of::<u16>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ShareholderCpi > () == (::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Address > () + __ShareholderCpi_GAP_0 + ::core::mem::size_of:: <
+        u16 > () + __ShareholderCpi_GAP_1),
+        "defined_type/#[component]: `ShareholderCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<u16>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for ShareholderCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for ShareholderCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for ShareholderCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 

@@ -3,12 +3,12 @@
 
 #[cfg(feature = "offchain")]
 pub const PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_array([
-    23, 118, 164, 191, 192, 201, 243, 51, 32, 226, 179, 109, 83, 249, 158, 252, 119, 104, 39, 62, 96, 34, 156, 219, 131, 24, 131, 100, 36, 174, 205, 212
+    109, 67, 17, 127, 178, 28, 192, 153, 17, 233, 35, 187, 36, 107, 62, 174, 120, 73, 22, 5, 133, 131, 3, 202, 99, 38, 247, 184, 170, 56, 230, 45
 ]);
 
-#[cfg(not(feature = "offchain"))]
-pub const PROGRAM_ID: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
-    23, 118, 164, 191, 192, 201, 243, 51, 32, 226, 179, 109, 83, 249, 158, 252, 119, 104, 39, 62, 96, 34, 156, 219, 131, 24, 131, 100, 36, 174, 205, 212
+#[cfg(feature = "cpi")]
+pub const PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
+    109, 67, 17, 127, 178, 28, 192, 153, 17, 233, 35, 187, 36, 107, 62, 174, 120, 73, 22, 5, 133, 131, 3, 202, 99, 38, 247, 184, 170, 56, 230, 45
 ]);
 
 pub const EPOCH_TRACKER_V1_SEED: &[u8] = &[101, 112, 111, 99, 104, 95, 116, 114, 97, 99, 107, 101, 114, 95, 118, 49];

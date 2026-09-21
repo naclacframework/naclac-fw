@@ -37,7 +37,6 @@ pub struct CreateMint2022WithGroupPointer {
 /// 4-byte TLV header + 64-byte `GroupPointer` value.
 const MINT_WITH_GROUP_POINTER_SPACE: u64 = 82 + 83 + 1 + 4 + 64;
 
-#[instruction]
 pub fn create_mint2022_with_group_pointer(
     ctx: Context<CreateMint2022WithGroupPointer>,
     args: CreateMint2022WithGroupPointerArgs,

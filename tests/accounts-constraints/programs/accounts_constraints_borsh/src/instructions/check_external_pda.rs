@@ -26,7 +26,6 @@ pub struct CheckExternalPda {
     pub target: AccountInfo,
 }
 
-#[instruction]
 pub fn check_external_pda(_ctx: Context<CheckExternalPda>, _bump: u8) -> Result {
     Ok(())
 }

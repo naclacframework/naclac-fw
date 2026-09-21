@@ -24,7 +24,6 @@ pub struct CreateSocialFeePda {
     pub fee_program_global: Account<FeeProgramGlobal>,
 }
 
-#[instruction]
 pub fn create_social_fee_pda(
     ctx: Context<CreateSocialFeePda>,
     user_id: ZcString,

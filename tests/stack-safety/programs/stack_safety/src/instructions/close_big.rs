@@ -14,7 +14,6 @@ pub struct CloseBig {
     pub big: Box<Account<BigData>>,
 }
 
-#[instruction]
 pub fn close_big(_ctx: Context<CloseBig>) -> Result {
     Ok(())
 }

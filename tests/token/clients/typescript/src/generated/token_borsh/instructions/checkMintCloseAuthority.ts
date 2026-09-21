@@ -8,7 +8,7 @@ export const CHECK_MINT_CLOSE_AUTHORITY_DISCRIMINATOR = new Uint8Array([202, 75,
 
 /** Instruction arguments for `checkMintCloseAuthority`. */
 export interface CheckMintCloseAuthorityArgs {
-  expected_close_authority: naclac.Address | string | null;
+  expectedCloseAuthority: naclac.Address | string | null;
 }
 
 /** Accounts for the `checkMintCloseAuthority` instruction. */

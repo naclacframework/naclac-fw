@@ -9,17 +9,17 @@ export const BONDINGCURVE_DISCRIMINATOR = new Uint8Array([23, 183, 248, 55, 96, 
 
 /** Auto-generated account interface from the program IDL. */
 export interface BondingCurve {
-  virtual_token_reserves: bigint | number;
-  virtual_quote_reserves: bigint | number;
-  real_token_reserves: bigint | number;
-  real_quote_reserves: bigint | number;
-  token_total_supply: bigint | number;
+  virtualTokenReserves: bigint | number;
+  virtualQuoteReserves: bigint | number;
+  realTokenReserves: bigint | number;
+  realQuoteReserves: bigint | number;
+  tokenTotalSupply: bigint | number;
   complete: naclac.Bool;
   creator: naclac.Address | string;
-  is_mayhem_mode: naclac.Bool;
-  is_cashback_coin: naclac.Bool;
-  quote_mint: naclac.Address | string;
-  reserved_trailing: string | Uint8Array;
+  isMayhemMode: naclac.Bool;
+  isCashbackCoin: naclac.Bool;
+  quoteMint: naclac.Address | string;
+  reservedTrailing: string | Uint8Array;
 }
 
 /** 8-byte discriminator prefix for `BuybackVault` accounts on-chain. */
@@ -28,11 +28,11 @@ export const BUYBACKVAULT_DISCRIMINATOR = new Uint8Array([153, 166, 71, 144, 179
 /** Auto-generated account interface from the program IDL. */
 export interface BuybackVault {
   authority: naclac.Address | string;
-  total_claimed: bigint | number;
-  total_claimed_token1: bigint | number;
-  total_claimed_token2: bigint | number;
-  last_claimed: bigint | number;
-  claim_rate_limit: bigint | number;
+  totalClaimed: bigint | number;
+  totalClaimedToken1: bigint | number;
+  totalClaimedToken2: bigint | number;
+  lastClaimed: bigint | number;
+  claimRateLimit: bigint | number;
   reserved: string | Uint8Array;
 }
 
@@ -41,11 +41,11 @@ export const DONATIONFEEPDA_DISCRIMINATOR = new Uint8Array([246, 197, 96, 9, 193
 
 /** Escrow PDA for donation relay: one per (mint, donation campaign `config_id`). */
 export interface DonationFeePda {
-  total_donated: bigint | number;
-  last_crank_ts: bigint | number;
-  config_id: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
+  totalDonated: bigint | number;
+  lastCrankTs: bigint | number;
+  configId: naclac.Address | string;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
   creator: naclac.Address | string;
   bump: number;
   version: number;
@@ -58,13 +58,13 @@ export const FEECONFIG_DISCRIMINATOR = new Uint8Array([143, 52, 146, 187, 219, 1
 /** Auto-generated account interface from the program IDL. */
 export interface FeeConfig {
   /** The flat fees for non-pump pools */
-  flat_fees: Fees;
+  flatFees: Fees;
   /** The fee tiers */
-  fee_tiers: Array<FeeTier>;
+  feeTiers: Array<FeeTier>;
   /** The fee tiers */
-  stable_fee_tiers: Array<FeeTier>;
-  fee_tiers_len: number;
-  stable_fee_tiers_len: number;
+  stableFeeTiers: Array<FeeTier>;
+  feeTiersLen: number;
+  stableFeeTiersLen: number;
   /** The bump for the PDA */
   bump: number;
   /** The admin account that can update the fee config */
@@ -76,11 +76,11 @@ export const FEEPROGRAMGLOBAL_DISCRIMINATOR = new Uint8Array([162, 165, 245, 49,
 
 /** Auto-generated account interface from the program IDL. */
 export interface FeeProgramGlobal {
-  claim_rate_limit: bigint | number;
+  claimRateLimit: bigint | number;
   authority: naclac.Address | string;
-  social_claim_authority: naclac.Address | string;
+  socialClaimAuthority: naclac.Address | string;
   bump: number;
-  disable_flags: number;
+  disableFlags: number;
   reserved: string | Uint8Array;
 }
 
@@ -89,19 +89,21 @@ export const POOL_DISCRIMINATOR = new Uint8Array([241, 154, 109, 4, 17, 177, 109
 
 /** Auto-generated account interface from the program IDL. */
 export interface Pool {
-  pool_bump: number;
+  poolBump: number;
+  paddingA: string | Uint8Array;
   index: number;
   creator: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
-  lp_mint: naclac.Address | string;
-  pool_base_token_account: naclac.Address | string;
-  pool_quote_token_account: naclac.Address | string;
-  coin_creator: naclac.Address | string;
-  lp_supply: bigint | number;
-  is_mayhem_mode: naclac.Bool;
-  is_cashback_coin: naclac.Bool;
-  virtual_quote_reserves: string | Uint8Array;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  lpMint: naclac.Address | string;
+  poolBaseTokenAccount: naclac.Address | string;
+  poolQuoteTokenAccount: naclac.Address | string;
+  coinCreator: naclac.Address | string;
+  paddingB: string | Uint8Array;
+  lpSupply: bigint | number;
+  isMayhemMode: naclac.Bool;
+  isCashbackCoin: naclac.Bool;
+  virtualQuoteReserves: string | Uint8Array;
 }
 
 /** 8-byte discriminator prefix for `Global` accounts on-chain. */
@@ -109,35 +111,47 @@ export const GLOBAL_DISCRIMINATOR = new Uint8Array([167, 232, 232, 177, 200, 108
 
 /**
  * Field-for-field mirror of `pump-bonding-curve`'s own real `Global`
- * account — `pump_fees` reads this account (owned by that program) via a
- * raw byte cast, so this layout depends on matching it exactly.
+ * account, as far as field *order* goes — but this specific `#[component]`
+ * (zero-copy, `#[repr(C)]`) instance is itself already deployed on devnet,
+ * so its own layout is what must stay stable now, not the real (Borsh,
+ * hence unpaddded) program's byte-for-byte layout, which a `#[repr(C)]`
+ * struct could never replicate exactly regardless of field order anyway.
+ * The three `_padding*` fields below make internal alignment gaps
+ * bytemuck would otherwise silently insert explicit instead — needed
+ * because reordering fields (which would remove them) isn't safe while
+ * this exact layout is already live. Revisit alongside a redeploy: at that
+ * point the fields can be reordered largest-alignment-first and these
+ * padding fields removed instead.
  */
 export interface Global {
   initialized: naclac.Bool;
   authority: naclac.Address | string;
-  fee_recipient: naclac.Address | string;
-  initial_virtual_token_reserves: bigint | number;
-  initial_virtual_sol_reserves: bigint | number;
-  initial_real_token_reserves: bigint | number;
-  token_total_supply: bigint | number;
-  fee_basis_points: bigint | number;
-  withdraw_authority: naclac.Address | string;
-  enable_migrate: naclac.Bool;
-  pool_migration_fee: bigint | number;
-  creator_fee_basis_points: bigint | number;
-  fee_recipients: Array<naclac.Address | string>;
-  set_creator_authority: naclac.Address | string;
-  admin_set_creator_authority: naclac.Address | string;
-  create_v2_enabled: naclac.Bool;
-  whitelist_pda: naclac.Address | string;
-  reserved_fee_recipient: naclac.Address | string;
-  mayhem_mode_enabled: naclac.Bool;
-  reserved_fee_recipients: Array<naclac.Address | string>;
-  is_cashback_enabled: naclac.Bool;
-  buyback_fee_recipients: Array<naclac.Address | string>;
-  buyback_basis_points: bigint | number;
-  initial_virtual_quote_reserves: bigint | number;
-  whitelisted_quote_mints: Array<naclac.Address | string>;
+  feeRecipient: naclac.Address | string;
+  paddingA: string | Uint8Array;
+  initialVirtualTokenReserves: bigint | number;
+  initialVirtualSolReserves: bigint | number;
+  initialRealTokenReserves: bigint | number;
+  tokenTotalSupply: bigint | number;
+  feeBasisPoints: bigint | number;
+  withdrawAuthority: naclac.Address | string;
+  enableMigrate: naclac.Bool;
+  paddingB: string | Uint8Array;
+  poolMigrationFee: bigint | number;
+  creatorFeeBasisPoints: bigint | number;
+  feeRecipients: Array<naclac.Address | string>;
+  setCreatorAuthority: naclac.Address | string;
+  adminSetCreatorAuthority: naclac.Address | string;
+  createV2Enabled: naclac.Bool;
+  whitelistPda: naclac.Address | string;
+  reservedFeeRecipient: naclac.Address | string;
+  mayhemModeEnabled: naclac.Bool;
+  reservedFeeRecipients: Array<naclac.Address | string>;
+  isCashbackEnabled: naclac.Bool;
+  buybackFeeRecipients: Array<naclac.Address | string>;
+  paddingC: string | Uint8Array;
+  buybackBasisPoints: bigint | number;
+  initialVirtualQuoteReserves: bigint | number;
+  whitelistedQuoteMints: Array<naclac.Address | string>;
 }
 
 /** 8-byte discriminator prefix for `SharingConfig` accounts on-chain. */
@@ -150,8 +164,8 @@ export interface SharingConfig {
   status: number;
   mint: naclac.Address | string;
   admin: naclac.Address | string;
-  admin_revoked: number;
-  shareholders_len: number;
+  adminRevoked: number;
+  shareholdersLen: number;
   shareholders: Array<Shareholder>;
 }
 
@@ -160,18 +174,18 @@ export const SOCIALFEEPDA_DISCRIMINATOR = new Uint8Array([139, 96, 53, 17, 42, 1
 
 /** Platform identifier: 0=pump, 1=twitter, etc. */
 export interface SocialFeePda {
-  total_claimed: bigint | number;
-  last_claimed: bigint | number;
-  total_stable_claimed: bigint | number;
+  totalClaimed: bigint | number;
+  lastClaimed: bigint | number;
+  totalStableClaimed: bigint | number;
   /**
    * Max 20 characters to fit u64::MAX (18,446,744,073,709,551,615) as a string.
    * Actual storage: 4 bytes (length prefix) + 20 bytes (content) = 24 bytes.
    */
-  user_id_len: number;
+  userIdLen: number;
   bump: number;
   version: number;
   platform: number;
-  user_id: string | Uint8Array;
+  userId: string | Uint8Array;
   reserved: string | Uint8Array;
 }
 

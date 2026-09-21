@@ -6,6 +6,7 @@ use std::path::Path;
 pub mod components;
 pub mod instructions;
 pub mod lib_generator;
+pub mod pod_codegen;
 pub mod types;
 
 // Map IDL type to Rust type
@@ -207,7 +208,17 @@ pub fn is_type_pod(ty: &serde_json::Value, defined_types: &[crate::IdlType]) -> 
                 }
                 return match defined_types.iter().find(|t| t.name == defined) {
                     Some(td) => match &td.ty {
-                        crate::IdlTypeDefVariants::Enum { .. } => true,
+                        // Never `Pod` in the generated client, fieldless or
+                        // not: a fieldless `#[repr(uN)]` enum still has
+                        // out-of-range byte values with no corresponding
+                        // variant, so it gets the same `CheckedBitPattern`
+                        // machinery as a data-carrying one, never a bare
+                        // `unsafe impl Pod` (see `types/typedefs.rs`'s enum
+                        // branch). `write_field_bytes` below routes any
+                        // defined-type enum through `bytes_of_checked_bit_
+                        // pattern` instead of `bytemuck::bytes_of`
+                        // accordingly.
+                        crate::IdlTypeDefVariants::Enum { .. } => false,
                         crate::IdlTypeDefVariants::Struct { fields } => {
                             fields.iter().all(|f| is_type_pod(&f.ty, defined_types))
                         }
@@ -295,21 +306,38 @@ fn write_field_bytes(
                 if let Some(defined) = o.get("defined").and_then(|d| d.as_str()) {
                     if defined != "Bool" {
                         if let Some(td) = defined_types.iter().find(|t| t.name == defined) {
-                            if let crate::IdlTypeDefVariants::Struct { fields } = &td.ty {
-                                if fields.iter().any(|f| !is_type_pod(&f.ty, defined_types)) {
-                                    for f in fields {
-                                        let f_snake = heck::AsSnakeCase(&f.name).to_string();
-                                        let nested_expr = format!("{}.{}", expr, f_snake);
-                                        write_field_bytes(
-                                            &nested_expr,
-                                            &f.ty,
-                                            defined_types,
-                                            for_cpi,
-                                            is_zero_copy,
-                                            sdk_core,
-                                            writes,
-                                        );
+                            match &td.ty {
+                                crate::IdlTypeDefVariants::Struct { fields } => {
+                                    if fields.iter().any(|f| !is_type_pod(&f.ty, defined_types)) {
+                                        for f in fields {
+                                            let f_snake = heck::AsSnakeCase(&f.name).to_string();
+                                            let nested_expr = format!("{}.{}", expr, f_snake);
+                                            write_field_bytes(
+                                                &nested_expr,
+                                                &f.ty,
+                                                defined_types,
+                                                for_cpi,
+                                                is_zero_copy,
+                                                sdk_core,
+                                                writes,
+                                            );
+                                        }
+                                        return;
                                     }
+                                }
+                                crate::IdlTypeDefVariants::Enum { .. } => {
+                                    // Never `Pod` in the generated client
+                                    // (see `is_type_pod`'s enum case) — a
+                                    // `CheckedBitPattern`-only value's own
+                                    // bytes are still safe to read directly,
+                                    // just not through `bytemuck::bytes_of`
+                                    // (which requires `Pod`, the reverse-
+                                    // direction guarantee this type doesn't
+                                    // have).
+                                    writes.push_str(&format!(
+                                        "        ix_data.extend_from_slice({}::bytes_of_checked_bit_pattern(&{}));\n",
+                                        sdk_core, expr
+                                    ));
                                     return;
                                 }
                             }
@@ -334,9 +362,30 @@ fn write_field_bytes(
             } else {
                 map_type_to_rust_with_prefix(&inner_ty_json, is_zero_copy, "crate::types::")
             };
+            // Unlike a `Defined` struct (never `NaclacPod`, so `Option<
+            // Struct>` can't occur on-chain — see this variant's own doc
+            // comment), a zero-copy `#[defined_type]` enum *does* implement
+            // `NaclacPod`, so `Option<EnumType>` is a real, reachable case.
+            // Since no defined-type enum is ever `Pod` in the generated
+            // client (see `is_type_pod`'s enum case), the wrapped value's
+            // bytes must be read through `bytes_of_checked_bit_pattern`
+            // instead of `bytemuck::bytes_of` whenever the inner type is
+            // one — `bytemuck::bytes_of` would fail to compile against it.
+            let inner_is_enum = match inner_ty_json.as_object().and_then(|o| o.get("defined")).and_then(|d| d.as_str()) {
+                Some(defined) => defined_types
+                    .iter()
+                    .find(|t| t.name == defined)
+                    .is_some_and(|td| matches!(td.ty, crate::IdlTypeDefVariants::Enum { .. })),
+                None => false,
+            };
+            let bytes_fn = if inner_is_enum {
+                "bytes_of_checked_bit_pattern"
+            } else {
+                "bytemuck::bytes_of"
+            };
             writes.push_str(&format!(
-                "        match &{0} {{\n            Some(__inner) => {{\n                ix_data.push(1u8);\n                ix_data.extend_from_slice({1}::bytemuck::bytes_of(__inner));\n            }}\n            None => {{\n                ix_data.push(0u8);\n                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<{2}>()]);\n            }}\n        }}\n",
-                expr, sdk_core, inner_ty_str
+                "        match &{0} {{\n            Some(__inner) => {{\n                ix_data.push(1u8);\n                ix_data.extend_from_slice({1}::{3}(__inner));\n            }}\n            None => {{\n                ix_data.push(0u8);\n                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<{2}>()]);\n            }}\n        }}\n",
+                expr, sdk_core, inner_ty_str, bytes_fn
             ));
         }
         ArgWireKind::DynamicVec { inner_is_u8 } => {

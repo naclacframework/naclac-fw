@@ -12,8 +12,8 @@ export interface CreateArgs {
   symbol: string;
   uri: string;
   creator: naclac.Address | string;
-  bonding_curve_bump: number;
-  metadata_bump: number;
+  bondingCurveBump: number;
+  metadataBump: number;
 }
 
 /** Accounts for the `create` instruction. */
@@ -24,17 +24,17 @@ export interface CreateAccounts {
    * lamport-only PDA (no stored data) — only ever used as the mint's
    * authority, signed via its own seeds for the `mint_to` CPI below.
    */
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
-  associated_bonding_curve: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
+  associatedBondingCurve: naclac.Address | string;
   global?: naclac.Address | string;
   /**
    * SAFETY: the `address` constraint fully validates this; only used as
    * the target program of the `create_metadata_via_cpi` call below, never
    * deserialized.
    */
-  mpl_token_metadata?: naclac.Address | string;
+  mplTokenMetadata?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump`/`seeds::program` constraint fully verifies
    * this is the real Metaplex metadata PDA for `mint`; never deserialized
@@ -42,9 +42,9 @@ export interface CreateAccounts {
    * initializes it during the CPI below.
    */
   metadata?: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
 }
 
 /**

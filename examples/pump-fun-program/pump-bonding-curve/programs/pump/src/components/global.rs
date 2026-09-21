@@ -1,5 +1,9 @@
 use naclac_lang::prelude::*;
 
+// Already deployed on devnet — explicit padding for the three internal
+// gaps below, not a field reorder, since this layout is already live.
+// Revisit alongside a redeploy (reorder largest-alignment-first, drop
+// these). Same layout/gaps as pump-fees's own mirror of this struct.
 #[component]
 pub struct Global {
     pub initialized: Bool,

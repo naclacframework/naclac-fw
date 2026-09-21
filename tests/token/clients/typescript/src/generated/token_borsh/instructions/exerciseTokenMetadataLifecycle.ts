@@ -8,14 +8,14 @@ export const EXERCISE_TOKEN_METADATA_LIFECYCLE_DISCRIMINATOR = new Uint8Array([1
 
 /** Instruction arguments for `exerciseTokenMetadataLifecycle`. */
 export interface ExerciseTokenMetadataLifecycleArgs {
-  new_name: string;
-  extra_key: string;
-  extra_value: string;
+  newName: string;
+  extraKey: string;
+  extraValue: string;
 }
 
 /** Accounts for the `exerciseTokenMetadataLifecycle` instruction. */
 export interface ExerciseTokenMetadataLifecycleAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   /**
    * SAFETY: this account is the same mint validated/created by
    * `create_mint2022_with_metadata_pointer_and_metadata` in the test that
@@ -24,7 +24,7 @@ export interface ExerciseTokenMetadataLifecycleAccounts {
    * naclac component.
    */
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

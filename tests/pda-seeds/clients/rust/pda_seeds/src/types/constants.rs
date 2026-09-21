@@ -3,16 +3,17 @@
 
 #[cfg(feature = "offchain")]
 pub const PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_array([
-    223, 64, 174, 170, 20, 181, 164, 46, 174, 148, 27, 255, 15, 248, 175, 250, 29, 239, 254, 148, 255, 77, 118, 85, 136, 45, 154, 251, 42, 218, 65, 123
+    28, 8, 12, 47, 43, 221, 201, 216, 61, 75, 102, 183, 13, 148, 254, 225, 62, 238, 5, 40, 118, 202, 137, 12, 139, 40, 4, 57, 175, 0, 147, 33
 ]);
 
-#[cfg(not(feature = "offchain"))]
-pub const PROGRAM_ID: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
-    223, 64, 174, 170, 20, 181, 164, 46, 174, 148, 27, 255, 15, 248, 175, 250, 29, 239, 254, 148, 255, 77, 118, 85, 136, 45, 154, 251, 42, 218, 65, 123
+#[cfg(feature = "cpi")]
+pub const PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
+    28, 8, 12, 47, 43, 221, 201, 216, 61, 75, 102, 183, 13, 148, 254, 225, 62, 238, 5, 40, 118, 202, 137, 12, 139, 40, 4, 57, 175, 0, 147, 33
 ]);
 
 pub const SEED_REGISTRY: &[u8] = &[114, 101, 103, 105, 115, 116, 114, 121];
 pub const SEED_ENTRY: &[u8] = &[101, 110, 116, 114, 121];
 pub const SEED_CHILD: &[u8] = &[99, 104, 105, 108, 100];
+pub const SEED_CHILD_SAFE: &[u8] = &[99, 104, 105, 108, 100, 95, 115, 97, 102, 101];
 pub const SEED_TAGGED_CHILD: &[u8] = &[116, 97, 103, 103, 101, 100, 95, 99, 104, 105, 108, 100];
 pub const SEED_CONFIG_ENTRY: &[u8] = &[99, 111, 110, 102, 105, 103, 95, 101, 110, 116, 114, 121];

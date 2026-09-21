@@ -10,7 +10,6 @@ pub struct CheckCpiGuard {
     pub vault: InterfaceAccount<TokenAccount>,
 }
 
-#[instruction]
 pub fn check_cpi_guard(
     ctx: Context<CheckCpiGuard>,
     expected_present: u8,

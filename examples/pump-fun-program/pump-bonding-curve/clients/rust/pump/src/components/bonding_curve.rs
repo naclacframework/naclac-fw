@@ -7,10 +7,9 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct BondingCurve {
     pub virtual_token_reserves: u64,
     pub virtual_quote_reserves: u64,
@@ -27,15 +26,292 @@ pub struct BondingCurve {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BondingCurve {
+    pub virtual_token_reserves: u64,
+    pub __naclac_padding_0: [u8; __BondingCurve_GAP_0],
+    pub virtual_quote_reserves: u64,
+    pub __naclac_padding_1: [u8; __BondingCurve_GAP_1],
+    pub real_token_reserves: u64,
+    pub __naclac_padding_2: [u8; __BondingCurve_GAP_2],
+    pub real_quote_reserves: u64,
+    pub __naclac_padding_3: [u8; __BondingCurve_GAP_3],
+    pub token_total_supply: u64,
+    pub __naclac_padding_4: [u8; __BondingCurve_GAP_4],
+    pub complete: crate::sdk_core_offchain::Bool,
+    pub __naclac_padding_5: [u8; __BondingCurve_GAP_5],
+    pub creator: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_6: [u8; __BondingCurve_GAP_6],
+    pub is_mayhem_mode: crate::sdk_core_offchain::Bool,
+    pub __naclac_padding_7: [u8; __BondingCurve_GAP_7],
+    pub is_cashback_coin: crate::sdk_core_offchain::Bool,
+    pub __naclac_padding_8: [u8; __BondingCurve_GAP_8],
+    pub quote_mint: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_9: [u8; __BondingCurve_GAP_9],
+    pub reserved_trailing: [u8; 36],
+    pub __naclac_padding_10: [u8; __BondingCurve_GAP_10],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_1
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_2
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_3
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BondingCurve_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BondingCurve_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __BondingCurve_GAP_6
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BondingCurve_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __BondingCurve_GAP_6 + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __BondingCurve_GAP_7
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BondingCurve_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __BondingCurve_GAP_6 + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __BondingCurve_GAP_7 + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __BondingCurve_GAP_8
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<[u8; 36]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurve_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurve_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurve_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __BondingCurve_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __BondingCurve_GAP_6 + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __BondingCurve_GAP_7 + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __BondingCurve_GAP_8
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __BondingCurve_GAP_9 + ::core::mem::size_of::<[u8; 36]>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 36]>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BondingCurve > () == (::core::mem::size_of:: < u64 > ()
+        + __BondingCurve_GAP_0 + ::core::mem::size_of:: < u64 > () + __BondingCurve_GAP_1
+        + ::core::mem::size_of:: < u64 > () + __BondingCurve_GAP_2 +
+        ::core::mem::size_of:: < u64 > () + __BondingCurve_GAP_3 + ::core::mem::size_of::
+        < u64 > () + __BondingCurve_GAP_4 + ::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Bool > () + __BondingCurve_GAP_5 + ::core::mem::size_of:: <
+        crate ::sdk_core_offchain::Address > () + __BondingCurve_GAP_6 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Bool > () +
+        __BondingCurve_GAP_7 + ::core::mem::size_of:: < crate ::sdk_core_offchain::Bool >
+        () + __BondingCurve_GAP_8 + ::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Address > () + __BondingCurve_GAP_9 + ::core::mem::size_of::
+        < [u8; 36] > () + __BondingCurve_GAP_10),
+        "defined_type/#[component]: `BondingCurve`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_offchain::Bool>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<crate::sdk_core_offchain::Bool>();
+    assert_impl::<crate::sdk_core_offchain::Bool>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<[u8; 36]>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for BondingCurve {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for BondingCurve {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BondingCurve {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct BondingCurveCpi {
     pub virtual_token_reserves: u64,
     pub virtual_quote_reserves: u64,
@@ -52,10 +328,287 @@ pub struct BondingCurveCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct BondingCurveCpi {
+    pub virtual_token_reserves: u64,
+    pub __naclac_padding_0: [u8; __BondingCurveCpi_GAP_0],
+    pub virtual_quote_reserves: u64,
+    pub __naclac_padding_1: [u8; __BondingCurveCpi_GAP_1],
+    pub real_token_reserves: u64,
+    pub __naclac_padding_2: [u8; __BondingCurveCpi_GAP_2],
+    pub real_quote_reserves: u64,
+    pub __naclac_padding_3: [u8; __BondingCurveCpi_GAP_3],
+    pub token_total_supply: u64,
+    pub __naclac_padding_4: [u8; __BondingCurveCpi_GAP_4],
+    pub complete: crate::sdk_core_cpi::Bool,
+    pub __naclac_padding_5: [u8; __BondingCurveCpi_GAP_5],
+    pub creator: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_6: [u8; __BondingCurveCpi_GAP_6],
+    pub is_mayhem_mode: crate::sdk_core_cpi::Bool,
+    pub __naclac_padding_7: [u8; __BondingCurveCpi_GAP_7],
+    pub is_cashback_coin: crate::sdk_core_cpi::Bool,
+    pub __naclac_padding_8: [u8; __BondingCurveCpi_GAP_8],
+    pub quote_mint: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_9: [u8; __BondingCurveCpi_GAP_9],
+    pub reserved_trailing: [u8; 36],
+    pub __naclac_padding_10: [u8; __BondingCurveCpi_GAP_10],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_1
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_2
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_3
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BondingCurveCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BondingCurveCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __BondingCurveCpi_GAP_6 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BondingCurveCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __BondingCurveCpi_GAP_6 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __BondingCurveCpi_GAP_7 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BondingCurveCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __BondingCurveCpi_GAP_6 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __BondingCurveCpi_GAP_7 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __BondingCurveCpi_GAP_8
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<[u8; 36]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __BondingCurveCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_2
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_3
+        + ::core::mem::size_of::<u64>() + __BondingCurveCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __BondingCurveCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __BondingCurveCpi_GAP_6 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __BondingCurveCpi_GAP_7 + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __BondingCurveCpi_GAP_8
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __BondingCurveCpi_GAP_9 + ::core::mem::size_of::<[u8; 36]>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 36]>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < BondingCurveCpi > () == (::core::mem::size_of:: < u64 >
+        () + __BondingCurveCpi_GAP_0 + ::core::mem::size_of:: < u64 > () +
+        __BondingCurveCpi_GAP_1 + ::core::mem::size_of:: < u64 > () +
+        __BondingCurveCpi_GAP_2 + ::core::mem::size_of:: < u64 > () +
+        __BondingCurveCpi_GAP_3 + ::core::mem::size_of:: < u64 > () +
+        __BondingCurveCpi_GAP_4 + ::core::mem::size_of:: < crate ::sdk_core_cpi::Bool >
+        () + __BondingCurveCpi_GAP_5 + ::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Address > () + __BondingCurveCpi_GAP_6 + ::core::mem::size_of:: <
+        crate ::sdk_core_cpi::Bool > () + __BondingCurveCpi_GAP_7 +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::Bool > () +
+        __BondingCurveCpi_GAP_8 + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address
+        > () + __BondingCurveCpi_GAP_9 + ::core::mem::size_of:: < [u8; 36] > () +
+        __BondingCurveCpi_GAP_10),
+        "defined_type/#[component]: `BondingCurveCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_cpi::Bool>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<crate::sdk_core_cpi::Bool>();
+    assert_impl::<crate::sdk_core_cpi::Bool>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<[u8; 36]>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for BondingCurveCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for BondingCurveCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for BondingCurveCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
 
 /// 8-byte on-chain discriminator for `BondingCurve` accounts.
 pub const BONDINGCURVE_DISCRIMINATOR: [u8; 8] = [23, 183, 248, 55, 96, 216, 172, 96];

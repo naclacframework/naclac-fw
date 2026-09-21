@@ -1,7 +1,7 @@
 #![no_std]
 use naclac_lang::prelude::*;
 
-declare_id!("9yvGp1y55GRHnswFv5UepRm9BHC4BpktqFkFzbDEJoZR");
+declare_id!("A35nKmg8KP7TNmwxdhBae9v21WFkpNvrCjbNnrqDSJBg");
 
 pub mod components;
 pub mod constants;

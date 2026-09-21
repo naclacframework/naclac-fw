@@ -52,7 +52,6 @@ const MINT_WITH_METADATA_POINTER_SPACE: u64 = 82 + 83 + 1 + 4 + 64;
 /// growth in the test, since neither CPI can add lamports mid-instruction.
 const MINT_WITH_METADATA_POINTER_FUNDED_SPACE: usize = 600;
 
-#[instruction]
 pub fn create_mint2022_with_metadata_pointer_and_metadata(
     ctx: Context<CreateMint2022WithMetadataPointerAndMetadata>,
     args: CreateMint2022WithMetadataPointerAndMetadataArgs,

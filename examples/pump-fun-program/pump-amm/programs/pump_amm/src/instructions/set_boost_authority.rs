@@ -18,7 +18,6 @@ pub struct SetBoostAuthority {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn set_boost_authority(ctx: Context<SetBoostAuthority>) -> Result {
     require!(
         ctx.accounts.admin.address() == ctx.accounts.global_config.admin,

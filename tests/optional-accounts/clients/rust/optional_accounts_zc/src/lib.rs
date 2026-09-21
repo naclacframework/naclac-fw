@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("6Gh2cGPQ1qr85uQjMS8iK3UAtchEBV1yWdsUnbqeWn5Z");
+declare_id!("FCQ4CPLttWgHoJdSqAyC48MDbkxZV5fCoe6nMXANKKQr");
 
 #[cfg(feature = "offchain")]
 pub fn get_optional_thing_pda(
@@ -68,7 +68,7 @@ pub struct OptionalAccountsZc;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for OptionalAccountsZc {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([78, 79, 104, 0, 172, 161, 121, 157, 171, 71, 82, 208, 141, 249, 81, 56, 34, 81, 168, 4, 11, 12, 24, 110, 165, 48, 54, 37, 243, 64, 172, 52])
+        sdk_core_cpi::Address::new_from_array([210, 239, 19, 9, 118, 53, 10, 218, 221, 111, 59, 241, 78, 176, 211, 110, 160, 110, 59, 200, 214, 17, 201, 126, 48, 174, 226, 116, 237, 248, 110, 47])
     }
 }
 

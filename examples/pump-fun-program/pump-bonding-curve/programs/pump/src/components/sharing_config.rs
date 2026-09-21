@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
 use crate::constants::MAX_SHAREHOLDERS;
 
-#[naclac_pod]
+#[defined_type]
 pub struct Shareholder {
     pub address: Address,
     pub share_bps: u16,

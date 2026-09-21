@@ -19,7 +19,6 @@ pub struct UpdateBuybackClaimRateLimit {
 
 /// Gated by the *global* `fee_program_global.authority`, not the vault's own
 /// `authority` — an intentional admin-override design (fees-05).
-#[instruction]
 pub fn update_buyback_claim_rate_limit(
     ctx: Context<UpdateBuybackClaimRateLimit>,
     _index: u8,

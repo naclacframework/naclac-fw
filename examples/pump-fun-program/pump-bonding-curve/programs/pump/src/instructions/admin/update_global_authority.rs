@@ -17,7 +17,6 @@ pub struct UpdateGlobalAuthority {
     pub new_authority: AccountInfo,
 }
 
-#[instruction]
 pub fn update_global_authority(ctx: Context<UpdateGlobalAuthority>) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.global.authority,

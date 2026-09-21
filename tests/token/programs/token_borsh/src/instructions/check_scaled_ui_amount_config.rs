@@ -12,7 +12,6 @@ pub struct CheckScaledUiAmountConfig {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_scaled_ui_amount_config(
     ctx: Context<CheckScaledUiAmountConfig>,
     expected_authority: Option<Address>,

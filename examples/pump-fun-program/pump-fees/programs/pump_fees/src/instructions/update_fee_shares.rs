@@ -98,7 +98,6 @@ pub struct UpdateFeeShares {
 
 /// Update Fee Shares, make sure to distribute all the fees before calling this.
 /// Same confirmed mechanics as `update_fee_shares_v2`, WSOL-only.
-#[instruction]
 pub fn update_fee_shares(
     ctx: Context<UpdateFeeShares>,
     bonding_curve_bump: u8,

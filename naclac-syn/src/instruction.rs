@@ -170,7 +170,17 @@ pub fn extract_instructions(
 
                     let mut accounts = Vec::new();
                     for field in &item_struct.fields {
-                        let field_name = field.ident.as_ref().unwrap().to_string();
+                        // This loop runs over every top-level struct in the
+                        // file, not just `#[derive(Accounts)]` ones (that
+                        // distinction is made by callers using `accounts`
+                        // below, not here) — so an unrelated tuple struct
+                        // elsewhere in the same file must not crash this
+                        // unconditionally. Same guard already used a few
+                        // lines up in this same function.
+                        let Some(field_ident) = &field.ident else {
+                            continue;
+                        };
+                        let field_name = field_ident.to_string();
                         let mut is_mut = false;
                         let mut is_signer = false;
                         // Structural `Option<T>` detection, mirroring naclac-macros'
@@ -438,12 +448,7 @@ pub fn extract_instructions(
                             }
                         }
 
-                        let mut disc = [0u8; 8];
-                        use sha2::{Digest, Sha256};
-                        let preimage = format!("global:{}", func_name);
-                        let mut hasher = Sha256::new();
-                        hasher.update(preimage.as_bytes());
-                        disc.copy_from_slice(&hasher.finalize()[..8]);
+                        let disc = crate::discriminator::compute_discriminator("global", func_name);
 
                         let candidate_docs = crate::parser::extract_docs(&item_fn.attrs);
                         let candidate_returns =

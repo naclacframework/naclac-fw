@@ -16,7 +16,7 @@ export interface InitChildAccounts {
   payer: naclac.Address | string;
   registry: naclac.Address | string;
   child?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

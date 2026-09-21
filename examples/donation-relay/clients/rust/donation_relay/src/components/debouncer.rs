@@ -12,11 +12,11 @@ use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 #[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(feature = "borsh"), repr(C))]
 pub struct Debouncer {
-    pub bump: u8,
-    pub state: u8,
+    pub total_amount: u64,
     pub config_id: crate::sdk_core_offchain::Address,
     pub mint: crate::sdk_core_offchain::Address,
-    pub total_amount: u64,
+    pub bump: u8,
+    pub state: u8,
 }
 
 #[cfg(feature = "offchain")]
@@ -31,11 +31,11 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for Debouncer {}
 #[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(feature = "borsh"), repr(C))]
 pub struct DebouncerCpi {
-    pub bump: u8,
-    pub state: u8,
+    pub total_amount: u64,
     pub config_id: crate::sdk_core_cpi::Address,
     pub mint: crate::sdk_core_cpi::Address,
-    pub total_amount: u64,
+    pub bump: u8,
+    pub state: u8,
 }
 
 #[cfg(feature = "cpi")]
@@ -44,9 +44,6 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for DebouncerCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for DebouncerCpi {}
-#[cfg(all(feature = "cpi", not(feature = "offchain")))]
-pub type Debouncer = DebouncerCpi;
-
 
 /// 8-byte on-chain discriminator for `Debouncer` accounts.
 pub const DEBOUNCER_DISCRIMINATOR: [u8; 8] = [79, 245, 223, 155, 77, 253, 38, 190];

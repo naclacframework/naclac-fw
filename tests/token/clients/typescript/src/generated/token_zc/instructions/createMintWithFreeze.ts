@@ -9,7 +9,7 @@ export const CREATE_MINT_WITH_FREEZE_DISCRIMINATOR = new Uint8Array([196, 21, 13
 /** Instruction arguments for `createMintWithFreeze`. */
 export interface CreateMintWithFreezeArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
 }
 
@@ -24,9 +24,9 @@ export interface CreateMintWithFreezeAccounts {
    * correct here, not a gap in coverage.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

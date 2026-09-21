@@ -10,7 +10,6 @@ pub struct RequireSigner {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn require_signer(_ctx: Context<RequireSigner>) -> Result {
     Ok(())
 }

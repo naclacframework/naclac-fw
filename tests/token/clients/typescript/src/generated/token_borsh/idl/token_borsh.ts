@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "8DTHBNwgntuWuXuZqNjbJh8veVuptcQnhsZrPTzLgW2x",
+  "address": "VRMq6DjXajEd6udAMc8Y6vHveRsjiQpVtcUtcd5uz8v",
   "metadata": {
     "name": "token_borsh",
     "version": "0.1.0",

@@ -6,9 +6,9 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-discriminator = "DvcTxn5iTLsnGYLZJeVS5Fu3zVZLiJbmTFPqGDduUc9j"
-discriminator_borsh = "Hmh9KPbe11edoUeYVgc5Bs9pTRz3FXpxGReXZVo8jDL1"
-discriminator_zc = "2Zy945UvutdjBUTq6xrpuW86jYzbGtiPogMGhGUQWX4m"
+discriminator = "6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF"
+discriminator_borsh = "FWQKyMm4wsyu8YogLg37Ztmo6PwfUe4yiwVgQTWtQLx1"
+discriminator_zc = "7SKn2GUHyEZfEpvi7go1v7D6UMTesFbr3Nizw33raxe2"
 
 [provider]
 cluster = "localnet"

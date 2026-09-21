@@ -41,7 +41,6 @@ pub struct ExerciseTransferFeeCpis {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_transfer_fee_cpis(ctx: Context<ExerciseTransferFeeCpis>, args: ExerciseTransferFeeCpisArgs) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
@@ -55,9 +54,11 @@ pub fn exercise_transfer_fee_cpis(ctx: Context<ExerciseTransferFeeCpis>, args: E
         ctx.accounts.mint.to_cpi_handle(),
         ctx.accounts.vault_b.to_cpi_handle_mut(),
         ctx.accounts.mint_authority.to_cpi_handle(),
-        args.amount1,
-        args.decimals,
-        args.fee1,
+        TransferCheckedWithFeeParams {
+            amount: args.amount1,
+            decimals: args.decimals,
+            fee: args.fee1,
+        },
         signer,
     )?;
 
@@ -112,9 +113,11 @@ pub fn exercise_transfer_fee_cpis(ctx: Context<ExerciseTransferFeeCpis>, args: E
         ctx.accounts.mint.to_cpi_handle(),
         ctx.accounts.vault_b.to_cpi_handle_mut(),
         ctx.accounts.mint_authority.to_cpi_handle(),
-        args.amount2,
-        args.decimals,
-        args.fee2,
+        TransferCheckedWithFeeParams {
+            amount: args.amount2,
+            decimals: args.decimals,
+            fee: args.fee2,
+        },
         signer,
     )?;
     let net2 = args.amount2 - args.fee2;

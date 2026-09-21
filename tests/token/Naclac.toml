@@ -6,9 +6,9 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-token = "ExLoWWAhvnCCaLd59rMMUrqZzqgMiNcRWLJ5YuaWEQ28"
-token_borsh = "8DTHBNwgntuWuXuZqNjbJh8veVuptcQnhsZrPTzLgW2x"
-token_zc = "BzKMREPDamgu2dCwbRmLHpmP8LAxob4Ng3we2acY97uW"
+token = "C4gEXiyemWN9sYReKKf5EMDQUo6Gb16VE7fLcyXaC893"
+token_borsh = "VRMq6DjXajEd6udAMc8Y6vHveRsjiQpVtcUtcd5uz8v"
+token_zc = "8wrsJkY2VBYUC33JTMHUeJLZfjXypcCC8dos5pEZJpYa"
 
 [provider]
 cluster = "localnet"

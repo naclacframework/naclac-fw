@@ -30,21 +30,16 @@ export class PdaSeedsZcClient {
   }
 
   constructor(
-    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | string,
+    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | "litesvm" | string,
     payer?: naclac.Keypair
   ) {
     let provider: naclac.LegacyProvider;
     if (typeof providerOrCluster === "string") {
-      let url = providerOrCluster;
-      if (providerOrCluster === "devnet") url = "https://api.devnet.solana.com";
-      else if (providerOrCluster === "mainnet") url = "https://api.mainnet-beta.solana.com";
-      else if (providerOrCluster === "localnet") url = "http://127.0.0.1:8899";
-      const connection = new naclac.Connection(url, "confirmed");
-      provider = { connection, payer, publicKey: payer ? payer.publicKey : undefined };
+      provider = naclac.createProvider(providerOrCluster, payer);
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider);
+    this.program = new naclac.LegacyProgram(IDL, provider, true);
   }
 
   /**
@@ -121,12 +116,12 @@ export class PdaSeedsZcClient {
 
   /** Derives the PDA for a `child` account. Returns `[PublicKey, bumpSeed]`. */
   public getChildPda(seeds: {
-    registry_bump: number;
+    registryBump: number;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([99, 104, 105, 108, 100]),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.registry_bump))
+        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.registryBump))
       ],
       this.programId
     );
@@ -135,12 +130,12 @@ export class PdaSeedsZcClient {
 
   /** Derives the PDA for a `config_entry` account. Returns `[PublicKey, bumpSeed]`. */
   public getConfigEntryPda(seeds: {
-    config_program_id: naclac.PublicKey | string;
+    configProgramId: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([99, 111, 110, 102, 105, 103, 95, 101, 110, 116, 114, 121]),
-        new naclac.PublicKey(seeds.config_program_id).toBuffer()
+        new naclac.PublicKey(seeds.configProgramId).toBuffer()
       ],
       this.programId
     );

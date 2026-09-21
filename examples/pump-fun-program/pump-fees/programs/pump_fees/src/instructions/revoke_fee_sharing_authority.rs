@@ -9,7 +9,6 @@ pub struct RevokeFeeSharingAuthority {}
 /// confirmed via direct execution against the real bytecode —
 /// this instruction always reverts with DeprecatedInstruction, checked
 /// before touching any accounts.
-#[instruction]
 pub fn revoke_fee_sharing_authority(_ctx: Context<RevokeFeeSharingAuthority>) -> Result {
     Err(FeesError::DeprecatedInstruction.into())
 }

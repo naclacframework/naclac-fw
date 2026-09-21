@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("Fri7rm4siACcZnbwAkfgHVM1VHH9AMJG21DLaueo9uEd");
+declare_id!("HhhbeyhHTGG8asvvHEXGiyheyZEiZD5DT2tyTHxUcwub");
 
 #[cfg(feature = "offchain")]
 pub fn get_ledger_pda(
@@ -92,7 +92,7 @@ pub struct AccountsConstraintsBorsh;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for AccountsConstraintsBorsh {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([220, 191, 145, 180, 52, 26, 5, 24, 164, 79, 39, 18, 54, 152, 88, 115, 239, 167, 40, 41, 221, 74, 25, 5, 211, 165, 218, 234, 238, 117, 251, 38])
+        sdk_core_cpi::Address::new_from_array([248, 40, 32, 125, 212, 189, 255, 62, 117, 74, 100, 170, 195, 29, 72, 54, 37, 37, 91, 11, 57, 192, 135, 63, 246, 8, 31, 199, 13, 235, 250, 10])
     }
 }
 

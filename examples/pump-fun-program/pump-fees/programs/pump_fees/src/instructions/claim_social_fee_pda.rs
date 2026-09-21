@@ -21,7 +21,6 @@ pub struct ClaimSocialFeePda {
     pub social_claim_authority: Signer,
 }
 
-#[instruction]
 pub fn claim_social_fee_pda(
     ctx: Context<ClaimSocialFeePda>,
     user_id: ZcString,

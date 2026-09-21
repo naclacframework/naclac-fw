@@ -10,7 +10,7 @@ export const INITIALIZE_DISCRIMINATOR = new Uint8Array([175, 175, 109, 31, 13, 1
 export interface InitializeAccounts {
   user: naclac.Address | string;
   global?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

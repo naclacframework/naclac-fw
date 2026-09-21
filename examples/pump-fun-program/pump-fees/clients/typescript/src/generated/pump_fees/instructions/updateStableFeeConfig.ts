@@ -9,7 +9,7 @@ export const UPDATE_STABLE_FEE_CONFIG_DISCRIMINATOR = new Uint8Array([107, 169, 
 
 /** Instruction arguments for `updateStableFeeConfig`. */
 export interface UpdateStableFeeConfigArgs {
-  stable_fee_tiers: Array<types.FeeTier>;
+  stableFeeTiers: Array<types.FeeTier>;
 }
 
 /** Accounts for the `updateStableFeeConfig` instruction. */
@@ -19,8 +19,8 @@ export interface UpdateStableFeeConfigAccounts {
    * SAFETY: only used as PDA seed material for `fee_config`; not
    * deserialized or invoked.
    */
-  config_program_id: naclac.Address | string;
-  fee_config?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  feeConfig?: naclac.Address | string;
 }
 
 /**

@@ -9,7 +9,7 @@ export const CREATE_MINT2022_WITH_MINT_CLOSE_AUTHORITY_DISCRIMINATOR = new Uint8
 /** Instruction arguments for `createMint2022WithMintCloseAuthority`. */
 export interface CreateMint2022WithMintCloseAuthorityArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
 }
 
@@ -23,9 +23,9 @@ export interface CreateMint2022WithMintCloseAuthorityAccounts {
    * `MintCloseAuthority` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

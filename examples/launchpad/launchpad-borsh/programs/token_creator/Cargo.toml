@@ -11,9 +11,11 @@ no-entrypoint = []
 custom-heap = []
 custom-panic = []
 debug-mode = []
+default = ["borsh"]
+borsh = ["naclac-lang/borsh"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../../naclac-lang", features = ["token", "borsh"]  }
+naclac-lang = { version = "0.1.0", path = "../../../../../naclac-lang", features = ["token"]  }
 amm-client = { path = "../../clients/rust/amm", default-features = false, features = ["cpi", "borsh"] }
 
 [dev-dependencies]

@@ -8,11 +8,11 @@ export const DEBOUNCER_DISCRIMINATOR = new Uint8Array([79, 245, 223, 155, 77, 25
 
 /** Auto-generated account interface from the program IDL. */
 export interface Debouncer {
-  bump: number;
-  state: number;
+  total_amount: bigint | number;
   config_id: naclac.Address | string;
   mint: naclac.Address | string;
-  total_amount: bigint | number;
+  bump: number;
+  state: number;
 }
 
 /** 8-byte discriminator prefix for `EpochTracker` accounts on-chain. */
@@ -20,10 +20,10 @@ export const EPOCHTRACKER_DISCRIMINATOR = new Uint8Array([224, 134, 45, 78, 214,
 
 /** Auto-generated account interface from the program IDL. */
 export interface EpochTracker {
-  bump: number;
-  state: number;
+  current_epoch: bigint | number;
   config_id: naclac.Address | string;
   mint: naclac.Address | string;
-  current_epoch: bigint | number;
+  bump: number;
+  state: number;
 }
 

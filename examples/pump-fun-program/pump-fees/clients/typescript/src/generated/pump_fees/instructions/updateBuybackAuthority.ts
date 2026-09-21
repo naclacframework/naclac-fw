@@ -9,15 +9,15 @@ export const UPDATE_BUYBACK_AUTHORITY_DISCRIMINATOR = new Uint8Array([66, 98, 11
 /** Instruction arguments for `updateBuybackAuthority`. */
 export interface UpdateBuybackAuthorityArgs {
   index: number;
-  buyback_vault_bump: number;
-  new_authority: naclac.Address | string;
+  buybackVaultBump: number;
+  newAuthority: naclac.Address | string;
 }
 
 /** Accounts for the `updateBuybackAuthority` instruction. */
 export interface UpdateBuybackAuthorityAccounts {
   authority: naclac.Address | string;
-  fee_program_global?: naclac.Address | string;
-  buyback_vault?: naclac.Address | string;
+  feeProgramGlobal?: naclac.Address | string;
+  buybackVault?: naclac.Address | string;
 }
 
 /**

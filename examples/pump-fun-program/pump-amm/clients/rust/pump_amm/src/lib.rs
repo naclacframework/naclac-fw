@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx");
+declare_id!("CgRf7F42guD313ikFQJQaodeqayL3XH8R2oy8KfAStfD");
 
 #[cfg(feature = "offchain")]
 pub fn get_boost_vault_authority_pda(
@@ -121,7 +121,7 @@ pub struct PumpAmm;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for PumpAmm {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([252, 69, 211, 229, 209, 250, 91, 185, 95, 119, 96, 125, 211, 65, 169, 106, 209, 112, 144, 171, 161, 186, 45, 122, 136, 122, 226, 73, 138, 146, 134, 211])
+        sdk_core_cpi::Address::new_from_array([173, 138, 22, 104, 165, 108, 89, 185, 59, 91, 165, 114, 218, 123, 246, 233, 101, 7, 116, 95, 143, 136, 238, 216, 145, 230, 78, 235, 87, 243, 242, 12])
     }
 }
 

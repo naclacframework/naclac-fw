@@ -8,10 +8,10 @@ export const GET_FEES_DISCRIMINATOR = new Uint8Array([231, 37, 126, 85, 207, 91,
 
 /** Instruction arguments for `getFees`. */
 export interface GetFeesArgs {
-  is_pump_pool: naclac.Bool;
-  market_cap_lamports: bigint | number;
-  trade_size_lamports: bigint | number;
-  is_new_quote_mint: naclac.Bool;
+  isPumpPool: naclac.Bool;
+  marketCapLamports: bigint | number;
+  tradeSizeLamports: bigint | number;
+  isNewQuoteMint: naclac.Bool;
 }
 
 /** Accounts for the `getFees` instruction. */
@@ -20,8 +20,8 @@ export interface GetFeesAccounts {
    * SAFETY: only used as PDA seed material for `fee_config` below; never
    * deserialized, invoked, or otherwise trusted for its own contents.
    */
-  config_program_id: naclac.Address | string;
-  fee_config?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  feeConfig?: naclac.Address | string;
   /**
    * SAFETY: `signer` + the `seeds`/`seeds::program` constraint together
    * prove this call was CPI'd (via `invoke_signed`) by `pump` itself —
@@ -29,7 +29,7 @@ export interface GetFeesAccounts {
    * `PUMP_AUTHORITY_SEED` PDA. This is the entire authorization model
    * for this instruction; never deserialized.
    */
-  pump_authority?: naclac.Address | string;
+  pumpAuthority?: naclac.Address | string;
 }
 
 /**

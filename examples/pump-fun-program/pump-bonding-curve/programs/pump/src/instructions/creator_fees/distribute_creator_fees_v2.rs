@@ -73,7 +73,13 @@ pub struct DistributeCreatorFeesV2 {
 /// reverts `UnsupportedQuoteMint` for anything else. The WSOL path's
 /// distribution math and rounding rule are identical to `distribute_creator_fees`
 /// (v1) — see that instruction's doc comment.
-#[instruction]
+///
+/// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+/// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+/// see `distribute_creator_fees`'s own doc comment for why. Also rejects any
+/// executable shareholder recipient (real, live-confirmed check,
+/// `reference/fee-tier-probe/src/bin/probe73.rs`) — see that same doc
+/// comment for why.
 pub fn distribute_creator_fees_v2(
     ctx: Context<DistributeCreatorFeesV2>,
     _bonding_curve_bump: u8,
@@ -83,6 +89,10 @@ pub fn distribute_creator_fees_v2(
     require!(
         ctx.accounts.quote_mint.address() == WSOL_MINT,
         PumpError::UnsupportedQuoteMint
+    );
+    require!(
+        ctx.accounts.bonding_curve.creator == ctx.accounts.sharing_config.address(),
+        PumpError::BondingCurveAndSharingConfigCreatorMismatch
     );
 
     let shareholders_len = ctx.accounts.sharing_config.shareholders_len as usize;
@@ -112,6 +122,7 @@ pub fn distribute_creator_fees_v2(
             recipient.address() == shareholder.address,
             PumpError::ShareholderAccountMismatch
         );
+        require!(!recipient.is_executable(), PumpError::UnableToDistributeCreatorFeesToExecutableRecipient);
 
         let amount = if i == shareholders_len - 1 {
             available - distributed

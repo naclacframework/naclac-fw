@@ -18,7 +18,6 @@ pub struct InitSeeded {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_seeded(ctx: Context<InitSeeded>) -> Result {
     ctx.accounts.seeded.value = 7;
     Ok(())

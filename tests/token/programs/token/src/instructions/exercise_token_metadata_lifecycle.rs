@@ -28,7 +28,6 @@ pub struct ExerciseTokenMetadataLifecycle {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_token_metadata_lifecycle(
     ctx: Context<ExerciseTokenMetadataLifecycle>,
     new_name: ZcString,

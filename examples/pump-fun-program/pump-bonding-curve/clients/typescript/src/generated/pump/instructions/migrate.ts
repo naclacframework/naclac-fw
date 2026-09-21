@@ -20,20 +20,20 @@ export interface MigrateAccounts {
    * (a single dynamic field, not a static address) — no declarative
    * constraint supports comparing against another account's field value.
    */
-  withdraw_authority: naclac.Address | string;
+  withdrawAuthority: naclac.Address | string;
   mint: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
   /**
    * SAFETY: address pinned via `address = WSOL_MINT`; only used as CPI/seed
    * material below, never deserialized.
    */
-  wsol_mint?: naclac.Address | string;
+  wsolMint?: naclac.Address | string;
   user: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  token_program: naclac.Address | string;
-  token_2022_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
-  pump_amm: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  tokenProgram: naclac.Address | string;
+  token2022Program?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
+  pumpAmm: naclac.Address | string;
   /**
    * SAFETY: address pinned via `address = RENT_SYSVAR_ID`; passed to the
    * manual `sync_native_with_extra_accounts` call below, whose second
@@ -42,13 +42,13 @@ export interface MigrateAccounts {
    * see that function's own doc comment in `naclac-token`).
    */
   rent?: naclac.Address | string;
-  associated_bonding_curve: naclac.Address | string;
+  associatedBondingCurve: naclac.Address | string;
   /**
    * SAFETY: lamport-only PDA (no stored data) — real payer for every
    * account created during migration (see module comment); signs the
    * nested `create_pool` CPI as `creator` via `invoke_signed`.
    */
-  pool_authority?: naclac.Address | string;
+  poolAuthority?: naclac.Address | string;
   /**
    * SAFETY: doesn't exist yet — created by the nested `create_pool` CPI
    * below, address verified via seeds only.
@@ -64,32 +64,32 @@ export interface MigrateAccounts {
    * can't accommodate). Address verified via `seeds`/`seeds::program`/
    * `bump` below regardless, same as `pool_base_token_account`.
    */
-  pool_authority_mint_account?: naclac.Address | string;
+  poolAuthorityMintAccount?: naclac.Address | string;
   /** SAFETY: same as `pool_authority_mint_account` above. */
-  pool_authority_wsol_account?: naclac.Address | string;
+  poolAuthorityWsolAccount?: naclac.Address | string;
   /**
    * SAFETY: address fully verified via `seeds`/`seeds::program`/`bump`;
    * passed straight into the nested `create_pool` CPI below, whose own
    * program-side validation covers its contents — never deserialized here.
    */
-  amm_global_config?: naclac.Address | string;
+  ammGlobalConfig?: naclac.Address | string;
   /** SAFETY: doesn't exist yet — created by the nested `create_pool` CPI. */
-  lp_mint?: naclac.Address | string;
+  lpMint?: naclac.Address | string;
   /**
    * SAFETY: doesn't exist yet — created by the nested `create_pool` CPI;
    * this is `pool_authority`'s own LP-token ATA, burned and closed below
    * once minted so no one ends up holding the migrated pool's liquidity.
    */
-  user_pool_token_account?: naclac.Address | string;
+  userPoolTokenAccount?: naclac.Address | string;
   /**
    * SAFETY: created directly by this instruction's own body — see
    * `pool_authority_mint_account` above for why. Owned by `pool` (not
    * `pool_authority`), so its own creation CPI needs no aliasing tricks:
    * `payer = pool_authority`, `authority = pool` are different accounts.
    */
-  pool_base_token_account?: naclac.Address | string;
+  poolBaseTokenAccount?: naclac.Address | string;
   /** SAFETY: same as `pool_base_token_account` above. */
-  pool_quote_token_account?: naclac.Address | string;
+  poolQuoteTokenAccount?: naclac.Address | string;
 }
 
 /**

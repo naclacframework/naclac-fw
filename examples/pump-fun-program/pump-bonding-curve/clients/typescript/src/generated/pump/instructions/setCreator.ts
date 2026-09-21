@@ -9,13 +9,13 @@ export const SET_CREATOR_DISCRIMINATOR = new Uint8Array([254, 148, 255, 112, 207
 /** Instruction arguments for `setCreator`. */
 export interface SetCreatorArgs {
   creator: naclac.Address | string;
-  metadata_bump: number;
-  bonding_curve_bump: number;
+  metadataBump: number;
+  bondingCurveBump: number;
 }
 
 /** Accounts for the `setCreator` instruction. */
 export interface SetCreatorAccounts {
-  set_creator_authority: naclac.Address | string;
+  setCreatorAuthority: naclac.Address | string;
   global?: naclac.Address | string;
   /**
    * SAFETY: only used as a seed input for `metadata`/`bonding_curve`
@@ -30,7 +30,7 @@ export interface SetCreatorAccounts {
    * validation) is read manually via `read_first_metaplex_creator`.
    */
   metadata?: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
 }
 
 /**

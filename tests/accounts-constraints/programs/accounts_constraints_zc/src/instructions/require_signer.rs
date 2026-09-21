@@ -13,7 +13,6 @@ pub struct RequireSigner {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn require_signer(ctx: Context<RequireSigner>) -> Result {
     ctx.accounts.vault.value += 1;
     Ok(())

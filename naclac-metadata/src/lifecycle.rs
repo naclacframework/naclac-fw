@@ -99,18 +99,44 @@ pub fn transfer_asset_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::TransferV1 {
-            asset: accounts.asset.address(),
-            collection: accounts.collection.as_ref().map(|c| c.address()),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            new_owner: accounts.new_owner.address(),
-            system_program: accounts.system_program.as_ref().map(|s| s.address()),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-        }
-        .instruction(::mpl_core::instructions::TransferV1InstructionArgs {
-            compression_proof: None,
-        });
+        let data = [14u8, 0u8]; // TransferV1 discriminator + compression_proof: None
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+            match &accounts.collection {
+                Some(c) => {
+                    solana_program::instruction::AccountMeta::new_readonly(c.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.new_owner.address(),
+                false,
+            ),
+            match &accounts.system_program {
+                Some(s) => {
+                    solana_program::instruction::AccountMeta::new_readonly(s.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.log_wrapper {
+                Some(l) => {
+                    solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data: data.to_vec(),
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.asset),
@@ -192,17 +218,38 @@ pub fn burn_asset_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::BurnV1 {
-            asset: accounts.asset.address(),
-            collection: accounts.collection.as_ref().map(|c| c.address()),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.as_ref().map(|s| s.address()),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-        }
-        .instruction(::mpl_core::instructions::BurnV1InstructionArgs {
-            compression_proof: None,
-        });
+        let data = [12u8, 0u8]; // BurnV1 discriminator + compression_proof: None
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+            match &accounts.collection {
+                Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.system_program {
+                Some(s) => {
+                    solana_program::instruction::AccountMeta::new_readonly(s.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.log_wrapper {
+                Some(l) => {
+                    solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data: data.to_vec(),
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.asset),
@@ -294,28 +341,75 @@ pub fn update_asset_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::UpdateV2 {
-            asset: accounts.asset.address(),
-            collection: accounts.collection.as_ref().map(|c| c.address()),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            new_collection: accounts.new_collection.as_ref().map(|c| c.address()),
-            system_program: accounts.system_program.address(),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
+        let mut data = crate::prelude::Vec::new();
+        data.push(30u8); // UpdateV2 discriminator
+        match new_name {
+            Some(s) => {
+                data.push(1u8);
+                data.extend_from_slice(&(s.len() as u32).to_le_bytes());
+                data.extend_from_slice(s.as_bytes());
+            }
+            None => data.push(0u8),
         }
-        .instruction(::mpl_core::instructions::UpdateV2InstructionArgs {
-            new_name: new_name.map(|s| s.to_string()),
-            new_uri: new_uri.map(|s| s.to_string()),
-            new_update_authority: new_update_authority.map(|a| match a {
-                UpdateAuthorityKind::None => ::mpl_core::types::UpdateAuthority::None,
-                UpdateAuthorityKind::Address(addr) => {
-                    ::mpl_core::types::UpdateAuthority::Address(addr)
+        match new_uri {
+            Some(s) => {
+                data.push(1u8);
+                data.extend_from_slice(&(s.len() as u32).to_le_bytes());
+                data.extend_from_slice(s.as_bytes());
+            }
+            None => data.push(0u8),
+        }
+        match new_update_authority {
+            Some(a) => {
+                data.push(1u8);
+                match a {
+                    UpdateAuthorityKind::None => data.push(0u8),
+                    UpdateAuthorityKind::Address(addr) => {
+                        data.push(1u8);
+                        data.extend_from_slice(addr.as_ref());
+                    }
+                    UpdateAuthorityKind::Collection(addr) => {
+                        data.push(2u8);
+                        data.extend_from_slice(addr.as_ref());
+                    }
                 }
-                UpdateAuthorityKind::Collection(addr) => {
-                    ::mpl_core::types::UpdateAuthority::Collection(addr)
+            }
+            None => data.push(0u8),
+        }
+
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+            match &accounts.collection {
+                Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
                 }
-            }),
-        });
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.new_collection {
+                Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.system_program.address(),
+                false,
+            ),
+            match &accounts.log_wrapper {
+                Some(l) => {
+                    solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data,
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.asset),
@@ -338,7 +432,21 @@ pub fn update_asset_signed(
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut data = crate::prelude::Vec::new();
+        if new_name.is_some_and(|s| s.len() > crate::asset::MAX_ASSET_NAME_LEN)
+            || new_uri.is_some_and(|s| s.len() > crate::asset::MAX_ASSET_URI_LEN)
+        {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let mut data = crate::fixed_buf::FixedBuf::<
+            {
+                1 + 5
+                    + crate::asset::MAX_ASSET_NAME_LEN
+                    + 5
+                    + crate::asset::MAX_ASSET_URI_LEN
+                    + 1
+                    + 33
+            },
+        >::new();
         data.push(30u8); // UpdateV2 discriminator
         match new_name {
             Some(s) => {
@@ -431,7 +539,7 @@ pub fn update_asset_signed(
         let instruction = ::pinocchio::instruction::InstructionView {
             program_id: program.info.view.address(),
             accounts: &ix_accounts,
-            data: &data,
+            data: data.as_slice(),
         };
         let handles = [
             asset_handle,
@@ -457,18 +565,56 @@ pub fn update_collection_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::UpdateCollectionV1 {
-            collection: accounts.collection.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            new_update_authority: accounts.new_update_authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
+        let mut data = crate::prelude::Vec::new();
+        data.push(16u8); // UpdateCollectionV1 discriminator
+        match new_name {
+            Some(s) => {
+                data.push(1u8);
+                data.extend_from_slice(&(s.len() as u32).to_le_bytes());
+                data.extend_from_slice(s.as_bytes());
+            }
+            None => data.push(0u8),
         }
-        .instruction(::mpl_core::instructions::UpdateCollectionV1InstructionArgs {
-            new_name: new_name.map(|s| s.to_string()),
-            new_uri: new_uri.map(|s| s.to_string()),
-        });
+        match new_uri {
+            Some(s) => {
+                data.push(1u8);
+                data.extend_from_slice(&(s.len() as u32).to_le_bytes());
+                data.extend_from_slice(s.as_bytes());
+            }
+            None => data.push(0u8),
+        }
+
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.new_update_authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.system_program.address(),
+                false,
+            ),
+            match &accounts.log_wrapper {
+                Some(l) => {
+                    solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data,
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.collection),
@@ -486,7 +632,19 @@ pub fn update_collection_signed(
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut data = crate::prelude::Vec::new();
+        if new_name.is_some_and(|s| s.len() > crate::collection::MAX_COLLECTION_NAME_LEN)
+            || new_uri.is_some_and(|s| s.len() > crate::collection::MAX_COLLECTION_URI_LEN)
+        {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let mut data = crate::fixed_buf::FixedBuf::<
+            {
+                1 + 5
+                    + crate::collection::MAX_COLLECTION_NAME_LEN
+                    + 5
+                    + crate::collection::MAX_COLLECTION_URI_LEN
+            },
+        >::new();
         data.push(16u8); // UpdateCollectionV1 discriminator
         match new_name {
             Some(s) => {
@@ -541,7 +699,7 @@ pub fn update_collection_signed(
         let instruction = ::pinocchio::instruction::InstructionView {
             program_id: program.info.view.address(),
             accounts: &ix_accounts,
-            data: &data,
+            data: data.as_slice(),
         };
         let handles = [
             collection_handle,
@@ -567,15 +725,26 @@ pub fn burn_collection_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::BurnCollectionV1 {
-            collection: accounts.collection.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-        }
-        .instruction(::mpl_core::instructions::BurnCollectionV1InstructionArgs {
-            compression_proof: None,
-        });
+        let data = [13u8, 0u8]; // BurnCollectionV1 discriminator + compression_proof: None
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.authority {
+                Some(a) => solana_program::instruction::AccountMeta::new(a.address(), true),
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.log_wrapper {
+                Some(l) => {
+                    solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data: data.to_vec(),
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.collection),

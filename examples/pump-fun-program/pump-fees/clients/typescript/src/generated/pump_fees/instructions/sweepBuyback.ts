@@ -9,7 +9,7 @@ export const SWEEP_BUYBACK_DISCRIMINATOR = new Uint8Array([138, 33, 204, 38, 207
 /** Instruction arguments for `sweepBuyback`. */
 export interface SweepBuybackArgs {
   index: number;
-  buyback_vault_bump: number;
+  buybackVaultBump: number;
 }
 
 /** Accounts for the `sweepBuyback` instruction. */
@@ -21,13 +21,13 @@ export interface SweepBuybackAccounts {
    */
   destination: naclac.Address | string;
   authority: naclac.Address | string;
-  buyback_vault?: naclac.Address | string;
-  buyback_vault_ata: naclac.Address | string;
-  destination_ata: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  buybackVault?: naclac.Address | string;
+  buybackVaultAta: naclac.Address | string;
+  destinationAta: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

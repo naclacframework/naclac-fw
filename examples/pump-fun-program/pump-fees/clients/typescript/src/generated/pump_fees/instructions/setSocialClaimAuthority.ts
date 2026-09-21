@@ -8,13 +8,13 @@ export const SET_SOCIAL_CLAIM_AUTHORITY_DISCRIMINATOR = new Uint8Array([147, 54,
 
 /** Instruction arguments for `setSocialClaimAuthority`. */
 export interface SetSocialClaimAuthorityArgs {
-  social_claim_authority: naclac.Address | string;
+  socialClaimAuthority: naclac.Address | string;
 }
 
 /** Accounts for the `setSocialClaimAuthority` instruction. */
 export interface SetSocialClaimAuthorityAccounts {
   authority: naclac.Address | string;
-  fee_program_global?: naclac.Address | string;
+  feeProgramGlobal?: naclac.Address | string;
 }
 
 /**

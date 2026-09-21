@@ -7,7 +7,6 @@ use naclac_lang::prelude::*;
 #[derive(Accounts)]
 pub struct LogEventFixed8 {}
 
-#[instruction]
 pub fn log_event_fixed_8(_ctx: Context<LogEventFixed8>, _data: [u8; 8]) -> Result {
     Ok(())
 }

@@ -13,7 +13,6 @@ pub struct ToggleMayhemMode {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn toggle_mayhem_mode(ctx: Context<ToggleMayhemMode>, enabled: Bool) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.global.authority,

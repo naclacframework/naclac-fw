@@ -17,7 +17,6 @@ pub struct Increment {
     pub counter_account: Account<Counter>,
 }
 
-#[instruction]
 pub fn increment(ctx: Context<Increment>) -> Result {
     let counter_account = &mut ctx.accounts.counter_account;
 

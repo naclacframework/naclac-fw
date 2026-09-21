@@ -16,7 +16,7 @@ export interface InitEntryAccounts {
   payer: naclac.Address | string;
   registry: naclac.Address | string;
   entry?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

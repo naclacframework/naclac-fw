@@ -13,7 +13,6 @@ pub struct AddQuoteMint {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn add_quote_mint(ctx: Context<AddQuoteMint>, quote_mint: Address) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.global.authority,

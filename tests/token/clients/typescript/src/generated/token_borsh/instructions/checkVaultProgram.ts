@@ -8,7 +8,7 @@ export const CHECK_VAULT_PROGRAM_DISCRIMINATOR = new Uint8Array([11, 24, 214, 18
 
 /** Accounts for the `checkVaultProgram` instruction. */
 export interface CheckVaultProgramAccounts {
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
   /**
    * SAFETY: only the account's owning-program metadata is inspected via
    * the `token::program` constraint below; its data is never read or

@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-pump_amm = "HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx"
+pump_amm = "CgRf7F42guD313ikFQJQaodeqayL3XH8R2oy8KfAStfD"
 
 [provider]
 cluster = "devnet"

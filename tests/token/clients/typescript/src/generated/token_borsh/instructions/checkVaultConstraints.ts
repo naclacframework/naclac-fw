@@ -9,7 +9,7 @@ export const CHECK_VAULT_CONSTRAINTS_DISCRIMINATOR = new Uint8Array([1, 137, 39,
 /** Accounts for the `checkVaultConstraints` instruction. */
 export interface CheckVaultConstraintsAccounts {
   mint: naclac.Address | string;
-  mint_authority: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
   vault: naclac.Address | string;
 }
 

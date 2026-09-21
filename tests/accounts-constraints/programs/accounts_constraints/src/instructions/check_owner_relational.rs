@@ -17,7 +17,6 @@ pub struct CheckOwnerRelational {
     pub expected_owner: AccountInfo,
 }
 
-#[instruction]
 pub fn check_owner_relational(_ctx: Context<CheckOwnerRelational>) -> Result {
     Ok(())
 }

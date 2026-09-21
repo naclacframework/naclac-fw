@@ -14,7 +14,6 @@ pub struct CheckExecutable {
     pub target: AccountInfo,
 }
 
-#[instruction]
 pub fn check_executable(_ctx: Context<CheckExecutable>) -> Result {
     Ok(())
 }

@@ -13,7 +13,6 @@ pub struct ToggleCashbackEnabled {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn toggle_cashback_enabled(ctx: Context<ToggleCashbackEnabled>, enabled: Bool) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.global.authority,

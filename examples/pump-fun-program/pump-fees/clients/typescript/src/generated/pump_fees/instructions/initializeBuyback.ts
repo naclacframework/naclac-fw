@@ -9,18 +9,18 @@ export const INITIALIZE_BUYBACK_DISCRIMINATOR = new Uint8Array([250, 129, 236, 1
 /** Instruction arguments for `initializeBuyback`. */
 export interface InitializeBuybackArgs {
   index: number;
-  buyback_vault_bump: number;
+  buybackVaultBump: number;
 }
 
 /** Accounts for the `initializeBuyback` instruction. */
 export interface InitializeBuybackAccounts {
   payer: naclac.Address | string;
-  buyback_vault?: naclac.Address | string;
-  buyback_vault_ata: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  buybackVault?: naclac.Address | string;
+  buybackVaultAta: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

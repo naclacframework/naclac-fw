@@ -10,7 +10,6 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `ImmutableMetadata` to an `Asset` via `add_plugin`.
@@ -21,20 +20,17 @@ pub fn attach_immutable_metadata_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin =
-            ::mpl_core::types::Plugin::ImmutableMetadata(::mpl_core::types::ImmutableMetadata {});
-        add_asset_plugin_signed(program, accounts, plugin, signer_seeds)
+        let data = [2u8, plugin_type::IMMUTABLE_METADATA, 0u8];
+        add_asset_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        add_asset_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::IMMUTABLE_METADATA,
-            &[],
-            signer_seeds,
-        )
+        let mut data = crate::fixed_buf::FixedBuf::<3>::new();
+        data.push(2u8); // AddPluginV1 discriminator
+        data.push(plugin_type::IMMUTABLE_METADATA);
+        data.push(0u8); // init_authority: None
+        add_asset_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -46,20 +42,17 @@ pub fn attach_collection_immutable_metadata_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin =
-            ::mpl_core::types::Plugin::ImmutableMetadata(::mpl_core::types::ImmutableMetadata {});
-        add_collection_plugin_signed(program, accounts, plugin, signer_seeds)
+        let data = [3u8, plugin_type::IMMUTABLE_METADATA, 0u8];
+        add_collection_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        add_collection_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::IMMUTABLE_METADATA,
-            &[],
-            signer_seeds,
-        )
+        let mut data = crate::fixed_buf::FixedBuf::<3>::new();
+        data.push(3u8); // AddCollectionPluginV1 discriminator
+        data.push(plugin_type::IMMUTABLE_METADATA);
+        data.push(0u8); // init_authority: None
+        add_collection_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -74,9 +67,11 @@ pub fn asset_has_immutable_metadata(info: &AccountInfo) -> Result<bool> {
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let asset = ::mpl_core::Asset::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(asset.plugin_list.immutable_metadata.is_some())
+    let asset_view = crate::asset::AssetView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
+        return Ok(false);
+    };
+    Ok(find_plugin_offset(&data, plugin_header_offset, plugin_type::IMMUTABLE_METADATA)?.is_some())
 }
 
 /// `true` if a `Collection` has an `ImmutableMetadata` plugin attached.
@@ -90,9 +85,11 @@ pub fn collection_has_immutable_metadata(info: &AccountInfo) -> Result<bool> {
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let collection = ::mpl_core::Collection::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(collection.plugin_list.immutable_metadata.is_some())
+    let collection_view = crate::collection::CollectionView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
+        return Ok(false);
+    };
+    Ok(find_plugin_offset(&data, plugin_header_offset, plugin_type::IMMUTABLE_METADATA)?.is_some())
 }
 
 /// `true` if an `Asset` has an `ImmutableMetadata` plugin attached.

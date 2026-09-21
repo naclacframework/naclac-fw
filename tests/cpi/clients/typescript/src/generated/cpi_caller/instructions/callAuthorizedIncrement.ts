@@ -10,8 +10,8 @@ export const CALL_AUTHORIZED_INCREMENT_DISCRIMINATOR = new Uint8Array([160, 53, 
 export interface CallAuthorizedIncrementAccounts {
   /** SAFETY: `cpi_callee`'s own PDA, validated by that program. */
   counter: naclac.Address | string;
-  caller_authority?: naclac.Address | string;
-  callee_program: naclac.Address | string;
+  callerAuthority?: naclac.Address | string;
+  calleeProgram: naclac.Address | string;
 }
 
 /**

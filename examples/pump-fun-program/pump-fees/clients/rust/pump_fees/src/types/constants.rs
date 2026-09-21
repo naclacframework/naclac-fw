@@ -3,12 +3,12 @@
 
 #[cfg(feature = "offchain")]
 pub const PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_array([
-    116, 160, 86, 82, 248, 105, 32, 166, 17, 57, 245, 99, 88, 171, 78, 132, 34, 207, 106, 105, 27, 23, 177, 13, 84, 100, 151, 96, 23, 63, 63, 197
+    9, 3, 19, 99, 78, 44, 194, 36, 151, 49, 210, 205, 144, 105, 103, 183, 137, 235, 171, 26, 58, 214, 51, 103, 185, 102, 71, 251, 10, 92, 25, 20
 ]);
 
 #[cfg(feature = "cpi")]
 pub const PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
-    116, 160, 86, 82, 248, 105, 32, 166, 17, 57, 245, 99, 88, 171, 78, 132, 34, 207, 106, 105, 27, 23, 177, 13, 84, 100, 151, 96, 23, 63, 63, 197
+    9, 3, 19, 99, 78, 44, 194, 36, 151, 49, 210, 205, 144, 105, 103, 183, 137, 235, 171, 26, 58, 214, 51, 103, 185, 102, 71, 251, 10, 92, 25, 20
 ]);
 
 pub const FEE_CONFIG_SEED: &[u8] = &[102, 101, 101, 95, 99, 111, 110, 102, 105, 103];
@@ -55,9 +55,9 @@ pub const PUMP_AMM_PROGRAM_ID: naclac_client::Address = naclac_client::Address::
 #[cfg(feature = "cpi")]
 pub const PUMP_AMM_PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([252, 69, 211, 229, 209, 250, 91, 185, 95, 119, 96, 125, 211, 65, 169, 106, 209, 112, 144, 171, 161, 186, 45, 122, 136, 122, 226, 73, 138, 146, 134, 211]);
 #[cfg(feature = "offchain")]
-pub const DONATION_RELAY_PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_array([23, 118, 164, 191, 192, 201, 243, 51, 32, 226, 179, 109, 83, 249, 158, 252, 119, 104, 39, 62, 96, 34, 156, 219, 131, 24, 131, 100, 36, 174, 205, 212]);
+pub const DONATION_RELAY_PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_array([109, 67, 17, 127, 178, 28, 192, 153, 17, 233, 35, 187, 36, 107, 62, 174, 120, 73, 22, 5, 133, 131, 3, 202, 99, 38, 247, 184, 170, 56, 230, 45]);
 #[cfg(feature = "cpi")]
-pub const DONATION_RELAY_PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([23, 118, 164, 191, 192, 201, 243, 51, 32, 226, 179, 109, 83, 249, 158, 252, 119, 104, 39, 62, 96, 34, 156, 219, 131, 24, 131, 100, 36, 174, 205, 212]);
+pub const DONATION_RELAY_PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([109, 67, 17, 127, 178, 28, 192, 153, 17, 233, 35, 187, 36, 107, 62, 174, 120, 73, 22, 5, 133, 131, 3, 202, 99, 38, 247, 184, 170, 56, 230, 45]);
 #[cfg(feature = "offchain")]
 pub const WSOL_MINT: naclac_client::Address = naclac_client::Address::new_from_array([6, 155, 136, 87, 254, 171, 129, 132, 251, 104, 127, 99, 70, 24, 192, 53, 218, 196, 57, 220, 26, 235, 59, 85, 152, 160, 240, 0, 0, 0, 0, 1]);
 #[cfg(feature = "cpi")]

@@ -58,7 +58,6 @@ pub struct TransferCreatorFeesToPumpV2 {
 /// reverts `UnsupportedQuoteMint` for anything else. The WSOL path's
 /// mechanics are identical to `transfer_creator_fees_to_pump` (v1) — see
 /// that instruction's doc comment.
-#[instruction]
 pub fn transfer_creator_fees_to_pump_v2(
     ctx: Context<TransferCreatorFeesToPumpV2>,
     coin_creator_vault_authority_bump: u8,

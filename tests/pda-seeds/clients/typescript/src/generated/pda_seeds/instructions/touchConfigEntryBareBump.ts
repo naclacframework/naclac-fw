@@ -12,8 +12,8 @@ export interface TouchConfigEntryBareBumpAccounts {
    * SAFETY: only used as PDA seed material for `config_entry` below; never
    * deserialized, invoked, or otherwise trusted for its own contents.
    */
-  config_program_id: naclac.Address | string;
-  config_entry?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  configEntry?: naclac.Address | string;
 }
 
 /**

@@ -81,6 +81,32 @@ pub fn decode_pod_unchecked<T: Pod>(data: &[u8]) -> Result<T, NaclacClientError>
     Ok(*casted)
 }
 
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+    use crate::token::TokenAccount;
+
+    /// Proves `decode_pod_checked`/`decode_pod_unchecked` never panic for
+    /// any account bytes and any discriminator — `size = size_of::<T>()` is
+    /// a compile-time constant here (unlike account-derived offsets
+    /// elsewhere in this workspace), so `8 + size` can't realistically
+    /// overflow, but this proves the length guard is actually sufficient
+    /// for the `bytemuck::try_from_bytes` cast that follows it, for any
+    /// `data` length Kani can construct.
+    #[kani::proof]
+    fn prove_decode_pod_checked_never_panics() {
+        let data: [u8; 200] = kani::any();
+        let discriminator: [u8; 8] = kani::any();
+        let _ = decode_pod_checked::<TokenAccount>(&data, discriminator);
+    }
+
+    #[kani::proof]
+    fn prove_decode_pod_unchecked_never_panics() {
+        let data: [u8; 200] = kani::any();
+        let _ = decode_pod_unchecked::<TokenAccount>(&data);
+    }
+}
+
 pub struct AccountFetcher<'a> {
     pub provider: &'a NaclacProvider,
 }

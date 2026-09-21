@@ -10,7 +10,7 @@ export const INIT_BIG_DISCRIMINATOR = new Uint8Array([104, 177, 111, 3, 102, 2, 
 export interface InitBigAccounts {
   payer: naclac.Address | string;
   big?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

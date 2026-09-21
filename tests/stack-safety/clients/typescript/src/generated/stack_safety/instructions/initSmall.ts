@@ -10,7 +10,7 @@ export const INIT_SMALL_DISCRIMINATOR = new Uint8Array([83, 231, 209, 225, 237, 
 export interface InitSmallAccounts {
   payer: naclac.Address | string;
   small?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

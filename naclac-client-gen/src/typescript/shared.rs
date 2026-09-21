@@ -1,5 +1,5 @@
 use crate::rust::{collect_defined_type_names, references_defined_type};
-use crate::{Idl, IdlTypeDefVariants};
+use crate::{Idl, IdlEnumFields, IdlTypeDefVariants};
 use heck::{ToLowerCamelCase, ToUpperCamelCase};
 use std::fs;
 
@@ -137,6 +137,19 @@ pub fn format_const_value(val_str: &str, ty_str: &str) -> String {
 }
 
 /// Generates the TypeScript IDL export file (idl/<name>.ts).
+///
+/// Deliberately does not embed zero-copy-vs-Borsh mode anywhere in this
+/// output, matching the on-disk `target/idl/<name>.json` (`naclac-idl`'s
+/// `Idl` struct has no such field either): the IDL describes the program's
+/// shape, not which build config produced a given client. `idl.is_zero_copy`
+/// (this crate's own internal `Idl` struct — see `mod.rs`) already only
+/// ever conditions *what source code gets generated* elsewhere (Cargo.toml
+/// default features, `cfg_attr` branches, primitive type-mapping choices)
+/// and is never itself serialized into any generated data file — whichever
+/// generated code actually needs the mode at runtime (`client.ts`/
+/// `client_legacy.ts`'s `new naclac.Program(IDL, provider, isZeroCopy)`
+/// call) gets it as a literal baked in at generation time instead, the same
+/// way every other codegen-time decision already works.
 pub fn generate_ts(idl_json: &str) -> Result<String, Box<dyn std::error::Error>> {
     let parsed: serde_json::Value = serde_json::from_str(idl_json)?;
     let program_name = parsed
@@ -178,14 +191,69 @@ pub fn generate_shared_files(
                 render_docs_ts(&t.docs, "")
             };
             match &t.ty {
-                IdlTypeDefVariants::Enum { variants } => {
+                IdlTypeDefVariants::Enum { variants, .. } => {
                     typedefs_content.push_str(&type_docs);
-                    typedefs_content.push_str(&format!("export enum {} {{\n", t.name));
-                    for v in variants {
-                        typedefs_content.push_str(&render_docs_ts(&v.docs, "  "));
-                        typedefs_content.push_str(&format!("  {},\n", v.name));
+                    if variants.iter().all(|v| v.fields.is_none()) {
+                        // No variant carries data — keep emitting a plain
+                        // native TS enum, since it's a strictly nicer API
+                        // (numeric/string member access) than a
+                        // discriminated union when there's nothing to
+                        // discriminate a payload for.
+                        typedefs_content.push_str(&format!("export enum {} {{\n", t.name));
+                        for v in variants {
+                            typedefs_content.push_str(&render_docs_ts(&v.docs, "  "));
+                            typedefs_content.push_str(&format!("  {},\n", v.name));
+                        }
+                        typedefs_content.push_str("}\n\n");
+                    } else {
+                        // At least one variant carries data — a native TS
+                        // `enum` can't represent that, so emit a
+                        // discriminated union instead (`kind` tag, matching
+                        // `client/src/idl.ts`'s `IdlSeed` convention: named
+                        // fields spread directly, tuple fields under a
+                        // `fields` array since they have no names to spread).
+                        typedefs_content.push_str(&format!("export type {} =\n", t.name));
+                        for (i, v) in variants.iter().enumerate() {
+                            let sep = if i == 0 { " " } else { "| " };
+                            match &v.fields {
+                                None => {
+                                    typedefs_content.push_str(&format!(
+                                        "  {}{{ readonly kind: \"{}\" }}\n",
+                                        sep, v.name
+                                    ));
+                                }
+                                Some(IdlEnumFields::Named(fields)) => {
+                                    typedefs_content.push_str(&format!(
+                                        "  {}{{ readonly kind: \"{}\"",
+                                        sep, v.name
+                                    ));
+                                    for f in fields {
+                                        typedefs_content.push_str(&format!(
+                                            "; readonly {}: {}",
+                                            f.name.to_lower_camel_case(),
+                                            map_type_to_ts(&f.ty, idl.is_zero_copy)
+                                        ));
+                                    }
+                                    typedefs_content.push_str(" }\n");
+                                }
+                                Some(IdlEnumFields::Tuple(tys)) => {
+                                    let field_tys: Vec<String> = tys
+                                        .iter()
+                                        .map(|ty| map_type_to_ts(ty, idl.is_zero_copy))
+                                        .collect();
+                                    typedefs_content.push_str(&format!(
+                                        "  {}{{ readonly kind: \"{}\"; readonly fields: readonly [{}] }}\n",
+                                        sep,
+                                        v.name,
+                                        field_tys.join(", ")
+                                    ));
+                                }
+                            }
+                        }
+                        // Trim the trailing "\n" before the required ";\n\n".
+                        typedefs_content.pop();
+                        typedefs_content.push_str(";\n\n");
                     }
-                    typedefs_content.push_str("}\n\n");
                 }
                 IdlTypeDefVariants::Struct { fields } => {
                     typedefs_content.push_str(&type_docs);
@@ -194,7 +262,7 @@ pub fn generate_shared_files(
                         typedefs_content.push_str(&render_docs_ts(&f.docs, "  "));
                         typedefs_content.push_str(&format!(
                             "  {}: {};\n",
-                            f.name,
+                            f.name.to_lower_camel_case(),
                             map_type_to_ts(&f.ty, idl.is_zero_copy)
                         ));
                     }
@@ -253,7 +321,7 @@ pub fn generate_shared_files(
             accounts_content.push_str(&render_docs_ts(&field.docs, "  "));
             accounts_content.push_str(&format!(
                 "  {}: {};\n",
-                field.name,
+                field.name.to_lower_camel_case(),
                 map_type_to_ts(&field.ty, idl.is_zero_copy)
             ));
         }
@@ -309,7 +377,7 @@ pub fn generate_shared_files(
                 events_content.push_str(&render_docs_ts(&field.docs, "  "));
                 events_content.push_str(&format!(
                     "  {}: {};\n",
-                    field.name,
+                    field.name.to_lower_camel_case(),
                     map_type_to_ts(&field.ty, idl.is_zero_copy)
                 ));
             }
@@ -435,7 +503,7 @@ pub fn generate_shared_files(
                 ix_content.push_str(&render_docs_ts(&arg.docs, "  "));
                 ix_content.push_str(&format!(
                     "  {}: {};\n",
-                    arg.name,
+                    arg.name.to_lower_camel_case(),
                     map_type_to_ts_with_prefix(&arg.ty, idl.is_zero_copy, "types.")
                 ));
             }
@@ -466,7 +534,7 @@ pub fn generate_shared_files(
             ix_content.push_str(&render_docs_ts(&acc.docs, "  "));
             ix_content.push_str(&format!(
                 "  {}{}: naclac.Address | string;\n",
-                acc.name, optional_marker
+                acc.name.to_lower_camel_case(), optional_marker
             ));
         }
         ix_content.push_str("}\n");

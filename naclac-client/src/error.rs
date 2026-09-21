@@ -144,6 +144,36 @@ pub enum NaclacClientError {
     General(String),
 }
 
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `decode_custom_error` never panics for any `u32` — the one
+    /// subtraction (`code - 3000`) is guarded by the range check
+    /// immediately before it, so this also confirms that guard is actually
+    /// sufficient rather than just assumed to be.
+    #[kani::proof]
+    fn prove_decode_custom_error_never_panics() {
+        let code: u32 = kani::any();
+        let _ = decode_custom_error(code);
+    }
+
+    /// Correctness: whenever `decode_custom_error` returns `Some((error,
+    /// index))`, reconstructing the code from `error`/`index` via the same
+    /// formula `NaclacError::to_code` (naclac-core's encoder) uses must
+    /// recover the exact original `code` — proving this client-side decoder
+    /// is a true inverse of the on-chain encoder, not just a plausible-
+    /// looking approximation.
+    #[kani::proof]
+    fn prove_decode_custom_error_is_correct_inverse() {
+        let code: u32 = kani::any();
+        if let Some((error, index)) = decode_custom_error(code) {
+            let reconstructed = 3000 + (index as u32) * 100 + (error as u32);
+            assert_eq!(reconstructed, code, "decode must be a true inverse of the encoder");
+        }
+    }
+}
+
 /// Depth of the last "Program X invoke [N]" line in `logs` — the stack depth
 /// at which the actual failure most likely occurred. `1` means the top-level
 /// submitted instruction; anything deeper means the failure originated

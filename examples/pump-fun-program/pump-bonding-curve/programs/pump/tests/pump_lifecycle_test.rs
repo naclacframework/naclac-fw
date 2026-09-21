@@ -82,18 +82,12 @@ fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientErro
 
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new(CLUSTER, payer);
+    let provider = NaclacProvider::new(CLUSTER, payer).expect("Failed to construct NaclacProvider");
 
     // Only litesvm needs its own bytecode loaded by hand -- every other
     // cluster this test targets already has these programs genuinely
     // deployed (confirmed live on devnet at the time this file was written).
     if provider.cluster == RpcCluster::Litesvm {
-        let mut own_workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        own_workspace_root.pop(); // programs
-        own_workspace_root.pop(); // pump-bonding-curve workspace root
-        let pump_so = resolve_cargo_target_dir(&own_workspace_root).join("deploy/pump.so");
-        provider.add_program(&PROGRAM_ID, pump_so.to_str().unwrap()).expect("Failed to load pump.so");
-
         let mut mpl_so = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         mpl_so.pop(); // programs
         mpl_so.pop(); // pump-bonding-curve workspace root
@@ -379,6 +373,7 @@ fn ensure_admin_setup(provider: &NaclacProvider, global_pda: Address) -> [Addres
                 creator_fee_basis_points: global.creator_fee_basis_points,
                 set_creator_authority: payer_address,
                 admin_set_creator_authority: global.admin_set_creator_authority,
+                ..Default::default()
             },
             SetParamsAccounts { global: global_pda, authority: payer_address },
         )
@@ -412,6 +407,7 @@ fn ensure_admin_setup(provider: &NaclacProvider, global_pda: Address) -> [Addres
             creator_fee_basis_points: 0,
             set_creator_authority: payer_address,
             admin_set_creator_authority: Address::default(),
+            ..Default::default()
         },
         SetParamsAccounts { global: global_pda, authority: payer_address },
     )
@@ -583,15 +579,18 @@ fn ensure_fee_config_fixture(provider: &NaclacProvider) -> Address {
         if provider.get_account_data(&fee_config_pda).is_err() {
             let zero_tier = pump_fees_client::FeeTier {
                 market_cap_lamports_threshold: 0,
-                fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 0, creator_fee_bps: 0 },
+                fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 0, creator_fee_bps: 0, ..Default::default() },
+                ..Default::default()
             };
             let real_tier = pump_fees_client::FeeTier {
                 market_cap_lamports_threshold: 0,
-                fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 95, creator_fee_bps: 30 },
+                fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 95, creator_fee_bps: 30, ..Default::default() },
+                ..Default::default()
             };
             let stable_tier = pump_fees_client::FeeTier {
                 market_cap_lamports_threshold: 0,
-                fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 95, creator_fee_bps: 30 },
+                fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 95, creator_fee_bps: 30, ..Default::default() },
+                ..Default::default()
             };
             let mut fee_tiers = [zero_tier; 50];
             fee_tiers[0] = real_tier;
@@ -605,6 +604,7 @@ fn ensure_fee_config_fixture(provider: &NaclacProvider) -> Address {
                 stable_fee_tiers_len: 1,
                 bump,
                 admin: provider.payer.address(),
+                ..Default::default()
             };
             let mut data = pump_fees_client::FEECONFIG_DISCRIMINATOR.to_vec();
             data.extend_from_slice(bytemuck::bytes_of(&cfg));
@@ -885,6 +885,7 @@ fn buy(ctx: &TradeCtx, user: &Keypair, amount: u64) {
             buyback_index: 0,
             buyback_vault_bump: ctx.buyback_bump,
             bonding_curve_v2_bump,
+            ..Default::default()
         },
         BuyAccounts {
             global: ctx.global_pda,
@@ -954,6 +955,7 @@ fn sell(ctx: &TradeCtx, user: &Keypair, amount: u64) {
             buyback_index: 0,
             buyback_vault_bump: ctx.buyback_bump,
             bonding_curve_v2_bump,
+            ..Default::default()
         },
         SellAccounts {
             global: ctx.global_pda,
@@ -1023,11 +1025,11 @@ fn buy_v2(ctx: &TradeCtx, user: &Keypair, amount: u64) {
     }
     let (creator_vault_pda, creator_vault_bump) =
         Address::find_program_address(&[CREATOR_VAULT_SEED, ctx.creator.as_ref()], &PROGRAM_ID);
-    let (associated_creator_vault_pda, associated_creator_vault_bump) = Address::find_program_address(
+    let (associated_creator_vault_pda, _associated_creator_vault_bump) = Address::find_program_address(
         &[creator_vault_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    let (associated_quote_fee_recipient_pda, associated_quote_fee_recipient_bump) = Address::find_program_address(
+    let (associated_quote_fee_recipient_pda, _associated_quote_fee_recipient_bump) = Address::find_program_address(
         &[ctx.fee_recipient.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
@@ -1045,7 +1047,7 @@ fn buy_v2(ctx: &TradeCtx, user: &Keypair, amount: u64) {
         &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_user_volume_accumulator_pda, associated_user_volume_accumulator_bump) =
+    let (associated_user_volume_accumulator_pda, _associated_user_volume_accumulator_bump) =
         Address::find_program_address(
             &[user_volume_accumulator_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
             &ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -1066,14 +1068,12 @@ fn buy_v2(ctx: &TradeCtx, user: &Keypair, amount: u64) {
             associated_base_user_bump,
             associated_quote_user_bump,
             creator_vault_bump,
-            associated_creator_vault_bump,
-            associated_quote_fee_recipient_bump,
             associated_quote_buyback_fee_recipient_bump,
             user_volume_accumulator_bump,
-            associated_user_volume_accumulator_bump,
             fee_config_bump,
             buyback_index: 0,
             buyback_vault_bump: ctx.buyback_bump,
+            ..Default::default()
         },
         BuyV2Accounts {
             global: ctx.global_pda,
@@ -1136,11 +1136,11 @@ fn sell_v2(ctx: &TradeCtx, user: &Keypair, amount: u64) {
     );
     let (creator_vault_pda, creator_vault_bump) =
         Address::find_program_address(&[CREATOR_VAULT_SEED, ctx.creator.as_ref()], &PROGRAM_ID);
-    let (associated_creator_vault_pda, associated_creator_vault_bump) = Address::find_program_address(
+    let (associated_creator_vault_pda, _associated_creator_vault_bump) = Address::find_program_address(
         &[creator_vault_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    let (associated_quote_fee_recipient_pda, associated_quote_fee_recipient_bump) = Address::find_program_address(
+    let (associated_quote_fee_recipient_pda, _associated_quote_fee_recipient_bump) = Address::find_program_address(
         &[ctx.fee_recipient.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
@@ -1153,7 +1153,7 @@ fn sell_v2(ctx: &TradeCtx, user: &Keypair, amount: u64) {
         &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_user_volume_accumulator_pda, associated_user_volume_accumulator_bump) =
+    let (associated_user_volume_accumulator_pda, _associated_user_volume_accumulator_bump) =
         Address::find_program_address(
             &[user_volume_accumulator_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
             &ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -1174,14 +1174,12 @@ fn sell_v2(ctx: &TradeCtx, user: &Keypair, amount: u64) {
             associated_base_user_bump,
             associated_quote_user_bump,
             creator_vault_bump,
-            associated_creator_vault_bump,
-            associated_quote_fee_recipient_bump,
             associated_quote_buyback_fee_recipient_bump,
             user_volume_accumulator_bump,
-            associated_user_volume_accumulator_bump,
             fee_config_bump,
             buyback_index: 0,
             buyback_vault_bump: ctx.buyback_bump,
+            ..Default::default()
         },
         SellV2Accounts {
             global: ctx.global_pda,
@@ -1464,11 +1462,11 @@ fn full_lifecycle() {
 
     let (creator_vault_quote_pda, creator_vault_quote_bump) =
         Address::find_program_address(&[CREATOR_VAULT_SEED, creator.as_ref()], &PROGRAM_ID);
-    let (associated_creator_vault_quote_pda, associated_creator_vault_quote_bump) = Address::find_program_address(
+    let (associated_creator_vault_quote_pda, _associated_creator_vault_quote_bump) = Address::find_program_address(
         &[creator_vault_quote_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), mimic_sol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    let (associated_quote_fee_recipient_quote_pda, associated_quote_fee_recipient_quote_bump) = Address::find_program_address(
+    let (associated_quote_fee_recipient_quote_pda, _associated_quote_fee_recipient_quote_bump) = Address::find_program_address(
         &[fee_recipient.as_ref(), TOKEN_PROGRAM_ID.as_ref(), mimic_sol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
@@ -1483,7 +1481,7 @@ fn full_lifecycle() {
     let (global_volume_accumulator_pda, _) = get_global_volume_accumulator_pda(&PROGRAM_ID);
     let (user_volume_accumulator_quote_pda, user_volume_accumulator_quote_bump) =
         get_user_volume_accumulator_pda(&PROGRAM_ID, &trader.address());
-    let (associated_user_volume_accumulator_quote_pda, associated_user_volume_accumulator_quote_bump) =
+    let (associated_user_volume_accumulator_quote_pda, _associated_user_volume_accumulator_quote_bump) =
         Address::find_program_address(
             &[user_volume_accumulator_quote_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), mimic_sol_mint.as_ref()],
             &ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -1507,14 +1505,12 @@ fn full_lifecycle() {
             associated_base_user_bump: associated_base_trader_bump,
             associated_quote_user_bump: associated_quote_trader_bump,
             creator_vault_bump: creator_vault_quote_bump,
-            associated_creator_vault_bump: associated_creator_vault_quote_bump,
-            associated_quote_fee_recipient_bump: associated_quote_fee_recipient_quote_bump,
             associated_quote_buyback_fee_recipient_bump: associated_quote_buyback_fee_recipient_quote_bump,
             user_volume_accumulator_bump: user_volume_accumulator_quote_bump,
-            associated_user_volume_accumulator_bump: associated_user_volume_accumulator_quote_bump,
             fee_config_bump,
             buyback_index: 0,
             buyback_vault_bump: buyback_bump,
+            ..Default::default()
         },
         BuyV2Accounts {
             global: global_pda,
@@ -1652,6 +1648,7 @@ fn full_lifecycle() {
             pool_quote_token_account_bump,
             boost_vault_authority_bump,
             boost_vault_bump,
+            ..Default::default()
         },
         MigrateV2Accounts {
             global: global_pda,

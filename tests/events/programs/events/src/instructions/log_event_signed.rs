@@ -16,7 +16,6 @@ pub struct LogEventSigned {
     pub event_authority: AccountInfo,
 }
 
-#[instruction]
 pub fn log_event_signed(_ctx: Context<LogEventSigned>, _data: [u8; 8]) -> Result {
     Ok(())
 }

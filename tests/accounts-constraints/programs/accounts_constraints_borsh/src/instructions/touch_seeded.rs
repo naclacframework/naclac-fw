@@ -13,7 +13,6 @@ pub struct TouchSeeded {
     pub seeded: Account<SeededThing>,
 }
 
-#[instruction]
 pub fn touch_seeded(ctx: Context<TouchSeeded>, _bump: u8) -> Result {
     ctx.accounts.seeded.value += 1;
     Ok(())

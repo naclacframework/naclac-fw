@@ -21,7 +21,6 @@ pub struct CheckVaultConstraints {
     pub vault: Account<TokenAccount>,
 }
 
-#[instruction]
 pub fn check_vault_constraints(_ctx: Context<CheckVaultConstraints>) -> Result {
     Ok(())
 }

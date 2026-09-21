@@ -15,7 +15,6 @@ pub struct CallSystemTransfer {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn call_system_transfer(ctx: Context<CallSystemTransfer>, amount: u64) -> Result {
     ctx.accounts.system_program.transfer(
         SystemTransferAccounts {

@@ -16,7 +16,6 @@ pub struct TouchConfigEntryBareBumpWithArgs {
     pub config_entry: Account<ConfigEntry>,
 }
 
-#[instruction]
 pub fn touch_config_entry_bare_bump_with_args(
     ctx: Context<TouchConfigEntryBareBumpWithArgs>,
     is_pump_pool: Bool,

@@ -100,24 +100,6 @@ pub enum ExternalPluginAdapterSchemaArg {
     MsgPack,
 }
 
-#[cfg(not(feature = "pinocchio"))]
-pub(crate) fn to_real_schema(
-    schema: ExternalPluginAdapterSchemaArg,
-) -> ::mpl_core::types::ExternalPluginAdapterSchema {
-    match schema {
-        ExternalPluginAdapterSchemaArg::Binary => {
-            ::mpl_core::types::ExternalPluginAdapterSchema::Binary
-        }
-        ExternalPluginAdapterSchemaArg::Json => {
-            ::mpl_core::types::ExternalPluginAdapterSchema::Json
-        }
-        ExternalPluginAdapterSchemaArg::MsgPack => {
-            ::mpl_core::types::ExternalPluginAdapterSchema::MsgPack
-        }
-    }
-}
-
-#[cfg(feature = "pinocchio")]
 pub(crate) fn schema_tag(schema: ExternalPluginAdapterSchemaArg) -> u8 {
     match schema {
         ExternalPluginAdapterSchemaArg::Binary => 0,
@@ -135,20 +117,34 @@ pub enum LinkedDataKeyArg {
     LinkedAppData(PluginAuthorityArg),
 }
 
+/// Maximum Borsh-encoded width of a `LinkedDataKeyArg`/`LinkedDataKey`
+/// value: 1-byte tag + the wider of a 32-byte `Address` or a
+/// `PluginAuthority` (`MAX_PLUGIN_AUTHORITY_ENCODED_LEN`).
+#[cfg(feature = "pinocchio")]
+pub(crate) const MAX_LINKED_DATA_KEY_ENCODED_LEN: usize = 1 + MAX_PLUGIN_AUTHORITY_ENCODED_LEN;
+
+/// `solana`-only mirror of `encode_linked_data_key`, writing directly into
+/// a heap `Vec<u8>` instead of through the `pinocchio`-only `ByteSink`
+/// machinery.
 #[cfg(not(feature = "pinocchio"))]
-pub(crate) fn to_real_linked_data_key(key: LinkedDataKeyArg) -> ::mpl_core::types::LinkedDataKey {
+pub(crate) fn encode_linked_data_key_owned(data: &mut crate::prelude::Vec<u8>, key: LinkedDataKeyArg) {
     match key {
         LinkedDataKeyArg::LinkedLifecycleHook(addr) => {
-            ::mpl_core::types::LinkedDataKey::LinkedLifecycleHook(addr)
+            data.push(0u8);
+            data.extend_from_slice(addr.as_ref());
         }
         LinkedDataKeyArg::LinkedAppData(auth) => {
-            ::mpl_core::types::LinkedDataKey::LinkedAppData(to_real_plugin_authority(auth))
+            data.push(1u8);
+            encode_plugin_authority_owned(data, auth);
         }
     }
 }
 
 #[cfg(feature = "pinocchio")]
-pub(crate) fn encode_linked_data_key(data: &mut crate::prelude::Vec<u8>, key: LinkedDataKeyArg) {
+pub(crate) fn encode_linked_data_key<S: crate::fixed_buf::ByteSink>(
+    data: &mut S,
+    key: LinkedDataKeyArg,
+) {
     match key {
         LinkedDataKeyArg::LinkedLifecycleHook(addr) => {
             data.push(0u8);
@@ -178,41 +174,52 @@ pub enum ExternalPluginAdapterKeyArg {
     AgentIdentity,
 }
 
+/// Maximum Borsh-encoded width of an `ExternalPluginAdapterKeyArg`/
+/// `ExternalPluginAdapterKey` value — the `DataSection` variant (1-byte
+/// outer tag + a full `LinkedDataKeyArg`) is the widest.
+#[cfg(feature = "pinocchio")]
+pub(crate) const MAX_EXTERNAL_KEY_ENCODED_LEN: usize = 1 + MAX_LINKED_DATA_KEY_ENCODED_LEN;
+
+/// `solana`-only mirror of `encode_key`, writing directly into a heap
+/// `Vec<u8>` instead of through the `pinocchio`-only `ByteSink` machinery.
 #[cfg(not(feature = "pinocchio"))]
-pub(crate) fn to_real_key(
-    key: ExternalPluginAdapterKeyArg,
-) -> ::mpl_core::types::ExternalPluginAdapterKey {
+pub(crate) fn encode_key_owned(data: &mut crate::prelude::Vec<u8>, key: ExternalPluginAdapterKeyArg) {
     match key {
         ExternalPluginAdapterKeyArg::LifecycleHook(addr) => {
-            ::mpl_core::types::ExternalPluginAdapterKey::LifecycleHook(addr)
+            data.push(0u8);
+            data.extend_from_slice(addr.as_ref());
         }
         ExternalPluginAdapterKeyArg::Oracle(addr) => {
-            ::mpl_core::types::ExternalPluginAdapterKey::Oracle(addr)
+            data.push(1u8);
+            data.extend_from_slice(addr.as_ref());
         }
         ExternalPluginAdapterKeyArg::AppData(auth) => {
-            ::mpl_core::types::ExternalPluginAdapterKey::AppData(to_real_plugin_authority(auth))
+            data.push(2u8);
+            encode_plugin_authority_owned(data, auth);
         }
         ExternalPluginAdapterKeyArg::LinkedLifecycleHook(addr) => {
-            ::mpl_core::types::ExternalPluginAdapterKey::LinkedLifecycleHook(addr)
+            data.push(3u8);
+            data.extend_from_slice(addr.as_ref());
         }
         ExternalPluginAdapterKeyArg::LinkedAppData(auth) => {
-            ::mpl_core::types::ExternalPluginAdapterKey::LinkedAppData(to_real_plugin_authority(
-                auth,
-            ))
+            data.push(4u8);
+            encode_plugin_authority_owned(data, auth);
         }
         ExternalPluginAdapterKeyArg::DataSection(linked_key) => {
-            ::mpl_core::types::ExternalPluginAdapterKey::DataSection(to_real_linked_data_key(
-                linked_key,
-            ))
+            data.push(5u8);
+            encode_linked_data_key_owned(data, linked_key);
         }
         ExternalPluginAdapterKeyArg::AgentIdentity => {
-            ::mpl_core::types::ExternalPluginAdapterKey::AgentIdentity
+            data.push(6u8);
         }
     }
 }
 
 #[cfg(feature = "pinocchio")]
-pub(crate) fn encode_key(data: &mut crate::prelude::Vec<u8>, key: ExternalPluginAdapterKeyArg) {
+pub(crate) fn encode_key<S: crate::fixed_buf::ByteSink>(
+    data: &mut S,
+    key: ExternalPluginAdapterKeyArg,
+) {
     match key {
         ExternalPluginAdapterKeyArg::LifecycleHook(addr) => {
             data.push(0u8);
@@ -244,132 +251,184 @@ pub(crate) fn encode_key(data: &mut crate::prelude::Vec<u8>, key: ExternalPlugin
     }
 }
 
-/// `solana`-only: attaches an external plugin adapter to an `Asset` via a
-/// real `AddExternalPluginAdapterV1` CPI (discriminator `22`). See this
-/// file's header — `init_info` must not be `LinkedLifecycleHook`/
-/// `LinkedAppData`/`DataSection`, the real processor rejects all three.
-#[cfg(not(feature = "pinocchio"))]
-pub fn add_asset_external_adapter_signed(
-    program: CpiHandle<'_>,
-    accounts: AddAssetPluginAccounts<'_>,
-    init_info: ::mpl_core::types::ExternalPluginAdapterInitInfo,
-    signer_seeds: &[&[&[u8]]],
-) -> Result<()> {
-    let ix = ::mpl_core::instructions::AddExternalPluginAdapterV1 {
-        asset: accounts.asset.address(),
-        collection: accounts.collection.as_ref().map(|c| c.address()),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(::mpl_core::instructions::AddExternalPluginAdapterV1InstructionArgs {
-        init_info,
-    });
-
-    let cpi_accounts = [
-        CpiHandle::from(accounts.asset),
-        accounts
-            .collection
-            .map(CpiHandle::from)
-            .unwrap_or_else(|| program.clone()),
-        CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
-        accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
-        program,
-    ];
-    crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
-}
-
-/// `pinocchio`-only: attaches an external plugin adapter to an `Asset` via
-/// a hand-built `AddExternalPluginAdapterV1` CPI. `init_info_bytes` is the
-/// already tag-and-payload-encoded `ExternalPluginAdapterInitInfo` value
+/// Attaches an external plugin adapter to an `Asset` via a real
+/// `AddExternalPluginAdapterV1` CPI (discriminator `22`). `ix_data` is the
+/// complete, already-encoded instruction data — discriminator `22` followed
+/// by the tag-and-payload-encoded `ExternalPluginAdapterInitInfo` value
 /// (same 7-variant tag scheme as `ExternalPluginAdapterKeyArg`, since
-/// `InitInfo` and `Key` share the same variant set — verified from the
-/// real SDK, unlike `UpdateInfo` which omits `DataSection`).
-#[cfg(feature = "pinocchio")]
+/// `InitInfo` and `Key` share the same variant set — verified from the real
+/// SDK, unlike `UpdateInfo` which omits `DataSection`) — built by the
+/// caller, identically on both backends. See this file's header —
+/// `init_info` must not be `LinkedLifecycleHook`/`LinkedAppData`/
+/// `DataSection`, the real processor rejects all three.
 pub fn add_asset_external_adapter_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
-    init_info_bytes: &[u8],
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(1 + init_info_bytes.len());
-    data.push(22u8); // AddExternalPluginAdapterV1 discriminator
-    data.extend_from_slice(init_info_bytes);
-    add_asset_plugin_signed_pinocchio_raw(program, accounts, &data, signer_seeds)
-}
-
-/// `solana`-only: attaches an external plugin adapter to a `Collection`
-/// via a real `AddCollectionExternalPluginAdapterV1` CPI (discriminator
-/// `23`).
-#[cfg(not(feature = "pinocchio"))]
-pub fn add_collection_external_adapter_signed(
-    program: CpiHandle<'_>,
-    accounts: AddCollectionPluginAccounts<'_>,
-    init_info: ::mpl_core::types::ExternalPluginAdapterInitInfo,
-    signer_seeds: &[&[&[u8]]],
-) -> Result<()> {
-    let ix = ::mpl_core::instructions::AddCollectionExternalPluginAdapterV1 {
-        collection: accounts.collection.address(),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
+    #[cfg(not(feature = "pinocchio"))]
+    {
+        add_asset_plugin_signed_raw(program, accounts, ix_data, signer_seeds)
     }
-    .instruction(
-        ::mpl_core::instructions::AddCollectionExternalPluginAdapterV1InstructionArgs {
-            init_info,
-        },
-    );
-
-    let cpi_accounts = [
-        CpiHandle::from(accounts.collection),
-        CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
-        accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
-        program,
-    ];
-    crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
+    #[cfg(feature = "pinocchio")]
+    {
+        add_asset_plugin_signed_pinocchio_raw(program, accounts, ix_data, signer_seeds)
+    }
 }
 
-/// `pinocchio`-only: attaches an external plugin adapter to a `Collection`
-/// via a hand-built `AddCollectionExternalPluginAdapterV1` CPI.
-#[cfg(feature = "pinocchio")]
+/// Attaches an external plugin adapter to a `Collection` via a real
+/// `AddCollectionExternalPluginAdapterV1` CPI (discriminator `23`).
+/// `ix_data` is the complete instruction data (discriminator `23` + init
+/// info), built by the caller — see `add_asset_external_adapter_signed`.
 pub fn add_collection_external_adapter_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    init_info_bytes: &[u8],
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(1 + init_info_bytes.len());
-    data.push(23u8); // AddCollectionExternalPluginAdapterV1 discriminator
-    data.extend_from_slice(init_info_bytes);
-    add_collection_plugin_signed_pinocchio_raw(program, accounts, &data, signer_seeds)
+    #[cfg(not(feature = "pinocchio"))]
+    {
+        add_collection_plugin_signed_raw(program, accounts, ix_data, signer_seeds)
+    }
+    #[cfg(feature = "pinocchio")]
+    {
+        add_collection_plugin_signed_pinocchio_raw(program, accounts, ix_data, signer_seeds)
+    }
 }
 
-/// `solana`-only: removes an adapter identified by `key` from an `Asset`
-/// via a real `RemoveExternalPluginAdapterV1` CPI.
-#[cfg(not(feature = "pinocchio"))]
+/// Removes an adapter identified by `key` from an `Asset` via a real
+/// `RemoveExternalPluginAdapterV1` CPI (discriminator `24`).
 pub fn remove_asset_external_adapter_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     key: ExternalPluginAdapterKeyArg,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let ix = ::mpl_core::instructions::RemoveExternalPluginAdapterV1 {
-        asset: accounts.asset.address(),
-        collection: accounts.collection.as_ref().map(|c| c.address()),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
+    #[cfg(not(feature = "pinocchio"))]
+    {
+        let mut data = crate::prelude::Vec::new();
+        data.push(24u8); // RemoveExternalPluginAdapterV1 discriminator
+        encode_key_owned(&mut data, key);
+        add_asset_plugin_signed_raw(program, accounts, &data, signer_seeds)
     }
-    .instruction(::mpl_core::instructions::RemoveExternalPluginAdapterV1InstructionArgs {
-        key: to_real_key(key),
-    });
+    #[cfg(feature = "pinocchio")]
+    {
+        let mut data = crate::fixed_buf::FixedBuf::<{ 1 + MAX_EXTERNAL_KEY_ENCODED_LEN }>::new();
+        data.push(24u8); // RemoveExternalPluginAdapterV1 discriminator
+        encode_key(&mut data, key);
+        add_asset_plugin_signed_pinocchio_raw(program, accounts, data.as_slice(), signer_seeds)
+    }
+}
+
+/// Removes an adapter identified by `key` from a `Collection` via a real
+/// `RemoveCollectionExternalPluginAdapterV1` CPI (discriminator `25`).
+pub fn remove_collection_external_adapter_signed(
+    program: CpiHandle<'_>,
+    accounts: AddCollectionPluginAccounts<'_>,
+    key: ExternalPluginAdapterKeyArg,
+    signer_seeds: &[&[&[u8]]],
+) -> Result<()> {
+    #[cfg(not(feature = "pinocchio"))]
+    {
+        let mut data = crate::prelude::Vec::new();
+        data.push(25u8); // RemoveCollectionExternalPluginAdapterV1 discriminator
+        encode_key_owned(&mut data, key);
+        add_collection_plugin_signed_raw(program, accounts, &data, signer_seeds)
+    }
+    #[cfg(feature = "pinocchio")]
+    {
+        let mut data = crate::fixed_buf::FixedBuf::<{ 1 + MAX_EXTERNAL_KEY_ENCODED_LEN }>::new();
+        data.push(25u8); // RemoveCollectionExternalPluginAdapterV1 discriminator
+        encode_key(&mut data, key);
+        add_collection_plugin_signed_pinocchio_raw(program, accounts, data.as_slice(), signer_seeds)
+    }
+}
+
+/// Updates an `Asset`'s adapter identified by `key` via a real
+/// `UpdateExternalPluginAdapterV1` CPI (discriminator `26`). `ix_data` is
+/// the complete instruction data — discriminator `26` + encoded `key` + the
+/// Borsh-tag-and-payload-encoded `ExternalPluginAdapterUpdateInfo` value
+/// (the tag scheme here has only 6 variants — no `DataSection` — see this
+/// file's header for why `DataSection` can't be updated directly either) —
+/// built by the caller, identically on both backends.
+pub fn update_asset_external_adapter_signed(
+    program: CpiHandle<'_>,
+    accounts: AddAssetPluginAccounts<'_>,
+    ix_data: &[u8],
+    signer_seeds: &[&[&[u8]]],
+) -> Result<()> {
+    #[cfg(not(feature = "pinocchio"))]
+    {
+        add_asset_plugin_signed_raw(program, accounts, ix_data, signer_seeds)
+    }
+    #[cfg(feature = "pinocchio")]
+    {
+        add_asset_plugin_signed_pinocchio_raw(program, accounts, ix_data, signer_seeds)
+    }
+}
+
+/// Updates a `Collection`'s adapter identified by `key` via a real
+/// `UpdateCollectionExternalPluginAdapterV1` CPI (discriminator `27`).
+/// `ix_data` is the complete instruction data (discriminator `27` + encoded
+/// `key` + update info), built by the caller — see
+/// `update_asset_external_adapter_signed`.
+pub fn update_collection_external_adapter_signed(
+    program: CpiHandle<'_>,
+    accounts: AddCollectionPluginAccounts<'_>,
+    ix_data: &[u8],
+    signer_seeds: &[&[&[u8]]],
+) -> Result<()> {
+    #[cfg(not(feature = "pinocchio"))]
+    {
+        add_collection_plugin_signed_raw(program, accounts, ix_data, signer_seeds)
+    }
+    #[cfg(feature = "pinocchio")]
+    {
+        add_collection_plugin_signed_pinocchio_raw(program, accounts, ix_data, signer_seeds)
+    }
+}
+
+/// `solana`-only: shared account-list/CPI-invoke mechanics for asset-level
+/// external-adapter instructions with already-encoded `data` bytes and the
+/// `AddPluginV1`-shaped account list (`AddAssetPluginAccounts`) — same
+/// account order/flags as `plugin.rs`'s `add_asset_plugin_signed`.
+#[cfg(not(feature = "pinocchio"))]
+fn add_asset_plugin_signed_raw(
+    program: CpiHandle<'_>,
+    accounts: AddAssetPluginAccounts<'_>,
+    data: &[u8],
+    signer_seeds: &[&[&[u8]]],
+) -> Result<()> {
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+        match &accounts.collection {
+            Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: data.to_vec(),
+    };
 
     let cpi_accounts = [
         CpiHandle::from(accounts.asset),
@@ -386,42 +445,41 @@ pub fn remove_asset_external_adapter_signed(
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
 }
 
-/// `pinocchio`-only: removes an adapter identified by `key` from an
-/// `Asset` via a hand-built `RemoveExternalPluginAdapterV1` CPI.
-#[cfg(feature = "pinocchio")]
-pub fn remove_asset_external_adapter_signed(
-    program: CpiHandle<'_>,
-    accounts: AddAssetPluginAccounts<'_>,
-    key: ExternalPluginAdapterKeyArg,
-    signer_seeds: &[&[&[u8]]],
-) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(35);
-    data.push(24u8); // RemoveExternalPluginAdapterV1 discriminator
-    encode_key(&mut data, key);
-    add_asset_plugin_signed_pinocchio_raw(program, accounts, &data, signer_seeds)
-}
-
-/// `solana`-only: removes an adapter identified by `key` from a
-/// `Collection` via a real `RemoveCollectionExternalPluginAdapterV1` CPI.
+/// `solana`-only: shared account-list/CPI-invoke mechanics for
+/// collection-level external-adapter instructions — see
+/// `add_asset_plugin_signed_raw`.
 #[cfg(not(feature = "pinocchio"))]
-pub fn remove_collection_external_adapter_signed(
+fn add_collection_plugin_signed_raw(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    key: ExternalPluginAdapterKeyArg,
+    data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let ix = ::mpl_core::instructions::RemoveCollectionExternalPluginAdapterV1 {
-        collection: accounts.collection.address(),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(
-        ::mpl_core::instructions::RemoveCollectionExternalPluginAdapterV1InstructionArgs {
-            key: to_real_key(key),
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-    );
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: data.to_vec(),
+    };
 
     let cpi_accounts = [
         CpiHandle::from(accounts.collection),
@@ -432,134 +490,6 @@ pub fn remove_collection_external_adapter_signed(
         program,
     ];
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
-}
-
-/// `pinocchio`-only: removes an adapter identified by `key` from a
-/// `Collection` via a hand-built `RemoveCollectionExternalPluginAdapterV1`
-/// CPI.
-#[cfg(feature = "pinocchio")]
-pub fn remove_collection_external_adapter_signed(
-    program: CpiHandle<'_>,
-    accounts: AddCollectionPluginAccounts<'_>,
-    key: ExternalPluginAdapterKeyArg,
-    signer_seeds: &[&[&[u8]]],
-) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(35);
-    data.push(25u8); // RemoveCollectionExternalPluginAdapterV1 discriminator
-    encode_key(&mut data, key);
-    add_collection_plugin_signed_pinocchio_raw(program, accounts, &data, signer_seeds)
-}
-
-/// `solana`-only: updates an `Asset`'s adapter identified by `key` via a
-/// real `UpdateExternalPluginAdapterV1` CPI (discriminator `26`).
-#[cfg(not(feature = "pinocchio"))]
-pub fn update_asset_external_adapter_signed(
-    program: CpiHandle<'_>,
-    accounts: AddAssetPluginAccounts<'_>,
-    key: ExternalPluginAdapterKeyArg,
-    update_info: ::mpl_core::types::ExternalPluginAdapterUpdateInfo,
-    signer_seeds: &[&[&[u8]]],
-) -> Result<()> {
-    let ix = ::mpl_core::instructions::UpdateExternalPluginAdapterV1 {
-        asset: accounts.asset.address(),
-        collection: accounts.collection.as_ref().map(|c| c.address()),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(::mpl_core::instructions::UpdateExternalPluginAdapterV1InstructionArgs {
-        key: to_real_key(key),
-        update_info,
-    });
-
-    let cpi_accounts = [
-        CpiHandle::from(accounts.asset),
-        accounts
-            .collection
-            .map(CpiHandle::from)
-            .unwrap_or_else(|| program.clone()),
-        CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
-        accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
-        program,
-    ];
-    crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
-}
-
-/// `pinocchio`-only: updates an `Asset`'s adapter identified by `key` via a
-/// hand-built `UpdateExternalPluginAdapterV1` CPI. `update_info_bytes` is
-/// the already Borsh-tag-and-payload-encoded `ExternalPluginAdapterUpdateInfo`
-/// value (the tag scheme here has only 6 variants — no `DataSection` — see
-/// this file's header for why `DataSection` can't be updated directly
-/// either).
-#[cfg(feature = "pinocchio")]
-pub fn update_asset_external_adapter_signed(
-    program: CpiHandle<'_>,
-    accounts: AddAssetPluginAccounts<'_>,
-    key: ExternalPluginAdapterKeyArg,
-    update_info_bytes: &[u8],
-    signer_seeds: &[&[&[u8]]],
-) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(35 + update_info_bytes.len());
-    data.push(26u8); // UpdateExternalPluginAdapterV1 discriminator
-    encode_key(&mut data, key);
-    data.extend_from_slice(update_info_bytes);
-    add_asset_plugin_signed_pinocchio_raw(program, accounts, &data, signer_seeds)
-}
-
-/// `solana`-only: updates a `Collection`'s adapter identified by `key` via
-/// a real `UpdateCollectionExternalPluginAdapterV1` CPI (discriminator
-/// `27`).
-#[cfg(not(feature = "pinocchio"))]
-pub fn update_collection_external_adapter_signed(
-    program: CpiHandle<'_>,
-    accounts: AddCollectionPluginAccounts<'_>,
-    key: ExternalPluginAdapterKeyArg,
-    update_info: ::mpl_core::types::ExternalPluginAdapterUpdateInfo,
-    signer_seeds: &[&[&[u8]]],
-) -> Result<()> {
-    let ix = ::mpl_core::instructions::UpdateCollectionExternalPluginAdapterV1 {
-        collection: accounts.collection.address(),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(
-        ::mpl_core::instructions::UpdateCollectionExternalPluginAdapterV1InstructionArgs {
-            key: to_real_key(key),
-            update_info,
-        },
-    );
-
-    let cpi_accounts = [
-        CpiHandle::from(accounts.collection),
-        CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
-        accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
-        program,
-    ];
-    crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
-}
-
-/// `pinocchio`-only: updates a `Collection`'s adapter identified by `key`
-/// via a hand-built `UpdateCollectionExternalPluginAdapterV1` CPI.
-#[cfg(feature = "pinocchio")]
-pub fn update_collection_external_adapter_signed(
-    program: CpiHandle<'_>,
-    accounts: AddCollectionPluginAccounts<'_>,
-    key: ExternalPluginAdapterKeyArg,
-    update_info_bytes: &[u8],
-    signer_seeds: &[&[&[u8]]],
-) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(35 + update_info_bytes.len());
-    data.push(27u8); // UpdateCollectionExternalPluginAdapterV1 discriminator
-    encode_key(&mut data, key);
-    data.extend_from_slice(update_info_bytes);
-    add_collection_plugin_signed_pinocchio_raw(program, accounts, &data, signer_seeds)
 }
 
 /// `pinocchio`-only: shared account-list/CPI-invoke mechanics for
@@ -691,22 +621,53 @@ pub fn write_asset_external_adapter_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::WriteExternalPluginAdapterDataV1 {
-            asset: accounts.asset.address(),
-            collection: accounts.collection.as_ref().map(|c| c.address()),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            buffer: accounts.buffer.as_ref().map(|b| b.address()),
-            system_program: accounts.system_program.address(),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
+        let mut data = crate::prelude::Vec::new();
+        data.push(28u8); // WriteExternalPluginAdapterDataV1 discriminator
+        encode_key_owned(&mut data, key);
+        match write_data {
+            WriteData::Inline(bytes) => {
+                data.push(1u8);
+                data.extend_from_slice(&(bytes.len() as u32).to_le_bytes());
+                data.extend_from_slice(bytes);
+            }
+            WriteData::Buffer => data.push(0u8),
         }
-        .instruction(::mpl_core::instructions::WriteExternalPluginAdapterDataV1InstructionArgs {
-            key: to_real_key(key),
-            data: match write_data {
-                WriteData::Inline(bytes) => Some(bytes.to_vec()),
-                WriteData::Buffer => None,
+
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+            match &accounts.collection {
+                Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-        });
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.buffer {
+                Some(b) => {
+                    solana_program::instruction::AccountMeta::new_readonly(b.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.system_program.address(),
+                false,
+            ),
+            match &accounts.log_wrapper {
+                Some(l) => {
+                    solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data,
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.asset),
@@ -812,23 +773,49 @@ pub fn write_collection_external_adapter_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::WriteCollectionExternalPluginAdapterDataV1 {
-            collection: accounts.collection.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            buffer: accounts.buffer.as_ref().map(|b| b.address()),
-            system_program: accounts.system_program.address(),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
+        let mut data = crate::prelude::Vec::new();
+        data.push(29u8); // WriteCollectionExternalPluginAdapterDataV1 discriminator
+        encode_key_owned(&mut data, key);
+        match write_data {
+            WriteData::Inline(bytes) => {
+                data.push(1u8);
+                data.extend_from_slice(&(bytes.len() as u32).to_le_bytes());
+                data.extend_from_slice(bytes);
+            }
+            WriteData::Buffer => data.push(0u8),
         }
-        .instruction(
-            ::mpl_core::instructions::WriteCollectionExternalPluginAdapterDataV1InstructionArgs {
-                key: to_real_key(key),
-                data: match write_data {
-                    WriteData::Inline(bytes) => Some(bytes.to_vec()),
-                    WriteData::Buffer => None,
-                },
+
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-        );
+            match &accounts.buffer {
+                Some(b) => {
+                    solana_program::instruction::AccountMeta::new_readonly(b.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.system_program.address(),
+                false,
+            ),
+            match &accounts.log_wrapper {
+                Some(l) => {
+                    solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data,
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.collection),

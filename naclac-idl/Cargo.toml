@@ -10,8 +10,10 @@ description = "IDL (Interface Definition Language) generation and parsing for Na
 naclac-syn = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true, features = ["preserve_order"] }
-sha2 = { workspace = true }
 heck = { workspace = true }
 solana-address = { workspace = true }
 solana-instruction = { workspace = true }
 solana-system-interface = { workspace = true }
+
+[lints]
+workspace = true

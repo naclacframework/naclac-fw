@@ -8,8 +8,8 @@ export const SET_METAPLEX_CREATOR_DISCRIMINATOR = new Uint8Array([138, 96, 174, 
 
 /** Instruction arguments for `setMetaplexCreator`. */
 export interface SetMetaplexCreatorArgs {
-  metadata_bump: number;
-  bonding_curve_bump: number;
+  metadataBump: number;
+  bondingCurveBump: number;
 }
 
 /** Accounts for the `setMetaplexCreator` instruction. */
@@ -27,7 +27,7 @@ export interface SetMetaplexCreatorAccounts {
    * validation) is read manually via `read_first_metaplex_creator`.
    */
   metadata?: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
 }
 
 /**

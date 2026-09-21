@@ -20,7 +20,6 @@ pub struct CreateConfig {
 /// (both gated on `global_config.admin`, set here) enable them separately,
 /// matching real `create_config`'s own args, which don't include boost
 /// fields at all.
-#[instruction]
 pub fn create_config(ctx: Context<CreateConfig>) -> Result {
     let global_config = &mut ctx.accounts.global_config;
     global_config.admin = ctx.accounts.admin.address();

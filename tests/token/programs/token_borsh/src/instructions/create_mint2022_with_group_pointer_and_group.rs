@@ -58,7 +58,6 @@ const MINT_WITH_GROUP_POINTER_SPACE: u64 = 82 + 83 + 1 + 4 + 64;
 /// headroom keeps the grow rent-exempt.
 const MINT_WITH_GROUP_POINTER_AND_GROUP_FUNDED_SPACE: usize = 400;
 
-#[instruction]
 pub fn create_mint2022_with_group_pointer_and_group(
     ctx: Context<CreateMint2022WithGroupPointerAndGroup>,
     args: CreateMint2022WithGroupPointerAndGroupArgs,

@@ -8,7 +8,7 @@ describe("Naclac CounterZc Test Suite (Kit)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterZcClient("localnet", payer);
+    client = new CounterZcClient("litesvm", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 

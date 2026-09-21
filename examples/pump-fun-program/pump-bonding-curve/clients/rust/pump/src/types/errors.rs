@@ -61,6 +61,12 @@ pub enum ProgramError {
     MayhemModeDisabled,
     /// buyback fee recipients require exactly 8 remaining accounts (or none)
     WrongBuybackFeeRecipientsCount,
+    /// Bonding curve creator does not match sharing config
+    BondingCurveAndSharingConfigCreatorMismatch,
+    /// creator_vault has been migrated to sharing config, use distribute_creator_fees(_v2) instead
+    UnableToDistributeCreatorVaultMigratedToSharingConfig,
+    /// The recipient account is executable, so it cannot receive lamports; remove it from the team first
+    UnableToDistributeCreatorFeesToExecutableRecipient,
 }
 
 impl ProgramError {
@@ -95,6 +101,9 @@ impl ProgramError {
             6026 => Some(Self::CashbackNotEnabled),
             6027 => Some(Self::MayhemModeDisabled),
             6028 => Some(Self::WrongBuybackFeeRecipientsCount),
+            6029 => Some(Self::BondingCurveAndSharingConfigCreatorMismatch),
+            6030 => Some(Self::UnableToDistributeCreatorVaultMigratedToSharingConfig),
+            6031 => Some(Self::UnableToDistributeCreatorFeesToExecutableRecipient),
             _ => None,
         }
     }
@@ -130,6 +139,9 @@ impl ProgramError {
             Self::CashbackNotEnabled => "Cashback is not enabled",
             Self::MayhemModeDisabled => "Mayhem mode is not enabled by the admin",
             Self::WrongBuybackFeeRecipientsCount => "buyback fee recipients require exactly 8 remaining accounts (or none)",
+            Self::BondingCurveAndSharingConfigCreatorMismatch => "Bonding curve creator does not match sharing config",
+            Self::UnableToDistributeCreatorVaultMigratedToSharingConfig => "creator_vault has been migrated to sharing config, use distribute_creator_fees(_v2) instead",
+            Self::UnableToDistributeCreatorFeesToExecutableRecipient => "The recipient account is executable, so it cannot receive lamports; remove it from the team first",
         }
     }
 }

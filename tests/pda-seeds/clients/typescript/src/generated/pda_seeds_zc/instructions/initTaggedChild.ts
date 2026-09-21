@@ -15,8 +15,8 @@ export interface InitTaggedChildArgs {
 export interface InitTaggedChildAccounts {
   payer: naclac.Address | string;
   registry: naclac.Address | string;
-  tagged_child?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  taggedChild?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

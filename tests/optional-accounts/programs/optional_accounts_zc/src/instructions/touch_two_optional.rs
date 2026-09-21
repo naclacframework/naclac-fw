@@ -14,7 +14,6 @@ pub struct TouchTwoOptional {
     pub thing_b: Option<Account<Thing>>,
 }
 
-#[instruction]
 pub fn touch_two_optional(ctx: Context<TouchTwoOptional>) -> Result {
     if let Some(thing_a) = ctx.accounts.thing_a.as_mut() {
         thing_a.value += 1;

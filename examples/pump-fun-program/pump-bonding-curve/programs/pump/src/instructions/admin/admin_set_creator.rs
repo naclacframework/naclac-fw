@@ -20,7 +20,6 @@ pub struct AdminSetCreator {
     pub bonding_curve: Account<BondingCurve>,
 }
 
-#[instruction]
 pub fn admin_set_creator(
     ctx: Context<AdminSetCreator>,
     creator: Address,

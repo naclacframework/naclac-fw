@@ -6,8 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-pda_seeds = "G2V85CrtmdvgCCTr1e38gSWhw4Leo5p9EYM89bFNrPAa"
-pda_seeds_zc = "8SNGg4Fq9Xevbkgh8X1vjm1GUHNBYfmAeV1t3YUkvove"
+pda_seeds = "2tRXuaWn92zA5D4ftmsu693hXg3FXUVymLcqDkPrE27A"
+pda_seeds_zc = "8rGbMNujqAmfaNfGAyMz5jC9LKcLaWbieK1tnN3NLENq"
 
 [provider]
 cluster = "localnet"

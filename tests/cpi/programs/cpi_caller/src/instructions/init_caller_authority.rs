@@ -18,7 +18,6 @@ pub struct InitCallerAuthority {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_caller_authority(ctx: Context<InitCallerAuthority>) -> Result {
     // Bare `bump`'s auto-write-back is zero-copy-only (see the same
     // gotcha, fixed the same way, in tests/token/'s init_mint_authority

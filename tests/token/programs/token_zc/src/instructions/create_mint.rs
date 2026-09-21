@@ -37,7 +37,6 @@ pub struct CreateMint {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn create_mint(_ctx: Context<CreateMint>, _id: u64, _mint_bump: u8, _decimals: u8) -> Result {
     Ok(())
 }

@@ -118,31 +118,60 @@ pub fn execute_signed(
 
     #[cfg(not(feature = "pinocchio"))]
     {
-        let remaining_metas: crate::prelude::Vec<solana_program::instruction::AccountMeta> =
-            remaining_accounts
-                .iter()
-                .map(|a| solana_program::instruction::AccountMeta {
-                    pubkey: a.handle.address(),
-                    is_signer: a.is_signer,
-                    is_writable: a.is_writable,
-                })
-                .collect();
+        // ExecuteV1 wire format verified against the real `mpl-core` crate's
+        // own generated `instructions/execute_v1.rs`: discriminator(1) +
+        // `instruction_data: Vec<u8>` (4-byte len + bytes). Account order
+        // (asset, collection, asset_signer, payer, authority,
+        // system_program, target_program, ...remaining) matches the
+        // `pinocchio` branch below exactly, including `payer`'s
+        // signer-or-not flag depending on `ExecutePayer` mode.
+        let mut data = crate::prelude::Vec::with_capacity(5 + instruction_data.len());
+        data.push(31u8); // ExecuteV1 discriminator
+        data.extend_from_slice(&(instruction_data.len() as u32).to_le_bytes());
+        data.extend_from_slice(instruction_data);
 
-        let ix = ::mpl_core::instructions::ExecuteV1 {
-            asset: accounts.asset.address(),
-            collection: accounts.collection.as_ref().map(|c| c.address()),
-            asset_signer: accounts.asset_signer.address(),
-            payer: (payer_handle_mut.address(), payer_is_signer),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-            program_id: accounts.target_program.address(),
-        }
-        .instruction_with_remaining_accounts(
-            ::mpl_core::instructions::ExecuteV1InstructionArgs {
-                instruction_data: instruction_data.to_vec(),
+        let mut accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+            match &accounts.collection {
+                Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-            &remaining_metas,
-        );
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.asset_signer.address(),
+                false,
+            ),
+            solana_program::instruction::AccountMeta::new(
+                payer_handle_mut.address(),
+                payer_is_signer,
+            ),
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.system_program.address(),
+                false,
+            ),
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.target_program.address(),
+                false,
+            ),
+        ];
+        for a in remaining_accounts {
+            accounts_meta.push(solana_program::instruction::AccountMeta {
+                pubkey: a.handle.address(),
+                is_signer: a.is_signer,
+                is_writable: a.is_writable,
+            });
+        }
+
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data,
+        };
 
         let mut cpi_accounts: crate::prelude::Vec<CpiHandle<'_>> =
             crate::prelude::Vec::with_capacity(8 + remaining_accounts.len());
@@ -179,12 +208,24 @@ pub fn execute_signed(
         let collection_handle = accounts.collection.map(CpiHandle::from).unwrap_or(program);
         let authority_handle = accounts.authority.unwrap_or(program);
 
-        let mut ix_accounts: crate::prelude::Vec<::pinocchio::instruction::InstructionAccount<'_>> =
-            crate::prelude::Vec::with_capacity(7 + remaining_accounts.len());
-        ix_accounts.push(::pinocchio::instruction::InstructionAccount::writable(
-            asset_handle.info.view.address(),
-        ));
-        ix_accounts.push(if collection_is_some {
+        const FIXED_ACCOUNTS: usize = 7;
+        if !cpi_account_count_fits(FIXED_ACCOUNTS, remaining_accounts.len(), MAX_CPI_ACCOUNTS) {
+            return Err(NaclacError::TooManyCpiAccounts.into());
+        }
+
+        // Fixed-capacity, zero-heap account arrays: every slot starts as a
+        // harmless placeholder (`program`'s own handle/address — the same
+        // "unused optional slot" convention used everywhere else in this
+        // crate), then the first `FIXED_ACCOUNTS + remaining_accounts.len()`
+        // slots are overwritten with real values before the array is sliced
+        // down to exactly that length, so no placeholder is ever read.
+        let mut ix_accounts: [::pinocchio::instruction::InstructionAccount<'_>; MAX_CPI_ACCOUNTS] =
+            core::array::from_fn(|_| {
+                ::pinocchio::instruction::InstructionAccount::readonly(program.info.view.address())
+            });
+        ix_accounts[0] =
+            ::pinocchio::instruction::InstructionAccount::writable(asset_handle.info.view.address());
+        ix_accounts[1] = if collection_is_some {
             ::pinocchio::instruction::InstructionAccount::writable(
                 collection_handle.info.view.address(),
             )
@@ -192,11 +233,11 @@ pub fn execute_signed(
             ::pinocchio::instruction::InstructionAccount::readonly(
                 collection_handle.info.view.address(),
             )
-        });
-        ix_accounts.push(::pinocchio::instruction::InstructionAccount::readonly(
+        };
+        ix_accounts[2] = ::pinocchio::instruction::InstructionAccount::readonly(
             accounts.asset_signer.info.view.address(),
-        ));
-        ix_accounts.push(if payer_is_signer {
+        );
+        ix_accounts[3] = if payer_is_signer {
             ::pinocchio::instruction::InstructionAccount::writable_signer(
                 payer_handle.info.view.address(),
             )
@@ -204,8 +245,8 @@ pub fn execute_signed(
             ::pinocchio::instruction::InstructionAccount::writable(
                 payer_handle.info.view.address(),
             )
-        });
-        ix_accounts.push(if authority_is_some {
+        };
+        ix_accounts[4] = if authority_is_some {
             ::pinocchio::instruction::InstructionAccount::readonly_signer(
                 authority_handle.info.view.address(),
             )
@@ -213,15 +254,15 @@ pub fn execute_signed(
             ::pinocchio::instruction::InstructionAccount::readonly(
                 authority_handle.info.view.address(),
             )
-        });
-        ix_accounts.push(::pinocchio::instruction::InstructionAccount::readonly(
+        };
+        ix_accounts[5] = ::pinocchio::instruction::InstructionAccount::readonly(
             accounts.system_program.info.view.address(),
-        ));
-        ix_accounts.push(::pinocchio::instruction::InstructionAccount::readonly(
+        );
+        ix_accounts[6] = ::pinocchio::instruction::InstructionAccount::readonly(
             accounts.target_program.info.view.address(),
-        ));
-        for a in remaining_accounts {
-            ix_accounts.push(match (a.is_writable, a.is_signer) {
+        );
+        for (i, a) in remaining_accounts.iter().enumerate() {
+            ix_accounts[FIXED_ACCOUNTS + i] = match (a.is_writable, a.is_signer) {
                 (true, true) => ::pinocchio::instruction::InstructionAccount::writable_signer(
                     a.handle.info.view.address(),
                 ),
@@ -234,27 +275,27 @@ pub fn execute_signed(
                 (false, false) => ::pinocchio::instruction::InstructionAccount::readonly(
                     a.handle.info.view.address(),
                 ),
-            });
+            };
         }
+        let total = FIXED_ACCOUNTS + remaining_accounts.len();
 
         let instruction = ::pinocchio::instruction::InstructionView {
             program_id: program.info.view.address(),
-            accounts: &ix_accounts,
+            accounts: &ix_accounts[..total],
             data: &data,
         };
 
-        let mut handles: crate::prelude::Vec<CpiHandle<'_>> =
-            crate::prelude::Vec::with_capacity(7 + remaining_accounts.len());
-        handles.push(asset_handle);
-        handles.push(collection_handle);
-        handles.push(accounts.asset_signer);
-        handles.push(payer_handle);
-        handles.push(authority_handle);
-        handles.push(accounts.system_program);
-        handles.push(accounts.target_program);
-        for a in remaining_accounts {
-            handles.push(a.handle);
+        let mut handles = [program; MAX_CPI_ACCOUNTS];
+        handles[0] = asset_handle;
+        handles[1] = collection_handle;
+        handles[2] = accounts.asset_signer;
+        handles[3] = payer_handle;
+        handles[4] = authority_handle;
+        handles[5] = accounts.system_program;
+        handles[6] = accounts.target_program;
+        for (i, a) in remaining_accounts.iter().enumerate() {
+            handles[FIXED_ACCOUNTS + i] = a.handle;
         }
-        crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
+        crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles[..total], signer_seeds)
     }
 }

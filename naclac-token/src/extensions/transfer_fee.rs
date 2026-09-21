@@ -113,6 +113,109 @@ impl TransferFeeConfig {
     }
 }
 
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `calculate_fee`/`calculate_post_fee_amount` never panic for
+    /// any raw `TransferFeeConfig` bytes (including ones that don't
+    /// correspond to any real, on-chain-initialized mint — Kani explores
+    /// every possible 108-byte pattern) and any `u64` epoch/amount.
+    #[kani::proof]
+    fn prove_calculate_fee_never_panics() {
+        let raw: [u8; 108] = kani::any();
+        let config = TransferFeeConfig(raw);
+        let current_epoch: u64 = kani::any();
+        let pre_fee_amount: u64 = kani::any();
+        let _ = config.calculate_fee(current_epoch, pre_fee_amount);
+        let _ = config.calculate_post_fee_amount(current_epoch, pre_fee_amount);
+    }
+
+    /// Correctness: `calculate_fee` must never charge more than the amount
+    /// being transferred. This is the exact property
+    /// `calculate_post_fee_amount`'s `checked_sub` implicitly depends on to
+    /// never underflow — proving it directly here means that dependency is
+    /// verified, not just assumed to hold because the sibling function
+    /// happens not to panic in testing.
+    ///
+    /// **This proof genuinely fails for fully unconstrained bytes** — Kani
+    /// found a real counterexample where `basis_points > 10_000` (which the
+    /// raw `TransferFeeConfig(u8; 108)` type admits) makes the fee exceed
+    /// the amount. Left here, still failing, as a documented known
+    /// limitation: verified directly against the real `spl-token-2022`
+    /// source (`spl-token-2022-11.0.0/src/extension/transfer_fee/processor.rs`,
+    /// `process_initialize_transfer_fee_config`/`process_set_transfer_fee`,
+    /// both reject `basis_points > MAX_FEE_BASIS_POINTS` = 10_000 before
+    /// ever writing to a mint) that this specific byte pattern can never
+    /// occur on an account genuinely owned by the real Token-2022 program —
+    /// which is exactly the precondition naclac's own ownership checks
+    /// establish before this type is ever read. See
+    /// `prove_calculate_fee_never_exceeds_amount_for_valid_mint` below for
+    /// the proof under that real, confirmed precondition.
+    #[kani::proof]
+    fn prove_calculate_fee_never_exceeds_amount() {
+        let raw: [u8; 108] = kani::any();
+        let config = TransferFeeConfig(raw);
+        let current_epoch: u64 = kani::any();
+        let pre_fee_amount: u64 = kani::any();
+        if let Some(fee) = config.calculate_fee(current_epoch, pre_fee_amount) {
+            assert!(
+                fee <= pre_fee_amount,
+                "calculate_fee must never exceed the amount it's charged against"
+            );
+        }
+    }
+
+    /// Same property as `prove_calculate_fee_never_exceeds_amount` above,
+    /// but under the real-world precondition confirmed against the actual
+    /// `spl-token-2022` source: `older_transfer_fee_basis_points`/
+    /// `newer_transfer_fee_basis_points` (bytes 88..90 / 106..108) can never
+    /// exceed `MAX_FEE_BASIS_POINTS` (10_000) on any mint the real
+    /// Token-2022 program actually wrote. This is the property that
+    /// actually holds for every legitimate mint naclac's ownership checks
+    /// let through.
+    #[kani::proof]
+    fn prove_calculate_fee_never_exceeds_amount_for_valid_mint() {
+        let mut raw: [u8; 108] = kani::any();
+        let older_bp: u16 = kani::any();
+        kani::assume(older_bp <= 10_000);
+        raw[88..90].copy_from_slice(&older_bp.to_le_bytes());
+        let newer_bp: u16 = kani::any();
+        kani::assume(newer_bp <= 10_000);
+        raw[106..108].copy_from_slice(&newer_bp.to_le_bytes());
+
+        let config = TransferFeeConfig(raw);
+        let current_epoch: u64 = kani::any();
+        let pre_fee_amount: u64 = kani::any();
+        if let Some(fee) = config.calculate_fee(current_epoch, pre_fee_amount) {
+            assert!(
+                fee <= pre_fee_amount,
+                "calculate_fee must never exceed the amount it's charged against, for any mint the real Token-2022 program could have written"
+            );
+        }
+    }
+
+    /// Correctness: whenever `calculate_fee` succeeds, `calculate_post_fee_amount`
+    /// must succeed too and equal exactly `pre_fee_amount - fee` — proving
+    /// the two functions' `Option` results are never inconsistent with each
+    /// other (e.g. one silently succeeding where the other fails).
+    #[kani::proof]
+    fn prove_calculate_post_fee_amount_matches_calculate_fee() {
+        let raw: [u8; 108] = kani::any();
+        let config = TransferFeeConfig(raw);
+        let current_epoch: u64 = kani::any();
+        let pre_fee_amount: u64 = kani::any();
+        if let Some(fee) = config.calculate_fee(current_epoch, pre_fee_amount) {
+            let post = config.calculate_post_fee_amount(current_epoch, pre_fee_amount);
+            assert_eq!(
+                post,
+                Some(pre_fee_amount - fee),
+                "post-fee amount must equal pre_fee_amount - fee exactly"
+            );
+        }
+    }
+}
+
 /// Raw Token-2022 `TransferFeeAmount` token-account extension (8 bytes):
 /// fees withheld on this specific account, not yet harvested to the mint.
 #[repr(transparent)]
@@ -321,41 +424,39 @@ pub fn set_transfer_fee_signed(
 /// Instruction encoding (discriminant `26`, sub-discriminant `1`) verified
 /// against `spl-token-2022-interface`'s real
 /// `TransferFeeInstruction::TransferCheckedWithFee`/`pack`.
+/// Numeric parameters for a fee-aware checked transfer. Grouping
+/// amount + decimals + fee keeps both `transfer_checked_with_fee` and
+/// `transfer_checked_with_fee_signed` under clippy's argument-count limit
+/// while remaining fully explicit at call sites (mirrors
+/// `naclac-token::token::CheckedTransferParams`).
+#[derive(Copy, Clone, Debug)]
+pub struct TransferCheckedWithFeeParams {
+    pub amount: u64,
+    pub decimals: u8,
+    pub fee: u64,
+}
+
 pub fn transfer_checked_with_fee(
     program: CpiHandle<'_>,
     source: CpiHandleMut<'_>,
     mint: CpiHandle<'_>,
     destination: CpiHandleMut<'_>,
     authority: CpiHandle<'_>,
-    amount: u64,
-    decimals: u8,
-    fee: u64,
+    params: TransferCheckedWithFeeParams,
 ) -> Result<()> {
-    transfer_checked_with_fee_signed(
-        program,
-        source,
-        mint,
-        destination,
-        authority,
-        amount,
-        decimals,
-        fee,
-        &[],
-    )
+    transfer_checked_with_fee_signed(program, source, mint, destination, authority, params, &[])
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn transfer_checked_with_fee_signed(
     program: CpiHandle<'_>,
     source: CpiHandleMut<'_>,
     mint: CpiHandle<'_>,
     destination: CpiHandleMut<'_>,
     authority: CpiHandle<'_>,
-    amount: u64,
-    decimals: u8,
-    fee: u64,
+    params: TransferCheckedWithFeeParams,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
+    let TransferCheckedWithFeeParams { amount, decimals, fee } = params;
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {

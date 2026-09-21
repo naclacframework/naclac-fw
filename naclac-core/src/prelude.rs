@@ -33,6 +33,7 @@ pub type ZcVec<T> = Span<T>;
 pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};
 
 pub use crate::realloc::resize_with_rent;
+pub use crate::realloc::const_rent_lamports;
 
 // ---------------------------------------------------------------------------
 // CPI Stack-Allocation Limits
@@ -64,6 +65,44 @@ pub const MAX_CPI_SEEDS_PER_SIGNER: usize = 16;
 /// accept in one call — a stack-allocated array bound. Exceeding it is a
 /// hard error, not a silent truncation.
 pub const MAX_CPI_ACCOUNTS: usize = 32;
+
+/// `true` if `fixed + extra` (a CPI call's fixed accounts plus a
+/// caller-supplied `remaining_accounts` count) both fits in a `usize` and
+/// is `<= max` — the shared, checked form of the `fixed + extra > max`
+/// pattern several pinocchio-backend CPI builders use to size their
+/// stack-allocated account arrays before writing into them (e.g.
+/// `naclac-metadata`'s `execute.rs::execute_signed`). Returns `false` on
+/// overflow rather than panicking or wrapping, so a caller never mistakes
+/// an overflowed sum for a small, in-bounds one.
+pub const fn cpi_account_count_fits(fixed: usize, extra: usize, max: usize) -> bool {
+    match fixed.checked_add(extra) {
+        Some(total) => total <= max,
+        None => false,
+    }
+}
+
+#[cfg(kani)]
+mod cpi_account_count_kani_proofs {
+    use super::*;
+
+    /// Proves `cpi_account_count_fits` never panics for any input
+    /// (including values that would overflow `fixed + extra`) and is
+    /// correct: it returns `true` exactly when the real, non-overflowing
+    /// sum is `<= max`, and `false` whenever the addition would overflow —
+    /// never silently treating an overflowed sum as small and in-bounds.
+    #[kani::proof]
+    fn prove_cpi_account_count_fits_never_panics_and_is_correct() {
+        let fixed: usize = kani::any();
+        let extra: usize = kani::any();
+        let max: usize = kani::any();
+
+        let result = cpi_account_count_fits(fixed, extra, max);
+        match fixed.checked_add(extra) {
+            Some(total) => assert_eq!(result, total <= max),
+            None => assert!(!result, "an overflowing sum must never be reported as fitting"),
+        }
+    }
+}
 
 // `ToAccountInfos` is implemented for both branches of `Account<T>`/
 // `InterfaceAccount<T>` — only absent under pinocchio, where the trait
@@ -353,6 +392,33 @@ pub const MAX_PDA_SEEDS: usize = 16;
 /// Panics if `seeds.len() > MAX_PDA_SEEDS` — the same real protocol limit
 /// `find_program_address`/`create_program_address` themselves enforce, not
 /// an invented restriction.
+/// Fills a `[&[u8]; MAX_PDA_SEEDS + 3]` scratch buffer with `seeds` followed
+/// by `bump_slice`, `program_id`'s bytes, and the `"ProgramDerivedAddress"`
+/// domain tag, returning `(scratch, n)` where `scratch[..n]` is the real
+/// hash input — shared by `derive_program_address` and
+/// `find_program_address`, which otherwise duplicated this exact
+/// index-tracking loop independently. Caller must ensure `seeds.len() <=
+/// MAX_PDA_SEEDS` (both callers `assert!` this immediately before calling).
+fn build_pda_hash_inputs<'a>(
+    seeds: &[&'a [u8]],
+    bump_slice: &'a [u8],
+    program_id: &'a Address,
+) -> ([&'a [u8]; MAX_PDA_SEEDS + 3], usize) {
+    let mut scratch: [&[u8]; MAX_PDA_SEEDS + 3] = [&[]; MAX_PDA_SEEDS + 3];
+    let mut n = 0;
+    for seed in seeds {
+        scratch[n] = seed;
+        n += 1;
+    }
+    scratch[n] = bump_slice;
+    n += 1;
+    scratch[n] = program_id.as_ref();
+    n += 1;
+    scratch[n] = b"ProgramDerivedAddress";
+    n += 1;
+    (scratch, n)
+}
+
 pub fn derive_program_address(seeds: &[&[u8]], bump: u8, program_id: &Address) -> Address {
     assert!(
         seeds.len() <= MAX_PDA_SEEDS,
@@ -360,18 +426,7 @@ pub fn derive_program_address(seeds: &[&[u8]], bump: u8, program_id: &Address) -
     );
 
     let bump_arr = [bump];
-    let mut scratch: [&[u8]; MAX_PDA_SEEDS + 3] = [&[]; MAX_PDA_SEEDS + 3];
-    let mut n = 0;
-    for seed in seeds {
-        scratch[n] = seed;
-        n += 1;
-    }
-    scratch[n] = &bump_arr[..];
-    n += 1;
-    scratch[n] = program_id.as_ref();
-    n += 1;
-    scratch[n] = b"ProgramDerivedAddress";
-    n += 1;
+    let (scratch, n) = build_pda_hash_inputs(seeds, &bump_arr[..], program_id);
     let inputs = &scratch[..n];
 
     #[cfg(not(feature = "pinocchio"))]
@@ -382,24 +437,313 @@ pub fn derive_program_address(seeds: &[&[u8]], bump: u8, program_id: &Address) -
 
     #[cfg(feature = "pinocchio")]
     {
-        extern "C" {
-            fn sol_sha256(vals: *const u8, val_len: u64, hash_result: *mut u8) -> u32;
-        }
         let mut hash_result = [0u8; 32];
         // SAFETY: `sol_sha256` is a native Solana SBF syscall; `inputs`
         // outlives the call and each slice element is a valid (ptr, len)
         // pair, matching the syscall's expected array-of-`SolBytes` layout.
         unsafe {
-            sol_sha256(inputs.as_ptr() as *const u8, inputs.len() as u64, hash_result.as_mut_ptr());
+            solana_define_syscall::definitions::sol_sha256(
+                inputs.as_ptr() as *const u8,
+                inputs.len() as u64,
+                hash_result.as_mut_ptr(),
+            );
         }
         Address::new_from_array(hash_result)
     }
+}
+
+/// Finds the canonical off-curve PDA for `seeds` under `program_id`, the same
+/// answer real `find_program_address` would give, via `sol_sha256` +
+/// `sol_curve_validate_point` called directly rather than the native
+/// `sol_try_find_program_address` syscall — Quasar's `based_try_find_program_address`
+/// and Anchor v2's `find_and_verify_program_address` both use this same pair
+/// of primitives instead of the all-in-one native syscall because it measures
+/// cheaper per attempt (naclac's own bench: ~1,530 CU/attempt via the native
+/// syscall vs ~550 CU/attempt via this pair, on the pinocchio backend).
+///
+/// Unlike `derive_program_address` above (which only checks a caller-supplied
+/// bump for self-consistency), this performs the real, bounded 256-iteration
+/// search naclac otherwise bans on-chain — the one place naclac still needs
+/// it: establishing that a fresh PDA under dynamic (non-literal) seeds is
+/// canonical at the moment it's created, since no compile-time precomputation
+/// is possible for seeds that aren't known until runtime.
+///
+/// Panics if `seeds.len() > MAX_PDA_SEEDS`, matching `derive_program_address`.
+/// Returns `NaclacError::ConstraintSeeds` in the cryptographically
+/// unreachable case where no bump in 0..=255 lands off-curve.
+pub fn find_program_address(seeds: &[&[u8]], program_id: &Address) -> Result<(Address, u8)> {
+    assert!(
+        seeds.len() <= MAX_PDA_SEEDS,
+        "find_program_address: too many seeds (max {MAX_PDA_SEEDS})"
+    );
+
+    let mut bump_arr = [255u8];
+    // Raw-pointer-derived slice, not `&bump_arr[..]`: the loop below mutates
+    // `bump_arr` on every iteration while `scratch[bump_idx]` still holds a
+    // reference into it from the previous iteration, which a safe `&[u8]`
+    // borrow can't express (the borrow checker can't prove per-element array
+    // liveness precisely enough here) — Quasar's `based_try_find_program_address`
+    // hits the same wall and resolves it the same way.
+    //
+    // SAFETY: `bump_ptr` stays valid for `bump_arr`'s lifetime (both are
+    // function-local and `bump_arr` is never moved). The slice this produces
+    // is only ever read by the syscalls below as a raw `(ptr, len)` pair —
+    // never through a real Rust reference — so mutating the byte behind it
+    // between iterations via `bump_ptr.write` is not a live-reference aliasing
+    // violation, just sequential, single-threaded byte reuse.
+    let bump_ptr = bump_arr.as_mut_ptr();
+    let bump_slice: &[u8] = unsafe { core::slice::from_raw_parts(bump_ptr, 1) };
+
+    let (scratch, total) = build_pda_hash_inputs(seeds, bump_slice, program_id);
+    let inputs = &scratch[..total];
+
+    const CURVE25519_EDWARDS: u64 = 0;
+    let mut bump: i16 = 255;
+    while bump >= 0 {
+        // SAFETY: same invariant as `bump_slice`'s construction above —
+        // `scratch[bump_idx]` already points at this exact byte; writing
+        // through the raw pointer changes what the next syscall call reads
+        // without needing to re-borrow or re-store the slice.
+        unsafe { bump_ptr.write(bump as u8) };
+
+        #[cfg(not(feature = "pinocchio"))]
+        let hash_bytes: [u8; 32] = solana_program::hash::hashv(inputs).to_bytes();
+
+        #[cfg(feature = "pinocchio")]
+        let hash_bytes: [u8; 32] = {
+            let mut out = [0u8; 32];
+            // SAFETY: same syscall, same argument shape as `derive_program_address` above.
+            unsafe {
+                solana_define_syscall::definitions::sol_sha256(
+                    inputs.as_ptr() as *const u8,
+                    inputs.len() as u64,
+                    out.as_mut_ptr(),
+                );
+            }
+            out
+        };
+
+        #[cfg(not(feature = "pinocchio"))]
+        // SAFETY: `sol_curve_validate_point` is a native Solana SBF syscall;
+        // `hash_bytes` is a valid 32-byte buffer for the duration of the call.
+        // Returns 0 if the point is a valid curve point (on-curve, invalid
+        // PDA), non-zero if off-curve (valid PDA) — same convention Quasar
+        // and Anchor v2's own usage of this syscall document.
+        let off_curve = unsafe {
+            solana_define_syscall::definitions::sol_curve_validate_point(
+                CURVE25519_EDWARDS,
+                hash_bytes.as_ptr(),
+                core::ptr::null_mut(),
+            ) != 0
+        };
+
+        #[cfg(feature = "pinocchio")]
+        // SAFETY: same syscall and convention as the non-pinocchio branch above.
+        let off_curve = unsafe {
+            solana_define_syscall::definitions::sol_curve_validate_point(
+                CURVE25519_EDWARDS,
+                hash_bytes.as_ptr(),
+                core::ptr::null_mut(),
+            ) != 0
+        };
+
+        if off_curve {
+            return Ok((Address::new_from_array(hash_bytes), bump as u8));
+        }
+        bump -= 1;
+    }
+
+    Err(NaclacError::ConstraintSeeds.into())
+}
+
+#[cfg(kani)]
+mod pda_kani_proofs {
+    use super::*;
+
+    /// Proves `build_pda_hash_inputs` never panics for any `seeds.len() <=
+    /// MAX_PDA_SEEDS` — the real, naclac-authored logic behind both
+    /// `derive_program_address` and `find_program_address`'s scratch-buffer
+    /// construction, extracted from both so it's provable once instead of
+    /// duplicated and unprovable in each (see docs/plan/kani-audit.md).
+    /// Correctness, not just panic-freedom: `n` must equal exactly
+    /// `seeds.len() + 3` (every seed, plus bump/program_id/domain-tag), and
+    /// `scratch[..n]` must contain those inputs in the documented order —
+    /// a wrong index or dropped element here would silently derive the
+    /// wrong PDA for every account in the framework.
+    // Every `scratch[i]` slot is a direct reference passthrough
+    // (`scratch[n] = seed`, never a copy or transform) — so the only
+    // genuinely meaningful property is that the *same reference* landed in
+    // the *right slot*, which `core::ptr::eq` proves directly and cheaply
+    // for any element size, no `memcmp`/unwind-bound tuning needed. An
+    // earlier version used byte-content `assert_eq!` instead, which pulls
+    // in `memcmp` (and its own loop, needing its own unwind budget) for no
+    // real gain: content equality is structurally guaranteed by the source
+    // being a plain reference copy, so it wasn't proving anything
+    // `core::ptr::eq` doesn't already prove more directly.
+    #[kani::proof]
+    fn prove_build_pda_hash_inputs_within_limit_is_correct() {
+        let s0: [u8; 4] = kani::any();
+        let s1: [u8; 4] = kani::any();
+        let seeds: [&[u8]; 2] = [&s0, &s1];
+        let bump_arr = [kani::any::<u8>()];
+        let program_id_bytes: [u8; 32] = kani::any();
+        let program_id = Address::new_from_array(program_id_bytes);
+
+        let (scratch, n) = build_pda_hash_inputs(&seeds, &bump_arr[..], &program_id);
+
+        assert_eq!(n, seeds.len() + 3, "n must count every seed plus bump/program_id/domain-tag");
+        assert!(core::ptr::eq(scratch[0].as_ptr(), s0.as_ptr()) && scratch[0].len() == s0.len());
+        assert!(core::ptr::eq(scratch[1].as_ptr(), s1.as_ptr()) && scratch[1].len() == s1.len());
+        assert!(
+            core::ptr::eq(scratch[2].as_ptr(), bump_arr.as_ptr())
+                && scratch[2].len() == bump_arr.len()
+        );
+        let program_id_ref = program_id.as_ref();
+        assert!(
+            core::ptr::eq(scratch[3].as_ptr(), program_id_ref.as_ptr())
+                && scratch[3].len() == program_id_ref.len()
+        );
+        // scratch[4] (the domain-tag slot) has no caller-owned variable to
+        // compare pointer identity against — unlike the slots above, it's
+        // never derived from symbolic input at all (unconditionally
+        // `scratch[n] = b"ProgramDerivedAddress"` in the source), so there's
+        // nothing here for a proof to meaningfully distinguish "right" from
+        // "wrong" on. Not asserted.
+    }
+
+    /// Proves the `n` index this function builds up (seeds + 3 fixed
+    /// entries) never exceeds the `MAX_PDA_SEEDS + 3`-sized `scratch`
+    /// array, for the full real range of `seeds.len()` (0..=16), not just
+    /// the 2-seed case the correctness proof above uses for tractability.
+    #[kani::proof]
+    #[kani::unwind(20)]
+    fn prove_build_pda_hash_inputs_never_overflows_scratch_at_max_seeds() {
+        let seed_bytes: [u8; 1] = kani::any();
+        let seed: &[u8] = &seed_bytes;
+        let num_seeds: usize = kani::any();
+        kani::assume(num_seeds <= MAX_PDA_SEEDS);
+        let seeds_storage = [seed; MAX_PDA_SEEDS];
+        let seeds = &seeds_storage[..num_seeds];
+
+        let bump_arr = [0u8];
+        let program_id = Address::new_from_array([0u8; 32]);
+        let (_scratch, n) = build_pda_hash_inputs(seeds, &bump_arr[..], &program_id);
+        assert!(n <= MAX_PDA_SEEDS + 3);
+    }
+
+    /// **Cannot pass as written — kept as documented evidence of a genuine
+    /// Kani tooling limitation, not a bug to fix or a slow proof to wait
+    /// out.** Attempting to exercise `derive_program_address`'s real
+    /// `solana_program::hash::hashv` call hits `TerminatorKind::InlineAsm is
+    /// not currently supported by Kani` inside
+    /// `std::arch::x86_64::__cpuid_count` — the `sha2` crate this depends on
+    /// does runtime CPU-feature detection via literal `cpuid` inline
+    /// assembly (to pick hardware-accelerated vs. software SHA), and Kani's
+    /// MIR-to-GOTO translator cannot model inline assembly on any target,
+    /// regardless of time or compute budget. Unlike the `u128`-arithmetic
+    /// proofs elsewhere in this audit (genuinely slow, but CI can finish
+    /// them given enough time), raising CI compute does not help here —
+    /// this is the same class of hard wall `find_program_address` already
+    /// hits via its `sol_curve_validate_point` syscall dependency, just
+    /// reached through a different path. The provable subset of this
+    /// function's own logic is `build_pda_hash_inputs` above, which is
+    /// already fully proven; the hash call itself is third-party crate
+    /// behavior outside naclac's own code to verify.
+    #[kani::proof]
+    #[kani::unwind(80)]
+    fn prove_derive_program_address_never_panics() {
+        let s0: [u8; 4] = kani::any();
+        let seeds: [&[u8]; 1] = [&s0];
+        let bump: u8 = kani::any();
+        let program_id_bytes: [u8; 32] = kani::any();
+        let program_id = Address::new_from_array(program_id_bytes);
+        let _ = derive_program_address(&seeds, bump, &program_id);
+    }
+
+    // `find_program_address` has no end-to-end proof here, deliberately:
+    // every code path through it calls `sol_curve_validate_point`, a native
+    // Solana syscall declared `extern "C"` with no body — Kani cannot
+    // execute a foreign function it has no implementation for, so any
+    // harness that actually reaches that call fails with "not currently
+    // supported by Kani" regardless of how much time or CI budget is spent
+    // on it. This is a hard tooling limitation, not a resource/speed
+    // problem like the `u128`/hash cases above. The provable subset of this
+    // function's own logic (the scratch-buffer construction) is exactly
+    // `build_pda_hash_inputs`, already proven above since both functions
+    // share it.
 }
 
 /// Trait for Naclac-compatible POD types (including Option<T> support)
 pub trait NaclacPod: Sized {
     fn naclac_from_bytes(data: &[u8]) -> Self;
     fn naclac_size() -> usize;
+}
+
+/// Reads a value's own in-memory bytes without requiring `bytemuck::Pod`.
+///
+/// `Pod` (and `bytemuck::bytes_of`) is required for the *reverse* direction
+/// — interpreting arbitrary, possibly-invalid bytes as a value — which is
+/// why a data-carrying zero-copy `#[defined_type]` enum deliberately gets
+/// only `CheckedBitPattern`, not `Pod` (some byte patterns, like an unknown
+/// discriminant, aren't valid values of the type). Going the other way —
+/// reading the bytes of a value that already exists and is therefore
+/// already valid — carries no such risk and is sound for any `Copy` type
+/// regardless of whether it's `Pod`, since no new value is ever constructed
+/// from unchecked bytes here.
+#[inline(always)]
+pub fn bytes_of_checked_bit_pattern<T: Copy>(value: &T) -> &[u8] {
+    // SAFETY: `value` is a `&T` to an already-valid, already-constructed
+    // `T`, so viewing its own `size_of::<T>()` bytes as a `&[u8]` reads
+    // memory that unquestionably belongs to `value` and is already
+    // initialized — it doesn't construct a `T` from these bytes, only the
+    // reverse (an established `T` yielding its own bytes), so `T: Pod` is
+    // not required.
+    unsafe { core::slice::from_raw_parts((value as *const T).cast::<u8>(), core::mem::size_of::<T>()) }
+}
+
+/// The padding gap needed after `offset` bytes to reach the next
+/// `align`-aligned boundary — `0` if already aligned. Real callers always
+/// pass a real `core::mem::align_of::<T>()` (a power of two, always `>= 1`
+/// for any real Rust type), never an arbitrary `align`; this proves the
+/// function is safe and correct within that actual contract, not merely
+/// assumed. Previously duplicated as identical generated tokens in two
+/// places in `naclac-macros/src/pod_struct_checks.rs` (the padding
+/// computation for every zero-copy `#[component]`/`defined_type` struct's
+/// generated layout) — extracted here so it's provable once instead of
+/// trusted identical twice over (see docs/plan/kani-audit.md).
+pub const fn compute_padding_gap(offset: usize, align: usize) -> usize {
+    let rem = offset % align;
+    if rem == 0 {
+        0
+    } else {
+        align - rem
+    }
+}
+
+#[cfg(kani)]
+mod padding_kani_proofs {
+    use super::*;
+
+    /// Proves `compute_padding_gap` never panics for any `align >= 1` (the
+    /// real contract — `align_of::<T>()` is never 0 for a real type) and
+    /// that the result is actually correct: `offset + gap` lands exactly on
+    /// an `align`-aligned boundary, and `gap` is the smallest such value
+    /// (`< align`) — not just "doesn't panic", since a wrong gap here would
+    /// silently corrupt the generated memory layout of every zero-copy
+    /// `#[component]`/`defined_type` struct in the framework.
+    #[kani::proof]
+    fn prove_compute_padding_gap_within_contract_is_correct() {
+        let offset: usize = kani::any();
+        let align: usize = kani::any();
+        kani::assume(align >= 1);
+        kani::assume(align <= 64); // real alignments are small powers of two
+
+        let gap = compute_padding_gap(offset, align);
+        assert!(gap < align, "gap must always be smaller than align");
+        if let Some(padded) = offset.checked_add(gap) {
+            assert_eq!(padded % align, 0, "offset + gap must land on an aligned boundary");
+        }
+    }
 }
 
 #[macro_export]
@@ -726,10 +1070,7 @@ pub fn sol_log_data(data: &[&[u8]]) {
     #[cfg(any(target_os = "solana", target_arch = "bpf"))]
     // SAFETY: sol_log_data is a native Solana SBF syscall. The runtime guarantees it handles pointer boundaries securely.
     unsafe {
-        extern "C" {
-            fn sol_log_data(data: *const u8, data_len: u64);
-        }
-        sol_log_data(data.as_ptr() as *const u8, data.len() as u64);
+        solana_define_syscall::definitions::sol_log_data(data.as_ptr() as *const u8, data.len() as u64);
     }
 }
 
@@ -737,10 +1078,7 @@ pub fn sol_log_data(data: &[&[u8]]) {
 pub fn sol_log_compute_units() {
     #[cfg(any(target_os = "solana", target_arch = "bpf"))]
     unsafe {
-        extern "C" {
-            fn sol_log_compute_units_();
-        }
-        sol_log_compute_units_();
+        solana_define_syscall::definitions::sol_log_compute_units_();
     }
     #[cfg(not(any(target_os = "solana", target_arch = "bpf")))]
     {
@@ -856,7 +1194,6 @@ macro_rules! require {
 }
 
 pub use crate::{address, declare_id, emit, require};
-pub use naclac_macros::{NaclacDeserialize, NaclacSerialize};
 
 /// Declares the program's static ID constant.
 ///

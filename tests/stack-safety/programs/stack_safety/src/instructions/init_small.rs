@@ -19,7 +19,6 @@ pub struct InitSmall {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_small(ctx: Context<InitSmall>) -> Result {
     let small = &mut ctx.accounts.small;
     small.bump = ctx.bumps.small;

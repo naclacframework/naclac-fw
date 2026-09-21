@@ -25,7 +25,6 @@ pub struct CloseMint2022 {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn close_mint2022(ctx: Context<CloseMint2022>) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

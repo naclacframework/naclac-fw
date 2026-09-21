@@ -43,7 +43,6 @@ pub struct CreateMint2022WithTransferFee {
 /// 4-byte TLV header + 108-byte `TransferFeeConfig` value.
 const MINT_WITH_TRANSFER_FEE_SPACE: u64 = 82 + 83 + 1 + 4 + 108;
 
-#[instruction]
 pub fn create_mint2022_with_transfer_fee(
     ctx: Context<CreateMint2022WithTransferFee>,
     args: CreateMint2022WithTransferFeeArgs,

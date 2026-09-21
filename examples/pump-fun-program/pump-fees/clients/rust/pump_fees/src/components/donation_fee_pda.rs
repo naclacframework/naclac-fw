@@ -7,11 +7,10 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
+#[cfg(feature = "borsh")]
 /// Escrow PDA for donation relay: one per (mint, donation campaign `config_id`).
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct DonationFeePda {
     pub total_donated: u64,
     pub last_crank_ts: i64,
@@ -26,16 +25,254 @@ pub struct DonationFeePda {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+/// Escrow PDA for donation relay: one per (mint, donation campaign `config_id`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct DonationFeePda {
+    pub total_donated: u64,
+    pub __naclac_padding_0: [u8; __DonationFeePda_GAP_0],
+    pub last_crank_ts: i64,
+    pub __naclac_padding_1: [u8; __DonationFeePda_GAP_1],
+    pub config_id: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_2: [u8; __DonationFeePda_GAP_2],
+    pub base_mint: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_3: [u8; __DonationFeePda_GAP_3],
+    pub quote_mint: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_4: [u8; __DonationFeePda_GAP_4],
+    pub creator: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_5: [u8; __DonationFeePda_GAP_5],
+    pub bump: u8,
+    pub __naclac_padding_6: [u8; __DonationFeePda_GAP_6],
+    pub version: u8,
+    pub __naclac_padding_7: [u8; __DonationFeePda_GAP_7],
+    pub reserved: [u8; 64],
+    pub __naclac_padding_8: [u8; __DonationFeePda_GAP_8],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePda_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<i64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePda_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePda_GAP_0
+        + ::core::mem::size_of::<i64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePda_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePda_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePda_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePda_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePda_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePda_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePda_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePda_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePda_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePda_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePda_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePda_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePda_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePda_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePda_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_5 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePda_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePda_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePda_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_5 + ::core::mem::size_of::<u8>() + __DonationFeePda_GAP_6
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<[u8; 64]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePda_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePda_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePda_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __DonationFeePda_GAP_5 + ::core::mem::size_of::<u8>() + __DonationFeePda_GAP_6
+        + ::core::mem::size_of::<u8>() + __DonationFeePda_GAP_7
+        + ::core::mem::size_of::<[u8; 64]>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<i64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 64]>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < DonationFeePda > () == (::core::mem::size_of:: < u64 >
+        () + __DonationFeePda_GAP_0 + ::core::mem::size_of:: < i64 > () +
+        __DonationFeePda_GAP_1 + ::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Address > () + __DonationFeePda_GAP_2 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
+        __DonationFeePda_GAP_3 + ::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Address > () + __DonationFeePda_GAP_4 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
+        __DonationFeePda_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __DonationFeePda_GAP_6 + ::core::mem::size_of:: < u8 > () +
+        __DonationFeePda_GAP_7 + ::core::mem::size_of:: < [u8; 64] > () +
+        __DonationFeePda_GAP_8),
+        "defined_type/#[component]: `DonationFeePda`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<i64>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<[u8; 64]>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for DonationFeePda {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for DonationFeePda {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for DonationFeePda {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
 #[cfg(feature = "cpi")]
+#[cfg(feature = "borsh")]
 /// Escrow PDA for donation relay: one per (mint, donation campaign `config_id`).
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct DonationFeePdaCpi {
     pub total_donated: u64,
     pub last_crank_ts: i64,
@@ -50,10 +287,248 @@ pub struct DonationFeePdaCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+/// Escrow PDA for donation relay: one per (mint, donation campaign `config_id`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct DonationFeePdaCpi {
+    pub total_donated: u64,
+    pub __naclac_padding_0: [u8; __DonationFeePdaCpi_GAP_0],
+    pub last_crank_ts: i64,
+    pub __naclac_padding_1: [u8; __DonationFeePdaCpi_GAP_1],
+    pub config_id: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_2: [u8; __DonationFeePdaCpi_GAP_2],
+    pub base_mint: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_3: [u8; __DonationFeePdaCpi_GAP_3],
+    pub quote_mint: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_4: [u8; __DonationFeePdaCpi_GAP_4],
+    pub creator: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_5: [u8; __DonationFeePdaCpi_GAP_5],
+    pub bump: u8,
+    pub __naclac_padding_6: [u8; __DonationFeePdaCpi_GAP_6],
+    pub version: u8,
+    pub __naclac_padding_7: [u8; __DonationFeePdaCpi_GAP_7],
+    pub reserved: [u8; 64],
+    pub __naclac_padding_8: [u8; __DonationFeePdaCpi_GAP_8],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePdaCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<i64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePdaCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<i64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePdaCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePdaCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePdaCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePdaCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePdaCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_5 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePdaCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_5 + ::core::mem::size_of::<u8>()
+        + __DonationFeePdaCpi_GAP_6 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<[u8; 64]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __DonationFeePdaCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __DonationFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<i64>() + __DonationFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_4
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __DonationFeePdaCpi_GAP_5 + ::core::mem::size_of::<u8>()
+        + __DonationFeePdaCpi_GAP_6 + ::core::mem::size_of::<u8>()
+        + __DonationFeePdaCpi_GAP_7 + ::core::mem::size_of::<[u8; 64]>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<i64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 64]>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < DonationFeePdaCpi > () == (::core::mem::size_of:: < u64
+        > () + __DonationFeePdaCpi_GAP_0 + ::core::mem::size_of:: < i64 > () +
+        __DonationFeePdaCpi_GAP_1 + ::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Address > () + __DonationFeePdaCpi_GAP_2 + ::core::mem::size_of::
+        < crate ::sdk_core_cpi::Address > () + __DonationFeePdaCpi_GAP_3 +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > () +
+        __DonationFeePdaCpi_GAP_4 + ::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Address > () + __DonationFeePdaCpi_GAP_5 + ::core::mem::size_of::
+        < u8 > () + __DonationFeePdaCpi_GAP_6 + ::core::mem::size_of:: < u8 > () +
+        __DonationFeePdaCpi_GAP_7 + ::core::mem::size_of:: < [u8; 64] > () +
+        __DonationFeePdaCpi_GAP_8),
+        "defined_type/#[component]: `DonationFeePdaCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<i64>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<[u8; 64]>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for DonationFeePdaCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for DonationFeePdaCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for DonationFeePdaCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
 
 /// 8-byte on-chain discriminator for `DonationFeePda` accounts.
 pub const DONATIONFEEPDA_DISCRIMINATOR: [u8; 8] = [246, 197, 96, 9, 193, 30, 93, 115];

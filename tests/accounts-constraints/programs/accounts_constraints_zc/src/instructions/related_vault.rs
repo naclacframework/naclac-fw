@@ -17,7 +17,6 @@ pub struct RelatedVault {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn related_vault(ctx: Context<RelatedVault>) -> Result {
     ctx.accounts.vault.value += 1;
     Ok(())

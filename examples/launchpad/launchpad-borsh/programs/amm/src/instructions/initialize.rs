@@ -43,7 +43,6 @@ pub struct Initialize {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn initialize(ctx: Context<Initialize>, id: u64, pool_bump: u8, amount_a: u64, amount_b: u64) -> Result {
     require!(amount_a > 0 && amount_b > 0, crate::errors::AmmError::ZeroAmount);
 

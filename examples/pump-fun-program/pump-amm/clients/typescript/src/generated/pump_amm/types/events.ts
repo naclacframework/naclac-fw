@@ -13,25 +13,25 @@ export const CREATEPOOLEVENT_EVENT_DISCRIMINATOR = new Uint8Array([177, 49, 12, 
 export interface CreatePoolEvent {
   timestamp: bigint | number;
   creator: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
-  base_amount_in: bigint | number;
-  quote_amount_in: bigint | number;
-  pool_base_amount: bigint | number;
-  pool_quote_amount: bigint | number;
-  minimum_liquidity: bigint | number;
-  initial_liquidity: bigint | number;
-  lp_token_amount_out: bigint | number;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  baseAmountIn: bigint | number;
+  quoteAmountIn: bigint | number;
+  poolBaseAmount: bigint | number;
+  poolQuoteAmount: bigint | number;
+  minimumLiquidity: bigint | number;
+  initialLiquidity: bigint | number;
+  lpTokenAmountOut: bigint | number;
   pool: naclac.Address | string;
-  lp_mint: naclac.Address | string;
-  user_base_token_account: naclac.Address | string;
-  user_quote_token_account: naclac.Address | string;
-  coin_creator: naclac.Address | string;
+  lpMint: naclac.Address | string;
+  userBaseTokenAccount: naclac.Address | string;
+  userQuoteTokenAccount: naclac.Address | string;
+  coinCreator: naclac.Address | string;
   index: number;
-  base_mint_decimals: number;
-  quote_mint_decimals: number;
-  pool_bump: number;
-  is_mayhem_mode: naclac.Bool;
+  baseMintDecimals: number;
+  quoteMintDecimals: number;
+  poolBump: number;
+  isMayhemMode: naclac.Bool;
   padding: string | Uint8Array;
 }
 
@@ -69,11 +69,11 @@ export const INITBOOSTEVENT_EVENT_DISCRIMINATOR = new Uint8Array([174, 124, 74, 
  * padding gets inserted before it.
  */
 export interface InitBoostEvent {
-  virtual_quote_reserves: bigint | number;
+  virtualQuoteReserves: bigint | number;
   timestamp: bigint | number;
-  real_quote_reserves_after: bigint | number;
+  realQuoteReservesAfter: bigint | number;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   pool: naclac.Address | string;
 }
 
@@ -106,16 +106,16 @@ export const BOOSTBUYANDBURNEVENT_EVENT_DISCRIMINATOR = new Uint8Array([63, 69, 
 
 /** Field-for-field mirror of the real `pump_amm::BoostBuyAndBurnEvent`. */
 export interface BoostBuyAndBurnEvent {
-  virtual_quote_reserves: bigint | number;
+  virtualQuoteReserves: bigint | number;
   timestamp: bigint | number;
-  quote_amount_in_requested: bigint | number;
-  quote_amount_in_used: bigint | number;
-  base_amount_burned: bigint | number;
-  real_quote_reserves_after: bigint | number;
-  base_reserves_after: bigint | number;
-  boost_vault_remaining: bigint | number;
+  quoteAmountInRequested: bigint | number;
+  quoteAmountInUsed: bigint | number;
+  baseAmountBurned: bigint | number;
+  realQuoteReservesAfter: bigint | number;
+  baseReservesAfter: bigint | number;
+  boostVaultRemaining: bigint | number;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   pool: naclac.Address | string;
   authority: naclac.Address | string;
 }

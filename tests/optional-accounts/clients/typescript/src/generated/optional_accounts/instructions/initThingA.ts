@@ -9,8 +9,8 @@ export const INIT_THING_A_DISCRIMINATOR = new Uint8Array([69, 7, 51, 52, 226, 22
 /** Accounts for the `initThingA` instruction. */
 export interface InitThingAAccounts {
   payer: naclac.Address | string;
-  thing_a?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  thingA?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

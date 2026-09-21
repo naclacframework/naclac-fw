@@ -12,7 +12,6 @@ const LOG_EVENT_FIXED_512_DISCRIMINATOR: [u8; 8] =
     [0x86, 0x68, 0xbe, 0xb5, 0xea, 0x9b, 0x8e, 0xbf];
 
 /// See `emit_via_self_cpi_fixed_8` — same purpose, 512-byte fixed payload.
-#[instruction]
 pub fn emit_via_self_cpi_fixed_512(ctx: Context<EmitViaSelfCpiFixed512>) -> Result {
     let mut data = [0u8; 8 + 512];
     data[..8].copy_from_slice(&LOG_EVENT_FIXED_512_DISCRIMINATOR);

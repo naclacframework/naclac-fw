@@ -18,7 +18,6 @@ pub struct TouchRegistryExplicitBump {
     pub registry: Account<Registry>,
 }
 
-#[instruction]
 pub fn touch_registry_explicit_bump(ctx: Context<TouchRegistryExplicitBump>, _bump: u8) -> Result {
     let registry = &mut ctx.accounts.registry;
     registry.tag += 1;

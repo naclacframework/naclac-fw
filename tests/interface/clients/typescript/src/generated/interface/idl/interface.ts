@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "GyyYtT9woGRh7K9VAV8sZMkaB8Wq64uVdRjiuNXQTQhN",
+  "address": "3TYYaU6cA43rok7UVrRQ6DwaUaag7KK72qogto6gqj4R",
   "metadata": {
     "name": "interface",
     "version": "0.1.0",

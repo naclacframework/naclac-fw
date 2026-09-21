@@ -88,7 +88,6 @@ pub struct CreateDonationFeePda {
     pub donation_fee_pda: Account<DonationFeePda>,
 }
 
-#[instruction]
 pub fn create_donation_fee_pda(
     ctx: Context<CreateDonationFeePda>,
     _bonding_curve_bump: u8,

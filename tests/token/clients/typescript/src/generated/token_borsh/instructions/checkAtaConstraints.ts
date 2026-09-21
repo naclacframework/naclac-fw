@@ -8,7 +8,7 @@ export const CHECK_ATA_CONSTRAINTS_DISCRIMINATOR = new Uint8Array([229, 12, 96, 
 
 /** Instruction arguments for `checkAtaConstraints`. */
 export interface CheckAtaConstraintsArgs {
-  ata_bump: number;
+  ataBump: number;
 }
 
 /** Accounts for the `checkAtaConstraints` instruction. */
@@ -19,8 +19,8 @@ export interface CheckAtaConstraintsAccounts {
    * verification below; never read or deserialized.
    */
   owner: naclac.Address | string;
-  associated_token: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  associatedToken: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

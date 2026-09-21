@@ -13,7 +13,6 @@ pub struct ToggleCreateV2 {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn toggle_create_v2(ctx: Context<ToggleCreateV2>, enabled: Bool) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.global.authority,

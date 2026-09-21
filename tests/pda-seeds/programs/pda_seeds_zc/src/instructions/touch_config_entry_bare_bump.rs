@@ -16,7 +16,6 @@ pub struct TouchConfigEntryBareBump {
     pub config_entry: Account<ConfigEntry>,
 }
 
-#[instruction]
 pub fn touch_config_entry_bare_bump(ctx: Context<TouchConfigEntryBareBump>) -> Result {
     let config_entry = &mut ctx.accounts.config_entry;
     config_entry.value += 1;

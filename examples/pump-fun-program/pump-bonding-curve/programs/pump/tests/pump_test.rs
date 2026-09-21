@@ -1,23 +1,26 @@
 use naclac_client::*;
 use pump_client::{
-    fetch_bonding_curve, fetch_global, get_bonding_curve_pda, get_global_pda,
+    fetch_bonding_curve, fetch_global, fetch_user_volume_accumulator, get_bonding_curve_pda, get_global_pda,
     get_metadata_pda, get_mint_authority_pda,
     instructions::{
-        build_add_quote_mint, build_buy, build_buy_v2, build_create, build_create_v2,
+        build_add_quote_mint, build_admin_set_creator, build_buy, build_buy_exact_quote_in_v2, build_buy_exact_sol_in, build_buy_v2, build_claim_cashback, build_claim_cashback_v2,
+        build_claim_token_incentives, build_close_user_volume_accumulator, build_collect_creator_fee, build_collect_creator_fee_v2, build_create, build_create_v2,
+        build_get_minimum_distributable_fee, build_init_user_volume_accumulator,
         build_initialize, build_migrate, build_migrate_v2, build_remove_quote_mint, build_sell,
         build_sell_v2, build_set_creator, build_set_metaplex_creator, build_set_params,
         build_set_reserved_fee_recipients,
         build_set_virtual_quote_reserves,
-        build_toggle_cashback_enabled, build_toggle_create_v2, build_update_buyback_config,
-        AddQuoteMintAccounts, BuyAccounts, BuyV2Accounts,
-        CreateAccounts, CreateV2Accounts, InitializeAccounts, MigrateAccounts, MigrateV2Accounts,
+        build_toggle_cashback_enabled, build_toggle_create_v2, build_toggle_mayhem_mode, build_update_buyback_config, build_update_global_authority,
+        AddQuoteMintAccounts, AdminSetCreatorAccounts, BuyAccounts, BuyExactQuoteInV2Accounts, BuyExactSolInAccounts, BuyV2Accounts, ClaimCashbackAccounts, ClaimCashbackV2Accounts,
+        ClaimTokenIncentivesAccounts, CloseUserVolumeAccumulatorAccounts, CollectCreatorFeeAccounts, CollectCreatorFeeV2Accounts,
+        CreateAccounts, CreateV2Accounts, GetMinimumDistributableFeeAccounts, InitUserVolumeAccumulatorAccounts, InitializeAccounts, MigrateAccounts, MigrateV2Accounts,
         RemoveQuoteMintAccounts, SellAccounts, SellV2Accounts, SetCreatorAccounts,
         SetMetaplexCreatorAccounts,
         SetParamsAccounts, SetReservedFeeRecipientsAccounts, SetVirtualQuoteReservesAccounts,
         ToggleCashbackEnabledAccounts,
-        ToggleCreateV2Accounts, UpdateBuybackConfigAccounts,
+        ToggleCreateV2Accounts, ToggleMayhemModeAccounts, UpdateBuybackConfigAccounts, UpdateGlobalAuthorityAccounts,
     },
-    types::{BuyV2Args, MigrateV2Args, SellV2Args},
+    types::{BuyExactQuoteInV2Args, BuyExactSolInArgs, BuyV2Args, ClaimCashbackV2Args, CollectCreatorFeeV2Args, MigrateV2Args, SellV2Args},
     BOOST_VAULT_SEED, BONDING_CURVE_V2_SEED, BUYBACK_VAULT_SEED, CREATOR_VAULT_RENT_EXEMPT_MINIMUM,
     CREATOR_VAULT_SEED, FEE_CONFIG_SEED, GLOBAL_CONFIG_SEED,
     GLOBAL_VOLUME_ACCUMULATOR_SEED, MPL_TOKEN_METADATA_PROGRAM_ID, POOL_AUTHORITY_SEED, POOL_LP_MINT_SEED,
@@ -94,17 +97,6 @@ fn token_balance(provider: &NaclacProvider, address: &Address) -> u64 {
     u64::from_le_bytes(data[64..72].try_into().unwrap())
 }
 
-fn load_program(provider: &NaclacProvider) {
-    let mut workspace_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    workspace_root.pop(); // programs
-    workspace_root.pop(); // pump-bonding-curve workspace root
-    let so_path = resolve_cargo_target_dir(&workspace_root).join("deploy/pump.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load pump.so");
-}
-
 /// `create` genuinely CPIs into real Metaplex Token Metadata
 /// (`create_metadata_via_cpi`), so every test exercising `create` needs the
 /// real program loaded — there's no naclac-generated client for it, so
@@ -123,8 +115,7 @@ fn load_mpl_token_metadata_program(provider: &NaclacProvider) {
 
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
     load_mpl_token_metadata_program(&provider);
     provider
 }
@@ -555,6 +546,7 @@ fn set_params_updates_admin_set_creator_authority() {
             creator_fee_basis_points: 0,
             set_creator_authority: Address::default(),
             admin_set_creator_authority: new_admin_set_creator_authority,
+            ..Default::default()
         },
         SetParamsAccounts { global: global_pda, authority: user.address() },
     )
@@ -596,6 +588,7 @@ fn set_params_rejects_non_authority_signer() {
             creator_fee_basis_points: 0,
             set_creator_authority: Address::default(),
             admin_set_creator_authority: Keypair::new().address(),
+            ..Default::default()
         },
         SetParamsAccounts { global: global_pda, authority: not_authority.address() },
     )
@@ -604,6 +597,246 @@ fn set_params_rejects_non_authority_signer() {
     .send_and_confirm();
 
     // `PumpError::NotAuthorized` is enum index 0 -> 6000 + 0 = 6000.
+    assert_custom_code(result, 6000);
+}
+
+#[test]
+fn update_global_authority_updates_authority() {
+    let provider = setup();
+    let (global_pda, user) = init_global(&provider);
+    let new_authority = Keypair::new().address();
+
+    build_update_global_authority(
+        &provider,
+        PROGRAM_ID,
+        UpdateGlobalAuthorityAccounts { global: global_pda, authority: user.address(), new_authority },
+    )
+    .signer(&user)
+    .log()
+    .send_and_confirm()
+    .expect("update_global_authority should succeed");
+
+    let global = fetch_global(&provider, &global_pda).expect("global should be readable");
+    assert_eq!(global.authority, new_authority);
+}
+
+#[test]
+fn update_global_authority_rejects_non_authority_signer() {
+    let provider = setup();
+    let (global_pda, _user) = init_global(&provider);
+    let not_authority = Keypair::new();
+    provider.airdrop(&not_authority.address(), 10_000_000_000).unwrap();
+
+    let result = build_update_global_authority(
+        &provider,
+        PROGRAM_ID,
+        UpdateGlobalAuthorityAccounts {
+            global: global_pda,
+            authority: not_authority.address(),
+            new_authority: Keypair::new().address(),
+        },
+    )
+    .signer(&not_authority)
+    .send_and_confirm();
+
+    assert_custom_code(result, 6000);
+}
+
+#[test]
+fn set_virtual_quote_reserves_updates_value() {
+    let provider = setup();
+    let (global_pda, user) = init_global(&provider);
+
+    build_set_virtual_quote_reserves(
+        &provider,
+        PROGRAM_ID,
+        5_000_000_000,
+        SetVirtualQuoteReservesAccounts { global: global_pda, authority: user.address() },
+    )
+    .signer(&user)
+    .log()
+    .send_and_confirm()
+    .expect("set_virtual_quote_reserves should succeed");
+
+    let global = fetch_global(&provider, &global_pda).expect("global should be readable");
+    assert_eq!(global.initial_virtual_quote_reserves, 5_000_000_000);
+}
+
+#[test]
+fn set_virtual_quote_reserves_rejects_non_authority_signer() {
+    let provider = setup();
+    let (global_pda, _user) = init_global(&provider);
+    let not_authority = Keypair::new();
+    provider.airdrop(&not_authority.address(), 10_000_000_000).unwrap();
+
+    let result = build_set_virtual_quote_reserves(
+        &provider,
+        PROGRAM_ID,
+        5_000_000_000,
+        SetVirtualQuoteReservesAccounts { global: global_pda, authority: not_authority.address() },
+    )
+    .signer(&not_authority)
+    .send_and_confirm();
+
+    assert_custom_code(result, 6000);
+}
+
+#[test]
+fn toggle_create_v2_updates_value() {
+    let provider = setup();
+    let (global_pda, user) = init_global(&provider);
+
+    build_toggle_create_v2(
+        &provider,
+        PROGRAM_ID,
+        Bool::from(true),
+        ToggleCreateV2Accounts { global: global_pda, authority: user.address() },
+    )
+    .signer(&user)
+    .log()
+    .send_and_confirm()
+    .expect("toggle_create_v2 should succeed");
+
+    let global = fetch_global(&provider, &global_pda).expect("global should be readable");
+    assert!(bool::from(global.create_v2_enabled));
+}
+
+#[test]
+fn toggle_mayhem_mode_updates_value() {
+    let provider = setup();
+    let (global_pda, user) = init_global(&provider);
+
+    build_toggle_mayhem_mode(
+        &provider,
+        PROGRAM_ID,
+        Bool::from(true),
+        ToggleMayhemModeAccounts { global: global_pda, authority: user.address() },
+    )
+    .signer(&user)
+    .log()
+    .send_and_confirm()
+    .expect("toggle_mayhem_mode should succeed");
+
+    let global = fetch_global(&provider, &global_pda).expect("global should be readable");
+    assert!(bool::from(global.mayhem_mode_enabled));
+}
+
+#[test]
+fn toggle_cashback_enabled_updates_value() {
+    let provider = setup();
+    let (global_pda, user) = init_global(&provider);
+
+    build_toggle_cashback_enabled(
+        &provider,
+        PROGRAM_ID,
+        Bool::from(true),
+        ToggleCashbackEnabledAccounts { global: global_pda, authority: user.address() },
+    )
+    .signer(&user)
+    .log()
+    .send_and_confirm()
+    .expect("toggle_cashback_enabled should succeed");
+
+    let global = fetch_global(&provider, &global_pda).expect("global should be readable");
+    assert!(bool::from(global.is_cashback_enabled));
+}
+
+#[test]
+fn admin_set_creator_updates_bonding_curve_creator() {
+    let provider = setup();
+    let (global_pda, user) = init_global(&provider);
+
+    let admin_set_creator_authority = Keypair::new();
+    provider.airdrop(&admin_set_creator_authority.address(), 10_000_000_000).unwrap();
+
+    let fee_recipient_accounts: Vec<Address> = (0..8)
+        .map(|_| {
+            let address = Keypair::new().address();
+            provider.airdrop(&address, 10_000_000_000).unwrap();
+            address
+        })
+        .collect();
+
+    build_set_params(
+        &provider,
+        PROGRAM_ID,
+        pump_client::SetParamsArgs {
+            initial_virtual_token_reserves: 0,
+            initial_virtual_sol_reserves: 0,
+            initial_real_token_reserves: 0,
+            token_total_supply: 0,
+            fee_basis_points: 0,
+            withdraw_authority: Address::default(),
+            enable_migrate: Bool::from(false),
+            pool_migration_fee: 0,
+            creator_fee_basis_points: 0,
+            set_creator_authority: Address::default(),
+            admin_set_creator_authority: admin_set_creator_authority.address(),
+            ..Default::default()
+        },
+        SetParamsAccounts { global: global_pda, authority: user.address() },
+    )
+    .signer(&user)
+    .remaining_accounts(
+        fee_recipient_accounts
+            .iter()
+            .map(|address| AccountMeta { address: *address, is_signer: false, is_writable: false })
+            .collect(),
+    )
+    .send_and_confirm()
+    .expect("set_params should succeed");
+
+    let creator = Keypair::new().address();
+    let (bonding_curve_pda, mint, bonding_curve_bump) = create_bonding_curve(&provider, global_pda, creator);
+
+    let new_creator = Keypair::new().address();
+    build_admin_set_creator(
+        &provider,
+        PROGRAM_ID,
+        new_creator,
+        bonding_curve_bump,
+        AdminSetCreatorAccounts {
+            admin_set_creator_authority: admin_set_creator_authority.address(),
+            global: global_pda,
+            mint: mint.address(),
+            bonding_curve: bonding_curve_pda,
+        },
+    )
+    .signer(&admin_set_creator_authority)
+    .log()
+    .send_and_confirm()
+    .expect("admin_set_creator should succeed");
+
+    let bonding_curve = fetch_bonding_curve(&provider, &bonding_curve_pda)
+        .expect("bonding_curve should be readable");
+    assert_eq!(bonding_curve.creator, new_creator);
+}
+
+#[test]
+fn admin_set_creator_rejects_non_authority_signer() {
+    let provider = setup();
+    let (global_pda, _user) = init_global(&provider);
+    let creator = Keypair::new().address();
+    let (bonding_curve_pda, mint, bonding_curve_bump) = create_bonding_curve(&provider, global_pda, creator);
+
+    let not_authority = Keypair::new();
+    provider.airdrop(&not_authority.address(), 10_000_000_000).unwrap();
+
+    let result = build_admin_set_creator(
+        &provider,
+        PROGRAM_ID,
+        Keypair::new().address(),
+        bonding_curve_bump,
+        AdminSetCreatorAccounts {
+            admin_set_creator_authority: not_authority.address(),
+            global: global_pda,
+            mint: mint.address(),
+            bonding_curve: bonding_curve_pda,
+        },
+    )
+    .signer(&not_authority)
+    .send_and_confirm();
+
     assert_custom_code(result, 6000);
 }
 
@@ -802,6 +1035,7 @@ fn set_global_set_creator_authority(provider: &NaclacProvider, global_pda: Addre
             creator_fee_basis_points: 0,
             set_creator_authority: new_set_creator_authority,
             admin_set_creator_authority: Address::default(),
+            ..Default::default()
         },
         SetParamsAccounts { global: global_pda, authority: authority.address() },
     )
@@ -1206,6 +1440,16 @@ fn spl_mint_account_data(mint_authority: Option<&Address>, decimals: u8) -> Vec<
     data
 }
 
+/// Mirrors `pump_fees_test.rs`'s helper of the same name and shape.
+fn spl_token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
+    let mut data = vec![0u8; 165];
+    data[0..32].copy_from_slice(&mint.to_bytes());
+    data[32..64].copy_from_slice(&owner.to_bytes());
+    data[64..72].copy_from_slice(&amount.to_le_bytes());
+    data[108] = 1; // state = Initialized
+    data
+}
+
 /// `pump_amm`'s own `GlobalConfig` component is a scoped mirror (`bump`,
 /// `disable_flags`, `boost_enabled`, `admin`, `boost_authority`, not the
 /// full real-mainnet layout) — matches `pump_amm_test.rs`'s own helper of
@@ -1241,7 +1485,8 @@ fn setup_fee_config(provider: &NaclacProvider, admin: Address, fee_tiers: Vec<pu
     );
     let zero_tier = pump_fees_client::FeeTier {
         market_cap_lamports_threshold: 0,
-        fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 0, creator_fee_bps: 0 },
+        fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 0, creator_fee_bps: 0, ..Default::default() },
+        ..Default::default()
     };
     let mut tiers_arr = [zero_tier; 50];
     for (i, t) in fee_tiers.iter().enumerate() {
@@ -1261,7 +1506,9 @@ fn setup_fee_config(provider: &NaclacProvider, admin: Address, fee_tiers: Vec<pu
             lp_fee_bps: 0,
             protocol_fee_bps: TEST_STABLE_PROTOCOL_FEE_BPS,
             creator_fee_bps: TEST_STABLE_CREATOR_FEE_BPS,
+            ..Default::default()
         },
+        ..Default::default()
     };
     let mut stable_tiers_arr = [zero_tier; 50];
     stable_tiers_arr[0] = stable_tier;
@@ -1273,12 +1520,800 @@ fn setup_fee_config(provider: &NaclacProvider, admin: Address, fee_tiers: Vec<pu
         stable_fee_tiers_len: 1,
         bump,
         admin,
+        ..Default::default()
     };
     let data = discriminated_bytes(pump_fees_client::FEECONFIG_DISCRIMINATOR, &cfg);
     provider
         .set_account(&pda, data, &PUMP_FEES_PROGRAM_ID, 10_000_000_000)
         .expect("inject fee_config fixture");
     pda
+}
+
+/// Injects a `pump_fees::SharingConfig` for `mint`, owned by
+/// `PUMP_FEES_PROGRAM_ID`, bypassing the real `create_fee_sharing_config`/
+/// `migrate_bonding_curve_creator` CPI dance — mirrors `setup_fee_config`'s
+/// same fixture-injection shape. Also patches `bonding_curve.creator` to the
+/// sharing_config PDA's own address, the real post-migration invariant every
+/// creator-fees instruction reading `sharing_config` requires
+/// (`BondingCurveAndSharingConfigCreatorMismatch` otherwise — confirmed live
+/// via `reference/fee-tier-probe/src/bin/probe71.rs`). Returns the
+/// `sharing_config` PDA and bump.
+fn setup_sharing_config_for_bonding_curve(
+    provider: &NaclacProvider,
+    bonding_curve_pda: Address,
+    mint: Address,
+    shareholders: Vec<pump_fees_client::Shareholder>,
+) -> (Address, u8) {
+    let (sharing_config_pda, sharing_config_bump) = Address::find_program_address(
+        &[pump_client::SHARING_CONFIG_SEED, mint.as_ref()],
+        &PUMP_FEES_PROGRAM_ID,
+    );
+
+    let mut shareholders_arr = [pump_fees_client::Shareholder { address: Address::default(), share_bps: 0, ..Default::default() }; 30];
+    for (i, s) in shareholders.iter().enumerate() {
+        shareholders_arr[i] = *s;
+    }
+    let cfg = pump_fees_client::SharingConfig {
+        bump: sharing_config_bump,
+        version: 2,
+        status: 1,
+        mint,
+        admin: Address::default(),
+        admin_revoked: 0,
+        shareholders_len: shareholders.len() as u32,
+        shareholders: shareholders_arr,
+        ..Default::default()
+    };
+    let data = discriminated_bytes(pump_fees_client::SHARINGCONFIG_DISCRIMINATOR, &cfg);
+    provider
+        .set_account(&sharing_config_pda, data, &PUMP_FEES_PROGRAM_ID, 10_000_000_000)
+        .expect("inject sharing_config fixture");
+
+    let mut bonding_curve = fetch_bonding_curve(provider, &bonding_curve_pda)
+        .expect("bonding_curve should be readable");
+    bonding_curve.creator = sharing_config_pda;
+    let bonding_curve_lamports = provider.get_balance(&bonding_curve_pda).unwrap();
+    let data = discriminated_bytes(pump_client::BONDINGCURVE_DISCRIMINATOR, &bonding_curve);
+    provider
+        .set_account(&bonding_curve_pda, data, &PROGRAM_ID, bonding_curve_lamports)
+        .expect("patch bonding_curve.creator to sharing_config");
+
+    (sharing_config_pda, sharing_config_bump)
+}
+
+#[test]
+fn get_minimum_distributable_fee_returns_correct_values() {
+    let provider = setup();
+    let (global_pda, _admin) = init_global(&provider);
+    let creator = Keypair::new().address();
+    let (bonding_curve_pda, mint, bonding_curve_bump) = create_bonding_curve(&provider, global_pda, creator);
+
+    let shareholder = Keypair::new().address();
+    let (sharing_config_pda, _) = setup_sharing_config_for_bonding_curve(
+        &provider,
+        bonding_curve_pda,
+        mint.address(),
+        vec![pump_fees_client::Shareholder { address: shareholder, share_bps: 10_000, ..Default::default() }],
+    );
+
+    let (creator_vault_pda, creator_vault_bump) = Address::find_program_address(
+        &[CREATOR_VAULT_SEED, sharing_config_pda.as_ref()],
+        &PROGRAM_ID,
+    );
+    // Real formula (confirmed via `probe71.rs`): minimum_required = 2 *
+    // CREATOR_VAULT_RENT_EXEMPT_MINIMUM; distributable_fees = balance - the
+    // single rent-exempt floor; can_distribute compares the raw balance
+    // (not distributable_fees) against minimum_required, inclusive.
+    let minimum_required = 2 * CREATOR_VAULT_RENT_EXEMPT_MINIMUM;
+    provider
+        .set_account(&creator_vault_pda, vec![], &SYSTEM_PROGRAM_ID, minimum_required - 1)
+        .expect("fund creator_vault below the distribution threshold");
+
+    let result = build_get_minimum_distributable_fee(
+        &provider,
+        PROGRAM_ID,
+        bonding_curve_bump,
+        creator_vault_bump,
+        GetMinimumDistributableFeeAccounts {
+            mint: mint.address(),
+            bonding_curve: bonding_curve_pda,
+            sharing_config: sharing_config_pda,
+            creator_vault: creator_vault_pda,
+        },
+    )
+    .remaining_accounts(vec![AccountMeta { address: shareholder, is_signer: false, is_writable: false }])
+    .log()
+    .send_and_confirm()
+    .expect("get_minimum_distributable_fee should succeed");
+
+    let value: pump_client::MinimumDistributableFeeEvent =
+        *bytemuck::from_bytes(&result.return_data);
+    assert_eq!(value.minimum_required, minimum_required);
+    assert_eq!(value.distributable_fees, minimum_required - 1 - CREATOR_VAULT_RENT_EXEMPT_MINIMUM);
+    assert!(!bool::from(value.can_distribute), "balance one below minimum_required should not be distributable");
+
+    provider
+        .set_account(&creator_vault_pda, vec![], &SYSTEM_PROGRAM_ID, minimum_required)
+        .expect("fund creator_vault at exactly the distribution threshold");
+    // Same instruction data + accounts as the first call above -- only the
+    // account *state* differs -- so the tx signature would otherwise
+    // collide with the first call's (`AlreadyProcessed`).
+    provider.expire_blockhash().unwrap();
+
+    let result = build_get_minimum_distributable_fee(
+        &provider,
+        PROGRAM_ID,
+        bonding_curve_bump,
+        creator_vault_bump,
+        GetMinimumDistributableFeeAccounts {
+            mint: mint.address(),
+            bonding_curve: bonding_curve_pda,
+            sharing_config: sharing_config_pda,
+            creator_vault: creator_vault_pda,
+        },
+    )
+    .remaining_accounts(vec![AccountMeta { address: shareholder, is_signer: false, is_writable: false }])
+    .send_and_confirm()
+    .expect("get_minimum_distributable_fee should succeed");
+
+    let value: pump_client::MinimumDistributableFeeEvent =
+        *bytemuck::from_bytes(&result.return_data);
+    assert_eq!(value.distributable_fees, minimum_required - CREATOR_VAULT_RENT_EXEMPT_MINIMUM);
+    assert!(bool::from(value.can_distribute), "balance exactly at minimum_required should be distributable (inclusive)");
+}
+
+#[test]
+fn get_minimum_distributable_fee_rejects_bonding_curve_creator_mismatch() {
+    let provider = setup();
+    let (global_pda, _admin) = init_global(&provider);
+    // `creator` deliberately left as a plain human keypair, not the
+    // sharing_config's own address -- the real, live-confirmed
+    // `BondingCurveAndSharingConfigCreatorMismatch` check this instruction
+    // enforces (`probe71.rs`).
+    let creator = Keypair::new().address();
+    let (bonding_curve_pda, mint, bonding_curve_bump) = create_bonding_curve(&provider, global_pda, creator);
+
+    let (sharing_config_pda, sharing_config_bump) = Address::find_program_address(
+        &[pump_client::SHARING_CONFIG_SEED, mint.address().as_ref()],
+        &PUMP_FEES_PROGRAM_ID,
+    );
+    let shareholder = Keypair::new().address();
+    let mut shareholders_arr = [pump_fees_client::Shareholder { address: Address::default(), share_bps: 0, ..Default::default() }; 30];
+    shareholders_arr[0] = pump_fees_client::Shareholder { address: shareholder, share_bps: 10_000, ..Default::default() };
+    let cfg = pump_fees_client::SharingConfig {
+        bump: sharing_config_bump,
+        version: 2,
+        status: 1,
+        mint: mint.address(),
+        admin: Address::default(),
+        admin_revoked: 0,
+        shareholders_len: 1,
+        shareholders: shareholders_arr,
+        ..Default::default()
+    };
+    let data = discriminated_bytes(pump_fees_client::SHARINGCONFIG_DISCRIMINATOR, &cfg);
+    provider
+        .set_account(&sharing_config_pda, data, &PUMP_FEES_PROGRAM_ID, 10_000_000_000)
+        .expect("inject sharing_config fixture");
+    // deliberately NOT patching bonding_curve.creator here.
+
+    let (creator_vault_pda, creator_vault_bump) = Address::find_program_address(
+        &[CREATOR_VAULT_SEED, creator.as_ref()],
+        &PROGRAM_ID,
+    );
+    provider
+        .set_account(&creator_vault_pda, vec![], &SYSTEM_PROGRAM_ID, 5_000_000)
+        .expect("fund creator_vault");
+
+    let result = build_get_minimum_distributable_fee(
+        &provider,
+        PROGRAM_ID,
+        bonding_curve_bump,
+        creator_vault_bump,
+        GetMinimumDistributableFeeAccounts {
+            mint: mint.address(),
+            bonding_curve: bonding_curve_pda,
+            sharing_config: sharing_config_pda,
+            creator_vault: creator_vault_pda,
+        },
+    )
+    .remaining_accounts(vec![AccountMeta { address: shareholder, is_signer: false, is_writable: false }])
+    .log()
+    .send_and_confirm();
+
+    // `PumpError::BondingCurveAndSharingConfigCreatorMismatch` is enum index
+    // 29 -> 6000 + 29 = 6029.
+    assert_custom_code(result, 6029);
+}
+
+#[test]
+fn collect_creator_fee_sweeps_native_sol_to_creator() {
+    let provider = setup();
+    let (global_pda, _admin) = init_global(&provider);
+    let creator = Keypair::new().address();
+    let (_bonding_curve_pda, _mint, _bonding_curve_bump) = create_bonding_curve(&provider, global_pda, creator);
+
+    let (creator_vault_pda, creator_vault_bump) = Address::find_program_address(
+        &[CREATOR_VAULT_SEED, creator.as_ref()],
+        &PROGRAM_ID,
+    );
+    let funded_amount = 5_000_000u64;
+    provider
+        .set_account(&creator_vault_pda, vec![], &SYSTEM_PROGRAM_ID, CREATOR_VAULT_RENT_EXEMPT_MINIMUM + funded_amount)
+        .expect("fund creator_vault");
+
+    let creator_balance_before = provider.get_balance(&creator).unwrap_or(0);
+
+    build_collect_creator_fee(
+        &provider,
+        PROGRAM_ID,
+        creator_vault_bump,
+        CollectCreatorFeeAccounts { creator, creator_vault: creator_vault_pda, system_program: SYSTEM_PROGRAM_ID },
+    )
+    .log()
+    .send_and_confirm()
+    .expect("collect_creator_fee should succeed");
+
+    assert_eq!(
+        provider.get_balance(&creator_vault_pda).unwrap(),
+        CREATOR_VAULT_RENT_EXEMPT_MINIMUM,
+        "creator_vault should be swept down to its rent-exempt floor"
+    );
+    assert_eq!(
+        provider.get_balance(&creator).unwrap(),
+        creator_balance_before + funded_amount,
+        "creator should receive exactly the swept amount"
+    );
+}
+
+#[test]
+fn collect_creator_fee_rejects_migrated_creator() {
+    let provider = setup();
+    let (global_pda, _admin) = init_global(&provider);
+    let creator = Keypair::new().address();
+    let (bonding_curve_pda, mint, _bonding_curve_bump) = create_bonding_curve(&provider, global_pda, creator);
+
+    // Migrate: `sharing_config` becomes the bonding curve's own `creator`
+    // (same fixture shape as `setup_sharing_config_for_bonding_curve`),
+    // making the real `creator` slot here an account owned by
+    // `PUMP_FEES_PROGRAM_ID` -- `collect_creator_fee` must refuse to sweep
+    // it (`UnableToDistributeCreatorVaultMigratedToSharingConfig`, confirmed
+    // live via `reference/fee-tier-probe/src/bin/probe72.rs`), directing
+    // callers to `distribute_creator_fees(_v2)` instead.
+    let (sharing_config_pda, _) = setup_sharing_config_for_bonding_curve(
+        &provider,
+        bonding_curve_pda,
+        mint.address(),
+        vec![pump_fees_client::Shareholder { address: creator, share_bps: 10_000, ..Default::default() }],
+    );
+
+    let (creator_vault_pda, creator_vault_bump) = Address::find_program_address(
+        &[CREATOR_VAULT_SEED, sharing_config_pda.as_ref()],
+        &PROGRAM_ID,
+    );
+    provider
+        .set_account(&creator_vault_pda, vec![], &SYSTEM_PROGRAM_ID, CREATOR_VAULT_RENT_EXEMPT_MINIMUM + 5_000_000)
+        .expect("fund creator_vault");
+
+    let result = build_collect_creator_fee(
+        &provider,
+        PROGRAM_ID,
+        creator_vault_bump,
+        CollectCreatorFeeAccounts {
+            creator: sharing_config_pda,
+            creator_vault: creator_vault_pda,
+            system_program: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .log()
+    .send_and_confirm();
+
+    // `PumpError::UnableToDistributeCreatorVaultMigratedToSharingConfig` is
+    // enum index 30 -> 6000 + 30 = 6030.
+    assert_custom_code(result, 6030);
+}
+
+#[test]
+fn collect_creator_fee_v2_sweeps_token_balance_to_creator() {
+    let provider = setup();
+    let (global_pda, _admin) = init_global(&provider);
+    let creator = Keypair::new().address();
+    let (_bonding_curve_pda, _mint, _bonding_curve_bump) = create_bonding_curve(&provider, global_pda, creator);
+
+    let quote_mint = Keypair::new().address();
+    provider
+        .set_account(&quote_mint, spl_mint_account_data(None, 9), &TOKEN_PROGRAM_ID, 10_000_000)
+        .expect("inject quote_mint fixture");
+
+    let (creator_vault_pda, creator_vault_bump) = Address::find_program_address(
+        &[CREATOR_VAULT_SEED, creator.as_ref()],
+        &PROGRAM_ID,
+    );
+    let (creator_vault_token_account_pda, creator_vault_token_account_bump) = Address::find_program_address(
+        &[creator_vault_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), quote_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (creator_token_account_pda, creator_token_account_bump) = Address::find_program_address(
+        &[creator.as_ref(), TOKEN_PROGRAM_ID.as_ref(), quote_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+
+    // Unlike `distribute_creator_fees_v2`, this instruction has no
+    // `init_if_needed` on `creator_token_account` -- both ATAs must already
+    // exist.
+    let funded_amount = 5_000_000u64;
+    provider
+        .set_account(
+            &creator_vault_token_account_pda,
+            spl_token_account_data(&quote_mint, &creator_vault_pda, funded_amount),
+            &TOKEN_PROGRAM_ID,
+            2_039_280,
+        )
+        .expect("inject creator_vault_token_account fixture");
+    provider
+        .set_account(
+            &creator_token_account_pda,
+            spl_token_account_data(&quote_mint, &creator, 0),
+            &TOKEN_PROGRAM_ID,
+            2_039_280,
+        )
+        .expect("inject creator_token_account fixture");
+
+    build_collect_creator_fee_v2(
+        &provider,
+        PROGRAM_ID,
+        CollectCreatorFeeV2Args {
+            creator_vault_bump,
+            creator_token_account_bump,
+            creator_vault_token_account_bump,
+            ..Default::default()
+        },
+        CollectCreatorFeeV2Accounts {
+            creator,
+            creator_token_account: creator_token_account_pda,
+            creator_vault: creator_vault_pda,
+            creator_vault_token_account: creator_vault_token_account_pda,
+            quote_mint,
+            quote_token_program: TOKEN_PROGRAM_ID,
+            associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
+            system_program: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .log()
+    .send_and_confirm()
+    .expect("collect_creator_fee_v2 should succeed");
+
+    assert_eq!(
+        token_balance(&provider, &creator_vault_token_account_pda),
+        0,
+        "creator_vault_token_account should be fully swept"
+    );
+    assert_eq!(
+        token_balance(&provider, &creator_token_account_pda),
+        funded_amount,
+        "creator_token_account should receive the full swept amount"
+    );
+}
+
+#[test]
+fn collect_creator_fee_v2_rejects_migrated_creator() {
+    let provider = setup();
+    let (global_pda, _admin) = init_global(&provider);
+    let creator = Keypair::new().address();
+    let (bonding_curve_pda, mint, _bonding_curve_bump) = create_bonding_curve(&provider, global_pda, creator);
+
+    let (sharing_config_pda, _) = setup_sharing_config_for_bonding_curve(
+        &provider,
+        bonding_curve_pda,
+        mint.address(),
+        vec![pump_fees_client::Shareholder { address: creator, share_bps: 10_000, ..Default::default() }],
+    );
+
+    let quote_mint = Keypair::new().address();
+    provider
+        .set_account(&quote_mint, spl_mint_account_data(None, 9), &TOKEN_PROGRAM_ID, 10_000_000)
+        .expect("inject quote_mint fixture");
+
+    let (creator_vault_pda, creator_vault_bump) = Address::find_program_address(
+        &[CREATOR_VAULT_SEED, sharing_config_pda.as_ref()],
+        &PROGRAM_ID,
+    );
+    let (creator_vault_token_account_pda, creator_vault_token_account_bump) = Address::find_program_address(
+        &[creator_vault_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), quote_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (creator_token_account_pda, creator_token_account_bump) = Address::find_program_address(
+        &[sharing_config_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), quote_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    provider
+        .set_account(
+            &creator_vault_token_account_pda,
+            spl_token_account_data(&quote_mint, &creator_vault_pda, 5_000_000),
+            &TOKEN_PROGRAM_ID,
+            2_039_280,
+        )
+        .expect("inject creator_vault_token_account fixture");
+    provider
+        .set_account(
+            &creator_token_account_pda,
+            spl_token_account_data(&quote_mint, &sharing_config_pda, 0),
+            &TOKEN_PROGRAM_ID,
+            2_039_280,
+        )
+        .expect("inject creator_token_account fixture");
+
+    let result = build_collect_creator_fee_v2(
+        &provider,
+        PROGRAM_ID,
+        CollectCreatorFeeV2Args {
+            creator_vault_bump,
+            creator_token_account_bump,
+            creator_vault_token_account_bump,
+            ..Default::default()
+        },
+        CollectCreatorFeeV2Accounts {
+            creator: sharing_config_pda,
+            creator_token_account: creator_token_account_pda,
+            creator_vault: creator_vault_pda,
+            creator_vault_token_account: creator_vault_token_account_pda,
+            quote_mint,
+            quote_token_program: TOKEN_PROGRAM_ID,
+            associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
+            system_program: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .log()
+    .send_and_confirm();
+
+    // `PumpError::UnableToDistributeCreatorVaultMigratedToSharingConfig` is
+    // enum index 30 -> 6000 + 30 = 6030.
+    assert_custom_code(result, 6030);
+}
+
+#[test]
+fn init_user_volume_accumulator_creates_state() {
+    let provider = setup();
+    let payer = Keypair::new();
+    provider.airdrop(&payer.address(), 10_000_000_000).unwrap();
+    let user = Keypair::new().address();
+
+    let (uva_pda, uva_bump) = Address::find_program_address(
+        &[USER_VOLUME_ACCUMULATOR_SEED, user.as_ref()],
+        &PROGRAM_ID,
+    );
+
+    build_init_user_volume_accumulator(
+        &provider,
+        PROGRAM_ID,
+        uva_bump,
+        InitUserVolumeAccumulatorAccounts {
+            payer: payer.address(),
+            user,
+            user_volume_accumulator: uva_pda,
+            system_program: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .signer(&payer)
+    .log()
+    .send_and_confirm()
+    .expect("init_user_volume_accumulator should succeed");
+
+    let uva = fetch_user_volume_accumulator(&provider, &uva_pda)
+        .expect("user_volume_accumulator should be readable");
+    assert_eq!(uva.user, user);
+    assert_eq!(uva.bump, uva_bump);
+    assert_eq!(uva.total_unclaimed_tokens, 0);
+    assert_eq!(uva.cashback_earned, 0);
+}
+
+#[test]
+fn close_user_volume_accumulator_closes_regardless_of_pending_rewards() {
+    let provider = setup();
+    let user = Keypair::new();
+    provider.airdrop(&user.address(), 10_000_000_000).unwrap();
+
+    let (uva_pda, uva_bump) = Address::find_program_address(
+        &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
+        &PROGRAM_ID,
+    );
+    // Injected directly with nonzero pending rewards across the board --
+    // confirmed live against real deployed `pump.so`
+    // (`reference/fee-tier-probe/src/bin/probe75.rs`) that closing is
+    // unconditional regardless of any of these.
+    let uva = pump_client::UserVolumeAccumulator {
+        user: user.address(),
+        needs_claim: Bool::from(true),
+        total_unclaimed_tokens: 1_000_000,
+        total_claimed_tokens: 500_000,
+        current_sol_volume: 2_000_000,
+        last_update_timestamp: 1_700_000_000,
+        has_total_claimed_tokens: Bool::from(true),
+        cashback_earned: 5_000,
+        total_cashback_claimed: 1_000,
+        stable_cashback_earned: 3_000,
+        total_stable_cashback_claimed: 500,
+        reserved_trailing: [0u8; 31],
+        bump: uva_bump,
+        ..Default::default()
+    };
+    let data = discriminated_bytes(pump_client::USERVOLUMEACCUMULATOR_DISCRIMINATOR, &uva);
+    let uva_lamports = 10_000_000u64;
+    provider
+        .set_account(&uva_pda, data, &PROGRAM_ID, uva_lamports)
+        .expect("inject user_volume_accumulator fixture");
+
+    let user_balance_before = provider.get_balance(&user.address()).unwrap();
+
+    build_close_user_volume_accumulator(
+        &provider,
+        PROGRAM_ID,
+        CloseUserVolumeAccumulatorAccounts {
+            user: user.address(),
+            user_volume_accumulator: uva_pda,
+        },
+    )
+    .signer(&user)
+    .log()
+    .send_and_confirm()
+    .expect("close_user_volume_accumulator should succeed");
+
+    assert!(provider.get_account_data(&uva_pda).is_err(), "user_volume_accumulator should no longer exist");
+    let user_balance_after = provider.get_balance(&user.address()).unwrap();
+    assert!(
+        user_balance_after > user_balance_before,
+        "user should have received the reclaimed rent"
+    );
+}
+
+#[test]
+fn claim_cashback_sweeps_native_sol_to_user() {
+    let provider = setup();
+    let user = Keypair::new().address();
+
+    let (uva_pda, uva_bump) = Address::find_program_address(
+        &[USER_VOLUME_ACCUMULATOR_SEED, user.as_ref()],
+        &PROGRAM_ID,
+    );
+    let uva = pump_client::UserVolumeAccumulator {
+        user,
+        needs_claim: Bool::from(false),
+        total_unclaimed_tokens: 0,
+        total_claimed_tokens: 0,
+        current_sol_volume: 0,
+        last_update_timestamp: 0,
+        has_total_claimed_tokens: Bool::from(false),
+        cashback_earned: 5_000,
+        total_cashback_claimed: 1_000,
+        stable_cashback_earned: 0,
+        total_stable_cashback_claimed: 0,
+        reserved_trailing: [0u8; 31],
+        bump: uva_bump,
+        ..Default::default()
+    };
+    let data = discriminated_bytes(pump_client::USERVOLUMEACCUMULATOR_DISCRIMINATOR, &uva);
+    let uva_lamports_before = 10_000_000u64;
+    provider
+        .set_account(&uva_pda, data, &PROGRAM_ID, uva_lamports_before)
+        .expect("inject user_volume_accumulator fixture");
+
+    let user_balance_before = provider.get_balance(&user).unwrap_or(0);
+
+    build_claim_cashback(
+        &provider,
+        PROGRAM_ID,
+        ClaimCashbackAccounts { user, user_volume_accumulator: uva_pda, system_program: SYSTEM_PROGRAM_ID },
+    )
+    .log()
+    .send_and_confirm()
+    .expect("claim_cashback should succeed");
+
+    let uva_lamports_after = provider.get_balance(&uva_pda).unwrap();
+    let user_balance_after = provider.get_balance(&user).unwrap();
+    let swept = uva_lamports_before - uva_lamports_after;
+    assert!(swept > 0, "some lamports should have been swept");
+    assert!(uva_lamports_after > 0, "user_volume_accumulator should keep its rent-exempt floor, not be fully drained");
+    assert_eq!(user_balance_after - user_balance_before, swept, "user should receive exactly the swept amount");
+
+    let uva_after = fetch_user_volume_accumulator(&provider, &uva_pda)
+        .expect("user_volume_accumulator should be readable");
+    assert_eq!(uva_after.total_cashback_claimed, 1_000 + swept);
+    assert_eq!(uva_after.cashback_earned, 5_000, "cashback_earned is only a running tracker, unaffected by claiming");
+}
+
+#[test]
+fn claim_cashback_v2_sweeps_stable_cashback_to_user() {
+    let provider = setup();
+    let user = Keypair::new().address();
+
+    let (uva_pda, uva_bump) = Address::find_program_address(
+        &[USER_VOLUME_ACCUMULATOR_SEED, user.as_ref()],
+        &PROGRAM_ID,
+    );
+    let uva = pump_client::UserVolumeAccumulator {
+        user,
+        needs_claim: Bool::from(false),
+        total_unclaimed_tokens: 0,
+        total_claimed_tokens: 0,
+        current_sol_volume: 0,
+        last_update_timestamp: 0,
+        has_total_claimed_tokens: Bool::from(false),
+        cashback_earned: 0,
+        total_cashback_claimed: 0,
+        stable_cashback_earned: 8_000,
+        total_stable_cashback_claimed: 2_000,
+        reserved_trailing: [0u8; 31],
+        bump: uva_bump,
+        ..Default::default()
+    };
+    let data = discriminated_bytes(pump_client::USERVOLUMEACCUMULATOR_DISCRIMINATOR, &uva);
+    provider
+        .set_account(&uva_pda, data, &PROGRAM_ID, 10_000_000)
+        .expect("inject user_volume_accumulator fixture");
+
+    let quote_mint = Keypair::new().address();
+    provider
+        .set_account(&quote_mint, spl_mint_account_data(None, 9), &TOKEN_PROGRAM_ID, 10_000_000)
+        .expect("inject quote_mint fixture");
+
+    let (associated_uva_pda, associated_uva_bump) = Address::find_program_address(
+        &[uva_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), quote_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (associated_quote_user_pda, associated_quote_user_bump) = Address::find_program_address(
+        &[user.as_ref(), TOKEN_PROGRAM_ID.as_ref(), quote_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let funded_amount = 6_000_000u64;
+    provider
+        .set_account(
+            &associated_uva_pda,
+            spl_token_account_data(&quote_mint, &uva_pda, funded_amount),
+            &TOKEN_PROGRAM_ID,
+            2_039_280,
+        )
+        .expect("inject associated_user_volume_accumulator fixture");
+    provider
+        .set_account(
+            &associated_quote_user_pda,
+            spl_token_account_data(&quote_mint, &user, 0),
+            &TOKEN_PROGRAM_ID,
+            2_039_280,
+        )
+        .expect("inject associated_quote_user fixture");
+
+    build_claim_cashback_v2(
+        &provider,
+        PROGRAM_ID,
+        ClaimCashbackV2Args {
+            associated_user_volume_accumulator_bump: associated_uva_bump,
+            associated_quote_user_bump: associated_quote_user_bump,
+            ..Default::default()
+        },
+        ClaimCashbackV2Accounts {
+            user,
+            user_volume_accumulator: uva_pda,
+            quote_mint,
+            quote_token_program: TOKEN_PROGRAM_ID,
+            associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
+            associated_user_volume_accumulator: associated_uva_pda,
+            associated_quote_user: associated_quote_user_pda,
+            system_program: SYSTEM_PROGRAM_ID,
+        },
+    )
+    .log()
+    .send_and_confirm()
+    .expect("claim_cashback_v2 should succeed");
+
+    assert_eq!(token_balance(&provider, &associated_uva_pda), 0, "associated_user_volume_accumulator should be fully swept");
+    assert_eq!(token_balance(&provider, &associated_quote_user_pda), funded_amount, "associated_quote_user should receive the full swept amount");
+
+    let uva_after = fetch_user_volume_accumulator(&provider, &uva_pda)
+        .expect("user_volume_accumulator should be readable");
+    assert_eq!(uva_after.total_stable_cashback_claimed, 2_000 + funded_amount);
+    assert_eq!(uva_after.stable_cashback_earned, 8_000, "stable_cashback_earned is only a running tracker, unaffected by claiming");
+}
+
+#[test]
+fn claim_token_incentives_sweeps_unclaimed_tokens_to_user() {
+    let provider = setup();
+    let user = Keypair::new().address();
+    let payer = Keypair::new();
+    provider.airdrop(&payer.address(), 10_000_000_000).unwrap();
+
+    let mint = Keypair::new().address();
+    provider
+        .set_account(&mint, spl_mint_account_data(None, 6), &TOKEN_2022_PROGRAM_ID, 10_000_000)
+        .expect("inject mint fixture");
+
+    let (gva_pda, _) = Address::find_program_address(&[GLOBAL_VOLUME_ACCUMULATOR_SEED], &PROGRAM_ID);
+    let gva = pump_client::GlobalVolumeAccumulator {
+        start_time: 1_700_000_000,
+        end_time: 1_700_000_000 + 86_400 * 30,
+        seconds_in_a_day: 86_400,
+        mint,
+        total_token_supply: [0u64; 30],
+        sol_volumes: [0u64; 30],
+        reserved_trailing: [0u8; 56],
+        ..Default::default()
+    };
+    let gva_data = discriminated_bytes(pump_client::GLOBALVOLUMEACCUMULATOR_DISCRIMINATOR, &gva);
+    provider
+        .set_account(&gva_pda, gva_data, &PROGRAM_ID, 10_000_000)
+        .expect("inject global_volume_accumulator fixture");
+
+    let (uva_pda, uva_bump) = Address::find_program_address(
+        &[USER_VOLUME_ACCUMULATOR_SEED, user.as_ref()],
+        &PROGRAM_ID,
+    );
+    let uva = pump_client::UserVolumeAccumulator {
+        user,
+        needs_claim: Bool::from(true),
+        total_unclaimed_tokens: 4_000_000,
+        total_claimed_tokens: 1_000_000,
+        current_sol_volume: 250_000,
+        last_update_timestamp: 1_700_000_000,
+        has_total_claimed_tokens: Bool::from(true),
+        cashback_earned: 0,
+        total_cashback_claimed: 0,
+        stable_cashback_earned: 0,
+        total_stable_cashback_claimed: 0,
+        reserved_trailing: [0u8; 31],
+        bump: uva_bump,
+        ..Default::default()
+    };
+    let uva_data = discriminated_bytes(pump_client::USERVOLUMEACCUMULATOR_DISCRIMINATOR, &uva);
+    provider
+        .set_account(&uva_pda, uva_data, &PROGRAM_ID, 10_000_000)
+        .expect("inject user_volume_accumulator fixture");
+
+    let (global_incentive_token_account_pda, global_incentive_token_account_bump) = Address::find_program_address(
+        &[gva_pda.as_ref(), TOKEN_2022_PROGRAM_ID.as_ref(), mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    provider
+        .set_account(
+            &global_incentive_token_account_pda,
+            spl_token_account_data(&mint, &gva_pda, 10_000_000),
+            &TOKEN_2022_PROGRAM_ID,
+            2_039_280,
+        )
+        .expect("inject global_incentive_token_account fixture");
+
+    let (user_ata_pda, _) = Address::find_program_address(
+        &[user.as_ref(), TOKEN_2022_PROGRAM_ID.as_ref(), mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+
+    build_claim_token_incentives(
+        &provider,
+        PROGRAM_ID,
+        pump_client::types::ClaimTokenIncentivesArgs { global_incentive_token_account_bump, ..Default::default() },
+        ClaimTokenIncentivesAccounts {
+            user,
+            user_ata: user_ata_pda,
+            global_volume_accumulator: gva_pda,
+            global_incentive_token_account: global_incentive_token_account_pda,
+            user_volume_accumulator: uva_pda,
+            mint,
+            token_program: TOKEN_2022_PROGRAM_ID,
+            system_program: SYSTEM_PROGRAM_ID,
+            associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
+            payer: payer.address(),
+        },
+    )
+    .signer(&payer)
+    .log()
+    .send_and_confirm()
+    .expect("claim_token_incentives should succeed");
+
+    assert_eq!(token_balance(&provider, &user_ata_pda), 4_000_000, "user_ata should receive the full unclaimed amount");
+    assert_eq!(token_balance(&provider, &global_incentive_token_account_pda), 6_000_000, "global_incentive_token_account should be debited by the same amount");
+
+    let uva_after = fetch_user_volume_accumulator(&provider, &uva_pda)
+        .expect("user_volume_accumulator should be readable");
+    assert_eq!(uva_after.total_unclaimed_tokens, 0, "total_unclaimed_tokens should be zeroed after claiming");
+    assert_eq!(uva_after.total_claimed_tokens, 1_000_000 + 4_000_000);
 }
 
 /// Real end-to-end setup for `buy`/`sell`: loads the real `pump_fees.so`
@@ -1317,6 +2352,7 @@ fn setup_tradeable_bonding_curve(
             creator_fee_basis_points: 0,
             set_creator_authority: Address::default(),
             admin_set_creator_authority: Address::default(),
+            ..Default::default()
         },
         SetParamsAccounts { global: global_pda, authority: authority.address() },
     )
@@ -1368,7 +2404,8 @@ fn setup_tradeable_bonding_curve(
         authority.address(),
         vec![pump_fees_client::FeeTier {
             market_cap_lamports_threshold: 0,
-            fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 100, creator_fee_bps: 50 },
+            fees: pump_fees_client::Fees { lp_fee_bps: 0, protocol_fee_bps: 100, creator_fee_bps: 50, ..Default::default() },
+            ..Default::default()
         }],
     );
 
@@ -1471,6 +2508,7 @@ fn buy_purchases_tokens_and_updates_reserves() {
             buyback_index: 0,
             buyback_vault_bump: buyback_bumps[0],
             bonding_curve_v2_bump,
+            ..Default::default()
         },
         BuyAccounts {
             global: global_pda,
@@ -1566,6 +2604,219 @@ fn buy_purchases_tokens_and_updates_reserves() {
     );
 }
 
+/// Lighter-weight than `buy_purchases_tokens_and_updates_reserves` --
+/// doesn't hand-replicate `buy_exact_sol_in`'s real 4-step quote formula
+/// (including its step-3 over-spend correction), just confirms the
+/// instruction actually executes correctly end-to-end: tokens delivered
+/// match the exact reserve delta, and the slippage guard (`min_tokens_out`)
+/// really rejects when unmet.
+#[test]
+fn buy_exact_sol_in_purchases_tokens_and_updates_reserves() {
+    let provider = setup();
+    let (
+        global_pda,
+        bonding_curve_pda,
+        mint,
+        bonding_curve_bump,
+        creator,
+        fee_recipient_accounts,
+        buyback_vaults,
+        buyback_bumps,
+        _authority,
+    ) = setup_tradeable_bonding_curve(&provider);
+
+    let user = Keypair::new();
+    provider.airdrop(&user.address(), 10_000_000_000).unwrap();
+    create_ata(&provider, &mint.address(), &user.address()).expect("create user ATA");
+
+    let (associated_bonding_curve_pda, associated_bonding_curve_bump) = Address::find_program_address(
+        &[bonding_curve_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), mint.address().as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (associated_user_pda, associated_user_bump) = Address::find_program_address(
+        &[user.address().as_ref(), TOKEN_PROGRAM_ID.as_ref(), mint.address().as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (creator_vault_pda, creator_vault_bump) = Address::find_program_address(
+        &[CREATOR_VAULT_SEED, creator.as_ref()],
+        &PROGRAM_ID,
+    );
+    // `buy_exact_sol_in` never writes `global_volume_accumulator` but requires
+    // it to already exist (same real-confirmed shape as `buy_v2` -- see that
+    // instruction's own module comment); inject directly rather than relying
+    // on a prior classic `buy`'s `init_if_needed` to have created it.
+    let (global_volume_accumulator_pda, _) =
+        Address::find_program_address(&[GLOBAL_VOLUME_ACCUMULATOR_SEED], &PROGRAM_ID);
+    provider
+        .set_account(&global_volume_accumulator_pda, global_volume_accumulator_account_data(), &PROGRAM_ID, 10_000_000)
+        .expect("inject global_volume_accumulator fixture");
+    let (user_volume_accumulator_pda, user_volume_accumulator_bump) = Address::find_program_address(
+        &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
+        &PROGRAM_ID,
+    );
+    let (fee_config_pda, fee_config_bump) = Address::find_program_address(
+        &[FEE_CONFIG_SEED, PROGRAM_ID.as_ref()],
+        &PUMP_FEES_PROGRAM_ID,
+    );
+    let (pump_authority_pda, _) = Address::find_program_address(&[PUMP_AUTHORITY_SEED], &PROGRAM_ID);
+    let (bonding_curve_v2_pda_addr, _bonding_curve_v2_bump) = bonding_curve_v2_pda(&mint.address());
+
+    let bonding_curve_before = fetch_bonding_curve(&provider, &bonding_curve_pda)
+        .expect("bonding_curve should be readable");
+
+    let spendable_sol_in = 1_000_000_000u64;
+
+    build_buy_exact_sol_in(
+        &provider,
+        PROGRAM_ID,
+        BuyExactSolInArgs {
+            spendable_sol_in,
+            min_tokens_out: 1,
+            bonding_curve_bump,
+            associated_bonding_curve_bump,
+            associated_user_bump,
+            creator_vault_bump,
+            user_volume_accumulator_bump,
+            fee_config_bump,
+            buyback_index: 0,
+            buyback_vault_bump: buyback_bumps[0],
+            ..Default::default()
+        },
+        BuyExactSolInAccounts {
+            global: global_pda,
+            fee_recipient: fee_recipient_accounts[0],
+            mint: mint.address(),
+            bonding_curve: bonding_curve_pda,
+            associated_bonding_curve: associated_bonding_curve_pda,
+            user: user.address(),
+            associated_user: associated_user_pda,
+            system_program: SYSTEM_PROGRAM_ID,
+            token_program: TOKEN_PROGRAM_ID,
+            creator_vault: creator_vault_pda,
+            program: PROGRAM_ID,
+            global_volume_accumulator: global_volume_accumulator_pda,
+            user_volume_accumulator: user_volume_accumulator_pda,
+            fee_config: fee_config_pda,
+            fee_program: PUMP_FEES_PROGRAM_ID,
+            bonding_curve_v2: bonding_curve_v2_pda_addr,
+            buyback_fee_recipient: buyback_vaults[0],
+            pump_authority: pump_authority_pda,
+        },
+    )
+    .signer(&user)
+    .log()
+    .send_and_confirm()
+    .expect("buy_exact_sol_in should succeed");
+
+    let bonding_curve_after = fetch_bonding_curve(&provider, &bonding_curve_pda)
+        .expect("bonding_curve should be readable");
+    let tokens_out = bonding_curve_before.real_token_reserves - bonding_curve_after.real_token_reserves;
+    assert!(tokens_out > 0, "buy_exact_sol_in should deliver a nonzero amount of tokens");
+    assert_eq!(
+        token_balance(&provider, &associated_user_pda),
+        tokens_out,
+        "user should receive exactly the tokens debited from real_token_reserves"
+    );
+    let net_sol = bonding_curve_after.real_quote_reserves - bonding_curve_before.real_quote_reserves;
+    assert!(net_sol > 0 && net_sol <= spendable_sol_in, "net_sol credited to the curve should be positive and never exceed what the user offered");
+    assert_eq!(
+        bonding_curve_after.virtual_quote_reserves - bonding_curve_before.virtual_quote_reserves,
+        net_sol,
+        "virtual_quote_reserves should move by exactly net_sol"
+    );
+}
+
+#[test]
+fn buy_exact_sol_in_rejects_slippage_exceeded() {
+    let provider = setup();
+    let (
+        global_pda,
+        bonding_curve_pda,
+        mint,
+        bonding_curve_bump,
+        creator,
+        fee_recipient_accounts,
+        buyback_vaults,
+        buyback_bumps,
+        _authority,
+    ) = setup_tradeable_bonding_curve(&provider);
+
+    let user = Keypair::new();
+    provider.airdrop(&user.address(), 10_000_000_000).unwrap();
+    create_ata(&provider, &mint.address(), &user.address()).expect("create user ATA");
+
+    let (associated_bonding_curve_pda, associated_bonding_curve_bump) = Address::find_program_address(
+        &[bonding_curve_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), mint.address().as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (associated_user_pda, associated_user_bump) = Address::find_program_address(
+        &[user.address().as_ref(), TOKEN_PROGRAM_ID.as_ref(), mint.address().as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (creator_vault_pda, creator_vault_bump) = Address::find_program_address(
+        &[CREATOR_VAULT_SEED, creator.as_ref()],
+        &PROGRAM_ID,
+    );
+    let (global_volume_accumulator_pda, _) =
+        Address::find_program_address(&[GLOBAL_VOLUME_ACCUMULATOR_SEED], &PROGRAM_ID);
+    provider
+        .set_account(&global_volume_accumulator_pda, global_volume_accumulator_account_data(), &PROGRAM_ID, 10_000_000)
+        .expect("inject global_volume_accumulator fixture");
+    let (user_volume_accumulator_pda, user_volume_accumulator_bump) = Address::find_program_address(
+        &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
+        &PROGRAM_ID,
+    );
+    let (fee_config_pda, fee_config_bump) = Address::find_program_address(
+        &[FEE_CONFIG_SEED, PROGRAM_ID.as_ref()],
+        &PUMP_FEES_PROGRAM_ID,
+    );
+    let (pump_authority_pda, _) = Address::find_program_address(&[PUMP_AUTHORITY_SEED], &PROGRAM_ID);
+    let (bonding_curve_v2_pda_addr, _bonding_curve_v2_bump) = bonding_curve_v2_pda(&mint.address());
+
+    let result = build_buy_exact_sol_in(
+        &provider,
+        PROGRAM_ID,
+        BuyExactSolInArgs {
+            spendable_sol_in: 1_000_000_000,
+            min_tokens_out: u64::MAX,
+            bonding_curve_bump,
+            associated_bonding_curve_bump,
+            associated_user_bump,
+            creator_vault_bump,
+            user_volume_accumulator_bump,
+            fee_config_bump,
+            buyback_index: 0,
+            buyback_vault_bump: buyback_bumps[0],
+            ..Default::default()
+        },
+        BuyExactSolInAccounts {
+            global: global_pda,
+            fee_recipient: fee_recipient_accounts[0],
+            mint: mint.address(),
+            bonding_curve: bonding_curve_pda,
+            associated_bonding_curve: associated_bonding_curve_pda,
+            user: user.address(),
+            associated_user: associated_user_pda,
+            system_program: SYSTEM_PROGRAM_ID,
+            token_program: TOKEN_PROGRAM_ID,
+            creator_vault: creator_vault_pda,
+            program: PROGRAM_ID,
+            global_volume_accumulator: global_volume_accumulator_pda,
+            user_volume_accumulator: user_volume_accumulator_pda,
+            fee_config: fee_config_pda,
+            fee_program: PUMP_FEES_PROGRAM_ID,
+            bonding_curve_v2: bonding_curve_v2_pda_addr,
+            buyback_fee_recipient: buyback_vaults[0],
+            pump_authority: pump_authority_pda,
+        },
+    )
+    .signer(&user)
+    .send_and_confirm();
+
+    // `PumpError::SlippageExceeded` is enum index 6 -> 6000 + 6 = 6006.
+    assert_custom_code(result, 6006);
+}
+
 #[test]
 fn sell_returns_tokens_and_updates_reserves() {
     let provider = setup();
@@ -1630,6 +2881,7 @@ fn sell_returns_tokens_and_updates_reserves() {
             buyback_index: 0,
             buyback_vault_bump: buyback_bumps[0],
             bonding_curve_v2_bump,
+            ..Default::default()
         },
         BuyAccounts {
             global: global_pda,
@@ -1691,6 +2943,7 @@ fn sell_returns_tokens_and_updates_reserves() {
             buyback_index: 0,
             buyback_vault_bump: buyback_bumps[0],
             bonding_curve_v2_bump,
+            ..Default::default()
         },
         SellAccounts {
             global: global_pda,
@@ -1831,11 +3084,11 @@ fn buy_v2_purchases_tokens_and_updates_reserves() {
         &[CREATOR_VAULT_SEED, creator.as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_creator_vault_pda, associated_creator_vault_bump) = Address::find_program_address(
+    let (associated_creator_vault_pda, _associated_creator_vault_bump) = Address::find_program_address(
         &[creator_vault_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    let (associated_quote_fee_recipient_pda, associated_quote_fee_recipient_bump) = Address::find_program_address(
+    let (associated_quote_fee_recipient_pda, _associated_quote_fee_recipient_bump) = Address::find_program_address(
         &[fee_recipient_accounts[0].as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
@@ -1859,7 +3112,7 @@ fn buy_v2_purchases_tokens_and_updates_reserves() {
         &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_user_volume_accumulator_pda, associated_user_volume_accumulator_bump) =
+    let (associated_user_volume_accumulator_pda, _associated_user_volume_accumulator_bump) =
         Address::find_program_address(
             &[user_volume_accumulator_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
             &ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -1902,14 +3155,12 @@ fn buy_v2_purchases_tokens_and_updates_reserves() {
             associated_base_user_bump,
             associated_quote_user_bump,
             creator_vault_bump,
-            associated_creator_vault_bump,
-            associated_quote_fee_recipient_bump,
             associated_quote_buyback_fee_recipient_bump,
             user_volume_accumulator_bump,
-            associated_user_volume_accumulator_bump,
             fee_config_bump,
             buyback_index: 0,
             buyback_vault_bump: buyback_bumps[0],
+            ..Default::default()
         },
         BuyV2Accounts {
             global: global_pda,
@@ -2027,6 +3278,168 @@ fn buy_v2_purchases_tokens_and_updates_reserves() {
     );
 }
 
+/// `buy_exact_quote_in_v2` shares `buy_v2`'s exact 27-account shape (per that
+/// instruction's own module comment), so this reuses the identical fixture
+/// setup and just swaps the builder/args -- lighter-weight assertions than
+/// `buy_v2`'s own test, same rationale as `buy_exact_sol_in`'s test above.
+#[test]
+fn buy_exact_quote_in_v2_purchases_tokens_and_updates_reserves() {
+    let provider = setup();
+    let (
+        global_pda,
+        bonding_curve_pda,
+        mint,
+        bonding_curve_bump,
+        creator,
+        fee_recipient_accounts,
+        buyback_vaults,
+        buyback_bumps,
+        _authority,
+    ) = setup_tradeable_bonding_curve(&provider);
+
+    let wsol_mint = wsol_mint_address();
+    provider
+        .set_account(&wsol_mint, spl_mint_account_data(None, 9), &TOKEN_PROGRAM_ID, 10_000_000)
+        .expect("inject wsol_mint fixture");
+
+    let user = Keypair::new();
+    provider.airdrop(&user.address(), 10_000_000_000).unwrap();
+    create_ata(&provider, &mint.address(), &user.address()).expect("create user base ATA");
+    create_ata(&provider, &wsol_mint, &user.address()).expect("create user quote ATA");
+
+    let (associated_base_bonding_curve_pda, associated_base_bonding_curve_bump) = Address::find_program_address(
+        &[bonding_curve_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), mint.address().as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    create_ata(&provider, &wsol_mint, &bonding_curve_pda).expect("create bonding_curve quote ATA");
+    let (associated_quote_bonding_curve_pda, associated_quote_bonding_curve_bump) = Address::find_program_address(
+        &[bonding_curve_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (associated_base_user_pda, associated_base_user_bump) = Address::find_program_address(
+        &[user.address().as_ref(), TOKEN_PROGRAM_ID.as_ref(), mint.address().as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (associated_quote_user_pda, associated_quote_user_bump) = Address::find_program_address(
+        &[user.address().as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (creator_vault_pda, creator_vault_bump) = Address::find_program_address(
+        &[CREATOR_VAULT_SEED, creator.as_ref()],
+        &PROGRAM_ID,
+    );
+    let (associated_creator_vault_pda, _associated_creator_vault_bump) = Address::find_program_address(
+        &[creator_vault_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    let (associated_quote_fee_recipient_pda, _associated_quote_fee_recipient_bump) = Address::find_program_address(
+        &[fee_recipient_accounts[0].as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    create_ata(&provider, &wsol_mint, &buyback_vaults[0]).expect("create buyback quote ATA");
+    let (associated_quote_buyback_fee_recipient_pda, associated_quote_buyback_fee_recipient_bump) =
+        Address::find_program_address(
+            &[buyback_vaults[0].as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
+            &ASSOCIATED_TOKEN_PROGRAM_ID,
+        );
+    let (global_volume_accumulator_pda, _) =
+        Address::find_program_address(&[GLOBAL_VOLUME_ACCUMULATOR_SEED], &PROGRAM_ID);
+    provider
+        .set_account(&global_volume_accumulator_pda, global_volume_accumulator_account_data(), &PROGRAM_ID, 10_000_000)
+        .expect("inject global_volume_accumulator fixture");
+    let (user_volume_accumulator_pda, user_volume_accumulator_bump) = Address::find_program_address(
+        &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
+        &PROGRAM_ID,
+    );
+    let (associated_user_volume_accumulator_pda, _associated_user_volume_accumulator_bump) =
+        Address::find_program_address(
+            &[user_volume_accumulator_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
+            &ASSOCIATED_TOKEN_PROGRAM_ID,
+        );
+    let (fee_config_pda, fee_config_bump) = Address::find_program_address(
+        &[FEE_CONFIG_SEED, PROGRAM_ID.as_ref()],
+        &PUMP_FEES_PROGRAM_ID,
+    );
+    let (pump_authority_pda, _) = Address::find_program_address(&[PUMP_AUTHORITY_SEED], &PROGRAM_ID);
+
+    let bonding_curve_before = fetch_bonding_curve(&provider, &bonding_curve_pda)
+        .expect("bonding_curve should be readable");
+
+    let spendable_quote_in = 1_000_000_000u64;
+
+    build_buy_exact_quote_in_v2(
+        &provider,
+        PROGRAM_ID,
+        BuyExactQuoteInV2Args {
+            spendable_quote_in,
+            min_tokens_out: 1,
+            bonding_curve_bump,
+            associated_base_bonding_curve_bump,
+            associated_quote_bonding_curve_bump,
+            associated_base_user_bump,
+            associated_quote_user_bump,
+            creator_vault_bump,
+            associated_quote_buyback_fee_recipient_bump,
+            user_volume_accumulator_bump,
+            fee_config_bump,
+            buyback_index: 0,
+            buyback_vault_bump: buyback_bumps[0],
+            ..Default::default()
+        },
+        BuyExactQuoteInV2Accounts {
+            global: global_pda,
+            base_mint: mint.address(),
+            quote_mint: wsol_mint,
+            base_token_program: TOKEN_PROGRAM_ID,
+            quote_token_program: TOKEN_PROGRAM_ID,
+            associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
+            fee_recipient: fee_recipient_accounts[0],
+            associated_quote_fee_recipient: associated_quote_fee_recipient_pda,
+            buyback_fee_recipient: buyback_vaults[0],
+            associated_quote_buyback_fee_recipient: associated_quote_buyback_fee_recipient_pda,
+            bonding_curve: bonding_curve_pda,
+            associated_base_bonding_curve: associated_base_bonding_curve_pda,
+            associated_quote_bonding_curve: associated_quote_bonding_curve_pda,
+            user: user.address(),
+            associated_base_user: associated_base_user_pda,
+            associated_quote_user: associated_quote_user_pda,
+            creator_vault: creator_vault_pda,
+            associated_creator_vault: associated_creator_vault_pda,
+            sharing_config: Address::default(),
+            global_volume_accumulator: global_volume_accumulator_pda,
+            user_volume_accumulator: user_volume_accumulator_pda,
+            associated_user_volume_accumulator: associated_user_volume_accumulator_pda,
+            program: PROGRAM_ID,
+            fee_config: fee_config_pda,
+            fee_program: PUMP_FEES_PROGRAM_ID,
+            system_program: SYSTEM_PROGRAM_ID,
+            pump_authority: pump_authority_pda,
+        },
+    )
+    .signer(&user)
+    .log()
+    .send_and_confirm()
+    .expect("buy_exact_quote_in_v2 should succeed");
+
+    let bonding_curve_after = fetch_bonding_curve(&provider, &bonding_curve_pda)
+        .expect("bonding_curve should be readable");
+    let tokens_out = bonding_curve_before.real_token_reserves - bonding_curve_after.real_token_reserves;
+    assert!(tokens_out > 0, "buy_exact_quote_in_v2 should deliver a nonzero amount of tokens");
+    assert_eq!(
+        token_balance(&provider, &associated_base_user_pda),
+        tokens_out,
+        "user should receive exactly the tokens debited from real_token_reserves"
+    );
+    let net_quote = bonding_curve_after.real_quote_reserves - bonding_curve_before.real_quote_reserves;
+    assert!(net_quote > 0 && net_quote <= spendable_quote_in, "net_quote credited to the curve should be positive and never exceed what the user offered");
+
+    // Same real, confirmed shape as `buy_v2` for a SOL-paired coin: the
+    // quote-side WSOL ATAs are never actually touched, value moves as
+    // native lamports instead.
+    assert_eq!(token_balance(&provider, &associated_quote_bonding_curve_pda), 0);
+    assert_eq!(token_balance(&provider, &associated_quote_user_pda), 0);
+}
+
 #[test]
 fn sell_v2_returns_tokens_and_updates_reserves() {
     let provider = setup();
@@ -2073,11 +3486,11 @@ fn sell_v2_returns_tokens_and_updates_reserves() {
         &[CREATOR_VAULT_SEED, creator.as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_creator_vault_pda, associated_creator_vault_bump) = Address::find_program_address(
+    let (associated_creator_vault_pda, _associated_creator_vault_bump) = Address::find_program_address(
         &[creator_vault_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    let (associated_quote_fee_recipient_pda, associated_quote_fee_recipient_bump) = Address::find_program_address(
+    let (associated_quote_fee_recipient_pda, _associated_quote_fee_recipient_bump) = Address::find_program_address(
         &[fee_recipient_accounts[0].as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
@@ -2096,7 +3509,7 @@ fn sell_v2_returns_tokens_and_updates_reserves() {
         &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_user_volume_accumulator_pda, associated_user_volume_accumulator_bump) =
+    let (associated_user_volume_accumulator_pda, _associated_user_volume_accumulator_bump) =
         Address::find_program_address(
             &[user_volume_accumulator_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
             &ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -2120,14 +3533,12 @@ fn sell_v2_returns_tokens_and_updates_reserves() {
             associated_base_user_bump,
             associated_quote_user_bump,
             creator_vault_bump,
-            associated_creator_vault_bump,
-            associated_quote_fee_recipient_bump,
             associated_quote_buyback_fee_recipient_bump,
             user_volume_accumulator_bump,
-            associated_user_volume_accumulator_bump,
             fee_config_bump,
             buyback_index: 0,
             buyback_vault_bump: buyback_bumps[0],
+            ..Default::default()
         },
         BuyV2Accounts {
             global: global_pda,
@@ -2196,14 +3607,12 @@ fn sell_v2_returns_tokens_and_updates_reserves() {
             associated_base_user_bump,
             associated_quote_user_bump,
             creator_vault_bump,
-            associated_creator_vault_bump,
-            associated_quote_fee_recipient_bump,
             associated_quote_buyback_fee_recipient_bump,
             user_volume_accumulator_bump,
-            associated_user_volume_accumulator_bump,
             fee_config_bump,
             buyback_index: 0,
             buyback_vault_bump: buyback_bumps[0],
+            ..Default::default()
         },
         SellV2Accounts {
             global: global_pda,
@@ -2390,6 +3799,7 @@ fn migrate_moves_bonding_curve_reserves_into_a_new_pump_amm_pool() {
             buyback_index: 0,
             buyback_vault_bump: buyback_bumps[0],
             bonding_curve_v2_bump,
+            ..Default::default()
         },
         BuyAccounts {
             global: global_pda,
@@ -2448,6 +3858,7 @@ fn migrate_moves_bonding_curve_reserves_into_a_new_pump_amm_pool() {
             creator_fee_basis_points: 0,
             set_creator_authority: Address::default(),
             admin_set_creator_authority: Address::default(),
+            ..Default::default()
         },
         SetParamsAccounts { global: global_pda, authority: authority.address() },
     )
@@ -2519,6 +3930,7 @@ fn migrate_moves_bonding_curve_reserves_into_a_new_pump_amm_pool() {
             user_pool_token_account_bump,
             pool_base_token_account_bump,
             pool_quote_token_account_bump,
+            ..Default::default()
         },
         MigrateAccounts {
             global: global_pda,
@@ -2611,6 +4023,7 @@ fn migrate_moves_bonding_curve_reserves_into_a_new_pump_amm_pool() {
             user_pool_token_account_bump,
             pool_base_token_account_bump,
             pool_quote_token_account_bump,
+            ..Default::default()
         },
         MigrateAccounts {
             global: global_pda,
@@ -2713,11 +4126,11 @@ fn migrate_v2_moves_bonding_curve_reserves_into_a_new_pump_amm_pool_with_boost()
         &[CREATOR_VAULT_SEED, creator.as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_creator_vault_pda, associated_creator_vault_bump) = Address::find_program_address(
+    let (associated_creator_vault_pda, _associated_creator_vault_bump) = Address::find_program_address(
         &[creator_vault_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    let (associated_quote_fee_recipient_pda, associated_quote_fee_recipient_bump) = Address::find_program_address(
+    let (associated_quote_fee_recipient_pda, _associated_quote_fee_recipient_bump) = Address::find_program_address(
         &[fee_recipient_accounts[0].as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
@@ -2736,7 +4149,7 @@ fn migrate_v2_moves_bonding_curve_reserves_into_a_new_pump_amm_pool_with_boost()
         &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_user_volume_accumulator_pda, associated_user_volume_accumulator_bump) =
+    let (associated_user_volume_accumulator_pda, _associated_user_volume_accumulator_bump) =
         Address::find_program_address(
             &[user_volume_accumulator_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
             &ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -2763,14 +4176,12 @@ fn migrate_v2_moves_bonding_curve_reserves_into_a_new_pump_amm_pool_with_boost()
             associated_base_user_bump,
             associated_quote_user_bump,
             creator_vault_bump,
-            associated_creator_vault_bump,
-            associated_quote_fee_recipient_bump,
             associated_quote_buyback_fee_recipient_bump,
             user_volume_accumulator_bump,
-            associated_user_volume_accumulator_bump,
             fee_config_bump,
             buyback_index: 0,
             buyback_vault_bump: buyback_bumps[0],
+            ..Default::default()
         },
         BuyV2Accounts {
             global: global_pda,
@@ -2829,6 +4240,7 @@ fn migrate_v2_moves_bonding_curve_reserves_into_a_new_pump_amm_pool_with_boost()
             creator_fee_basis_points: 0,
             set_creator_authority: Address::default(),
             admin_set_creator_authority: Address::default(),
+            ..Default::default()
         },
         SetParamsAccounts { global: global_pda, authority: authority.address() },
     )
@@ -2910,6 +4322,7 @@ fn migrate_v2_moves_bonding_curve_reserves_into_a_new_pump_amm_pool_with_boost()
             pool_quote_token_account_bump,
             boost_vault_authority_bump,
             boost_vault_bump,
+            ..Default::default()
         },
         MigrateV2Accounts {
             global: global_pda,
@@ -3015,6 +4428,7 @@ fn migrate_v2_moves_bonding_curve_reserves_into_a_new_pump_amm_pool_with_boost()
             pool_quote_token_account_bump,
             boost_vault_authority_bump,
             boost_vault_bump,
+            ..Default::default()
         },
         MigrateV2Accounts {
             global: global_pda,
@@ -3158,11 +4572,11 @@ fn migrate_v2_moves_bonding_curve_reserves_with_a_whitelisted_quote_mint() {
         &[CREATOR_VAULT_SEED, creator.as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_creator_vault_pda, associated_creator_vault_bump) = Address::find_program_address(
+    let (associated_creator_vault_pda, _associated_creator_vault_bump) = Address::find_program_address(
         &[creator_vault_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), quote_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    let (associated_quote_fee_recipient_pda, associated_quote_fee_recipient_bump) = Address::find_program_address(
+    let (associated_quote_fee_recipient_pda, _associated_quote_fee_recipient_bump) = Address::find_program_address(
         &[fee_recipient_accounts[0].as_ref(), TOKEN_PROGRAM_ID.as_ref(), quote_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
@@ -3181,7 +4595,7 @@ fn migrate_v2_moves_bonding_curve_reserves_with_a_whitelisted_quote_mint() {
         &[USER_VOLUME_ACCUMULATOR_SEED, user.address().as_ref()],
         &PROGRAM_ID,
     );
-    let (associated_user_volume_accumulator_pda, associated_user_volume_accumulator_bump) =
+    let (associated_user_volume_accumulator_pda, _associated_user_volume_accumulator_bump) =
         Address::find_program_address(
             &[user_volume_accumulator_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), quote_mint.as_ref()],
             &ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -3247,14 +4661,12 @@ fn migrate_v2_moves_bonding_curve_reserves_with_a_whitelisted_quote_mint() {
             associated_base_user_bump,
             associated_quote_user_bump,
             creator_vault_bump,
-            associated_creator_vault_bump,
-            associated_quote_fee_recipient_bump,
             associated_quote_buyback_fee_recipient_bump,
             user_volume_accumulator_bump,
-            associated_user_volume_accumulator_bump,
             fee_config_bump,
             buyback_index: 0,
             buyback_vault_bump: buyback_bumps[0],
+            ..Default::default()
         },
         BuyV2Accounts {
             global: global_pda,
@@ -3351,6 +4763,7 @@ fn migrate_v2_moves_bonding_curve_reserves_with_a_whitelisted_quote_mint() {
             creator_fee_basis_points: 0,
             set_creator_authority: Address::default(),
             admin_set_creator_authority: Address::default(),
+            ..Default::default()
         },
         SetParamsAccounts { global: global_pda, authority: authority.address() },
     )
@@ -3431,6 +4844,7 @@ fn migrate_v2_moves_bonding_curve_reserves_with_a_whitelisted_quote_mint() {
             pool_quote_token_account_bump,
             boost_vault_authority_bump,
             boost_vault_bump,
+            ..Default::default()
         },
         MigrateV2Accounts {
             global: global_pda,

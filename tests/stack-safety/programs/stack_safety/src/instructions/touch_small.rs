@@ -7,7 +7,6 @@ pub struct TouchSmall {
     pub small: Account<SmallData>,
 }
 
-#[instruction]
 pub fn touch_small(ctx: Context<TouchSmall>) -> Result {
     ctx.accounts.small.value += 1;
     Ok(())

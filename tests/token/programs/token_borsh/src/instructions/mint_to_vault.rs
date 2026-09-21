@@ -19,7 +19,6 @@ pub struct MintToVault {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn mint_to_vault(ctx: Context<MintToVault>, amount: u64) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

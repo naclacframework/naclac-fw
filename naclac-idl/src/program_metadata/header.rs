@@ -161,3 +161,44 @@ mod tests {
         assert_eq!(payload(&bytes, &header), None);
     }
 }
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `payload` never panics for any `data`/`data_length` — its one
+    /// addition (`HEADER_LEN + header.data_length as usize`) can't actually
+    /// overflow `usize` on a 64-bit target since `data_length: u32` caps it
+    /// at roughly `HEADER_LEN + u32::MAX`, far below `usize::MAX`; `.get()`
+    /// itself is already panic-safe indexing regardless. Correctness, not
+    /// just panic-freedom: `Some(p)` must mean `p.len() ==
+    /// header.data_length as usize` exactly, and `None` must mean the
+    /// requested range genuinely doesn't fit within `data`.
+    #[kani::proof]
+    fn prove_payload_never_panics_and_is_correct() {
+        let data: [u8; 120] = kani::any();
+        let data_length: u32 = kani::any();
+        let header = MetadataHeader {
+            discriminator: AccountDiscriminator::Metadata,
+            program: Address::new_from_array([0u8; 32]),
+            authority: None,
+            mutable: false,
+            canonical: false,
+            seed: [0u8; 16],
+            encoding: 0,
+            compression: 0,
+            format: 0,
+            data_source: 0,
+            data_length,
+        };
+        let result = payload(&data, &header);
+        let requested_end = HEADER_LEN + data_length as usize;
+        match result {
+            Some(p) => assert_eq!(p.len(), data_length as usize),
+            None => assert!(
+                requested_end > data.len(),
+                "None must only occur when the requested range doesn't fit"
+            ),
+        }
+    }
+}

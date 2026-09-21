@@ -8,15 +8,15 @@ export const EXERCISE_UPDATE_SCALED_UI_AMOUNT_MULTIPLIER_DISCRIMINATOR = new Uin
 
 /** Instruction arguments for `exerciseUpdateScaledUiAmountMultiplier`. */
 export interface ExerciseUpdateScaledUiAmountMultiplierArgs {
-  new_multiplier_bits: bigint | number;
-  effective_timestamp: bigint | number;
+  newMultiplierBits: bigint | number;
+  effectiveTimestamp: bigint | number;
 }
 
 /** Accounts for the `exerciseUpdateScaledUiAmountMultiplier` instruction. */
 export interface ExerciseUpdateScaledUiAmountMultiplierAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

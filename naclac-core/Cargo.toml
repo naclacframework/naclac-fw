@@ -20,11 +20,12 @@ pinocchio-log-macro = { workspace = true, optional = true }
 pinocchio-memo = { workspace = true, optional = true }
 solana-address = { workspace = true, optional = true }
 five8 = { workspace = true }
+solana-define-syscall = { workspace = true, optional = true }
 
 [features]
 no-std = []
 default = ["solana"]
-solana = ["dep:solana-program", "dep:solana-system-interface", "dep:solana-address"]
+solana = ["dep:solana-program", "dep:solana-system-interface", "dep:solana-address", "dep:solana-define-syscall"]
 borsh = ["dep:borsh", "naclac-macros/borsh"]
 pinocchio = [
     "dep:pinocchio",
@@ -33,11 +34,14 @@ pinocchio = [
     "dep:pinocchio-pubkey",
     "dep:pinocchio-log-macro",
     "dep:pinocchio-memo",
+    "dep:solana-define-syscall",
     "naclac-macros/pinocchio"
 ]
 debug-mode = ["naclac-macros/debug-mode"]
+# `idl-build`'s print binary needs `std` (to print the assembled JSON) even
+# when `pinocchio`/`no-std` are also active for the real on-chain build —
+# see `lib.rs`'s `no_std` cfg_attr, which this exempts.
+idl-build = []
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))',
-] }
+[lints]
+workspace = true

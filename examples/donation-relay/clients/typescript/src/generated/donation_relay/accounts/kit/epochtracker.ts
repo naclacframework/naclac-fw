@@ -10,22 +10,22 @@ export const EPOCHTRACKER_DISCRIMINATOR = new Uint8Array([224, 134, 45, 78, 214,
 /** Gets the encoder for {@link EpochTracker} account data. */
 export function getEpochTrackerEncoder(): naclac.FixedSizeEncoder<EpochTracker> {
   return naclac.getStructEncoder([
-    ["bump", naclac.getU8Encoder()],
-    ["state", naclac.getU8Encoder()],
+    ["current_epoch", naclac.getU64Encoder()],
     ["config_id", naclac.getAddressEncoder()],
     ["mint", naclac.getAddressEncoder()],
-    ["current_epoch", naclac.getU64Encoder()],
+    ["bump", naclac.getU8Encoder()],
+    ["state", naclac.getU8Encoder()],
   ]) as naclac.FixedSizeEncoder<EpochTracker>;
 }
 
 /** Gets the decoder for {@link EpochTracker} account data. */
 export function getEpochTrackerDecoder(): naclac.FixedSizeDecoder<EpochTracker> {
   return naclac.getStructDecoder([
-    ["bump", naclac.getU8Decoder()],
-    ["state", naclac.getU8Decoder()],
+    ["current_epoch", naclac.getU64Decoder()],
     ["config_id", naclac.getAddressDecoder()],
     ["mint", naclac.getAddressDecoder()],
-    ["current_epoch", naclac.getU64Decoder()],
+    ["bump", naclac.getU8Decoder()],
+    ["state", naclac.getU8Decoder()],
   ]) as naclac.FixedSizeDecoder<EpochTracker>;
 }
 

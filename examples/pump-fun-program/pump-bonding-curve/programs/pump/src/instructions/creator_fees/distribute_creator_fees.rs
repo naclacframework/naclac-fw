@@ -60,12 +60,29 @@ pub struct DistributeCreatorFees {
 /// remainder, so the vault never retains dust above its rent-exempt floor.
 /// This rounding rule is a reasonable implementation choice, not verified
 /// against the real bytecode's exact behavior for >1 shareholder.
-#[instruction]
+///
+/// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+/// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+/// without it, `creator_vault` (derived from `bonding_curve.creator`) and the
+/// payout list (`sharing_config.shareholders`, from whichever `sharing_config`
+/// the caller passes) would have nothing tying them together, letting anyone
+/// redirect any bonding curve's real accumulated fees to an unrelated
+/// `sharing_config` they control. Also rejects any executable shareholder
+/// recipient (real, live-confirmed check, `reference/fee-tier-probe/src/bin/probe73.rs`)
+/// — an executable account can't receive lamports, so a stale shareholder
+/// entry that's since become a program account must be removed via
+/// `update_fee_shares(_v2)` first rather than silently failing the whole
+/// distribution at the transfer step.
 pub fn distribute_creator_fees(
     ctx: Context<DistributeCreatorFees>,
     _bonding_curve_bump: u8,
     creator_vault_bump: u8,
 ) -> Result {
+    require!(
+        ctx.accounts.bonding_curve.creator == ctx.accounts.sharing_config.address(),
+        PumpError::BondingCurveAndSharingConfigCreatorMismatch
+    );
+
     let shareholders_len = ctx.accounts.sharing_config.shareholders_len as usize;
     require!(shareholders_len > 0, PumpError::NotEnoughRemainingAccounts);
     require!(
@@ -93,6 +110,7 @@ pub fn distribute_creator_fees(
             recipient.address() == shareholder.address,
             PumpError::ShareholderAccountMismatch
         );
+        require!(!recipient.is_executable(), PumpError::UnableToDistributeCreatorFeesToExecutableRecipient);
 
         let amount = if i == shareholders_len - 1 {
             available - distributed

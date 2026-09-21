@@ -9,8 +9,8 @@ export const REVOKE_VAULT_DELEGATE_DISCRIMINATOR = new Uint8Array([197, 236, 148
 /** Accounts for the `revokeVaultDelegate` instruction. */
 export interface RevokeVaultDelegateAccounts {
   vault: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

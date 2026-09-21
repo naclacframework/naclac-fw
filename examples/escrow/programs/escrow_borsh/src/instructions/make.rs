@@ -28,7 +28,6 @@ pub struct Make {
     pub token_program: Program<Token>,
     pub system_program: Program<System>,
 }
-#[instruction]
 pub fn make(ctx: Context<Make>, _seed: u64, escrow_bump: u8, amount_a: u64, amount_b: u64) -> Result {
     require!(amount_a > 0 && amount_b > 0, crate::errors::EscrowError::ZeroAmount);
     require!(ctx.accounts.mint_a.address() != ctx.accounts.mint_b.address(), crate::errors::EscrowError::InvalidMint);

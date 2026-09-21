@@ -13,7 +13,6 @@ pub struct ReadVault {
     pub vault: Account<Vault>,
 }
 
-#[instruction]
 pub fn read_vault(ctx: Context<ReadVault>) -> Result {
     let _balance = ctx.accounts.vault.balance;
     Ok(())

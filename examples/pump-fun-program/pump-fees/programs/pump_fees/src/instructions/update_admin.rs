@@ -21,7 +21,6 @@ pub struct UpdateAdmin {
 }
 
 /// Update admin (only callable by admin)
-#[instruction]
 pub fn update_admin(ctx: Context<UpdateAdmin>) -> Result {
     require!(
         ctx.accounts.admin.address() == ctx.accounts.fee_config.admin,

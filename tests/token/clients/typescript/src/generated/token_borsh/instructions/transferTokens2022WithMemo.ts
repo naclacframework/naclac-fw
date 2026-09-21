@@ -13,17 +13,17 @@ export interface TransferTokens2022WithMemoArgs {
 
 /** Accounts for the `transferTokens2022WithMemo` instruction. */
 export interface TransferTokens2022WithMemoAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
   from: naclac.Address | string;
   to: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
   /**
    * SAFETY: never read or deserialized as SPL-token-shaped data — only
    * its address is used, to build and invoke the real spl-memo
    * instruction below.
    */
-  memo_program: naclac.Address | string;
+  memoProgram: naclac.Address | string;
 }
 
 /**

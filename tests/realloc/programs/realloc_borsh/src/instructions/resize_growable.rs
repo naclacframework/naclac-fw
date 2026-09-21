@@ -26,7 +26,6 @@ pub struct ResizeGrowable {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn resize_growable(_ctx: Context<ResizeGrowable>, _new_space: u64) -> Result {
     Ok(())
 }

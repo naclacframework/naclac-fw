@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use counter_client::{
     instructions::{
         build_initialize, build_increment,
@@ -16,7 +16,7 @@ fn test_counter_integration() {
     let cluster = "litesvm";
 
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new(cluster, payer);
+    let provider = NaclacProvider::new(cluster, payer).expect("Failed to construct NaclacProvider");
     println!("\n🔑 Loaded Payer Wallet: {}", provider.payer.address());
 
     // 2. Setup Program ID & PDA from the generated client SDK
@@ -24,17 +24,7 @@ fn test_counter_integration() {
     let (counter_pda, _bump) = get_counter_account_pda(&program_id);
     println!("   Derived PDA: {}", counter_pda);
 
-    // 3. Load the program binary
-    let mut workspace_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    workspace_root.pop(); // programs
-    workspace_root.pop(); // pump-amm workspace root
-    let so_path = resolve_cargo_target_dir(&workspace_root).join("deploy/counter.so");
-
-    provider.add_program(&program_id, so_path.to_str().unwrap())
-        .expect("Failed to load counter_pinocchio program binary");
-    println!("   📦 Loaded program binary.");
-
-    // 4. Initialize Account (Skip if already initialized)
+    // 3. Initialize Account (Skip if already initialized)
     let mut already_initialized = false;
     let mut start_count = 0u64;
 
@@ -78,7 +68,7 @@ fn test_counter_integration() {
         println!("   ✅ Initialized state verified: count = 0, authority matches payer.");
     }
 
-    // 5. Increment Account
+    // 4. Increment Account
     println!("📈 Sending Increment transaction...");
 
     let tx_meta = build_increment(
@@ -100,13 +90,13 @@ fn test_counter_integration() {
         }
     }
 
-    // 6. Verify Increment using the generated Counter component
+    // 5. Verify Increment using the generated Counter component
     let counter_state_after: Counter = fetch_counter(&provider, &counter_pda)
         .expect("Failed to fetch incremented counter account");
     assert_eq!(counter_state_after.count, start_count + 1);
     println!("   ✅ State verified: count = {}.", counter_state_after.count);
 
-    // 7. Verify Event using the generated CounterIncremented event type (zero-copy / POD)
+    // 6. Verify Event using the generated CounterIncremented event type (zero-copy / POD)
     let captured_events: Vec<CounterIncremented> = tx_meta.parse_events_zero_copy()
         .expect("Failed to parse events");
     assert!(!captured_events.is_empty(), "❌ Event was not captured!");

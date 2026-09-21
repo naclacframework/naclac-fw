@@ -26,7 +26,6 @@ pub struct TransferTokens {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn transfer_tokens(ctx: Context<TransferTokens>, amount: u64) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

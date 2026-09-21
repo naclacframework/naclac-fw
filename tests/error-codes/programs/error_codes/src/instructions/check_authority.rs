@@ -10,7 +10,6 @@ pub struct CheckAuthority {
     pub required: AccountInfo,
 }
 
-#[instruction]
 pub fn check_authority(ctx: Context<CheckAuthority>) -> Result {
     require!(
         ctx.accounts.payer.address() == ctx.accounts.required.address(),

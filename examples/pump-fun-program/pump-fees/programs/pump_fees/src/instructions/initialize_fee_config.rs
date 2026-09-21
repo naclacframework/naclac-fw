@@ -27,7 +27,6 @@ pub struct InitializeFeeConfig {
 }
 
 /// Initialize FeeConfig admin
-#[instruction]
 pub fn initialize_fee_config(ctx: Context<InitializeFeeConfig>, fee_config_bump: u8) -> Result {
     let timestamp = unix_timestamp()?;
 

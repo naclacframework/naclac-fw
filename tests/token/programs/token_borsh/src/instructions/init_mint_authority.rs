@@ -18,7 +18,6 @@ pub struct InitMintAuthority {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_mint_authority(ctx: Context<InitMintAuthority>) -> Result {
     // Bare `bump` only auto-writes the derived bump back into the account
     // for zero-copy fields (`naclac-macros/src/accounts.rs`'s

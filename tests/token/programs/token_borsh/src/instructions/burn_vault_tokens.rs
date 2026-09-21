@@ -21,7 +21,6 @@ pub struct BurnVaultTokens {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn burn_vault_tokens(ctx: Context<BurnVaultTokens>, amount: u64) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

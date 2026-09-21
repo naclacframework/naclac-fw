@@ -10,7 +10,6 @@ pub struct CheckTransferHook {
     pub token_account: InterfaceAccount<TokenAccount>,
 }
 
-#[instruction]
 pub fn check_transfer_hook(
     ctx: Context<CheckTransferHook>,
     expected_authority: Option<Address>,

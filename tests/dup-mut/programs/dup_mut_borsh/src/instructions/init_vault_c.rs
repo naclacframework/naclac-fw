@@ -21,7 +21,6 @@ pub struct InitVaultC {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_vault_c(ctx: Context<InitVaultC>) -> Result {
     let vault_c = &mut ctx.accounts.vault_c;
     vault_c.balance = 0;

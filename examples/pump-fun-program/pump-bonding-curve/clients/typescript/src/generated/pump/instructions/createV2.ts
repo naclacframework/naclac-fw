@@ -12,8 +12,8 @@ export interface CreateV2Args {
   symbol: string;
   uri: string;
   creator: naclac.Address | string;
-  is_cashback_enabled: naclac.Bool;
-  bonding_curve_bump: number;
+  isCashbackEnabled: naclac.Bool;
+  bondingCurveBump: number;
 }
 
 /** Accounts for the `createV2` instruction. */
@@ -30,8 +30,8 @@ export interface CreateV2Accounts {
    * lamport-only PDA (no stored data) — the mint's authority throughout
    * creation, signed via its own seeds for every CPI below.
    */
-  mint_authority?: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
   /**
    * SAFETY: created by hand in the handler body below via
    * `associated_token::create`, after the mint is fully initialized — see
@@ -41,18 +41,18 @@ export interface CreateV2Accounts {
    * enforcement the declarative `associated_token::...` sugar (used by
    * classic `create.rs`) ultimately relies on too.
    */
-  associated_bonding_curve: naclac.Address | string;
+  associatedBondingCurve: naclac.Address | string;
   global?: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   /**
    * Non-SOL quote mint, "all three or none" together with
    * `quote_token_program`/`associated_quote_bonding_curve` below — see the
    * module comment. `None` (real create_v2's remaining-accounts omitted)
    * means SOL-paired, same as passing WSOL explicitly.
    */
-  quote_mint?: naclac.Address | string;
+  quoteMint?: naclac.Address | string;
   /**
    * SAFETY: only ever compared against `TOKEN_PROGRAM_ID` in the handler
    * body, never deserialized — real `create_v2` requires classic Token
@@ -61,14 +61,14 @@ export interface CreateV2Accounts {
    * `AccountInfo` rather than a typed `Program<Token>` to preserve that
    * exact real error instead of a generic constraint-mismatch one.
    */
-  quote_token_program?: naclac.Address | string;
+  quoteTokenProgram?: naclac.Address | string;
   /**
    * SAFETY: created by hand in the handler body below, mirroring
    * `associated_bonding_curve` above — confirmed real `create_v2` creates
    * this itself (non-idempotent `Create`, `probe64.rs`), never
    * deserialized before that point.
    */
-  associated_quote_bonding_curve?: naclac.Address | string;
+  associatedQuoteBondingCurve?: naclac.Address | string;
 }
 
 /**

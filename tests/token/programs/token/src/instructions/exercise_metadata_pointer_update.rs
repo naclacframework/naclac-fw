@@ -19,7 +19,6 @@ pub struct ExerciseMetadataPointerUpdate {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_metadata_pointer_update(
     ctx: Context<ExerciseMetadataPointerUpdate>,
     new_metadata_address: Address,

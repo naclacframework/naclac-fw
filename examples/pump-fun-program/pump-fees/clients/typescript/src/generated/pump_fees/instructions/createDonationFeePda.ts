@@ -8,35 +8,35 @@ export const CREATE_DONATION_FEE_PDA_DISCRIMINATOR = new Uint8Array([244, 139, 1
 
 /** Instruction arguments for `createDonationFeePda`. */
 export interface CreateDonationFeePdaArgs {
-  bonding_curve_bump: number;
-  pool_authority_bump: number;
-  pool_bump: number;
-  donation_fee_pda_bump: number;
+  bondingCurveBump: number;
+  poolAuthorityBump: number;
+  poolBump: number;
+  donationFeePdaBump: number;
 }
 
 /** Accounts for the `createDonationFeePda` instruction. */
 export interface CreateDonationFeePdaAccounts {
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  fee_program_global?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  feeProgramGlobal?: naclac.Address | string;
   /** SAFETY: only used as PDA seed material below; not deserialized. */
-  base_mint: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  baseMint: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
   /** SAFETY: only used as PDA seed material for `pool` below; not deserialized. */
-  pool_authority?: naclac.Address | string;
+  poolAuthority?: naclac.Address | string;
   /**
    * SAFETY: address is always verified via seeds; owner/content are only
    * checked when `bonding_curve.complete` (see module comment above).
    */
   pool?: naclac.Address | string;
   /** SAFETY: dead — see module comment above. Kept for account-shape parity only. */
-  sharing_config: naclac.Address | string;
+  sharingConfig: naclac.Address | string;
   /**
    * SAFETY: plain address material distinguishing donation campaigns for
    * the same `base_mint`; not a signer, never deserialized.
    */
-  config_id: naclac.Address | string;
-  donation_fee_pda?: naclac.Address | string;
+  configId: naclac.Address | string;
+  donationFeePda?: naclac.Address | string;
 }
 
 /**

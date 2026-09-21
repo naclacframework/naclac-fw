@@ -9,7 +9,7 @@ export const CONFIG_DISCRIMINATOR = new Uint8Array([155, 12, 170, 224, 30, 250, 
 /** Auto-generated account interface from the program IDL. */
 export interface Config {
   admin: naclac.Address | string;
-  fee_bps: number;
+  feeBps: number;
 }
 
 /** 8-byte discriminator prefix for `Vault` accounts on-chain. */

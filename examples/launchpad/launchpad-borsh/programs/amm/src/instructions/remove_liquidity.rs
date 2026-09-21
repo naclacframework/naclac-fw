@@ -34,7 +34,6 @@ pub struct RemoveLiquidity {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn remove_liquidity(
     ctx: Context<RemoveLiquidity>,
     lp_amount: u64,

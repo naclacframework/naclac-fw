@@ -8,13 +8,13 @@ export const SET_DISABLE_FLAGS_DISCRIMINATOR = new Uint8Array([194, 217, 112, 35
 
 /** Instruction arguments for `setDisableFlags`. */
 export interface SetDisableFlagsArgs {
-  disable_flags: number;
+  disableFlags: number;
 }
 
 /** Accounts for the `setDisableFlags` instruction. */
 export interface SetDisableFlagsAccounts {
   authority: naclac.Address | string;
-  fee_program_global?: naclac.Address | string;
+  feeProgramGlobal?: naclac.Address | string;
 }
 
 /**

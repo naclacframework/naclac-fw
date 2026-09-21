@@ -8,8 +8,8 @@ export const TOUCH_TWO_OPTIONAL_DISCRIMINATOR = new Uint8Array([91, 54, 255, 176
 
 /** Accounts for the `touchTwoOptional` instruction. */
 export interface TouchTwoOptionalAccounts {
-  thing_a?: naclac.Address | string;
-  thing_b?: naclac.Address | string;
+  thingA?: naclac.Address | string;
+  thingB?: naclac.Address | string;
 }
 
 /**

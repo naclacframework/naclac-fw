@@ -27,7 +27,19 @@ pub enum NaclacTypeDefTy {
     #[serde(rename = "struct")]
     Struct { fields: Vec<NaclacField> },
     #[serde(rename = "enum")]
-    Enum { variants: Vec<NaclacEnumVariant> },
+    Enum {
+        variants: Vec<NaclacEnumVariant>,
+        /// The enum's `#[repr(uN)]` discriminant type as written in source
+        /// (e.g. `"u8"`, `"u16"`) — `None` means no explicit repr was
+        /// written, which `#[defined_type]`'s zero-copy branch defaults to
+        /// `u8` (`naclac-macros/src/lib.rs`). Consumers that need the real
+        /// discriminant width (e.g. client codegen matching the on-chain
+        /// zero-copy layout) must apply that same default when this is
+        /// `None`, not assume it's absent because the enum has no repr at
+        /// all.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        repr: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -35,6 +47,40 @@ pub struct NaclacEnumVariant {
     pub name: String,
     #[serde(default)]
     pub docs: Vec<String>,
+    /// `None` for a unit variant (`Foo`); matches the real Anchor IDL spec's
+    /// own `Option<IdlDefinedFields>` on enum variants.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fields: Option<NaclacEnumFields>,
+    /// This variant's real, fully-resolved discriminant value (decimal,
+    /// possibly negative for a signed repr) — always populated, even for a
+    /// variant with no explicit `= N` in source, computed with the exact
+    /// same rule Rust's compiler uses (mirrored in this file's own
+    /// `variant_discriminants`, and independently in `naclac-macros/src/
+    /// checked_enum.rs`'s `variant_discriminants` for the on-chain macro):
+    /// starts at 0 for the first variant, an explicit `= N` resets the
+    /// running value to `N`, otherwise it increments by 1 from the previous
+    /// variant. A `String` (not a JSON number) to avoid any i128-range
+    /// precision concern, matching how `IdlConstant.value` already
+    /// represents numeric values as strings in this IDL. Zero-copy client
+    /// codegen depends on this matching on-chain exactly — Borsh mode does
+    /// not use it at all (confirmed via real `borsh-derive` source: its
+    /// default enum tag is the variant's positional index, not its Rust
+    /// discriminant, unless a crate opts into `#[borsh(use_discriminant =
+    /// true)]`, which naclac's own Borsh branch never does).
+    pub discriminant: String,
+}
+
+/// A data-carrying enum variant's fields — named (`Foo { x: u64 }`) or
+/// tuple (`Foo(u64, String)`). Matches the real Anchor IDL spec's
+/// `IdlDefinedFields` shape exactly (untagged: a named variant serializes as
+/// an array of `{name, type}` objects, a tuple variant as a bare array of
+/// types), since this is what the Anchor-shape IDL converter needs to
+/// reproduce byte-for-byte.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(untagged)]
+pub enum NaclacEnumFields {
+    Named(Vec<NaclacField>),
+    Tuple(Vec<serde_json::Value>),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

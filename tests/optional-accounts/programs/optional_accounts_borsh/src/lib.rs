@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 
-declare_id!("8BqTEfKKWonQmvi4Vzo3x2CLtbodzH9EFi2sm2ytfjJ6");
+declare_id!("13AwmpZtsjATXdwGx7wLkH9bU5sw9sL9KBqizRTau1Yd");
 
 pub mod components;
 pub mod constants;

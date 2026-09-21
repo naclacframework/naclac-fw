@@ -62,4 +62,12 @@ pub enum PumpError {
     MayhemModeDisabled,
     /// buyback fee recipients require exactly 8 remaining accounts (or none)
     WrongBuybackFeeRecipientsCount,
+    /// Bonding curve creator does not match sharing config
+    BondingCurveAndSharingConfigCreatorMismatch,
+    /// creator_vault has been migrated to sharing config, use
+    /// distribute_creator_fees(_v2) instead
+    UnableToDistributeCreatorVaultMigratedToSharingConfig,
+    /// The recipient account is executable, so it cannot receive lamports;
+    /// remove it from the team first
+    UnableToDistributeCreatorFeesToExecutableRecipient,
 }

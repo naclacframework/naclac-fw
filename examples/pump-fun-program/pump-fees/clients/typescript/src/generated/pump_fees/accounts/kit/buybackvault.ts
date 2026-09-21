@@ -11,11 +11,11 @@ export const BUYBACKVAULT_DISCRIMINATOR = new Uint8Array([153, 166, 71, 144, 179
 export function getBuybackVaultEncoder(): naclac.FixedSizeEncoder<BuybackVault> {
   return naclac.getStructEncoder([
     ["authority", naclac.getAddressEncoder()],
-    ["total_claimed", naclac.getU64Encoder()],
-    ["total_claimed_token1", naclac.getU64Encoder()],
-    ["total_claimed_token2", naclac.getU64Encoder()],
-    ["last_claimed", naclac.getI64Encoder()],
-    ["claim_rate_limit", naclac.getI64Encoder()],
+    ["totalClaimed", naclac.getU64Encoder()],
+    ["totalClaimedToken1", naclac.getU64Encoder()],
+    ["totalClaimedToken2", naclac.getU64Encoder()],
+    ["lastClaimed", naclac.getI64Encoder()],
+    ["claimRateLimit", naclac.getI64Encoder()],
     ["reserved", naclac.getU8Encoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeEncoder<BuybackVault>;
 }
@@ -24,11 +24,11 @@ export function getBuybackVaultEncoder(): naclac.FixedSizeEncoder<BuybackVault> 
 export function getBuybackVaultDecoder(): naclac.FixedSizeDecoder<BuybackVault> {
   return naclac.getStructDecoder([
     ["authority", naclac.getAddressDecoder()],
-    ["total_claimed", naclac.getU64Decoder()],
-    ["total_claimed_token1", naclac.getU64Decoder()],
-    ["total_claimed_token2", naclac.getU64Decoder()],
-    ["last_claimed", naclac.getI64Decoder()],
-    ["claim_rate_limit", naclac.getI64Decoder()],
+    ["totalClaimed", naclac.getU64Decoder()],
+    ["totalClaimedToken1", naclac.getU64Decoder()],
+    ["totalClaimedToken2", naclac.getU64Decoder()],
+    ["lastClaimed", naclac.getI64Decoder()],
+    ["claimRateLimit", naclac.getI64Decoder()],
     ["reserved", naclac.getU8Decoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeDecoder<BuybackVault>;
 }

@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "MqiMRvWB6ZjHwQGQvooZefAhDnEzfNV3JrBCCgZqHg9",
+  "address": "BYFM8wr8RjLM9RDjoAVaMw6YAqSZKxiTYHyggREpr4nS",
   "metadata": {
     "name": "counter_borsh",
     "version": "0.1.0",

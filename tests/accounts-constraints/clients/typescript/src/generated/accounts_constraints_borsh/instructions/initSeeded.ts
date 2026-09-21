@@ -10,7 +10,7 @@ export const INIT_SEEDED_DISCRIMINATOR = new Uint8Array([194, 72, 3, 113, 154, 1
 export interface InitSeededAccounts {
   payer: naclac.Address | string;
   seeded?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

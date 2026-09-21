@@ -30,7 +30,6 @@ pub struct CreateMint2022WithMintCloseAuthority {
 /// 4-byte TLV header + 32-byte `MintCloseAuthority` value.
 const MINT_WITH_MINT_CLOSE_AUTHORITY_SPACE: u64 = 82 + 83 + 1 + 4 + 32;
 
-#[instruction]
 pub fn create_mint2022_with_mint_close_authority(
     ctx: Context<CreateMint2022WithMintCloseAuthority>,
     id: u64,

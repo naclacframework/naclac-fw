@@ -10,14 +10,14 @@ export const SOCIALFEEPDA_DISCRIMINATOR = new Uint8Array([139, 96, 53, 17, 42, 1
 /** Gets the encoder for {@link SocialFeePda} account data. */
 export function getSocialFeePdaEncoder(): naclac.FixedSizeEncoder<SocialFeePda> {
   return naclac.getStructEncoder([
-    ["total_claimed", naclac.getU64Encoder()],
-    ["last_claimed", naclac.getU64Encoder()],
-    ["total_stable_claimed", naclac.getU64Encoder()],
-    ["user_id_len", naclac.getU32Encoder()],
+    ["totalClaimed", naclac.getU64Encoder()],
+    ["lastClaimed", naclac.getU64Encoder()],
+    ["totalStableClaimed", naclac.getU64Encoder()],
+    ["userIdLen", naclac.getU32Encoder()],
     ["bump", naclac.getU8Encoder()],
     ["version", naclac.getU8Encoder()],
     ["platform", naclac.getU8Encoder()],
-    ["user_id", naclac.getU8Encoder() /* TODO: complex type */],
+    ["userId", naclac.getU8Encoder() /* TODO: complex type */],
     ["reserved", naclac.getU8Encoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeEncoder<SocialFeePda>;
 }
@@ -25,14 +25,14 @@ export function getSocialFeePdaEncoder(): naclac.FixedSizeEncoder<SocialFeePda> 
 /** Gets the decoder for {@link SocialFeePda} account data. */
 export function getSocialFeePdaDecoder(): naclac.FixedSizeDecoder<SocialFeePda> {
   return naclac.getStructDecoder([
-    ["total_claimed", naclac.getU64Decoder()],
-    ["last_claimed", naclac.getU64Decoder()],
-    ["total_stable_claimed", naclac.getU64Decoder()],
-    ["user_id_len", naclac.getU32Decoder()],
+    ["totalClaimed", naclac.getU64Decoder()],
+    ["lastClaimed", naclac.getU64Decoder()],
+    ["totalStableClaimed", naclac.getU64Decoder()],
+    ["userIdLen", naclac.getU32Decoder()],
     ["bump", naclac.getU8Decoder()],
     ["version", naclac.getU8Decoder()],
     ["platform", naclac.getU8Decoder()],
-    ["user_id", naclac.getU8Decoder() /* TODO: complex type */],
+    ["userId", naclac.getU8Decoder() /* TODO: complex type */],
     ["reserved", naclac.getU8Decoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeDecoder<SocialFeePda>;
 }

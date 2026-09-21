@@ -20,11 +20,11 @@ export interface CreateMint2022WithGroupMemberPointerAndMemberAccounts {
    * body below — raw SPL `Mint` + `GroupMemberPointer` +
    * `TokenGroupMember` layout, not a naclac component.
    */
-  member_mint?: naclac.Address | string;
-  group_mint: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  memberMint?: naclac.Address | string;
+  groupMint: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

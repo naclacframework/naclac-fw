@@ -11,7 +11,6 @@ pub struct CheckTokenGroup {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_token_group(
     ctx: Context<CheckTokenGroup>,
     expected_size: u64,

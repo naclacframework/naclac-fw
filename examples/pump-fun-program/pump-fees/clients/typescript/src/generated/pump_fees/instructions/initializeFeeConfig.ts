@@ -8,7 +8,7 @@ export const INITIALIZE_FEE_CONFIG_DISCRIMINATOR = new Uint8Array([62, 162, 20, 
 
 /** Instruction arguments for `initializeFeeConfig`. */
 export interface InitializeFeeConfigArgs {
-  fee_config_bump: number;
+  feeConfigBump: number;
 }
 
 /** Accounts for the `initializeFeeConfig` instruction. */
@@ -18,9 +18,9 @@ export interface InitializeFeeConfigAccounts {
    * SAFETY: only used as PDA seed material for `fee_config`; not
    * deserialized or invoked.
    */
-  config_program_id: naclac.Address | string;
-  fee_config?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  feeConfig?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

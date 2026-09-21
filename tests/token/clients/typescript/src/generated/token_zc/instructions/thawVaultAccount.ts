@@ -10,8 +10,8 @@ export const THAW_VAULT_ACCOUNT_DISCRIMINATOR = new Uint8Array([103, 77, 214, 24
 export interface ThawVaultAccountAccounts {
   vault: naclac.Address | string;
   mint: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

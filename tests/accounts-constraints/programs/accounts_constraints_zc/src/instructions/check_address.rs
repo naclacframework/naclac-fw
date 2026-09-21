@@ -11,7 +11,6 @@ pub struct CheckAddress {
     pub target: AccountInfo,
 }
 
-#[instruction]
 pub fn check_address(_ctx: Context<CheckAddress>) -> Result {
     Ok(())
 }

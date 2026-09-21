@@ -7,10 +7,9 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct ConfigEntry {
     pub bump: u8,
     pub value: u64,
@@ -18,15 +17,80 @@ pub struct ConfigEntry {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ConfigEntry {
+    pub bump: u8,
+    pub __naclac_padding_0: [u8; __ConfigEntry_GAP_0],
+    pub value: u64,
+    pub __naclac_padding_1: [u8; __ConfigEntry_GAP_1],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ConfigEntry_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ConfigEntry_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __ConfigEntry_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ConfigEntry > () == (::core::mem::size_of:: < u8 > () +
+        __ConfigEntry_GAP_0 + ::core::mem::size_of:: < u64 > () + __ConfigEntry_GAP_1),
+        "defined_type/#[component]: `ConfigEntry`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for ConfigEntry {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for ConfigEntry {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for ConfigEntry {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct ConfigEntryCpi {
     pub bump: u8,
     pub value: u64,
@@ -34,12 +98,76 @@ pub struct ConfigEntryCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ConfigEntryCpi {
+    pub bump: u8,
+    pub __naclac_padding_0: [u8; __ConfigEntryCpi_GAP_0],
+    pub value: u64,
+    pub __naclac_padding_1: [u8; __ConfigEntryCpi_GAP_1],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ConfigEntryCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __ConfigEntryCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __ConfigEntryCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ConfigEntryCpi > () == (::core::mem::size_of:: < u8 > ()
+        + __ConfigEntryCpi_GAP_0 + ::core::mem::size_of:: < u64 > () +
+        __ConfigEntryCpi_GAP_1),
+        "defined_type/#[component]: `ConfigEntryCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for ConfigEntryCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for ConfigEntryCpi {}
-#[cfg(all(feature = "cpi", not(feature = "offchain")))]
-pub type ConfigEntry = ConfigEntryCpi;
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for ConfigEntryCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 
 /// 8-byte on-chain discriminator for `ConfigEntry` accounts.

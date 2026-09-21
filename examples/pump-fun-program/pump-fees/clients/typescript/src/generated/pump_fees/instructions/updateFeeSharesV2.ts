@@ -9,9 +9,9 @@ export const UPDATE_FEE_SHARES_V2_DISCRIMINATOR = new Uint8Array([111, 251, 49, 
 
 /** Instruction arguments for `updateFeeSharesV2`. */
 export interface UpdateFeeSharesV2Args {
-  bonding_curve_bump: number;
-  pump_creator_vault_bump: number;
-  coin_creator_vault_authority_bump: number;
+  bondingCurveBump: number;
+  pumpCreatorVaultBump: number;
+  coinCreatorVaultAuthorityBump: number;
   shareholders: Array<types.Shareholder>;
 }
 
@@ -24,41 +24,41 @@ export interface UpdateFeeSharesV2Accounts {
    * below, never read or invoked.
    */
   mint: naclac.Address | string;
-  sharing_config?: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  sharingConfig?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump`/`seeds::program` constraint already verifies its
    * address; it's a lamport-only PDA under `pump` (no stored data from this
    * program's perspective), only ever a CPI target below, never deserialized.
    */
-  pump_creator_vault?: naclac.Address | string;
+  pumpCreatorVault?: naclac.Address | string;
   /**
    * SAFETY: only touched by the non-native-quote path, which this scoped
    * pass doesn't implement.
    */
-  pump_creator_vault_ata: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  pump_program: naclac.Address | string;
-  pump_amm_program: naclac.Address | string;
+  pumpCreatorVaultAta: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  pumpProgram: naclac.Address | string;
+  pumpAmmProgram: naclac.Address | string;
   /**
    * SAFETY: only checked against `WSOL_MINT` inside the nested CPI targets
    * below; the non-native path isn't implemented in this scoped pass.
    */
-  quote_mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump`/`seeds::program` constraint already verifies its
    * address; it's a lamport-only PDA authority under `pump_amm` (no stored data
    * from this program's perspective), only ever a CPI signer/target below,
    * never deserialized.
    */
-  coin_creator_vault_authority?: naclac.Address | string;
+  coinCreatorVaultAuthority?: naclac.Address | string;
   /**
    * SAFETY: only a CPI passthrough — deserialized and mutated by the nested
    * `pump_amm::transfer_creator_fees_to_pump_v2` CPI target, never read here.
    */
-  coin_creator_vault_ata: naclac.Address | string;
+  coinCreatorVaultAta: naclac.Address | string;
   /**
    * SAFETY: only used as the signed-CPI proof-of-origin for
    * `pump::distribute_creator_fees_v2` below — the `seeds`/`bump`
@@ -66,7 +66,7 @@ export interface UpdateFeeSharesV2Accounts {
    * signer of *this* instruction (it's signed by us, via our own seeds,
    * only on the outgoing CPI).
    */
-  pump_fees_authority?: naclac.Address | string;
+  pumpFeesAuthority?: naclac.Address | string;
 }
 
 /**

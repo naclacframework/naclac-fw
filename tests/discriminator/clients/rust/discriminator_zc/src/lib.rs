@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("2Zy945UvutdjBUTq6xrpuW86jYzbGtiPogMGhGUQWX4m");
+declare_id!("7SKn2GUHyEZfEpvi7go1v7D6UMTesFbr3Nizw33raxe2");
 
 #[cfg(feature = "offchain")]
 pub fn get_config_pda(
@@ -56,7 +56,7 @@ pub struct DiscriminatorZc;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for DiscriminatorZc {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([23, 77, 191, 204, 92, 163, 198, 34, 8, 111, 181, 117, 87, 69, 198, 106, 126, 252, 92, 71, 178, 231, 218, 36, 185, 15, 112, 228, 236, 175, 90, 170])
+        sdk_core_cpi::Address::new_from_array([95, 162, 223, 68, 240, 146, 80, 3, 182, 123, 30, 218, 14, 88, 19, 250, 11, 77, 236, 24, 234, 137, 170, 10, 120, 100, 193, 99, 43, 135, 224, 23])
     }
 }
 

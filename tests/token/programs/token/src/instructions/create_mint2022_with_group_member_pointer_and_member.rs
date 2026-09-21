@@ -54,7 +54,6 @@ const MEMBER_MINT_SPACE: u64 = 82 + 83 + 1 + 4 + 64;
 /// `InitializeMember` never adds lamports.
 const MEMBER_MINT_FUNDED_SPACE: usize = 400;
 
-#[instruction]
 pub fn create_mint2022_with_group_member_pointer_and_member(
     ctx: Context<CreateMint2022WithGroupMemberPointerAndMember>,
     args: CreateMint2022WithGroupMemberPointerAndMemberArgs,

@@ -9,7 +9,7 @@ export const CLOSE_OPTIONAL_THING_DISCRIMINATOR = new Uint8Array([211, 189, 56, 
 /** Accounts for the `closeOptionalThing` instruction. */
 export interface CloseOptionalThingAccounts {
   payer: naclac.Address | string;
-  optional_thing?: naclac.Address | string;
+  optionalThing?: naclac.Address | string;
 }
 
 /**

@@ -15,7 +15,6 @@ pub struct EmitViaSelfCpiSized {
 const LOG_EVENT_DISCRIMINATOR: [u8; 8] = [0x05, 0x09, 0x5a, 0x8d, 0xdf, 0x86, 0x39, 0xd9];
 
 /// Self-CPI with a `size`-byte payload — sweeps CU cost against payload size.
-#[instruction]
 pub fn emit_via_self_cpi_sized(ctx: Context<EmitViaSelfCpiSized>, size: u32) -> Result {
     let payload = vec![0u8; size as usize];
 

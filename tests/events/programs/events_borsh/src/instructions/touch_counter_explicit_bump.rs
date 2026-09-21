@@ -17,7 +17,6 @@ pub struct TouchCounterExplicitBump {
     pub counter: Account<Counter>,
 }
 
-#[instruction]
 pub fn touch_counter_explicit_bump(ctx: Context<TouchCounterExplicitBump>) -> Result {
     ctx.accounts.counter.count += 1;
     Ok(())

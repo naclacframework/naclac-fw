@@ -26,7 +26,6 @@ pub struct CallSetupCounter {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn call_setup_counter(ctx: Context<CallSetupCounter>) -> Result {
     ctx.accounts.callee_program.init_counter(
         cpi_callee_client::instructions::InitCounterCpiAccounts {

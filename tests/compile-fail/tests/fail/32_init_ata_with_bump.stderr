@@ -1,0 +1,5 @@
+error: Naclac Error: `associated_token::bump` on field `vault` is never read here -- `init`/`init_if_needed` associated-token accounts are verified by the real Associated Token Program's own CPI (it re-derives and checks the canonical address internally on every call), so naclac never reads this value for them. Remove the `associated_token::bump = ...` line; it only matters on an existing (non-init) associated_token field.
+  --> tests/fail/32_init_ata_with_bump.rs:32:34
+   |
+32 |         associated_token::bump = args.vault_bump,
+   |                                  ^^^^^^^^^^^^^^^

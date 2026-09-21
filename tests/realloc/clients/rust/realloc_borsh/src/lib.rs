@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("Djy4qEuibJRcS8baDaqT4xSrmgdVtq2bFgxoptFRts4u");
+declare_id!("EudHASt3JGE4FqfDW6ed5niSPZXPQ8bxKsciMvSbJFMU");
 
 #[cfg(feature = "offchain")]
 pub fn get_growable_pda(
@@ -44,7 +44,7 @@ pub struct ReallocBorsh;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for ReallocBorsh {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([189, 78, 7, 252, 155, 75, 106, 134, 178, 176, 116, 135, 109, 78, 146, 230, 161, 118, 226, 190, 234, 113, 99, 238, 119, 93, 173, 186, 180, 59, 12, 98])
+        sdk_core_cpi::Address::new_from_array([206, 163, 39, 12, 179, 53, 69, 132, 166, 250, 82, 138, 212, 80, 224, 101, 248, 136, 229, 197, 122, 167, 35, 239, 102, 217, 243, 250, 209, 88, 14, 67])
     }
 }
 

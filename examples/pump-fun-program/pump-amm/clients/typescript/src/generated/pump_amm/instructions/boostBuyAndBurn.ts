@@ -8,9 +8,9 @@ export const BOOST_BUY_AND_BURN_DISCRIMINATOR = new Uint8Array([105, 68, 6, 175,
 
 /** Instruction arguments for `boostBuyAndBurn`. */
 export interface BoostBuyAndBurnArgs {
-  quote_amount_in: bigint | number;
-  min_base_amount_burned: bigint | number;
-  boost_vault_authority_bump: number;
+  quoteAmountIn: bigint | number;
+  minBaseAmountBurned: bigint | number;
+  boostVaultAuthorityBump: number;
 }
 
 /** Accounts for the `boostBuyAndBurn` instruction. */
@@ -22,23 +22,23 @@ export interface BoostBuyAndBurnAccounts {
    * which naclac bans; the caller computes it off-chain and passes it
    * in). Never deserialized.
    */
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   pool: naclac.Address | string;
   authority: naclac.Address | string;
-  global_config?: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
-  pool_base_token_account: naclac.Address | string;
-  pool_quote_token_account: naclac.Address | string;
+  globalConfig?: naclac.Address | string;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  poolBaseTokenAccount: naclac.Address | string;
+  poolQuoteTokenAccount: naclac.Address | string;
   /**
    * SAFETY: `seeds`/`bump` already verifies its address; a bare
    * signing/seed PDA with no stored data, used below only as a CPI
    * signer (matches `init_boost.rs`'s own account of the same name).
    */
-  boost_vault_authority?: naclac.Address | string;
-  boost_vault: naclac.Address | string;
-  base_token_program: naclac.Address | string;
-  quote_token_program: naclac.Address | string;
+  boostVaultAuthority?: naclac.Address | string;
+  boostVault: naclac.Address | string;
+  baseTokenProgram: naclac.Address | string;
+  quoteTokenProgram: naclac.Address | string;
 }
 
 /**

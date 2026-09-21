@@ -40,7 +40,6 @@ pub struct CreateMint2022WithDefaultAccountState {
 /// 4-byte TLV header + 1-byte `DefaultAccountState` value.
 const MINT_WITH_DEFAULT_ACCOUNT_STATE_SPACE: u64 = 82 + 83 + 1 + 4 + 1;
 
-#[instruction]
 pub fn create_mint2022_with_default_account_state(
     ctx: Context<CreateMint2022WithDefaultAccountState>,
     args: CreateMint2022WithDefaultAccountStateArgs,

@@ -72,7 +72,6 @@ pub struct BoostBuyAndBurn {
 /// `quote_amount_in_used == quote_amount_in_requested`), inferred from the
 /// event's separate `_requested`/`_used` fields, which would otherwise have
 /// no reason to differ.
-#[instruction]
 pub fn boost_buy_and_burn(
     ctx: Context<BoostBuyAndBurn>,
     quote_amount_in: u64,

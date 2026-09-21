@@ -27,7 +27,6 @@ pub struct ExercisePermanentDelegateBurn {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_permanent_delegate_burn(
     ctx: Context<ExercisePermanentDelegateBurn>,
     amount: u64,

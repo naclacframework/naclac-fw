@@ -8,20 +8,20 @@ export const SET_MINT_AUTHORITY_DISCRIMINATOR = new Uint8Array([67, 127, 155, 18
 
 /** Instruction arguments for `setMintAuthority`. */
 export interface SetMintAuthorityArgs {
-  authority_type: number;
+  authorityType: number;
 }
 
 /** Accounts for the `setMintAuthority` instruction. */
 export interface SetMintAuthorityAccounts {
   mint: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   /**
    * SAFETY: only used as an address — its own key becomes the mint's new
    * authority via `set_authority_signed` below; its data is never read or
    * deserialized.
    */
-  new_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  newAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

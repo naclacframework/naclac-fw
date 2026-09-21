@@ -19,7 +19,6 @@ pub struct Initialize {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn initialize(ctx: Context<Initialize>, vault_id: u64, vault_bump: u8) -> Result {
     let vault = &mut ctx.accounts.vault_account;
 

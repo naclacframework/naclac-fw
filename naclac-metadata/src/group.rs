@@ -26,32 +26,62 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 const KEY_GROUP_V1: u8 = 6;
 
-// ===========================================================================
-// solana backend
-// ===========================================================================
+/// Owned, backend-uniform snapshot of a `GroupV1` account's fields — what
+/// `fetch_group` returns on both backends. See `asset.rs`'s `AssetData` doc
+/// comment for why this is owned rather than a borrowed `GroupView<'_>`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GroupData {
+    pub update_authority: Address,
+    pub name: crate::prelude::String,
+    pub uri: crate::prelude::String,
+    pub collections: crate::prelude::Vec<Address>,
+    pub groups: crate::prelude::Vec<Address>,
+    pub parent_groups: crate::prelude::Vec<Address>,
+    pub assets: crate::prelude::Vec<Address>,
+}
 
 /// Reads and fully deserializes a `GroupV1` account.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_group(info: &AccountInfo) -> Result<::mpl_core::accounts::GroupV1> {
+pub fn fetch_group(info: &AccountInfo) -> Result<GroupData> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
     let solana_info = unsafe { info.to_lifetime() };
-    ::mpl_core::accounts::GroupV1::try_from(&solana_info)
-        .map_err(|_| NaclacError::DeserializationFailed.into())
+    let data = solana_info
+        .try_borrow_data()
+        .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
+    let view = GroupView::from_bytes(&data)?;
+    Ok(GroupData {
+        update_authority: view.update_authority(),
+        name: view.name().into(),
+        uri: view.uri().into(),
+        collections: view.collections().iter().collect(),
+        groups: view.groups().iter().collect(),
+        parent_groups: view.parent_groups().iter().collect(),
+        assets: view.assets().iter().collect(),
+    })
 }
 
-// ===========================================================================
-// pinocchio backend — hand-rolled, no_std, no `mpl-core` dependency
-// ===========================================================================
-
-/// Zero-copy, sequential-offset view into a `GroupV1` account's raw bytes.
-/// See `asset.rs`'s header for why this is hand-rolled rather than backed
-/// by the real `mpl-core` crate.
+/// Reads and fully deserializes a `GroupV1` account.
 #[cfg(feature = "pinocchio")]
+pub fn fetch_group(info: &AccountInfo) -> Result<GroupData> {
+    let view = GroupView::try_from(info)?;
+    Ok(GroupData {
+        update_authority: view.update_authority(),
+        name: view.name().into(),
+        uri: view.uri().into(),
+        collections: view.collections().iter().collect(),
+        groups: view.groups().iter().collect(),
+        parent_groups: view.parent_groups().iter().collect(),
+        assets: view.assets().iter().collect(),
+    })
+}
+
+/// Zero-copy, sequential-offset view into a `GroupV1` account's raw bytes,
+/// shared by both backends. See `asset.rs`'s header for why neither backend
+/// depends on the real `mpl-core` crate.
 #[derive(Clone, Copy)]
 pub struct GroupView<'a> {
     data: &'a [u8],
@@ -65,8 +95,11 @@ pub struct GroupView<'a> {
     assets_offset: usize,
 }
 
-#[cfg(feature = "pinocchio")]
 impl<'a> GroupView<'a> {
+    /// `pinocchio`-only: see `AssetView::try_from`'s doc comment
+    /// (`asset.rs`) for why the `solana` backend must go through
+    /// `from_bytes` directly.
+    #[cfg(feature = "pinocchio")]
     pub fn try_from(info: &'a AccountInfo) -> Result<Self> {
         if Owner::program_owner(info) != crate::ID {
             return Err(NaclacError::ConstraintOwner.into());
@@ -134,30 +167,35 @@ impl<'a> GroupView<'a> {
         }
     }
 
-    pub fn collections(&self) -> crate::prelude::Vec<Address> {
-        read_pubkey_vec(self.data, self.collections_offset)
+    pub fn collections(&self) -> Span<Address> {
+        read_pubkey_span(self.data, self.collections_offset)
     }
 
-    pub fn groups(&self) -> crate::prelude::Vec<Address> {
-        read_pubkey_vec(self.data, self.groups_offset)
+    pub fn groups(&self) -> Span<Address> {
+        read_pubkey_span(self.data, self.groups_offset)
     }
 
-    pub fn parent_groups(&self) -> crate::prelude::Vec<Address> {
-        read_pubkey_vec(self.data, self.parent_groups_offset)
+    pub fn parent_groups(&self) -> Span<Address> {
+        read_pubkey_span(self.data, self.parent_groups_offset)
     }
 
-    pub fn assets(&self) -> crate::prelude::Vec<Address> {
-        read_pubkey_vec(self.data, self.assets_offset)
+    pub fn assets(&self) -> Span<Address> {
+        read_pubkey_span(self.data, self.assets_offset)
     }
 }
 
-#[cfg(feature = "pinocchio")]
 fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
-    if data.len() < offset + 4 {
+    let prefix_end = offset
+        .checked_add(4)
+        .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+    if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-    if data.len() < offset + 4 + len {
+    let len = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let payload_end = prefix_end
+        .checked_add(len)
+        .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+    if data.len() < payload_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
     Ok(len)
@@ -165,29 +203,36 @@ fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
 
 /// Validates a `Vec<Pubkey>` at `offset` fits within `data` and returns the
 /// offset immediately after it (where the next field starts).
-#[cfg(feature = "pinocchio")]
 fn skip_pubkey_vec(data: &[u8], offset: usize) -> Result<usize> {
-    if data.len() < offset + 4 {
+    let prefix_end = offset
+        .checked_add(4)
+        .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+    if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-    let end = offset + 4 + count * 32;
+    let count = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let end = count
+        .checked_mul(32)
+        .and_then(|bytes| prefix_end.checked_add(bytes))
+        .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
     if data.len() < end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
     Ok(end)
 }
 
-#[cfg(feature = "pinocchio")]
-fn read_pubkey_vec(data: &[u8], offset: usize) -> crate::prelude::Vec<Address> {
+/// Zero-copy `Span<Address>` view of a `Vec<Pubkey>` field at `offset` —
+/// `Address` is `bytemuck::Pod` on both backends (naclac-core's own newtype
+/// on `pinocchio`; the real `solana_address::Address`'s own impl on
+/// `solana`), so no heap collection is needed here (bounds already
+/// validated by `skip_pubkey_vec` during `GroupView::from_bytes`).
+fn read_pubkey_span(data: &[u8], offset: usize) -> Span<Address> {
     let count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-    let mut list = crate::prelude::Vec::with_capacity(count);
-    for i in 0..count {
-        let start = offset + 4 + i * 32;
-        let bytes: [u8; 32] = data[start..start + 32].try_into().unwrap();
-        list.push(Address::new_from_array(bytes));
-    }
-    list
+    // `skip_pubkey_vec` already validated this exact byte range during
+    // `GroupView::from_bytes` — its length is guaranteed a multiple of 32,
+    // so `Span::from_bytes` cannot fail here.
+    Span::from_bytes(&data[offset + 4..offset + 4 + count * 32])
+        .expect("range pre-validated by skip_pubkey_vec")
 }
 
 // ===========================================================================
@@ -199,6 +244,14 @@ fn read_pubkey_vec(data: &[u8], offset: usize) -> crate::prelude::Vec<Address> {
 /// **signer** when `Some` here (verified: `AccountMeta::new_readonly(update_authority,
 /// true)`) — unlike every other optional-authority-reference field
 /// elsewhere in this crate, which are never required to co-sign.
+/// Maximum `name`/`uri` byte length `create_group_signed` accepts on
+/// `pinocchio` — same reasoning and cap as `asset::MAX_ASSET_NAME_LEN`/
+/// `asset::MAX_ASSET_URI_LEN`.
+#[cfg(feature = "pinocchio")]
+pub const MAX_GROUP_NAME_LEN: usize = 32;
+#[cfg(feature = "pinocchio")]
+pub const MAX_GROUP_URI_LEN: usize = 200;
+
 pub struct CreateGroupAccounts<'a> {
     pub group: CpiHandleMut<'a>,
     pub update_authority: Option<CpiHandle<'a>>,
@@ -237,17 +290,33 @@ pub fn create_group_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::CreateGroupV1 {
-            group: accounts.group.address(),
-            update_authority: accounts.update_authority.as_ref().map(|a| a.address()),
-            payer: accounts.payer.address(),
-            system_program: accounts.system_program.address(),
-        }
-        .instruction(::mpl_core::instructions::CreateGroupV1InstructionArgs {
-            name: name.to_string(),
-            uri: uri.to_string(),
-            relationships: crate::prelude::Vec::new(),
-        });
+        let mut data = crate::prelude::Vec::new();
+        data.push(39u8); // CreateGroupV1 discriminator
+        data.extend_from_slice(&(name.len() as u32).to_le_bytes());
+        data.extend_from_slice(name.as_bytes());
+        data.extend_from_slice(&(uri.len() as u32).to_le_bytes());
+        data.extend_from_slice(uri.as_bytes());
+        data.extend_from_slice(&0u32.to_le_bytes()); // relationships: empty Vec
+
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.group.address(), true),
+            match &accounts.update_authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.system_program.address(),
+                false,
+            ),
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data,
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.group),
@@ -263,7 +332,12 @@ pub fn create_group_signed(
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut data = crate::prelude::Vec::with_capacity(9 + name.len() + uri.len());
+        if name.len() > MAX_GROUP_NAME_LEN || uri.len() > MAX_GROUP_URI_LEN {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let mut data = crate::fixed_buf::FixedBuf::<
+            { 1 + 4 + MAX_GROUP_NAME_LEN + 4 + MAX_GROUP_URI_LEN + 4 },
+        >::new();
         data.push(39u8); // CreateGroupV1 discriminator
         data.extend_from_slice(&(name.len() as u32).to_le_bytes());
         data.extend_from_slice(name.as_bytes());
@@ -299,7 +373,7 @@ pub fn create_group_signed(
         let instruction = ::pinocchio::instruction::InstructionView {
             program_id: program.info.view.address(),
             accounts: &ix_accounts,
-            data: &data,
+            data: data.as_slice(),
         };
         let handles = [
             group_handle,
@@ -320,12 +394,22 @@ pub fn close_group_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::CloseGroupV1 {
-            group: accounts.group.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-        }
-        .instruction();
+        let data = [40u8]; // CloseGroupV1 discriminator, no args
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.group.address(), false),
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data: data.to_vec(),
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.group),
@@ -383,17 +467,50 @@ pub fn update_group_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::UpdateGroupV1 {
-            group: accounts.group.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            new_update_authority: accounts.new_update_authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
+        let mut data = crate::prelude::Vec::new();
+        data.push(41u8); // UpdateGroupV1 discriminator
+        match new_name {
+            Some(s) => {
+                data.push(1u8);
+                data.extend_from_slice(&(s.len() as u32).to_le_bytes());
+                data.extend_from_slice(s.as_bytes());
+            }
+            None => data.push(0u8),
         }
-        .instruction(::mpl_core::instructions::UpdateGroupV1InstructionArgs {
-            new_name: new_name.map(|s| s.to_string()),
-            new_uri: new_uri.map(|s| s.to_string()),
-        });
+        match new_uri {
+            Some(s) => {
+                data.push(1u8);
+                data.extend_from_slice(&(s.len() as u32).to_le_bytes());
+                data.extend_from_slice(s.as_bytes());
+            }
+            None => data.push(0u8),
+        }
+
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.group.address(), false),
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.new_update_authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.system_program.address(),
+                false,
+            ),
+        ];
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data,
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.group),
@@ -410,7 +527,14 @@ pub fn update_group_signed(
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut data = crate::prelude::Vec::new();
+        if new_name.is_some_and(|s| s.len() > MAX_GROUP_NAME_LEN)
+            || new_uri.is_some_and(|s| s.len() > MAX_GROUP_URI_LEN)
+        {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let mut data = crate::fixed_buf::FixedBuf::<
+            { 1 + 5 + MAX_GROUP_NAME_LEN + 5 + MAX_GROUP_URI_LEN },
+        >::new();
         data.push(41u8); // UpdateGroupV1 discriminator
         match new_name {
             Some(s) => {
@@ -461,7 +585,7 @@ pub fn update_group_signed(
         let instruction = ::pinocchio::instruction::InstructionView {
             program_id: program.info.view.address(),
             accounts: &ix_accounts,
-            data: &data,
+            data: data.as_slice(),
         };
         let handles = [
             group_handle,
@@ -471,5 +595,52 @@ pub fn update_group_signed(
             accounts.system_program,
         ];
         crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
+    }
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `skip_pubkey_vec` never panics for any account bytes and any
+    /// `offset` — `offset` is a bare `usize` parameter with no bound in the
+    /// function's own signature, and `end = offset + 4 + count * 32` is
+    /// exactly the same "unguarded addition on an account-byte-derived
+    /// value" shape that `plugin_registry::find_plugin_offset` was
+    /// confirmed to panic on before its fix (see docs/plan/kani-audit.md).
+    #[kani::proof]
+    fn prove_skip_pubkey_vec_never_panics() {
+        let data: [u8; 40] = kani::any();
+        let offset: usize = kani::any();
+        let _ = skip_pubkey_vec(&data, offset);
+    }
+
+    /// Proves `GroupView::from_bytes` never panics for any account bytes —
+    /// including through `read_borsh_string_len`'s and `skip_pubkey_vec`'s
+    /// now-`checked_end`-guarded offset arithmetic.
+    #[kani::proof]
+    #[kani::unwind(8)]
+    fn prove_group_view_from_bytes_never_panics() {
+        let data: [u8; 48] = kani::any();
+        let _ = GroupView::from_bytes(&data);
+    }
+
+    /// Proves `read_pubkey_span`'s own doc comment ("cannot fail" once
+    /// `skip_pubkey_vec` has validated `offset`) formally, rather than
+    /// leaving it an unverified claim: for any `data`/`offset` pair that
+    /// `skip_pubkey_vec` actually accepts (`Ok(_)`), `read_pubkey_span`
+    /// neither panics nor overflows its own re-derived offsets, and reads
+    /// back exactly the byte count `skip_pubkey_vec` validated.
+    #[kani::proof]
+    fn prove_read_pubkey_span_is_safe_when_precondition_holds() {
+        let data: [u8; 40] = kani::any();
+        let offset: usize = kani::any();
+
+        if let Ok(end) = skip_pubkey_vec(&data, offset) {
+            let span = read_pubkey_span(&data, offset);
+            let count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+            assert_eq!(offset + 4 + count * 32, end);
+            assert_eq!(span.len(), count);
+        }
     }
 }

@@ -29,7 +29,6 @@ pub struct Cancel {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn cancel(ctx: Context<Cancel>, seed: u64) -> Result {
     require!(
         ctx.accounts.vault_token_account.mint() == ctx.accounts.mint_a.address(),

@@ -10,7 +10,6 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `AddBlocker` to an `Asset` via `add_plugin`.
@@ -21,19 +20,17 @@ pub fn attach_add_blocker_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin = ::mpl_core::types::Plugin::AddBlocker(::mpl_core::types::AddBlocker {});
-        add_asset_plugin_signed(program, accounts, plugin, signer_seeds)
+        let data = [2u8, plugin_type::ADD_BLOCKER, 0u8];
+        add_asset_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        add_asset_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::ADD_BLOCKER,
-            &[],
-            signer_seeds,
-        )
+        let mut data = crate::fixed_buf::FixedBuf::<3>::new();
+        data.push(2u8); // AddPluginV1 discriminator
+        data.push(plugin_type::ADD_BLOCKER);
+        data.push(0u8); // init_authority: None
+        add_asset_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -45,19 +42,17 @@ pub fn attach_collection_add_blocker_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin = ::mpl_core::types::Plugin::AddBlocker(::mpl_core::types::AddBlocker {});
-        add_collection_plugin_signed(program, accounts, plugin, signer_seeds)
+        let data = [3u8, plugin_type::ADD_BLOCKER, 0u8];
+        add_collection_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        add_collection_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::ADD_BLOCKER,
-            &[],
-            signer_seeds,
-        )
+        let mut data = crate::fixed_buf::FixedBuf::<3>::new();
+        data.push(3u8); // AddCollectionPluginV1 discriminator
+        data.push(plugin_type::ADD_BLOCKER);
+        data.push(0u8); // init_authority: None
+        add_collection_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -72,9 +67,11 @@ pub fn asset_has_add_blocker(info: &AccountInfo) -> Result<bool> {
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let asset = ::mpl_core::Asset::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(asset.plugin_list.add_blocker.is_some())
+    let asset_view = crate::asset::AssetView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
+        return Ok(false);
+    };
+    Ok(find_plugin_offset(&data, plugin_header_offset, plugin_type::ADD_BLOCKER)?.is_some())
 }
 
 /// `true` if a `Collection` has an `AddBlocker` plugin attached. Callable
@@ -88,9 +85,11 @@ pub fn collection_has_add_blocker(info: &AccountInfo) -> Result<bool> {
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let collection = ::mpl_core::Collection::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(collection.plugin_list.add_blocker.is_some())
+    let collection_view = crate::collection::CollectionView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
+        return Ok(false);
+    };
+    Ok(find_plugin_offset(&data, plugin_header_offset, plugin_type::ADD_BLOCKER)?.is_some())
 }
 
 /// `true` if an `Asset` has an `AddBlocker` plugin attached. Callable

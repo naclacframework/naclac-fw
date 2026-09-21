@@ -20,7 +20,6 @@ pub struct CheckTokenInterface {
     pub token_program: Interface<TokenInterface>,
 }
 
-#[instruction]
 pub fn check_token_interface(_ctx: Context<CheckTokenInterface>) -> Result {
     Ok(())
 }

@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-donation_relay = "2abJkQX74rXzAJEgKRq8PmrT62M2iFtachKGqc4wn9tX"
+donation_relay = "8MWkme4Dfe5NBPh17itoSro62n4FTGLmPNXYFRCUzu7A"
 
 [provider]
 cluster = "localnet"

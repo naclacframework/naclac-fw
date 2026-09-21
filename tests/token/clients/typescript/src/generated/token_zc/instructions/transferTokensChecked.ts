@@ -14,11 +14,11 @@ export interface TransferTokensCheckedArgs {
 
 /** Accounts for the `transferTokensChecked` instruction. */
 export interface TransferTokensCheckedAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   from: naclac.Address | string;
   mint: naclac.Address | string;
   to: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

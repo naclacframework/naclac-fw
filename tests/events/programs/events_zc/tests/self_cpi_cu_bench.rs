@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use events_zc_client::{
     instructions::{
         build_emit_via_self_cpi_baseline, build_emit_via_sol_log_data_baseline,
@@ -8,27 +8,14 @@ use events_zc_client::{
     types::PROGRAM_ID,
 };
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // events workspace root
-    so_path.push("target/deploy/events_zc.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load events_zc program binary");
-}
-
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
-    provider
+    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
 /// Real, measured CU cost of a bare self-CPI (program invoking itself with
 /// zero accounts and a zero-length payload) under the solana-program +
-/// zero-copy backend, via litesvm's actual SVM execution — not an estimate.
+/// zero-copy backend, via litesvm's actual SVM execution â€” not an estimate.
 /// Also runs a same-shaped no-CPI baseline (identical single `address`-
 /// constrained account, no invoke) so the fixed CPI overhead can be isolated
 /// from the surrounding instruction's own dispatch/validation cost.

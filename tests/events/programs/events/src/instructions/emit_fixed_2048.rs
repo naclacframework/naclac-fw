@@ -8,7 +8,6 @@ pub struct EmitFixed2048 {
     pub program: AccountInfo,
 }
 
-#[instruction]
 pub fn emit_fixed_2048(_ctx: Context<EmitFixed2048>) -> Result {
     emit!(FixedPayload2048 { data: [0u8; 2048] });
     Ok(())

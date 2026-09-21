@@ -54,8 +54,9 @@ pub struct CreatePoolAccounts {
     pub lp_mint: naclac_client::Address,
     pub user_base_token_account: naclac_client::Address,
     pub user_quote_token_account: naclac_client::Address,
-    /// SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump` below
-    /// fully validate and construct this account via a real CPI — there is
+    /// SAFETY: `init` + `associated_token::mint`/`::authority` below, plus
+    /// the real Associated Token Program's own CPI-level address
+    /// verification, fully validate and construct this account — there is
     /// no naclac `Discriminator` to check since this is a raw SPL
     /// `TokenAccount` layout, so `AccountInfo` is correct here, not a gap in
     /// coverage (same reasoning as `pump::create`'s own `mint` field).
@@ -130,8 +131,9 @@ pub struct CreatePoolCpiAccounts<'a> {
     pub lp_mint: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_base_token_account: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_quote_token_account: crate::sdk_core_cpi::CpiHandleMut<'a>,
-    /// SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump` below
-    /// fully validate and construct this account via a real CPI — there is
+    /// SAFETY: `init` + `associated_token::mint`/`::authority` below, plus
+    /// the real Associated Token Program's own CPI-level address
+    /// verification, fully validate and construct this account — there is
     /// no naclac `Discriminator` to check since this is a raw SPL
     /// `TokenAccount` layout, so `AccountInfo` is correct here, not a gap in
     /// coverage (same reasoning as `pump::create`'s own `mint` field).

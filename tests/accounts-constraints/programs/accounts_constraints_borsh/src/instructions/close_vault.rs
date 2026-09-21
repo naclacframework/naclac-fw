@@ -15,7 +15,6 @@ pub struct CloseVault {
     pub vault: Account<Vault>,
 }
 
-#[instruction]
 pub fn close_vault(_ctx: Context<CloseVault>) -> Result {
     Ok(())
 }

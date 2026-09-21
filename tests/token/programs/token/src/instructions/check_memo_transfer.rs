@@ -10,7 +10,6 @@ pub struct CheckMemoTransfer {
     pub vault: InterfaceAccount<TokenAccount>,
 }
 
-#[instruction]
 pub fn check_memo_transfer(
     ctx: Context<CheckMemoTransfer>,
     expected_present: u8,

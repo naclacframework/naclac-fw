@@ -239,14 +239,11 @@ pub fn generate_security_checks(
                 .is_exempt(__rent_exempt_lamports, __rent_exempt_data_len);
             #[cfg(feature = "pinocchio")]
             let __is_rent_exempt = {
-                // Const-rent: same formula established in `realloc.rs`/`init_cpi.rs`
-                // for this exact reason (no `Rent::get()` sysvar call available
-                // here without pulling in the real sysvar account).
-                const __STORAGE_OVERHEAD: u64 = 128;
-                const __LAMPORTS_PER_BYTE: u64 = 6960;
-                let __required = (__STORAGE_OVERHEAD + __rent_exempt_data_len as u64)
-                    .wrapping_mul(__LAMPORTS_PER_BYTE);
-                __rent_exempt_lamports >= __required
+                // Shared, single implementation (naclac-core's own
+                // `const_rent_lamports`, Kani-proven) instead of
+                // re-deriving this formula as generated tokens here — no
+                // `Rent::get()` sysvar call is available under pinocchio.
+                __rent_exempt_lamports >= naclac_lang::prelude::const_rent_lamports(__rent_exempt_data_len)
             };
 
             if !__is_rent_exempt {
@@ -468,7 +465,15 @@ pub fn generate_security_checks(
 
         let mut bump_verification_logic = quote! {};
         let pda_creation_logic;
-        let mut use_find_pda = false;
+        // Set (with a message specific to how this was reached) instead of a
+        // bare bool, so the compile_error! below can say precisely what's
+        // wrong and what actually fixes it — the two call sites that set
+        // this are NOT interchangeable: for a freshly-`init`ed account, the
+        // real fix (bare `bump`) triggers a genuine, allowed, bounded
+        // on-chain search; for an existing account it needs an already-known
+        // bump supplied instead, since no such search happens for one.
+        let mut find_pda_error: Option<String> = None;
+        let mut use_manual_search = false;
 
         if is_pda_precomputed {
             // Decode the precomputed PDA at proc-macro compile time into a byte literal
@@ -530,22 +535,40 @@ pub fn generate_security_checks(
                         // Only reachable for genuine Borsh `Account<T>` now — a
                         // zero-copy `Account<T>` (pinocchio, or solana zero-copy
                         // via the prelude alias) already took the branch above.
-                        // `is_zero_copy` (resolved by the caller via
-                        // `caller_has_feature`, not a raw `cfg`) is already
-                        // known false here, but branch on it explicitly rather
-                        // than assume, matching how `Account<T>`'s own shape
-                        // is chosen elsewhere.
+                        // `is_zero_copy` is already known false here (the caller,
+                        // `accounts.rs`'s `build_variant`, calls this once per
+                        // representation and only ever passes `false` for the
+                        // variant emitted behind the Borsh `#[cfg(...)]`), but
+                        // branch on it explicitly rather than assume, matching
+                        // how `Account<T>`'s own shape is chosen elsewhere.
                         bump_expr = if is_zero_copy {
                             quote! { #field_ident.bump }
                         } else {
                             quote! { #field_ident.data.bump }
                         };
                     } else {
-                        use_find_pda = true;
+                        find_pda_error = Some(
+                            "Naclac Error: this field's account type has no recognized way to read \
+                             back its own stored bump automatically (only `Account<T>` exposes \
+                             `.bump`). Since this account isn't being freshly initialized (no \
+                             `init`), its canonical bump must already be known — on-chain \
+                             'find_program_address' search only runs for a freshly-initialized \
+                             account under non-literal seeds, never to verify an existing one. \
+                             Supply the bump explicitly instead. \
+                             Example: #[account(seeds = [...], bump = <precomputed_bump>)]"
+                                .to_string(),
+                        );
                     }
                 }
                 Some(PdaBump::Auto) => {
-                    use_find_pda = true;
+                    // Reached only when `field.init_config.is_some()`: a fresh
+                    // PDA under dynamic (non-literal) seeds, with no
+                    // client-supplied bump to (incompletely) trust. This is
+                    // the one case naclac's ban on on-chain search doesn't
+                    // apply to — no compile-time precomputation is possible
+                    // for seeds not known until runtime, so establishing
+                    // canonicality here has no alternative to a real search.
+                    use_manual_search = true;
                 }
                 Some(PdaBump::Explicit(parsed_bump_expr)) => {
                     bump_expr = quote! { (#parsed_bump_expr) };
@@ -556,13 +579,47 @@ pub fn generate_security_checks(
                     };
                 }
                 None => {
-                    use_find_pda = true;
+                    find_pda_error = Some(if field.init_config.is_some() {
+                        "Naclac Error: PDA validation seeds constraint requires a 'bump' value or \
+                         attribute. This account is being freshly initialized ('init') under seeds \
+                         naclac can't resolve at compile time, so add 'bump' to perform a real, \
+                         bounded on-chain canonical search — the one case on-chain \
+                         'find_program_address' is actually used for — or supply \
+                         'bump = <precomputed_bump>' if you already know it off-chain. \
+                         Example: #[account(init, seeds = [...], bump)]"
+                            .to_string()
+                    } else {
+                        "Naclac Error: PDA validation seeds constraint requires a 'bump' value or \
+                         attribute. This account isn't being freshly initialized, so its canonical \
+                         bump must already be known: add 'bump' if this field's type can read its \
+                         own stored bump automatically (e.g. `Account<T>`), or supply it explicitly \
+                         with 'bump = <precomputed_bump>' otherwise. On-chain 'find_program_address' \
+                         search only runs for a freshly-initialized account under non-literal seeds, \
+                         never to verify an existing one. \
+                         Example: #[account(seeds = [...], bump = <precomputed_bump>)]"
+                            .to_string()
+                    });
                 }
             }
 
-            if use_find_pda {
+            if let Some(msg) = &find_pda_error {
                 pda_creation_logic = quote! {
-                    compile_error!("Naclac Error: PDA validation seeds constraint requires a 'bump' value or attribute to enable hash-and-compare optimization. On-chain 'find_program_address' is strictly banned in Naclac. Example: #[account(seeds = [...], bump)]");
+                    compile_error!(#msg);
+                };
+            } else if use_manual_search {
+                // Real, bounded on-chain canonical search — the one exception
+                // to naclac's ban, scoped to exactly this case (fresh PDA,
+                // dynamic seeds, no precomputation possible). Delegates to
+                // `naclac_lang::prelude::find_program_address`, the single
+                // shared implementation, rather than inlining a copy of the
+                // search loop into every `init` field's own codegen.
+                pda_creation_logic = quote! {
+                    #(#seed_bindings)*
+                    let __pda_program = naclac_lang::prelude::ToAddress::address(&#pda_program_tokens);
+                    let __seeds: &[&[u8]] = &[ #( #seed_refs, )* ];
+                    let (expected_pda, expected_bump) =
+                        naclac_lang::prelude::find_program_address(__seeds, &__pda_program)
+                            .map_err(|_| naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
                 };
             } else {
                 // Hash-and-compare optimization (0 CU PDA verify if owned, or ~100 CU hash instead of ~1000 CU on-curve check)
@@ -583,7 +640,7 @@ pub fn generate_security_checks(
             }
         }
 
-        // When use_find_pda=true: the SHA256 loop already confirmed that the hash of
+        // When the compile-error path above didn't fire: the SHA256 loop already confirmed that the hash of
         // (seeds || [bump] || program_id || "PDA") == expected_pda (= Key::key(&field_ident)).
         // The post-loop address comparison is therefore tautologically true and is omitted.
         // When is_pda_precomputed=true or hash-and-compare path: the comparison IS needed
@@ -610,7 +667,7 @@ pub fn generate_security_checks(
             if skip_address_check {
                 // SHA256 loop already verified: sha256(seeds||bump||program_id||"PDA") == info.address().
                 // The post-loop key comparison is tautologically true — skip it.
-                // expected_pda is not defined in this path (use_find_pda=true).
+                // expected_pda is not defined in this path (the compile-error path above fired instead).
                 metadata_checks.push(quote! {
                     #pda_creation_logic
                     #bump_verification_logic
@@ -1020,6 +1077,47 @@ pub(crate) fn component_declares_bump_field(ident_str: &str) -> bool {
         }
     }
     false
+}
+
+/// Searched the same way `find_const_expr`/`component_declares_bump_field`
+/// find their targets (anywhere under the crate's own `src/` tree, via real
+/// `syn` parsing) — if `ident_str` names a struct with a field whose type is
+/// `ZcVec<T>`/`Span<T>`/`ZcString`, returns that field's name. Used by
+/// `program.rs` to give a clear, purpose-built error for an instruction
+/// argument whose type is an *opaque* struct name (not itself literally
+/// `ZcVec`/`ZcString`, which `program.rs` already recognizes directly)
+/// wrapping one of these zero-copy-only view types — the exact same
+/// unsound-in-Borsh-mode case `#[instruction_args]`'s own `zc_field` check
+/// (naclac-macros/src/lib.rs) rejects when expanding that struct itself,
+/// just now caught from the *call site* too, so a caller sees one clear
+/// error instead of `#[instruction_args]`'s error followed by an unrelated
+/// `BorshDeserialize` trait-bound cascade at the point of use.
+pub(crate) fn dynamic_view_field_of(ident_str: &str) -> Option<String> {
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").ok()?;
+    let src_dir = std::path::Path::new(&manifest_dir).join("src");
+    for file_path in collect_rs_files(&src_dir) {
+        let Ok(content) = std::fs::read_to_string(&file_path) else {
+            continue;
+        };
+        let Ok(syntax_tree) = syn::parse_file(&content) else {
+            continue;
+        };
+        for item in &syntax_tree.items {
+            if let syn::Item::Struct(item_struct) = item {
+                if item_struct.ident == ident_str {
+                    return item_struct.fields.iter().find_map(|f| {
+                        matches!(
+                            crate::type_classify::classify_dynamic(&f.ty),
+                            crate::type_classify::DynamicKind::ZcVec
+                                | crate::type_classify::DynamicKind::ZcString
+                        )
+                        .then(|| f.ident.as_ref().map(|id| id.to_string()).unwrap_or_default())
+                    });
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Extracts raw bytes from a constant initializer expression: a byte-string,

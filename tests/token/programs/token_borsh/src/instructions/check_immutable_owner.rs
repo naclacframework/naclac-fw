@@ -9,7 +9,6 @@ pub struct CheckImmutableOwner {
     pub vault: InterfaceAccount<TokenAccount>,
 }
 
-#[instruction]
 pub fn check_immutable_owner(ctx: Context<CheckImmutableOwner>, expected_present: u8) -> Result {
     let present = ctx.accounts.vault.get_extension::<ImmutableOwner>().is_ok();
 

@@ -1,7 +1,7 @@
-#![no_std]
+#![cfg_attr(not(feature = "idl-build"), no_std)]
 use naclac_lang::prelude::*;
 
-declare_id!("4rY4SAimzM1LzDaG8zdv2XV3tdKQbd12tck8Jzv7sZc8");
+declare_id!("C4gz1yWQvjVbFA3nxGRTGGzyMHaz6uMHqyemC78LqZJT");
 
 pub mod components;
 pub mod instructions;

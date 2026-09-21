@@ -20,7 +20,6 @@ pub struct TouchBoxedVault {
     pub target: Box<Account<Vault>>,
 }
 
-#[instruction]
 pub fn touch_boxed_vault(ctx: Context<TouchBoxedVault>) -> Result {
     // Deref/DerefMut through the Box, exactly like an unboxed `Account<T>`.
     ctx.accounts.target.balance += 1;

@@ -17,7 +17,7 @@ export interface CheckOwnerRelationalAccounts {
    * SAFETY: only its own address is read, as the expected owning program;
    * never deserialized.
    */
-  expected_owner: naclac.Address | string;
+  expectedOwner: naclac.Address | string;
 }
 
 /**

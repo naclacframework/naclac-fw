@@ -1,7 +1,7 @@
 #![no_std]
 use naclac_lang::prelude::*;
 
-declare_id!("HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx");
+declare_id!("CgRf7F42guD313ikFQJQaodeqayL3XH8R2oy8KfAStfD");
 
 pub mod components;
 pub mod instructions;
@@ -49,9 +49,8 @@ pub mod pump_amm {
     pub fn init_boost(
         ctx: Context<InitBoost>,
         boost_vault_authority_bump: u8,
-        boost_vault_bump: u8,
     ) -> Result {
-        init_boost::init_boost(ctx, boost_vault_authority_bump, boost_vault_bump)
+        init_boost::init_boost(ctx, boost_vault_authority_bump)
     }
 
     pub fn boost_buy_and_burn(

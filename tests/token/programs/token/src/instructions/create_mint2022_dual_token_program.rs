@@ -38,7 +38,6 @@ pub struct CreateMint2022DualTokenProgram {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn create_mint2022_dual_token_program(
     _ctx: Context<CreateMint2022DualTokenProgram>,
     _id: u64,

@@ -12,8 +12,15 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 use crate::plugin_registry::{find_plugin_offset, plugin_type};
+
+/// Maximum `additional_delegates` entries `attach_update_delegate_signed`/
+/// `attach_collection_update_delegate_signed` accept on `pinocchio` — no
+/// real protocol maximum exists, so this is a fixed cap sized for a stack
+/// buffer rather than a heap `Vec` (same reasoning as
+/// `verified_creators::MAX_VERIFIED_CREATOR_SIGNATURES`).
+#[cfg(feature = "pinocchio")]
+pub const MAX_ADDITIONAL_DELEGATES: usize = 16;
 
 /// Attaches `UpdateDelegate` to an `Asset` via `add_plugin`.
 pub fn attach_update_delegate_signed(
@@ -24,22 +31,32 @@ pub fn attach_update_delegate_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin = ::mpl_core::types::Plugin::UpdateDelegate(::mpl_core::types::UpdateDelegate {
-            additional_delegates: additional_delegates.to_vec(),
-        });
-        add_asset_plugin_signed(program, accounts, plugin, signer_seeds)
+        let mut data = crate::prelude::Vec::new();
+        data.push(2u8); // AddPluginV1 discriminator
+        data.push(plugin_type::UPDATE_DELEGATE);
+        data.extend_from_slice(&(additional_delegates.len() as u32).to_le_bytes());
+        for address in additional_delegates {
+            data.extend_from_slice(address.as_ref());
+        }
+        data.push(0u8); // init_authority: None
+        add_asset_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let payload = encode_additional_delegates(additional_delegates);
-        add_asset_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::UPDATE_DELEGATE,
-            &payload,
-            signer_seeds,
-        )
+        if additional_delegates.len() > MAX_ADDITIONAL_DELEGATES {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let mut data =
+            crate::fixed_buf::FixedBuf::<{ 3 + 4 + MAX_ADDITIONAL_DELEGATES * 32 }>::new();
+        data.push(2u8); // AddPluginV1 discriminator
+        data.push(plugin_type::UPDATE_DELEGATE);
+        data.extend_from_slice(&(additional_delegates.len() as u32).to_le_bytes());
+        for address in additional_delegates {
+            data.extend_from_slice(address.as_ref());
+        }
+        data.push(0u8); // init_authority: None
+        add_asset_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -52,33 +69,33 @@ pub fn attach_collection_update_delegate_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin = ::mpl_core::types::Plugin::UpdateDelegate(::mpl_core::types::UpdateDelegate {
-            additional_delegates: additional_delegates.to_vec(),
-        });
-        add_collection_plugin_signed(program, accounts, plugin, signer_seeds)
+        let mut data = crate::prelude::Vec::new();
+        data.push(3u8); // AddCollectionPluginV1 discriminator
+        data.push(plugin_type::UPDATE_DELEGATE);
+        data.extend_from_slice(&(additional_delegates.len() as u32).to_le_bytes());
+        for address in additional_delegates {
+            data.extend_from_slice(address.as_ref());
+        }
+        data.push(0u8); // init_authority: None
+        add_collection_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let payload = encode_additional_delegates(additional_delegates);
-        add_collection_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::UPDATE_DELEGATE,
-            &payload,
-            signer_seeds,
-        )
+        if additional_delegates.len() > MAX_ADDITIONAL_DELEGATES {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let mut data =
+            crate::fixed_buf::FixedBuf::<{ 3 + 4 + MAX_ADDITIONAL_DELEGATES * 32 }>::new();
+        data.push(3u8); // AddCollectionPluginV1 discriminator
+        data.push(plugin_type::UPDATE_DELEGATE);
+        data.extend_from_slice(&(additional_delegates.len() as u32).to_le_bytes());
+        for address in additional_delegates {
+            data.extend_from_slice(address.as_ref());
+        }
+        data.push(0u8); // init_authority: None
+        add_collection_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
     }
-}
-
-#[cfg(feature = "pinocchio")]
-fn encode_additional_delegates(additional_delegates: &[Address]) -> crate::prelude::Vec<u8> {
-    let mut data = crate::prelude::Vec::with_capacity(4 + additional_delegates.len() * 32);
-    data.extend_from_slice(&(additional_delegates.len() as u32).to_le_bytes());
-    for address in additional_delegates {
-        data.extend_from_slice(address.as_ref());
-    }
-    data
 }
 
 /// Reads an `Asset`'s `UpdateDelegate` plugin's `additional_delegates`, if
@@ -94,12 +111,11 @@ pub fn fetch_asset_update_delegate(
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let asset = ::mpl_core::Asset::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(asset
-        .plugin_list
-        .update_delegate
-        .map(|p| p.update_delegate.additional_delegates))
+    let asset_view = crate::asset::AssetView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    Ok(read_additional_delegates(&data, plugin_header_offset)?.map(|span| span.iter().collect()))
 }
 
 /// Reads a `Collection`'s `UpdateDelegate` plugin's `additional_delegates`,
@@ -115,20 +131,17 @@ pub fn fetch_collection_update_delegate(
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let collection = ::mpl_core::Collection::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(collection
-        .plugin_list
-        .update_delegate
-        .map(|p| p.update_delegate.additional_delegates))
+    let collection_view = crate::collection::CollectionView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    Ok(read_additional_delegates(&data, plugin_header_offset)?.map(|span| span.iter().collect()))
 }
 
 /// Reads an `Asset`'s `UpdateDelegate` plugin's `additional_delegates`, if
 /// attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_update_delegate(
-    info: &AccountInfo,
-) -> Result<Option<crate::prelude::Vec<Address>>> {
+pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<Span<Address>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -139,9 +152,7 @@ pub fn fetch_asset_update_delegate(
 /// Reads a `Collection`'s `UpdateDelegate` plugin's `additional_delegates`,
 /// if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_collection_update_delegate(
-    info: &AccountInfo,
-) -> Result<Option<crate::prelude::Vec<Address>>> {
+pub fn fetch_collection_update_delegate(info: &AccountInfo) -> Result<Option<Span<Address>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);
@@ -149,31 +160,48 @@ pub fn fetch_collection_update_delegate(
     read_additional_delegates(info.data(), plugin_header_offset)
 }
 
-/// Lower-level variant of `fetch_asset_update_delegate`, `pinocchio`-only:
-/// see `edition.rs`'s `read_edition` for why this exists alongside the
-/// uniform-signature wrapper above.
-#[cfg(feature = "pinocchio")]
+/// Lower-level variant of `fetch_asset_update_delegate`, shared by both
+/// backends: see `edition.rs`'s `read_edition` for why this exists alongside
+/// the uniform-signature wrapper above. Zero-copy — `Span<Address>` views
+/// directly into `data`, no heap allocation, no artificial cap (reflects
+/// however many delegates are actually stored on-chain); `solana`-side
+/// callers collect it into an owned `Vec` to keep their existing signature.
 pub fn read_additional_delegates(
     data: &[u8],
     plugin_header_offset: usize,
-) -> Result<Option<crate::prelude::Vec<Address>>> {
+) -> Result<Option<Span<Address>>> {
     let Some(offset) = find_plugin_offset(data, plugin_header_offset, plugin_type::UPDATE_DELEGATE)?
     else {
         return Ok(None);
     };
     let offset = offset as usize;
-    if data.len() < offset + 4 {
+    let list_start = checked_end(offset, 4)?;
+    if data.len() < list_start {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-    if data.len() < offset + 4 + count * 32 {
+    let count = u32::from_le_bytes(data[offset..list_start].try_into().unwrap()) as usize;
+    let list_end = count
+        .checked_mul(32)
+        .and_then(|bytes| list_start.checked_add(bytes))
+        .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+    if data.len() < list_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let mut delegates = crate::prelude::Vec::with_capacity(count);
-    for i in 0..count {
-        let start = offset + 4 + i * 32;
-        let bytes: [u8; 32] = data[start..start + 32].try_into().unwrap();
-        delegates.push(Address::new_from_array(bytes));
+    Ok(Some(Span::from_bytes(&data[list_start..list_end])?))
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `read_additional_delegates` never panics end-to-end,
+    /// including through `find_plugin_offset` and the now-`checked_end`-
+    /// guarded count×stride arithmetic.
+    #[kani::proof]
+    #[kani::unwind(10)]
+    fn prove_read_additional_delegates_never_panics() {
+        let data: [u8; 40] = kani::any();
+        let plugin_header_offset: usize = kani::any();
+        let _ = read_additional_delegates(&data, plugin_header_offset);
     }
-    Ok(Some(delegates))
 }

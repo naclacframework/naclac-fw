@@ -38,7 +38,6 @@ pub struct GetFees {
 // `bool` directly — `bool` has no guaranteed-valid arbitrary bit pattern, so
 // it can't be zero-copy-parsed as an instruction arg.
 /// Get Fees
-#[instruction]
 pub fn get_fees(
     ctx: Context<GetFees>,
     is_pump_pool: Bool,

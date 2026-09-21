@@ -15,6 +15,7 @@ custom-panic = []
 debug-mode = []
 default = ["pinocchio"]
 pinocchio = ["naclac-lang/pinocchio"]
+idl-build = ["naclac-lang/idl-build"]
 
 [dependencies]
 naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", default-features = false }

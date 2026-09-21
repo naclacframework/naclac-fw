@@ -25,7 +25,6 @@ pub struct InitNote {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_note(ctx: Context<InitNote>, name: String) -> Result {
     ctx.accounts.note.name = name;
     Ok(())

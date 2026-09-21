@@ -8,7 +8,7 @@ export const CHECK_DEFAULT_ACCOUNT_STATE_DISCRIMINATOR = new Uint8Array([255, 10
 
 /** Instruction arguments for `checkDefaultAccountState`. */
 export interface CheckDefaultAccountStateArgs {
-  expected_state: number;
+  expectedState: number;
 }
 
 /** Accounts for the `checkDefaultAccountState` instruction. */

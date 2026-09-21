@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-single_file_layout = "HAdzYqmdPxrpGjafmpfb7ETZkst9xXhWaJf4F5S9e4jC"
+single_file_layout = "FADseVzrrwxbzWN83XK9YXoHULUf4E2LvZDp8F3fKKm8"
 
 [provider]
 cluster = "localnet"

@@ -29,7 +29,6 @@ pub struct SweepBuyback {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn sweep_buyback(ctx: Context<SweepBuyback>, index: u8, buyback_vault_bump: u8) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.buyback_vault.authority,

@@ -2,7 +2,6 @@
 set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-native_target_root="${NACLAC_TEST_TARGET_ROOT:-$HOME/naclac-test-targets}"
 fail=0
 ran_any=0
 
@@ -25,7 +24,7 @@ for case_dir in "${case_dirs[@]}"; do
         ran_any=1
 
         echo "=== $case_name :: $pkg_name ==="
-        if ! (cd "$case_dir" && CARGO_TARGET_DIR="$native_target_root" cargo test -p "$pkg_name" -- --nocapture); then
+        if ! (cd "$case_dir" && cargo test -p "$pkg_name" -- --nocapture); then
             echo "FAILED: $case_name :: $pkg_name"
             fail=1
         fi

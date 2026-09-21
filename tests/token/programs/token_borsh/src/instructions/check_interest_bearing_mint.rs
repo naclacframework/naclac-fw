@@ -16,7 +16,6 @@ pub struct CheckInterestBearingMint {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_interest_bearing_mint(
     ctx: Context<CheckInterestBearingMint>,
     args: CheckInterestBearingMintArgs,

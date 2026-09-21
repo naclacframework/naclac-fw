@@ -9,7 +9,6 @@ pub struct CheckPermissionedBurn {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_permissioned_burn(
     ctx: Context<CheckPermissionedBurn>,
     expected_authority: Option<Address>,

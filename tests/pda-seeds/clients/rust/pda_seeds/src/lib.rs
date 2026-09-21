@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("G2V85CrtmdvgCCTr1e38gSWhw4Leo5p9EYM89bFNrPAa");
+declare_id!("2tRXuaWn92zA5D4ftmsu693hXg3FXUVymLcqDkPrE27A");
 
 #[cfg(feature = "offchain")]
 pub fn get_child_pda(
@@ -34,6 +34,21 @@ pub fn get_child_pda(
     naclac_client::Address::find_program_address(
         &[
             &[99, 104, 105, 108, 100],
+            &registry_bump_arr,
+        ],
+        program_id,
+    )
+}
+
+#[cfg(feature = "offchain")]
+pub fn get_child_safe_pda(
+    program_id: &naclac_client::Address,
+    registry_bump: u8
+) -> (naclac_client::Address, u8) {
+    let registry_bump_arr = [registry_bump];
+    naclac_client::Address::find_program_address(
+        &[
+            &[99, 104, 105, 108, 100, 95, 115, 97, 102, 101],
             &registry_bump_arr,
         ],
         program_id,
@@ -95,7 +110,7 @@ pub struct PdaSeeds;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for PdaSeeds {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([223, 64, 174, 170, 20, 181, 164, 46, 174, 148, 27, 255, 15, 248, 175, 250, 29, 239, 254, 148, 255, 77, 118, 85, 136, 45, 154, 251, 42, 218, 65, 123])
+        sdk_core_cpi::Address::new_from_array([28, 8, 12, 47, 43, 221, 201, 216, 61, 75, 102, 183, 13, 148, 254, 225, 62, 238, 5, 40, 118, 202, 137, 12, 139, 40, 4, 57, 175, 0, 147, 33])
     }
 }
 

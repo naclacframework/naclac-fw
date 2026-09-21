@@ -30,21 +30,16 @@ export class PumpClient {
   }
 
   constructor(
-    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | string,
+    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | "litesvm" | string,
     payer?: naclac.Keypair
   ) {
     let provider: naclac.LegacyProvider;
     if (typeof providerOrCluster === "string") {
-      let url = providerOrCluster;
-      if (providerOrCluster === "devnet") url = "https://api.devnet.solana.com";
-      else if (providerOrCluster === "mainnet") url = "https://api.mainnet-beta.solana.com";
-      else if (providerOrCluster === "localnet") url = "http://127.0.0.1:8899";
-      const connection = new naclac.Connection(url, "confirmed");
-      provider = { connection, payer, publicKey: payer ? payer.publicKey : undefined };
+      provider = naclac.createProvider(providerOrCluster, payer);
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider);
+    this.program = new naclac.LegacyProgram(IDL, provider, true);
   }
 
   /**
@@ -176,6 +171,30 @@ export class PumpClient {
   }
 
   /**
+   * Builds the `collectCreatorFee` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public collectCreatorFee(args: instructions.CollectCreatorFeeArgs, accounts?: Partial<instructions.CollectCreatorFeeAccounts>) {
+    return instructions.collectCreatorFee(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `collectCreatorFeeV2` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public collectCreatorFeeV2(args: instructions.CollectCreatorFeeV2Args, accounts?: Partial<instructions.CollectCreatorFeeV2Accounts>) {
+    return instructions.collectCreatorFeeV2(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `getMinimumDistributableFee` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public getMinimumDistributableFee(args: instructions.GetMinimumDistributableFeeArgs, accounts?: Partial<instructions.GetMinimumDistributableFeeAccounts>) {
+    return instructions.getMinimumDistributableFee(this.program, args ?? {}, accounts);
+  }
+
+  /**
    * Builds the `buy` instruction pipeline.
    * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
    */
@@ -271,6 +290,46 @@ export class PumpClient {
     return instructions.setVirtualQuoteReserves(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `initUserVolumeAccumulator` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public initUserVolumeAccumulator(args: instructions.InitUserVolumeAccumulatorArgs, accounts?: Partial<instructions.InitUserVolumeAccumulatorAccounts>) {
+    return instructions.initUserVolumeAccumulator(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `closeUserVolumeAccumulator` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public closeUserVolumeAccumulator(args?: Record<string, never>, accounts?: Partial<instructions.CloseUserVolumeAccumulatorAccounts>) {
+    return instructions.closeUserVolumeAccumulator(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `claimCashback` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public claimCashback(args?: Record<string, never>, accounts?: Partial<instructions.ClaimCashbackAccounts>) {
+    return instructions.claimCashback(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `claimCashbackV2` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public claimCashbackV2(args: instructions.ClaimCashbackV2Args, accounts?: Partial<instructions.ClaimCashbackV2Accounts>) {
+    return instructions.claimCashbackV2(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `claimTokenIncentives` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public claimTokenIncentives(args: instructions.ClaimTokenIncentivesArgs, accounts?: Partial<instructions.ClaimTokenIncentivesAccounts>) {
+    return instructions.claimTokenIncentives(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `amm_global_config` account. Returns `[PublicKey, bumpSeed]`. */
   public getAmmGlobalConfigPda(seeds: {
   }): [naclac.PublicKey, number] {
@@ -313,15 +372,15 @@ export class PumpClient {
 
   /** Derives the PDA for a `boost_vault` account. Returns `[PublicKey, bumpSeed]`. */
   public getBoostVaultPda(seeds: {
-    boost_vault_authority: naclac.PublicKey | string;
-    quote_token_program: naclac.PublicKey | string;
-    quote_mint: naclac.PublicKey | string;
+    boostVaultAuthority: naclac.PublicKey | string;
+    quoteTokenProgram: naclac.PublicKey | string;
+    quoteMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
-                new naclac.PublicKey(seeds.boost_vault_authority).toBuffer(),
-        new naclac.PublicKey(seeds.quote_token_program).toBuffer(),
-        new naclac.PublicKey(seeds.quote_mint).toBuffer()
+                new naclac.PublicKey(seeds.boostVaultAuthority).toBuffer(),
+        new naclac.PublicKey(seeds.quoteTokenProgram).toBuffer(),
+        new naclac.PublicKey(seeds.quoteMint).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]))
     );
@@ -349,7 +408,7 @@ export class PumpClient {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([98, 117, 121, 98, 97, 99, 107, 45, 118, 97, 117, 108, 116]),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.args.buyback_index))
+        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.args.buybackIndex))
       ],
       new naclac.PublicKey(new Uint8Array([116, 160, 86, 82, 248, 105, 32, 166, 17, 57, 245, 99, 88, 171, 78, 132, 34, 207, 106, 105, 27, 23, 177, 13, 84, 100, 151, 96, 23, 63, 63, 197]))
     );
@@ -358,12 +417,12 @@ export class PumpClient {
 
   /** Derives the PDA for a `creator_vault` account. Returns `[PublicKey, bumpSeed]`. */
   public getCreatorVaultPda(seeds: {
-    bonding_curve_creator: naclac.Address | string;
+    creator: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([99, 114, 101, 97, 116, 111, 114, 45, 118, 97, 117, 108, 116]),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"publicKey"')).encode(seeds.bonding_curve_creator))
+        new naclac.PublicKey(seeds.creator).toBuffer()
       ],
       this.programId
     );
@@ -451,14 +510,14 @@ export class PumpClient {
 
   /** Derives the PDA for a `pool` account. Returns `[PublicKey, bumpSeed]`. */
   public getPoolPda(seeds: {
-    pool_authority: naclac.PublicKey | string;
+    poolAuthority: naclac.PublicKey | string;
     mint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([112, 111, 111, 108]),
         new Uint8Array([0, 0]),
-        new naclac.PublicKey(seeds.pool_authority).toBuffer(),
+        new naclac.PublicKey(seeds.poolAuthority).toBuffer(),
         new naclac.PublicKey(seeds.mint).toBuffer(),
         new Uint8Array([6, 155, 136, 87, 254, 171, 129, 132, 251, 104, 127, 99, 70, 24, 192, 53, 218, 196, 57, 220, 26, 235, 59, 85, 152, 160, 240, 0, 0, 0, 0, 1])
       ],
@@ -483,14 +542,14 @@ export class PumpClient {
 
   /** Derives the PDA for a `pool_authority_mint_account` account. Returns `[PublicKey, bumpSeed]`. */
   public getPoolAuthorityMintAccountPda(seeds: {
-    pool_authority: naclac.PublicKey | string;
-    token_program: naclac.PublicKey | string;
+    poolAuthority: naclac.PublicKey | string;
+    tokenProgram: naclac.PublicKey | string;
     mint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
-                new naclac.PublicKey(seeds.pool_authority).toBuffer(),
-        new naclac.PublicKey(seeds.token_program).toBuffer(),
+                new naclac.PublicKey(seeds.poolAuthority).toBuffer(),
+        new naclac.PublicKey(seeds.tokenProgram).toBuffer(),
         new naclac.PublicKey(seeds.mint).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]))
@@ -500,15 +559,15 @@ export class PumpClient {
 
   /** Derives the PDA for a `pool_authority_quote_account` account. Returns `[PublicKey, bumpSeed]`. */
   public getPoolAuthorityQuoteAccountPda(seeds: {
-    pool_authority: naclac.PublicKey | string;
-    quote_token_program: naclac.PublicKey | string;
-    quote_mint: naclac.PublicKey | string;
+    poolAuthority: naclac.PublicKey | string;
+    quoteTokenProgram: naclac.PublicKey | string;
+    quoteMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
-                new naclac.PublicKey(seeds.pool_authority).toBuffer(),
-        new naclac.PublicKey(seeds.quote_token_program).toBuffer(),
-        new naclac.PublicKey(seeds.quote_mint).toBuffer()
+                new naclac.PublicKey(seeds.poolAuthority).toBuffer(),
+        new naclac.PublicKey(seeds.quoteTokenProgram).toBuffer(),
+        new naclac.PublicKey(seeds.quoteMint).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]))
     );
@@ -517,15 +576,15 @@ export class PumpClient {
 
   /** Derives the PDA for a `pool_authority_wsol_account` account. Returns `[PublicKey, bumpSeed]`. */
   public getPoolAuthorityWsolAccountPda(seeds: {
-    pool_authority: naclac.PublicKey | string;
-    token_program: naclac.PublicKey | string;
-    wsol_mint: naclac.PublicKey | string;
+    poolAuthority: naclac.PublicKey | string;
+    tokenProgram: naclac.PublicKey | string;
+    wsolMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
-                new naclac.PublicKey(seeds.pool_authority).toBuffer(),
-        new naclac.PublicKey(seeds.token_program).toBuffer(),
-        new naclac.PublicKey(seeds.wsol_mint).toBuffer()
+                new naclac.PublicKey(seeds.poolAuthority).toBuffer(),
+        new naclac.PublicKey(seeds.tokenProgram).toBuffer(),
+        new naclac.PublicKey(seeds.wsolMint).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]))
     );
@@ -535,13 +594,13 @@ export class PumpClient {
   /** Derives the PDA for a `pool_base_token_account` account. Returns `[PublicKey, bumpSeed]`. */
   public getPoolBaseTokenAccountPda(seeds: {
     pool: naclac.PublicKey | string;
-    token_program: naclac.PublicKey | string;
+    tokenProgram: naclac.PublicKey | string;
     mint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new naclac.PublicKey(seeds.pool).toBuffer(),
-        new naclac.PublicKey(seeds.token_program).toBuffer(),
+        new naclac.PublicKey(seeds.tokenProgram).toBuffer(),
         new naclac.PublicKey(seeds.mint).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]))
@@ -552,14 +611,14 @@ export class PumpClient {
   /** Derives the PDA for a `pool_quote_token_account` account. Returns `[PublicKey, bumpSeed]`. */
   public getPoolQuoteTokenAccountPda(seeds: {
     pool: naclac.PublicKey | string;
-    token_program: naclac.PublicKey | string;
-    wsol_mint: naclac.PublicKey | string;
+    tokenProgram: naclac.PublicKey | string;
+    wsolMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new naclac.PublicKey(seeds.pool).toBuffer(),
-        new naclac.PublicKey(seeds.token_program).toBuffer(),
-        new naclac.PublicKey(seeds.wsol_mint).toBuffer()
+        new naclac.PublicKey(seeds.tokenProgram).toBuffer(),
+        new naclac.PublicKey(seeds.wsolMint).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]))
     );
@@ -606,15 +665,15 @@ export class PumpClient {
 
   /** Derives the PDA for a `user_pool_token_account` account. Returns `[PublicKey, bumpSeed]`. */
   public getUserPoolTokenAccountPda(seeds: {
-    pool_authority: naclac.PublicKey | string;
-    token_2022_program: naclac.PublicKey | string;
-    lp_mint: naclac.PublicKey | string;
+    poolAuthority: naclac.PublicKey | string;
+    token2022Program: naclac.PublicKey | string;
+    lpMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
-                new naclac.PublicKey(seeds.pool_authority).toBuffer(),
-        new naclac.PublicKey(seeds.token_2022_program).toBuffer(),
-        new naclac.PublicKey(seeds.lp_mint).toBuffer()
+                new naclac.PublicKey(seeds.poolAuthority).toBuffer(),
+        new naclac.PublicKey(seeds.token2022Program).toBuffer(),
+        new naclac.PublicKey(seeds.lpMint).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]))
     );
@@ -933,6 +992,81 @@ export class PumpClient {
   /** Decodes every `AdminSetCreatorEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForAdminSetCreatorEvent` — prefer this when you already know which transaction you're checking. */
   public parseAdminSetCreatorEventEvents(logs: readonly string[]) {
     return this.program.parseEvents<types.AdminSetCreatorEvent>("AdminSetCreatorEvent", logs);
+  }
+
+  /** Subscribes to `CollectCreatorFeeEvent` events. Returns a listener ID. */
+  public onCollectCreatorFeeEvent(callback: (event: types.CollectCreatorFeeEvent, slot: number, signature: string) => void) {
+    return types.addCollectCreatorFeeEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `CollectCreatorFeeEvent` event. Resolves `null` on timeout. */
+  public waitForCollectCreatorFeeEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.CollectCreatorFeeEvent>("CollectCreatorFeeEvent", options);
+  }
+
+  /** Decodes every `CollectCreatorFeeEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCollectCreatorFeeEvent` — prefer this when you already know which transaction you're checking. */
+  public parseCollectCreatorFeeEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.CollectCreatorFeeEvent>("CollectCreatorFeeEvent", logs);
+  }
+
+  /** Subscribes to `InitUserVolumeAccumulatorEvent` events. Returns a listener ID. */
+  public onInitUserVolumeAccumulatorEvent(callback: (event: types.InitUserVolumeAccumulatorEvent, slot: number, signature: string) => void) {
+    return types.addInitUserVolumeAccumulatorEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `InitUserVolumeAccumulatorEvent` event. Resolves `null` on timeout. */
+  public waitForInitUserVolumeAccumulatorEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.InitUserVolumeAccumulatorEvent>("InitUserVolumeAccumulatorEvent", options);
+  }
+
+  /** Decodes every `InitUserVolumeAccumulatorEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForInitUserVolumeAccumulatorEvent` — prefer this when you already know which transaction you're checking. */
+  public parseInitUserVolumeAccumulatorEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.InitUserVolumeAccumulatorEvent>("InitUserVolumeAccumulatorEvent", logs);
+  }
+
+  /** Subscribes to `CloseUserVolumeAccumulatorEvent` events. Returns a listener ID. */
+  public onCloseUserVolumeAccumulatorEvent(callback: (event: types.CloseUserVolumeAccumulatorEvent, slot: number, signature: string) => void) {
+    return types.addCloseUserVolumeAccumulatorEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `CloseUserVolumeAccumulatorEvent` event. Resolves `null` on timeout. */
+  public waitForCloseUserVolumeAccumulatorEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.CloseUserVolumeAccumulatorEvent>("CloseUserVolumeAccumulatorEvent", options);
+  }
+
+  /** Decodes every `CloseUserVolumeAccumulatorEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCloseUserVolumeAccumulatorEvent` — prefer this when you already know which transaction you're checking. */
+  public parseCloseUserVolumeAccumulatorEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.CloseUserVolumeAccumulatorEvent>("CloseUserVolumeAccumulatorEvent", logs);
+  }
+
+  /** Subscribes to `ClaimCashbackEvent` events. Returns a listener ID. */
+  public onClaimCashbackEvent(callback: (event: types.ClaimCashbackEvent, slot: number, signature: string) => void) {
+    return types.addClaimCashbackEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `ClaimCashbackEvent` event. Resolves `null` on timeout. */
+  public waitForClaimCashbackEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.ClaimCashbackEvent>("ClaimCashbackEvent", options);
+  }
+
+  /** Decodes every `ClaimCashbackEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForClaimCashbackEvent` — prefer this when you already know which transaction you're checking. */
+  public parseClaimCashbackEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.ClaimCashbackEvent>("ClaimCashbackEvent", logs);
+  }
+
+  /** Subscribes to `ClaimTokenIncentivesEvent` events. Returns a listener ID. */
+  public onClaimTokenIncentivesEvent(callback: (event: types.ClaimTokenIncentivesEvent, slot: number, signature: string) => void) {
+    return types.addClaimTokenIncentivesEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `ClaimTokenIncentivesEvent` event. Resolves `null` on timeout. */
+  public waitForClaimTokenIncentivesEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.ClaimTokenIncentivesEvent>("ClaimTokenIncentivesEvent", options);
+  }
+
+  /** Decodes every `ClaimTokenIncentivesEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForClaimTokenIncentivesEvent` — prefer this when you already know which transaction you're checking. */
+  public parseClaimTokenIncentivesEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.ClaimTokenIncentivesEvent>("ClaimTokenIncentivesEvent", logs);
   }
 
   /** Removes a registered event listener by its ID. */

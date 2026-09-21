@@ -8,7 +8,7 @@ export const CLAIM_SOCIAL_FEE_PDA_V2_DISCRIMINATOR = new Uint8Array([17, 77, 240
 
 /** Instruction arguments for `claimSocialFeePdaV2`. */
 export interface ClaimSocialFeePdaV2Args {
-  user_id: string;
+  userId: string;
   platform: number;
 }
 
@@ -16,21 +16,21 @@ export interface ClaimSocialFeePdaV2Args {
 export interface ClaimSocialFeePdaV2Accounts {
   /** SAFETY: only a token-transfer destination owner; not deserialized. */
   recipient: naclac.Address | string;
-  social_fee_pda?: naclac.Address | string;
-  quote_mint: naclac.Address | string;
-  associated_social_fee_pda: naclac.Address | string;
+  socialFeePda?: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  associatedSocialFeePda: naclac.Address | string;
   /**
    * SAFETY: may not exist yet — created idempotently by the
    * `init_if_needed`/`associated_token::mint`/`::authority` constraint
    * below (a no-op if it already exists), then reinterpreted as a
    * `TokenAccount` in the instruction body.
    */
-  associated_recipient: naclac.Address | string;
-  quote_token_program: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
-  fee_program_global: naclac.Address | string;
-  social_claim_authority: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  associatedRecipient: naclac.Address | string;
+  quoteTokenProgram: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
+  feeProgramGlobal: naclac.Address | string;
+  socialClaimAuthority: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

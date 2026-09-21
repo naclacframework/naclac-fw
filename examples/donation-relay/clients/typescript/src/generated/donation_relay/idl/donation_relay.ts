@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "2abJkQX74rXzAJEgKRq8PmrT62M2iFtachKGqc4wn9tX",
+  "address": "8MWkme4Dfe5NBPh17itoSro62n4FTGLmPNXYFRCUzu7A",
   "metadata": {
     "name": "donation_relay",
     "version": "0.1.0",
@@ -71,11 +71,11 @@ export const IDL = {
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "bump", "type": "u8" },
-          { "name": "state", "type": "u8" },
+          { "name": "total_amount", "type": "u64" },
           { "name": "config_id", "type": "publicKey" },
           { "name": "mint", "type": "publicKey" },
-          { "name": "total_amount", "type": "u64" }
+          { "name": "bump", "type": "u8" },
+          { "name": "state", "type": "u8" }
         ]
       }
     },
@@ -85,11 +85,11 @@ export const IDL = {
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "bump", "type": "u8" },
-          { "name": "state", "type": "u8" },
+          { "name": "current_epoch", "type": "u64" },
           { "name": "config_id", "type": "publicKey" },
           { "name": "mint", "type": "publicKey" },
-          { "name": "current_epoch", "type": "u64" }
+          { "name": "bump", "type": "u8" },
+          { "name": "state", "type": "u8" }
         ]
       }
     }

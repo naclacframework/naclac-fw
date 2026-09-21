@@ -34,6 +34,10 @@ enum Commands {
         program_id: Option<String>,
         #[arg(short, long)]
         features: Vec<String>,
+        /// Stream cargo's own compilation output (progress bar, per-crate
+        /// lines) instead of naclac's summarized spinner.
+        #[arg(long)]
+        show_output: bool,
     },
     /// Regenerates the IDL and/or client SDK(s) from source. Bare `naclac
     /// generate` does both (IDL, then Rust + TypeScript clients) without
@@ -42,6 +46,10 @@ enum Commands {
         program_id: Option<String>,
         #[command(subcommand)]
         action: Option<GenerateAction>,
+        /// Stream cargo's own compilation output for the `idl-build`
+        /// (real-compilation) IDL path instead of running it silently.
+        #[arg(long)]
+        show_output: bool,
     },
     /// Deploys all programs in the workspace to the configured network
     Deploy { program_id: Option<String> },
@@ -264,10 +272,17 @@ fn main() {
         Commands::Build {
             program_id,
             features,
-        } => commands::build::execute(program_id.as_deref(), features.clone()),
-        Commands::Generate { program_id, action } => match action {
-            None => commands::generate::execute_all(program_id.as_deref()),
-            Some(GenerateAction::Idl) => commands::generate::execute_idl(program_id.as_deref()),
+            show_output,
+        } => commands::build::execute(program_id.as_deref(), features.clone(), *show_output),
+        Commands::Generate {
+            program_id,
+            action,
+            show_output,
+        } => match action {
+            None => commands::generate::execute_all(program_id.as_deref(), *show_output),
+            Some(GenerateAction::Idl) => {
+                commands::generate::execute_idl(program_id.as_deref(), *show_output)
+            }
             Some(GenerateAction::Client { rust, typescript }) => {
                 // Neither flag (or both) means "generate everything" — only
                 // a single flag set alone narrows to just that one SDK.

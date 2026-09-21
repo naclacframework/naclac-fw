@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "2Zy945UvutdjBUTq6xrpuW86jYzbGtiPogMGhGUQWX4m",
+  "address": "7SKn2GUHyEZfEpvi7go1v7D6UMTesFbr3Nizw33raxe2",
   "metadata": {
     "name": "discriminator_zc",
     "version": "0.1.0",

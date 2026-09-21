@@ -39,7 +39,6 @@ pub struct CreateMint2022WithNonTransferable {
 /// 4-byte TLV header + 0-byte `NonTransferable` value.
 const MINT_WITH_NON_TRANSFERABLE_SPACE: u64 = 82 + 83 + 1 + 4;
 
-#[instruction]
 pub fn create_mint2022_with_non_transferable(
     ctx: Context<CreateMint2022WithNonTransferable>,
     args: CreateMint2022WithNonTransferableArgs,

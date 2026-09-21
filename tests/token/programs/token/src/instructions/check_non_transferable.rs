@@ -9,7 +9,6 @@ pub struct CheckNonTransferable {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_non_transferable(ctx: Context<CheckNonTransferable>, expected_present: u8) -> Result {
     let present = ctx.accounts.mint.get_extension::<NonTransferable>().is_ok();
 

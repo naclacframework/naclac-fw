@@ -36,7 +36,6 @@ pub struct UpdateBuybackConfig {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn update_buyback_config(
     ctx: Context<UpdateBuybackConfig>,
     buyback_basis_points: Option<u64>,

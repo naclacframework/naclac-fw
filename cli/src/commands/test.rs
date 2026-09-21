@@ -11,7 +11,7 @@ pub fn execute(
     let run_node = node && !rust;
 
     if all {
-        crate::commands::build::execute(None, Vec::new());
+        crate::commands::build::execute(None, Vec::new(), false);
         crate::commands::deploy::execute(None);
     }
     let current_dir = std::env::current_dir().unwrap();

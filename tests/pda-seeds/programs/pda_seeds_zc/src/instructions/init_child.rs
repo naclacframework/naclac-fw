@@ -21,7 +21,6 @@ pub struct InitChild {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_child(ctx: Context<InitChild>, bump: u8) -> Result {
     let child = &mut ctx.accounts.child;
     child.bump = bump;

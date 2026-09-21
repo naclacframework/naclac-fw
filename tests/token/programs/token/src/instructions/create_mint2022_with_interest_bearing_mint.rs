@@ -38,7 +38,6 @@ pub struct CreateMint2022WithInterestBearingMint {
 /// 4-byte TLV header + 52-byte `InterestBearingConfig` value.
 const MINT_WITH_INTEREST_BEARING_SPACE: u64 = 82 + 83 + 1 + 4 + 52;
 
-#[instruction]
 pub fn create_mint2022_with_interest_bearing_mint(
     ctx: Context<CreateMint2022WithInterestBearingMint>,
     args: CreateMint2022WithInterestBearingMintArgs,

@@ -11,7 +11,6 @@ pub struct NoCpiBaseline {
     pub program: AccountInfo,
 }
 
-#[instruction]
 pub fn no_cpi_baseline(_ctx: Context<NoCpiBaseline>) -> Result {
     Ok(())
 }

@@ -1,28 +1,15 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use events_borsh_client::{
     instructions::{build_emit_via_self_cpi_signed_baseline, EmitViaSelfCpiSignedBaselineAccounts},
     types::PROGRAM_ID,
 };
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // events workspace root
-    so_path.push("target/deploy/events_borsh.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load events_borsh program binary");
-}
-
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
-    provider
+    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
-/// Real, measured CU cost of a *security-correct* self-CPI — signs the
+/// Real, measured CU cost of a *security-correct* self-CPI â€” signs the
 /// `event_authority` PDA via `invoke_signed` (Anchor's `emit_cpi!` pattern),
 /// unlike `emit_via_self_cpi_baseline`'s plain unsigned `invoke`. This is
 /// the number a real `emit_cpi!` feature would actually pay, since the

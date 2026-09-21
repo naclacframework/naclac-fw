@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("8DTHBNwgntuWuXuZqNjbJh8veVuptcQnhsZrPTzLgW2x");
+declare_id!("VRMq6DjXajEd6udAMc8Y6vHveRsjiQpVtcUtcd5uz8v");
 
 #[cfg(feature = "offchain")]
 pub fn get_member_mint_pda(
@@ -74,7 +74,7 @@ pub struct TokenBorsh;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for TokenBorsh {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([107, 50, 125, 236, 190, 116, 220, 153, 254, 51, 154, 23, 36, 23, 137, 14, 154, 153, 253, 132, 50, 177, 55, 240, 41, 152, 88, 57, 26, 76, 180, 237])
+        sdk_core_cpi::Address::new_from_array([7, 71, 206, 59, 244, 203, 231, 90, 35, 51, 103, 25, 203, 249, 108, 144, 113, 206, 5, 71, 76, 0, 42, 71, 101, 139, 14, 243, 175, 67, 116, 239])
     }
 }
 

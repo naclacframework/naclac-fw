@@ -11,7 +11,6 @@ pub struct EmitViaSolLogDataBaseline {
     pub program: AccountInfo,
 }
 
-#[instruction]
 pub fn emit_via_sol_log_data_baseline(_ctx: Context<EmitViaSolLogDataBaseline>) -> Result {
     emit!(CounterIncremented { new_count: 0u64 });
     Ok(())

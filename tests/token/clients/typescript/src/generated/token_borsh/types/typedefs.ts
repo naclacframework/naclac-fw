@@ -5,19 +5,19 @@ import * as naclac from "@naclac-fw/client";
 
 /** Auto-generated from the program IDL. */
 export interface CheckInterestBearingMintArgs {
-  expected_rate_authority: naclac.Address | string | null;
-  expected_current_rate: number;
+  expectedRateAuthority: naclac.Address | string | null;
+  expectedCurrentRate: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface CheckTransferFeeConfigArgs {
-  expected_withheld_amount: bigint | number;
-  expected_newer_basis_points: number;
-  expected_newer_maximum_fee: bigint | number;
-  current_epoch: bigint | number;
-  transfer_amount: bigint | number;
-  expected_fee: bigint | number;
-  expected_post_fee_amount: bigint | number;
+  expectedWithheldAmount: bigint | number;
+  expectedNewerBasisPoints: number;
+  expectedNewerMaximumFee: bigint | number;
+  currentEpoch: bigint | number;
+  transferAmount: bigint | number;
+  expectedFee: bigint | number;
+  expectedPostFeeAmount: bigint | number;
 }
 
 /**
@@ -30,8 +30,8 @@ export interface CheckTransferFeeConfigArgs {
  * own PDA update authority.
  */
 export interface CreateMint2022WithGroupMemberPointerAndMemberArgs {
-  member_seed: bigint | number;
-  member_mint_bump: number;
+  memberSeed: bigint | number;
+  memberMintBump: number;
   decimals: number;
 }
 
@@ -54,9 +54,9 @@ export interface CreateMint2022WithGroupMemberPointerAndMemberArgs {
  */
 export interface CreateMint2022WithGroupPointerAndGroupArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  max_size: bigint | number;
+  maxSize: bigint | number;
 }
 
 /**
@@ -73,7 +73,7 @@ export interface CreateMint2022WithGroupPointerAndGroupArgs {
  */
 export interface CreateMint2022WithMetadataPointerAndMetadataArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
   name: string;
   symbol: string;
@@ -90,8 +90,8 @@ export interface CreateMint2022WithMetadataPointerAndMetadataArgs {
  */
 export interface CreateMint2022WithTransferHookArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  hook_program_id: naclac.Address | string;
+  hookProgramId: naclac.Address | string;
 }
 

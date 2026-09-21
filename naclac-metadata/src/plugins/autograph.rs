@@ -13,7 +13,6 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// One entry of `Autograph.signatures` — backend-neutral, owned.
@@ -30,36 +29,25 @@ pub fn attach_autograph_signed(
     signatures: &[(Address, &str)],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
+    let mut data = crate::prelude::Vec::new();
+    data.push(2u8); // AddPluginV1 discriminator
+    data.push(plugin_type::AUTOGRAPH);
+    data.extend_from_slice(&(signatures.len() as u32).to_le_bytes());
+    for (address, message) in signatures {
+        data.extend_from_slice(address.as_ref());
+        data.extend_from_slice(&(message.len() as u32).to_le_bytes());
+        data.extend_from_slice(message.as_bytes());
+    }
+    data.push(0u8); // init_authority: None
+
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin = ::mpl_core::types::Plugin::Autograph(::mpl_core::types::Autograph {
-            signatures: signatures
-                .iter()
-                .map(|(address, message)| ::mpl_core::types::AutographSignature {
-                    address: *address,
-                    message: message.to_string(),
-                })
-                .collect(),
-        });
-        add_asset_plugin_signed(program, accounts, plugin, signer_seeds)
+        add_asset_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut payload = crate::prelude::Vec::new();
-        payload.extend_from_slice(&(signatures.len() as u32).to_le_bytes());
-        for (address, message) in signatures {
-            payload.extend_from_slice(address.as_ref());
-            payload.extend_from_slice(&(message.len() as u32).to_le_bytes());
-            payload.extend_from_slice(message.as_bytes());
-        }
-        add_asset_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::AUTOGRAPH,
-            &payload,
-            signer_seeds,
-        )
+        add_asset_plugin_signed_pinocchio(program, accounts, &data, signer_seeds)
     }
 }
 
@@ -76,18 +64,11 @@ pub fn fetch_asset_autograph(
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let asset = ::mpl_core::Asset::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(asset.plugin_list.autograph.map(|p| {
-        p.autograph
-            .signatures
-            .into_iter()
-            .map(|s| AutographEntry {
-                address: s.address,
-                message: s.message,
-            })
-            .collect()
-    }))
+    let asset_view = crate::asset::AssetView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    read_autograph(&data, plugin_header_offset)
 }
 
 /// Reads an `Asset`'s `Autograph` plugin, if attached. Callable identically
@@ -100,20 +81,30 @@ pub fn fetch_asset_autograph(
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
     };
-    let data = info.data();
+    read_autograph(info.data(), plugin_header_offset)
+}
+
+/// Lower-level variant of `fetch_asset_autograph`, shared by both backends:
+/// see `edition.rs`'s `read_edition` for why this exists alongside the
+/// uniform-signature wrapper above.
+pub fn read_autograph(
+    data: &[u8],
+    plugin_header_offset: usize,
+) -> Result<Option<crate::prelude::Vec<AutographEntry>>> {
     let Some(offset) = find_plugin_offset(data, plugin_header_offset, plugin_type::AUTOGRAPH)?
     else {
         return Ok(None);
     };
     let offset = offset as usize;
 
-    if data.len() < offset + 4 {
+    let count_end = checked_end(offset, 4)?;
+    if data.len() < count_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap());
+    let count = u32::from_le_bytes(data[offset..count_end].try_into().unwrap());
 
     let mut entries = crate::prelude::Vec::with_capacity(count as usize);
-    let mut cursor = offset + 4;
+    let mut cursor = count_end;
     for _ in 0..count {
         if data.len() < cursor + 32 {
             return Err(NaclacError::AccountDataTooSmall.err(0));
@@ -141,14 +132,30 @@ pub fn fetch_asset_autograph(
     Ok(Some(entries))
 }
 
-#[cfg(feature = "pinocchio")]
 fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
-    if data.len() < offset + 4 {
+    let prefix_end = checked_end(offset, 4)?;
+    if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-    if data.len() < offset + 4 + len {
+    let len = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let payload_end = checked_end(prefix_end, len)?;
+    if data.len() < payload_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
     Ok(len)
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `read_autograph` never panics end-to-end, including through
+    /// `find_plugin_offset` and the now-`checked_end`-guarded entry point.
+    #[kani::proof]
+    #[kani::unwind(10)]
+    fn prove_read_autograph_never_panics() {
+        let data: [u8; 40] = kani::any();
+        let plugin_header_offset: usize = kani::any();
+        let _ = read_autograph(&data, plugin_header_offset);
+    }
 }

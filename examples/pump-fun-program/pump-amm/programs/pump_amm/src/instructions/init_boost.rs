@@ -6,11 +6,15 @@ use crate::events::InitBoostEvent;
 
 // Real `init_boost` takes zero args and derives `boost_vault_authority`/
 // `boost_vault` on-chain via a search loop; naclac forbids that for dynamic
-// (non-compile-time-literal) seeds, so both bumps are caller-supplied here
-// instead — the same pattern already used throughout this framework for any
-// PDA whose seeds include a runtime account rather than only literals.
+// (non-compile-time-literal) seeds, so `boost_vault_authority`'s bump is
+// caller-supplied here instead — the same pattern already used throughout
+// this framework for any PDA whose seeds include a runtime account rather
+// than only literals. `boost_vault` itself needs no such bump: it's an ATA
+// (`init` + `associated_token::mint`/`::authority`), and the real Associated
+// Token Program independently re-derives and checks that address on its own
+// CPI, so naclac never needs a caller-supplied bump for it.
 #[derive(Accounts)]
-#[instruction(boost_vault_authority_bump: u8, boost_vault_bump: u8)]
+#[instruction(boost_vault_authority_bump: u8)]
 pub struct InitBoost {
     /// SAFETY: only used as `InitBoostEvent`'s `bonding_curve` field — the
     /// real program derives this on-chain via `find_program_address` purely
@@ -50,9 +54,10 @@ pub struct InitBoost {
     #[account(seeds = [BOOST_VAULT_SEED, pool.address().as_ref()], bump = boost_vault_authority_bump)]
     pub boost_vault_authority: AccountInfo,
 
-    /// SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump`
-    /// below fully validate and construct this account via a real CPI —
-    /// there is no naclac `Discriminator` to check since this is a raw SPL
+    /// SAFETY: `init` + `associated_token::mint`/`::authority` below, plus
+    /// the real Associated Token Program's own CPI-level address
+    /// verification, fully validate and construct this account — there is
+    /// no naclac `Discriminator` to check since this is a raw SPL
     /// `TokenAccount` layout (same reasoning as `create_pool`'s own
     /// freshly-`init`ed ATA fields).
     #[account(
@@ -60,7 +65,6 @@ pub struct InitBoost {
         payer = creator,
         associated_token::mint = quote_mint,
         associated_token::authority = boost_vault_authority,
-        associated_token::bump = boost_vault_bump,
         token::program = quote_token_program,
     )]
     pub boost_vault: AccountInfo,
@@ -82,11 +86,9 @@ pub struct InitBoost {
 /// zero error across 5 independent real transactions plus a direct blind
 /// litesvm replication using a 9-decimal quote mint (ruling out a
 /// quote-decimals dependency).
-#[instruction]
 pub fn init_boost(
     ctx: Context<InitBoost>,
     _boost_vault_authority_bump: u8,
-    _boost_vault_bump: u8,
 ) -> Result {
     require!(bool::from(ctx.accounts.global_config.boost_enabled), PumpAmmError::BoostDisabled);
 

@@ -14,7 +14,7 @@ export interface ToggleBoostArgs {
 /** Accounts for the `toggleBoost` instruction. */
 export interface ToggleBoostAccounts {
   admin: naclac.Address | string;
-  global_config?: naclac.Address | string;
+  globalConfig?: naclac.Address | string;
 }
 
 /**

@@ -15,7 +15,6 @@ pub struct CheckAddressRelational {
     pub expected_address: AccountInfo,
 }
 
-#[instruction]
 pub fn check_address_relational(_ctx: Context<CheckAddressRelational>) -> Result {
     Ok(())
 }

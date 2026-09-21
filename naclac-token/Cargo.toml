@@ -28,7 +28,5 @@ solana = ["dep:solana-program", "dep:spl-token", "dep:spl-token-2022", "dep:spl-
 pinocchio = ["dep:pinocchio-token", "dep:pinocchio-token-2022", "dep:pinocchio-associated-token-account", "dep:pinocchio", "dep:spl-token-metadata-interface", "dep:spl-token-group-interface", "dep:solana-nullable", "dep:solana-instruction", "naclac-core/pinocchio"]
 borsh = ["naclac-core/borsh"]
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))',
-] }
+[lints]
+workspace = true

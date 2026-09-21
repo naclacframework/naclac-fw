@@ -27,7 +27,6 @@ pub struct ExercisePermissionedBurn {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_permissioned_burn(ctx: Context<ExercisePermissionedBurn>, amount: u64) -> Result {
     let balance_before = ctx.accounts.vault.amount();
 

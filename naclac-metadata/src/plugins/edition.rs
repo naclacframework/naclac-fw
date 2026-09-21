@@ -10,7 +10,6 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `Edition` to an `Asset` via `add_plugin`.
@@ -22,19 +21,22 @@ pub fn attach_edition_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin = ::mpl_core::types::Plugin::Edition(::mpl_core::types::Edition { number });
-        add_asset_plugin_signed(program, accounts, plugin, signer_seeds)
+        let mut data = crate::prelude::Vec::with_capacity(7);
+        data.push(2u8); // AddPluginV1 discriminator
+        data.push(plugin_type::EDITION);
+        data.extend_from_slice(&number.to_le_bytes());
+        data.push(0u8); // init_authority: None
+        add_asset_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        add_asset_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::EDITION,
-            &number.to_le_bytes(),
-            signer_seeds,
-        )
+        let mut data = crate::fixed_buf::FixedBuf::<7>::new();
+        data.push(2u8); // AddPluginV1 discriminator
+        data.push(plugin_type::EDITION);
+        data.extend_from_slice(&number.to_le_bytes());
+        data.push(0u8); // init_authority: None
+        add_asset_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -49,9 +51,11 @@ pub fn fetch_asset_edition(info: &AccountInfo) -> Result<Option<u32>> {
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let asset = ::mpl_core::Asset::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(asset.plugin_list.edition.map(|p| p.edition.number))
+    let asset_view = crate::asset::AssetView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    read_edition(&data, plugin_header_offset)
 }
 
 /// Reads an `Asset`'s `Edition` plugin (its print number), if attached.
@@ -65,23 +69,38 @@ pub fn fetch_asset_edition(info: &AccountInfo) -> Result<Option<u32>> {
     read_edition(info.data(), plugin_header_offset)
 }
 
-/// Lower-level variant of `fetch_asset_edition`, `pinocchio`-only: reads
-/// directly from an already-known `data`/`plugin_header_offset` pair
+/// Lower-level variant of `fetch_asset_edition`, shared by both backends:
+/// reads directly from an already-known `data`/`plugin_header_offset` pair
 /// (`AssetView::plugin_header_offset()`) rather than re-parsing the base
 /// `Asset` struct — useful when the caller already has both from other
 /// work.
-#[cfg(feature = "pinocchio")]
 pub fn read_edition(data: &[u8], plugin_header_offset: usize) -> Result<Option<u32>> {
     match find_plugin_offset(data, plugin_header_offset, plugin_type::EDITION)? {
         Some(offset) => {
             let offset = offset as usize;
-            if data.len() < offset + 4 {
+            let end = checked_end(offset, 4)?;
+            if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
             Ok(Some(u32::from_le_bytes(
-                data[offset..offset + 4].try_into().unwrap(),
+                data[offset..end].try_into().unwrap(),
             )))
         }
         None => Ok(None),
+    }
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `read_edition` never panics end-to-end, including through
+    /// `find_plugin_offset` and the now-`checked_end`-guarded entry point.
+    #[kani::proof]
+    #[kani::unwind(10)]
+    fn prove_read_edition_never_panics() {
+        let data: [u8; 24] = kani::any();
+        let plugin_header_offset: usize = kani::any();
+        let _ = read_edition(&data, plugin_header_offset);
     }
 }

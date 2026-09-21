@@ -13,7 +13,6 @@ pub struct TouchPairWithAlias {
     pub b: Account<Vault>,
 }
 
-#[instruction]
 pub fn touch_pair_with_alias(ctx: Context<TouchPairWithAlias>) -> Result {
     ctx.accounts.a.balance += 1;
     ctx.accounts.b.balance += 1;

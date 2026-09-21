@@ -9,18 +9,19 @@
 //! attached — only the `Plugin` enum's own tag and payload bytes differ per
 //! plugin.
 //!
-//! On `solana`, each concrete plugin file (`plugins/master_edition.rs`,
-//! `plugins/edition.rs`, ...) builds the real, strongly-typed
-//! `::mpl_core::types::Plugin` value itself and calls the real crate's own
-//! `AddPluginV1`/`AddCollectionPluginV1` builder directly — there's little
-//! to share there beyond what the real crate already provides. On
-//! `pinocchio` there's no such builder to lean on, and every plugin needs
-//! the identical account-list/CPI-invoke boilerplate around whatever raw
-//! tag+payload bytes it produces, so that part genuinely is shared — the
-//! two `*_pinocchio` functions below. Each concrete plugin file's own
-//! per-backend wrapper (e.g. `attach_master_edition_signed`) is the only
-//! thing callers actually see, with one uniform signature across both
-//! backends, matching every other dual-backend CPI helper in this
+//! Both backends hand-build the raw instruction bytes (discriminator +
+//! `PluginType` tag + the variant's own Borsh-encoded payload) rather than
+//! going through the real `mpl-core` crate's own typed builders — `solana`
+//! can't depend on that crate at all (its `hooked` module, unconditionally
+//! compiled in with no feature gate, blows Solana's 4096-byte per-function
+//! BPF stack limit; see `docs/07-solana-backend-stack-overflow-fix.md`), so
+//! every plugin needs the identical account-list/CPI-invoke boilerplate
+//! around whatever raw bytes it produces on *either* backend — that's what
+//! `add`/`remove`/`update` × asset/collection share, one implementation per
+//! backend. Each concrete plugin file's own
+//! per-backend wrapper (e.g. `attach_master_edition_signed`) builds only the
+//! payload bytes itself and calls these, with one uniform signature across
+//! both backends, matching every other dual-backend CPI helper in this
 //! framework.
 //!
 //! `init_authority` (who can manage the plugin after it's attached) is
@@ -57,27 +58,50 @@ pub struct AddCollectionPluginAccounts<'a> {
     pub log_wrapper: Option<CpiHandle<'a>>,
 }
 
-/// `solana`-only: attaches a plugin to an `Asset` via a real `AddPluginV1`
-/// CPI, using the real crate's own typed `Plugin` value directly.
+/// `solana`-only: attaches a plugin to an `Asset` via a hand-built
+/// `AddPluginV1` CPI. `ix_data` is the complete instruction data —
+/// discriminator `2` + `PluginType` tag + the variant's own Borsh-encoded
+/// payload + trailing `init_authority: None` byte — built by the caller
+/// (each concrete plugin file, e.g. `plugins/master_edition.rs`), same
+/// layout as the `pinocchio` sibling of this function. Account order/flags
+/// verified against the real `mpl-core` crate's own generated
+/// `instructions/add_plugin_v1.rs`.
 #[cfg(not(feature = "pinocchio"))]
 pub fn add_asset_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
-    plugin: ::mpl_core::types::Plugin,
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let ix = ::mpl_core::instructions::AddPluginV1 {
-        asset: accounts.asset.address(),
-        collection: accounts.collection.as_ref().map(|c| c.address()),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(::mpl_core::instructions::AddPluginV1InstructionArgs {
-        plugin,
-        init_authority: None,
-    });
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+        match &accounts.collection {
+            Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: ix_data.to_vec(),
+    };
 
     let cpi_accounts = [
         CpiHandle::from(accounts.asset),
@@ -94,27 +118,45 @@ pub fn add_asset_plugin_signed(
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
 }
 
-/// `solana`-only: attaches a plugin to a `Collection` via a real
-/// `AddCollectionPluginV1` CPI, using the real crate's own typed `Plugin`
-/// value directly.
+/// `solana`-only: attaches a plugin to a `Collection` via a hand-built
+/// `AddCollectionPluginV1` CPI. `ix_data` is the complete instruction data —
+/// discriminator `3` + `PluginType` tag + the variant's own Borsh-encoded
+/// payload + trailing `init_authority: None` byte — built by the caller,
+/// same layout as the `pinocchio` sibling of this function. Account
+/// order/flags verified against the real `mpl-core` crate's own generated
+/// `instructions/add_collection_plugin_v1.rs`.
 #[cfg(not(feature = "pinocchio"))]
 pub fn add_collection_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    plugin: ::mpl_core::types::Plugin,
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let ix = ::mpl_core::instructions::AddCollectionPluginV1 {
-        collection: accounts.collection.address(),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(::mpl_core::instructions::AddCollectionPluginV1InstructionArgs {
-        plugin,
-        init_authority: None,
-    });
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: ix_data.to_vec(),
+    };
 
     let cpi_accounts = [
         CpiHandle::from(accounts.collection),
@@ -128,23 +170,20 @@ pub fn add_collection_plugin_signed(
 }
 
 /// `pinocchio`-only: attaches a plugin to an `Asset` via a hand-built
-/// `AddPluginV1` CPI. `plugin_type` is the `Plugin`/`PluginType` enum's raw
-/// tag byte (see `plugin_registry::plugin_type`); `plugin_payload` is that
-/// variant's own already Borsh-encoded payload bytes, built by the caller.
+/// `AddPluginV1` CPI. `ix_data` is the complete instruction data —
+/// discriminator `2` + `PluginType` tag + the variant's own Borsh-encoded
+/// payload + trailing `init_authority: None` byte — built by the caller
+/// (each concrete plugin file, e.g. `plugins/master_edition.rs`) into its
+/// own `FixedBuf`, since only the caller knows its own payload's exact
+/// compile-time bound (see `fixed_buf.rs`'s header for why this layer
+/// can't build it generically).
 #[cfg(feature = "pinocchio")]
 pub fn add_asset_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
-    plugin_type: u8,
-    plugin_payload: &[u8],
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(3 + plugin_payload.len());
-    data.push(2u8); // AddPluginV1 discriminator
-    data.push(plugin_type);
-    data.extend_from_slice(plugin_payload);
-    data.push(0u8); // init_authority: None
-
     let asset_handle: CpiHandle<'_> = CpiHandle::from(accounts.asset);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
     let collection_is_some = accounts.collection.is_some();
@@ -186,7 +225,7 @@ pub fn add_asset_plugin_signed_pinocchio(
     let instruction = ::pinocchio::instruction::InstructionView {
         program_id: program.info.view.address(),
         accounts: &ix_accounts,
-        data: &data,
+        data: ix_data,
     };
     let handles = [
         asset_handle,
@@ -200,22 +239,16 @@ pub fn add_asset_plugin_signed_pinocchio(
 }
 
 /// `pinocchio`-only: attaches a plugin to a `Collection` via a hand-built
-/// `AddCollectionPluginV1` CPI. See `add_asset_plugin_signed_pinocchio` for
-/// `plugin_type`/`plugin_payload`.
+/// `AddCollectionPluginV1` CPI. `ix_data` is the complete instruction data
+/// (discriminator `3` + tag + payload + trailing `init_authority: None`
+/// byte), built by the caller — see `add_asset_plugin_signed_pinocchio`.
 #[cfg(feature = "pinocchio")]
 pub fn add_collection_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    plugin_type: u8,
-    plugin_payload: &[u8],
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(3 + plugin_payload.len());
-    data.push(3u8); // AddCollectionPluginV1 discriminator
-    data.push(plugin_type);
-    data.extend_from_slice(plugin_payload);
-    data.push(0u8); // init_authority: None
-
     let collection_handle: CpiHandle<'_> = CpiHandle::from(accounts.collection);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
     let authority_is_some = accounts.authority.is_some();
@@ -248,7 +281,7 @@ pub fn add_collection_plugin_signed_pinocchio(
     let instruction = ::pinocchio::instruction::InstructionView {
         program_id: program.info.view.address(),
         accounts: &ix_accounts,
-        data: &data,
+        data: ix_data,
     };
     let handles = [
         collection_handle,
@@ -264,26 +297,47 @@ pub fn add_collection_plugin_signed_pinocchio(
 // remove_plugin / remove_collection_plugin — same account shape as add_plugin
 // ===========================================================================
 
-/// `solana`-only: removes a plugin from an `Asset` via a real
+/// `solana`-only: removes a plugin from an `Asset` via a hand-built
 /// `RemovePluginV1` CPI (discriminator `4`, verified against real
 /// `mpl-core`) — same account shape as `AddPluginV1`, args are just the
-/// `PluginType` to remove (no payload).
+/// `PluginType` raw tag byte (see `plugin_registry::plugin_type`), no
+/// payload.
 #[cfg(not(feature = "pinocchio"))]
 pub fn remove_asset_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
-    plugin_type: ::mpl_core::types::PluginType,
+    plugin_type: u8,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let ix = ::mpl_core::instructions::RemovePluginV1 {
-        asset: accounts.asset.address(),
-        collection: accounts.collection.as_ref().map(|c| c.address()),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(::mpl_core::instructions::RemovePluginV1InstructionArgs { plugin_type });
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+        match &accounts.collection {
+            Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: vec![4u8, plugin_type], // RemovePluginV1 discriminator + PluginType tag
+    };
 
     let cpi_accounts = [
         CpiHandle::from(accounts.asset),
@@ -366,25 +420,41 @@ pub fn remove_asset_plugin_signed_pinocchio(
     crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
 }
 
-/// `solana`-only: removes a plugin from a `Collection` via a real
-/// `RemoveCollectionPluginV1` CPI (discriminator `5`).
+/// `solana`-only: removes a plugin from a `Collection` via a hand-built
+/// `RemoveCollectionPluginV1` CPI (discriminator `5`). `plugin_type` is the
+/// `PluginType` enum's raw tag byte.
 #[cfg(not(feature = "pinocchio"))]
 pub fn remove_collection_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    plugin_type: ::mpl_core::types::PluginType,
+    plugin_type: u8,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let ix = ::mpl_core::instructions::RemoveCollectionPluginV1 {
-        collection: accounts.collection.address(),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(::mpl_core::instructions::RemoveCollectionPluginV1InstructionArgs {
-        plugin_type,
-    });
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: vec![5u8, plugin_type], // RemoveCollectionPluginV1 discriminator + PluginType tag
+    };
 
     let cpi_accounts = [
         CpiHandle::from(accounts.collection),
@@ -456,26 +526,48 @@ pub fn remove_collection_plugin_signed_pinocchio(
 // update_plugin / update_collection_plugin — same account shape as add_plugin
 // ===========================================================================
 
-/// `solana`-only: updates an existing plugin on an `Asset` via a real
+/// `solana`-only: updates an existing plugin on an `Asset` via a hand-built
 /// `UpdatePluginV1` CPI (discriminator `6`, verified against real
-/// `mpl-core`) — same account shape as `AddPluginV1`; args are the full new
-/// `Plugin` value (tag + payload, no trailing `init_authority` byte).
+/// `mpl-core`) — same account shape as `AddPluginV1`. `ix_data` is the
+/// complete instruction data (discriminator `6` + `PluginType` tag +
+/// payload, no trailing `init_authority` byte), built by the caller, same
+/// layout as the `pinocchio` sibling of this function.
 #[cfg(not(feature = "pinocchio"))]
 pub fn update_asset_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
-    plugin: ::mpl_core::types::Plugin,
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let ix = ::mpl_core::instructions::UpdatePluginV1 {
-        asset: accounts.asset.address(),
-        collection: accounts.collection.as_ref().map(|c| c.address()),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(::mpl_core::instructions::UpdatePluginV1InstructionArgs { plugin });
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+        match &accounts.collection {
+            Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: ix_data.to_vec(),
+    };
 
     let cpi_accounts = [
         CpiHandle::from(accounts.asset),
@@ -493,21 +585,16 @@ pub fn update_asset_plugin_signed(
 }
 
 /// `pinocchio`-only: updates an existing plugin on an `Asset` via a
-/// hand-built `UpdatePluginV1` CPI. `plugin_type`/`plugin_payload` are the
-/// new value's tag and payload bytes (same split as `add_asset_plugin_signed_pinocchio`).
+/// hand-built `UpdatePluginV1` CPI. `ix_data` is the complete instruction
+/// data (discriminator `6` + tag + payload), built by the caller — see
+/// `add_asset_plugin_signed_pinocchio`.
 #[cfg(feature = "pinocchio")]
 pub fn update_asset_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
-    plugin_type: u8,
-    plugin_payload: &[u8],
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(2 + plugin_payload.len());
-    data.push(6u8); // UpdatePluginV1 discriminator
-    data.push(plugin_type);
-    data.extend_from_slice(plugin_payload);
-
     let asset_handle: CpiHandle<'_> = CpiHandle::from(accounts.asset);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
     let collection_is_some = accounts.collection.is_some();
@@ -549,7 +636,7 @@ pub fn update_asset_plugin_signed_pinocchio(
     let instruction = ::pinocchio::instruction::InstructionView {
         program_id: program.info.view.address(),
         accounts: &ix_accounts,
-        data: &data,
+        data: ix_data,
     };
     let handles = [
         asset_handle,
@@ -562,23 +649,42 @@ pub fn update_asset_plugin_signed_pinocchio(
     crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
 }
 
-/// `solana`-only: updates an existing plugin on a `Collection` via a real
-/// `UpdateCollectionPluginV1` CPI (discriminator `7`).
+/// `solana`-only: updates an existing plugin on a `Collection` via a
+/// hand-built `UpdateCollectionPluginV1` CPI (discriminator `7`). `ix_data`
+/// is the complete instruction data, built by the caller — see
+/// `update_asset_plugin_signed`.
 #[cfg(not(feature = "pinocchio"))]
 pub fn update_collection_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    plugin: ::mpl_core::types::Plugin,
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let ix = ::mpl_core::instructions::UpdateCollectionPluginV1 {
-        collection: accounts.collection.address(),
-        payer: accounts.payer.address(),
-        authority: accounts.authority.as_ref().map(|a| a.address()),
-        system_program: accounts.system_program.address(),
-        log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-    }
-    .instruction(::mpl_core::instructions::UpdateCollectionPluginV1InstructionArgs { plugin });
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: ix_data.to_vec(),
+    };
 
     let cpi_accounts = [
         CpiHandle::from(accounts.collection),
@@ -592,20 +698,16 @@ pub fn update_collection_plugin_signed(
 }
 
 /// `pinocchio`-only: updates an existing plugin on a `Collection` via a
-/// hand-built `UpdateCollectionPluginV1` CPI.
+/// hand-built `UpdateCollectionPluginV1` CPI. `ix_data` is the complete
+/// instruction data (discriminator `7` + tag + payload), built by the
+/// caller — see `add_asset_plugin_signed_pinocchio`.
 #[cfg(feature = "pinocchio")]
 pub fn update_collection_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    plugin_type: u8,
-    plugin_payload: &[u8],
+    ix_data: &[u8],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let mut data = crate::prelude::Vec::with_capacity(2 + plugin_payload.len());
-    data.push(7u8); // UpdateCollectionPluginV1 discriminator
-    data.push(plugin_type);
-    data.extend_from_slice(plugin_payload);
-
     let collection_handle: CpiHandle<'_> = CpiHandle::from(accounts.collection);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
     let authority_is_some = accounts.authority.is_some();
@@ -638,7 +740,7 @@ pub fn update_collection_plugin_signed_pinocchio(
     let instruction = ::pinocchio::instruction::InstructionView {
         program_id: program.info.view.address(),
         accounts: &ix_accounts,
-        data: &data,
+        data: ix_data,
     };
     let handles = [
         collection_handle,

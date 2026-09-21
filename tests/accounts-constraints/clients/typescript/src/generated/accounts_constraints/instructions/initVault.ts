@@ -10,7 +10,7 @@ export const INIT_VAULT_DISCRIMINATOR = new Uint8Array([77, 79, 85, 150, 33, 217
 export interface InitVaultAccounts {
   payer: naclac.Address | string;
   vault?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

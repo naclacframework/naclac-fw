@@ -8,7 +8,7 @@ export const SET_RESERVED_FEE_RECIPIENTS_DISCRIMINATOR = new Uint8Array([111, 17
 
 /** Instruction arguments for `setReservedFeeRecipients`. */
 export interface SetReservedFeeRecipientsArgs {
-  whitelist_pda: naclac.Address | string;
+  whitelistPda: naclac.Address | string;
 }
 
 /** Accounts for the `setReservedFeeRecipients` instruction. */

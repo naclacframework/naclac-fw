@@ -8,9 +8,9 @@ export const DISTRIBUTE_CREATOR_FEES_V2_DISCRIMINATOR = new Uint8Array([255, 203
 
 /** Instruction arguments for `distributeCreatorFeesV2`. */
 export interface DistributeCreatorFeesV2Args {
-  bonding_curve_bump: number;
-  creator_vault_bump: number;
-  initialize_ata: naclac.Bool;
+  bondingCurveBump: number;
+  creatorVaultBump: number;
+  initializeAta: naclac.Bool;
 }
 
 /** Accounts for the `distributeCreatorFeesV2` instruction. */
@@ -21,25 +21,25 @@ export interface DistributeCreatorFeesV2Accounts {
    * read or written — a wrong value just fails those seed checks.
    */
   mint: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
-  sharing_config?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
+  sharingConfig?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump` constraint already verifies its address;
    * it's a lamport-only PDA (no stored data), never `init`'d so still
    * System-owned — only ever a lamport source below via a signed System
    * Program transfer, never deserialized.
    */
-  creator_vault?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  creatorVault?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * SAFETY: only touched by the non-native-quote path, which this scoped
    * pass doesn't implement — see `UnsupportedQuoteMint` below.
    */
-  creator_vault_quote_token_account: naclac.Address | string;
+  creatorVaultQuoteTokenAccount: naclac.Address | string;
   /** SAFETY: only used to check `quote_mint.address() == WSOL_MINT` below. */
-  quote_mint: naclac.Address | string;
-  quote_token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  quoteTokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   /**
    * SAFETY: `signer` + the `seeds`/`seeds::program` constraint together
    * prove this call was CPI'd (via `invoke_signed`) by `pump_fees` itself
@@ -47,7 +47,7 @@ export interface DistributeCreatorFeesV2Accounts {
    * `PUMP_FEES_AUTHORITY_SEED` PDA. This is the entire authorization
    * model for this instruction; never deserialized.
    */
-  pump_fees_authority?: naclac.Address | string;
+  pumpFeesAuthority?: naclac.Address | string;
 }
 
 /**
@@ -60,6 +60,13 @@ export interface DistributeCreatorFeesV2Accounts {
  * reverts `UnsupportedQuoteMint` for anything else. The WSOL path's
  * distribution math and rounding rule are identical to `distribute_creator_fees`
  * (v1) — see that instruction's doc comment.
+ * 
+ * Requires `bonding_curve.creator == sharing_config`'s own address (real,
+ * live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+ * see `distribute_creator_fees`'s own doc comment for why. Also rejects any
+ * executable shareholder recipient (real, live-confirmed check,
+ * `reference/fee-tier-probe/src/bin/probe73.rs`) — see that same doc
+ * comment for why.
  */
 export function distributeCreatorFeesV2(
   program: any,

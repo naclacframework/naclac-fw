@@ -9,17 +9,17 @@ export const BONDINGCURVE_DISCRIMINATOR = new Uint8Array([23, 183, 248, 55, 96, 
 
 /** Auto-generated account interface from the program IDL. */
 export interface BondingCurve {
-  virtual_token_reserves: bigint | number;
-  virtual_quote_reserves: bigint | number;
-  real_token_reserves: bigint | number;
-  real_quote_reserves: bigint | number;
-  token_total_supply: bigint | number;
+  virtualTokenReserves: bigint | number;
+  virtualQuoteReserves: bigint | number;
+  realTokenReserves: bigint | number;
+  realQuoteReserves: bigint | number;
+  tokenTotalSupply: bigint | number;
   complete: naclac.Bool;
   creator: naclac.Address | string;
-  is_mayhem_mode: naclac.Bool;
-  is_cashback_coin: naclac.Bool;
-  quote_mint: naclac.Address | string;
-  reserved_trailing: string | Uint8Array;
+  isMayhemMode: naclac.Bool;
+  isCashbackCoin: naclac.Bool;
+  quoteMint: naclac.Address | string;
+  reservedTrailing: string | Uint8Array;
 }
 
 /** 8-byte discriminator prefix for `Global` accounts on-chain. */
@@ -29,29 +29,29 @@ export const GLOBAL_DISCRIMINATOR = new Uint8Array([167, 232, 232, 177, 200, 108
 export interface Global {
   initialized: naclac.Bool;
   authority: naclac.Address | string;
-  fee_recipient: naclac.Address | string;
-  initial_virtual_token_reserves: bigint | number;
-  initial_virtual_sol_reserves: bigint | number;
-  initial_real_token_reserves: bigint | number;
-  token_total_supply: bigint | number;
-  fee_basis_points: bigint | number;
-  withdraw_authority: naclac.Address | string;
-  enable_migrate: naclac.Bool;
-  pool_migration_fee: bigint | number;
-  creator_fee_basis_points: bigint | number;
-  fee_recipients: Array<naclac.Address | string>;
-  set_creator_authority: naclac.Address | string;
-  admin_set_creator_authority: naclac.Address | string;
-  create_v2_enabled: naclac.Bool;
-  whitelist_pda: naclac.Address | string;
-  reserved_fee_recipient: naclac.Address | string;
-  mayhem_mode_enabled: naclac.Bool;
-  reserved_fee_recipients: Array<naclac.Address | string>;
-  is_cashback_enabled: naclac.Bool;
-  buyback_fee_recipients: Array<naclac.Address | string>;
-  buyback_basis_points: bigint | number;
-  initial_virtual_quote_reserves: bigint | number;
-  whitelisted_quote_mints: Array<naclac.Address | string>;
+  feeRecipient: naclac.Address | string;
+  initialVirtualTokenReserves: bigint | number;
+  initialVirtualSolReserves: bigint | number;
+  initialRealTokenReserves: bigint | number;
+  tokenTotalSupply: bigint | number;
+  feeBasisPoints: bigint | number;
+  withdrawAuthority: naclac.Address | string;
+  enableMigrate: naclac.Bool;
+  poolMigrationFee: bigint | number;
+  creatorFeeBasisPoints: bigint | number;
+  feeRecipients: Array<naclac.Address | string>;
+  setCreatorAuthority: naclac.Address | string;
+  adminSetCreatorAuthority: naclac.Address | string;
+  createV2Enabled: naclac.Bool;
+  whitelistPda: naclac.Address | string;
+  reservedFeeRecipient: naclac.Address | string;
+  mayhemModeEnabled: naclac.Bool;
+  reservedFeeRecipients: Array<naclac.Address | string>;
+  isCashbackEnabled: naclac.Bool;
+  buybackFeeRecipients: Array<naclac.Address | string>;
+  buybackBasisPoints: bigint | number;
+  initialVirtualQuoteReserves: bigint | number;
+  whitelistedQuoteMints: Array<naclac.Address | string>;
 }
 
 /** 8-byte discriminator prefix for `GlobalVolumeAccumulator` accounts on-chain. */
@@ -59,13 +59,13 @@ export const GLOBALVOLUMEACCUMULATOR_DISCRIMINATOR = new Uint8Array([202, 42, 24
 
 /** Auto-generated account interface from the program IDL. */
 export interface GlobalVolumeAccumulator {
-  start_time: bigint | number;
-  end_time: bigint | number;
-  seconds_in_a_day: bigint | number;
+  startTime: bigint | number;
+  endTime: bigint | number;
+  secondsInADay: bigint | number;
   mint: naclac.Address | string;
-  total_token_supply: Array<bigint | number>;
-  sol_volumes: Array<bigint | number>;
-  reserved_trailing: string | Uint8Array;
+  totalTokenSupply: Array<bigint | number>;
+  solVolumes: Array<bigint | number>;
+  reservedTrailing: string | Uint8Array;
 }
 
 /** 8-byte discriminator prefix for `SharingConfig` accounts on-chain. */
@@ -78,8 +78,8 @@ export interface SharingConfig {
   status: number;
   mint: naclac.Address | string;
   admin: naclac.Address | string;
-  admin_revoked: number;
-  shareholders_len: number;
+  adminRevoked: number;
+  shareholdersLen: number;
   shareholders: Array<Shareholder>;
 }
 
@@ -89,17 +89,17 @@ export const USERVOLUMEACCUMULATOR_DISCRIMINATOR = new Uint8Array([86, 255, 112,
 /** Auto-generated account interface from the program IDL. */
 export interface UserVolumeAccumulator {
   user: naclac.Address | string;
-  needs_claim: naclac.Bool;
-  total_unclaimed_tokens: bigint | number;
-  total_claimed_tokens: bigint | number;
-  current_sol_volume: bigint | number;
-  last_update_timestamp: bigint | number;
-  has_total_claimed_tokens: naclac.Bool;
-  cashback_earned: bigint | number;
-  total_cashback_claimed: bigint | number;
-  stable_cashback_earned: bigint | number;
-  total_stable_cashback_claimed: bigint | number;
-  reserved_trailing: string | Uint8Array;
+  needsClaim: naclac.Bool;
+  totalUnclaimedTokens: bigint | number;
+  totalClaimedTokens: bigint | number;
+  currentSolVolume: bigint | number;
+  lastUpdateTimestamp: bigint | number;
+  hasTotalClaimedTokens: naclac.Bool;
+  cashbackEarned: bigint | number;
+  totalCashbackClaimed: bigint | number;
+  stableCashbackEarned: bigint | number;
+  totalStableCashbackClaimed: bigint | number;
+  reservedTrailing: string | Uint8Array;
   bump: number;
 }
 

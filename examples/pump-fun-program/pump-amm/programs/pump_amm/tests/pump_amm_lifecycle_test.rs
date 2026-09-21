@@ -1,4 +1,4 @@
-//! Sequential, idempotent, cross-cluster lifecycle test for `pump_amm` --
+﻿//! Sequential, idempotent, cross-cluster lifecycle test for `pump_amm` --
 //! the `pump_amm` counterpart to `pump-bonding-curve`'s own
 //! `pump_lifecycle_test.rs` and `pump-fees`'s own `pump_fees_lifecycle_test.rs`.
 //!
@@ -37,17 +37,7 @@ const CLUSTER: &str = "devnet";
 
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new(CLUSTER, payer);
-
-    if provider.cluster == RpcCluster::Litesvm {
-        let mut workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        workspace_root.pop(); // programs
-        workspace_root.pop(); // pump-amm workspace root
-        let so_path = resolve_cargo_target_dir(&workspace_root).join("deploy/pump_amm.so");
-        provider
-            .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-            .expect("Failed to load pump_amm.so");
-    }
+    let provider = NaclacProvider::new(CLUSTER, payer).expect("Failed to construct NaclacProvider");
 
     provider
 }

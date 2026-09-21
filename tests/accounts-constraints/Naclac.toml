@@ -6,9 +6,9 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-accounts_constraints = "5G1dciquGNxDoSK7k4y9cfmUx47UA2mNmLPr4EQ92MqL"
-accounts_constraints_borsh = "Fri7rm4siACcZnbwAkfgHVM1VHH9AMJG21DLaueo9uEd"
-accounts_constraints_zc = "4brUZ7qbbQvHFLoVZuUdVejWXUx8WWZpZEgbBs5W49xm"
+accounts_constraints = "4tsvZRetXKqS2H7kMUGTaArFAjUhmt7W8TF8dwFQ7aiL"
+accounts_constraints_borsh = "HhhbeyhHTGG8asvvHEXGiyheyZEiZD5DT2tyTHxUcwub"
+accounts_constraints_zc = "ArgUwTXYDG15ozD58FDQRmrHEvkheHCMi8me446684XT"
 
 [provider]
 cluster = "localnet"

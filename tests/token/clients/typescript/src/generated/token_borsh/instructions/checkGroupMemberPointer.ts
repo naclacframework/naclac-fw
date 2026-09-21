@@ -8,8 +8,8 @@ export const CHECK_GROUP_MEMBER_POINTER_DISCRIMINATOR = new Uint8Array([70, 213,
 
 /** Instruction arguments for `checkGroupMemberPointer`. */
 export interface CheckGroupMemberPointerArgs {
-  expected_authority: naclac.Address | string | null;
-  expected_member_address: naclac.Address | string | null;
+  expectedAuthority: naclac.Address | string | null;
+  expectedMemberAddress: naclac.Address | string | null;
 }
 
 /** Accounts for the `checkGroupMemberPointer` instruction. */

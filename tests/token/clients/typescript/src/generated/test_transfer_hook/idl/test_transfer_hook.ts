@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "FmAd3YoDDWu1csNEeKJQ51yi79oAwvf61CbKP1bMaM5R",
+  "address": "6qhCvUthJPdcroNcaPF6TPzuLNCJH5wjbdeLc4zYV3iK",
   "metadata": {
     "name": "test_transfer_hook",
     "version": "0.1.0",

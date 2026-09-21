@@ -18,7 +18,7 @@ export interface LogEventSignedAccounts {
    * `SEED_EVENT_AUTHORITY`) and `is_signer` are checked; its data is
    * never read.
    */
-  event_authority?: naclac.Address | string;
+  eventAuthority?: naclac.Address | string;
 }
 
 /**

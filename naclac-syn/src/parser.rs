@@ -29,6 +29,7 @@ pub fn extract_docs(attrs: &[syn::Attribute]) -> Vec<String> {
         .collect()
 }
 
+
 fn get_type_size(ty: &syn::Type, constants: &[crate::types::NaclacConstant]) -> usize {
     match ty {
         syn::Type::Path(type_path) => {
@@ -228,6 +229,50 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
     }
 }
 
+/// If `ty`'s IDL shape (per [`rust_type_to_idl`]) bottoms out at a real
+/// user-defined type — anything the fallback arm above would tag
+/// `{"defined": ident_str}` for a struct/enum that actually has its own
+/// declaration somewhere — returns that leaf type, unwrapping
+/// `Option<T>`/`Vec<T>`/`ZcVec<T>`/`[T; N]`/`&T` the same way
+/// `rust_type_to_idl` does. Returns `None` for a type that resolves to a
+/// primitive/string/bytes/pubkey, and also for naclac-core's synthetic
+/// `Bool`/`Opt<T>` wrapper names — those get a `{"defined": ...}` tag from
+/// `rust_type_to_idl` too, but have no real backing type declaration
+/// anywhere to chase.
+///
+/// Used by the `idl-build` compilation path to know which fields must be
+/// recursively chased via `NaclacIdlBuild::insert_types` — must walk exactly
+/// the same cases `rust_type_to_idl` does, or the two could disagree about
+/// what counts as a real defined type.
+pub fn defined_type_leaf(ty: &syn::Type) -> Option<syn::Type> {
+    match ty {
+        syn::Type::Path(type_path) => {
+            let last_segment = type_path.path.segments.last().unwrap();
+            let ident_str = last_segment.ident.to_string();
+
+            if ident_str == "Option" || ident_str == "Vec" || ident_str == "ZcVec" {
+                if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
+                    if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
+                        return defined_type_leaf(inner_ty);
+                    }
+                }
+                return None;
+            }
+
+            match ident_str.as_str() {
+                "Pubkey" | "Address" | "u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16"
+                | "i32" | "i64" | "i128" | "f32" | "f64" | "bool" | "Bool" | "Opt" | "String"
+                | "ZcString" => None,
+                _ => Some(ty.clone()),
+            }
+        }
+        syn::Type::Slice(type_slice) => defined_type_leaf(&type_slice.elem),
+        syn::Type::Array(type_array) => defined_type_leaf(&type_array.elem),
+        syn::Type::Reference(type_ref) => defined_type_leaf(&type_ref.elem),
+        _ => None,
+    }
+}
+
 /// Collects every top-level `const` declaration in `code` into `idl.constants`.
 /// Must run, across every file in the crate, before `parse_file` — array
 /// lengths and other constant references resolved during `parse_file`
@@ -398,17 +443,24 @@ pub fn parse_file(idl: &mut NaclacProgram, code: &str) {
                         continue;
                     }
 
-                    // Check if it has named fields to parse as a generic defined struct type
-                    if let syn::Fields::Named(_) = &item_struct.fields {
+                    // Parse as a generic defined struct type — named fields
+                    // (`struct Foo { x: T }`) use the field's own name;
+                    // tuple fields (`struct Foo(T)`) have none, so the
+                    // positional index is used instead (matching how Rust
+                    // itself accesses them: `.0`, `.1`, ...), consistent
+                    // with naclac's own `NaclacField`/IDL schema always
+                    // requiring a name (unlike Anchor's own spec, which
+                    // represents tuple fields as a bare, nameless type list
+                    // — naclac deliberately doesn't mirror that here since
+                    // every other consumer of this IDL already assumes
+                    // every field has a name).
+                    if matches!(&item_struct.fields, syn::Fields::Named(_) | syn::Fields::Unnamed(_)) {
                         let mut fields = Vec::new();
-                        for field in &item_struct.fields {
-                            let field_name = field
-                                .ident
-                                .as_ref()
-                                .unwrap()
-                                .to_string()
-                                .trim_start_matches('_')
-                                .to_string();
+                        for (i, field) in item_struct.fields.iter().enumerate() {
+                            let field_name = match &field.ident {
+                                Some(ident) => ident.to_string().trim_start_matches('_').to_string(),
+                                None => i.to_string(),
+                            };
                             fields.push(NaclacField {
                                 name: field_name,
                                 ty: rust_type_to_idl(&field.ty, &idl.constants),
@@ -428,7 +480,12 @@ pub fn parse_file(idl: &mut NaclacProgram, code: &str) {
                         .iter()
                         .any(|a| a.path().is_ident("error_code"));
                     if is_error {
-                        for (code_offset, variant) in (6000..).zip(&item_enum.variants) {
+                        let discriminants =
+                            crate::discriminator::variant_discriminants(&item_enum.variants);
+                        for (discriminant, variant) in
+                            discriminants.iter().zip(&item_enum.variants)
+                        {
+                            let code_offset = (*discriminant + 6000) as u32;
                             let name = variant.ident.to_string();
                             let mut msg = None;
                             for attr in &variant.attrs {
@@ -455,16 +512,51 @@ pub fn parse_file(idl: &mut NaclacProgram, code: &str) {
                         }
                     } else {
                         // Generic Data Enum
+                        let discriminants = crate::discriminator::variant_discriminants(&item_enum.variants);
                         let mut variants = Vec::new();
-                        for variant in &item_enum.variants {
+                        for (variant, discriminant) in item_enum.variants.iter().zip(&discriminants) {
+                            let fields = match &variant.fields {
+                                syn::Fields::Named(named) => {
+                                    let mut fs = Vec::new();
+                                    for field in &named.named {
+                                        let field_name = field
+                                            .ident
+                                            .as_ref()
+                                            .unwrap()
+                                            .to_string()
+                                            .trim_start_matches('_')
+                                            .to_string();
+                                        fs.push(NaclacField {
+                                            name: field_name,
+                                            ty: rust_type_to_idl(&field.ty, &idl.constants),
+                                            docs: extract_docs(&field.attrs),
+                                        });
+                                    }
+                                    Some(NaclacEnumFields::Named(fs))
+                                }
+                                syn::Fields::Unnamed(unnamed) => {
+                                    let tys = unnamed
+                                        .unnamed
+                                        .iter()
+                                        .map(|field| rust_type_to_idl(&field.ty, &idl.constants))
+                                        .collect();
+                                    Some(NaclacEnumFields::Tuple(tys))
+                                }
+                                syn::Fields::Unit => None,
+                            };
                             variants.push(NaclacEnumVariant {
                                 name: variant.ident.to_string(),
                                 docs: extract_docs(&variant.attrs),
+                                fields,
+                                discriminant: discriminant.to_string(),
                             });
                         }
                         idl.types.push(NaclacTypeDef {
                             name: item_enum.ident.to_string(),
-                            ty: NaclacTypeDefTy::Enum { variants },
+                            ty: NaclacTypeDefTy::Enum {
+                                variants,
+                                repr: crate::discriminator::detect_enum_repr(&item_enum.attrs),
+                            },
                             docs: extract_docs(&item_enum.attrs),
                         });
                     }
@@ -543,16 +635,42 @@ pub fn filter_unreachable_types(idl: &mut NaclacProgram) {
         let Some(def) = by_name.get(name.as_str()) else {
             continue;
         };
-        let NaclacTypeDefTy::Struct { fields } = &def.ty else {
-            continue;
-        };
-        for field in fields {
-            let mut nested = HashSet::new();
-            collect_type_refs(&field.ty, &mut nested);
-            for n in nested {
-                if referenced.insert(n.clone()) {
-                    frontier.push(n);
+        let mut nested = HashSet::new();
+        match &def.ty {
+            NaclacTypeDefTy::Struct { fields } => {
+                for field in fields {
+                    collect_type_refs(&field.ty, &mut nested);
                 }
+            }
+            // A variant's own fields can reference further types just like
+            // a struct's can (e.g. `Named { mode: InnerMode }`) — without
+            // walking these too, a type only ever reachable through a
+            // variant field (not any struct field) is incorrectly pruned
+            // even though it's genuinely used. Confirmed via a real build:
+            // `StepMode::Named { mode: InnerMode }` referenced from a real
+            // instruction arg still dropped `InnerMode` from `definedTypes`
+            // before this fix.
+            NaclacTypeDefTy::Enum { variants, .. } => {
+                for variant in variants {
+                    match &variant.fields {
+                        Some(NaclacEnumFields::Named(fields)) => {
+                            for field in fields {
+                                collect_type_refs(&field.ty, &mut nested);
+                            }
+                        }
+                        Some(NaclacEnumFields::Tuple(tys)) => {
+                            for ty in tys {
+                                collect_type_refs(ty, &mut nested);
+                            }
+                        }
+                        None => {}
+                    }
+                }
+            }
+        }
+        for n in nested {
+            if referenced.insert(n.clone()) {
+                frontier.push(n);
             }
         }
     }

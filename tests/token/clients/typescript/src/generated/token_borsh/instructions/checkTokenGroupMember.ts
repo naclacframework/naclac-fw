@@ -8,13 +8,13 @@ export const CHECK_TOKEN_GROUP_MEMBER_DISCRIMINATOR = new Uint8Array([49, 171, 1
 
 /** Instruction arguments for `checkTokenGroupMember`. */
 export interface CheckTokenGroupMemberArgs {
-  expected_mint: naclac.Address | string;
-  expected_group: naclac.Address | string;
+  expectedMint: naclac.Address | string;
+  expectedGroup: naclac.Address | string;
 }
 
 /** Accounts for the `checkTokenGroupMember` instruction. */
 export interface CheckTokenGroupMemberAccounts {
-  member_mint: naclac.Address | string;
+  memberMint: naclac.Address | string;
 }
 
 /**

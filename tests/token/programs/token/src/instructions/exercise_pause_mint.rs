@@ -17,7 +17,6 @@ pub struct ExercisePauseMint {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_pause_mint(ctx: Context<ExercisePauseMint>) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

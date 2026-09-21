@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "G2V85CrtmdvgCCTr1e38gSWhw4Leo5p9EYM89bFNrPAa",
+  "address": "2tRXuaWn92zA5D4ftmsu693hXg3FXUVymLcqDkPrE27A",
   "metadata": {
     "name": "pda_seeds",
     "version": "0.1.0",
@@ -103,6 +103,26 @@ export const IDL = {
       "args": [
         { "name": "bump", "type": "u8" }
       ]
+    },
+    {
+      "name": "init_child_safe",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [28,228,30,126,154,251,158,96],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "registry" },
+        {
+          "name": "child_safe", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [99,104,105,108,100,95,115,97,102,101], "name": "SEED_CHILD_SAFE" },
+              { "kind": "account", "path": "registry.bump", "fieldType": "u8" }
+            ]
+          }
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": []
     },
     {
       "name": "init_tagged_child",
@@ -287,6 +307,11 @@ export const IDL = {
       "value": "[99, 104, 105, 108, 100]"
     },
     {
+      "name": "SEED_CHILD_SAFE",
+      "type": "bytes",
+      "value": "[99, 104, 105, 108, 100, 95, 115, 97, 102, 101]"
+    },
+    {
       "name": "SEED_TAGGED_CHILD",
       "type": "bytes",
       "value": "[116, 97, 103, 103, 101, 100, 95, 99, 104, 105, 108, 100]"
@@ -303,6 +328,13 @@ export const IDL = {
       "name": "child",
       "seeds": [
         { "kind": "const", "value": [99,104,105,108,100], "name": "SEED_CHILD" },
+        { "kind": "account", "path": "registry.bump", "fieldType": "u8" }
+      ]
+    },
+    {
+      "name": "child_safe",
+      "seeds": [
+        { "kind": "const", "value": [99,104,105,108,100,95,115,97,102,101], "name": "SEED_CHILD_SAFE" },
         { "kind": "account", "path": "registry.bump", "fieldType": "u8" }
       ]
     },

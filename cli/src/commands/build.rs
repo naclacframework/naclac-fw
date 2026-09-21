@@ -2,10 +2,77 @@ use crate::ui;
 use colored::Colorize;
 use std::fs;
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-pub fn execute(program_id: Option<&str>, features: Vec<String>) {
+// platform-tools versions naclac will use as-is if already cached locally,
+// newest first. v1.55 is the floor — it fixes a relocation-addends-under-SBPFv3
+// bug present in v1.54 (github.com/anza-xyz/platform-tools release notes).
+const ACCEPTED_PLATFORM_TOOLS: [&str; 3] = ["v1.57", "v1.56", "v1.55"];
+// Downloaded automatically (via cargo-build-sbf's own fetch-by-version
+// support) only when none of the above are already cached — same Rust/LLVM
+// base as v1.55, so it carries the bugfixes without v1.57's larger toolchain
+// jump.
+const DEFAULT_PLATFORM_TOOLS_FALLBACK: &str = "v1.56";
+const DEFAULT_ARCH: &str = "v3";
+
+fn home_dir() -> String {
+    std::env::var("HOME")
+        .unwrap_or_else(|_| std::env::var("USERPROFILE").unwrap_or_else(|_| ".".to_string()))
+}
+
+/// Highest version in `ACCEPTED_PLATFORM_TOOLS` that `cargo-build-sbf` has
+/// already downloaded to its cache — i.e. one we can use without triggering
+/// a fresh download.
+fn cached_accepted_platform_tools_version() -> Option<&'static str> {
+    let cache_dir = PathBuf::from(home_dir()).join(".cache/solana");
+    ACCEPTED_PLATFORM_TOOLS
+        .iter()
+        .find(|v| cache_dir.join(v).join("platform-tools").exists())
+        .copied()
+}
+
+const ALLOWED_ARCH_VALUES: [&str; 5] = ["v0", "v1", "v2", "v3", "v4"];
+
+/// Resolves the `--tools-version`/`--arch` naclac passes to every
+/// `cargo build-sbf` invocation. With no `[build]` section in `Naclac.toml`,
+/// naclac uses whichever version in `ACCEPTED_PLATFORM_TOOLS` is already
+/// cached locally (or downloads `DEFAULT_PLATFORM_TOOLS_FALLBACK` if none
+/// are) and `DEFAULT_ARCH`. `[build] platform_tools_version` is a trusted
+/// override — any version string is passed through as-is, including ones
+/// released after `ACCEPTED_PLATFORM_TOOLS` was last updated. `[build] arch`
+/// is instead validated against `ALLOWED_ARCH_VALUES`.
+fn resolve_build_toolchain(workspace_root: &Path) -> (String, String) {
+    let build_section = fs::read_to_string(workspace_root.join("Naclac.toml"))
+        .ok()
+        .and_then(|content| toml::from_str::<toml::Value>(&content).ok())
+        .and_then(|v| v.get("build").cloned());
+
+    let tools_version = build_section
+        .as_ref()
+        .and_then(|b| b.get("platform_tools_version"))
+        .and_then(|v| v.as_str())
+        .map(str::to_string)
+        .or_else(|| cached_accepted_platform_tools_version().map(str::to_string))
+        .unwrap_or_else(|| DEFAULT_PLATFORM_TOOLS_FALLBACK.to_string());
+
+    let arch = match build_section
+        .as_ref()
+        .and_then(|b| b.get("arch"))
+        .and_then(|v| v.as_str())
+    {
+        Some(requested) if ALLOWED_ARCH_VALUES.contains(&requested) => requested.to_string(),
+        Some(requested) => ui::error(format!(
+            "Naclac.toml [build] arch = \"{}\" is not supported — expected one of {:?}.",
+            requested, ALLOWED_ARCH_VALUES
+        )),
+        None => DEFAULT_ARCH.to_string(),
+    };
+
+    (tools_version, arch)
+}
+
+pub fn execute(program_id: Option<&str>, features: Vec<String>, show_output: bool) {
     let build_start = std::time::Instant::now();
     let current_dir = std::env::current_dir().unwrap();
 
@@ -16,6 +83,12 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
     } else {
         ui::error("Could not find Naclac.toml — run this from within a Naclac workspace.")
     };
+
+    let (tools_version, arch) = resolve_build_toolchain(&workspace_root);
+    ui::info(format!(
+        "Using platform-tools {} (arch {})",
+        tools_version, arch
+    ));
 
     let programs_dir = workspace_root.join("programs");
     let target_dir = naclac_client_gen::resolve_target_dir(&workspace_root);
@@ -202,10 +275,13 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
         cmd.arg("build-sbf")
             .arg("--manifest-path")
             .arg(cargo_toml_path.to_str().unwrap())
+            .arg("--tools-version")
+            .arg(&tools_version)
+            .arg("--arch")
+            .arg(&arch)
             .env("CARGO_TERM_COLOR", "always")
             .current_dir(&workspace_root)
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::piped());
+            .stdout(Stdio::inherit());
         if use_pinocchio {
             cmd.arg("--no-default-features");
         }
@@ -213,86 +289,119 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
             cmd.arg("--features").arg(all_features.join(","));
         }
 
-        let mut child = cmd.spawn().expect("Failed to execute cargo build-sbf");
-        let stderr = child
-            .stderr
-            .take()
-            .expect("Failed to capture cargo build-sbf stderr");
-
-        // Piped (not a pseudo-terminal), so cargo skips its own cursor-redrawn
-        // progress bar and just prints one plain "Compiling <crate>" line per
-        // crate on stderr as they start — parsed below to drive our own
-        // single-line spinner instead, since forwarding cargo's raw redraw
-        // bytes while dropping lines from the stream desyncs its cursor math
-        // (it moves the cursor up assuming every line it emitted is still on
-        // screen).
-        let step = ui::Step::start(format!("Compiling {} ({})...", prog_name, mode_label));
-        let mut combined = String::new();
-        let mut compiled = 0u32;
-        let mut printed_output_header = false;
-        let mut cargo_error_summary: Option<String> = None;
-        for line in BufReader::new(stderr).lines() {
-            let Ok(line) = line else { break };
-            combined.push_str(&line);
-            combined.push('\n');
-            if let Some(crate_name) = cargo_compiling_crate_name(&line) {
-                compiled += 1;
-                step.set_message(format!(
-                    "Compiling {} ({})... {} crate{} built ({})",
-                    prog_name,
-                    mode_label,
-                    compiled,
-                    if compiled == 1 { "" } else { "s" },
-                    crate_name
-                ));
-            } else if !line.trim().is_empty() && !is_cargo_finished_line(&line) {
-                if !printed_output_header {
-                    step.print_above("── compiler output ──────────────────────".dimmed());
-                    printed_output_header = true;
-                }
-                // cargo's own final tally line ("error: could not compile `X` ...
-                // due to N previous errors" / "error: aborting due to N previous
-                // errors") — the authoritative error count, straight from cargo
-                // itself rather than naclac re-deriving one by pattern-matching
-                // individual diagnostics.
-                let stripped = strip_ansi(&line);
-                let trimmed = stripped.trim();
-                if trimmed.starts_with("error: could not compile")
-                    || trimmed.starts_with("error: aborting due to")
-                {
-                    cargo_error_summary = Some(trimmed.to_string());
-                }
-                step.print_above(line);
+        if show_output {
+            // Both streams inherited, untouched — cargo sees a real terminal
+            // (when one is actually attached) and draws its own native
+            // progress bar, instead of the piped-stderr plain-line mode the
+            // spinner path below relies on.
+            let build_status = cmd
+                .stderr(Stdio::inherit())
+                .status()
+                .expect("Failed to execute cargo build-sbf");
+            if !build_status.success() {
+                ui::error(format!("Compile failed for '{}'", prog_name));
             }
-        }
+            ui::success(format!("Compiled {}", prog_name));
+        } else {
+            let mut child = cmd
+                .stderr(Stdio::piped())
+                .spawn()
+                .expect("Failed to execute cargo build-sbf");
+            let stderr = child
+                .stderr
+                .take()
+                .expect("Failed to capture cargo build-sbf stderr");
 
-        let build_status = child.wait().expect("Failed to wait on cargo build-sbf");
-        let stack_overflow_detected = combined
-            .contains("overflows the maximum allowed frame space")
-            || combined.contains("exceeded max offset");
-
-        if !build_status.success() || stack_overflow_detected {
-            if stack_overflow_detected {
-                step.fail(format!(
-                    "'{}' hit a stack-frame overflow — see 'overflows the maximum allowed frame \
-                     space' above for which function to fix.",
-                    prog_name
-                ));
-            } else {
-                match cargo_error_summary {
-                    Some(summary) => {
-                        step.fail(format!("Compile failed for '{}' — {}", prog_name, summary))
+            // Piped (not a pseudo-terminal), so cargo skips its own cursor-redrawn
+            // progress bar and just prints one plain "Compiling <crate>" line per
+            // crate on stderr as they start — parsed below to drive our own
+            // single-line spinner instead, since forwarding cargo's raw redraw
+            // bytes while dropping lines from the stream desyncs its cursor math
+            // (it moves the cursor up assuming every line it emitted is still on
+            // screen). Pass `--show-output` to skip this and see cargo's own
+            // output directly.
+            let step = ui::Step::start(format!("Compiling {} ({})...", prog_name, mode_label));
+            let mut combined = String::new();
+            let mut compiled = 0u32;
+            let mut printed_output_header = false;
+            let mut cargo_error_summary: Option<String> = None;
+            for line in BufReader::new(stderr).lines() {
+                let Ok(line) = line else { break };
+                combined.push_str(&line);
+                combined.push('\n');
+                if let Some(crate_name) = cargo_compiling_crate_name(&line) {
+                    compiled += 1;
+                    step.set_message(format!(
+                        "Compiling {} ({})... {} crate{} built ({})",
+                        prog_name,
+                        mode_label,
+                        compiled,
+                        if compiled == 1 { "" } else { "s" },
+                        crate_name
+                    ));
+                } else if !line.trim().is_empty() && !is_cargo_finished_line(&line) {
+                    if !printed_output_header {
+                        step.print_above("── compiler output ──────────────────────".dimmed());
+                        printed_output_header = true;
                     }
-                    None => step.fail(format!("Compile failed for '{}'", prog_name)),
+                    // cargo's own final tally line ("error: could not compile `X` ...
+                    // due to N previous errors" / "error: aborting due to N previous
+                    // errors") — the authoritative error count, straight from cargo
+                    // itself rather than naclac re-deriving one by pattern-matching
+                    // individual diagnostics.
+                    let stripped = strip_ansi(&line);
+                    let trimmed = stripped.trim();
+                    if trimmed.starts_with("error: could not compile")
+                        || trimmed.starts_with("error: aborting due to")
+                    {
+                        cargo_error_summary = Some(trimmed.to_string());
+                    }
+                    step.print_above(line);
                 }
             }
-        }
-        step.done(format!(
-            "Compiled {} ({} crates built)",
-            prog_name, compiled
-        ));
 
-        let idl_step = ui::Step::start(format!("Generating IDL & TS types ({})...", prog_name));
+            let build_status = child.wait().expect("Failed to wait on cargo build-sbf");
+            let stack_overflow_detected = combined
+                .contains("overflows the maximum allowed frame space")
+                || combined.contains("exceeded max offset");
+
+            if !build_status.success() || stack_overflow_detected {
+                if stack_overflow_detected {
+                    step.fail(format!(
+                        "'{}' hit a stack-frame overflow — see 'overflows the maximum allowed frame \
+                         space' above for which function to fix.",
+                        prog_name
+                    ));
+                } else {
+                    match cargo_error_summary {
+                        Some(summary) => {
+                            step.fail(format!("Compile failed for '{}' — {}", prog_name, summary))
+                        }
+                        None => step.fail(format!("Compile failed for '{}'", prog_name)),
+                    }
+                }
+            }
+            step.done(format!(
+                "Compiled {} ({} crates built)",
+                prog_name, compiled
+            ));
+        }
+
+        // A real `idl-build` compile can take well over a minute; with
+        // `show_output` its cargo output is inherited straight to the
+        // terminal, which would otherwise fight the redrawing spinner for
+        // the same line — skip the spinner in that case, same as the
+        // `cargo build-sbf` step above.
+        let use_idl_build_output =
+            show_output && crate::commands::generate::program_declares_idl_build(build_dir);
+        let idl_step = if use_idl_build_output {
+            None
+        } else {
+            Some(ui::Step::start(format!(
+                "Generating IDL & TS types ({})...",
+                prog_name
+            )))
+        };
 
         // Shared with `naclac generate idl` — see generate.rs. Writes the
         // zero-copy marker (if any) with the real alloc-event names; left in
@@ -303,6 +412,7 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
                 build_dir,
                 prog_name,
                 is_zero_copy,
+                show_output,
             );
 
         let target_types_dir = target_dir.join("types");
@@ -315,16 +425,20 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
                     let marker_path = target_dir.join(format!(".{}-zero-copy", prog_name));
                     let _ = fs::remove_file(marker_path);
                 }
-                idl_step.fail(format!(
-                    "Failed to generate TS types for '{}': {}",
-                    prog_name, e
-                ));
+                let msg = format!("Failed to generate TS types for '{}': {}", prog_name, e);
+                match idl_step {
+                    Some(step) => step.fail(msg),
+                    None => ui::error(msg),
+                }
             }
         };
 
         let ts_path = target_types_dir.join(format!("{}.ts", prog_name));
         fs::write(&ts_path, ts_content).unwrap();
-        idl_step.done(format!("IDL + TS types written ({})", prog_name));
+        match idl_step {
+            Some(step) => step.done(format!("IDL + TS types written ({})", prog_name)),
+            None => ui::success(format!("IDL + TS types written ({})", prog_name)),
+        }
         crate::commands::generate::execute_client(Some(prog_name), None);
 
         if is_zero_copy {
@@ -390,4 +504,26 @@ fn cargo_compiling_crate_name(raw: &str) -> Option<String> {
 /// ...` result line (see [`ui::Step::done`]) already reports the same thing.
 fn is_cargo_finished_line(raw: &str) -> bool {
     strip_ansi(raw).trim().starts_with("Finished `")
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `strip_ansi`/`cargo_compiling_crate_name`/`is_cargo_finished_line`
+    /// never panic for any valid UTF-8 input — including adversarial
+    /// ANSI/unicode sequences a real cargo subprocess could plausibly emit,
+    /// not just the well-formed lines these functions are designed around.
+    /// A small symbolic byte buffer validated as UTF-8 (Kani explores every
+    /// valid encoding within it) stands in for arbitrary subprocess output.
+    #[kani::proof]
+    #[kani::unwind(10)]
+    fn prove_build_line_parsers_never_panic() {
+        let bytes: [u8; 12] = kani::any();
+        if let Ok(s) = core::str::from_utf8(&bytes) {
+            let _ = strip_ansi(s);
+            let _ = cargo_compiling_crate_name(s);
+            let _ = is_cargo_finished_line(s);
+        }
+    }
 }

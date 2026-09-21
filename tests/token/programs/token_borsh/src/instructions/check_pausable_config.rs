@@ -10,7 +10,6 @@ pub struct CheckPausableConfig {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_pausable_config(
     ctx: Context<CheckPausableConfig>,
     expected_authority: Option<Address>,

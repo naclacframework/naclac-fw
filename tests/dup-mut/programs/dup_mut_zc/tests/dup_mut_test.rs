@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use dup_mut_zc_client::{
     instructions::{
         build_init_vault_a, build_init_vault_b, build_init_vault_c, build_touch_pair_no_alias,
@@ -10,19 +10,8 @@ use dup_mut_zc_client::{
     types::PROGRAM_ID,
 };
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // dup-mut workspace root
-    so_path.push("target/deploy/dup_mut_zc.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load dup_mut_zc program binary");
-}
-
 /// Asserts a transaction failed with exactly the given `Custom` error code
-/// — not just "any error", the specific numeric `NaclacError` (framework
+/// â€” not just "any error", the specific numeric `NaclacError` (framework
 /// errors, 3000s) the failure actually produces. Mirrors
 /// `tests/error-codes/programs/error_codes/tests/error_codes_test.rs`'s
 /// helper of the same name and shape.
@@ -40,8 +29,7 @@ fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientErro
 
 fn setup() -> (NaclacProvider, Address, Address) {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
 
     let (vault_a_pda, _bump) = get_vault_a_pda(&PROGRAM_ID);
     let (vault_b_pda, _bump) = get_vault_b_pda(&PROGRAM_ID);
@@ -73,7 +61,7 @@ fn setup() -> (NaclacProvider, Address, Address) {
     (provider, vault_a_pda, vault_b_pda)
 }
 
-/// Same as `setup()` but also creates a third, independent vault — needed
+/// Same as `setup()` but also creates a third, independent vault â€” needed
 /// only by the 3-mut-slot partial-aliasing tests below.
 fn setup_with_c() -> (NaclacProvider, Address, Address, Address) {
     let (provider, vault_a_pda, vault_b_pda) = setup();
@@ -95,7 +83,7 @@ fn setup_with_c() -> (NaclacProvider, Address, Address, Address) {
 }
 
 /// Baseline: two genuinely distinct mutable accounts, no aliasing involved
-/// at all — confirms the guard doesn't false-positive on ordinary usage.
+/// at all â€” confirms the guard doesn't false-positive on ordinary usage.
 #[test]
 fn distinct_accounts_are_accepted() {
     let (provider, vault_a_pda, vault_b_pda) = setup();
@@ -120,7 +108,7 @@ fn distinct_accounts_are_accepted() {
 /// The actual regression case: the same account passed into two `mut`
 /// slots with neither marked `unsafe(alias)` must be rejected by the
 /// compile-time `MUT_MASK` / runtime `__duplicates` bitvec check in
-/// accounts.rs's generated `load_and_validate` — not silently allowed to
+/// accounts.rs's generated `load_and_validate` â€” not silently allowed to
 /// double-mutate.
 #[test]
 fn duplicate_mutable_account_without_alias_is_rejected() {
@@ -171,7 +159,7 @@ fn duplicate_mutable_account_with_alias_is_accepted() {
 /// `unsafe(alias)`) are passed the same address, while `c` (not marked
 /// `alias`) is a genuinely distinct account. Confirms `c` doesn't
 /// false-positive just because *some* duplicate exists elsewhere in the
-/// same instruction — the runtime `__duplicates` bitvec only sets bits for
+/// same instruction â€” the runtime `__duplicates` bitvec only sets bits for
 /// the indices that actually collided (`a`, `b`), and `c`'s own bit is
 /// never touched, so `MUT_MASK & __duplicates` stays empty.
 #[test]
@@ -198,7 +186,7 @@ fn three_mut_slots_accepts_when_only_the_aliased_pair_collides() {
 
 /// 3-mut-slot pairwise case, negative path: `c` (not marked `alias`) is
 /// given the *same* address as `a` (which IS marked `alias`). `unsafe(alias)`
-/// is not transitively "this address may duplicate anywhere" — every slot
+/// is not transitively "this address may duplicate anywhere" â€” every slot
 /// that ends up sharing an address must opt out individually. The
 /// address-collision scan sets both `a`'s and `c`'s bitvec positions
 /// regardless of either field's own annotation, and `c`'s bit is still in

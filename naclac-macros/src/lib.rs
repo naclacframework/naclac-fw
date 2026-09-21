@@ -12,65 +12,17 @@
 extern crate proc_macro;
 
 mod accounts;
+mod checked_enum;
 mod component;
 mod error_code;
 mod event;
 mod instruction;
+mod pod_struct_checks;
 mod program;
 mod system;
 mod type_classify;
 
 use proc_macro::TokenStream;
-
-/// Walks an AST looking for a real call (function call or method call) to
-/// `find_program_address`/`create_program_address` — matched by the exact
-/// resolved segment/method ident, not a substring anywhere in the item's
-/// text, so a helper merely *named* `log_find_program_address_ban` or a
-/// local variable `create_program_address_msg` can't trip it.
-#[derive(Default)]
-struct BannedFnCallVisitor {
-    found: bool,
-}
-
-impl<'ast> syn::visit::Visit<'ast> for BannedFnCallVisitor {
-    fn visit_expr_call(&mut self, node: &'ast syn::ExprCall) {
-        if let syn::Expr::Path(p) = &*node.func {
-            if let Some(seg) = p.path.segments.last() {
-                if seg.ident == "find_program_address" || seg.ident == "create_program_address" {
-                    self.found = true;
-                }
-            }
-        }
-        syn::visit::visit_expr_call(self, node);
-    }
-
-    fn visit_expr_method_call(&mut self, node: &'ast syn::ExprMethodCall) {
-        if node.method == "find_program_address" || node.method == "create_program_address" {
-            self.found = true;
-        }
-        syn::visit::visit_expr_method_call(self, node);
-    }
-}
-
-fn check_banned_functions(tokens: &TokenStream) -> Option<TokenStream> {
-    let Ok(item) = syn::parse::<syn::Item>(tokens.clone()) else {
-        return None;
-    };
-    let mut visitor = BannedFnCallVisitor::default();
-    syn::visit::visit_item(&mut visitor, &item);
-    if visitor.found {
-        let error_msg = "Naclac Error: 'find_program_address' and 'create_program_address' are not supported in Naclac. \
-                         To optimize Compute Units (CUs), Naclac strictly bans on-chain PDA derivation searches. \
-                         Please pass the bump seed from the client and validate using the hash-and-compare optimization \
-                         (e.g., using `#[account(seeds = [...], bump = my_bump)]` or `#[account(seeds = [...], bump)]`).";
-        return Some(
-            syn::Error::new(proc_macro2::Span::call_site(), error_msg)
-                .to_compile_error()
-                .into(),
-        );
-    }
-    None
-}
 
 /// For attribute macros that take no argument at all — returns a
 /// `compile_error!` if `attr` is non-empty, `None` otherwise.
@@ -86,43 +38,6 @@ fn reject_nonempty_attr(attr: &TokenStream, macro_name: &str) -> Option<TokenStr
         .to_compile_error()
         .into(),
     )
-}
-
-/// Determines whether the crate *currently being compiled* (i.e. the crate invoking
-/// this proc-macro right now) has requested a given naclac-lang feature (e.g.
-/// `"borsh"`, `"pinocchio"`).
-///
-/// This deliberately does NOT use `cfg!(feature = ...)` — a `cfg!()` written in this
-/// crate's own source reflects `naclac-macros`'s own feature set at the time
-/// `naclac-macros` itself was compiled, not the feature set of whichever downstream
-/// crate happens to be invoking the macro during its own build. Since a proc-macro
-/// runs in-process as part of the invoking crate's `rustc` invocation, it can instead
-/// inspect that specific build directly: `CARGO_FEATURE_<NAME>` is set by Cargo for
-/// features the invoking crate declares directly on itself. For features requested
-/// only transitively (e.g. `naclac-lang = { features = ["borsh"] }` in the invoking
-/// crate's own `Cargo.toml`, rather than a `borsh` feature of its own), we fall back
-/// to scanning that crate's manifest text directly.
-pub(crate) fn caller_has_feature(feature: &str) -> bool {
-    let env_name = format!("CARGO_FEATURE_{}", feature.to_uppercase().replace('-', "_"));
-    if std::env::var(&env_name).is_ok() {
-        return true;
-    }
-    let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") else {
-        return false;
-    };
-    let toml_path = std::path::Path::new(&manifest_dir).join("Cargo.toml");
-    let Ok(content) = std::fs::read_to_string(&toml_path) else {
-        return false;
-    };
-    let Ok(manifest) = toml::from_str::<toml::Value>(&content) else {
-        return false;
-    };
-    manifest
-        .get("dependencies")
-        .and_then(|deps| deps.get("naclac-lang"))
-        .and_then(|dep| dep.get("features"))
-        .and_then(|features| features.as_array())
-        .is_some_and(|features| features.iter().any(|f| f.as_str() == Some(feature)))
 }
 
 /// Emits a real compiler *warning* (not a hard error) for a heap-allocated
@@ -186,21 +101,6 @@ pub fn system(attr: TokenStream, item: TokenStream) -> TokenStream {
     system::expand(attr, item)
 }
 
-/// Attribute for annotating an instruction logic function.
-#[proc_macro_attribute]
-pub fn instruction(
-    attr: proc_macro::TokenStream,
-    item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    if let Some(err) = reject_nonempty_attr(&attr, "instruction") {
-        return err;
-    }
-    if let Some(err) = check_banned_functions(&item) {
-        return err;
-    }
-    instruction::expand(attr, item)
-}
-
 /// The main entrypoint macro for a Naclac smart contract.
 ///
 /// This generates the overarching instruction dispatcher and handles Cross-Program
@@ -209,9 +109,6 @@ pub fn instruction(
 #[proc_macro_attribute]
 pub fn program(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(err) = reject_nonempty_attr(&attr, "program") {
-        return err;
-    }
-    if let Some(err) = check_banned_functions(&item) {
         return err;
     }
     program::expand(attr, item)
@@ -238,15 +135,75 @@ pub fn event(
     event::expand(attr, item)
 }
 
+/// Builds a plain (never `#[test]`-tagged — a `[[bin]]` target's `main()`
+/// can't invoke a `#[test]` function; those only exist in a separate
+/// `cargo test` harness binary) print function for one `#[constant]`-tagged
+/// const, returning its real `IdlConstant` — mirrors Anchor's own
+/// `lang/syn/src/idl/constant.rs::gen_idl_print_fn_constant`, minus the
+/// `#[test]` wrapper. The constant's *type* is resolved locally (a
+/// top-level const's own declared type needs no cross-item visibility,
+/// same as any other field's own type elsewhere in this migration); its
+/// *value* is read via `format!("{:?}", #expr)` — real compiled Rust,
+/// evaluated when this function actually runs at `idl-build` time, not
+/// text-parsed. `#[program]`'s own macro is what discovers this function's
+/// name (a crate-wide scan, which a single `#[constant]` invocation has no
+/// visibility to do itself) and generates the call into `main()`.
+#[cfg(feature = "idl-build")]
+fn constant_idl_build_impl(item: &syn::ItemConst) -> proc_macro2::TokenStream {
+    let name = item.ident.to_string();
+    let expr = &item.expr;
+    let docs = naclac_syn::parser::extract_docs(&item.attrs);
+    let ty_value = naclac_syn::parser::rust_type_to_idl(&item.ty, &[]);
+    let Ok(ty_json) = serde_json::to_string(&ty_value) else {
+        return quote::quote! {};
+    };
+    // Lowercased — a `const`'s own name is conventionally SCREAMING_SNAKE_CASE,
+    // which would otherwise make this generated function name trip
+    // `non_snake_case`; `#[program]`'s scan-generated call
+    // (`program.rs::const_calls`) lowercases the same way to match.
+    let fn_name = quote::format_ident!(
+        "__naclac_idl_print_const_{}",
+        item.ident.to_string().to_lowercase()
+    );
+    quote::quote! {
+        #[cfg(feature = "idl-build")]
+        #[doc(hidden)]
+        pub fn #fn_name() -> naclac_lang::naclac_idl::IdlConstant {
+            naclac_lang::naclac_idl::IdlConstant {
+                name: #name.into(),
+                docs: vec![#(#docs.into()),*],
+                ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
+                    .expect("naclac idl-build: generated constant type JSON must parse"),
+                value: format!("{:?}", #expr),
+            }
+        }
+    }
+}
+
 /// Stub for constant declarations (ignored, acts as a marker) — `naclac-syn`'s
-/// IDL/offchain-generator scan looks for this attribute's bare presence on a
-/// `const` item; the macro itself does nothing beyond that.
+/// AST-walker IDL generator scans for this attribute's bare presence on a
+/// `const` item. Under `idl-build`, also generates that constant's own
+/// print function (see `constant_idl_build_impl`); the attribute itself
+/// never modifies the original `const` item either way.
 #[proc_macro_attribute]
 pub fn constant(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(err) = reject_nonempty_attr(&attr, "constant") {
         return err;
     }
-    item
+    #[cfg(feature = "idl-build")]
+    {
+        let input = syn::parse_macro_input!(item as syn::ItemConst);
+        let print_fn = constant_idl_build_impl(&input);
+        quote::quote! {
+            #input
+            #print_fn
+        }
+        .into()
+    }
+    #[cfg(not(feature = "idl-build"))]
+    {
+        item
+    }
 }
 
 /// Derives the necessary validation, deserialization, and constraints for an Accounts struct.
@@ -254,85 +211,111 @@ pub fn constant(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// Generates zero-copy fixed array CPI properties (`[AccountMeta; N]`) regardless of the execution mode.
 #[proc_macro_derive(Accounts, attributes(account, instruction))]
 pub fn derive_accounts(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    if let Some(err) = check_banned_functions(&item) {
-        return err;
-    }
     accounts::expand_derive_accounts(item)
 }
 
-/// Internal derivation for legacy Borsh serialization fallback.
-#[proc_macro_derive(NaclacSerialize)]
-pub fn derive_naclac_serialize(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = syn::parse_macro_input!(item as syn::DeriveInput);
-    let ident = &input.ident;
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-
-    let body = match &input.data {
-        syn::Data::Struct(data_struct) => {
-            let mut field_serializations = Vec::new();
-            for field in &data_struct.fields {
-                let field_ident = &field.ident;
-                field_serializations.push(quote::quote! {
-                    naclac_lang::prelude::borsh::BorshSerialize::serialize(&self.#field_ident, writer)?;
-                });
-            }
-            quote::quote! { #(#field_serializations)* }
-        }
-        syn::Data::Enum(data_enum) => {
-            let mut arms = Vec::new();
-            for (i, variant) in data_enum.variants.iter().enumerate() {
-                let variant_ident = &variant.ident;
-                let idx = i as u8;
-                arms.push(quote::quote! {
-                    #ident::#variant_ident => {
-                        writer.write_all(&[#idx])?;
-                    }
-                });
-            }
-            quote::quote! {
-                match self {
-                    #(#arms)*
-                }
-            }
-        }
-        _ => panic!("NaclacSerialize only supports Structs and Enums"),
-    };
-
-    let expanded = quote::quote! {
-        impl #impl_generics naclac_lang::prelude::borsh::BorshSerialize for #ident #ty_generics #where_clause {
-            fn serialize<W: naclac_lang::prelude::borsh::io::Write>(&self, writer: &mut W) -> naclac_lang::prelude::borsh::io::Result<()> {
-                #body
-                Ok(())
-            }
-        }
-    };
-    expanded.into()
-}
-
-/// Derives the necessary `Pod` and `Zeroable` traits for safe byte-level casting.
+/// Derives the correct serialization mechanism for a standalone, non-account,
+/// non-event type (a struct/enum used as e.g. an instruction arg or a nested
+/// field) — matching the same automatic per-mode routing `#[component]`/
+/// `#[event]` already use: zero-copy mode gets `Pod`/`Zeroable` (structs) or
+/// `CheckedBitPattern` (enums) for byte-level casting; Borsh mode gets real
+/// `borsh::BorshSerialize`/`BorshDeserialize`.
 ///
-/// Critical for achieving `no_std` zero-copy performance without data corruption.
+/// The zero-copy struct/enum split exists because every bit pattern of a
+/// fixed-size struct's bytes is a valid value (safe to declare unconditionally
+/// `Pod`), but an enum's discriminant only has as many valid values as it has
+/// variants — reinterpreting an out-of-range discriminant byte as the enum is
+/// undefined behavior. Enums therefore get bytemuck's own `CheckedBitPattern`
+/// (validated on read) instead of `Pod`/`Zeroable` (unconditional), and their
+/// `NaclacPod::naclac_from_bytes` validates the discriminant and panics on an
+/// invalid one rather than blindly transmuting it — a panic is safe, defined
+/// behavior, unlike constructing an enum value with no corresponding variant.
+/// Borsh mode needs no such split — real Borsh's own derive already validates
+/// enum tags during deserialization, for structs and enums alike.
 #[proc_macro_attribute]
-pub fn naclac_pod(
+pub fn defined_type(
     attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    if let Some(err) = reject_nonempty_attr(&attr, "naclac_pod") {
+    if let Some(err) = reject_nonempty_attr(&attr, "defined_type") {
         return err;
     }
     let mut input = syn::parse_macro_input!(item as syn::DeriveInput);
-    let ident = &input.ident;
+    let ident = input.ident.clone();
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let is_enum = matches!(&input.data, syn::Data::Enum(_));
+    // Captured before any field-padding mutation below — the IDL-visible
+    // shape reflects what the developer actually wrote, not the on-chain
+    // zero-copy layout's auto-added padding field.
+    let original_data = input.data.clone();
 
+    // Cargo gives a proc-macro no reliable way to see the invoking crate's
+    // activated features (see `component.rs`'s doc comment for the full
+    // story), so both representations are always emitted below, each gated
+    // by a real `#[cfg(...)]` in the output that the calling crate's own
+    // compiler resolves — same as `#[component]`/`#[event]`/`#[derive(Accounts)]`.
+    let zero_copy_cfg = quote::quote! { #[cfg(any(feature = "pinocchio", not(feature = "borsh")))] };
+    let borsh_cfg = quote::quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
+
+    // --- Borsh variant ---
+    // No repr/Copy forcing, no Pod-family traits at all — real Borsh's own
+    // derive handles structs and enums (including data-carrying variants)
+    // natively, with its own tag validation.
+    let borsh_variant = {
+        let mut input = input.clone();
+        let mut has_clone = false;
+        for attr in &input.attrs {
+            if !attr.path().is_ident("derive") {
+                continue;
+            }
+            let Ok(paths) = attr.parse_args_with(
+                syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
+            ) else {
+                continue;
+            };
+            has_clone |= paths
+                .iter()
+                .any(|p| p.segments.last().is_some_and(|s| s.ident == "Clone"));
+        }
+        if !has_clone {
+            input.attrs.push(syn::parse_quote!(#[derive(Clone)]));
+        }
+        quote::quote! {
+            #borsh_cfg
+            #[derive(naclac_lang::prelude::BorshSerialize, naclac_lang::prelude::BorshDeserialize)]
+            #[borsh(crate = "naclac_lang::prelude::borsh")]
+            #input
+        }
+    };
+
+    // --- Zero-copy variant ---
     // Auto-add a deterministic layout repr when the caller hasn't picked one
     // explicitly: #[repr(u8)] for enums, #[repr(C)] for structs.
-    let has_repr = input.attrs.iter().any(|attr| attr.path().is_ident("repr"));
-    if !has_repr {
-        match &input.data {
-            syn::Data::Enum(_) => input.attrs.push(syn::parse_quote!(#[repr(u8)])),
-            syn::Data::Struct(_) => input.attrs.push(syn::parse_quote!(#[repr(C)])),
-            syn::Data::Union(_) => {}
+    match &input.data {
+        // An enum's generated `bytemuck::CheckedBitPattern` layout below is
+        // sized to a concrete integer discriminant width — a bare
+        // `#[repr(C)]` (or no repr at all) doesn't commit to one, so
+        // `#[repr(u8)]` must be added whenever no *explicit integer* repr is
+        // present, not merely whenever no repr at all is present. Pushing
+        // `#[repr(u8)]` alongside an existing `#[repr(C)]` is valid Rust —
+        // multiple `#[repr(...)]` attributes on one item combine, same as
+        // writing `#[repr(C, u8)]` — so this is safe regardless of what
+        // other repr modifiers are already there. Must use the same
+        // detection `tag_ty` below uses, and that `naclac_syn::discriminator
+        // ::detect_enum_repr` (the IDL walker's own detector) uses — all
+        // three now share one function so they can't drift apart again.
+        syn::Data::Enum(_) => {
+            if naclac_syn::discriminator::detect_enum_repr(&input.attrs).is_none() {
+                input.attrs.push(syn::parse_quote!(#[repr(u8)]));
+            }
         }
+        syn::Data::Struct(_) => {
+            let has_repr = input.attrs.iter().any(|attr| attr.path().is_ident("repr"));
+            if !has_repr {
+                input.attrs.push(syn::parse_quote!(#[repr(C)]));
+            }
+        }
+        syn::Data::Union(_) => {}
     }
 
     // `Pod` requires `Copy` as a supertrait unconditionally — there is no
@@ -370,88 +353,314 @@ pub fn naclac_pod(
         input.attrs.push(syn::parse_quote!(#[derive(Clone, Copy)]));
     }
 
-    let expanded = quote::quote! {
-        #input
+    let zero_copy_variant = if is_enum {
+        // No `derive(Copy)`/`derive(Clone)` re-added here — already pushed
+        // onto `input.attrs` above, and `bytemuck::CheckedBitPattern`
+        // requires `Copy` as a supertrait just like `Pod` does.
+        let syn::Data::Enum(data_enum) = &input.data else {
+            unreachable!("is_enum was computed from input.data being Data::Enum")
+        };
+        let tag_ty: syn::Type = {
+            let named = naclac_syn::discriminator::detect_enum_repr(&input.attrs);
+            syn::parse_str(named.as_deref().unwrap_or("u8")).unwrap()
+        };
+        let (extra_items, checked_bit_pattern_impl) =
+            checked_enum::generate(&ident, &input.vis, &data_enum.variants, &tag_ty, &zero_copy_cfg);
+        quote::quote! {
+            #zero_copy_cfg
+            #input
 
-        // SAFETY: sound only because the annotated type has a deterministic
-        // layout (#[repr(u8)]/#[repr(C)]) and is Copy, both auto-added above
-        // when the caller hasn't already provided them.
-        unsafe impl #impl_generics naclac_lang::prelude::Pod for #ident #ty_generics #where_clause {}
-        // SAFETY: Zeroed memory is a valid initial state for Pod types.
-        unsafe impl #impl_generics naclac_lang::prelude::Zeroable for #ident #ty_generics #where_clause {}
+            #extra_items
+            #checked_bit_pattern_impl
 
-        impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
-            #[inline(always)]
-            fn naclac_from_bytes(data: &[u8]) -> Self {
-                // SAFETY: We use `read_unaligned` to safely read the struct from the byte slice.
-                // This is required because SBF instruction data streams may not align properly
-                // to the struct's natural alignment boundaries, preventing standard bytemuck casting.
-                unsafe { core::ptr::read_unaligned(data.as_ptr() as *const Self) }
-            }
-            #[inline(always)]
-            fn naclac_size() -> usize {
-                core::mem::size_of::<Self>()
-            }
-        }
-    };
-    expanded.into()
-}
-
-/// Internal derivation for legacy Borsh deserialization fallback.
-#[proc_macro_derive(NaclacDeserialize)]
-pub fn derive_naclac_deserialize(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = syn::parse_macro_input!(item as syn::DeriveInput);
-    let ident = &input.ident;
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-
-    let body = match &input.data {
-        syn::Data::Struct(data_struct) => {
-            let mut field_deserializations = Vec::new();
-            let mut field_names = Vec::new();
-            for field in &data_struct.fields {
-                let field_ident = &field.ident;
-                field_names.push(field_ident);
-                field_deserializations.push(quote::quote! {
-                    let #field_ident = naclac_lang::prelude::borsh::BorshDeserialize::deserialize_reader(reader)?;
-                });
-            }
-            quote::quote! {
-                #(#field_deserializations)*
-                Ok(Self { #(#field_names),* })
-            }
-        }
-        syn::Data::Enum(data_enum) => {
-            let mut arms = Vec::new();
-            for (i, variant) in data_enum.variants.iter().enumerate() {
-                let variant_ident = &variant.ident;
-                let idx = i as u8;
-                arms.push(quote::quote! {
-                    #idx => Ok(#ident::#variant_ident),
-                });
-            }
-            quote::quote! {
-                let mut tag = [0u8; 1];
-                reader.read_exact(&mut tag)?;
-                match tag[0] {
-                    #(#arms)*
-                    _ => Err(naclac_lang::prelude::borsh::io::Error::new(
-                        naclac_lang::prelude::borsh::io::ErrorKind::InvalidData,
-                        "",
-                    )),
+            #zero_copy_cfg
+            impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
+                #[inline(always)]
+                fn naclac_from_bytes(data: &[u8]) -> Self {
+                    // Unlike a struct (every byte pattern valid), an enum's
+                    // discriminant must be checked — see this macro's own
+                    // doc comment. `try_pod_read_unaligned` (unlike
+                    // `try_from_bytes`) validates the discriminant without
+                    // requiring proper alignment, which real Solana
+                    // account/instruction byte buffers don't guarantee.
+                    // `expect` turns an invalid discriminant into a safe
+                    // panic instead of undefined behavior.
+                    naclac_lang::prelude::bytemuck::checked::try_pod_read_unaligned::<Self>(
+                        &data[..core::mem::size_of::<Self>()],
+                    )
+                    .expect("defined_type: invalid enum discriminant in account/instruction bytes")
+                }
+                #[inline(always)]
+                fn naclac_size() -> usize {
+                    core::mem::size_of::<Self>()
                 }
             }
         }
-        _ => panic!("NaclacDeserialize only supports Structs and Enums"),
-    };
+    } else {
+        let syn::Data::Struct(data_struct) = &input.data else {
+            unreachable!("is_enum was false, so input.data must be Data::Struct")
+        };
+        let is_tuple = matches!(&data_struct.fields, syn::Fields::Unnamed(_));
+        // A user-written `#[derive(Default)]` is evaluated against the
+        // struct's *original* field list — by the time the auto-padding
+        // field is spliced in below, the derived code would construct a
+        // value missing it, a real E0063 hit on `pump-fees`'s own `Fees`
+        // struct. `event.rs` already solves this correctly (hand-written
+        // `impl Default` via `Zeroable::zeroed()`, not `#[derive(Default)]`
+        // — `std`'s derive doesn't even support arrays past length 32
+        // anyway); `defined_type` does the same, so a user-written
+        // `#[derive(Default)]` is now always redundant and must be removed
+        // rather than silently working around it.
+        for attr in &input.attrs {
+            if !attr.path().is_ident("derive") {
+                continue;
+            }
+            let Ok(paths) = attr.parse_args_with(
+                syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
+            ) else {
+                continue;
+            };
+            if paths
+                .iter()
+                .any(|p| p.segments.last().is_some_and(|s| s.ident == "Default"))
+            {
+                let err = syn::Error::new_spanned(
+                    attr,
+                    "Naclac Error: `#[defined_type]` already generates `Default` (via \
+                     `Zeroable::zeroed()`) for every struct — remove this `#[derive(Default)]`, \
+                     it's redundant and, once an auto-padding field is added, incorrect (`std`'s \
+                     derive is evaluated before that field exists).",
+                )
+                .to_compile_error();
+                return quote::quote! {
+                    #input
+                    #err
+                }
+                .into();
+            }
+        }
 
-    let expanded = quote::quote! {
-        impl #impl_generics naclac_lang::prelude::borsh::BorshDeserialize for #ident #ty_generics #where_clause {
-            fn deserialize_reader<R: naclac_lang::prelude::borsh::io::Read>(reader: &mut R) -> naclac_lang::prelude::borsh::io::Result<Self> {
-                #body
+        let (padded_fields, pod_checks) =
+            pod_struct_checks::generate(&ident, &data_struct.fields, &zero_copy_cfg);
+        // Splice the auto-padded field list back into `input` itself (rather
+        // than re-declaring the struct by hand) so every other attribute on
+        // it (doc comments, other derives, etc.) survives unchanged. No
+        // trailing `;` to worry about either way — `input`'s own semicolon
+        // token (present only for a tuple struct) already survives
+        // untouched, since only `.fields` itself is being replaced here.
+        let syn::Data::Struct(data_struct) = &mut input.data else {
+            unreachable!("checked above")
+        };
+        data_struct.fields = if is_tuple {
+            syn::Fields::Unnamed(
+                syn::parse2(padded_fields)
+                    .expect("defined_type: generated padded tuple field list must parse"),
+            )
+        } else {
+            syn::Fields::Named(
+                syn::parse2(padded_fields)
+                    .expect("defined_type: generated padded named field list must parse"),
+            )
+        };
+        quote::quote! {
+            #zero_copy_cfg
+            #input
+
+            #pod_checks
+
+            // SAFETY: sound only because the annotated type has a deterministic
+            // layout (#[repr(u8)]/#[repr(C)]) and is Copy, both auto-added above
+            // when the caller hasn't already provided them — and because
+            // `pod_checks` (above) verifies at compile time that the struct
+            // has no internal padding gap and every declared field is itself
+            // Pod. The auto-added trailing `_padding` field (spliced into
+            // `input` above) closes the one gap this check can safely
+            // account for on its own.
+            #zero_copy_cfg
+            unsafe impl #impl_generics naclac_lang::prelude::Pod for #ident #ty_generics #where_clause {}
+            // SAFETY: Zeroed memory is a valid initial state for Pod types.
+            #zero_copy_cfg
+            unsafe impl #impl_generics naclac_lang::prelude::Zeroable for #ident #ty_generics #where_clause {}
+
+            // Not `#[derive(Default)]` (rejected above if the caller wrote
+            // it themselves) — `std`'s derive only implements `Default` for
+            // arrays up to length 32, which a `[u8; N]` padding field (or
+            // any other large fixed-size field) can easily exceed.
+            // `Zeroable` (already required above) has no such limit, and
+            // lets every existing `Struct { field: v, ..Default::default() }`
+            // construction site keep working without knowing about the
+            // auto-inserted padding field at all.
+            #zero_copy_cfg
+            impl #impl_generics core::default::Default for #ident #ty_generics #where_clause {
+                fn default() -> Self {
+                    naclac_lang::prelude::bytemuck::Zeroable::zeroed()
+                }
+            }
+
+            #zero_copy_cfg
+            impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
+                #[inline(always)]
+                fn naclac_from_bytes(data: &[u8]) -> Self {
+                    // SAFETY: We use `read_unaligned` to safely read the struct from the byte slice.
+                    // This is required because SBF instruction data streams may not align properly
+                    // to the struct's natural alignment boundaries, preventing standard bytemuck casting.
+                    unsafe { core::ptr::read_unaligned(data.as_ptr() as *const Self) }
+                }
+                #[inline(always)]
+                fn naclac_size() -> usize {
+                    core::mem::size_of::<Self>()
+                }
             }
         }
     };
-    expanded.into()
+
+    // `input.attrs` here (not `original_data`) is deliberate for the enum
+    // case — it reflects the *final* repr after the auto-`#[repr(u8)]`
+    // default above, matching the enum's real compiled discriminant width,
+    // not just whatever the developer happened to write (or omit).
+    let idl_build_variant = match &original_data {
+        syn::Data::Struct(s) => crate::component::idl_build_impl(&ident, &s.fields),
+        syn::Data::Enum(e) => idl_build_impl_enum(&ident, &e.variants, &input.attrs),
+        syn::Data::Union(_) => quote::quote! {},
+    };
+
+    quote::quote! {
+        #borsh_variant
+        #zero_copy_variant
+        #idl_build_variant
+    }
+    .into()
+}
+
+/// Builds `impl NaclacIdlBuild for #ident` for a `#[defined_type]` enum —
+/// same principle as `component::idl_build_impl` (built once from the
+/// already-parsed `syn::Variant`s, no disk re-read), but producing
+/// `IdlTypeDef::Enum { variants, repr }` instead of `Struct { fields }`.
+/// `attrs` must be the enum's *final* attribute list (after any
+/// auto-added `#[repr(u8)]` default — see the call site), since the IDL's
+/// recorded repr must match the enum's real compiled discriminant width.
+#[cfg(feature = "idl-build")]
+fn idl_build_impl_enum(
+    ident: &syn::Ident,
+    variants: &syn::punctuated::Punctuated<syn::Variant, syn::Token![,]>,
+    attrs: &[syn::Attribute],
+) -> proc_macro2::TokenStream {
+    let repr = naclac_syn::discriminator::detect_enum_repr(attrs);
+    let repr_tokens = match &repr {
+        Some(r) => quote::quote! { Some(#r.to_string()) },
+        None => quote::quote! { None },
+    };
+
+    let discriminants = naclac_syn::discriminator::variant_discriminants(variants.iter());
+    let mut idl_variants = Vec::new();
+    let mut defined_refs: Vec<syn::Type> = Vec::new();
+
+    for (variant, discriminant) in variants.iter().zip(discriminants.iter()) {
+        let variant_name = variant.ident.to_string();
+        let discriminant_str = discriminant.to_string();
+        let variant_docs = naclac_syn::parser::extract_docs(&variant.attrs);
+
+        let fields_ts = match &variant.fields {
+            syn::Fields::Unit => quote::quote! { None },
+            syn::Fields::Named(named) => {
+                let mut field_ts_list = Vec::new();
+                for f in &named.named {
+                    let fname = f.ident.as_ref().unwrap().to_string();
+                    let field_docs = naclac_syn::parser::extract_docs(&f.attrs);
+                    let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &[]);
+                    let Ok(ty_json) = serde_json::to_string(&ty_value) else {
+                        continue;
+                    };
+                    field_ts_list.push(quote::quote! {
+                        naclac_lang::naclac_idl::IdlField {
+                            name: #fname.into(),
+                            docs: vec![#(#field_docs.into()),*],
+                            ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
+                                .expect("naclac idl-build: generated field type JSON must parse"),
+                        }
+                    });
+                    if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&f.ty) {
+                        defined_refs.push(defined_ty);
+                    }
+                }
+                quote::quote! {
+                    Some(naclac_lang::naclac_idl::IdlEnumFields::Named(vec![#(#field_ts_list),*]))
+                }
+            }
+            syn::Fields::Unnamed(unnamed) => {
+                let mut ty_ts_list = Vec::new();
+                for f in &unnamed.unnamed {
+                    let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &[]);
+                    let Ok(ty_json) = serde_json::to_string(&ty_value) else {
+                        continue;
+                    };
+                    ty_ts_list.push(quote::quote! {
+                        naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
+                            .expect("naclac idl-build: generated field type JSON must parse")
+                    });
+                    if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&f.ty) {
+                        defined_refs.push(defined_ty);
+                    }
+                }
+                quote::quote! {
+                    Some(naclac_lang::naclac_idl::IdlEnumFields::Tuple(vec![#(#ty_ts_list),*]))
+                }
+            }
+        };
+
+        idl_variants.push(quote::quote! {
+            naclac_lang::naclac_idl::IdlEnumVariant {
+                name: #variant_name.into(),
+                docs: vec![#(#variant_docs.into()),*],
+                fields: #fields_ts,
+                discriminant: #discriminant_str.into(),
+            }
+        });
+    }
+
+    let ident_str = ident.to_string();
+
+    quote::quote! {
+        #[cfg(feature = "idl-build")]
+        impl naclac_lang::naclac_idl::idl_build::NaclacIdlBuild for #ident {
+            fn create_type() -> Option<naclac_lang::naclac_idl::IdlTypeDef> {
+                Some(naclac_lang::naclac_idl::IdlTypeDef::Enum {
+                    variants: vec![#(#idl_variants),*],
+                    repr: #repr_tokens,
+                })
+            }
+
+            fn insert_types(
+                types: &mut naclac_lang::naclac_idl::__private::BTreeMap<
+                    naclac_lang::naclac_idl::__private::String,
+                    naclac_lang::naclac_idl::IdlTypeDef,
+                >,
+            ) {
+                #(
+                    if let Some(ty) = <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::create_type() {
+                        types.insert(
+                            <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
+                            ty,
+                        );
+                        <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::insert_types(types);
+                    }
+                )*
+            }
+
+            fn get_full_path() -> naclac_lang::naclac_idl::__private::String {
+                #ident_str.into()
+            }
+        }
+    }
+}
+
+#[cfg(not(feature = "idl-build"))]
+fn idl_build_impl_enum(
+    _ident: &syn::Ident,
+    _variants: &syn::punctuated::Punctuated<syn::Variant, syn::Token![,]>,
+    _attrs: &[syn::Attribute],
+) -> proc_macro2::TokenStream {
+    quote::quote! {}
 }
 
 /// Generates a statement binding `field_name` by reading it off `data`
@@ -572,35 +781,6 @@ pub fn instruction_args(
     let ident = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
-    let has_borsh = caller_has_feature("borsh");
-
-    // NOTE: This must be *real*, field-by-field Borsh encoding (via the actual
-    // `borsh` derive macros), not a raw `size_of::<Self>()` memory copy. A raw
-    // memcpy silently includes any repr(C) alignment padding, which diverges
-    // from the client SDK's real (tightly-packed) Borsh encoding the moment a
-    // struct's field order forces the compiler to insert padding — e.g. a u64
-    // following a run of u8 fields. That divergence is a wire-format mismatch,
-    // not a compile-time-detectable one, so it only surfaces as a runtime
-    // `InvalidInstructionData` deserialization failure on-chain.
-    let borsh_derive_attr = if has_borsh {
-        quote::quote! {
-            #[derive(naclac_lang::prelude::BorshSerialize, naclac_lang::prelude::BorshDeserialize)]
-            #[borsh(crate = "naclac_lang::prelude::borsh")]
-        }
-    } else {
-        quote::quote! {}
-    };
-
-    // A field is only safe to treat as `Pod` (raw `size_of`-based byte cast,
-    // both ways) when its own bytes fully determine its value with no
-    // pointer/length indirection — `ZcString`/`Span<T>` are zero-copy
-    // *views* (pointer + length) into the current instruction's byte buffer,
-    // and casting arbitrary wire bytes directly onto that representation
-    // would materialize an attacker-controlled raw pointer (`Span::ptr`)
-    // later dereferenced by `.as_str()`/`.as_bytes()` — undefined behavior,
-    // not just a wrong value. `Vec<T>`/`String` fields are unsafe for the
-    // same reason `derive(Copy)` already rejects them: they own a heap
-    // allocation, not an in-place byte pattern.
     let syn::Data::Struct(data_struct) = &input.data else {
         panic!("Naclac: #[instruction_args] only supports structs");
     };
@@ -613,6 +793,76 @@ pub fn instruction_args(
             type_classify::DynamicKind::Fixed
         )
     });
+    // `ZcVec<T>`/`Span<T>`/`ZcString` are zero-copy *views* (pointer +
+    // length) into the current instruction's byte buffer — they have no
+    // bytes of their own to serialize, so deriving Borsh on a struct that
+    // contains one is unsound-by-construction, not just unsupported. Real
+    // Borsh already decodes `Vec<T>`/`String` natively, so that's the
+    // correct replacement in Borsh mode, not a `ZcVec`/`ZcString` field.
+    let zc_field = fields_named.named.iter().find(|f| {
+        matches!(
+            type_classify::classify_dynamic(&f.ty),
+            type_classify::DynamicKind::ZcVec | type_classify::DynamicKind::ZcString
+        )
+    });
+
+    // A fixed-field args struct always gets the Pod/Zeroable path below,
+    // regardless of representation — Borsh derives are only ever
+    // *additionally* layered on top when the calling crate is genuinely in
+    // Borsh mode, not an exclusive alternative to it, so (unlike
+    // `#[component]`/`#[event]`/`#[derive(Accounts)]`) this doesn't need
+    // full item duplication — a `cfg_attr` is enough, real-cfg-gated so the
+    // calling crate's own compiler resolves it (Cargo gives a proc-macro no
+    // reliable way to see the invoking crate's activated features — see
+    // `component.rs`'s doc comment). Except when `zc_field` is present: a
+    // `ZcVec<T>`/`ZcString` field can never be Borsh-derived, so the derive
+    // is skipped entirely for such a struct and a clear, purpose-built error
+    // takes its place instead of the confusing raw trait-bound error rustc
+    // would otherwise give — same real-cfg-gating, only fires when the
+    // calling crate actually selects Borsh mode.
+    let (borsh_derive_attr, borsh_error) = if let Some(field) = zc_field {
+        let field_name = field.ident.as_ref().expect("named field");
+        let msg = format!(
+            "Naclac Error: field '{}' uses a zero-copy-only type ('ZcVec'/'Span<T>'/'ZcString') \
+             in a Borsh-mode #[instruction_args]. These are views (pointer + length) into the \
+             current instruction's byte buffer with no bytes of their own to serialize — real \
+             Borsh already decodes 'Vec<T>'/'String' natively, so use one of those instead.",
+            field_name
+        );
+        (
+            quote::quote! {},
+            quote::quote! { #[cfg(feature = "borsh")] compile_error!(#msg); },
+        )
+    } else {
+        // NOTE: this must be *real*, field-by-field Borsh encoding (via the
+        // actual `borsh` derive macros), not a raw `size_of::<Self>()`
+        // memory copy. A raw memcpy silently includes any repr(C) alignment
+        // padding, which diverges from the client SDK's real (tightly-packed)
+        // Borsh encoding the moment a struct's field order forces the
+        // compiler to insert padding — e.g. a u64 following a run of u8
+        // fields. That divergence is a wire-format mismatch, not a
+        // compile-time-detectable one, so it only surfaces as a runtime
+        // `InvalidInstructionData` deserialization failure on-chain.
+        (
+            quote::quote! {
+                #[cfg_attr(feature = "borsh", derive(naclac_lang::prelude::BorshSerialize, naclac_lang::prelude::BorshDeserialize))]
+                #[cfg_attr(feature = "borsh", borsh(crate = "naclac_lang::prelude::borsh"))]
+            },
+            quote::quote! {},
+        )
+    };
+    let zero_copy_cfg = quote::quote! { #[cfg(any(feature = "pinocchio", not(feature = "borsh")))] };
+
+    // `#[instruction_args]` structs are directly usable as an instruction
+    // arg's own type, so `#[program]`'s idl-build assembler chases them the
+    // same way it chases any other non-primitive arg type
+    // (`naclac_syn::parser::defined_type_leaf`) — without this, that chase
+    // would generate `<Self as NaclacIdlBuild>::create_type()` for a type
+    // that never implements the trait, a hard compile error the moment a
+    // real program used `#[instruction_args]` under `idl-build`. Reuses
+    // `component.rs`'s own `idl_build_impl` directly rather than
+    // duplicating it — same named-fields shape, same per-field type mapping.
+    let idl_build_impl_tokens = component::idl_build_impl(ident, &data_struct.fields);
 
     if !has_dynamic_field {
         let expanded = quote::quote! {
@@ -634,6 +884,8 @@ pub fn instruction_args(
                     core::mem::size_of::<Self>()
                 }
             }
+
+            #idl_build_impl_tokens
         };
         return expanded.into();
     }
@@ -641,10 +893,9 @@ pub fn instruction_args(
     // Zero-copy mode only — in Borsh mode, `program.rs`'s dispatch reads this
     // arg via `BorshDeserialize::deserialize` directly (never `NaclacArgs`),
     // and the derived `BorshSerialize`/`BorshDeserialize` above already
-    // handles `String`/`Vec<T>` fields natively.
-    let naclac_args_impl = if has_borsh {
-        quote::quote! {}
-    } else {
+    // handles `String`/`Vec<T>` fields natively. Real-cfg-gated in the
+    // output (see `borsh_derive_attr`'s comment) rather than decided here.
+    let naclac_args_impl = {
         let field_names: Vec<&syn::Ident> = fields_named
             .named
             .iter()
@@ -657,6 +908,7 @@ pub fn instruction_args(
             .collect();
 
         quote::quote! {
+            #zero_copy_cfg
             impl #impl_generics naclac_lang::prelude::NaclacArgs for #ident #ty_generics #where_clause {
                 fn naclac_deserialize(
                     data: &[u8],
@@ -670,11 +922,14 @@ pub fn instruction_args(
     };
 
     let expanded = quote::quote! {
+        #borsh_error
+
         #[derive(Clone)]
         #borsh_derive_attr
         #input
 
         #naclac_args_impl
+        #idl_build_impl_tokens
     };
     expanded.into()
 }

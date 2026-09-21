@@ -8,7 +8,7 @@ export const CHECK_TOKEN_INTERFACE_DISCRIMINATOR = new Uint8Array([115, 104, 120
 
 /** Accounts for the `checkTokenInterface` instruction. */
 export interface CheckTokenInterfaceAccounts {
-  token_program: naclac.Address | string;
+  tokenProgram: naclac.Address | string;
 }
 
 /**

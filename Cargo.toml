@@ -10,9 +10,16 @@ members = [
     "naclac-syn", 
     "naclac-macros", 
     "nacvm",
-    "naclac-client"
+    "naclac-client",
+    "naclac-litesvm-node"
 ]
 resolver = "2"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+    'cfg(kani)',
+] }
 
 [workspace.package]
 version = "0.1.0"
@@ -30,11 +37,13 @@ naclac-lang = { version = "0.1.0", path = "naclac-lang" }
 naclac-core = { version = "0.1.0", path = "naclac-core", default-features = false }
 naclac-token = { version = "0.1.0", path = "naclac-token", default-features = false }
 naclac-metadata = { version = "0.1.0", path = "naclac-metadata", default-features = false }
+naclac-client = { version = "0.1.0", path = "naclac-client" }
 
 # Proc Macros & AST
 syn = { version = "3.0.3", features = ["full", "extra-traits", "parsing", "visit", "visit-mut"] }
 quote = "1.0.45"
 proc-macro2 = "1.0.106"
+prettyplease = "0.3.0"
 heck = "0.5.0"
 
 # CLI & Utilities
@@ -53,7 +62,7 @@ base64 = "0.22.1"
 flate2 = "1.1.9"
 hex = "0.4.3"
 toml = "1.1.1"
-bytemuck = { version = "1.25.0", features = ["derive"] }
+bytemuck = { version = "1.25.0", features = ["derive", "min_const_generics"] }
 sha2 = "0.11.0"
 blake3 = ">=1.0, <1.9"
 litesvm = "0.15.2"
@@ -83,7 +92,7 @@ spl-transfer-hook-interface = { version = "2.1.0" }
 spl-token-metadata-interface = { version = "1.0.1" }
 spl-token-group-interface = { version = "0.7.2" }
 solana-nullable = { version = "1.2.0" }
-mpl-core = { version = "0.12.1" }
+solana-define-syscall = "^5"
 
 #pinocchio
 pinocchio = { version = "^0.11", features = [ "cpi", "alloc", "copy", "account-resize" ] }

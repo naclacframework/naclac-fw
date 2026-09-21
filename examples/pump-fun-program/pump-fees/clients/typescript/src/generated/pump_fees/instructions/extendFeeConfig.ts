@@ -13,9 +13,9 @@ export interface ExtendFeeConfigAccounts {
    * SAFETY: only used as PDA seed material for `fee_config`; not
    * deserialized or invoked.
    */
-  config_program_id: naclac.Address | string;
-  fee_config?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  feeConfig?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

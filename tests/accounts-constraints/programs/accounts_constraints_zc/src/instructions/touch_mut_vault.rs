@@ -15,7 +15,6 @@ pub struct TouchMutVault {
     pub vault: Account<Vault>,
 }
 
-#[instruction]
 pub fn touch_mut_vault(ctx: Context<TouchMutVault>) -> Result {
     ctx.accounts.vault.value += 1;
     Ok(())

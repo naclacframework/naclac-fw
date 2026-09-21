@@ -10,14 +10,13 @@ pub struct Initialize {
     #[account(
         init,
         payer = payer,
-        seeds = [SEED_COUNTER], 
+        seeds = [SEED_COUNTER],
     )]
     pub counter_account: Account<Counter>,
 
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn initialize(ctx: Context<Initialize>) -> Result {
 
     let counter = &mut ctx.accounts.counter_account;

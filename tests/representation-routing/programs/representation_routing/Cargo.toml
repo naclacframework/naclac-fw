@@ -1,0 +1,24 @@
+[package]
+name = "representation_routing"
+version = "0.1.0"
+description = "Regression test: #[component]/#[event]/#[defined_type]/#[instruction_args]/#[derive(Accounts)]/#[program] all route to the representation this crate's own real Cargo features actually select, rather than a proc-macro-side guess (pinocchio backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["pinocchio"]
+pinocchio = ["naclac-lang/pinocchio"]
+idl-build = ["naclac-lang/idl-build"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", default-features = false }
+
+[lints]
+workspace = true

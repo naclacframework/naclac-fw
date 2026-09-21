@@ -11,7 +11,6 @@ pub struct TouchBig {
     pub big: Box<Account<BigData>>,
 }
 
-#[instruction]
 pub fn touch_big(ctx: Context<TouchBig>) -> Result {
     ctx.accounts.big.payload[0] = ctx.accounts.big.payload[0].wrapping_add(1);
     // `.address()` (ToAddress) must also work transparently through the Box.

@@ -40,7 +40,6 @@ pub struct Deposit {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn deposit(ctx: Context<Deposit>, _vault_id: u64, amount: u64, user_bump: u8) -> Result {
     let vault_account_addr = ctx.accounts.vault_account.address();
     let mint_addr = ctx.accounts.mint.address();

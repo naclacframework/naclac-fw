@@ -9,7 +9,6 @@ pub struct EmitBatchFixed {
     pub counter: Account<Counter>,
 }
 
-#[instruction]
 pub fn emit_batch_fixed(ctx: Context<EmitBatchFixed>) -> Result {
     ctx.accounts.counter.count += 1;
 

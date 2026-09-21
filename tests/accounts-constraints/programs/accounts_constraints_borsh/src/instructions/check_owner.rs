@@ -11,7 +11,6 @@ pub struct CheckOwner {
     pub target: AccountInfo,
 }
 
-#[instruction]
 pub fn check_owner(_ctx: Context<CheckOwner>) -> Result {
     Ok(())
 }

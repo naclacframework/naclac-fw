@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use discriminator_borsh_client::{
     instructions::{
         build_init_config, build_init_vault, build_read_vault, InitConfigAccounts,
@@ -9,7 +9,7 @@ use discriminator_borsh_client::{
 };
 
 /// Asserts a transaction failed with exactly the given `Custom` error code
-/// — not just "any error", the specific numeric `NaclacError` (framework
+/// â€” not just "any error", the specific numeric `NaclacError` (framework
 /// errors, 3000s) the failure actually produces. Mirrors
 /// `tests/error-codes/programs/error_codes/tests/error_codes_test.rs`'s
 /// helper of the same name and shape.
@@ -25,17 +25,6 @@ fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientErro
     }
 }
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // discriminator workspace root
-    so_path.push("target/deploy/discriminator_borsh.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load discriminator_borsh program binary");
-}
-
 /// The regression case for ZERO_COPY_BORSH_PARITY_AUDIT.md finding #1:
 /// initialize a real `Config` account, then try to pass it into
 /// `read_vault`'s `vault: Account<Vault>` slot. Both types are owned by the
@@ -44,8 +33,7 @@ fn load_program(provider: &NaclacProvider) {
 #[test]
 fn rejects_type_confused_account_in_vault_slot() {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
 
     let (config_pda, _bump) = get_config_pda(&PROGRAM_ID);
 
@@ -71,11 +59,11 @@ fn rejects_type_confused_account_in_vault_slot() {
     )
     .send_and_confirm();
 
-    // `ReadVault { caller, vault }` — `vault` is field index 1, not `mut`
-    // (so `try_from`, not `try_from_mut`, is used — `accounts.rs`). This is
+    // `ReadVault { caller, vault }` â€” `vault` is field index 1, not `mut`
+    // (so `try_from`, not `try_from_mut`, is used â€” `accounts.rs`). This is
     // the solana-borsh backend, so `Account<Vault>` is the real Borsh
     // wrapper (`account.rs`'s `try_from`), whose discriminator mismatch
-    // emits `AccountNotInitialized` (15) — a genuinely different variant
+    // emits `AccountNotInitialized` (15) â€” a genuinely different variant
     // from the zero-copy backends' `InvalidAccountDiscriminator`, confirmed
     // by reading both `try_from` implementations directly.
     // 3000 + 1*100 + 15 = 3115.
@@ -87,8 +75,7 @@ fn rejects_type_confused_account_in_vault_slot() {
 #[test]
 fn accepts_correctly_typed_vault_account() {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
 
     let (vault_pda, _bump) = get_vault_pda(&PROGRAM_ID);
 

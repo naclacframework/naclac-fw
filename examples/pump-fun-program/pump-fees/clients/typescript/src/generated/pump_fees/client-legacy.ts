@@ -30,21 +30,16 @@ export class PumpFeesClient {
   }
 
   constructor(
-    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | string,
+    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | "litesvm" | string,
     payer?: naclac.Keypair
   ) {
     let provider: naclac.LegacyProvider;
     if (typeof providerOrCluster === "string") {
-      let url = providerOrCluster;
-      if (providerOrCluster === "devnet") url = "https://api.devnet.solana.com";
-      else if (providerOrCluster === "mainnet") url = "https://api.mainnet-beta.solana.com";
-      else if (providerOrCluster === "localnet") url = "http://127.0.0.1:8899";
-      const connection = new naclac.Connection(url, "confirmed");
-      provider = { connection, payer, publicKey: payer ? payer.publicKey : undefined };
+      provider = naclac.createProvider(providerOrCluster, payer);
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider);
+    this.program = new naclac.LegacyProgram(IDL, provider, true);
   }
 
   /**
@@ -309,12 +304,12 @@ export class PumpFeesClient {
 
   /** Derives the PDA for a `coin_creator_vault_authority` account. Returns `[PublicKey, bumpSeed]`. */
   public getCoinCreatorVaultAuthorityPda(seeds: {
-    sharing_config: naclac.PublicKey | string;
+    sharingConfig: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([99, 114, 101, 97, 116, 111, 114, 95, 118, 97, 117, 108, 116]),
-        new naclac.PublicKey(seeds.sharing_config).toBuffer()
+        new naclac.PublicKey(seeds.sharingConfig).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([252, 69, 211, 229, 209, 250, 91, 185, 95, 119, 96, 125, 211, 65, 169, 106, 209, 112, 144, 171, 161, 186, 45, 122, 136, 122, 226, 73, 138, 146, 134, 211]))
     );
@@ -323,16 +318,16 @@ export class PumpFeesClient {
 
   /** Derives the PDA for a `debouncer` account. Returns `[PublicKey, bumpSeed]`. */
   public getDebouncerPda(seeds: {
-    config_id: naclac.PublicKey | string;
-    quote_mint: naclac.PublicKey | string;
+    configId: naclac.PublicKey | string;
+    quoteMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([100, 101, 98, 111, 117, 110, 99, 101, 114, 95, 118, 49]),
-        new naclac.PublicKey(seeds.config_id).toBuffer(),
-        new naclac.PublicKey(seeds.quote_mint).toBuffer()
+        new naclac.PublicKey(seeds.configId).toBuffer(),
+        new naclac.PublicKey(seeds.quoteMint).toBuffer()
       ],
-      new naclac.PublicKey(new Uint8Array([23, 118, 164, 191, 192, 201, 243, 51, 32, 226, 179, 109, 83, 249, 158, 252, 119, 104, 39, 62, 96, 34, 156, 219, 131, 24, 131, 100, 36, 174, 205, 212]))
+      new naclac.PublicKey(new Uint8Array([109, 67, 17, 127, 178, 28, 192, 153, 17, 233, 35, 187, 36, 107, 62, 174, 120, 73, 22, 5, 133, 131, 3, 202, 99, 38, 247, 184, 170, 56, 230, 45]))
     );
     return [pda, bump];
   }
@@ -340,14 +335,14 @@ export class PumpFeesClient {
   /** Derives the PDA for a `debouncer_ata` account. Returns `[PublicKey, bumpSeed]`. */
   public getDebouncerAtaPda(seeds: {
     debouncer: naclac.PublicKey | string;
-    token_program: naclac.PublicKey | string;
-    quote_mint: naclac.PublicKey | string;
+    tokenProgram: naclac.PublicKey | string;
+    quoteMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new naclac.PublicKey(seeds.debouncer).toBuffer(),
-        new naclac.PublicKey(seeds.token_program).toBuffer(),
-        new naclac.PublicKey(seeds.quote_mint).toBuffer()
+        new naclac.PublicKey(seeds.tokenProgram).toBuffer(),
+        new naclac.PublicKey(seeds.quoteMint).toBuffer()
       ],
       this.programId
     );
@@ -356,14 +351,14 @@ export class PumpFeesClient {
 
   /** Derives the PDA for a `donation_fee_pda` account. Returns `[PublicKey, bumpSeed]`. */
   public getDonationFeePdaPda(seeds: {
-    base_mint: naclac.PublicKey | string;
-    config_id: naclac.PublicKey | string;
+    baseMint: naclac.PublicKey | string;
+    configId: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([100, 111, 110, 97, 116, 105, 111, 110, 45, 102, 101, 101, 45, 112, 100, 97]),
-        new naclac.PublicKey(seeds.base_mint).toBuffer(),
-        new naclac.PublicKey(seeds.config_id).toBuffer()
+        new naclac.PublicKey(seeds.baseMint).toBuffer(),
+        new naclac.PublicKey(seeds.configId).toBuffer()
       ],
       this.programId
     );
@@ -372,28 +367,28 @@ export class PumpFeesClient {
 
   /** Derives the PDA for a `epoch_tracker` account. Returns `[PublicKey, bumpSeed]`. */
   public getEpochTrackerPda(seeds: {
-    config_id: naclac.PublicKey | string;
-    quote_mint: naclac.PublicKey | string;
+    configId: naclac.PublicKey | string;
+    quoteMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([101, 112, 111, 99, 104, 95, 116, 114, 97, 99, 107, 101, 114, 95, 118, 49]),
-        new naclac.PublicKey(seeds.config_id).toBuffer(),
-        new naclac.PublicKey(seeds.quote_mint).toBuffer()
+        new naclac.PublicKey(seeds.configId).toBuffer(),
+        new naclac.PublicKey(seeds.quoteMint).toBuffer()
       ],
-      new naclac.PublicKey(new Uint8Array([23, 118, 164, 191, 192, 201, 243, 51, 32, 226, 179, 109, 83, 249, 158, 252, 119, 104, 39, 62, 96, 34, 156, 219, 131, 24, 131, 100, 36, 174, 205, 212]))
+      new naclac.PublicKey(new Uint8Array([109, 67, 17, 127, 178, 28, 192, 153, 17, 233, 35, 187, 36, 107, 62, 174, 120, 73, 22, 5, 133, 131, 3, 202, 99, 38, 247, 184, 170, 56, 230, 45]))
     );
     return [pda, bump];
   }
 
   /** Derives the PDA for a `fee_config` account. Returns `[PublicKey, bumpSeed]`. */
   public getFeeConfigPda(seeds: {
-    config_program_id: naclac.PublicKey | string;
+    configProgramId: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([102, 101, 101, 95, 99, 111, 110, 102, 105, 103]),
-        new naclac.PublicKey(seeds.config_program_id).toBuffer()
+        new naclac.PublicKey(seeds.configProgramId).toBuffer()
       ],
       this.programId
     );
@@ -426,15 +421,15 @@ export class PumpFeesClient {
 
   /** Derives the PDA for a `pool` account. Returns `[PublicKey, bumpSeed]`. */
   public getPoolPda(seeds: {
-    pool_authority: naclac.PublicKey | string;
-    base_mint: naclac.PublicKey | string;
+    poolAuthority: naclac.PublicKey | string;
+    baseMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([112, 111, 111, 108]),
         new Uint8Array([0, 0]),
-        new naclac.PublicKey(seeds.pool_authority).toBuffer(),
-        new naclac.PublicKey(seeds.base_mint).toBuffer(),
+        new naclac.PublicKey(seeds.poolAuthority).toBuffer(),
+        new naclac.PublicKey(seeds.baseMint).toBuffer(),
         new Uint8Array([6, 155, 136, 87, 254, 171, 129, 132, 251, 104, 127, 99, 70, 24, 192, 53, 218, 196, 57, 220, 26, 235, 59, 85, 152, 160, 240, 0, 0, 0, 0, 1])
       ],
       new naclac.PublicKey(new Uint8Array([252, 69, 211, 229, 209, 250, 91, 185, 95, 119, 96, 125, 211, 65, 169, 106, 209, 112, 144, 171, 161, 186, 45, 122, 136, 122, 226, 73, 138, 146, 134, 211]))
@@ -444,12 +439,12 @@ export class PumpFeesClient {
 
   /** Derives the PDA for a `pool_authority` account. Returns `[PublicKey, bumpSeed]`. */
   public getPoolAuthorityPda(seeds: {
-    base_mint: naclac.PublicKey | string;
+    baseMint: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([112, 111, 111, 108, 45, 97, 117, 116, 104, 111, 114, 105, 116, 121]),
-        new naclac.PublicKey(seeds.base_mint).toBuffer()
+        new naclac.PublicKey(seeds.baseMint).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([219, 228, 38, 61, 197, 238, 49, 67, 254, 52, 90, 137, 137, 108, 51, 148, 9, 123, 135, 93, 203, 217, 165, 115, 223, 190, 144, 135, 242, 216, 223, 192]))
     );
@@ -470,12 +465,12 @@ export class PumpFeesClient {
 
   /** Derives the PDA for a `pump_creator_vault` account. Returns `[PublicKey, bumpSeed]`. */
   public getPumpCreatorVaultPda(seeds: {
-    sharing_config: naclac.PublicKey | string;
+    sharingConfig: naclac.PublicKey | string;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([99, 114, 101, 97, 116, 111, 114, 45, 118, 97, 117, 108, 116]),
-        new naclac.PublicKey(seeds.sharing_config).toBuffer()
+        new naclac.PublicKey(seeds.sharingConfig).toBuffer()
       ],
       new naclac.PublicKey(new Uint8Array([219, 228, 38, 61, 197, 238, 49, 67, 254, 52, 90, 137, 137, 108, 51, 148, 9, 123, 135, 93, 203, 217, 165, 115, 223, 190, 144, 135, 242, 216, 223, 192]))
     );
@@ -522,13 +517,13 @@ export class PumpFeesClient {
 
   /** Derives the PDA for a `social_fee_pda` account. Returns `[PublicKey, bumpSeed]`. */
   public getSocialFeePdaPda(seeds: {
-    user_id: string;
+    userId: string;
     platform: number;
   }): [naclac.PublicKey, number] {
     const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
       [
                 new Uint8Array([115, 111, 99, 105, 97, 108, 45, 102, 101, 101, 45, 112, 100, 97]),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"string"')).encode(seeds.user_id)),
+        new Uint8Array(naclac.getIdlCodec(JSON.parse('"string"')).encode(seeds.userId)),
         new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.platform))
       ],
       this.programId

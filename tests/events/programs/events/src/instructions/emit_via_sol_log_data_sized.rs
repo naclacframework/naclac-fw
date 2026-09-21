@@ -13,7 +13,6 @@ pub struct EmitViaSolLogDataSized {
 
 /// `sol_log_data` emit with a `size`-byte payload — sweeps CU cost against
 /// payload size, directly comparable to `emit_via_self_cpi_sized`.
-#[instruction]
 pub fn emit_via_sol_log_data_sized(_ctx: Context<EmitViaSolLogDataSized>, size: u32) -> Result {
     let data = vec![0u8; size as usize];
     emit!(SizedPayload { data });

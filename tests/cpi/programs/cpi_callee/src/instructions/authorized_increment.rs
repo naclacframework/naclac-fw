@@ -16,7 +16,6 @@ pub struct AuthorizedIncrement {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn authorized_increment(ctx: Context<AuthorizedIncrement>) -> Result {
     if ctx.accounts.authority.address() != ctx.accounts.counter.authority {
         return Err(NaclacError::Unauthorized.err(1));

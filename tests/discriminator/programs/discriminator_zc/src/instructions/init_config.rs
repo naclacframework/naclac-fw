@@ -17,7 +17,6 @@ pub struct InitConfig {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_config(ctx: Context<InitConfig>) -> Result {
     let config = &mut ctx.accounts.config;
     config.admin = ctx.accounts.payer.address();

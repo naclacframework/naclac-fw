@@ -57,3 +57,29 @@ impl Mint {
         self.0[44]
     }
 }
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves every `TokenAccount`/`Mint` accessor never panics for any
+    /// raw byte pattern — since every offset is a fixed literal against a
+    /// fixed-size array (`[u8; 165]`/`[u8; 82]`), this is a trivial but
+    /// genuinely exhaustive sanity proof: any `Pod` byte pattern is a valid
+    /// input via `kani::any()`, unlike account-derived offsets elsewhere in
+    /// this workspace.
+    #[kani::proof]
+    fn prove_token_account_accessors_never_panic() {
+        let account = TokenAccount(kani::any());
+        let _ = account.mint();
+        let _ = account.owner();
+        let _ = account.amount();
+    }
+
+    #[kani::proof]
+    fn prove_mint_accessors_never_panic() {
+        let mint = Mint(kani::any());
+        let _ = mint.supply();
+        let _ = mint.decimals();
+    }
+}

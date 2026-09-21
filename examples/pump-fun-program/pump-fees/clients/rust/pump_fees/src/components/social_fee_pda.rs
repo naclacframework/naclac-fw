@@ -7,11 +7,10 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
+#[cfg(feature = "borsh")]
 /// Platform identifier: 0=pump, 1=twitter, etc.
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct SocialFeePda {
     pub total_claimed: u64,
     pub last_claimed: u64,
@@ -28,16 +27,235 @@ pub struct SocialFeePda {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+/// Platform identifier: 0=pump, 1=twitter, etc.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SocialFeePda {
+    pub total_claimed: u64,
+    pub __naclac_padding_0: [u8; __SocialFeePda_GAP_0],
+    pub last_claimed: u64,
+    pub __naclac_padding_1: [u8; __SocialFeePda_GAP_1],
+    pub total_stable_claimed: u64,
+    pub __naclac_padding_2: [u8; __SocialFeePda_GAP_2],
+    pub user_id_len: u32,
+    pub __naclac_padding_3: [u8; __SocialFeePda_GAP_3],
+    pub bump: u8,
+    pub __naclac_padding_4: [u8; __SocialFeePda_GAP_4],
+    pub version: u8,
+    pub __naclac_padding_5: [u8; __SocialFeePda_GAP_5],
+    pub platform: u8,
+    pub __naclac_padding_6: [u8; __SocialFeePda_GAP_6],
+    pub user_id: [u8; 20],
+    pub __naclac_padding_7: [u8; __SocialFeePda_GAP_7],
+    pub reserved: [u8; 120],
+    pub __naclac_padding_8: [u8; __SocialFeePda_GAP_8],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePda_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePda_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePda_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_1
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u32>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePda_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_2
+        + ::core::mem::size_of::<u32>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePda_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePda_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePda_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePda_GAP_3
+        + ::core::mem::size_of::<u8>() + __SocialFeePda_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePda_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePda_GAP_3
+        + ::core::mem::size_of::<u8>() + __SocialFeePda_GAP_4
+        + ::core::mem::size_of::<u8>() + __SocialFeePda_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<[u8; 20]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePda_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePda_GAP_3
+        + ::core::mem::size_of::<u8>() + __SocialFeePda_GAP_4
+        + ::core::mem::size_of::<u8>() + __SocialFeePda_GAP_5
+        + ::core::mem::size_of::<u8>() + __SocialFeePda_GAP_6
+        + ::core::mem::size_of::<[u8; 20]>();
+    let __align: usize = ::core::mem::align_of::<[u8; 120]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePda_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePda_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePda_GAP_3
+        + ::core::mem::size_of::<u8>() + __SocialFeePda_GAP_4
+        + ::core::mem::size_of::<u8>() + __SocialFeePda_GAP_5
+        + ::core::mem::size_of::<u8>() + __SocialFeePda_GAP_6
+        + ::core::mem::size_of::<[u8; 20]>() + __SocialFeePda_GAP_7
+        + ::core::mem::size_of::<[u8; 120]>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u32>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 20]>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 120]>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SocialFeePda > () == (::core::mem::size_of:: < u64 > ()
+        + __SocialFeePda_GAP_0 + ::core::mem::size_of:: < u64 > () + __SocialFeePda_GAP_1
+        + ::core::mem::size_of:: < u64 > () + __SocialFeePda_GAP_2 +
+        ::core::mem::size_of:: < u32 > () + __SocialFeePda_GAP_3 + ::core::mem::size_of::
+        < u8 > () + __SocialFeePda_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __SocialFeePda_GAP_5 + ::core::mem::size_of:: < u8 > () + __SocialFeePda_GAP_6 +
+        ::core::mem::size_of:: < [u8; 20] > () + __SocialFeePda_GAP_7 +
+        ::core::mem::size_of:: < [u8; 120] > () + __SocialFeePda_GAP_8),
+        "defined_type/#[component]: `SocialFeePda`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u32>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<[u8; 20]>();
+    assert_impl::<[u8; 120]>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for SocialFeePda {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for SocialFeePda {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for SocialFeePda {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
 #[cfg(feature = "cpi")]
+#[cfg(feature = "borsh")]
 /// Platform identifier: 0=pump, 1=twitter, etc.
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct SocialFeePdaCpi {
     pub total_claimed: u64,
     pub last_claimed: u64,
@@ -54,10 +272,232 @@ pub struct SocialFeePdaCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+/// Platform identifier: 0=pump, 1=twitter, etc.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SocialFeePdaCpi {
+    pub total_claimed: u64,
+    pub __naclac_padding_0: [u8; __SocialFeePdaCpi_GAP_0],
+    pub last_claimed: u64,
+    pub __naclac_padding_1: [u8; __SocialFeePdaCpi_GAP_1],
+    pub total_stable_claimed: u64,
+    pub __naclac_padding_2: [u8; __SocialFeePdaCpi_GAP_2],
+    pub user_id_len: u32,
+    pub __naclac_padding_3: [u8; __SocialFeePdaCpi_GAP_3],
+    pub bump: u8,
+    pub __naclac_padding_4: [u8; __SocialFeePdaCpi_GAP_4],
+    pub version: u8,
+    pub __naclac_padding_5: [u8; __SocialFeePdaCpi_GAP_5],
+    pub platform: u8,
+    pub __naclac_padding_6: [u8; __SocialFeePdaCpi_GAP_6],
+    pub user_id: [u8; 20],
+    pub __naclac_padding_7: [u8; __SocialFeePdaCpi_GAP_7],
+    pub reserved: [u8; 120],
+    pub __naclac_padding_8: [u8; __SocialFeePdaCpi_GAP_8],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePdaCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePdaCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePdaCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u32>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePdaCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<u32>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePdaCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePdaCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SocialFeePdaCpi_GAP_4
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePdaCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SocialFeePdaCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SocialFeePdaCpi_GAP_5
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<[u8; 20]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePdaCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SocialFeePdaCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SocialFeePdaCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SocialFeePdaCpi_GAP_6
+        + ::core::mem::size_of::<[u8; 20]>();
+    let __align: usize = ::core::mem::align_of::<[u8; 120]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __SocialFeePdaCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_0
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_1
+        + ::core::mem::size_of::<u64>() + __SocialFeePdaCpi_GAP_2
+        + ::core::mem::size_of::<u32>() + __SocialFeePdaCpi_GAP_3
+        + ::core::mem::size_of::<u8>() + __SocialFeePdaCpi_GAP_4
+        + ::core::mem::size_of::<u8>() + __SocialFeePdaCpi_GAP_5
+        + ::core::mem::size_of::<u8>() + __SocialFeePdaCpi_GAP_6
+        + ::core::mem::size_of::<[u8; 20]>() + __SocialFeePdaCpi_GAP_7
+        + ::core::mem::size_of::<[u8; 120]>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u32>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 20]>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 120]>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SocialFeePdaCpi > () == (::core::mem::size_of:: < u64 >
+        () + __SocialFeePdaCpi_GAP_0 + ::core::mem::size_of:: < u64 > () +
+        __SocialFeePdaCpi_GAP_1 + ::core::mem::size_of:: < u64 > () +
+        __SocialFeePdaCpi_GAP_2 + ::core::mem::size_of:: < u32 > () +
+        __SocialFeePdaCpi_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __SocialFeePdaCpi_GAP_4 + ::core::mem::size_of:: < u8 > () +
+        __SocialFeePdaCpi_GAP_5 + ::core::mem::size_of:: < u8 > () +
+        __SocialFeePdaCpi_GAP_6 + ::core::mem::size_of:: < [u8; 20] > () +
+        __SocialFeePdaCpi_GAP_7 + ::core::mem::size_of:: < [u8; 120] > () +
+        __SocialFeePdaCpi_GAP_8),
+        "defined_type/#[component]: `SocialFeePdaCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u32>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<[u8; 20]>();
+    assert_impl::<[u8; 120]>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for SocialFeePdaCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for SocialFeePdaCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for SocialFeePdaCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
 
 /// 8-byte on-chain discriminator for `SocialFeePda` accounts.
 pub const SOCIALFEEPDA_DISCRIMINATOR: [u8; 8] = [139, 96, 53, 17, 42, 169, 206, 150];

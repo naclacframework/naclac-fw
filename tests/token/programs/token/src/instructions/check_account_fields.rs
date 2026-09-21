@@ -26,7 +26,6 @@ pub struct CheckAccountFields {
     pub mint: Account<Mint>,
 }
 
-#[instruction]
 pub fn check_account_fields(ctx: Context<CheckAccountFields>, args: CheckAccountFieldsArgs) -> Result {
     let vault = &ctx.accounts.vault;
     let mint = &ctx.accounts.mint;

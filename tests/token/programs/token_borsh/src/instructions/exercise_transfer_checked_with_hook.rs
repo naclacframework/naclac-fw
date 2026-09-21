@@ -34,7 +34,6 @@ pub struct ExerciseTransferCheckedWithHook {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_transfer_checked_with_hook(
     ctx: Context<ExerciseTransferCheckedWithHook>,
     amount: u64,

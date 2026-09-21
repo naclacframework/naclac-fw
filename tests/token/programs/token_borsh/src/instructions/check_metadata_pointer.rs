@@ -9,7 +9,6 @@ pub struct CheckMetadataPointer {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_metadata_pointer(
     ctx: Context<CheckMetadataPointer>,
     expected_authority: Option<Address>,

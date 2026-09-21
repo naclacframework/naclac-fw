@@ -14,7 +14,7 @@ export interface EmitViaSelfCpiSignedBaselineAccounts {
    * (`log_event_signed`) that checks `is_signer`, once `invoke_signed`
    * below has actually marked it as one. Its data is never read.
    */
-  event_authority?: naclac.Address | string;
+  eventAuthority?: naclac.Address | string;
   /** SAFETY: only its address is checked; its data is never read. */
   program: naclac.Address | string;
 }

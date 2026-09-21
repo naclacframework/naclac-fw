@@ -11,7 +11,6 @@ pub struct SetDisableFlags {
     pub fee_program_global: Account<FeeProgramGlobal>,
 }
 
-#[instruction]
 pub fn set_disable_flags(ctx: Context<SetDisableFlags>, disable_flags: u8) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.fee_program_global.authority,

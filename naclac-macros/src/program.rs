@@ -5,8 +5,312 @@
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use sha2::{Digest, Sha256};
 use syn::{parse_macro_input, FnArg, Item, ItemMod, Pat, Type};
+
+/// Real `idl-build` assembler — replaces the old `idl_json_const` (removed;
+/// it called `naclac_idl::generate_idl`, the AST walker, at macro-expansion
+/// time, exactly the approach this migration exists to replace — see
+/// docs/plan/idl-build-compilation-migration.md). One instruction's worth of
+/// data the main `#[program]` loop already extracts for dispatch codegen,
+/// captured a second time (owned, cloned) for the idl-build assembler built
+/// after that loop finishes.
+#[cfg(feature = "idl-build")]
+struct IdlBuildIx {
+    name: syn::Ident,
+    disc: [u8; 8],
+    ctx_struct: syn::Path,
+    arg_names: Vec<syn::Ident>,
+    arg_types: Vec<syn::Type>,
+}
+
+/// Builds the whole `idl-build` assembler — a plain `pub fn __naclac_print_idl()`
+/// at crate-root scope (never `#[test]`-tagged; a `[[bin]]` target's `main()`
+/// can't invoke a `#[test]` function, confirmed against how Anchor's own
+/// equivalent — which *does* rely on `#[test]` plus `cargo test`'s built-in
+/// scattered-function discovery — doesn't transfer to naclac's `[[bin]]`
+/// delivery choice) that a small, separate `[[bin]]` entry point (CLI-scaffolded,
+/// not generated here — a proc-macro can't create files or edit `Cargo.toml`)
+/// calls directly. Chases every reachable component type via each
+/// instruction's `__naclac_insert_account_types`, resolves each instruction's
+/// accounts (`__naclac_idl_accounts()`, patching in seed `field_type`/const
+/// values from the assembled type map — see `naclac-idl/src/idl_build_accounts.rs`),
+/// resolves instruction args locally and chases any that are themselves
+/// `#[defined_type]`-tagged, reads `crate::ID` for the address, and — for
+/// constants/events/errors, none of which any instruction signature ever
+/// references directly — does a small compile-time-only scan
+/// (`naclac_syn::names`) to find and call their own already-generated print
+/// functions by their real module path. Gated on `idl-build` purely by this
+/// function itself only existing under `#[cfg(feature = "idl-build")]` (see
+/// the stub variant below) — not by any runtime env-var check.
+/// `CARGO_FEATURE_IDL_BUILD` looked like it would work (real for build
+/// scripts) but isn't actually visible to a proc-macro's own process at
+/// all — confirmed empirically (zero `CARGO_FEATURE_*` vars present, not
+/// even for features known active), not assumed.
+#[cfg(feature = "idl-build")]
+fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
+    let idl = quote! { naclac_lang::naclac_idl };
+
+    let mut insert_account_types_calls = Vec::new();
+    let mut insert_defined_type_calls = Vec::new();
+    let mut ix_tokens = Vec::new();
+
+    for ix in ixs {
+        let ix_name_str = ix.name.to_string();
+        let ctx_struct = &ix.ctx_struct;
+        let disc = ix.disc;
+
+        insert_account_types_calls.push(quote! {
+            #ctx_struct::__naclac_insert_account_types(&mut __account_types);
+        });
+
+        let mut arg_field_tokens = Vec::new();
+        for (arg_name, arg_ty) in ix.arg_names.iter().zip(ix.arg_types.iter()) {
+            let arg_name_str = arg_name.to_string();
+            let ty_value = naclac_syn::parser::rust_type_to_idl(arg_ty, &[]);
+            let Ok(ty_json) = serde_json::to_string(&ty_value) else {
+                continue;
+            };
+            arg_field_tokens.push(quote! {
+                #idl::IdlField {
+                    name: #arg_name_str.into(),
+                    docs: vec![],
+                    ty: #idl::serde_json::from_str(#ty_json)
+                        .expect("naclac idl-build: generated arg type JSON must parse"),
+                }
+            });
+
+            if let Some(leaf_ty) = naclac_syn::parser::defined_type_leaf(arg_ty) {
+                insert_defined_type_calls.push(quote! {
+                    if let Some(ty) = <#leaf_ty as #idl::idl_build::NaclacIdlBuild>::create_type() {
+                        __defined_types.insert(<#leaf_ty as #idl::idl_build::NaclacIdlBuild>::get_full_path(), ty);
+                        <#leaf_ty as #idl::idl_build::NaclacIdlBuild>::insert_types(&mut __defined_types);
+                    }
+                });
+            }
+        }
+
+        ix_tokens.push(quote! {
+            #idl::IdlInstruction {
+                name: #ix_name_str.into(),
+                docs: vec![],
+                optional_account_strategy: "programId".into(),
+                discriminator: [#(#disc),*],
+                accounts: #ctx_struct::__naclac_idl_accounts()
+                    .into_iter()
+                    .map(|a| a.resolve(&__account_types))
+                    .collect(),
+                args: vec![#(#arg_field_tokens),*],
+                returns: None,
+            }
+        });
+    }
+
+    // Constants/events/errors are never referenced by any instruction
+    // signature `#[program]` can see, so — only when `idl-build` is the
+    // feature actually being compiled right now (never during a normal
+    // build) — a small, name-and-module-path-only scan
+    // (`naclac_syn::names::scan_tagged_items`) finds them, and calls to
+    // each one's own already-generated print function are spliced in by
+    // real path. See this function's own doc comment and
+    // docs/plan/idl-build-compilation-migration.md for why this is the
+    // right substitute for what Anchor gets for free from `#[test]` plus
+    // `cargo test`'s built-in scattered-function discovery.
+    let mut event_calls = Vec::new();
+    let mut error_calls = Vec::new();
+    let mut const_calls = Vec::new();
+    let mut alloc_event_names = Vec::new();
+    // No `CARGO_FEATURE_IDL_BUILD`-style runtime check needed here — this
+    // whole function only exists in the first place (see the `#[cfg(not(feature
+    // = "idl-build"))]` stub variant below) when naclac-macros itself is
+    // compiled with `idl-build` active, which normal Cargo feature
+    // unification only does when something in the build graph actually
+    // requests it. A plain `naclac build`/on-chain build never compiles
+    // this code at all, let alone runs the scan — confirmed empirically:
+    // `CARGO_FEATURE_*` env vars (a build-script-only Cargo convention, not
+    // something a proc-macro's own process ever receives) are not a
+    // reliable signal here, unlike this function-level `#[cfg(...)]` split.
+    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
+        let program_dir = std::path::Path::new(&manifest_dir);
+
+        for item in naclac_syn::names::scan_tagged_items(program_dir, "event") {
+            let Ok(path) = syn::parse_str::<syn::Path>(&format!("{}::{}", item.module_path, item.name)) else {
+                continue;
+            };
+            event_calls.push(quote! {
+                __events.push(#path::__naclac_idl_event(&mut __defined_types));
+            });
+            if item.alloc {
+                alloc_event_names.push(item.name);
+            }
+        }
+
+        for item in naclac_syn::names::scan_tagged_items(program_dir, "error_code") {
+            let Ok(path) = syn::parse_str::<syn::Path>(&format!("{}::{}", item.module_path, item.name)) else {
+                continue;
+            };
+            error_calls.push(quote! {
+                __errors.extend(#path::__naclac_idl_errors());
+            });
+        }
+
+        for item in naclac_syn::names::scan_tagged_items(program_dir, "constant") {
+            // Lowercased to match `constant_idl_build_impl`'s own naming
+            // (`naclac-macros/src/lib.rs`) — a bare-uppercase function name
+            // would trip `non_snake_case` on the generated definition.
+            let Ok(fn_path) = syn::parse_str::<syn::Path>(&format!(
+                "{}::__naclac_idl_print_const_{}",
+                item.module_path,
+                item.name.to_lowercase()
+            )) else {
+                continue;
+            };
+            const_calls.push(quote! {
+                __constants.push(#fn_path());
+            });
+        }
+    }
+
+    quote! {
+        #[cfg(feature = "idl-build")]
+        pub fn __naclac_print_idl() {
+            let __alloc_event_names: &[&str] = &[#(#alloc_event_names),*];
+            let mut __account_types: #idl::__private::BTreeMap<#idl::__private::String, #idl::IdlTypeDef> =
+                #idl::__private::BTreeMap::new();
+            let mut __defined_types: #idl::__private::BTreeMap<#idl::__private::String, #idl::IdlTypeDef> =
+                #idl::__private::BTreeMap::new();
+            let mut __events: naclac_lang::prelude::Vec<#idl::IdlEvent> = vec![];
+            let mut __errors: naclac_lang::prelude::Vec<#idl::IdlError> = vec![];
+            let mut __constants: naclac_lang::prelude::Vec<#idl::IdlConstant> = vec![];
+
+            // Every map/list-populating call runs first — instructions,
+            // accounts, and defined_types are all assembled from these
+            // maps afterward, so nothing here can run after that read.
+            #(#insert_account_types_calls)*
+            #(#insert_defined_type_calls)*
+            #(#event_calls)*
+            #(#error_calls)*
+            #(#const_calls)*
+
+            let __instructions = vec![#(#ix_tokens),*];
+
+            let __accounts: naclac_lang::prelude::Vec<#idl::IdlAccountStruct> = __account_types
+                .iter()
+                .filter_map(|(name, ty)| {
+                    let #idl::IdlTypeDef::Struct { fields } = ty else {
+                        return None;
+                    };
+                    Some(#idl::IdlAccountStruct {
+                        name: name.clone(),
+                        docs: vec![],
+                        discriminator: naclac_lang::naclac_syn::discriminator::compute_discriminator("account", name),
+                        ty: #idl::IdlTypeStruct {
+                            kind: "struct".into(),
+                            fields: fields.clone(),
+                        },
+                    })
+                })
+                .collect();
+
+            let __defined_types_list: naclac_lang::prelude::Vec<#idl::IdlType> = __defined_types
+                .iter()
+                .map(|(name, ty)| #idl::IdlType {
+                    name: name.clone(),
+                    docs: vec![],
+                    ty: ty.clone(),
+                })
+                .collect();
+
+            // Top-level `pdas` — mirrors the AST walker's own logic exactly
+            // (`naclac-idl/src/lib.rs`'s "Top-level PDAs array" section):
+            // deduplicate every instruction's per-account PDA by account
+            // name, from data already resolved above — no new discovery
+            // needed, unlike constants/events/errors.
+            let mut __pda_map: #idl::__private::BTreeMap<
+                #idl::__private::String,
+                (naclac_lang::prelude::Vec<#idl::IdlSeed>, Option<#idl::IdlSeed>),
+            > = #idl::__private::BTreeMap::new();
+            for __ix in &__instructions {
+                for __acc in &__ix.accounts {
+                    if let Some(__pda) = &__acc.pda {
+                        __pda_map
+                            .entry(__acc.name.clone())
+                            .or_insert_with(|| (__pda.seeds.clone(), __pda.program.clone()));
+                    }
+                }
+            }
+            let __pdas: naclac_lang::prelude::Vec<#idl::IdlPdaDef> = __pda_map
+                .into_iter()
+                .map(|(name, (seeds, program))| #idl::IdlPdaDef { name, seeds, program })
+                .collect();
+
+            // A seed constant not `#[constant]`-tagged still needs to end
+            // up in the top-level `constants` list, matching the AST
+            // walker's own "used, even if untagged" rule — the resolved
+            // seed data (harvested just above, for `__pdas`) already
+            // carries everything needed (`IdlSeed::Const`'s `name`+`value`),
+            // deduplicated against any already-tagged entry by name.
+            for __ix in &__instructions {
+                for __acc in &__ix.accounts {
+                    let Some(__pda) = &__acc.pda else { continue };
+                    for __seed in __pda.seeds.iter().chain(__pda.program.iter()) {
+                        let #idl::IdlSeed::Const { value, name: Some(__n) } = __seed else {
+                            continue;
+                        };
+                        if __constants.iter().any(|c| &c.name == __n) {
+                            continue;
+                        }
+                        __constants.push(#idl::IdlConstant {
+                            name: __n.clone(),
+                            docs: vec![],
+                            ty: #idl::serde_json::Value::String("bytes".into()),
+                            value: format!("{:?}", value),
+                        });
+                    }
+                }
+            }
+
+            let __idl = #idl::Idl {
+                address: naclac_lang::prelude::base58::encode_address_to_string(
+                    &naclac_lang::prelude::ToAddress::address(&crate::ID),
+                ),
+                metadata: #idl::IdlMetadata {
+                    name: env!("CARGO_PKG_NAME").into(),
+                    version: env!("CARGO_PKG_VERSION").into(),
+                    description: concat!(env!("CARGO_PKG_NAME"), " — Generated by Naclac Framework").into(),
+                },
+                instructions: __instructions,
+                accounts: __accounts,
+                events: __events,
+                errors: __errors,
+                constants: __constants,
+                defined_types: __defined_types_list,
+                pdas: __pdas,
+            };
+
+            let mut __idl_value = #idl::serde_json::to_value(&__idl).unwrap();
+            if let #idl::serde_json::Value::Object(ref mut __map) = __idl_value {
+                __map.insert(
+                    "__allocEvents".into(),
+                    #idl::serde_json::Value::Array(
+                        __alloc_event_names
+                            .iter()
+                            .map(|__n| #idl::serde_json::Value::String((*__n).into()))
+                            .collect(),
+                    ),
+                );
+            }
+            println!("{}", #idl::serde_json::to_string_pretty(&__idl_value).unwrap());
+        }
+    }
+}
+
+#[cfg(not(feature = "idl-build"))]
+struct IdlBuildIx;
+
+#[cfg(not(feature = "idl-build"))]
+fn build_idl_assembler(_ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
+    quote! {}
+}
 
 /// Extracts `T` from a handler's `-> Result<T>` return type. Bare `Result`
 /// (no `<...>` at all, i.e. `T` defaulted to `()`) and an explicit
@@ -157,15 +461,24 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     let mut match_arms = Vec::new();
+    #[cfg(feature = "idl-build")]
+    let mut idl_build_ixs: Vec<IdlBuildIx> = Vec::new();
+    #[cfg(not(feature = "idl-build"))]
+    let idl_build_ixs: Vec<IdlBuildIx> = Vec::new();
 
     // 1. Iterate through all items in the module to find the developer's instructions
     let mut processed_content_items = Vec::new();
 
-    // Zero-copy vs Borsh mode is auto-detected from the `borsh` feature.
     // `#[program]` takes no argument at all — enforced by `lib.rs`'s
     // `reject_nonempty_attr` before this function is ever called.
-    let is_program_zero_copy =
-        crate::caller_has_feature("pinocchio") || !crate::caller_has_feature("borsh");
+    //
+    // Cargo gives a proc-macro no reliable way to see the invoking crate's
+    // activated features (see `component.rs`'s doc comment for the full
+    // story), so per-argument deserialization below emits both
+    // representations, each gated by a real `#[cfg(...)]` in the output
+    // that the calling crate's own compiler resolves.
+    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(feature = "borsh")))] };
+    let borsh_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
 
     for item in &content_items {
         if let Item::Fn(func) = item {
@@ -198,29 +511,25 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                             }
                         }
 
-                        // Detect if this is a Vec or String to perform type rewriting in Zero-Copy mode
+                        // Re-qualify a bare `ZcVec<T>`/`ZcString` to its fully-qualified
+                        // prelude path. Always safe regardless of representation —
+                        // `pub type ZcVec<T> = Span<T>;` is an unconditional prelude
+                        // alias (naclac-core/src/prelude.rs), so this only changes
+                        // spelling, never the actual type the signature resolves to.
                         let ty = &pat_type.ty;
-                        if is_program_zero_copy {
-                            if crate::type_classify::is_exactly(ty, "ZcVec") {
-                                // ZcVec<T> → Span<T>: explicit zero-copy opt-in
-                                let new_ty: syn::Type =
-                                    match crate::type_classify::first_generic_type(ty) {
-                                        Some(inner) => {
-                                            syn::parse_quote! { naclac_lang::prelude::Span<#inner> }
-                                        }
-                                        None => {
-                                            syn::parse_quote! { naclac_lang::prelude::Span<u8> }
-                                        }
-                                    };
-                                *pat_type.ty = new_ty;
-                            } else if crate::type_classify::is_exactly(ty, "ZcString") {
-                                // ZcString → ZcString: explicit zero-copy opt-in
-                                let new_ty: syn::Type =
-                                    syn::parse_str("naclac_lang::prelude::ZcString").unwrap();
-                                *pat_type.ty = new_ty;
-                            }
-                            // Standard Vec<T> and String: leave as-is, they use heap allocation
+                        if crate::type_classify::is_exactly(ty, "ZcVec") {
+                            let new_ty: syn::Type = match crate::type_classify::first_generic_type(ty)
+                            {
+                                Some(inner) => syn::parse_quote! { naclac_lang::prelude::Span<#inner> },
+                                None => syn::parse_quote! { naclac_lang::prelude::Span<u8> },
+                            };
+                            *pat_type.ty = new_ty;
+                        } else if crate::type_classify::is_exactly(ty, "ZcString") {
+                            let new_ty: syn::Type =
+                                syn::parse_str("naclac_lang::prelude::ZcString").unwrap();
+                            *pat_type.ty = new_ty;
                         }
+                        // Standard Vec<T> and String: leave as-is, they use heap allocation.
 
                         // Strip any references to get to the underlying Context type
                         let mut inner_ty = (*pat_type.ty).clone();
@@ -277,11 +586,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
 
                 // --- DISCRIMINATOR HASH ---
-                let func_str = func_name.to_string();
-                let preimage = format!("global:{}", func_str);
-                let mut hasher = Sha256::new();
-                hasher.update(preimage.as_bytes());
-                let disc: [u8; 8] = hasher.finalize()[..8].try_into().unwrap();
+                let disc = naclac_syn::discriminator::compute_discriminator("global", &func_name.to_string());
                 let b0 = disc[0];
                 let b1 = disc[1];
                 let b2 = disc[2];
@@ -318,13 +623,6 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     ),
                 };
 
-                // Zero-copy mode is decided once for the whole program (see
-                // `is_program_zero_copy` above) — no per-instruction override.
-                // `#[instruction]` itself rejects any argument (lib.rs), so a
-                // leftover `#[instruction(zero_copy)]` is a compile error,
-                // not a silent no-op here.
-                let is_zero_copy = is_program_zero_copy;
-
                 // --- ARGUMENT DESERIALIZATION LOGIC ---
                 let mut deserialization_logic = Vec::new();
                 let mut arg_tuple_names = Vec::new();
@@ -353,20 +651,39 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     let is_heap_vec = matches!(kind, DynamicKind::HeapVec);
                     let is_heap_string = matches!(kind, DynamicKind::HeapString);
                     let is_heap_collection = is_heap_vec || is_heap_string;
+                    // `ty` isn't itself literally `ZcVec`/`ZcString` (that's
+                    // `is_zero_copy_collection` above) but may still be an
+                    // opaque struct name (e.g. an `#[instruction_args]` type)
+                    // that *contains* one — same unsound-in-Borsh-mode case,
+                    // just one level removed. See `dynamic_view_field_of`'s
+                    // own doc comment for why this needs a real source scan
+                    // rather than being visible from `ty` alone.
+                    let opaque_zc_field = crate::type_classify::base_ident(ty)
+                        .and_then(|id| crate::instruction::security::dynamic_view_field_of(&id.to_string()));
 
-                    if is_zero_copy && !is_zero_copy_collection && !is_heap_collection {
+                    // Cargo gives a proc-macro no reliable way to see the invoking
+                    // crate's activated features (see `component.rs`'s doc comment
+                    // for the full story), so both representations are always
+                    // computed below and spliced in together, each gated by a real
+                    // `#[cfg(...)]` in the output the calling crate's own compiler
+                    // resolves. Which of `zero_copy_stmt`'s two shapes applies is a
+                    // separate, purely structural question (does this arg's own
+                    // declared type contain a dynamic collection or not) — safe to
+                    // decide with an ordinary Rust `if` here, no feature detection
+                    // involved either way.
+                    let zero_copy_stmt = if !is_zero_copy_collection && !is_heap_collection {
                         // `NaclacArgs` (not `NaclacPod` directly) — covers both a
                         // plain fixed-size arg (via `NaclacPod`'s blanket
                         // `NaclacArgs` impl) and an `#[instruction_args]`-grouped
                         // struct containing a `ZcString`/`ZcVec` field, whose
                         // encoded length depends on its own content and can
                         // never be read via a single raw `size_of`-based cast.
-                        deserialization_logic.push(quote! {
+                        quote! {
                             let #name = <#ty as naclac_lang::prelude::NaclacArgs>::naclac_deserialize(
                                 instruction_data, &mut __ix_offset
                             )?;
-                        });
-                    } else if is_zero_copy && (is_zero_copy_collection || is_heap_collection) {
+                        }
+                    } else {
                         let inner_ty = crate::type_classify::first_generic_type(ty);
 
                         let __v_logic = if is_zero_copy_collection {
@@ -467,17 +784,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                             }
                         };
 
-                        if is_heap_collection && !heap_allowed_args.contains(*name) {
-                            let found_ty = if is_heap_vec { "Vec<T>" } else { "String" };
-                            let suggested_ty = if is_heap_vec { "ZcVec<T>" } else { "ZcString" };
-                            deserialization_logic.push(crate::heap_collection_warning(
-                                &name.to_string(),
-                                found_ty,
-                                suggested_ty,
-                            ));
-                        }
-
-                        deserialization_logic.push(quote! {
+                        quote! {
                             let #name = {
                                 if instruction_data.len() < __ix_offset + 4 {
                                     return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
@@ -488,27 +795,64 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                                 __ix_offset += 4;
                                 #__v_logic
                             };
-                        });
+                        }
+                    };
+
+                    // Real Borsh already decodes `Vec<T>`/`String` natively via its
+                    // own derive, so — unlike the zero-copy side — one uniform
+                    // BorshDeserialize call correctly covers every fixed or
+                    // heap-collection arg shape here. `ZcVec<T>`/`Span<T>`/
+                    // `ZcString` are the one exception: zero-copy-only *views*
+                    // (pointer + length) with no bytes of their own to serialize,
+                    // so calling BorshDeserialize on them is unsound-by-
+                    // construction, not just unsupported — a clear, purpose-built
+                    // error takes its place instead of the confusing raw
+                    // trait-bound error rustc would otherwise give (mirrors
+                    // `#[instruction_args]`'s identical `zc_field` check in
+                    // naclac-macros/src/lib.rs). `compile_error!` only queues a
+                    // diagnostic — it doesn't stop rustc from still
+                    // type-checking the rest of this function, and `#name` is
+                    // referenced again later (unconditionally, by
+                    // `arg_injections`) when calling the actual handler. Still
+                    // binding `#name` (to a `!`-typed, never-executed
+                    // `unreachable!()`) keeps that later reference valid, so
+                    // this compile_error! stays the only thing the caller sees
+                    // for this argument, not a second, unrelated "cannot find
+                    // value" cascade on top of it.
+                    let borsh_stmt = if is_zero_copy_collection {
+                        let found_ty = if is_zero_copy_vec { "ZcVec<T>/Span<T>" } else { "ZcString" };
+                        let msg = format!(
+                            "Naclac Error: argument '{}' uses a zero-copy-only type ('{}') in a \
+                             Borsh-mode instruction. These are views (pointer + length) into the \
+                             current instruction's byte buffer with no bytes of their own to \
+                             serialize — real Borsh already decodes 'Vec<T>'/'String' natively, so \
+                             use one of those instead.",
+                            name, found_ty
+                        );
+                        quote! {
+                            #[allow(unreachable_code)]
+                            let #name: #ty = { compile_error!(#msg); unreachable!() };
+                        }
+                    } else if let Some(field_name) = &opaque_zc_field {
+                        let msg = format!(
+                            "Naclac Error: argument '{}' has type '{}', whose own field '{}' uses a \
+                             zero-copy-only type ('ZcVec'/'Span<T>'/'ZcString') in a Borsh-mode \
+                             instruction. These are views (pointer + length) into the current \
+                             instruction's byte buffer with no bytes of their own to serialize — real \
+                             Borsh already decodes 'Vec<T>'/'String' natively, so use one of those \
+                             instead of '{}' in '{}'.",
+                            name,
+                            quote! { #ty },
+                            field_name,
+                            field_name,
+                            quote! { #ty },
+                        );
+                        quote! {
+                            #[allow(unreachable_code)]
+                            let #name: #ty = { compile_error!(#msg); unreachable!() };
+                        }
                     } else {
-                        // Reached only when `is_zero_copy` is already false (the two
-                        // branches above cover every zero-copy case), so the calling
-                        // crate is confirmed Borsh-mode and the `pinocchio` arm below
-                        // can never actually be selected for it — kept only as a
-                        // defensive fallback in case that assumption ever changes.
-                        deserialization_logic.push(quote! {
-                            #[cfg(feature = "pinocchio")]
-                            let #name = {
-                                let __sz = <#ty as naclac_lang::prelude::NaclacPod>::naclac_size();
-                                if instruction_data.len() < __ix_offset + __sz {
-                                    return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
-                                }
-                                let __val = <#ty as naclac_lang::prelude::NaclacPod>::naclac_from_bytes(
-                                    &instruction_data[__ix_offset..__ix_offset + __sz]
-                                );
-                                __ix_offset += __sz;
-                                __val
-                            };
-                            #[cfg(not(feature = "pinocchio"))]
+                        quote! {
                             let #name = {
                                 let mut __r: &[u8] = &instruction_data[__ix_offset..];
                                 let __val = <#ty as naclac_lang::prelude::BorshDeserialize>::deserialize(&mut __r)
@@ -516,8 +860,25 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                                 __ix_offset = instruction_data.len() - __r.len();
                                 __val
                             };
-                        });
+                        }
+                    };
+
+                    // Only meaningful for the zero-copy side — Borsh mode has no
+                    // ZcVec/ZcString alternative to nudge toward.
+                    let mut arg_stmt = quote! {};
+                    if is_heap_collection && !heap_allowed_args.contains(*name) {
+                        let found_ty = if is_heap_vec { "Vec<T>" } else { "String" };
+                        let suggested_ty = if is_heap_vec { "ZcVec<T>" } else { "ZcString" };
+                        let warning = crate::heap_collection_warning(&name.to_string(), found_ty, suggested_ty);
+                        arg_stmt = quote! { #arg_stmt #zero_copy_cfg { #warning } };
                     }
+                    deserialization_logic.push(quote! {
+                        #arg_stmt
+                        #zero_copy_cfg
+                        #zero_copy_stmt
+                        #borsh_cfg
+                        #borsh_stmt
+                    });
                 }
 
                 // Build the final deserialization block, prepending __ix_offset init
@@ -621,6 +982,15 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     }
                 });
 
+                #[cfg(feature = "idl-build")]
+                idl_build_ixs.push(IdlBuildIx {
+                    name: func_name.clone(),
+                    disc: [b0, b1, b2, b3, b4, b5, b6, b7],
+                    ctx_struct: ctx_struct.clone(),
+                    arg_names: arg_names.iter().map(|n| (*n).clone()).collect(),
+                    arg_types: arg_types.iter().map(|t| (***t).clone()).collect(),
+                });
+
                 let disc_u64 = u64::from_le_bytes([b0, b1, b2, b3, b4, b5, b6, b7]);
                 // --- THE MATCH ARM ---
                 match_arms.push(quote! {
@@ -640,6 +1010,8 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // --- CPI GENERATION (Moved to SDK) ---
     // The cpi module is now generated in the Rust SDK, not in the program crate.
+
+    let idl_assembler_tokens = build_idl_assembler(&idl_build_ixs);
 
     // --- FINAL MACRO EXPANSION ---
     let expanded = quote! {
@@ -773,6 +1145,8 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
 
 
+
+        #idl_assembler_tokens
 
         // Re-inject the developer's original module logic.
         #mod_vis mod #mod_name {

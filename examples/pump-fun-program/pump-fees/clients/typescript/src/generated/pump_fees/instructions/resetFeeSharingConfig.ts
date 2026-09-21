@@ -8,15 +8,15 @@ export const RESET_FEE_SHARING_CONFIG_DISCRIMINATOR = new Uint8Array([10, 2, 182
 
 /** Instruction arguments for `resetFeeSharingConfig`. */
 export interface ResetFeeSharingConfigArgs {
-  bonding_curve_bump: number;
-  pump_creator_vault_bump: number;
-  coin_creator_vault_authority_bump: number;
+  bondingCurveBump: number;
+  pumpCreatorVaultBump: number;
+  coinCreatorVaultAuthorityBump: number;
 }
 
 /** Accounts for the `resetFeeSharingConfig` instruction. */
 export interface ResetFeeSharingConfigAccounts {
   /** SAFETY: only recorded as the sole post-reset shareholder; never read or invoked. */
-  new_admin: naclac.Address | string;
+  newAdmin: naclac.Address | string;
   authority: naclac.Address | string;
   global?: naclac.Address | string;
   /**
@@ -24,32 +24,32 @@ export interface ResetFeeSharingConfigAccounts {
    * below, never read or invoked.
    */
   mint: naclac.Address | string;
-  sharing_config?: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  sharingConfig?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump`/`seeds::program` constraint already verifies its
    * address; it's a lamport-only PDA under `pump` (no stored data from this
    * program's perspective), only ever a CPI target below, never deserialized.
    */
-  pump_creator_vault?: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  pump_program: naclac.Address | string;
-  pump_amm_program: naclac.Address | string;
-  wsol_mint?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  pumpCreatorVault?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  pumpProgram: naclac.Address | string;
+  pumpAmmProgram: naclac.Address | string;
+  wsolMint?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump`/`seeds::program` constraint already verifies its
    * address; it's a lamport-only PDA authority under `pump_amm` (no stored data
    * from this program's perspective), only ever a CPI signer/target below,
    * never deserialized.
    */
-  coin_creator_vault_authority?: naclac.Address | string;
+  coinCreatorVaultAuthority?: naclac.Address | string;
   /**
    * SAFETY: only a CPI passthrough — deserialized and mutated by the nested
    * `pump_amm::transfer_creator_fees_to_pump` CPI target, never read here.
    */
-  coin_creator_vault_ata: naclac.Address | string;
+  coinCreatorVaultAta: naclac.Address | string;
   /**
    * SAFETY: only used as the signed-CPI proof-of-origin for
    * `pump::distribute_creator_fees` below — the `seeds`/`bump` constraint
@@ -57,7 +57,7 @@ export interface ResetFeeSharingConfigAccounts {
    * *this* instruction (it's signed by us, via our own seeds, only on
    * the outgoing CPI).
    */
-  pump_fees_authority?: naclac.Address | string;
+  pumpFeesAuthority?: naclac.Address | string;
 }
 
 /**

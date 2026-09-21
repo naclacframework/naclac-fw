@@ -37,7 +37,6 @@ pub struct CreateMint2022WithTransferHook {
 /// 4-byte TLV header + 64-byte `TransferHook` value.
 const MINT_WITH_TRANSFER_HOOK_SPACE: u64 = 82 + 83 + 1 + 4 + 64;
 
-#[instruction]
 pub fn create_mint2022_with_transfer_hook(
     ctx: Context<CreateMint2022WithTransferHook>,
     args: CreateMint2022WithTransferHookArgs,

@@ -11,11 +11,11 @@ export const CREATEFEESHARINGCONFIGEVENT_EVENT_DISCRIMINATOR = new Uint8Array([1
 export interface CreateFeeSharingConfigEvent {
   timestamp: bigint | number;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   pool: naclac.Address | string | null;
-  sharing_config: naclac.Address | string;
+  sharingConfig: naclac.Address | string;
   admin: naclac.Address | string;
-  initial_shareholders: Array<Shareholder>;
+  initialShareholders: Array<Shareholder>;
   status: number;
 }
 
@@ -51,10 +51,10 @@ export interface DonationFeePdaCranked {
   timestamp: bigint | number;
   amount: bigint | number;
   signer: naclac.Address | string;
-  donation_fee_pda: naclac.Address | string;
-  config_id: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
+  donationFeePda: naclac.Address | string;
+  configId: naclac.Address | string;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
   creator: naclac.Address | string;
 }
 
@@ -88,11 +88,11 @@ export const DONATIONFEEPDACREATED_EVENT_DISCRIMINATOR = new Uint8Array([94, 20,
 /** Auto-generated event interface from the program IDL. */
 export interface DonationFeePdaCreated {
   timestamp: bigint | number;
-  created_by: naclac.Address | string;
-  donation_fee_pda: naclac.Address | string;
-  config_id: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
+  createdBy: naclac.Address | string;
+  donationFeePda: naclac.Address | string;
+  configId: naclac.Address | string;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
   creator: naclac.Address | string;
 }
 
@@ -125,10 +125,10 @@ export const EXTENDFEECONFIGEVENT_EVENT_DISCRIMINATOR = new Uint8Array([226, 203
 
 /** Auto-generated event interface from the program IDL. */
 export interface ExtendFeeConfigEvent {
-  current_size: bigint | number;
-  new_size: bigint | number;
+  currentSize: bigint | number;
+  newSize: bigint | number;
   timestamp: bigint | number;
-  fee_config: naclac.Address | string;
+  feeConfig: naclac.Address | string;
   user: naclac.Address | string;
 }
 
@@ -163,7 +163,7 @@ export const INITIALIZEFEECONFIGEVENT_EVENT_DISCRIMINATOR = new Uint8Array([89, 
 export interface InitializeFeeConfigEvent {
   timestamp: bigint | number;
   admin: naclac.Address | string;
-  fee_config: naclac.Address | string;
+  feeConfig: naclac.Address | string;
 }
 
 /** Subscribes to `InitializeFeeConfigEvent` events. Returns a listener ID for cleanup. */
@@ -196,10 +196,10 @@ export const INITIALIZEFEEPROGRAMGLOBALEVENT_EVENT_DISCRIMINATOR = new Uint8Arra
 /** Auto-generated event interface from the program IDL. */
 export interface InitializeFeeProgramGlobalEvent {
   timestamp: bigint | number;
-  claim_rate_limit: bigint | number;
+  claimRateLimit: bigint | number;
   authority: naclac.Address | string;
-  social_claim_authority: naclac.Address | string;
-  disable_flags: number;
+  socialClaimAuthority: naclac.Address | string;
+  disableFlags: number;
   padding: string | Uint8Array;
 }
 
@@ -234,13 +234,13 @@ export const RESETFEESHARINGCONFIGEVENT_EVENT_DISCRIMINATOR = new Uint8Array([20
 export interface ResetFeeSharingConfigEvent {
   timestamp: bigint | number;
   mint: naclac.Address | string;
-  sharing_config: naclac.Address | string;
-  old_admin: naclac.Address | string;
-  old_shareholders: Array<Shareholder>;
-  new_admin: naclac.Address | string;
-  new_shareholders: Array<Shareholder>;
-  old_version: number;
-  new_version: number;
+  sharingConfig: naclac.Address | string;
+  oldAdmin: naclac.Address | string;
+  oldShareholders: Array<Shareholder>;
+  newAdmin: naclac.Address | string;
+  newShareholders: Array<Shareholder>;
+  oldVersion: number;
+  newVersion: number;
 }
 
 /** Subscribes to `ResetFeeSharingConfigEvent` events. Returns a listener ID for cleanup. */
@@ -273,8 +273,8 @@ export const SETAUTHORITYEVENT_EVENT_DISCRIMINATOR = new Uint8Array([18, 175, 13
 /** Auto-generated event interface from the program IDL. */
 export interface SetAuthorityEvent {
   timestamp: bigint | number;
-  old_authority: naclac.Address | string;
-  new_authority: naclac.Address | string;
+  oldAuthority: naclac.Address | string;
+  newAuthority: naclac.Address | string;
 }
 
 /** Subscribes to `SetAuthorityEvent` events. Returns a listener ID for cleanup. */
@@ -307,7 +307,7 @@ export const SETCLAIMRATELIMITEVENT_EVENT_DISCRIMINATOR = new Uint8Array([13, 14
 /** Auto-generated event interface from the program IDL. */
 export interface SetClaimRateLimitEvent {
   timestamp: bigint | number;
-  claim_rate_limit: bigint | number;
+  claimRateLimit: bigint | number;
 }
 
 /** Subscribes to `SetClaimRateLimitEvent` events. Returns a listener ID for cleanup. */
@@ -340,7 +340,7 @@ export const SETDISABLEFLAGSEVENT_EVENT_DISCRIMINATOR = new Uint8Array([5, 8, 17
 /** Auto-generated event interface from the program IDL. */
 export interface SetDisableFlagsEvent {
   timestamp: bigint | number;
-  disable_flags: number;
+  disableFlags: number;
   padding: string | Uint8Array;
 }
 
@@ -374,7 +374,7 @@ export const SETSOCIALCLAIMAUTHORITYEVENT_EVENT_DISCRIMINATOR = new Uint8Array([
 /** Auto-generated event interface from the program IDL. */
 export interface SetSocialClaimAuthorityEvent {
   timestamp: bigint | number;
-  social_claim_authority: naclac.Address | string;
+  socialClaimAuthority: naclac.Address | string;
 }
 
 /** Subscribes to `SetSocialClaimAuthorityEvent` events. Returns a listener ID for cleanup. */
@@ -407,17 +407,17 @@ export const SOCIALFEEPDACLAIMED_EVENT_DISCRIMINATOR = new Uint8Array([50, 18, 1
 /** Auto-generated event interface from the program IDL. */
 export interface SocialFeePdaClaimed {
   timestamp: bigint | number;
-  user_id: string;
+  userId: string;
   platform: number;
-  social_fee_pda: naclac.Address | string;
+  socialFeePda: naclac.Address | string;
   recipient: naclac.Address | string;
-  social_claim_authority: naclac.Address | string;
-  amount_claimed: bigint | number;
-  claimable_before: bigint | number;
-  lifetime_claimed: bigint | number;
-  recipient_balance_before: bigint | number;
-  recipient_balance_after: bigint | number;
-  quote_mint: naclac.Address | string;
+  socialClaimAuthority: naclac.Address | string;
+  amountClaimed: bigint | number;
+  claimableBefore: bigint | number;
+  lifetimeClaimed: bigint | number;
+  recipientBalanceBefore: bigint | number;
+  recipientBalanceAfter: bigint | number;
+  quoteMint: naclac.Address | string;
 }
 
 /** Subscribes to `SocialFeePdaClaimed` events. Returns a listener ID for cleanup. */
@@ -450,10 +450,10 @@ export const SOCIALFEEPDACREATED_EVENT_DISCRIMINATOR = new Uint8Array([183, 183,
 /** Auto-generated event interface from the program IDL. */
 export interface SocialFeePdaCreated {
   timestamp: bigint | number;
-  user_id: string;
+  userId: string;
   platform: number;
-  social_fee_pda: naclac.Address | string;
-  created_by: naclac.Address | string;
+  socialFeePda: naclac.Address | string;
+  createdBy: naclac.Address | string;
 }
 
 /** Subscribes to `SocialFeePdaCreated` events. Returns a listener ID for cleanup. */
@@ -485,10 +485,10 @@ export const SWEEPBUYBACKEVENT_EVENT_DISCRIMINATOR = new Uint8Array([43, 56, 42,
 
 /** Auto-generated event interface from the program IDL. */
 export interface SweepBuybackEvent {
-  sol_amount: bigint | number;
-  token_amount: bigint | number;
+  solAmount: bigint | number;
+  tokenAmount: bigint | number;
   destination: naclac.Address | string;
-  buyback_vault: naclac.Address | string;
+  buybackVault: naclac.Address | string;
   mint: naclac.Address | string;
   index: number;
   padding: string | Uint8Array;
@@ -524,8 +524,8 @@ export const UPDATEADMINEVENT_EVENT_DISCRIMINATOR = new Uint8Array([225, 152, 17
 /** Auto-generated event interface from the program IDL. */
 export interface UpdateAdminEvent {
   timestamp: bigint | number;
-  old_admin: naclac.Address | string;
-  new_admin: naclac.Address | string;
+  oldAdmin: naclac.Address | string;
+  newAdmin: naclac.Address | string;
 }
 
 /** Subscribes to `UpdateAdminEvent` events. Returns a listener ID for cleanup. */
@@ -559,9 +559,9 @@ export const UPDATEFEECONFIGEVENT_EVENT_DISCRIMINATOR = new Uint8Array([90, 23, 
 export interface UpdateFeeConfigEvent {
   timestamp: bigint | number;
   admin: naclac.Address | string;
-  fee_config: naclac.Address | string;
-  fee_tiers: Array<FeeTier>;
-  flat_fees: Fees;
+  feeConfig: naclac.Address | string;
+  feeTiers: Array<FeeTier>;
+  flatFees: Fees;
 }
 
 /** Subscribes to `UpdateFeeConfigEvent` events. Returns a listener ID for cleanup. */
@@ -595,9 +595,9 @@ export const UPDATEFEESHARESEVENT_EVENT_DISCRIMINATOR = new Uint8Array([21, 186,
 export interface UpdateFeeSharesEvent {
   timestamp: bigint | number;
   mint: naclac.Address | string;
-  sharing_config: naclac.Address | string;
+  sharingConfig: naclac.Address | string;
   admin: naclac.Address | string;
-  new_shareholders: Array<Shareholder>;
+  newShareholders: Array<Shareholder>;
   version: number;
 }
 
@@ -632,9 +632,9 @@ export const UPDATESTABLEFEECONFIGEVENT_EVENT_DISCRIMINATOR = new Uint8Array([94
 export interface UpdateStableFeeConfigEvent {
   timestamp: bigint | number;
   admin: naclac.Address | string;
-  fee_config: naclac.Address | string;
-  stable_fee_tiers: Array<FeeTier>;
-  flat_fees: Fees;
+  feeConfig: naclac.Address | string;
+  stableFeeTiers: Array<FeeTier>;
+  flatFees: Fees;
 }
 
 /** Subscribes to `UpdateStableFeeConfigEvent` events. Returns a listener ID for cleanup. */
@@ -668,8 +668,8 @@ export const UPSERTFEETIERSEVENT_EVENT_DISCRIMINATOR = new Uint8Array([171, 89, 
 export interface UpsertFeeTiersEvent {
   timestamp: bigint | number;
   admin: naclac.Address | string;
-  fee_config: naclac.Address | string;
-  fee_tiers: Array<FeeTier>;
+  feeConfig: naclac.Address | string;
+  feeTiers: Array<FeeTier>;
   offset: number;
 }
 
@@ -704,8 +704,8 @@ export const UPSERTSTABLEFEETIERSEVENT_EVENT_DISCRIMINATOR = new Uint8Array([232
 export interface UpsertStableFeeTiersEvent {
   timestamp: bigint | number;
   admin: naclac.Address | string;
-  fee_config: naclac.Address | string;
-  stable_fee_tiers: Array<FeeTier>;
+  feeConfig: naclac.Address | string;
+  stableFeeTiers: Array<FeeTier>;
   offset: number;
 }
 

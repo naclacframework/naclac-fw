@@ -72,7 +72,6 @@ pub struct LaunchToken {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn launch_token(
     ctx: Context<LaunchToken>,
     args: LaunchTokenArgs,

@@ -8,36 +8,36 @@ export const TRANSFER_CREATOR_FEES_TO_PUMP_DISCRIMINATOR = new Uint8Array([139, 
 
 /** Instruction arguments for `transferCreatorFeesToPump`. */
 export interface TransferCreatorFeesToPumpArgs {
-  coin_creator_vault_authority_bump: number;
-  pump_creator_vault_bump: number;
+  coinCreatorVaultAuthorityBump: number;
+  pumpCreatorVaultBump: number;
 }
 
 /** Accounts for the `transferCreatorFeesToPump` instruction. */
 export interface TransferCreatorFeesToPumpAccounts {
-  wsol_mint?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  wsolMint?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   /**
    * SAFETY: only used as seed material for `coin_creator_vault_authority`/
    * `pump_creator_vault` below — `pump_fees` passes its own `sharing_config`
    * PDA here, never dereferenced.
    */
-  coin_creator: naclac.Address | string;
+  coinCreator: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump` constraint already verifies its address;
    * it's a lamport-only PDA authority (no stored data), used below as a
    * CPI signer and lamport destination/source, never deserialized.
    */
-  coin_creator_vault_authority?: naclac.Address | string;
-  coin_creator_vault_ata: naclac.Address | string;
+  coinCreatorVaultAuthority?: naclac.Address | string;
+  coinCreatorVaultAta: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump`/`seeds::program` constraint already verifies
    * its address; it's a lamport-only PDA under `pump`'s own program (no
    * stored data from this program's perspective), only ever a lamport
    * destination below, never deserialized.
    */
-  pump_creator_vault?: naclac.Address | string;
+  pumpCreatorVault?: naclac.Address | string;
 }
 
 /**

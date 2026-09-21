@@ -29,7 +29,6 @@ pub struct CloseVaultSelf {
     pub destination: AccountInfo,
 }
 
-#[instruction]
 pub fn close_vault_self(_ctx: Context<CloseVaultSelf>) -> Result {
     Ok(())
 }

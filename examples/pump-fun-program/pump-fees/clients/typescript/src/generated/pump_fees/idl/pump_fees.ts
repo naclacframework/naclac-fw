@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ",
+  "address": "cBPbCAyFhnUXngDY23SoKwvPrS5ppDaS1VjakEegoDV",
   "metadata": {
     "name": "pump_fees",
     "version": "0.1.0",
@@ -316,7 +316,7 @@ export const IDL = {
               { "kind": "account", "path": "config_id" },
               { "kind": "account", "path": "quote_mint" }
             ],
-            "program": { "kind": "const", "value": [23,118,164,191,192,201,243,51,32,226,179,109,83,249,158,252,119,104,39,62,96,34,156,219,131,24,131,100,36,174,205,212], "name": "DONATION_RELAY_PROGRAM_ID" }
+            "program": { "kind": "const", "value": [109,67,17,127,178,28,192,153,17,233,35,187,36,107,62,174,120,73,22,5,133,131,3,202,99,38,247,184,170,56,230,45], "name": "DONATION_RELAY_PROGRAM_ID" }
           }
         },
         {
@@ -331,7 +331,7 @@ export const IDL = {
               { "kind": "account", "path": "config_id" },
               { "kind": "account", "path": "quote_mint" }
             ],
-            "program": { "kind": "const", "value": [23,118,164,191,192,201,243,51,32,226,179,109,83,249,158,252,119,104,39,62,96,34,156,219,131,24,131,100,36,174,205,212], "name": "DONATION_RELAY_PROGRAM_ID" }
+            "program": { "kind": "const", "value": [109,67,17,127,178,28,192,153,17,233,35,187,36,107,62,174,120,73,22,5,133,131,3,202,99,38,247,184,170,56,230,45], "name": "DONATION_RELAY_PROGRAM_ID" }
           }
         },
         {
@@ -1565,6 +1565,7 @@ export const IDL = {
         "kind": "struct",
         "fields": [
           { "name": "pool_bump", "type": "u8" },
+          { "name": "padding_a", "type": { "array": ["u8",1] } },
           { "name": "index", "type": "u16" },
           { "name": "creator", "type": "publicKey" },
           { "name": "base_mint", "type": "publicKey" },
@@ -1573,6 +1574,7 @@ export const IDL = {
           { "name": "pool_base_token_account", "type": "publicKey" },
           { "name": "pool_quote_token_account", "type": "publicKey" },
           { "name": "coin_creator", "type": "publicKey" },
+          { "name": "padding_b", "type": { "array": ["u8",4] } },
           { "name": "lp_supply", "type": "u64" },
           { "name": "is_mayhem_mode", "type": { "defined": "Bool" } },
           { "name": "is_cashback_coin", "type": { "defined": "Bool" } },
@@ -1584,8 +1586,17 @@ export const IDL = {
       "name": "Global",
       "docs": [
         "Field-for-field mirror of `pump-bonding-curve`'s own real `Global`",
-        "account — `pump_fees` reads this account (owned by that program) via a",
-        "raw byte cast, so this layout depends on matching it exactly."
+        "account, as far as field *order* goes — but this specific `#[component]`",
+        "(zero-copy, `#[repr(C)]`) instance is itself already deployed on devnet,",
+        "so its own layout is what must stay stable now, not the real (Borsh,",
+        "hence unpaddded) program's byte-for-byte layout, which a `#[repr(C)]`",
+        "struct could never replicate exactly regardless of field order anyway.",
+        "The three `_padding*` fields below make internal alignment gaps",
+        "bytemuck would otherwise silently insert explicit instead — needed",
+        "because reordering fields (which would remove them) isn't safe while",
+        "this exact layout is already live. Revisit alongside a redeploy: at that",
+        "point the fields can be reordered largest-alignment-first and these",
+        "padding fields removed instead."
       ],
       "discriminator": [167,232,232,177,200,108,114,127],
       "type": {
@@ -1594,6 +1605,7 @@ export const IDL = {
           { "name": "initialized", "type": { "defined": "Bool" } },
           { "name": "authority", "type": "publicKey" },
           { "name": "fee_recipient", "type": "publicKey" },
+          { "name": "padding_a", "type": { "array": ["u8",7] } },
           { "name": "initial_virtual_token_reserves", "type": "u64" },
           { "name": "initial_virtual_sol_reserves", "type": "u64" },
           { "name": "initial_real_token_reserves", "type": "u64" },
@@ -1601,6 +1613,7 @@ export const IDL = {
           { "name": "fee_basis_points", "type": "u64" },
           { "name": "withdraw_authority", "type": "publicKey" },
           { "name": "enable_migrate", "type": { "defined": "Bool" } },
+          { "name": "padding_b", "type": { "array": ["u8",7] } },
           { "name": "pool_migration_fee", "type": "u64" },
           { "name": "creator_fee_basis_points", "type": "u64" },
           { "name": "fee_recipients", "type": { "array": ["publicKey",7] } },
@@ -1613,6 +1626,7 @@ export const IDL = {
           { "name": "reserved_fee_recipients", "type": { "array": ["publicKey",7] } },
           { "name": "is_cashback_enabled", "type": { "defined": "Bool" } },
           { "name": "buyback_fee_recipients", "type": { "array": ["publicKey",8] } },
+          { "name": "padding_c", "type": { "array": ["u8",5] } },
           { "name": "buyback_basis_points", "type": "u64" },
           { "name": "initial_virtual_quote_reserves", "type": "u64" },
           { "name": "whitelisted_quote_mints", "type": { "array": ["publicKey",2] } }
@@ -2213,7 +2227,7 @@ export const IDL = {
     {
       "name": "DONATION_RELAY_PROGRAM_ID",
       "type": "publicKey",
-      "value": "2abJkQX74rXzAJEgKRq8PmrT62M2iFtachKGqc4wn9tX"
+      "value": "8MWkme4Dfe5NBPh17itoSro62n4FTGLmPNXYFRCUzu7A"
     },
     {
       "name": "WSOL_MINT",
@@ -2297,7 +2311,7 @@ export const IDL = {
         { "kind": "account", "path": "config_id" },
         { "kind": "account", "path": "quote_mint" }
       ],
-      "program": { "kind": "const", "value": [23,118,164,191,192,201,243,51,32,226,179,109,83,249,158,252,119,104,39,62,96,34,156,219,131,24,131,100,36,174,205,212], "name": "DONATION_RELAY_PROGRAM_ID" }
+      "program": { "kind": "const", "value": [109,67,17,127,178,28,192,153,17,233,35,187,36,107,62,174,120,73,22,5,133,131,3,202,99,38,247,184,170,56,230,45], "name": "DONATION_RELAY_PROGRAM_ID" }
     },
     {
       "name": "debouncer_ata",
@@ -2322,7 +2336,7 @@ export const IDL = {
         { "kind": "account", "path": "config_id" },
         { "kind": "account", "path": "quote_mint" }
       ],
-      "program": { "kind": "const", "value": [23,118,164,191,192,201,243,51,32,226,179,109,83,249,158,252,119,104,39,62,96,34,156,219,131,24,131,100,36,174,205,212], "name": "DONATION_RELAY_PROGRAM_ID" }
+      "program": { "kind": "const", "value": [109,67,17,127,178,28,192,153,17,233,35,187,36,107,62,174,120,73,22,5,133,131,3,202,99,38,247,184,170,56,230,45], "name": "DONATION_RELAY_PROGRAM_ID" }
     },
     {
       "name": "fee_config",

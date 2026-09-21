@@ -22,7 +22,6 @@ pub struct TransferTokensChecked {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn transfer_tokens_checked(
     ctx: Context<TransferTokensChecked>,
     amount: u64,

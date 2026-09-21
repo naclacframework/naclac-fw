@@ -24,7 +24,6 @@ pub struct InitRegistry {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_registry(ctx: Context<InitRegistry>) -> Result {
     let registry = &mut ctx.accounts.registry;
     registry.tag = 0;

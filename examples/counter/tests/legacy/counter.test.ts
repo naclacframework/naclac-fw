@@ -8,7 +8,8 @@ describe("Naclac Counter Test Suite (Legacy)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterClient("localnet", payer);
+    // Change this to "devnet" or an RPC URL to test against a live network!
+    client = new CounterClient("litesvm", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 
@@ -53,5 +54,29 @@ describe("Naclac Counter Test Suite (Legacy)", () => {
 
     console.log(`      🔔 Event Fired! New Count: ${capturedEvents[0].newCount}`);
     console.log("      ✨ Test Suite Passed!");
+  });
+
+  it("3. Event listener fires via emulated notification", async () => {
+    // litesvm's blockhash doesn't advance on its own the way a real
+    // cluster's does — sending the exact same instruction again under the
+    // same blockhash produces an identical signature, which litesvm
+    // correctly rejects as already-processed (real replay protection).
+    client.program.provider.litesvm?.expireBlockhash();
+
+    let receivedEvent: any = null;
+    const listenerId = client.program.addEventListener("CounterIncremented", (event) => {
+      receivedEvent = event;
+    });
+
+    await client
+      .increment({})
+      .accounts({ authority: payer.publicKey, counterAccount: counterPda })
+      .rpc()
+      .catch(naclac.logError);
+
+    client.program.removeEventListener(listenerId);
+
+    if (!receivedEvent) throw new Error("❌ addEventListener never fired for litesvm mode!");
+    console.log(`      🔔 addEventListener fired! New Count: ${receivedEvent.newCount}`);
   });
 });

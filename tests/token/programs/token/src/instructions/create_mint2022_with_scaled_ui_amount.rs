@@ -36,7 +36,6 @@ pub struct CreateMint2022WithScaledUiAmount {
 /// 4-byte TLV header + 56-byte `ScaledUiAmountConfig` value.
 const MINT_WITH_SCALED_UI_AMOUNT_SPACE: u64 = 82 + 83 + 1 + 4 + 56;
 
-#[instruction]
 pub fn create_mint2022_with_scaled_ui_amount(
     ctx: Context<CreateMint2022WithScaledUiAmount>,
     id: u64,

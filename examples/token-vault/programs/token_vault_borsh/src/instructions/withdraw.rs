@@ -36,7 +36,6 @@ pub struct Withdraw {
     pub token_program: Interface<TokenInterface>,
 }
 
-#[instruction]
 pub fn withdraw(ctx: Context<Withdraw>, vault_id: u64, amount: u64) -> Result {
     let vault_account_addr = ctx.accounts.vault_account.address();
     let mint_addr = ctx.accounts.mint.address();

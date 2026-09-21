@@ -30,7 +30,7 @@ export class PumpAmmClient {
   }
 
   constructor(
-    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet",
+    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet" | "litesvm",
     payer?: naclac.KeyPairSigner
   ) {
     let provider: naclac.NaclacProvider;
@@ -40,7 +40,7 @@ export class PumpAmmClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider);
+    this.program = new naclac.Program(IDL, provider, true);
   }
 
   /**
@@ -122,13 +122,13 @@ export class PumpAmmClient {
 
   /** Derives the PDA for a `coin_creator_vault_authority` account. */
   public async getCoinCreatorVaultAuthorityPda(seeds: {
-    coin_creator: naclac.Address | string;
+    coinCreator: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([99, 114, 101, 97, 116, 111, 114, 95, 118, 97, 117, 108, 116]),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.coin_creator === 'string' ? naclac.address(seeds.coin_creator) : seeds.coin_creator))
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.coinCreator === 'string' ? naclac.address(seeds.coinCreator) : seeds.coinCreator))
       ]
     });
   }
@@ -161,8 +161,8 @@ export class PumpAmmClient {
   public async getPoolPda(seeds: {
     args: types.CreatePoolArgs;
     creator: naclac.Address | string;
-    base_mint: naclac.Address | string;
-    quote_mint: naclac.Address | string;
+    baseMint: naclac.Address | string;
+    quoteMint: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
@@ -170,21 +170,21 @@ export class PumpAmmClient {
                 new Uint8Array([112, 111, 111, 108]),
         new Uint8Array(naclac.getIdlCodec(JSON.parse('"u16"')).encode(seeds.args.index)),
         new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.creator === 'string' ? naclac.address(seeds.creator) : seeds.creator)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.base_mint === 'string' ? naclac.address(seeds.base_mint) : seeds.base_mint)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quote_mint === 'string' ? naclac.address(seeds.quote_mint) : seeds.quote_mint))
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.baseMint === 'string' ? naclac.address(seeds.baseMint) : seeds.baseMint)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quoteMint === 'string' ? naclac.address(seeds.quoteMint) : seeds.quoteMint))
       ]
     });
   }
 
   /** Derives the PDA for a `pump_creator_vault` account. */
   public async getPumpCreatorVaultPda(seeds: {
-    coin_creator: naclac.Address | string;
+    coinCreator: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: naclac.address("FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD"),
       seeds: [
                 new Uint8Array([99, 114, 101, 97, 116, 111, 114, 45, 118, 97, 117, 108, 116]),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.coin_creator === 'string' ? naclac.address(seeds.coin_creator) : seeds.coin_creator))
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.coinCreator === 'string' ? naclac.address(seeds.coinCreator) : seeds.coinCreator))
       ]
     });
   }

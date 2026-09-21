@@ -7,15 +7,14 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
+#[cfg(feature = "borsh")]
 /// Scoped reimplementation of the real `pump_amm::GlobalConfig` — this pass
 /// only needs `disable_flags` (bit 0 = `create_pool` disabled, checked by
 /// `create_pool`), `admin` (checked by `toggle_boost`/`set_boost_authority`),
 /// and `boost_authority`/`boost_enabled` (checked by `boost_buy_and_burn`/
 /// `init_boost`), not the real account's other fee/whitelist fields.
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct GlobalConfig {
     pub bump: u8,
     pub disable_flags: u8,
@@ -26,20 +25,152 @@ pub struct GlobalConfig {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for GlobalConfig {}
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Pod for GlobalConfig {}
-#[cfg(feature = "cpi")]
 /// Scoped reimplementation of the real `pump_amm::GlobalConfig` — this pass
 /// only needs `disable_flags` (bit 0 = `create_pool` disabled, checked by
 /// `create_pool`), `admin` (checked by `toggle_boost`/`set_boost_authority`),
 /// and `boost_authority`/`boost_enabled` (checked by `boost_buy_and_burn`/
 /// `init_boost`), not the real account's other fee/whitelist fields.
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct GlobalConfig {
+    pub bump: u8,
+    pub __naclac_padding_0: [u8; __GlobalConfig_GAP_0],
+    pub disable_flags: u8,
+    pub __naclac_padding_1: [u8; __GlobalConfig_GAP_1],
+    pub boost_enabled: crate::sdk_core_offchain::Bool,
+    pub __naclac_padding_2: [u8; __GlobalConfig_GAP_2],
+    pub admin: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_3: [u8; __GlobalConfig_GAP_3],
+    pub boost_authority: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_4: [u8; __GlobalConfig_GAP_4],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfig_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfig_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __GlobalConfig_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfig_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __GlobalConfig_GAP_0
+        + ::core::mem::size_of::<u8>() + __GlobalConfig_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfig_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __GlobalConfig_GAP_0
+        + ::core::mem::size_of::<u8>() + __GlobalConfig_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __GlobalConfig_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfig_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __GlobalConfig_GAP_0
+        + ::core::mem::size_of::<u8>() + __GlobalConfig_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>() + __GlobalConfig_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __GlobalConfig_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < GlobalConfig > () == (::core::mem::size_of:: < u8 > () +
+        __GlobalConfig_GAP_0 + ::core::mem::size_of:: < u8 > () + __GlobalConfig_GAP_1 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Bool > () +
+        __GlobalConfig_GAP_2 + ::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Address > () + __GlobalConfig_GAP_3 + ::core::mem::size_of::
+        < crate ::sdk_core_offchain::Address > () + __GlobalConfig_GAP_4),
+        "defined_type/#[component]: `GlobalConfig`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_offchain::Bool>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for GlobalConfig {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for GlobalConfig {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for GlobalConfig {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(feature = "borsh")]
+/// Scoped reimplementation of the real `pump_amm::GlobalConfig` — this pass
+/// only needs `disable_flags` (bit 0 = `create_pool` disabled, checked by
+/// `create_pool`), `admin` (checked by `toggle_boost`/`set_boost_authority`),
+/// and `boost_authority`/`boost_enabled` (checked by `boost_buy_and_burn`/
+/// `init_boost`), not the real account's other fee/whitelist fields.
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct GlobalConfigCpi {
     pub bump: u8,
     pub disable_flags: u8,
@@ -50,10 +181,143 @@ pub struct GlobalConfigCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+/// Scoped reimplementation of the real `pump_amm::GlobalConfig` — this pass
+/// only needs `disable_flags` (bit 0 = `create_pool` disabled, checked by
+/// `create_pool`), `admin` (checked by `toggle_boost`/`set_boost_authority`),
+/// and `boost_authority`/`boost_enabled` (checked by `boost_buy_and_burn`/
+/// `init_boost`), not the real account's other fee/whitelist fields.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct GlobalConfigCpi {
+    pub bump: u8,
+    pub __naclac_padding_0: [u8; __GlobalConfigCpi_GAP_0],
+    pub disable_flags: u8,
+    pub __naclac_padding_1: [u8; __GlobalConfigCpi_GAP_1],
+    pub boost_enabled: crate::sdk_core_cpi::Bool,
+    pub __naclac_padding_2: [u8; __GlobalConfigCpi_GAP_2],
+    pub admin: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_3: [u8; __GlobalConfigCpi_GAP_3],
+    pub boost_authority: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_4: [u8; __GlobalConfigCpi_GAP_4],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfigCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfigCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __GlobalConfigCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfigCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __GlobalConfigCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __GlobalConfigCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfigCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __GlobalConfigCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __GlobalConfigCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __GlobalConfigCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __GlobalConfigCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>() + __GlobalConfigCpi_GAP_0
+        + ::core::mem::size_of::<u8>() + __GlobalConfigCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>() + __GlobalConfigCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __GlobalConfigCpi_GAP_3
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < GlobalConfigCpi > () == (::core::mem::size_of:: < u8 >
+        () + __GlobalConfigCpi_GAP_0 + ::core::mem::size_of:: < u8 > () +
+        __GlobalConfigCpi_GAP_1 + ::core::mem::size_of:: < crate ::sdk_core_cpi::Bool >
+        () + __GlobalConfigCpi_GAP_2 + ::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Address > () + __GlobalConfigCpi_GAP_3 + ::core::mem::size_of:: <
+        crate ::sdk_core_cpi::Address > () + __GlobalConfigCpi_GAP_4),
+        "defined_type/#[component]: `GlobalConfigCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_cpi::Bool>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for GlobalConfigCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for GlobalConfigCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for GlobalConfigCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
 
 /// 8-byte on-chain discriminator for `GlobalConfig` accounts.
 pub const GLOBALCONFIG_DISCRIMINATOR: [u8; 8] = [149, 8, 156, 202, 160, 252, 176, 217];

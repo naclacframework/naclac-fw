@@ -9,7 +9,6 @@ pub struct EmitBatchAlloc {
     pub counter: Account<Counter>,
 }
 
-#[instruction]
 pub fn emit_batch_alloc(ctx: Context<EmitBatchAlloc>) -> Result {
     ctx.accounts.counter.count += 1;
 

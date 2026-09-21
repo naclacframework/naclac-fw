@@ -24,7 +24,6 @@ pub struct InitializeBuyback {
 // fees-06 #5: real on-chain behavior — `authority` (and every other field)
 // is left at its zero-initialized default, not set to `payer`. A freshly
 // `init`'d account is already all-zero, so there's nothing to write here.
-#[instruction]
 pub fn initialize_buyback(
     _ctx: Context<InitializeBuyback>,
     index: u8,

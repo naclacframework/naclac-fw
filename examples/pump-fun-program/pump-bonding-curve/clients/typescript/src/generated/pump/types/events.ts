@@ -13,19 +13,19 @@ export interface CreateEvent {
   symbol: string;
   uri: string;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   user: naclac.Address | string;
   creator: naclac.Address | string;
   timestamp: bigint | number;
-  virtual_token_reserves: bigint | number;
-  virtual_sol_reserves: bigint | number;
-  real_token_reserves: bigint | number;
-  token_total_supply: bigint | number;
-  token_program: naclac.Address | string;
-  is_mayhem_mode: naclac.Bool;
-  is_cashback_enabled: naclac.Bool;
-  quote_mint: naclac.Address | string;
-  virtual_quote_reserves: bigint | number;
+  virtualTokenReserves: bigint | number;
+  virtualSolReserves: bigint | number;
+  realTokenReserves: bigint | number;
+  tokenTotalSupply: bigint | number;
+  tokenProgram: naclac.Address | string;
+  isMayhemMode: naclac.Bool;
+  isCashbackEnabled: naclac.Bool;
+  quoteMint: naclac.Address | string;
+  virtualQuoteReserves: bigint | number;
 }
 
 /** Subscribes to `CreateEvent` events. Returns a listener ID for cleanup. */
@@ -59,10 +59,10 @@ export const MIGRATEBONDINGCURVECREATOREVENT_EVENT_DISCRIMINATOR = new Uint8Arra
 export interface MigrateBondingCurveCreatorEvent {
   timestamp: bigint | number;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
-  sharing_config: naclac.Address | string;
-  old_creator: naclac.Address | string;
-  new_creator: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
+  sharingConfig: naclac.Address | string;
+  oldCreator: naclac.Address | string;
+  newCreator: naclac.Address | string;
 }
 
 /** Subscribes to `MigrateBondingCurveCreatorEvent` events. Returns a listener ID for cleanup. */
@@ -94,20 +94,20 @@ export const SETPARAMSEVENT_EVENT_DISCRIMINATOR = new Uint8Array([223, 195, 159,
 
 /** Auto-generated event interface from the program IDL. */
 export interface SetParamsEvent {
-  initial_virtual_token_reserves: bigint | number;
-  initial_virtual_sol_reserves: bigint | number;
-  initial_real_token_reserves: bigint | number;
-  final_real_sol_reserves: bigint | number;
-  token_total_supply: bigint | number;
-  fee_basis_points: bigint | number;
-  withdraw_authority: naclac.Address | string;
-  pool_migration_fee: bigint | number;
-  creator_fee_basis_points: bigint | number;
-  fee_recipients: Array<naclac.Address | string>;
+  initialVirtualTokenReserves: bigint | number;
+  initialVirtualSolReserves: bigint | number;
+  initialRealTokenReserves: bigint | number;
+  finalRealSolReserves: bigint | number;
+  tokenTotalSupply: bigint | number;
+  feeBasisPoints: bigint | number;
+  withdrawAuthority: naclac.Address | string;
+  poolMigrationFee: bigint | number;
+  creatorFeeBasisPoints: bigint | number;
+  feeRecipients: Array<naclac.Address | string>;
   timestamp: bigint | number;
-  set_creator_authority: naclac.Address | string;
-  admin_set_creator_authority: naclac.Address | string;
-  enable_migrate: naclac.Bool;
+  setCreatorAuthority: naclac.Address | string;
+  adminSetCreatorAuthority: naclac.Address | string;
+  enableMigrate: naclac.Bool;
   padding: string | Uint8Array;
 }
 
@@ -142,12 +142,12 @@ export const DISTRIBUTECREATORFEESEVENT_EVENT_DISCRIMINATOR = new Uint8Array([16
 export interface DistributeCreatorFeesEvent {
   timestamp: bigint | number;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
-  sharing_config: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
+  sharingConfig: naclac.Address | string;
   admin: naclac.Address | string;
   shareholders: Array<Shareholder>;
   distributed: bigint | number;
-  quote_mint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
 }
 
 /** Subscribes to `DistributeCreatorFeesEvent` events. Returns a listener ID for cleanup. */
@@ -181,9 +181,9 @@ export const COMPLETEEVENT_EVENT_DISCRIMINATOR = new Uint8Array([95, 114, 97, 15
 export interface CompleteEvent {
   user: naclac.Address | string;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   timestamp: bigint | number;
-  quote_mint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
 }
 
 /** Subscribes to `CompleteEvent` events. Returns a listener ID for cleanup. */
@@ -221,14 +221,14 @@ export const COMPLETEPUMPAMMMIGRATIONEVENT_EVENT_DISCRIMINATOR = new Uint8Array(
  */
 export interface CompletePumpAmmMigrationEvent {
   timestamp: bigint | number;
-  mint_amount: bigint | number;
-  sol_amount: bigint | number;
-  pool_migration_fee: bigint | number;
+  mintAmount: bigint | number;
+  solAmount: bigint | number;
+  poolMigrationFee: bigint | number;
   user: naclac.Address | string;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   pool: naclac.Address | string;
-  quote_mint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
 }
 
 /** Subscribes to `CompletePumpAmmMigrationEvent` events. Returns a listener ID for cleanup. */
@@ -262,8 +262,8 @@ export const EXTENDACCOUNTEVENT_EVENT_DISCRIMINATOR = new Uint8Array([97, 97, 21
 export interface ExtendAccountEvent {
   account: naclac.Address | string;
   user: naclac.Address | string;
-  current_size: bigint | number;
-  new_size: bigint | number;
+  currentSize: bigint | number;
+  newSize: bigint | number;
   timestamp: bigint | number;
 }
 
@@ -297,37 +297,37 @@ export const TRADEEVENT_EVENT_DISCRIMINATOR = new Uint8Array([189, 219, 127, 211
 /** Auto-generated event interface from the program IDL. */
 export interface TradeEvent {
   mint: naclac.Address | string;
-  sol_amount: bigint | number;
-  token_amount: bigint | number;
-  is_buy: naclac.Bool;
+  solAmount: bigint | number;
+  tokenAmount: bigint | number;
+  isBuy: naclac.Bool;
   user: naclac.Address | string;
   timestamp: bigint | number;
-  virtual_sol_reserves: bigint | number;
-  virtual_token_reserves: bigint | number;
-  real_sol_reserves: bigint | number;
-  real_token_reserves: bigint | number;
-  fee_recipient: naclac.Address | string;
-  fee_basis_points: bigint | number;
+  virtualSolReserves: bigint | number;
+  virtualTokenReserves: bigint | number;
+  realSolReserves: bigint | number;
+  realTokenReserves: bigint | number;
+  feeRecipient: naclac.Address | string;
+  feeBasisPoints: bigint | number;
   fee: bigint | number;
   creator: naclac.Address | string;
-  creator_fee_basis_points: bigint | number;
-  creator_fee: bigint | number;
-  track_volume: naclac.Bool;
-  total_unclaimed_tokens: bigint | number;
-  total_claimed_tokens: bigint | number;
-  current_sol_volume: bigint | number;
-  last_update_timestamp: bigint | number;
-  ix_name: string;
-  mayhem_mode: naclac.Bool;
-  cashback_fee_basis_points: bigint | number;
+  creatorFeeBasisPoints: bigint | number;
+  creatorFee: bigint | number;
+  trackVolume: naclac.Bool;
+  totalUnclaimedTokens: bigint | number;
+  totalClaimedTokens: bigint | number;
+  currentSolVolume: bigint | number;
+  lastUpdateTimestamp: bigint | number;
+  ixName: string;
+  mayhemMode: naclac.Bool;
+  cashbackFeeBasisPoints: bigint | number;
   cashback: bigint | number;
-  buyback_fee_basis_points: bigint | number;
-  buyback_fee: bigint | number;
+  buybackFeeBasisPoints: bigint | number;
+  buybackFee: bigint | number;
   shareholders: Array<Shareholder>;
-  quote_mint: naclac.Address | string;
-  quote_amount: bigint | number;
-  virtual_quote_reserves: bigint | number;
-  real_quote_reserves: bigint | number;
+  quoteMint: naclac.Address | string;
+  quoteAmount: bigint | number;
+  virtualQuoteReserves: bigint | number;
+  realQuoteReserves: bigint | number;
 }
 
 /** Subscribes to `TradeEvent` events. Returns a listener ID for cleanup. */
@@ -361,7 +361,7 @@ export const UPDATEGLOBALAUTHORITYEVENT_EVENT_DISCRIMINATOR = new Uint8Array([18
 export interface UpdateGlobalAuthorityEvent {
   global: naclac.Address | string;
   authority: naclac.Address | string;
-  new_authority: naclac.Address | string;
+  newAuthority: naclac.Address | string;
   timestamp: bigint | number;
 }
 
@@ -395,8 +395,8 @@ export const RESERVEDFEERECIPIENTSEVENT_EVENT_DISCRIMINATOR = new Uint8Array([43
 /** Auto-generated event interface from the program IDL. */
 export interface ReservedFeeRecipientsEvent {
   timestamp: bigint | number;
-  reserved_fee_recipient: naclac.Address | string;
-  reserved_fee_recipients: Array<naclac.Address | string>;
+  reservedFeeRecipient: naclac.Address | string;
+  reservedFeeRecipients: Array<naclac.Address | string>;
 }
 
 /** Subscribes to `ReservedFeeRecipientsEvent` events. Returns a listener ID for cleanup. */
@@ -430,7 +430,7 @@ export const SETCREATOREVENT_EVENT_DISCRIMINATOR = new Uint8Array([237, 52, 123,
 export interface SetCreatorEvent {
   timestamp: bigint | number;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   creator: naclac.Address | string;
 }
 
@@ -465,7 +465,7 @@ export const SETMETAPLEXCREATOREVENT_EVENT_DISCRIMINATOR = new Uint8Array([142, 
 export interface SetMetaplexCreatorEvent {
   timestamp: bigint | number;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   metadata: naclac.Address | string;
   creator: naclac.Address | string;
 }
@@ -500,11 +500,11 @@ export const ADMINSETCREATOREVENT_EVENT_DISCRIMINATOR = new Uint8Array([64, 69, 
 /** Auto-generated event interface from the program IDL. */
 export interface AdminSetCreatorEvent {
   timestamp: bigint | number;
-  admin_set_creator_authority: naclac.Address | string;
+  adminSetCreatorAuthority: naclac.Address | string;
   mint: naclac.Address | string;
-  bonding_curve: naclac.Address | string;
-  old_creator: naclac.Address | string;
-  new_creator: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
+  oldCreator: naclac.Address | string;
+  newCreator: naclac.Address | string;
 }
 
 /** Subscribes to `AdminSetCreatorEvent` events. Returns a listener ID for cleanup. */
@@ -529,6 +529,185 @@ export function parseAdminSetCreatorEventEvents(
   logs: readonly string[]
 ): AdminSetCreatorEvent[] {
   return program.parseEvents("AdminSetCreatorEvent", logs) as AdminSetCreatorEvent[];
+}
+
+/** 8-byte discriminator for `CollectCreatorFeeEvent` events in transaction logs. */
+export const COLLECTCREATORFEEEVENT_EVENT_DISCRIMINATOR = new Uint8Array([122, 2, 127, 1, 14, 191, 12, 175]);
+
+/** Auto-generated event interface from the program IDL. */
+export interface CollectCreatorFeeEvent {
+  timestamp: bigint | number;
+  creator: naclac.Address | string;
+  creatorFee: bigint | number;
+  quoteMint: naclac.Address | string;
+}
+
+/** Subscribes to `CollectCreatorFeeEvent` events. Returns a listener ID for cleanup. */
+export function addCollectCreatorFeeEventListener(
+  program: any,
+  callback: (event: CollectCreatorFeeEvent, slot: number, signature: string) => void
+): number {
+  return program.addEventListener("CollectCreatorFeeEvent", callback);
+}
+
+/** Waits for the next `CollectCreatorFeeEvent` event. Resolves `null` if the timeout expires. */
+export async function waitForCollectCreatorFeeEvent(
+  program: any,
+  options?: { timeoutMs?: number }
+): Promise<CollectCreatorFeeEvent | null> {
+  return program.waitForEvent("CollectCreatorFeeEvent", options) as Promise<CollectCreatorFeeEvent | null>;
+}
+
+/** Decodes every `CollectCreatorFeeEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCollectCreatorFeeEvent`/`addCollectCreatorFeeEventListener` — prefer this when you already know which transaction you're checking. */
+export function parseCollectCreatorFeeEventEvents(
+  program: any,
+  logs: readonly string[]
+): CollectCreatorFeeEvent[] {
+  return program.parseEvents("CollectCreatorFeeEvent", logs) as CollectCreatorFeeEvent[];
+}
+
+/** 8-byte discriminator for `InitUserVolumeAccumulatorEvent` events in transaction logs. */
+export const INITUSERVOLUMEACCUMULATOREVENT_EVENT_DISCRIMINATOR = new Uint8Array([134, 36, 13, 72, 232, 101, 130, 216]);
+
+/** Auto-generated event interface from the program IDL. */
+export interface InitUserVolumeAccumulatorEvent {
+  payer: naclac.Address | string;
+  user: naclac.Address | string;
+  timestamp: bigint | number;
+}
+
+/** Subscribes to `InitUserVolumeAccumulatorEvent` events. Returns a listener ID for cleanup. */
+export function addInitUserVolumeAccumulatorEventListener(
+  program: any,
+  callback: (event: InitUserVolumeAccumulatorEvent, slot: number, signature: string) => void
+): number {
+  return program.addEventListener("InitUserVolumeAccumulatorEvent", callback);
+}
+
+/** Waits for the next `InitUserVolumeAccumulatorEvent` event. Resolves `null` if the timeout expires. */
+export async function waitForInitUserVolumeAccumulatorEvent(
+  program: any,
+  options?: { timeoutMs?: number }
+): Promise<InitUserVolumeAccumulatorEvent | null> {
+  return program.waitForEvent("InitUserVolumeAccumulatorEvent", options) as Promise<InitUserVolumeAccumulatorEvent | null>;
+}
+
+/** Decodes every `InitUserVolumeAccumulatorEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForInitUserVolumeAccumulatorEvent`/`addInitUserVolumeAccumulatorEventListener` — prefer this when you already know which transaction you're checking. */
+export function parseInitUserVolumeAccumulatorEventEvents(
+  program: any,
+  logs: readonly string[]
+): InitUserVolumeAccumulatorEvent[] {
+  return program.parseEvents("InitUserVolumeAccumulatorEvent", logs) as InitUserVolumeAccumulatorEvent[];
+}
+
+/** 8-byte discriminator for `CloseUserVolumeAccumulatorEvent` events in transaction logs. */
+export const CLOSEUSERVOLUMEACCUMULATOREVENT_EVENT_DISCRIMINATOR = new Uint8Array([146, 159, 189, 172, 146, 88, 56, 244]);
+
+/** Auto-generated event interface from the program IDL. */
+export interface CloseUserVolumeAccumulatorEvent {
+  user: naclac.Address | string;
+  timestamp: bigint | number;
+  totalUnclaimedTokens: bigint | number;
+  totalClaimedTokens: bigint | number;
+  currentSolVolume: bigint | number;
+  lastUpdateTimestamp: bigint | number;
+}
+
+/** Subscribes to `CloseUserVolumeAccumulatorEvent` events. Returns a listener ID for cleanup. */
+export function addCloseUserVolumeAccumulatorEventListener(
+  program: any,
+  callback: (event: CloseUserVolumeAccumulatorEvent, slot: number, signature: string) => void
+): number {
+  return program.addEventListener("CloseUserVolumeAccumulatorEvent", callback);
+}
+
+/** Waits for the next `CloseUserVolumeAccumulatorEvent` event. Resolves `null` if the timeout expires. */
+export async function waitForCloseUserVolumeAccumulatorEvent(
+  program: any,
+  options?: { timeoutMs?: number }
+): Promise<CloseUserVolumeAccumulatorEvent | null> {
+  return program.waitForEvent("CloseUserVolumeAccumulatorEvent", options) as Promise<CloseUserVolumeAccumulatorEvent | null>;
+}
+
+/** Decodes every `CloseUserVolumeAccumulatorEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCloseUserVolumeAccumulatorEvent`/`addCloseUserVolumeAccumulatorEventListener` — prefer this when you already know which transaction you're checking. */
+export function parseCloseUserVolumeAccumulatorEventEvents(
+  program: any,
+  logs: readonly string[]
+): CloseUserVolumeAccumulatorEvent[] {
+  return program.parseEvents("CloseUserVolumeAccumulatorEvent", logs) as CloseUserVolumeAccumulatorEvent[];
+}
+
+/** 8-byte discriminator for `ClaimCashbackEvent` events in transaction logs. */
+export const CLAIMCASHBACKEVENT_EVENT_DISCRIMINATOR = new Uint8Array([226, 214, 246, 33, 7, 242, 147, 229]);
+
+/** Auto-generated event interface from the program IDL. */
+export interface ClaimCashbackEvent {
+  user: naclac.Address | string;
+  amount: bigint | number;
+  timestamp: bigint | number;
+  totalClaimed: bigint | number;
+  totalCashbackEarned: bigint | number;
+}
+
+/** Subscribes to `ClaimCashbackEvent` events. Returns a listener ID for cleanup. */
+export function addClaimCashbackEventListener(
+  program: any,
+  callback: (event: ClaimCashbackEvent, slot: number, signature: string) => void
+): number {
+  return program.addEventListener("ClaimCashbackEvent", callback);
+}
+
+/** Waits for the next `ClaimCashbackEvent` event. Resolves `null` if the timeout expires. */
+export async function waitForClaimCashbackEvent(
+  program: any,
+  options?: { timeoutMs?: number }
+): Promise<ClaimCashbackEvent | null> {
+  return program.waitForEvent("ClaimCashbackEvent", options) as Promise<ClaimCashbackEvent | null>;
+}
+
+/** Decodes every `ClaimCashbackEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForClaimCashbackEvent`/`addClaimCashbackEventListener` — prefer this when you already know which transaction you're checking. */
+export function parseClaimCashbackEventEvents(
+  program: any,
+  logs: readonly string[]
+): ClaimCashbackEvent[] {
+  return program.parseEvents("ClaimCashbackEvent", logs) as ClaimCashbackEvent[];
+}
+
+/** 8-byte discriminator for `ClaimTokenIncentivesEvent` events in transaction logs. */
+export const CLAIMTOKENINCENTIVESEVENT_EVENT_DISCRIMINATOR = new Uint8Array([79, 172, 246, 49, 205, 91, 206, 232]);
+
+/** Auto-generated event interface from the program IDL. */
+export interface ClaimTokenIncentivesEvent {
+  user: naclac.Address | string;
+  mint: naclac.Address | string;
+  amount: bigint | number;
+  timestamp: bigint | number;
+  totalClaimedTokens: bigint | number;
+  currentSolVolume: bigint | number;
+}
+
+/** Subscribes to `ClaimTokenIncentivesEvent` events. Returns a listener ID for cleanup. */
+export function addClaimTokenIncentivesEventListener(
+  program: any,
+  callback: (event: ClaimTokenIncentivesEvent, slot: number, signature: string) => void
+): number {
+  return program.addEventListener("ClaimTokenIncentivesEvent", callback);
+}
+
+/** Waits for the next `ClaimTokenIncentivesEvent` event. Resolves `null` if the timeout expires. */
+export async function waitForClaimTokenIncentivesEvent(
+  program: any,
+  options?: { timeoutMs?: number }
+): Promise<ClaimTokenIncentivesEvent | null> {
+  return program.waitForEvent("ClaimTokenIncentivesEvent", options) as Promise<ClaimTokenIncentivesEvent | null>;
+}
+
+/** Decodes every `ClaimTokenIncentivesEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForClaimTokenIncentivesEvent`/`addClaimTokenIncentivesEventListener` — prefer this when you already know which transaction you're checking. */
+export function parseClaimTokenIncentivesEventEvents(
+  program: any,
+  logs: readonly string[]
+): ClaimTokenIncentivesEvent[] {
+  return program.parseEvents("ClaimTokenIncentivesEvent", logs) as ClaimTokenIncentivesEvent[];
 }
 
 /** Removes a previously registered event listener. */

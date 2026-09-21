@@ -9,8 +9,13 @@
 //! 2. **Solana Program + Zero-Copy**: Memory-mapped pointer casting via `Pod` and `Zeroable`, while retaining standard CPI tools.
 //! 3. **Pinocchio + Zero-Copy**: Pure `no_std` mode leveraging `pinocchio` and zero-allocation logic (`Span`) exclusively.
 
-// no_std when pinocchio or no-std feature is enabled
-#![cfg_attr(any(feature = "pinocchio", feature = "no-std"), no_std)] // ===========================================================================
+// no_std when pinocchio or no-std feature is enabled — except under
+// idl-build, whose print binary needs std regardless of which on-chain
+// representation the calling crate otherwise builds with.
+#![cfg_attr(
+    all(any(feature = "pinocchio", feature = "no-std"), not(feature = "idl-build")),
+    no_std
+)] // ===========================================================================
                                                                      // Extern crate declarations
                                                                      // ===========================================================================
 

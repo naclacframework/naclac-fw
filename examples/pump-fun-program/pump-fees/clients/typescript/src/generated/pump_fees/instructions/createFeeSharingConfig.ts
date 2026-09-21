@@ -8,23 +8,23 @@ export const CREATE_FEE_SHARING_CONFIG_DISCRIMINATOR = new Uint8Array([195, 78, 
 
 /** Instruction arguments for `createFeeSharingConfig`. */
 export interface CreateFeeSharingConfigArgs {
-  bonding_curve_bump: number;
-  sharing_config_bump: number;
+  bondingCurveBump: number;
+  sharingConfigBump: number;
 }
 
 /** Accounts for the `createFeeSharingConfig` instruction. */
 export interface CreateFeeSharingConfigAccounts {
   payer: naclac.Address | string;
-  pump_global?: naclac.Address | string;
+  pumpGlobal?: naclac.Address | string;
   /**
    * SAFETY: only used as a seed input for `bonding_curve`/`sharing_config` below, never
    * read or written — a wrong value just fails those seed checks.
    */
   mint: naclac.Address | string;
-  sharing_config?: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
-  pump_program: naclac.Address | string;
+  sharingConfig?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
+  pumpProgram: naclac.Address | string;
   /**
    * SAFETY: only used as the signed-CPI proof-of-origin for
    * `pump::migrate_bonding_curve_creator` below — the `seeds`/`bump`
@@ -32,7 +32,7 @@ export interface CreateFeeSharingConfigAccounts {
    * signer of *this* instruction (it's signed by us, via our own seeds,
    * only on the outgoing CPI).
    */
-  pump_fees_authority?: naclac.Address | string;
+  pumpFeesAuthority?: naclac.Address | string;
 }
 
 /**

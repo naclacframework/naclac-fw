@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "2pYvma2nEiPYHr3Ar6XzQkm3AxdKzNhhAi2VKLyrZ8hj",
+  "address": "3buQWRXdp8UE62AN4jnTKyb7xUDQ62GkMpcRgMgxpEgA",
   "metadata": {
     "name": "cpi_caller",
     "version": "0.1.0",

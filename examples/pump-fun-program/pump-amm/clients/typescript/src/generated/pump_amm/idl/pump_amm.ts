@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx",
+  "address": "CgRf7F42guD313ikFQJQaodeqayL3XH8R2oy8KfAStfD",
   "metadata": {
     "name": "pump_amm",
     "version": "0.1.0",
@@ -83,8 +83,9 @@ export const IDL = {
         {
           "name": "user_pool_token_account",
           "docs": [
-            "SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump` below",
-            "fully validate and construct this account via a real CPI — there is",
+            "SAFETY: `init` + `associated_token::mint`/`::authority` below, plus",
+            "the real Associated Token Program's own CPI-level address",
+            "verification, fully validate and construct this account — there is",
             "no naclac `Discriminator` to check since this is a raw SPL",
             "`TokenAccount` layout, so `AccountInfo` is correct here, not a gap in",
             "coverage (same reasoning as `pump::create`'s own `mint` field)."
@@ -330,9 +331,10 @@ export const IDL = {
         {
           "name": "boost_vault",
           "docs": [
-            "SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump`",
-            "below fully validate and construct this account via a real CPI —",
-            "there is no naclac `Discriminator` to check since this is a raw SPL",
+            "SAFETY: `init` + `associated_token::mint`/`::authority` below, plus",
+            "the real Associated Token Program's own CPI-level address",
+            "verification, fully validate and construct this account — there is",
+            "no naclac `Discriminator` to check since this is a raw SPL",
             "`TokenAccount` layout (same reasoning as `create_pool`'s own",
             "freshly-`init`ed ATA fields)."
           ],
@@ -343,8 +345,7 @@ export const IDL = {
         { "name": "associated_token_program", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" }
       ],
       "args": [
-        { "name": "boost_vault_authority_bump", "type": "u8" },
-        { "name": "boost_vault_bump", "type": "u8" }
+        { "name": "boost_vault_authority_bump", "type": "u8" }
       ]
     },
     {
@@ -692,10 +693,7 @@ export const IDL = {
           { "name": "pool_bump", "type": "u8" },
           { "name": "lp_mint_bump", "type": "u8" },
           { "name": "user_base_token_account_bump", "type": "u8" },
-          { "name": "user_quote_token_account_bump", "type": "u8" },
-          { "name": "user_pool_token_account_bump", "type": "u8" },
-          { "name": "pool_base_token_account_bump", "type": "u8" },
-          { "name": "pool_quote_token_account_bump", "type": "u8" }
+          { "name": "user_quote_token_account_bump", "type": "u8" }
         ]
       }
     }

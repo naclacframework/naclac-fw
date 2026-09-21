@@ -14,7 +14,6 @@ pub struct IncrementCounter {
     pub counter: Account<Counter>,
 }
 
-#[instruction]
 pub fn increment_counter(ctx: Context<IncrementCounter>) -> Result {
     ctx.accounts.counter.count += 1;
     let new_count = ctx.accounts.counter.count;

@@ -45,24 +45,24 @@ pub fn generate_legacy_client(
     client_content.push_str("\n  /** The on-chain program address as a `PublicKey`. */\n  public get programId(): naclac.PublicKey {\n    return this.program.programId;\n  }\n");
 
     // ── Constructor ───────────────────────────────────────────────────────────
-    client_content.push_str("\n  constructor(\n    providerOrCluster: naclac.LegacyProvider | \"devnet\" | \"mainnet\" | \"localnet\" | string,\n    payer?: naclac.Keypair\n  ) {\n");
+    client_content.push_str("\n  constructor(\n    providerOrCluster: naclac.LegacyProvider | \"devnet\" | \"mainnet\" | \"localnet\" | \"litesvm\" | string,\n    payer?: naclac.Keypair\n  ) {\n");
     client_content.push_str("    let provider: naclac.LegacyProvider;\n");
     client_content.push_str("    if (typeof providerOrCluster === \"string\") {\n");
-    client_content.push_str("      let url = providerOrCluster;\n");
-    client_content.push_str(
-        "      if (providerOrCluster === \"devnet\") url = \"https://api.devnet.solana.com\";\n",
-    );
-    client_content.push_str("      else if (providerOrCluster === \"mainnet\") url = \"https://api.mainnet-beta.solana.com\";\n");
-    client_content.push_str(
-        "      else if (providerOrCluster === \"localnet\") url = \"http://127.0.0.1:8899\";\n",
-    );
-    client_content
-        .push_str("      const connection = new naclac.Connection(url, \"confirmed\");\n");
-    client_content.push_str(
-        "      provider = { connection, payer, publicKey: payer ? payer.publicKey : undefined };\n",
-    );
+    // `naclac.createProvider` (client/src/legacy/setup.ts) is the single
+    // source of truth for cluster-string -> LegacyProvider construction —
+    // it already implements both the litesvm branch (forwarding `payer`
+    // correctly) and the real-cluster branch (with working
+    // `getBalance`/`getTokenBalance`), which a hand-inlined object literal
+    // here would otherwise have to duplicate and could silently fall out
+    // of sync with (as it previously did).
+    client_content.push_str("      provider = naclac.createProvider(providerOrCluster, payer);\n");
     client_content.push_str("    } else {\n      provider = providerOrCluster;\n    }\n");
-    client_content.push_str("    this.program = new naclac.LegacyProgram(IDL, provider);\n");
+    // See `kit.rs`'s equivalent line: `idl.is_zero_copy` is codegen-time-only
+    // and never written into the IDL data itself — baked in here as a literal.
+    client_content.push_str(&format!(
+        "    this.program = new naclac.LegacyProgram(IDL, provider, {});\n",
+        idl.is_zero_copy
+    ));
     client_content.push_str("  }\n\n");
 
     // ── Instruction methods ───────────────────────────────────────────────────
@@ -203,7 +203,7 @@ pub fn generate_legacy_client(
                     if idl.defined_types.iter().any(|t| t.name == arg_ty) {
                         arg_ty = format!("types.{}", arg_ty);
                     }
-                    client_content.push_str(&format!("    {root}: {arg_ty};\n"));
+                    client_content.push_str(&format!("    {}: {arg_ty};\n", root.to_lower_camel_case()));
                 }
                 IdlSeed::Account { path, field_type } => {
                     if seen_seeds.contains(path) {
@@ -216,13 +216,13 @@ pub fn generate_legacy_client(
                     if let Some(field_ty) = field_type {
                         // Resolved field-access seed (e.g. `registry.bump: u8`).
                         // `.` isn't valid in a plain TS property key.
-                        let key = path.replace('.', "_");
+                        let key = path.replace('.', "_").to_lower_camel_case();
                         let ts_ty = map_type_to_ts(&serde_json::json!(field_ty), idl.is_zero_copy);
                         client_content.push_str(&format!("    {key}: {ts_ty};\n"));
                     } else {
                         // PublicKey | string — no direct web3.js import, naclac re-exports PublicKey
                         client_content
-                            .push_str(&format!("    {path}: naclac.PublicKey | string;\n"));
+                            .push_str(&format!("    {}: naclac.PublicKey | string;\n", path.to_lower_camel_case()));
                     }
                 }
                 _ => {}
@@ -248,23 +248,35 @@ pub fn generate_legacy_client(
                         Some(ty) => serde_json::to_string(&ty).unwrap(),
                         None => "\"any\"".to_string(),
                     };
+                    // Each dotted segment is a TS property access — every
+                    // segment was camelCased when the corresponding
+                    // interface (top-level `seeds` param or a nested
+                    // `types.*` struct) was generated, so the read
+                    // expression must camelCase every segment too, not just
+                    // the root.
+                    let camel_path = path
+                        .split('.')
+                        .map(|seg| seg.to_lower_camel_case())
+                        .collect::<Vec<_>>()
+                        .join(".");
                     // naclac.getIdlCodec is re-exported from @naclac-fw/client/legacy
                     seeds_exprs.push(format!(
-                        "new Uint8Array(naclac.getIdlCodec(JSON.parse('{arg_ty_json}')).encode(seeds.{path}))"
+                        "new Uint8Array(naclac.getIdlCodec(JSON.parse('{arg_ty_json}')).encode(seeds.{camel_path}))"
                     ));
                 }
                 IdlSeed::Account { path, field_type } => {
                     if let Some(field_ty) = field_type {
                         // Resolved field-access seed — same generic codec
                         // path the `IdlSeed::Arg` branch above uses.
-                        let key = path.replace('.', "_");
+                        let key = path.replace('.', "_").to_lower_camel_case();
                         let ty_json = serde_json::to_string(field_ty).unwrap();
                         seeds_exprs.push(format!(
                             "new Uint8Array(naclac.getIdlCodec(JSON.parse('{ty_json}')).encode(seeds.{key}))"
                         ));
                     } else {
                         // toBuffer() is a web3.js v1 PublicKey method — safe via naclac.PublicKey
-                        seeds_exprs.push(format!("new naclac.PublicKey(seeds.{path}).toBuffer()"));
+                        let camel_path = path.to_lower_camel_case();
+                        seeds_exprs.push(format!("new naclac.PublicKey(seeds.{camel_path}).toBuffer()"));
                     }
                 }
             }

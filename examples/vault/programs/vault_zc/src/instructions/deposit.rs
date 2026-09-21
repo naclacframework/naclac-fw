@@ -28,7 +28,6 @@ pub struct Deposit {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn deposit(ctx: Context<Deposit>, amount: u64, user_bump: u8) -> Result {
     
     ctx.accounts.system_program.transfer(

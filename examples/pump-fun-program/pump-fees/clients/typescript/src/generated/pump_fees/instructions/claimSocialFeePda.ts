@@ -8,7 +8,7 @@ export const CLAIM_SOCIAL_FEE_PDA_DISCRIMINATOR = new Uint8Array([225, 21, 251, 
 
 /** Instruction arguments for `claimSocialFeePda`. */
 export interface ClaimSocialFeePdaArgs {
-  user_id: string;
+  userId: string;
   platform: number;
 }
 
@@ -16,9 +16,9 @@ export interface ClaimSocialFeePdaArgs {
 export interface ClaimSocialFeePdaAccounts {
   /** SAFETY: only a lamport-transfer destination; not deserialized. */
   recipient: naclac.Address | string;
-  social_fee_pda?: naclac.Address | string;
-  fee_program_global: naclac.Address | string;
-  social_claim_authority: naclac.Address | string;
+  socialFeePda?: naclac.Address | string;
+  feeProgramGlobal: naclac.Address | string;
+  socialClaimAuthority: naclac.Address | string;
 }
 
 /**

@@ -11,10 +11,10 @@ export const GLOBALCONFIG_DISCRIMINATOR = new Uint8Array([149, 8, 156, 202, 160,
 export function getGlobalConfigEncoder(): naclac.FixedSizeEncoder<GlobalConfig> {
   return naclac.getStructEncoder([
     ["bump", naclac.getU8Encoder()],
-    ["disable_flags", naclac.getU8Encoder()],
-    ["boost_enabled", naclac.getU8Encoder() /* TODO: complex type */],
+    ["disableFlags", naclac.getU8Encoder()],
+    ["boostEnabled", naclac.getU8Encoder() /* TODO: complex type */],
     ["admin", naclac.getAddressEncoder()],
-    ["boost_authority", naclac.getAddressEncoder()],
+    ["boostAuthority", naclac.getAddressEncoder()],
   ]) as naclac.FixedSizeEncoder<GlobalConfig>;
 }
 
@@ -22,10 +22,10 @@ export function getGlobalConfigEncoder(): naclac.FixedSizeEncoder<GlobalConfig> 
 export function getGlobalConfigDecoder(): naclac.FixedSizeDecoder<GlobalConfig> {
   return naclac.getStructDecoder([
     ["bump", naclac.getU8Decoder()],
-    ["disable_flags", naclac.getU8Decoder()],
-    ["boost_enabled", naclac.getU8Decoder() /* TODO: complex type */],
+    ["disableFlags", naclac.getU8Decoder()],
+    ["boostEnabled", naclac.getU8Decoder() /* TODO: complex type */],
     ["admin", naclac.getAddressDecoder()],
-    ["boost_authority", naclac.getAddressDecoder()],
+    ["boostAuthority", naclac.getAddressDecoder()],
   ]) as naclac.FixedSizeDecoder<GlobalConfig>;
 }
 

@@ -7,10 +7,9 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct FeeProgramGlobal {
     pub claim_rate_limit: u64,
     pub authority: crate::sdk_core_offchain::Address,
@@ -22,15 +21,168 @@ pub struct FeeProgramGlobal {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct FeeProgramGlobal {
+    pub claim_rate_limit: u64,
+    pub __naclac_padding_0: [u8; __FeeProgramGlobal_GAP_0],
+    pub authority: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_1: [u8; __FeeProgramGlobal_GAP_1],
+    pub social_claim_authority: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_2: [u8; __FeeProgramGlobal_GAP_2],
+    pub bump: u8,
+    pub __naclac_padding_3: [u8; __FeeProgramGlobal_GAP_3],
+    pub disable_flags: u8,
+    pub __naclac_padding_4: [u8; __FeeProgramGlobal_GAP_4],
+    pub reserved: [u8; 256],
+    pub __naclac_padding_5: [u8; __FeeProgramGlobal_GAP_5],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobal_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobal_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobal_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobal_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobal_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __FeeProgramGlobal_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobal_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobal_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __FeeProgramGlobal_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __FeeProgramGlobal_GAP_2 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobal_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobal_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __FeeProgramGlobal_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __FeeProgramGlobal_GAP_2 + ::core::mem::size_of::<u8>()
+        + __FeeProgramGlobal_GAP_3 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<[u8; 256]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobal_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobal_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __FeeProgramGlobal_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __FeeProgramGlobal_GAP_2 + ::core::mem::size_of::<u8>()
+        + __FeeProgramGlobal_GAP_3 + ::core::mem::size_of::<u8>()
+        + __FeeProgramGlobal_GAP_4 + ::core::mem::size_of::<[u8; 256]>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 256]>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < FeeProgramGlobal > () == (::core::mem::size_of:: < u64 >
+        () + __FeeProgramGlobal_GAP_0 + ::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Address > () + __FeeProgramGlobal_GAP_1 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
+        __FeeProgramGlobal_GAP_2 + ::core::mem::size_of:: < u8 > () +
+        __FeeProgramGlobal_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __FeeProgramGlobal_GAP_4 + ::core::mem::size_of:: < [u8; 256] > () +
+        __FeeProgramGlobal_GAP_5),
+        "defined_type/#[component]: `FeeProgramGlobal`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<[u8; 256]>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for FeeProgramGlobal {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for FeeProgramGlobal {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for FeeProgramGlobal {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct FeeProgramGlobalCpi {
     pub claim_rate_limit: u64,
     pub authority: crate::sdk_core_cpi::Address,
@@ -42,10 +194,164 @@ pub struct FeeProgramGlobalCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct FeeProgramGlobalCpi {
+    pub claim_rate_limit: u64,
+    pub __naclac_padding_0: [u8; __FeeProgramGlobalCpi_GAP_0],
+    pub authority: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_1: [u8; __FeeProgramGlobalCpi_GAP_1],
+    pub social_claim_authority: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_2: [u8; __FeeProgramGlobalCpi_GAP_2],
+    pub bump: u8,
+    pub __naclac_padding_3: [u8; __FeeProgramGlobalCpi_GAP_3],
+    pub disable_flags: u8,
+    pub __naclac_padding_4: [u8; __FeeProgramGlobalCpi_GAP_4],
+    pub reserved: [u8; 256],
+    pub __naclac_padding_5: [u8; __FeeProgramGlobalCpi_GAP_5],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobalCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobalCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobalCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobalCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobalCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __FeeProgramGlobalCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobalCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobalCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __FeeProgramGlobalCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __FeeProgramGlobalCpi_GAP_2 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobalCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobalCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __FeeProgramGlobalCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __FeeProgramGlobalCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __FeeProgramGlobalCpi_GAP_3 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<[u8; 256]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __FeeProgramGlobalCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>() + __FeeProgramGlobalCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __FeeProgramGlobalCpi_GAP_1
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __FeeProgramGlobalCpi_GAP_2 + ::core::mem::size_of::<u8>()
+        + __FeeProgramGlobalCpi_GAP_3 + ::core::mem::size_of::<u8>()
+        + __FeeProgramGlobalCpi_GAP_4 + ::core::mem::size_of::<[u8; 256]>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 256]>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < FeeProgramGlobalCpi > () == (::core::mem::size_of:: <
+        u64 > () + __FeeProgramGlobalCpi_GAP_0 + ::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Address > () + __FeeProgramGlobalCpi_GAP_1 +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > () +
+        __FeeProgramGlobalCpi_GAP_2 + ::core::mem::size_of:: < u8 > () +
+        __FeeProgramGlobalCpi_GAP_3 + ::core::mem::size_of:: < u8 > () +
+        __FeeProgramGlobalCpi_GAP_4 + ::core::mem::size_of:: < [u8; 256] > () +
+        __FeeProgramGlobalCpi_GAP_5),
+        "defined_type/#[component]: `FeeProgramGlobalCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<[u8; 256]>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for FeeProgramGlobalCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for FeeProgramGlobalCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for FeeProgramGlobalCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
 
 /// 8-byte on-chain discriminator for `FeeProgramGlobal` accounts.
 pub const FEEPROGRAMGLOBAL_DISCRIMINATOR: [u8; 8] = [162, 165, 245, 49, 29, 37, 55, 242];

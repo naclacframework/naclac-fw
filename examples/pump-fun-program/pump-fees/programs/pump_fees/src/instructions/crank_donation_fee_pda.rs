@@ -86,7 +86,6 @@ pub struct CrankDonationFeePda {
         payer = payer,
         associated_token::mint = quote_mint,
         associated_token::authority = donation_fee_pda,
-        associated_token::bump = args.donation_fee_pda_ata_bump,
         token::program = token_program,
     )]
     pub donation_fee_pda_ata: Account<TokenAccount>,
@@ -127,7 +126,6 @@ pub struct CrankDonationFeePda {
     pub debouncer_ata: AccountInfo,
 }
 
-#[instruction]
 pub fn crank_donation_fee_pda(
     ctx: Context<CrankDonationFeePda>,
     args: CrankDonationFeePdaArgs,

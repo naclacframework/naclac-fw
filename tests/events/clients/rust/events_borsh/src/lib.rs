@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("GeUhSoFri6AhtUaertqekvpJYcYn8UopffEzFgnnbYkh");
+declare_id!("bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd");
 
 #[cfg(feature = "offchain")]
 pub fn get_counter_pda(
@@ -56,7 +56,7 @@ pub struct EventsBorsh;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for EventsBorsh {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([232, 121, 28, 125, 212, 111, 168, 142, 102, 169, 183, 223, 220, 215, 244, 138, 76, 202, 123, 215, 63, 206, 179, 197, 135, 215, 83, 139, 165, 133, 29, 66])
+        sdk_core_cpi::Address::new_from_array([8, 201, 250, 244, 175, 215, 228, 150, 64, 194, 75, 41, 39, 70, 36, 215, 169, 241, 28, 98, 149, 51, 195, 41, 114, 26, 153, 42, 49, 230, 176, 242])
     }
 }
 

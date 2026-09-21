@@ -9,8 +9,8 @@ export const INIT_OPTIONAL_THING_DISCRIMINATOR = new Uint8Array([121, 130, 155, 
 /** Accounts for the `initOptionalThing` instruction. */
 export interface InitOptionalThingAccounts {
   payer: naclac.Address | string;
-  optional_thing?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  optionalThing?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

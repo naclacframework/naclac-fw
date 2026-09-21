@@ -13,9 +13,11 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
+default = ["borsh"]
+borsh = ["naclac-lang/borsh"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["borsh"] }
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }

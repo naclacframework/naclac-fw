@@ -8,7 +8,6 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use sha2::{Digest, Sha256};
 use syn::{parse_macro_input, GenericArgument, ItemStruct, PathArguments, Type};
 
 /// How a field's bytes get written into an `#[event(alloc)]` buffer.
@@ -49,6 +48,85 @@ fn classify_field_type(ty: &Type) -> FieldKind {
     FieldKind::Fixed
 }
 
+/// Builds `impl #struct_name { pub fn __naclac_idl_event(...) -> IdlEvent }`
+/// — mirrors real Anchor's own `__anchor_private_gen_idl_event` exactly:
+/// events get a dedicated method (not the general `NaclacIdlBuild` trait,
+/// since an `IdlEvent` is never itself referenced *by* another type's
+/// `create_type()`), which both returns this event's shape and recursively
+/// chases `NaclacIdlBuild::create_type()` for every field that references a
+/// real defined type, inserting each into the shared `types` map the caller
+/// passes in. Shared by both the plain and `#[event(alloc)]` branches, since
+/// the IDL-visible shape doesn't depend on which wire encoding is active.
+#[cfg(feature = "idl-build")]
+fn idl_build_event_impl(
+    struct_name: &syn::Ident,
+    fields: &syn::Fields,
+    disc: [u8; 8],
+) -> proc_macro2::TokenStream {
+    let mut field_ts_list = Vec::new();
+    let mut defined_refs: Vec<Type> = Vec::new();
+    for f in fields.iter() {
+        let fname = f.ident.as_ref().map(|i| i.to_string()).unwrap_or_default();
+        let docs = naclac_syn::parser::extract_docs(&f.attrs);
+        let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &[]);
+        let Ok(ty_json) = serde_json::to_string(&ty_value) else {
+            continue;
+        };
+        field_ts_list.push(quote! {
+            naclac_lang::naclac_idl::IdlEventField {
+                name: #fname.into(),
+                docs: vec![#(#docs.into()),*],
+                ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
+                    .expect("naclac idl-build: generated field type JSON must parse"),
+                index: false,
+            }
+        });
+        if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&f.ty) {
+            defined_refs.push(defined_ty);
+        }
+    }
+
+    let struct_name_str = struct_name.to_string();
+    let [b0, b1, b2, b3, b4, b5, b6, b7] = disc;
+
+    quote! {
+        #[cfg(feature = "idl-build")]
+        impl #struct_name {
+            pub fn __naclac_idl_event(
+                types: &mut naclac_lang::naclac_idl::__private::BTreeMap<
+                    naclac_lang::naclac_idl::__private::String,
+                    naclac_lang::naclac_idl::IdlTypeDef,
+                >,
+            ) -> naclac_lang::naclac_idl::IdlEvent {
+                #(
+                    if let Some(ty) = <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::create_type() {
+                        types.insert(
+                            <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
+                            ty,
+                        );
+                        <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::insert_types(types);
+                    }
+                )*
+                naclac_lang::naclac_idl::IdlEvent {
+                    name: #struct_name_str.into(),
+                    docs: vec![],
+                    discriminator: [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7],
+                    fields: vec![#(#field_ts_list),*],
+                }
+            }
+        }
+    }
+}
+
+#[cfg(not(feature = "idl-build"))]
+fn idl_build_event_impl(
+    _struct_name: &syn::Ident,
+    _fields: &syn::Fields,
+    _disc: [u8; 8],
+) -> proc_macro2::TokenStream {
+    quote! {}
+}
+
 pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as ItemStruct);
     let struct_name = &ast.ident;
@@ -67,10 +145,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    let discriminator_preimage = format!("event:{}", struct_name);
-    let mut hasher = Sha256::new();
-    hasher.update(discriminator_preimage.as_bytes());
-    let result = hasher.finalize();
+    let result = naclac_syn::discriminator::compute_discriminator("event", &struct_name.to_string());
 
     let b0 = result[0];
     let b1 = result[1];
@@ -81,14 +156,18 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let b6 = result[6];
     let b7 = result[7];
 
-    // Resolved now, at macro-expansion time, via `caller_has_feature` (reads
-    // the calling crate's own Cargo.toml) rather than emitting a runtime
-    // `#[cfg(feature = "borsh")]` into the generated code — a raw `cfg` like
-    // that would check the *calling* crate's own `borsh` feature, which none
-    // of naclac's own `_borsh` program crates actually declare (they only
-    // enable `naclac-lang`'s `borsh` feature), so it always resolved false.
-    let is_zero_copy =
-        crate::caller_has_feature("pinocchio") || !crate::caller_has_feature("borsh");
+    let idl_build_impl = idl_build_event_impl(struct_name, &ast.fields, [b0, b1, b2, b3, b4, b5, b6, b7]);
+
+    // Cargo gives a proc-macro no reliable way to see the invoking crate's
+    // activated features (see `component.rs`'s doc comment for the full
+    // story), so both representations are always emitted below, each gated
+    // by a real `#[cfg(...)]` in the output that the calling crate's own
+    // compiler resolves — same as `#[component]`/`#[derive(Accounts)]`. This
+    // requires the calling crate to declare `pinocchio`/`borsh` as features
+    // of its own (mirroring `naclac-lang`'s), which is now the enforced
+    // convention for every naclac program crate.
+    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(feature = "borsh")))] };
+    let borsh_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
 
     // `#[event]` takes no argument; `#[event(alloc)]` takes exactly the bare
     // `alloc` identifier and nothing else. Anything other than those two
@@ -124,7 +203,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             &ast,
             struct_name,
             [b0, b1, b2, b3, b4, b5, b6, b7],
-            is_zero_copy,
+            &zero_copy_cfg,
+            &borsh_cfg,
+            idl_build_impl,
         );
     }
 
@@ -157,57 +238,61 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         struct_name.span(),
     );
 
-    let expanded = if is_zero_copy {
-        quote! {
-            #[allow(non_upper_case_globals)]
-            const #padding_const_name: usize = {
-                let __total: usize = #size_sum;
-                let __align: usize = #align_max;
-                let __rem = __total % __align;
-                if __rem == 0 { 0 } else { __align - __rem }
-            };
+    let expanded = quote! {
+        #zero_copy_cfg
+        #[allow(non_upper_case_globals)]
+        const #padding_const_name: usize = {
+            let __total: usize = #size_sum;
+            let __align: usize = #align_max;
+            let __rem = __total % __align;
+            if __rem == 0 { 0 } else { __align - __rem }
+        };
 
-            #[cfg_attr(feature = "debug-mode", derive(Debug))]
-            #[derive(Clone, Copy, naclac_lang::prelude::Pod, naclac_lang::prelude::Zeroable)]
-            #[bytemuck(crate = "naclac_lang::bytemuck")]
-            #[repr(C)]
-            #vis struct #struct_name {
-                #fields_list
-                pub _padding: [u8; #padding_const_name],
-            }
+        #zero_copy_cfg
+        #[cfg_attr(feature = "debug-mode", derive(Debug))]
+        #[derive(Clone, Copy, naclac_lang::prelude::Pod, naclac_lang::prelude::Zeroable)]
+        #[bytemuck(crate = "naclac_lang::bytemuck")]
+        #[repr(C)]
+        #vis struct #struct_name {
+            #fields_list
+            pub _padding: [u8; #padding_const_name],
+        }
 
-            // Not `#[derive(Default)]`: the standard library only implements
-            // `Default` for arrays up to length 32, so a `[u8; N]`-shaped
-            // field with N > 32 would break the derive even though the
-            // struct is perfectly valid to zero-initialize. `Zeroable`
-            // (already required above) has no such limit.
-            impl Default for #struct_name {
-                fn default() -> Self {
-                    naclac_lang::prelude::bytemuck::Zeroable::zeroed()
-                }
-            }
-
-            impl #struct_name {
-                pub fn emit(&self) {
-                    let discriminator = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
-                    let data = naclac_lang::prelude::bytemuck::bytes_of(self);
-                    naclac_lang::prelude::sol_log_data(&[&discriminator, data]);
-                }
+        // Not `#[derive(Default)]`: the standard library only implements
+        // `Default` for arrays up to length 32, so a `[u8; N]`-shaped
+        // field with N > 32 would break the derive even though the
+        // struct is perfectly valid to zero-initialize. `Zeroable`
+        // (already required above) has no such limit.
+        #zero_copy_cfg
+        impl Default for #struct_name {
+            fn default() -> Self {
+                naclac_lang::prelude::bytemuck::Zeroable::zeroed()
             }
         }
-    } else {
-        quote! {
-            #[derive(Clone, naclac_lang::prelude::BorshSerialize, Default)]
-            #[cfg_attr(feature = "debug-mode", derive(Debug))]
-            #[borsh(crate = "naclac_lang::prelude::borsh")]
-            #ast
 
-            impl #struct_name {
-                pub fn emit(&self) {
-                    naclac_lang::event::emit_event(self, [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7]);
-                }
+        #zero_copy_cfg
+        impl #struct_name {
+            pub fn emit(&self) {
+                let discriminator = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
+                let data = naclac_lang::prelude::bytemuck::bytes_of(self);
+                naclac_lang::prelude::sol_log_data(&[&discriminator, data]);
             }
         }
+
+        #borsh_cfg
+        #[derive(Clone, naclac_lang::prelude::BorshSerialize, Default)]
+        #[cfg_attr(feature = "debug-mode", derive(Debug))]
+        #[borsh(crate = "naclac_lang::prelude::borsh")]
+        #ast
+
+        #borsh_cfg
+        impl #struct_name {
+            pub fn emit(&self) {
+                naclac_lang::event::emit_event(self, [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7]);
+            }
+        }
+
+        #idl_build_impl
     };
 
     TokenStream::from(expanded)
@@ -230,19 +315,23 @@ fn expand_alloc(
     ast: &ItemStruct,
     struct_name: &syn::Ident,
     disc: [u8; 8],
-    is_zero_copy: bool,
+    zero_copy_cfg: &proc_macro2::TokenStream,
+    borsh_cfg: &proc_macro2::TokenStream,
+    idl_build_impl: proc_macro2::TokenStream,
 ) -> TokenStream {
-    if !is_zero_copy {
-        return syn::Error::new_spanned(
-            ast,
+    // "Only for zero-copy backends" can no longer be checked at
+    // macro-expansion time (see `expand`'s doc comment) — emitted as a
+    // `compile_error!` behind the complementary `borsh_cfg` instead, so it
+    // still only fires when the calling crate actually selects Borsh mode.
+    let borsh_error = quote! {
+        #borsh_cfg
+        compile_error!(
             "Naclac Error: #[event(alloc)] is only for zero-copy backends (Pinocchio, or \
              Solana Program + Zero-Copy). Under Borsh mode, plain #[event] already supports \
              Vec/String/Option natively via real Borsh, so #[event(alloc)] is unnecessary \
-             there — use plain #[event] instead.",
-        )
-        .to_compile_error()
-        .into();
-    }
+             there — use plain #[event] instead."
+        );
+    };
 
     let [b0, b1, b2, b3, b4, b5, b6, b7] = disc;
 
@@ -308,10 +397,14 @@ fn expand_alloc(
     }
 
     let expanded = quote! {
+        #borsh_error
+
+        #zero_copy_cfg
         #[derive(Clone, Default)]
         #[cfg_attr(feature = "debug-mode", derive(Debug))]
         #ast
 
+        #zero_copy_cfg
         impl #struct_name {
             /// The struct's raw field bytes, in the same sequential
             /// (length-prefixed String/Vec, tagged Option) encoding `emit`
@@ -334,11 +427,14 @@ fn expand_alloc(
 
         // Not `bytemuck::Pod` (String/Vec/Option fields), so it needs its own
         // explicit impl rather than relying on the blanket `T: Pod` one.
+        #zero_copy_cfg
         impl naclac_lang::prelude::NaclacReturnData for #struct_name {
             fn to_return_data(&self) -> naclac_lang::prelude::Vec<u8> {
                 self.encode()
             }
         }
+
+        #idl_build_impl
     };
 
     TokenStream::from(expanded)

@@ -27,7 +27,6 @@ pub struct CreateAssociatedTokenAccountIdempotent {
     pub associated_token_program: Program<AssociatedToken>,
 }
 
-#[instruction]
 pub fn create_ata_idempotent(_ctx: Context<CreateAssociatedTokenAccountIdempotent>) -> Result {
     Ok(())
 }

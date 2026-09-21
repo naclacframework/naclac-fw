@@ -25,7 +25,6 @@ pub struct ExerciseUpdateScaledUiAmountMultiplier {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_update_scaled_ui_amount_multiplier(
     ctx: Context<ExerciseUpdateScaledUiAmountMultiplier>,
     new_multiplier_bits: u64,

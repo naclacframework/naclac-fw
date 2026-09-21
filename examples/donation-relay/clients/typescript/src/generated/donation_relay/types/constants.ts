@@ -4,6 +4,6 @@
 import * as naclac from "@naclac-fw/client";
 
 /** The on-chain address of this program. */
-export const PROGRAM_ID = naclac.address("2abJkQX74rXzAJEgKRq8PmrT62M2iFtachKGqc4wn9tX");
+export const PROGRAM_ID = naclac.address("8MWkme4Dfe5NBPh17itoSro62n4FTGLmPNXYFRCUzu7A");
 export const EPOCH_TRACKER_V1_SEED: Uint8Array = Uint8Array.from([101, 112, 111, 99, 104, 95, 116, 114, 97, 99, 107, 101, 114, 95, 118, 49]);
 export const DEBOUNCER_V1_SEED: Uint8Array = Uint8Array.from([100, 101, 98, 111, 117, 110, 99, 101, 114, 95, 118, 49]);

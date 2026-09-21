@@ -11,7 +11,6 @@ pub struct SetClaimRateLimit {
     pub fee_program_global: Account<FeeProgramGlobal>,
 }
 
-#[instruction]
 pub fn set_claim_rate_limit(ctx: Context<SetClaimRateLimit>, claim_rate_limit: u64) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.fee_program_global.authority,

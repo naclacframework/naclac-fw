@@ -1,4 +1,4 @@
-use vault_borsh_client::{
+﻿use vault_borsh_client::{
     components::{Vault, UserAccount, fetch_vault, fetch_user_account},
     instructions::{
         build_initialize, build_deposit, build_withdraw,
@@ -15,8 +15,8 @@ fn test_vault_lifecycle() {
     let cluster = "localnet";
 
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new(cluster, payer);
-    println!("\n🔑 Loaded Payer Wallet: {}", provider.payer.address());
+    let provider = NaclacProvider::new(cluster, payer).expect("Failed to construct NaclacProvider");
+    println!("\nðŸ”‘ Loaded Payer Wallet: {}", provider.payer.address());
 
     // 2. Setup Program ID & PDA from the generated client SDK
     let program_id = PROGRAM_ID;
@@ -26,29 +26,18 @@ fn test_vault_lifecycle() {
     println!("   Derived Vault PDA: {}", vault_pda);
     println!("   Derived User Account PDA: {}", user_pda);
 
-    // 3. Load the program binary
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // vault root
-    so_path.push("target/deploy/vault_borsh.so");
-
-    provider
-        .add_program(&program_id, so_path.to_str().unwrap())
-        .expect("Failed to load vault program binary");
-    println!("   📦 Loaded program binary.");
-
-    // 4. Initialize Vault Account (Skip if already initialized)
+    // 3. Initialize Vault Account (Skip if already initialized)
     let mut already_initialized = false;
 
     if let Ok(account) = provider.get_account(&vault_pda) {
         if account.data.len() >= 8 {
             already_initialized = true;
-            println!("   ℹ️ Vault account already exists. Skipping initialization.");
+            println!("   â„¹ï¸ Vault account already exists. Skipping initialization.");
         }
     }
 
     if !already_initialized {
-        println!("🚀 Sending Initialize transaction...");
+        println!("ðŸš€ Sending Initialize transaction...");
 
         let tx_meta = build_initialize(
             &provider,
@@ -63,11 +52,11 @@ fn test_vault_lifecycle() {
         .unwrap();
 
         println!(
-            "   📊 Initialize Compute Units (CUs): {}",
+            "   ðŸ“Š Initialize Compute Units (CUs): {}",
             tx_meta.compute_units_consumed
         );
         if !tx_meta.logs.is_empty() {
-            println!("   📜 Program Logs:");
+            println!("   ðŸ“œ Program Logs:");
             for log in &tx_meta.logs {
                 println!("      {}", log);
             }
@@ -78,7 +67,7 @@ fn test_vault_lifecycle() {
             .expect("Failed to fetch initialized vault account");
         assert_eq!(vault_state.total_deposited, 0);
         assert_eq!(vault_state.authority, provider.payer.address());
-        println!("   ✅ Initialized state verified: total_deposited = 0, authority matches payer.");
+        println!("   âœ… Initialized state verified: total_deposited = 0, authority matches payer.");
     }
 
     // Get current vault and user counts/balances
@@ -92,9 +81,9 @@ fn test_vault_lifecycle() {
         start_user_balance = user_state.balance;
     }
 
-    // 5. Deposit Account
+    // 4. Deposit Account
     let deposit_amount = 1_000_000u64; // 0.001 SOL
-    println!("💰 Sending Deposit transaction of {} lamports...", deposit_amount);
+    println!("ðŸ’° Sending Deposit transaction of {} lamports...", deposit_amount);
 
     let tx_meta = build_deposit(
         &provider,
@@ -112,17 +101,17 @@ fn test_vault_lifecycle() {
     .unwrap();
 
     println!(
-        "   📊 Deposit Compute Units (CUs): {}",
+        "   ðŸ“Š Deposit Compute Units (CUs): {}",
         tx_meta.compute_units_consumed
     );
     if !tx_meta.logs.is_empty() {
-        println!("   📜 Program Logs:");
+        println!("   ðŸ“œ Program Logs:");
         for log in &tx_meta.logs {
             println!("      {}", log);
         }
     }
 
-    // 6. Verify Deposit using the generated Vault/UserAccount component
+    // 5. Verify Deposit using the generated Vault/UserAccount component
     let vault_state: Vault = fetch_vault(&provider, &vault_pda)
         .expect("Failed to fetch vault account");
     assert_eq!(vault_state.total_deposited, start_vault_balance + deposit_amount);
@@ -131,27 +120,27 @@ fn test_vault_lifecycle() {
         .expect("Failed to fetch user account");
     assert_eq!(user_state.balance, start_user_balance + deposit_amount);
     println!(
-        "   ✅ State verified: vault = {}, user_account = {}.",
+        "   âœ… State verified: vault = {}, user_account = {}.",
         vault_state.total_deposited,
         user_state.balance
     );
 
-    // 7. Verify Deposit Event
+    // 6. Verify Deposit Event
     let captured_deposit_events: Vec<FundsDeposited> = tx_meta
         .parse_events_borsh()
         .expect("Failed to parse deposit events");
-    assert!(!captured_deposit_events.is_empty(), "❌ Deposit event was not captured!");
+    assert!(!captured_deposit_events.is_empty(), "âŒ Deposit event was not captured!");
     let captured_dep_event = &captured_deposit_events[0];
     assert_eq!(captured_dep_event.amount, deposit_amount);
     println!(
-        "      🔔 Event Fired! Deposited: {}, Vault Balance: {}",
+        "      ðŸ”” Event Fired! Deposited: {}, Vault Balance: {}",
         captured_dep_event.amount,
         captured_dep_event.total_vault_balance
     );
 
-    // 8. Withdraw Account
+    // 7. Withdraw Account
     let withdraw_amount = 400_000u64; // 0.0004 SOL
-    println!("💸 Sending Withdraw transaction of {} lamports...", withdraw_amount);
+    println!("ðŸ’¸ Sending Withdraw transaction of {} lamports...", withdraw_amount);
 
     let tx_meta = build_withdraw(
         &provider,
@@ -168,11 +157,11 @@ fn test_vault_lifecycle() {
     .unwrap();
 
     println!(
-        "   📊 Withdraw Compute Units (CUs): {}",
+        "   ðŸ“Š Withdraw Compute Units (CUs): {}",
         tx_meta.compute_units_consumed
     );
     if !tx_meta.logs.is_empty() {
-        println!("   📜 Program Logs:");
+        println!("   ðŸ“œ Program Logs:");
         for log in &tx_meta.logs {
             println!("      {}", log);
         }
@@ -193,27 +182,27 @@ fn test_vault_lifecycle() {
         start_user_balance + deposit_amount - withdraw_amount
     );
     println!(
-        "   ✅ State verified: vault = {}, user_account = {}.",
+        "   âœ… State verified: vault = {}, user_account = {}.",
         vault_state_after.total_deposited,
         user_state_after.balance
     );
 
-    // 9. Verify Withdraw Event
+    // 8. Verify Withdraw Event
     let captured_withdraw_events: Vec<FundsWithdrawn> = tx_meta
         .parse_events_borsh()
         .expect("Failed to parse withdraw events");
-    assert!(!captured_withdraw_events.is_empty(), "❌ Withdraw event was not captured!");
+    assert!(!captured_withdraw_events.is_empty(), "âŒ Withdraw event was not captured!");
     let captured_with_event = &captured_withdraw_events[0];
     assert_eq!(captured_with_event.amount, withdraw_amount);
     println!(
-        "      🔔 Event Fired! Withdrawn: {}, Vault Balance: {}",
+        "      ðŸ”” Event Fired! Withdrawn: {}, Vault Balance: {}",
         captured_with_event.amount,
         captured_with_event.total_vault_balance
     );
 
-    // 10. Excessive Withdraw (should fail)
+    // 9. Excessive Withdraw (should fail)
     let excessive_amount = 10_000_000u64;
-    println!("⚠️ Attempting excessive withdrawal of {} lamports...", excessive_amount);
+    println!("âš ï¸ Attempting excessive withdrawal of {} lamports...", excessive_amount);
     let res = build_withdraw(
         &provider,
         program_id,
@@ -233,10 +222,10 @@ fn test_vault_lifecycle() {
         NaclacClientError::TransactionFailed { instruction_err, .. } => {
             // VaultError::InsufficientFunds is index 1, offset by 6000 = 6001
             assert_eq!(instruction_err, InstructionError::Custom(6001));
-            println!("   ✅ Correctly failed to withdraw excessive amount with custom error 6001.");
+            println!("   âœ… Correctly failed to withdraw excessive amount with custom error 6001.");
         }
         _ => panic!("Expected TransactionFailed error, got {:?}", err),
     }
 
-    println!("\n✨ Vault integration test completed successfully!\n");
+    println!("\nâœ¨ Vault integration test completed successfully!\n");
 }

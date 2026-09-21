@@ -23,20 +23,20 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CounterIncremented 
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CounterIncremented {}
 
-#[cfg(not(feature = "offchain"))]
+#[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
 #[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(feature = "borsh"), repr(C))]
-pub struct CounterIncremented {
+pub struct CounterIncrementedCpi {
     pub new_count: u64,
     pub timestamp: i64,
 }
 
-#[cfg(not(feature = "offchain"))]
+#[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CounterIncremented {}
-#[cfg(not(feature = "offchain"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CounterIncrementedCpi {}
+#[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CounterIncremented {}
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CounterIncrementedCpi {}
 

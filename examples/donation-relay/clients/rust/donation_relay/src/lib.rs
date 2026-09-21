@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("2abJkQX74rXzAJEgKRq8PmrT62M2iFtachKGqc4wn9tX");
+declare_id!("8MWkme4Dfe5NBPh17itoSro62n4FTGLmPNXYFRCUzu7A");
 
 #[cfg(feature = "offchain")]
 pub fn get_debouncer_pda(
@@ -64,7 +64,7 @@ pub struct DonationRelay;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for DonationRelay {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([23, 118, 164, 191, 192, 201, 243, 51, 32, 226, 179, 109, 83, 249, 158, 252, 119, 104, 39, 62, 96, 34, 156, 219, 131, 24, 131, 100, 36, 174, 205, 212])
+        sdk_core_cpi::Address::new_from_array([109, 67, 17, 127, 178, 28, 192, 153, 17, 233, 35, 187, 36, 107, 62, 174, 120, 73, 22, 5, 133, 131, 3, 202, 99, 38, 247, 184, 170, 56, 230, 45])
     }
 }
 

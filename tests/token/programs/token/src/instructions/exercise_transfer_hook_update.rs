@@ -18,7 +18,6 @@ pub struct ExerciseTransferHookUpdate {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_transfer_hook_update(ctx: Context<ExerciseTransferHookUpdate>, new_hook_program_id: Address) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

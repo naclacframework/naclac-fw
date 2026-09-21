@@ -10,7 +10,6 @@ use naclac_lang::prelude::*;
 #[derive(Accounts)]
 pub struct LogEvent {}
 
-#[instruction]
 pub fn log_event(_ctx: Context<LogEvent>, _data: Vec<u8>) -> Result {
     Ok(())
 }

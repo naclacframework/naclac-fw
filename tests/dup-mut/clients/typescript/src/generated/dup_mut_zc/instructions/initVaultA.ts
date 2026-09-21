@@ -9,8 +9,8 @@ export const INIT_VAULT_A_DISCRIMINATOR = new Uint8Array([143, 170, 60, 61, 53, 
 /** Accounts for the `initVaultA` instruction. */
 export interface InitVaultAAccounts {
   payer: naclac.Address | string;
-  vault_a?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  vaultA?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

@@ -5,28 +5,28 @@ import * as naclac from "@naclac-fw/client";
 
 /** Auto-generated from the program IDL. */
 export interface CrankDonationFeePdaArgs {
-  donation_fee_pda_ata_bump: number;
-  epoch_tracker_bump: number;
-  debouncer_bump: number;
-  debouncer_ata_bump: number;
+  donationFeePdaAtaBump: number;
+  epochTrackerBump: number;
+  debouncerBump: number;
+  debouncerAtaBump: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface Fees {
-  lp_fee_bps: bigint | number;
-  protocol_fee_bps: bigint | number;
-  creator_fee_bps: bigint | number;
+  lpFeeBps: bigint | number;
+  protocolFeeBps: bigint | number;
+  creatorFeeBps: bigint | number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface FeeTier {
-  market_cap_lamports_threshold: bigint | number;
+  marketCapLamportsThreshold: bigint | number;
   fees: Fees;
 }
 
 /** Auto-generated from the program IDL. */
 export interface Shareholder {
   address: naclac.Address | string;
-  share_bps: number;
+  shareBps: number;
 }
 

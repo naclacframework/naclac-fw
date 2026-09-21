@@ -58,3 +58,30 @@ impl From<NaclacError> for ProgramError {
         ProgramError::Custom(e.to_code(0))
     }
 }
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `to_code` never panics and computes the documented formula
+    /// exactly, for the real range `index` can actually take — Solana caps
+    /// the number of accounts a single transaction can carry (well under
+    /// 256 even on the most permissive versioned-transaction path), so
+    /// `index` here is never remotely close to the point where `(index as
+    /// u32) * 100` could overflow `u32` (`index` would need to exceed
+    /// roughly 42.9 million for that, per `(u32::MAX - 3030) / 100`) — this
+    /// proves the function is sound for every index a real caller could ever
+    /// pass, not merely for one sampled value.
+    #[kani::proof]
+    fn prove_to_code_within_contract_is_correct() {
+        let index: usize = kani::any();
+        kani::assume(index <= 1024); // far above any real Solana account-list length
+        let error: NaclacError = if kani::any() {
+            NaclacError::ConstraintMut
+        } else {
+            NaclacError::TooManyCpiAccounts
+        };
+        let code = error.to_code(index);
+        assert_eq!(code, 3000 + (index as u32) * 100 + (error as u32));
+    }
+}

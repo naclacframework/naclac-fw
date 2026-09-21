@@ -47,7 +47,6 @@ pub struct CreateAssociatedTokenAccount {
     pub associated_token_program: Program<AssociatedToken>,
 }
 
-#[instruction]
 pub fn create_ata(_ctx: Context<CreateAssociatedTokenAccount>) -> Result {
     Ok(())
 }

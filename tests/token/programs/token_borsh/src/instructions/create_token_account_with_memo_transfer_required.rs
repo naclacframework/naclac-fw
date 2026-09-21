@@ -31,7 +31,6 @@ pub struct CreateTokenAccountWithMemoTransferRequired {
 /// `MemoTransfer` value.
 const TOKEN_ACCOUNT_WITH_MEMO_TRANSFER_SPACE: u64 = 165 + 1 + 4 + 1;
 
-#[instruction]
 pub fn create_token_account_with_memo_transfer_required(
     ctx: Context<CreateTokenAccountWithMemoTransferRequired>,
 ) -> Result {

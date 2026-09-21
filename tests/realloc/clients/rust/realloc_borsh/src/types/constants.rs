@@ -3,12 +3,12 @@
 
 #[cfg(feature = "offchain")]
 pub const PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_array([
-    189, 78, 7, 252, 155, 75, 106, 134, 178, 176, 116, 135, 109, 78, 146, 230, 161, 118, 226, 190, 234, 113, 99, 238, 119, 93, 173, 186, 180, 59, 12, 98
+    206, 163, 39, 12, 179, 53, 69, 132, 166, 250, 82, 138, 212, 80, 224, 101, 248, 136, 229, 197, 122, 167, 35, 239, 102, 217, 243, 250, 209, 88, 14, 67
 ]);
 
-#[cfg(not(feature = "offchain"))]
-pub const PROGRAM_ID: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
-    189, 78, 7, 252, 155, 75, 106, 134, 178, 176, 116, 135, 109, 78, 146, 230, 161, 118, 226, 190, 234, 113, 99, 238, 119, 93, 173, 186, 180, 59, 12, 98
+#[cfg(feature = "cpi")]
+pub const PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
+    206, 163, 39, 12, 179, 53, 69, 132, 166, 250, 82, 138, 212, 80, 224, 101, 248, 136, 229, 197, 122, 167, 35, 239, 102, 217, 243, 250, 209, 88, 14, 67
 ]);
 
 pub const SEED_GROWABLE: &[u8] = &[103, 114, 111, 119, 97, 98, 108, 101];

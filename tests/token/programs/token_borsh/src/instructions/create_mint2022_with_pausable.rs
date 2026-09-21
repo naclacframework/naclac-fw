@@ -30,7 +30,6 @@ pub struct CreateMint2022WithPausable {
 /// 4-byte TLV header + 33-byte `PausableConfig` value.
 const MINT_WITH_PAUSABLE_SPACE: u64 = 82 + 83 + 1 + 4 + 33;
 
-#[instruction]
 pub fn create_mint2022_with_pausable(
     ctx: Context<CreateMint2022WithPausable>,
     id: u64,

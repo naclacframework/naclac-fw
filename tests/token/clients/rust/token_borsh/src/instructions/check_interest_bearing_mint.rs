@@ -7,18 +7,10 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
 pub struct CheckInterestBearingMintIxArgs {
     pub args: crate::types::CheckInterestBearingMintArgs,
 }
-
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CheckInterestBearingMintIxArgs {}
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CheckInterestBearingMintIxArgs {}
 
 #[cfg(feature = "cpi")]
 #[cfg(feature = "borsh")]
@@ -26,18 +18,10 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
 pub struct CheckInterestBearingMintCpiIxArgs {
     pub args: crate::types::CheckInterestBearingMintArgsCpi,
 }
-
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CheckInterestBearingMintCpiIxArgs {}
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CheckInterestBearingMintCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
 pub struct CheckInterestBearingMintAccounts {
@@ -57,7 +41,17 @@ pub fn build_check_interest_bearing_mint<'a>(
     };
     #[cfg(not(feature = "borsh"))]
     {
-        ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(&args));
+        match &args.args.expected_rate_authority {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_offchain::Address>()]);
+            }
+        }
+        ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(&args.args.expected_current_rate));
     }
     #[cfg(feature = "borsh")]
     {
@@ -130,7 +124,17 @@ impl<'info> CheckInterestBearingMintCpi<'info> for crate::sdk_core_cpi::Program<
         ix_data.extend_from_slice(&[24, 252, 8, 137, 207, 158, 50, 33]);
         #[cfg(not(feature = "borsh"))]
         {
-        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args));
+        match &args.args.expected_rate_authority {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_cpi::Address>()]);
+            }
+        }
+        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args.args.expected_current_rate));
         }
         #[cfg(feature = "borsh")]
         {

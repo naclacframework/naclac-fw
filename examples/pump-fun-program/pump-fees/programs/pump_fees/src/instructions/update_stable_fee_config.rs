@@ -19,7 +19,6 @@ pub struct UpdateStableFeeConfig {
 }
 
 /// Set/Replace fee parameters entirely (only callable by admin)
-#[instruction]
 pub fn update_stable_fee_config(
     ctx: Context<UpdateStableFeeConfig>,
     stable_fee_tiers: ZcVec<FeeTier>,

@@ -30,7 +30,7 @@ export class PumpClient {
   }
 
   constructor(
-    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet",
+    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet" | "litesvm",
     payer?: naclac.KeyPairSigner
   ) {
     let provider: naclac.NaclacProvider;
@@ -40,7 +40,7 @@ export class PumpClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider);
+    this.program = new naclac.Program(IDL, provider, true);
   }
 
   /**
@@ -172,6 +172,30 @@ export class PumpClient {
   }
 
   /**
+   * Builds the `collectCreatorFee` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public collectCreatorFee(args: instructions.CollectCreatorFeeArgs, accounts?: Partial<instructions.CollectCreatorFeeAccounts>) {
+    return instructions.collectCreatorFee(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `collectCreatorFeeV2` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public collectCreatorFeeV2(args: instructions.CollectCreatorFeeV2Args, accounts?: Partial<instructions.CollectCreatorFeeV2Accounts>) {
+    return instructions.collectCreatorFeeV2(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `getMinimumDistributableFee` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public getMinimumDistributableFee(args: instructions.GetMinimumDistributableFeeArgs, accounts?: Partial<instructions.GetMinimumDistributableFeeAccounts>) {
+    return instructions.getMinimumDistributableFee(this.program, args ?? {}, accounts);
+  }
+
+  /**
    * Builds the `buy` instruction pipeline.
    * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
    */
@@ -267,6 +291,46 @@ export class PumpClient {
     return instructions.setVirtualQuoteReserves(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `initUserVolumeAccumulator` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public initUserVolumeAccumulator(args: instructions.InitUserVolumeAccumulatorArgs, accounts?: Partial<instructions.InitUserVolumeAccumulatorAccounts>) {
+    return instructions.initUserVolumeAccumulator(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `closeUserVolumeAccumulator` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public closeUserVolumeAccumulator(args?: Record<string, never>, accounts?: Partial<instructions.CloseUserVolumeAccumulatorAccounts>) {
+    return instructions.closeUserVolumeAccumulator(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `claimCashback` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public claimCashback(args?: Record<string, never>, accounts?: Partial<instructions.ClaimCashbackAccounts>) {
+    return instructions.claimCashback(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `claimCashbackV2` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public claimCashbackV2(args: instructions.ClaimCashbackV2Args, accounts?: Partial<instructions.ClaimCashbackV2Accounts>) {
+    return instructions.claimCashbackV2(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `claimTokenIncentives` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public claimTokenIncentives(args: instructions.ClaimTokenIncentivesArgs, accounts?: Partial<instructions.ClaimTokenIncentivesAccounts>) {
+    return instructions.claimTokenIncentives(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `amm_global_config` account. */
   public async getAmmGlobalConfigPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
@@ -306,16 +370,16 @@ export class PumpClient {
 
   /** Derives the PDA for a `boost_vault` account. */
   public async getBoostVaultPda(seeds: {
-    boost_vault_authority: naclac.Address | string;
-    quote_token_program: naclac.Address | string;
-    quote_mint: naclac.Address | string;
+    boostVaultAuthority: naclac.Address | string;
+    quoteTokenProgram: naclac.Address | string;
+    quoteMint: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: naclac.address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
       seeds: [
-                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.boost_vault_authority === 'string' ? naclac.address(seeds.boost_vault_authority) : seeds.boost_vault_authority)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quote_token_program === 'string' ? naclac.address(seeds.quote_token_program) : seeds.quote_token_program)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quote_mint === 'string' ? naclac.address(seeds.quote_mint) : seeds.quote_mint))
+                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.boostVaultAuthority === 'string' ? naclac.address(seeds.boostVaultAuthority) : seeds.boostVaultAuthority)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quoteTokenProgram === 'string' ? naclac.address(seeds.quoteTokenProgram) : seeds.quoteTokenProgram)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quoteMint === 'string' ? naclac.address(seeds.quoteMint) : seeds.quoteMint))
       ]
     });
   }
@@ -341,20 +405,20 @@ export class PumpClient {
       programAddress: naclac.address("8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ"),
       seeds: [
                 new Uint8Array([98, 117, 121, 98, 97, 99, 107, 45, 118, 97, 117, 108, 116]),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.args.buyback_index))
+        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.args.buybackIndex))
       ]
     });
   }
 
   /** Derives the PDA for a `creator_vault` account. */
   public async getCreatorVaultPda(seeds: {
-    bonding_curve_creator: naclac.Address | string;
+    creator: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([99, 114, 101, 97, 116, 111, 114, 45, 118, 97, 117, 108, 116]),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"publicKey"')).encode(seeds.bonding_curve_creator))
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.creator === 'string' ? naclac.address(seeds.creator) : seeds.creator))
       ]
     });
   }
@@ -434,7 +498,7 @@ export class PumpClient {
 
   /** Derives the PDA for a `pool` account. */
   public async getPoolPda(seeds: {
-    pool_authority: naclac.Address | string;
+    poolAuthority: naclac.Address | string;
     mint: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
@@ -442,7 +506,7 @@ export class PumpClient {
       seeds: [
                 new Uint8Array([112, 111, 111, 108]),
         new Uint8Array([0, 0]),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.pool_authority === 'string' ? naclac.address(seeds.pool_authority) : seeds.pool_authority)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.poolAuthority === 'string' ? naclac.address(seeds.poolAuthority) : seeds.poolAuthority)),
         new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.mint === 'string' ? naclac.address(seeds.mint) : seeds.mint)),
         new Uint8Array([6, 155, 136, 87, 254, 171, 129, 132, 251, 104, 127, 99, 70, 24, 192, 53, 218, 196, 57, 220, 26, 235, 59, 85, 152, 160, 240, 0, 0, 0, 0, 1])
       ]
@@ -464,15 +528,15 @@ export class PumpClient {
 
   /** Derives the PDA for a `pool_authority_mint_account` account. */
   public async getPoolAuthorityMintAccountPda(seeds: {
-    pool_authority: naclac.Address | string;
-    token_program: naclac.Address | string;
+    poolAuthority: naclac.Address | string;
+    tokenProgram: naclac.Address | string;
     mint: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: naclac.address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
       seeds: [
-                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.pool_authority === 'string' ? naclac.address(seeds.pool_authority) : seeds.pool_authority)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token_program === 'string' ? naclac.address(seeds.token_program) : seeds.token_program)),
+                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.poolAuthority === 'string' ? naclac.address(seeds.poolAuthority) : seeds.poolAuthority)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenProgram === 'string' ? naclac.address(seeds.tokenProgram) : seeds.tokenProgram)),
         new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.mint === 'string' ? naclac.address(seeds.mint) : seeds.mint))
       ]
     });
@@ -480,32 +544,32 @@ export class PumpClient {
 
   /** Derives the PDA for a `pool_authority_quote_account` account. */
   public async getPoolAuthorityQuoteAccountPda(seeds: {
-    pool_authority: naclac.Address | string;
-    quote_token_program: naclac.Address | string;
-    quote_mint: naclac.Address | string;
+    poolAuthority: naclac.Address | string;
+    quoteTokenProgram: naclac.Address | string;
+    quoteMint: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: naclac.address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
       seeds: [
-                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.pool_authority === 'string' ? naclac.address(seeds.pool_authority) : seeds.pool_authority)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quote_token_program === 'string' ? naclac.address(seeds.quote_token_program) : seeds.quote_token_program)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quote_mint === 'string' ? naclac.address(seeds.quote_mint) : seeds.quote_mint))
+                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.poolAuthority === 'string' ? naclac.address(seeds.poolAuthority) : seeds.poolAuthority)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quoteTokenProgram === 'string' ? naclac.address(seeds.quoteTokenProgram) : seeds.quoteTokenProgram)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.quoteMint === 'string' ? naclac.address(seeds.quoteMint) : seeds.quoteMint))
       ]
     });
   }
 
   /** Derives the PDA for a `pool_authority_wsol_account` account. */
   public async getPoolAuthorityWsolAccountPda(seeds: {
-    pool_authority: naclac.Address | string;
-    token_program: naclac.Address | string;
-    wsol_mint: naclac.Address | string;
+    poolAuthority: naclac.Address | string;
+    tokenProgram: naclac.Address | string;
+    wsolMint: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: naclac.address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
       seeds: [
-                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.pool_authority === 'string' ? naclac.address(seeds.pool_authority) : seeds.pool_authority)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token_program === 'string' ? naclac.address(seeds.token_program) : seeds.token_program)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.wsol_mint === 'string' ? naclac.address(seeds.wsol_mint) : seeds.wsol_mint))
+                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.poolAuthority === 'string' ? naclac.address(seeds.poolAuthority) : seeds.poolAuthority)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenProgram === 'string' ? naclac.address(seeds.tokenProgram) : seeds.tokenProgram)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.wsolMint === 'string' ? naclac.address(seeds.wsolMint) : seeds.wsolMint))
       ]
     });
   }
@@ -513,14 +577,14 @@ export class PumpClient {
   /** Derives the PDA for a `pool_base_token_account` account. */
   public async getPoolBaseTokenAccountPda(seeds: {
     pool: naclac.Address | string;
-    token_program: naclac.Address | string;
+    tokenProgram: naclac.Address | string;
     mint: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: naclac.address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
       seeds: [
                 new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.pool === 'string' ? naclac.address(seeds.pool) : seeds.pool)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token_program === 'string' ? naclac.address(seeds.token_program) : seeds.token_program)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenProgram === 'string' ? naclac.address(seeds.tokenProgram) : seeds.tokenProgram)),
         new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.mint === 'string' ? naclac.address(seeds.mint) : seeds.mint))
       ]
     });
@@ -529,15 +593,15 @@ export class PumpClient {
   /** Derives the PDA for a `pool_quote_token_account` account. */
   public async getPoolQuoteTokenAccountPda(seeds: {
     pool: naclac.Address | string;
-    token_program: naclac.Address | string;
-    wsol_mint: naclac.Address | string;
+    tokenProgram: naclac.Address | string;
+    wsolMint: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: naclac.address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
       seeds: [
                 new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.pool === 'string' ? naclac.address(seeds.pool) : seeds.pool)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token_program === 'string' ? naclac.address(seeds.token_program) : seeds.token_program)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.wsol_mint === 'string' ? naclac.address(seeds.wsol_mint) : seeds.wsol_mint))
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenProgram === 'string' ? naclac.address(seeds.tokenProgram) : seeds.tokenProgram)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.wsolMint === 'string' ? naclac.address(seeds.wsolMint) : seeds.wsolMint))
       ]
     });
   }
@@ -579,16 +643,16 @@ export class PumpClient {
 
   /** Derives the PDA for a `user_pool_token_account` account. */
   public async getUserPoolTokenAccountPda(seeds: {
-    pool_authority: naclac.Address | string;
-    token_2022_program: naclac.Address | string;
-    lp_mint: naclac.Address | string;
+    poolAuthority: naclac.Address | string;
+    token2022Program: naclac.Address | string;
+    lpMint: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: naclac.address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
       seeds: [
-                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.pool_authority === 'string' ? naclac.address(seeds.pool_authority) : seeds.pool_authority)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token_2022_program === 'string' ? naclac.address(seeds.token_2022_program) : seeds.token_2022_program)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.lp_mint === 'string' ? naclac.address(seeds.lp_mint) : seeds.lp_mint))
+                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.poolAuthority === 'string' ? naclac.address(seeds.poolAuthority) : seeds.poolAuthority)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token2022Program === 'string' ? naclac.address(seeds.token2022Program) : seeds.token2022Program)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.lpMint === 'string' ? naclac.address(seeds.lpMint) : seeds.lpMint))
       ]
     });
   }
@@ -899,6 +963,81 @@ export class PumpClient {
   /** Decodes every `AdminSetCreatorEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForAdminSetCreatorEvent` — prefer this when you already know which transaction you're checking. */
   public parseAdminSetCreatorEventEvents(logs: readonly string[]) {
     return this.program.parseEvents<types.AdminSetCreatorEvent>("AdminSetCreatorEvent", logs);
+  }
+
+  /** Subscribes to `CollectCreatorFeeEvent` events. Returns a listener ID. */
+  public onCollectCreatorFeeEvent(callback: (event: types.CollectCreatorFeeEvent, slot: number, signature: string) => void) {
+    return types.addCollectCreatorFeeEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `CollectCreatorFeeEvent` event. Resolves `null` on timeout. */
+  public waitForCollectCreatorFeeEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.CollectCreatorFeeEvent>("CollectCreatorFeeEvent", options);
+  }
+
+  /** Decodes every `CollectCreatorFeeEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCollectCreatorFeeEvent` — prefer this when you already know which transaction you're checking. */
+  public parseCollectCreatorFeeEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.CollectCreatorFeeEvent>("CollectCreatorFeeEvent", logs);
+  }
+
+  /** Subscribes to `InitUserVolumeAccumulatorEvent` events. Returns a listener ID. */
+  public onInitUserVolumeAccumulatorEvent(callback: (event: types.InitUserVolumeAccumulatorEvent, slot: number, signature: string) => void) {
+    return types.addInitUserVolumeAccumulatorEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `InitUserVolumeAccumulatorEvent` event. Resolves `null` on timeout. */
+  public waitForInitUserVolumeAccumulatorEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.InitUserVolumeAccumulatorEvent>("InitUserVolumeAccumulatorEvent", options);
+  }
+
+  /** Decodes every `InitUserVolumeAccumulatorEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForInitUserVolumeAccumulatorEvent` — prefer this when you already know which transaction you're checking. */
+  public parseInitUserVolumeAccumulatorEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.InitUserVolumeAccumulatorEvent>("InitUserVolumeAccumulatorEvent", logs);
+  }
+
+  /** Subscribes to `CloseUserVolumeAccumulatorEvent` events. Returns a listener ID. */
+  public onCloseUserVolumeAccumulatorEvent(callback: (event: types.CloseUserVolumeAccumulatorEvent, slot: number, signature: string) => void) {
+    return types.addCloseUserVolumeAccumulatorEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `CloseUserVolumeAccumulatorEvent` event. Resolves `null` on timeout. */
+  public waitForCloseUserVolumeAccumulatorEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.CloseUserVolumeAccumulatorEvent>("CloseUserVolumeAccumulatorEvent", options);
+  }
+
+  /** Decodes every `CloseUserVolumeAccumulatorEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCloseUserVolumeAccumulatorEvent` — prefer this when you already know which transaction you're checking. */
+  public parseCloseUserVolumeAccumulatorEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.CloseUserVolumeAccumulatorEvent>("CloseUserVolumeAccumulatorEvent", logs);
+  }
+
+  /** Subscribes to `ClaimCashbackEvent` events. Returns a listener ID. */
+  public onClaimCashbackEvent(callback: (event: types.ClaimCashbackEvent, slot: number, signature: string) => void) {
+    return types.addClaimCashbackEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `ClaimCashbackEvent` event. Resolves `null` on timeout. */
+  public waitForClaimCashbackEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.ClaimCashbackEvent>("ClaimCashbackEvent", options);
+  }
+
+  /** Decodes every `ClaimCashbackEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForClaimCashbackEvent` — prefer this when you already know which transaction you're checking. */
+  public parseClaimCashbackEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.ClaimCashbackEvent>("ClaimCashbackEvent", logs);
+  }
+
+  /** Subscribes to `ClaimTokenIncentivesEvent` events. Returns a listener ID. */
+  public onClaimTokenIncentivesEvent(callback: (event: types.ClaimTokenIncentivesEvent, slot: number, signature: string) => void) {
+    return types.addClaimTokenIncentivesEventListener(this.program, callback);
+  }
+
+  /** Awaits the next `ClaimTokenIncentivesEvent` event. Resolves `null` on timeout. */
+  public waitForClaimTokenIncentivesEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.ClaimTokenIncentivesEvent>("ClaimTokenIncentivesEvent", options);
+  }
+
+  /** Decodes every `ClaimTokenIncentivesEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForClaimTokenIncentivesEvent` — prefer this when you already know which transaction you're checking. */
+  public parseClaimTokenIncentivesEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.ClaimTokenIncentivesEvent>("ClaimTokenIncentivesEvent", logs);
   }
 
   /** Removes a registered event listener by its ID. */

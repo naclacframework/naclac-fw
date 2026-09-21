@@ -15,10 +15,10 @@ export const GLOBALCONFIG_DISCRIMINATOR = new Uint8Array([149, 8, 156, 202, 160,
  */
 export interface GlobalConfig {
   bump: number;
-  disable_flags: number;
-  boost_enabled: naclac.Bool;
+  disableFlags: number;
+  boostEnabled: naclac.Bool;
   admin: naclac.Address | string;
-  boost_authority: naclac.Address | string;
+  boostAuthority: naclac.Address | string;
 }
 
 /** 8-byte discriminator prefix for `Pool` accounts on-chain. */
@@ -32,18 +32,18 @@ export const POOL_DISCRIMINATOR = new Uint8Array([241, 154, 109, 4, 17, 177, 109
  * any change here must be mirrored there too.
  */
 export interface Pool {
-  pool_bump: number;
+  poolBump: number;
   index: number;
   creator: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
-  lp_mint: naclac.Address | string;
-  pool_base_token_account: naclac.Address | string;
-  pool_quote_token_account: naclac.Address | string;
-  coin_creator: naclac.Address | string;
-  lp_supply: bigint | number;
-  is_mayhem_mode: naclac.Bool;
-  is_cashback_coin: naclac.Bool;
-  virtual_quote_reserves: string | Uint8Array;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  lpMint: naclac.Address | string;
+  poolBaseTokenAccount: naclac.Address | string;
+  poolQuoteTokenAccount: naclac.Address | string;
+  coinCreator: naclac.Address | string;
+  lpSupply: bigint | number;
+  isMayhemMode: naclac.Bool;
+  isCashbackCoin: naclac.Bool;
+  virtualQuoteReserves: string | Uint8Array;
 }
 

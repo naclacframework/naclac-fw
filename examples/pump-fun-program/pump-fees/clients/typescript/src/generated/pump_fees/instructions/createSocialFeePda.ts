@@ -8,17 +8,17 @@ export const CREATE_SOCIAL_FEE_PDA_DISCRIMINATOR = new Uint8Array([144, 224, 59,
 
 /** Instruction arguments for `createSocialFeePda`. */
 export interface CreateSocialFeePdaArgs {
-  user_id: string;
+  userId: string;
   platform: number;
-  social_fee_pda_bump: number;
+  socialFeePdaBump: number;
 }
 
 /** Accounts for the `createSocialFeePda` instruction. */
 export interface CreateSocialFeePdaAccounts {
   payer: naclac.Address | string;
-  social_fee_pda?: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  fee_program_global: naclac.Address | string;
+  socialFeePda?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  feeProgramGlobal: naclac.Address | string;
 }
 
 /**

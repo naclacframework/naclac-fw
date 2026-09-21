@@ -21,7 +21,6 @@ pub struct CallAuthorizedIncrement {
     pub callee_program: Program<CpiCallee>,
 }
 
-#[instruction]
 pub fn call_authorized_increment(ctx: Context<CallAuthorizedIncrement>) -> Result {
     let bump = ctx.accounts.caller_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_CALLER_AUTHORITY, &[bump]];

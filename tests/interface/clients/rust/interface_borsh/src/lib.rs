@@ -19,7 +19,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("AfERbyQZJP6FteX4WpwCKrRUqiNSNN7T3ak36ePoX2y");
+declare_id!("XZkwemfFMCTKXmKw8qab7wZMr9hf6RcauBJw5pADFy7");
 
 #[cfg(feature = "cpi")]
 #[derive(Clone, Copy)]
@@ -28,7 +28,7 @@ pub struct InterfaceBorsh;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for InterfaceBorsh {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([2, 121, 116, 170, 46, 35, 24, 143, 61, 242, 59, 66, 114, 228, 194, 127, 201, 158, 246, 150, 25, 120, 53, 31, 179, 17, 183, 140, 44, 163, 142, 154])
+        sdk_core_cpi::Address::new_from_array([7, 212, 118, 163, 209, 81, 237, 180, 50, 40, 67, 9, 251, 154, 0, 97, 136, 169, 112, 111, 81, 73, 108, 62, 185, 190, 216, 2, 47, 57, 89, 126])
     }
 }
 

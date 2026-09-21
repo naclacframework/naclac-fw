@@ -21,7 +21,6 @@ pub struct FreezeVaultAccount {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn freeze_vault_account(ctx: Context<FreezeVaultAccount>) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

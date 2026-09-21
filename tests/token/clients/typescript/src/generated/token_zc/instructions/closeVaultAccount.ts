@@ -14,8 +14,8 @@ export interface CloseVaultAccountAccounts {
    * `close_account_signed` below; its data is never read or deserialized.
    */
   destination: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

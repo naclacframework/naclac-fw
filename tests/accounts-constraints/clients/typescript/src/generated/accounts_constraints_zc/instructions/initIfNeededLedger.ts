@@ -15,7 +15,7 @@ export interface InitIfNeededLedgerArgs {
 export interface InitIfNeededLedgerAccounts {
   payer: naclac.Address | string;
   ledger?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

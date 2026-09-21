@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use events_borsh_client::{
     get_counter_pda,
     instructions::{
@@ -9,22 +9,9 @@ use events_borsh_client::{
     types::CounterIncremented,
 };
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // events workspace root
-    so_path.push("target/deploy/events_borsh.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load events_borsh program binary");
-}
-
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
-    provider
+    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
 /// Emits a real event via `emit!`, decodes it back off the transaction's
@@ -66,7 +53,7 @@ fn event_round_trips_correctly_across_multiple_emissions() {
 
     // `increment_counter` takes no args and hits the same account both
     // times, so without a fresh blockhash the second call would be a
-    // byte-identical transaction to the first — litesvm (correctly)
+    // byte-identical transaction to the first â€” litesvm (correctly)
     // rejects that as a replay (`AlreadyProcessed`), not a naclac bug.
     if let ClientBackend::LiteSVM(svm) = &provider.backend {
         svm.lock().unwrap().expire_blockhash();
@@ -91,7 +78,7 @@ fn event_round_trips_correctly_across_multiple_emissions() {
 }
 
 /// Explicit `bump = counter.bump` (a self-reference on an existing account)
-/// — verifying this actually works rather than assuming it does, since no
+/// â€” verifying this actually works rather than assuming it does, since no
 /// existing test exercises this exact form. Reasoned to be equivalent to
 /// bare `bump`'s proven auto-path (see `touch_counter_explicit_bump.rs`),
 /// but reasoning isn't verification: this test is the verification.
@@ -119,7 +106,7 @@ fn explicit_self_referencing_bump_on_existing_account_works() {
     )
     .send_and_confirm()
     .expect(
-        "touch_counter_explicit_bump must succeed — `bump = counter.bump` should validate \
+        "touch_counter_explicit_bump must succeed â€” `bump = counter.bump` should validate \
          identically to bare `bump`'s auto-path, not fail some self-reference-specific gap",
     );
 }

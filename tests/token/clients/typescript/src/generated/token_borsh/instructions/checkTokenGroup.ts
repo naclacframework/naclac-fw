@@ -8,8 +8,8 @@ export const CHECK_TOKEN_GROUP_DISCRIMINATOR = new Uint8Array([64, 59, 5, 251, 7
 
 /** Instruction arguments for `checkTokenGroup`. */
 export interface CheckTokenGroupArgs {
-  expected_size: bigint | number;
-  expected_max_size: bigint | number;
+  expectedSize: bigint | number;
+  expectedMaxSize: bigint | number;
 }
 
 /** Accounts for the `checkTokenGroup` instruction. */

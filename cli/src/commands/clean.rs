@@ -1,3 +1,12 @@
+//! `naclac clean` — deletes build artifacts directly in place. Never moves
+//! anything to a staging/trash location first: the only thing that must
+//! survive a clean (`target/deploy/*.json`, program keypairs — losing one
+//! changes that program's on-chain address) is simply skipped during the
+//! walk rather than relocated and restored, so cross-filesystem `target-dir`
+//! redirects (a different drive, a mounted vhd) can't silently fail the way
+//! a `rename`-based move would, and a Ctrl+C mid-clean just leaves some
+//! regenerable cache still on disk — never a risk to what was skipped.
+
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
 use std::io::{self, Write};
@@ -43,81 +52,21 @@ pub fn execute(hard: bool) {
 
     println!("🧹 Running safe workspace clean...");
 
-    let trash_dir = current_dir.join(".naclac_trash");
-    if trash_dir.exists() {
-        let _ = fs::remove_dir_all(&trash_dir);
-    }
-    fs::create_dir_all(&trash_dir).unwrap();
-
     let target_dir = naclac_client_gen::resolve_target_dir(&current_dir);
 
-    let mut to_clean = Vec::new();
-
+    let mut extra_dirs = vec![current_dir.join(".anchor")];
     if hard {
-        if target_dir.exists() {
-            let _ = fs::rename(&target_dir, trash_dir.join("target"));
-        }
-        to_clean.push("node_modules");
-        to_clean.push("dist");
-        to_clean.push(".anchor");
-    } else {
-        // Safe clean: we want to clean target, but EXCLUDE deploy/*.json
-        if target_dir.exists() {
-            let trash_target = trash_dir.join("target");
-            fs::create_dir_all(&trash_target).unwrap();
-
-            // Move everything inside target to trash/target, EXCEPT target/deploy/*.json
-            if let Ok(entries) = fs::read_dir(&target_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    let name = path.file_name().unwrap();
-                    let trash_path = trash_target.join(name);
-
-                    if name == "deploy" {
-                        fs::create_dir_all(&trash_path).unwrap();
-                        if let Ok(deploy_entries) = fs::read_dir(&path) {
-                            for d_entry in deploy_entries.flatten() {
-                                let d_path = d_entry.path();
-                                let mut keep = false;
-                                if let Some(ext) = d_path.extension() {
-                                    if ext == "json" {
-                                        keep = true;
-                                    }
-                                }
-                                if !keep {
-                                    let d_name = d_path.file_name().unwrap();
-                                    let _ = fs::rename(&d_path, trash_path.join(d_name));
-                                }
-                            }
-                        }
-                    } else {
-                        let _ = fs::rename(&path, &trash_path);
-                    }
-                }
-            }
-        }
-        to_clean.push(".anchor");
+        extra_dirs.push(current_dir.join("node_modules"));
+        extra_dirs.push(current_dir.join("dist"));
     }
 
-    // For hard clean or .anchor, just rename them wholly
-    for entry in to_clean {
-        let path = current_dir.join(entry);
-        if path.exists() {
-            let _ = fs::rename(&path, trash_dir.join(entry));
-        }
-    }
-
-    // Set up cancellation
     let cancelled = Arc::new(AtomicBool::new(false));
     let r = cancelled.clone();
-
-    // ctrlc::set_handler replaces any previous handler, making sure our atomic bool updates
     ctrlc::set_handler(move || {
         r.store(true, Ordering::SeqCst);
     })
     .expect("Error setting Ctrl-C handler");
 
-    // Setup Spinner
     let pb = ProgressBar::new_spinner();
     pb.set_style(
         ProgressStyle::default_spinner()
@@ -125,102 +74,103 @@ pub fn execute(hard: bool) {
             .template("{spinner:.green} {msg}")
             .unwrap(),
     );
-    pb.set_message("Deleting files in background (Press Ctrl+C to abort and recover)...");
+    pb.set_message("Deleting files (Press Ctrl+C to stop early — already-deleted cache is safe to leave partial)...");
 
-    // We do the deletion on a background thread.
-    // To permit cancellation gracefully, we do not use fs::remove_dir_all.
-    // We walk the tree and delete file-by-file so we can check `cancelled`.
     let c = cancelled.clone();
-    let trash_dir_clone = trash_dir.clone();
-
     let handle = thread::spawn(move || {
-        fn safe_delete_recursive(path: &Path, c: &Arc<AtomicBool>) -> bool {
-            if c.load(Ordering::SeqCst) {
-                return false; // Cancelled
-            }
+        // One bulk `remove_dir_all`/`remove_file` per entry — the same
+        // primitive `cargo clean` itself relies on — rather than a manual
+        // per-file walk, since nothing below a target-dir entry other than
+        // `deploy/` ever needs individual inspection. Cancellation is
+        // checked between entries, not within one; a bulk removal already
+        // in flight runs to completion rather than stopping mid-file.
+        fn wipe_path(path: &Path) {
             if path.is_dir() {
-                if let Ok(entries) = fs::read_dir(path) {
-                    for entry in entries.flatten() {
-                        if !safe_delete_recursive(&entry.path(), c) {
-                            return false;
-                        }
-                    }
-                }
-                let _ = fs::remove_dir(path);
+                let _ = fs::remove_dir_all(path);
             } else {
                 let _ = fs::remove_file(path);
+            }
+        }
+
+        // Matches `build.rs`'s own `format!("{}-keypair.json", program_name)`
+        // — the only file `deploy/` is meant to survive a clean for.
+        fn is_keypair_json(path: &Path) -> bool {
+            path.extension().is_some_and(|ext| ext == "json")
+                && path
+                    .file_stem()
+                    .is_some_and(|stem| stem.to_string_lossy().contains("keypair"))
+        }
+
+        fn clean_deploy_dir(deploy_dir: &Path, c: &Arc<AtomicBool>) -> bool {
+            if let Ok(entries) = fs::read_dir(deploy_dir) {
+                for entry in entries.flatten() {
+                    if c.load(Ordering::SeqCst) {
+                        return false;
+                    }
+                    let path = entry.path();
+                    if !is_keypair_json(&path) {
+                        wipe_path(&path);
+                    }
+                }
             }
             true
         }
 
-        let completed = safe_delete_recursive(&trash_dir_clone, &c);
-        if completed && trash_dir_clone.exists() {
-            let _ = fs::remove_dir_all(&trash_dir_clone);
+        fn clean_dir_entries(dir: &Path, preserve_deploy: bool, c: &Arc<AtomicBool>) -> bool {
+            let Ok(entries) = fs::read_dir(dir) else {
+                return true;
+            };
+            for entry in entries.flatten() {
+                if c.load(Ordering::SeqCst) {
+                    return false;
+                }
+                let path = entry.path();
+                if preserve_deploy && path.file_name().is_some_and(|n| n == "deploy") {
+                    if !clean_deploy_dir(&path, c) {
+                        return false;
+                    }
+                } else {
+                    wipe_path(&path);
+                }
+            }
+            true
+        }
+
+        let mut completed = true;
+        if target_dir.exists() {
+            completed = clean_dir_entries(&target_dir, !hard, &c);
+            if completed && hard {
+                let _ = fs::remove_dir(&target_dir);
+            }
+        }
+        if completed {
+            for dir in &extra_dirs {
+                if c.load(Ordering::SeqCst) {
+                    completed = false;
+                    break;
+                }
+                if dir.exists() {
+                    wipe_path(dir);
+                }
+            }
         }
         completed
     });
 
     while !handle.is_finished() {
-        if cancelled.load(Ordering::SeqCst) {
-            pb.set_message("Cancellation requested... restoring remaining files...");
-        } else {
-            pb.tick();
-        }
+        pb.tick();
         thread::sleep(Duration::from_millis(50));
     }
 
     let completed = handle.join().unwrap_or(false);
 
     if !completed {
-        // Restore from `.naclac_trash`
-        if let Ok(entries) = fs::read_dir(&trash_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                let name = path.file_name().unwrap();
-                let original_path = if name == "target" {
-                    target_dir.clone()
-                } else {
-                    current_dir.join(name)
-                };
-
-                if name == "target" && !hard {
-                    // Marge back into current target safely
-                    if let Ok(sub_entries) = fs::read_dir(&path) {
-                        for s_entry in sub_entries.flatten() {
-                            let s_path = s_entry.path();
-                            let s_name = s_path.file_name().unwrap();
-                            let dest = original_path.join(s_name);
-
-                            if s_name == "deploy" && dest.exists() {
-                                // merge deploy
-                                if let Ok(d_entries) = fs::read_dir(&s_path) {
-                                    for d in d_entries.flatten() {
-                                        let _ = fs::rename(
-                                            d.path(),
-                                            dest.join(d.path().file_name().unwrap()),
-                                        );
-                                    }
-                                }
-                            } else {
-                                fs::create_dir_all(&original_path).unwrap();
-                                let _ = fs::rename(&s_path, dest);
-                            }
-                        }
-                    }
-                } else {
-                    let _ = fs::rename(&path, &original_path);
-                }
-            }
-        }
-        let _ = fs::remove_dir_all(&trash_dir);
         pb.finish_with_message(
-            "🛑 Clean aborted entirely by user. Recoverable files were restored!",
+            "🛑 Clean stopped early by user — deleted cache is gone, anything not yet reached is untouched. Safe to re-run.",
         );
+    } else if hard {
+        pb.finish_with_message("✨ Workspace completely wiped!");
     } else {
-        if hard {
-            pb.finish_with_message("✨ Workspace completely wiped!");
-        } else {
-            pb.finish_with_message("✨ Workspace cleaned securely!\n🔒 (Program Deploy keys safely preserved in target/deploy).\n💡 Run `naclac clean --hard` to completely wipe everything.");
-        }
+        pb.finish_with_message("✨ Workspace cleaned securely!\n🔒 (Program Deploy keys safely preserved in target/deploy).\n💡 Run `naclac clean --hard` to completely wipe everything.");
     }
 }

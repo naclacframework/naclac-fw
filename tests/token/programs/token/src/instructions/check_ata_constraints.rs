@@ -24,7 +24,6 @@ pub struct CheckAtaConstraints {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn check_ata_constraints(_ctx: Context<CheckAtaConstraints>, _ata_bump: u8) -> Result {
     Ok(())
 }

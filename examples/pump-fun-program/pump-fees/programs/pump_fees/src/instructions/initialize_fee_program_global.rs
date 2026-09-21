@@ -15,7 +15,6 @@ pub struct InitializeFeeProgramGlobal {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn initialize_fee_program_global(
     ctx: Context<InitializeFeeProgramGlobal>,
     social_claim_authority: Address,

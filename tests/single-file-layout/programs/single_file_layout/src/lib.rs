@@ -1,7 +1,7 @@
 #![no_std]
 use naclac_lang::prelude::*;
 
-declare_id!("HAdzYqmdPxrpGjafmpfb7ETZkst9xXhWaJf4F5S9e4jC");
+declare_id!("FADseVzrrwxbzWN83XK9YXoHULUf4E2LvZDp8F3fKKm8");
 
 // Everything below — the component, both `#[derive(Accounts)]` structs, and
 // both instruction handlers — lives directly in this one file, rather than

@@ -20,9 +20,9 @@ export interface MigrateV2Accounts {
    * (a single dynamic field, not a static address) — no declarative
    * constraint supports comparing against another account's field value.
    */
-  withdraw_authority: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
+  withdrawAuthority: naclac.Address | string;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
   /**
    * SAFETY: `quote_mint` validated in the handler body against
    * `bonding_curve.quote_mint`, not via a declarative relational
@@ -32,16 +32,16 @@ export interface MigrateV2Accounts {
    * support, so that default-address exception can't be expressed
    * declaratively (same reasoning already applied in `buy_v2`/`sell_v2`).
    */
-  bonding_curve?: naclac.Address | string;
-  associated_base_bonding_curve: naclac.Address | string;
-  associated_quote_bonding_curve: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
+  associatedBaseBondingCurve: naclac.Address | string;
+  associatedQuoteBondingCurve: naclac.Address | string;
   user: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  base_token_program: naclac.Address | string;
-  quote_token_program: naclac.Address | string;
-  token_2022_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
-  pump_amm: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  baseTokenProgram: naclac.Address | string;
+  quoteTokenProgram: naclac.Address | string;
+  token2022Program?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
+  pumpAmm: naclac.Address | string;
   /**
    * SAFETY: address pinned via `address = RENT_SYSVAR_ID`; genuinely part
    * of the real, confirmed 27-account `migrate_v2` list (already
@@ -58,7 +58,7 @@ export interface MigrateV2Accounts {
    * account created during migration; signs the nested `create_pool`/
    * `init_boost` CPIs as `creator` via `invoke_signed`.
    */
-  pool_authority?: naclac.Address | string;
+  poolAuthority?: naclac.Address | string;
   /**
    * SAFETY: doesn't exist yet — created by the nested `create_pool` CPI
    * below, address verified via seeds only.
@@ -70,41 +70,41 @@ export interface MigrateV2Accounts {
    * `migrate.rs`'s own account of the same name). Address verified via
    * `seeds`/`seeds::program`/`bump` regardless.
    */
-  pool_authority_mint_account?: naclac.Address | string;
+  poolAuthorityMintAccount?: naclac.Address | string;
   /** SAFETY: same as `pool_authority_mint_account` above. */
-  pool_authority_quote_account?: naclac.Address | string;
+  poolAuthorityQuoteAccount?: naclac.Address | string;
   /**
    * SAFETY: address fully verified via `seeds`/`seeds::program`/`bump`;
    * passed straight into the nested `create_pool`/`init_boost` CPIs below.
    */
-  amm_global_config?: naclac.Address | string;
+  ammGlobalConfig?: naclac.Address | string;
   /** SAFETY: doesn't exist yet — created by the nested `create_pool` CPI. */
-  lp_mint?: naclac.Address | string;
+  lpMint?: naclac.Address | string;
   /**
    * SAFETY: doesn't exist yet — created by the nested `create_pool` CPI;
    * `pool_authority`'s own LP-token ATA, burned and closed below once
    * minted so no one ends up holding the migrated pool's liquidity.
    */
-  user_pool_token_account?: naclac.Address | string;
+  userPoolTokenAccount?: naclac.Address | string;
   /**
    * SAFETY: created directly by this instruction's own body — see
    * `pool_authority_mint_account` above for why.
    */
-  pool_base_token_account?: naclac.Address | string;
+  poolBaseTokenAccount?: naclac.Address | string;
   /** SAFETY: same as `pool_base_token_account` above. */
-  pool_quote_token_account?: naclac.Address | string;
+  poolQuoteTokenAccount?: naclac.Address | string;
   /**
    * SAFETY: `seeds`/`bump` already verifies its address; a bare
    * signing/seed PDA with no stored data — real `remaining_accounts[0]`
    * on `migrate_v2`, confirmed via a real mainnet transaction (see
    * module doc comment above).
    */
-  boost_vault_authority?: naclac.Address | string;
+  boostVaultAuthority?: naclac.Address | string;
   /**
    * SAFETY: doesn't exist yet — created by the nested `init_boost` CPI.
    * Real `remaining_accounts[1]` on `migrate_v2`.
    */
-  boost_vault?: naclac.Address | string;
+  boostVault?: naclac.Address | string;
 }
 
 /**

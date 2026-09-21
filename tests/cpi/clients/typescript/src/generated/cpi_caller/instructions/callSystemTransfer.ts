@@ -14,8 +14,8 @@ export interface CallSystemTransferArgs {
 /** Accounts for the `callSystemTransfer` instruction. */
 export interface CallSystemTransferAccounts {
   payer: naclac.Address | string;
-  caller_authority?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  callerAuthority?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("YvZWqwBfnwzYFszL3HMWynJb3o81JhC4C661EuQL3JB");
+declare_id!("2NRNEsBPXjtD4GzyGyesA7N69KY9pZBo4cpj5dYjhu2K");
 
 #[cfg(feature = "offchain")]
 pub fn get_big_pda(
@@ -56,7 +56,7 @@ pub struct StackSafety;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for StackSafety {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([8, 45, 144, 245, 24, 177, 160, 217, 44, 131, 129, 37, 222, 105, 248, 67, 211, 116, 38, 188, 248, 223, 2, 164, 187, 206, 192, 241, 129, 144, 12, 84])
+        sdk_core_cpi::Address::new_from_array([20, 88, 111, 82, 192, 221, 82, 247, 124, 107, 5, 182, 9, 17, 70, 227, 52, 164, 2, 149, 254, 121, 101, 59, 101, 17, 108, 95, 144, 36, 3, 220])
     }
 }
 

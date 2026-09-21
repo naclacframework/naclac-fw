@@ -10,7 +10,6 @@ pub struct EmitFixed8 {
     pub program: AccountInfo,
 }
 
-#[instruction]
 pub fn emit_fixed_8(_ctx: Context<EmitFixed8>) -> Result {
     emit!(FixedPayload8 { data: [0u8; 8] });
     Ok(())

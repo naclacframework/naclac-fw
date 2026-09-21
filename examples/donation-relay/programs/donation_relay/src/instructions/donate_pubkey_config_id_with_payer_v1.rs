@@ -82,7 +82,6 @@ pub struct DonatePubkeyConfigIdWithPayerV1 {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn donate_pubkey_config_id_with_payer_v1(
     ctx: Context<DonatePubkeyConfigIdWithPayerV1>,
     args: DonatePubkeyConfigIdWithPayerV1Args,

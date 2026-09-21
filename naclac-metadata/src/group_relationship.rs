@@ -28,10 +28,14 @@
 //! (e.g. `AddGroupsToGroupV1` pushes onto the child's own `parent_groups`
 //! list, not just the parent's `groups` list).
 //!
-//! `items` is taken as an owned `Vec<CpiHandleMut>` (not a borrowed slice)
-//! — `CpiHandleMut` deliberately isn't `Clone` (it represents exclusive
-//! access), so a variable-length list of them can only be consumed by
-//! value, not extracted from a shared reference.
+//! `items` is a borrowed `&[CpiHandleMut]`, not owned — building a
+//! `CpiHandle` from each only needs to read+copy its `info: AccountInfo`
+//! (both fields are `pub`), which `AccountInfo::to_cpi_handle()` (an
+//! existing `naclac-core` trait method: `*self` on `pinocchio`, `self.clone()`
+//! on `solana`) already does without consuming the `CpiHandleMut`. On
+//! `pinocchio` the account list is capped at `MAX_CPI_ACCOUNTS` (the
+//! framework's own existing CPI-account-array bound) and built as a
+//! stack array — see `invoke_group_relationship_pinocchio`.
 
 use crate::prelude::*;
 
@@ -49,40 +53,31 @@ pub struct GroupRelationshipAccounts<'a> {
 /// `pinocchio`-only: shared account-list/CPI-invoke mechanics for all six
 /// instructions in this file — same 4 fixed accounts, differing only in
 /// discriminator and whether `pubkey_arg_data` (the redundant
-/// cross-validation list some of the six carry) is written.
+/// cross-validation list some of the six carry) is written. `items` is
+/// capped at `MAX_CPI_ACCOUNTS - 4` (the fixed accounts) — no real
+/// protocol maximum exists, but that's the real ceiling this crate's own
+/// zero-heap CPI array can hold either way.
 #[cfg(feature = "pinocchio")]
 fn invoke_group_relationship_pinocchio(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
     discriminator: u8,
     include_pubkey_arg: bool,
-    items: crate::prelude::Vec<CpiHandleMut<'_>>,
+    items: &[CpiHandleMut<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let item_handles: crate::prelude::Vec<CpiHandle<'_>> =
-        items.into_iter().map(CpiHandle::from).collect();
-    // A separate, stable address list — `ix_accounts` below needs `&Address`
-    // references that outlive `item_handles` itself, since `item_handles`
-    // (the `Vec`, not its individually-`Copy` elements) is moved into
-    // `handles` further down; borrowing straight from `item_handles` would
-    // conflict with that move even though each `CpiHandle` is `Copy`.
-    // Element type left to inference deliberately: `AccountView::address()`
-    // returns `pinocchio`'s own `Address` (from `solana-address`), a
-    // distinct type from naclac's own `Address` that `crate::prelude::*`
-    // would otherwise shadow it with.
-    let item_addresses = item_handles
-        .iter()
-        .map(|h| *h.info.view.address())
-        .collect::<crate::prelude::Vec<_>>();
+    const FIXED_ACCOUNTS: usize = 4;
+    const MAX_ITEMS: usize = MAX_CPI_ACCOUNTS - FIXED_ACCOUNTS;
+    if items.len() > MAX_ITEMS {
+        return Err(NaclacError::TooManyCpiAccounts.into());
+    }
 
-    let mut data = crate::prelude::Vec::with_capacity(
-        1 + if include_pubkey_arg { 4 + item_handles.len() * 32 } else { 0 },
-    );
+    let mut data = crate::fixed_buf::FixedBuf::<{ 1 + 4 + MAX_ITEMS * 32 }>::new();
     data.push(discriminator);
     if include_pubkey_arg {
-        data.extend_from_slice(&(item_addresses.len() as u32).to_le_bytes());
-        for addr in &item_addresses {
-            data.extend_from_slice(addr.as_ref());
+        data.extend_from_slice(&(items.len() as u32).to_le_bytes());
+        for item in items {
+            data.extend_from_slice(item.info.address().as_ref());
         }
     }
 
@@ -91,15 +86,19 @@ fn invoke_group_relationship_pinocchio(
     let authority_is_some = accounts.authority.is_some();
     let authority_handle = accounts.authority.unwrap_or(program);
 
-    let mut ix_accounts: crate::prelude::Vec<::pinocchio::instruction::InstructionAccount<'_>> =
-        crate::prelude::Vec::with_capacity(4 + item_handles.len());
-    ix_accounts.push(::pinocchio::instruction::InstructionAccount::writable(
-        group_handle.info.view.address(),
-    ));
-    ix_accounts.push(::pinocchio::instruction::InstructionAccount::writable_signer(
+    // Fixed-capacity, zero-heap account arrays — see `execute.rs`'s
+    // `execute_signed` for the same pattern and why the placeholder fill
+    // value is never actually read.
+    let mut ix_accounts: [::pinocchio::instruction::InstructionAccount<'_>; MAX_CPI_ACCOUNTS] =
+        core::array::from_fn(|_| {
+            ::pinocchio::instruction::InstructionAccount::readonly(program.info.view.address())
+        });
+    ix_accounts[0] =
+        ::pinocchio::instruction::InstructionAccount::writable(group_handle.info.view.address());
+    ix_accounts[1] = ::pinocchio::instruction::InstructionAccount::writable_signer(
         payer_handle.info.view.address(),
-    ));
-    ix_accounts.push(if authority_is_some {
+    );
+    ix_accounts[2] = if authority_is_some {
         ::pinocchio::instruction::InstructionAccount::readonly_signer(
             authority_handle.info.view.address(),
         )
@@ -107,28 +106,80 @@ fn invoke_group_relationship_pinocchio(
         ::pinocchio::instruction::InstructionAccount::readonly(
             authority_handle.info.view.address(),
         )
-    });
-    ix_accounts.push(::pinocchio::instruction::InstructionAccount::readonly(
+    };
+    ix_accounts[3] = ::pinocchio::instruction::InstructionAccount::readonly(
         accounts.system_program.info.view.address(),
-    ));
-    for addr in &item_addresses {
-        ix_accounts.push(::pinocchio::instruction::InstructionAccount::writable(addr));
+    );
+    for (i, item) in items.iter().enumerate() {
+        ix_accounts[FIXED_ACCOUNTS + i] =
+            ::pinocchio::instruction::InstructionAccount::writable(item.info.view.address());
     }
+    let total = FIXED_ACCOUNTS + items.len();
 
     let instruction = ::pinocchio::instruction::InstructionView {
         program_id: program.info.view.address(),
-        accounts: &ix_accounts,
-        data: &data,
+        accounts: &ix_accounts[..total],
+        data: data.as_slice(),
     };
 
-    let mut handles: crate::prelude::Vec<CpiHandle<'_>> =
-        crate::prelude::Vec::with_capacity(4 + item_handles.len());
-    handles.push(group_handle);
-    handles.push(payer_handle);
-    handles.push(authority_handle);
-    handles.push(accounts.system_program);
-    handles.extend(item_handles);
-    crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
+    let mut handles = [program; MAX_CPI_ACCOUNTS];
+    handles[0] = group_handle;
+    handles[1] = payer_handle;
+    handles[2] = authority_handle;
+    handles[3] = accounts.system_program;
+    for (i, item) in items.iter().enumerate() {
+        handles[FIXED_ACCOUNTS + i] = item.info.to_cpi_handle();
+    }
+    crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles[..total], signer_seeds)
+}
+
+/// `solana`-only: builds the raw `Instruction` shared by all six functions
+/// below — discriminator + (if `include_pubkey_arg`) a `Vec<Pubkey>` of
+/// `items`' own addresses (the redundant cross-validation list some of the
+/// six carry — see this file's header) + the same 4 fixed accounts as
+/// `invoke_group_relationship_pinocchio`, plus one writable meta per item.
+#[cfg(not(feature = "pinocchio"))]
+fn build_group_relationship_instruction(
+    accounts: &GroupRelationshipAccounts<'_>,
+    discriminator: u8,
+    include_pubkey_arg: bool,
+    items: &[CpiHandleMut<'_>],
+) -> solana_program::instruction::Instruction {
+    let mut data = crate::prelude::Vec::new();
+    data.push(discriminator);
+    if include_pubkey_arg {
+        data.extend_from_slice(&(items.len() as u32).to_le_bytes());
+        for item in items {
+            data.extend_from_slice(item.address().as_ref());
+        }
+    }
+
+    let mut accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.group.address(), false),
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+    ];
+    for item in items {
+        accounts_meta.push(solana_program::instruction::AccountMeta::new(
+            item.address(),
+            false,
+        ));
+    }
+
+    solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data,
+    }
 }
 
 /// `solana`-only: shared account-list/CPI-invoke mechanics, mirroring
@@ -138,7 +189,7 @@ fn invoke_group_relationship_solana(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
     ix: solana_program::instruction::Instruction,
-    items: crate::prelude::Vec<CpiHandleMut<'_>>,
+    items: &[CpiHandleMut<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     let mut cpi_accounts: crate::prelude::Vec<CpiHandle<'_>> =
@@ -147,7 +198,7 @@ fn invoke_group_relationship_solana(
     cpi_accounts.push(CpiHandle::from(accounts.payer));
     cpi_accounts.push(accounts.authority.unwrap_or_else(|| program.clone()));
     cpi_accounts.push(accounts.system_program);
-    cpi_accounts.extend(items.into_iter().map(CpiHandle::from));
+    cpi_accounts.extend(items.iter().map(|h| h.info.to_cpi_handle()));
     cpi_accounts.push(program);
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
 }
@@ -157,22 +208,12 @@ fn invoke_group_relationship_solana(
 pub fn add_assets_to_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
-    items: crate::prelude::Vec<CpiHandleMut<'_>>,
+    items: &[CpiHandleMut<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let item_metas: crate::prelude::Vec<solana_program::instruction::AccountMeta> = items
-            .iter()
-            .map(|h| solana_program::instruction::AccountMeta::new(h.address(), false))
-            .collect();
-        let ix = ::mpl_core::instructions::AddAssetsToGroupV1 {
-            group: accounts.group.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-        }
-        .instruction_with_remaining_accounts(&item_metas);
+        let ix = build_group_relationship_instruction(&accounts, 35u8, false, items);
         invoke_group_relationship_solana(program, accounts, ix, items, signer_seeds)
     }
 
@@ -187,27 +228,12 @@ pub fn add_assets_to_group_signed(
 pub fn remove_assets_from_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
-    items: crate::prelude::Vec<CpiHandleMut<'_>>,
+    items: &[CpiHandleMut<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let item_metas: crate::prelude::Vec<solana_program::instruction::AccountMeta> = items
-            .iter()
-            .map(|h| solana_program::instruction::AccountMeta::new(h.address(), false))
-            .collect();
-        let ix = ::mpl_core::instructions::RemoveAssetsFromGroupV1 {
-            group: accounts.group.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-        }
-        .instruction_with_remaining_accounts(
-            ::mpl_core::instructions::RemoveAssetsFromGroupV1InstructionArgs {
-                assets: items.iter().map(|h| h.address()).collect(),
-            },
-            &item_metas,
-        );
+        let ix = build_group_relationship_instruction(&accounts, 36u8, true, items);
         invoke_group_relationship_solana(program, accounts, ix, items, signer_seeds)
     }
 
@@ -222,22 +248,12 @@ pub fn remove_assets_from_group_signed(
 pub fn add_collections_to_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
-    items: crate::prelude::Vec<CpiHandleMut<'_>>,
+    items: &[CpiHandleMut<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let item_metas: crate::prelude::Vec<solana_program::instruction::AccountMeta> = items
-            .iter()
-            .map(|h| solana_program::instruction::AccountMeta::new(h.address(), false))
-            .collect();
-        let ix = ::mpl_core::instructions::AddCollectionsToGroupV1 {
-            group: accounts.group.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-        }
-        .instruction_with_remaining_accounts(&item_metas);
+        let ix = build_group_relationship_instruction(&accounts, 33u8, false, items);
         invoke_group_relationship_solana(program, accounts, ix, items, signer_seeds)
     }
 
@@ -252,27 +268,12 @@ pub fn add_collections_to_group_signed(
 pub fn remove_collections_from_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
-    items: crate::prelude::Vec<CpiHandleMut<'_>>,
+    items: &[CpiHandleMut<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let item_metas: crate::prelude::Vec<solana_program::instruction::AccountMeta> = items
-            .iter()
-            .map(|h| solana_program::instruction::AccountMeta::new(h.address(), false))
-            .collect();
-        let ix = ::mpl_core::instructions::RemoveCollectionsFromGroupV1 {
-            group: accounts.group.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-        }
-        .instruction_with_remaining_accounts(
-            ::mpl_core::instructions::RemoveCollectionsFromGroupV1InstructionArgs {
-                collections: items.iter().map(|h| h.address()).collect(),
-            },
-            &item_metas,
-        );
+        let ix = build_group_relationship_instruction(&accounts, 34u8, true, items);
         invoke_group_relationship_solana(program, accounts, ix, items, signer_seeds)
     }
 
@@ -289,27 +290,12 @@ pub fn remove_collections_from_group_signed(
 pub fn add_groups_to_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
-    items: crate::prelude::Vec<CpiHandleMut<'_>>,
+    items: &[CpiHandleMut<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let item_metas: crate::prelude::Vec<solana_program::instruction::AccountMeta> = items
-            .iter()
-            .map(|h| solana_program::instruction::AccountMeta::new(h.address(), false))
-            .collect();
-        let ix = ::mpl_core::instructions::AddGroupsToGroupV1 {
-            parent_group: accounts.group.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-        }
-        .instruction_with_remaining_accounts(
-            ::mpl_core::instructions::AddGroupsToGroupV1InstructionArgs {
-                groups: items.iter().map(|h| h.address()).collect(),
-            },
-            &item_metas,
-        );
+        let ix = build_group_relationship_instruction(&accounts, 37u8, true, items);
         invoke_group_relationship_solana(program, accounts, ix, items, signer_seeds)
     }
 
@@ -325,27 +311,12 @@ pub fn add_groups_to_group_signed(
 pub fn remove_groups_from_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
-    items: crate::prelude::Vec<CpiHandleMut<'_>>,
+    items: &[CpiHandleMut<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let item_metas: crate::prelude::Vec<solana_program::instruction::AccountMeta> = items
-            .iter()
-            .map(|h| solana_program::instruction::AccountMeta::new(h.address(), false))
-            .collect();
-        let ix = ::mpl_core::instructions::RemoveGroupsFromGroupV1 {
-            parent_group: accounts.group.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-        }
-        .instruction_with_remaining_accounts(
-            ::mpl_core::instructions::RemoveGroupsFromGroupV1InstructionArgs {
-                groups: items.iter().map(|h| h.address()).collect(),
-            },
-            &item_metas,
-        );
+        let ix = build_group_relationship_instruction(&accounts, 38u8, true, items);
         invoke_group_relationship_solana(program, accounts, ix, items, signer_seeds)
     }
 

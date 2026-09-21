@@ -41,7 +41,6 @@ pub struct SetMetaplexCreator {
 // `verified`. `metadata` must be the exact canonical PDA for `mint` and
 // owned by the real Metaplex program, or the call fails outright (confirmed:
 // a real, valid, but wrong-mint metadata substitution is rejected).
-#[instruction]
 pub fn set_metaplex_creator(
     ctx: Context<SetMetaplexCreator>,
     _metadata_bump: u8,

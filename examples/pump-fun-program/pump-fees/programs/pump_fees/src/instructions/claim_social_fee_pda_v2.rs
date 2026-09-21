@@ -41,7 +41,6 @@ pub struct ClaimSocialFeePdaV2 {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn claim_social_fee_pda_v2(
     ctx: Context<ClaimSocialFeePdaV2>,
     user_id: ZcString,

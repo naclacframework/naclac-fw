@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 
 /** The on-chain address of this program. */
-export const PROGRAM_ID = naclac.address("8SNGg4Fq9Xevbkgh8X1vjm1GUHNBYfmAeV1t3YUkvove");
+export const PROGRAM_ID = naclac.address("8rGbMNujqAmfaNfGAyMz5jC9LKcLaWbieK1tnN3NLENq");
 export const SEED_REGISTRY: Uint8Array = Uint8Array.from([114, 101, 103, 105, 115, 116, 114, 121]);
 export const SEED_ENTRY: Uint8Array = Uint8Array.from([101, 110, 116, 114, 121]);
 export const SEED_CHILD: Uint8Array = Uint8Array.from([99, 104, 105, 108, 100]);

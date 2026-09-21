@@ -26,7 +26,6 @@ pub struct Withdraw {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result {
     // Update balances
     process_withdraw(&mut ctx.accounts.vault_account, &mut ctx.accounts.user_account, amount)?;

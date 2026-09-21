@@ -21,14 +21,14 @@ export interface SellAccounts {
    * not a single fixed address — no declarative constraint supports OR);
    * never deserialized, only a lamport destination below.
    */
-  fee_recipient: naclac.Address | string;
+  feeRecipient: naclac.Address | string;
   mint: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
   user: naclac.Address | string;
-  associated_bonding_curve: naclac.Address | string;
-  associated_user: naclac.Address | string;
-  token_program: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  associatedBondingCurve: naclac.Address | string;
+  associatedUser: naclac.Address | string;
+  tokenProgram: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump` constraint already verifies its address;
    * it's a lamport-only PDA (no stored data), never `init`'d so still
@@ -40,17 +40,17 @@ export interface SellAccounts {
    * real deployed bytecode (unlike the fee itself, the top-up is not
    * sourced from the trade's own proceeds).
    */
-  creator_vault?: naclac.Address | string;
+  creatorVault?: naclac.Address | string;
   /** SAFETY: self-reference, unused beyond seed material for `fee_config` below. */
   program: naclac.Address | string;
-  user_volume_accumulator?: naclac.Address | string;
+  userVolumeAccumulator?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`owner` constraints fully validate this; only
    * passed as a CPI account to `pump_fees::get_fees` below, never
    * deserialized here.
    */
-  fee_config?: naclac.Address | string;
-  fee_program: naclac.Address | string;
+  feeConfig?: naclac.Address | string;
+  feeProgram: naclac.Address | string;
   /**
    * SAFETY: real `pump.so` validates this address even though the
    * account never needs to exist (real transactions pass it at 0
@@ -60,20 +60,20 @@ export interface SellAccounts {
    * deserialized; this reimplementation has no v2 bonding-curve concept
    * beyond satisfying this address check.
    */
-  bonding_curve_v2?: naclac.Address | string;
+  bondingCurveV2?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`owner` constraints fully validate this as a real
    * `pump_fees::BuybackVault` PDA; `buyback_index` is caller-supplied —
    * every index 0..8 is an equally valid, protocol-owned vault, so that
    * constraint alone is the whole security boundary, never deserialized.
    */
-  buyback_fee_recipient?: naclac.Address | string;
+  buybackFeeRecipient?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump` constraint already verifies its address;
    * it's a lamport-only PDA (no stored data) — only ever used as the
    * signed-CPI proof-of-origin for `pump_fees::get_fees` below.
    */
-  pump_authority?: naclac.Address | string;
+  pumpAuthority?: naclac.Address | string;
 }
 
 /**

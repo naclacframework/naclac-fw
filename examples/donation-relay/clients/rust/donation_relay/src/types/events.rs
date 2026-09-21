@@ -19,11 +19,11 @@ pub struct DonationMadeV1Event {
     pub credited_to: crate::sdk_core_offchain::Address,
 }
 
-#[cfg(not(feature = "offchain"))]
+#[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
 #[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
-pub struct DonationMadeV1Event {
+pub struct DonationMadeV1EventCpi {
     pub config_id: crate::sdk_core_cpi::Address,
     pub mint: crate::sdk_core_cpi::Address,
     pub gross_amount: u64,

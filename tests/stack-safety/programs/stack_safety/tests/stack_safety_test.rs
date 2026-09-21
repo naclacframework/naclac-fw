@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use stack_safety_client::{
     fetch_big_data, fetch_small_data,
     get_big_pda, get_small_pda,
@@ -10,22 +10,9 @@ use stack_safety_client::{
     types::PROGRAM_ID,
 };
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // stack-safety workspace root
-    so_path.push("target/deploy/stack_safety.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load stack_safety program binary");
-}
-
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
-    provider
+    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
 /// The ordinary path: a component well under both stack budgets, unboxed.
@@ -64,7 +51,7 @@ fn small_unboxed_field_inits_and_mutates() {
 
 /// The actual mechanism under test: `BigData`'s 300-byte payload alone puts
 /// `Account<BigData>` over the per-field stack budget, so every field of
-/// this type in the real program is `Box<Account<BigData>>` — this isn't a
+/// this type in the real program is `Box<Account<BigData>>` â€” this isn't a
 /// stand-in case, boxing here is load-bearing (an unboxed version of this
 /// exact program fails to compile, per `tests/stack-safety/compile-fail/`).
 /// `init`/mutation/`.address()` must all work exactly like an unboxed field.
@@ -100,7 +87,7 @@ fn big_boxed_field_inits_and_mutates_and_address_works() {
 }
 
 /// `close`'s lamport-drain/reassign logic operates on the field's raw
-/// `AccountInfo` — a different blanket impl (`ToAccountInfo`) than the
+/// `AccountInfo` â€” a different blanket impl (`ToAccountInfo`) than the
 /// `Deref`/`DerefMut`/`ToAddress` path the mutation test above exercises.
 /// Confirms that side is also fully transparent through the Box.
 #[test]

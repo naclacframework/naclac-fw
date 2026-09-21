@@ -62,7 +62,7 @@ pub const PUMP_PROGRAM_ID: Address = address!("FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcW
 // Our reimplemented `pump_amm` program's declared ID (examples/pump-fun-program/pump-amm).
 pub const PUMP_AMM_PROGRAM_ID: Address = address!("HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx");
 // Our reimplemented `donation_relay` program's declared ID (examples/donation-relay).
-pub const DONATION_RELAY_PROGRAM_ID: Address = address!("2abJkQX74rXzAJEgKRq8PmrT62M2iFtachKGqc4wn9tX");
+pub const DONATION_RELAY_PROGRAM_ID: Address = address!("8MWkme4Dfe5NBPh17itoSro62n4FTGLmPNXYFRCUzu7A");
 
 pub const WSOL_MINT: Address = address!("So11111111111111111111111111111111111111112");
 

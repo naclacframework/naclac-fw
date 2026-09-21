@@ -10,7 +10,6 @@ pub struct CheckDefaultAccountState {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_default_account_state(
     ctx: Context<CheckDefaultAccountState>,
     expected_state: u8,

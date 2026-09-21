@@ -22,7 +22,6 @@ const LOG_EVENT_SIGNED_DISCRIMINATOR: [u8; 8] =
 /// via `invoke_signed` (matching Anchor's `emit_cpi!`), unlike
 /// `emit_via_self_cpi_baseline`'s plain unsigned `invoke`. Measures the true
 /// CU cost a spoof-resistant `emit_cpi!` feature would actually pay.
-#[instruction]
 pub fn emit_via_self_cpi_signed_baseline(ctx: Context<EmitViaSelfCpiSignedBaseline>) -> Result {
     let mut data = [0u8; 8 + 8];
     data[..8].copy_from_slice(&LOG_EVENT_SIGNED_DISCRIMINATOR);

@@ -210,6 +210,16 @@ pub fn permissioned_burn_signed(
 /// `PermissionedBurnInstruction::BurnChecked`/`burn_checked`, cross-checked
 /// against `pinocchio-token-2022`'s own
 /// `extensions::permissioned_burn::BurnChecked::invoke_signed`.
+/// Numeric parameters for a checked permissioned burn.
+/// Grouping amount + decimals keeps `permissioned_burn_checked_signed` under
+/// clippy's argument-count limit while remaining fully explicit at call
+/// sites (mirrors `naclac-token::token::CheckedTransferParams`).
+#[derive(Copy, Clone, Debug)]
+pub struct PermissionedBurnCheckedParams {
+    pub amount: u64,
+    pub decimals: u8,
+}
+
 pub fn permissioned_burn_checked(
     program: CpiHandle<'_>,
     source: CpiHandleMut<'_>,
@@ -225,23 +235,21 @@ pub fn permissioned_burn_checked(
         mint,
         permissioned_burn_authority,
         authority,
-        amount,
-        decimals,
+        PermissionedBurnCheckedParams { amount, decimals },
         &[],
     )
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn permissioned_burn_checked_signed(
     program: CpiHandle<'_>,
     source: CpiHandleMut<'_>,
     mint: CpiHandleMut<'_>,
     permissioned_burn_authority: CpiHandle<'_>,
     authority: CpiHandle<'_>,
-    amount: u64,
-    decimals: u8,
+    params: PermissionedBurnCheckedParams,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
+    let PermissionedBurnCheckedParams { amount, decimals } = params;
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {

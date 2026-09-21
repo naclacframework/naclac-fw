@@ -29,7 +29,6 @@ pub struct SetMintAuthority {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn set_mint_authority(ctx: Context<SetMintAuthority>, authority_type: u8) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

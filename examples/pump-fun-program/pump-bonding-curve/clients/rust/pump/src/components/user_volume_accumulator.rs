@@ -7,10 +7,9 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_offchain::borsh")]
 pub struct UserVolumeAccumulator {
     pub user: crate::sdk_core_offchain::Address,
     pub needs_claim: crate::sdk_core_offchain::Bool,
@@ -29,15 +28,365 @@ pub struct UserVolumeAccumulator {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct UserVolumeAccumulator {
+    pub user: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_0: [u8; __UserVolumeAccumulator_GAP_0],
+    pub needs_claim: crate::sdk_core_offchain::Bool,
+    pub __naclac_padding_1: [u8; __UserVolumeAccumulator_GAP_1],
+    pub total_unclaimed_tokens: u64,
+    pub __naclac_padding_2: [u8; __UserVolumeAccumulator_GAP_2],
+    pub total_claimed_tokens: u64,
+    pub __naclac_padding_3: [u8; __UserVolumeAccumulator_GAP_3],
+    pub current_sol_volume: u64,
+    pub __naclac_padding_4: [u8; __UserVolumeAccumulator_GAP_4],
+    pub last_update_timestamp: i64,
+    pub __naclac_padding_5: [u8; __UserVolumeAccumulator_GAP_5],
+    pub has_total_claimed_tokens: crate::sdk_core_offchain::Bool,
+    pub __naclac_padding_6: [u8; __UserVolumeAccumulator_GAP_6],
+    pub cashback_earned: u64,
+    pub __naclac_padding_7: [u8; __UserVolumeAccumulator_GAP_7],
+    pub total_cashback_claimed: u64,
+    pub __naclac_padding_8: [u8; __UserVolumeAccumulator_GAP_8],
+    pub stable_cashback_earned: u64,
+    pub __naclac_padding_9: [u8; __UserVolumeAccumulator_GAP_9],
+    pub total_stable_cashback_claimed: u64,
+    pub __naclac_padding_10: [u8; __UserVolumeAccumulator_GAP_10],
+    pub reserved_trailing: [u8; 31],
+    pub __naclac_padding_11: [u8; __UserVolumeAccumulator_GAP_11],
+    pub bump: u8,
+    pub __naclac_padding_12: [u8; __UserVolumeAccumulator_GAP_12],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<i64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_4 + ::core::mem::size_of::<i64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulator_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulator_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_6 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulator_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_7 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulator_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_7 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_8 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulator_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_7 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_8 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_9 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<[u8; 31]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulator_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_7 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_8 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_9 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_10 + ::core::mem::size_of::<[u8; 31]>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulator_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
+        + __UserVolumeAccumulator_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulator_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Bool>()
+        + __UserVolumeAccumulator_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_7 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_8 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_9 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulator_GAP_10 + ::core::mem::size_of::<[u8; 31]>()
+        + __UserVolumeAccumulator_GAP_11 + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<i64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 31]>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < UserVolumeAccumulator > () == (::core::mem::size_of:: <
+        crate ::sdk_core_offchain::Address > () + __UserVolumeAccumulator_GAP_0 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Bool > () +
+        __UserVolumeAccumulator_GAP_1 + ::core::mem::size_of:: < u64 > () +
+        __UserVolumeAccumulator_GAP_2 + ::core::mem::size_of:: < u64 > () +
+        __UserVolumeAccumulator_GAP_3 + ::core::mem::size_of:: < u64 > () +
+        __UserVolumeAccumulator_GAP_4 + ::core::mem::size_of:: < i64 > () +
+        __UserVolumeAccumulator_GAP_5 + ::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Bool > () + __UserVolumeAccumulator_GAP_6 +
+        ::core::mem::size_of:: < u64 > () + __UserVolumeAccumulator_GAP_7 +
+        ::core::mem::size_of:: < u64 > () + __UserVolumeAccumulator_GAP_8 +
+        ::core::mem::size_of:: < u64 > () + __UserVolumeAccumulator_GAP_9 +
+        ::core::mem::size_of:: < u64 > () + __UserVolumeAccumulator_GAP_10 +
+        ::core::mem::size_of:: < [u8; 31] > () + __UserVolumeAccumulator_GAP_11 +
+        ::core::mem::size_of:: < u8 > () + __UserVolumeAccumulator_GAP_12),
+        "defined_type/#[component]: `UserVolumeAccumulator`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<crate::sdk_core_offchain::Address>();
+    assert_impl::<crate::sdk_core_offchain::Bool>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<i64>();
+    assert_impl::<crate::sdk_core_offchain::Bool>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<[u8; 31]>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for UserVolumeAccumulator {}
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for UserVolumeAccumulator {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for UserVolumeAccumulator {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
 #[cfg(feature = "cpi")]
-#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
-#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg(feature = "borsh")]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[borsh(crate = "crate::sdk_core_cpi::borsh")]
 pub struct UserVolumeAccumulatorCpi {
     pub user: crate::sdk_core_cpi::Address,
     pub needs_claim: crate::sdk_core_cpi::Bool,
@@ -56,10 +405,361 @@ pub struct UserVolumeAccumulatorCpi {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct UserVolumeAccumulatorCpi {
+    pub user: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_0: [u8; __UserVolumeAccumulatorCpi_GAP_0],
+    pub needs_claim: crate::sdk_core_cpi::Bool,
+    pub __naclac_padding_1: [u8; __UserVolumeAccumulatorCpi_GAP_1],
+    pub total_unclaimed_tokens: u64,
+    pub __naclac_padding_2: [u8; __UserVolumeAccumulatorCpi_GAP_2],
+    pub total_claimed_tokens: u64,
+    pub __naclac_padding_3: [u8; __UserVolumeAccumulatorCpi_GAP_3],
+    pub current_sol_volume: u64,
+    pub __naclac_padding_4: [u8; __UserVolumeAccumulatorCpi_GAP_4],
+    pub last_update_timestamp: i64,
+    pub __naclac_padding_5: [u8; __UserVolumeAccumulatorCpi_GAP_5],
+    pub has_total_claimed_tokens: crate::sdk_core_cpi::Bool,
+    pub __naclac_padding_6: [u8; __UserVolumeAccumulatorCpi_GAP_6],
+    pub cashback_earned: u64,
+    pub __naclac_padding_7: [u8; __UserVolumeAccumulatorCpi_GAP_7],
+    pub total_cashback_claimed: u64,
+    pub __naclac_padding_8: [u8; __UserVolumeAccumulatorCpi_GAP_8],
+    pub stable_cashback_earned: u64,
+    pub __naclac_padding_9: [u8; __UserVolumeAccumulatorCpi_GAP_9],
+    pub total_stable_cashback_claimed: u64,
+    pub __naclac_padding_10: [u8; __UserVolumeAccumulatorCpi_GAP_10],
+    pub reserved_trailing: [u8; 31],
+    pub __naclac_padding_11: [u8; __UserVolumeAccumulatorCpi_GAP_11],
+    pub bump: u8,
+    pub __naclac_padding_12: [u8; __UserVolumeAccumulatorCpi_GAP_12],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<i64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of::<i64>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulatorCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_7: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulatorCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_6 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_8: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulatorCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_7 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_9: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulatorCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_7 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_8 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_10: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulatorCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_7 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_8 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_9 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<[u8; 31]>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_11: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulatorCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_7 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_8 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_9 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_10 + ::core::mem::size_of::<[u8; 31]>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+#[allow(non_upper_case_globals)]
+const __UserVolumeAccumulatorCpi_GAP_12: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
+        + __UserVolumeAccumulatorCpi_GAP_0
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of::<i64>()
+        + __UserVolumeAccumulatorCpi_GAP_5
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Bool>()
+        + __UserVolumeAccumulatorCpi_GAP_6 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_7 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_8 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_9 + ::core::mem::size_of::<u64>()
+        + __UserVolumeAccumulatorCpi_GAP_10 + ::core::mem::size_of::<[u8; 31]>()
+        + __UserVolumeAccumulatorCpi_GAP_11 + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<i64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Bool>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<[u8; 31]>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < UserVolumeAccumulatorCpi > () == (::core::mem::size_of::
+        < crate ::sdk_core_cpi::Address > () + __UserVolumeAccumulatorCpi_GAP_0 +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::Bool > () +
+        __UserVolumeAccumulatorCpi_GAP_1 + ::core::mem::size_of:: < u64 > () +
+        __UserVolumeAccumulatorCpi_GAP_2 + ::core::mem::size_of:: < u64 > () +
+        __UserVolumeAccumulatorCpi_GAP_3 + ::core::mem::size_of:: < u64 > () +
+        __UserVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of:: < i64 > () +
+        __UserVolumeAccumulatorCpi_GAP_5 + ::core::mem::size_of:: < crate
+        ::sdk_core_cpi::Bool > () + __UserVolumeAccumulatorCpi_GAP_6 +
+        ::core::mem::size_of:: < u64 > () + __UserVolumeAccumulatorCpi_GAP_7 +
+        ::core::mem::size_of:: < u64 > () + __UserVolumeAccumulatorCpi_GAP_8 +
+        ::core::mem::size_of:: < u64 > () + __UserVolumeAccumulatorCpi_GAP_9 +
+        ::core::mem::size_of:: < u64 > () + __UserVolumeAccumulatorCpi_GAP_10 +
+        ::core::mem::size_of:: < [u8; 31] > () + __UserVolumeAccumulatorCpi_GAP_11 +
+        ::core::mem::size_of:: < u8 > () + __UserVolumeAccumulatorCpi_GAP_12),
+        "defined_type/#[component]: `UserVolumeAccumulatorCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<crate::sdk_core_cpi::Address>();
+    assert_impl::<crate::sdk_core_cpi::Bool>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<i64>();
+    assert_impl::<crate::sdk_core_cpi::Bool>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<[u8; 31]>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for UserVolumeAccumulatorCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for UserVolumeAccumulatorCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+impl core::default::Default for UserVolumeAccumulatorCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
+
 
 /// 8-byte on-chain discriminator for `UserVolumeAccumulator` accounts.
 pub const USERVOLUMEACCUMULATOR_DISCRIMINATOR: [u8; 8] = [86, 255, 112, 14, 102, 53, 154, 250];

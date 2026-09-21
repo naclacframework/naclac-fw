@@ -8,8 +8,7 @@ export const INIT_BOOST_DISCRIMINATOR = new Uint8Array([140, 233, 33, 94, 132, 9
 
 /** Instruction arguments for `initBoost`. */
 export interface InitBoostArgs {
-  boost_vault_authority_bump: number;
-  boost_vault_bump: number;
+  boostVaultAuthorityBump: number;
 }
 
 /** Accounts for the `initBoost` instruction. */
@@ -22,32 +21,33 @@ export interface InitBoostAccounts {
    * this account in its own context and passes it straight through.
    * Never deserialized.
    */
-  bonding_curve: naclac.Address | string;
+  bondingCurve: naclac.Address | string;
   pool: naclac.Address | string;
-  global_config?: naclac.Address | string;
+  globalConfig?: naclac.Address | string;
   creator: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
-  pool_base_token_account: naclac.Address | string;
-  pool_quote_token_account: naclac.Address | string;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  poolBaseTokenAccount: naclac.Address | string;
+  poolQuoteTokenAccount: naclac.Address | string;
   /**
    * SAFETY: `seeds`/`bump` already verifies its address; a bare
    * signing/seed PDA with no stored data (matches the real program — no
    * dedicated `BoostVault`-type account exists), used below only as a CPI
    * signer and as `boost_vault`'s ATA authority.
    */
-  boost_vault_authority?: naclac.Address | string;
+  boostVaultAuthority?: naclac.Address | string;
   /**
-   * SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump`
-   * below fully validate and construct this account via a real CPI —
-   * there is no naclac `Discriminator` to check since this is a raw SPL
+   * SAFETY: `init` + `associated_token::mint`/`::authority` below, plus
+   * the real Associated Token Program's own CPI-level address
+   * verification, fully validate and construct this account — there is
+   * no naclac `Discriminator` to check since this is a raw SPL
    * `TokenAccount` layout (same reasoning as `create_pool`'s own
    * freshly-`init`ed ATA fields).
    */
-  boost_vault: naclac.Address | string;
-  quote_token_program: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  boostVault: naclac.Address | string;
+  quoteTokenProgram: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
 }
 
 /**

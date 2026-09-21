@@ -11,7 +11,6 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg_attr(not(feature = "borsh"), repr(C, packed))]
 pub struct InitBoostIxArgs {
     pub boost_vault_authority_bump: u8,
-    pub boost_vault_bump: u8,
 }
 
 #[cfg(feature = "offchain")]
@@ -31,7 +30,6 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg_attr(not(feature = "borsh"), repr(C, packed))]
 pub struct InitBoostCpiIxArgs {
     pub boost_vault_authority_bump: u8,
-    pub boost_vault_bump: u8,
 }
 
 #[cfg(feature = "cpi")]
@@ -74,9 +72,10 @@ pub struct InitBoostAccounts {
     /// dedicated `BoostVault`-type account exists), used below only as a CPI
     /// signer and as `boost_vault`'s ATA authority.
     pub boost_vault_authority: naclac_client::Address,
-    /// SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump`
-    /// below fully validate and construct this account via a real CPI —
-    /// there is no naclac `Discriminator` to check since this is a raw SPL
+    /// SAFETY: `init` + `associated_token::mint`/`::authority` below, plus
+    /// the real Associated Token Program's own CPI-level address
+    /// verification, fully validate and construct this account — there is
+    /// no naclac `Discriminator` to check since this is a raw SPL
     /// `TokenAccount` layout (same reasoning as `create_pool`'s own
     /// freshly-`init`ed ATA fields).
     pub boost_vault: naclac_client::Address,
@@ -102,13 +101,11 @@ pub fn build_init_boost<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
     boost_vault_authority_bump: u8,
-    boost_vault_bump: u8,
     accounts: InitBoostAccounts,
 ) -> naclac_client::InstructionBuilder<'a> {
     let mut ix_data = crate::sdk_core_offchain::vec![140, 233, 33, 94, 132, 90, 194, 143];
     let args = InitBoostIxArgs {
         boost_vault_authority_bump,
-        boost_vault_bump,
     };
     #[cfg(not(feature = "borsh"))]
     {
@@ -167,9 +164,10 @@ pub struct InitBoostCpiAccounts<'a> {
     /// dedicated `BoostVault`-type account exists), used below only as a CPI
     /// signer and as `boost_vault`'s ATA authority.
     pub boost_vault_authority: crate::sdk_core_cpi::CpiHandle<'a>,
-    /// SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump`
-    /// below fully validate and construct this account via a real CPI —
-    /// there is no naclac `Discriminator` to check since this is a raw SPL
+    /// SAFETY: `init` + `associated_token::mint`/`::authority` below, plus
+    /// the real Associated Token Program's own CPI-level address
+    /// verification, fully validate and construct this account — there is
+    /// no naclac `Discriminator` to check since this is a raw SPL
     /// `TokenAccount` layout (same reasoning as `create_pool`'s own
     /// freshly-`init`ed ATA fields).
     pub boost_vault: crate::sdk_core_cpi::CpiHandleMut<'a>,
@@ -182,7 +180,6 @@ pub struct InitBoostCpiAccounts<'a> {
 pub struct InitBoostCpiCall<'a> {
     pub accounts: InitBoostCpiAccounts<'a>,
     pub boost_vault_authority_bump: u8,
-    pub boost_vault_bump: u8,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
@@ -204,13 +201,11 @@ pub trait InitBoostCpi<'info> {
     fn init_boost<'a>(
         &self,
         accounts: InitBoostCpiAccounts<'a>,
-        boost_vault_authority_bump: u8,
-        boost_vault_bump: u8
+        boost_vault_authority_bump: u8
     ) -> crate::sdk_core_cpi::Result<()> {
         self.init_boost_with_remaining_accounts(InitBoostCpiCall {
         accounts,
         boost_vault_authority_bump,
-        boost_vault_bump,
         signer_seeds: &[],
         remaining_accounts: &[],
     })
@@ -220,13 +215,11 @@ pub trait InitBoostCpi<'info> {
         &self,
         accounts: InitBoostCpiAccounts<'a>,
         boost_vault_authority_bump: u8,
-        boost_vault_bump: u8,
         signer_seeds: &[&[&[u8]]]
     ) -> crate::sdk_core_cpi::Result<()> {
         self.init_boost_with_remaining_accounts(InitBoostCpiCall {
         accounts,
         boost_vault_authority_bump,
-        boost_vault_bump,
         signer_seeds,
         remaining_accounts: &[],
     })
@@ -245,10 +238,9 @@ impl<'info> InitBoostCpi<'info> for crate::sdk_core_cpi::Program<crate::PumpAmm>
         &self,
         call: InitBoostCpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        let InitBoostCpiCall { accounts, boost_vault_authority_bump, boost_vault_bump, signer_seeds, remaining_accounts } = call;
+        let InitBoostCpiCall { accounts, boost_vault_authority_bump, signer_seeds, remaining_accounts } = call;
         let args = InitBoostCpiIxArgs {
             boost_vault_authority_bump,
-            boost_vault_bump,
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[140, 233, 33, 94, 132, 90, 194, 143]);

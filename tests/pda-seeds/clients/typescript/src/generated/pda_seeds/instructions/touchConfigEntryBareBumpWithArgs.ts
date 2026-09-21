@@ -8,10 +8,10 @@ export const TOUCH_CONFIG_ENTRY_BARE_BUMP_WITH_ARGS_DISCRIMINATOR = new Uint8Arr
 
 /** Instruction arguments for `touchConfigEntryBareBumpWithArgs`. */
 export interface TouchConfigEntryBareBumpWithArgsArgs {
-  is_pump_pool: naclac.Bool;
-  market_cap_lamports: bigint | number;
-  trade_size_lamports: bigint | number;
-  is_new_quote_mint: naclac.Bool;
+  isPumpPool: naclac.Bool;
+  marketCapLamports: bigint | number;
+  tradeSizeLamports: bigint | number;
+  isNewQuoteMint: naclac.Bool;
 }
 
 /** Accounts for the `touchConfigEntryBareBumpWithArgs` instruction. */
@@ -20,8 +20,8 @@ export interface TouchConfigEntryBareBumpWithArgsAccounts {
    * SAFETY: only used as PDA seed material for `config_entry` below; never
    * deserialized, invoked, or otherwise trusted for its own contents.
    */
-  config_program_id: naclac.Address | string;
-  config_entry?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  configEntry?: naclac.Address | string;
 }
 
 /**

@@ -48,7 +48,7 @@ fn int_literal_byte_width(int_lit: &syn::LitInt) -> Option<usize> {
 /// unsuffixed, which infers `u8` in this single-byte-slice-element context)
 /// literal is a byte on its own; anything wider needs an explicit
 /// `.to_le_bytes()`/`.to_be_bytes()` call, handled separately.
-fn int_literal_seed_byte(int_lit: &syn::LitInt) -> NaclacSeed {
+pub fn int_literal_seed_byte(int_lit: &syn::LitInt) -> NaclacSeed {
     let suffix = int_lit.suffix();
     if suffix.is_empty() || suffix == "u8" {
         let value: u8 = int_lit.base10_parse().unwrap_or_else(|e| {
@@ -76,7 +76,7 @@ fn int_literal_seed_byte(int_lit: &syn::LitInt) -> NaclacSeed {
 /// an explicit type suffix on the literal so the byte width is known exactly
 /// — the same real width `.to_le_bytes()`/`.to_be_bytes()` produces at
 /// runtime — rather than guessed.
-fn int_literal_seed_bytes(int_lit: &syn::LitInt, big_endian: bool) -> NaclacSeed {
+pub fn int_literal_seed_bytes(int_lit: &syn::LitInt, big_endian: bool) -> NaclacSeed {
     let Some(width) = int_literal_byte_width(int_lit) else {
         panic!(
             "Naclac Error: literal seed `{}.{}()` needs an explicit integer type suffix (e.g. \
@@ -95,14 +95,25 @@ fn int_literal_seed_bytes(int_lit: &syn::LitInt, big_endian: bool) -> NaclacSeed
             int_lit.to_token_stream()
         );
     });
+    NaclacSeed::Const {
+        value: truncate_le_bytes(value, width, big_endian),
+        name: None,
+    }
+}
+
+/// Truncates `value`'s little-endian bytes to the first `width` of them,
+/// then reverses to big-endian if requested — the real byte-computation
+/// behind `int_literal_seed_bytes`, extracted as its own pure function so
+/// it's directly provable (see docs/plan/kani-audit.md). `width` must be
+/// `<= 16` (the only widths `int_literal_byte_width` ever produces, from a
+/// fixed `u8`/`u16`/`u32`/`u64`/`u128` suffix match) — the real precondition
+/// every caller in this file already guarantees, not an arbitrary width.
+fn truncate_le_bytes(value: u128, width: usize, big_endian: bool) -> Vec<u8> {
     let mut bytes = value.to_le_bytes()[..width].to_vec();
     if big_endian {
         bytes.reverse();
     }
-    NaclacSeed::Const {
-        value: bytes,
-        name: None,
-    }
+    bytes
 }
 
 /// Resolves a `seeds::program = X` expression to the `NaclacSeed::Const` the
@@ -454,7 +465,7 @@ fn parse_single_seed(
     }
 }
 
-fn extract_field_path(expr: &Expr) -> Option<String> {
+pub fn extract_field_path(expr: &Expr) -> Option<String> {
     match expr {
         Expr::Path(p) => Some(p.path.segments.last().unwrap().ident.to_string()),
         Expr::Field(f) => {
@@ -469,12 +480,41 @@ fn extract_field_path(expr: &Expr) -> Option<String> {
     }
 }
 
-fn extract_root_ident(expr: &Expr) -> String {
+pub fn extract_root_ident(expr: &Expr) -> String {
     match expr {
         Expr::Path(p) => p.path.segments.last().unwrap().ident.to_string(),
         Expr::Field(f) => extract_root_ident(&f.base),
         Expr::MethodCall(m) => extract_root_ident(&m.receiver),
         Expr::Try(t) => extract_root_ident(&t.expr), // like `pool_account.load()?`
         _ => expr.to_token_stream().to_string().replace(" ", ""),
+    }
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `truncate_le_bytes` never panics within its real contract
+    /// (`width <= 16`, the only values `int_literal_byte_width` ever
+    /// produces), and correctness — a wrong byte width or endianness here
+    /// would silently derive the wrong PDA for any account seeded with a
+    /// multi-byte integer literal.
+    #[kani::proof]
+    fn prove_truncate_le_bytes_within_contract_is_correct() {
+        let value: u128 = kani::any();
+        let width: usize = kani::any();
+        kani::assume(width <= 16);
+        let big_endian: bool = kani::any();
+
+        let bytes = truncate_le_bytes(value, width, big_endian);
+        assert_eq!(bytes.len(), width);
+
+        let le_prefix = &value.to_le_bytes()[..width];
+        if big_endian {
+            let expected: Vec<u8> = le_prefix.iter().rev().copied().collect();
+            assert_eq!(bytes, expected);
+        } else {
+            assert_eq!(bytes, le_prefix);
+        }
     }
 }

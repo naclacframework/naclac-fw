@@ -13,11 +13,11 @@ export interface TransferTokensArgs {
 
 /** Accounts for the `transferTokens` instruction. */
 export interface TransferTokensAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
   from: naclac.Address | string;
   to: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -174,3 +174,47 @@ pub struct AdminSetCreatorEvent {
     pub old_creator: Address,
     pub new_creator: Address,
 }
+
+#[event]
+pub struct CollectCreatorFeeEvent {
+    pub timestamp: i64,
+    pub creator: Address,
+    pub creator_fee: u64,
+    pub quote_mint: Address,
+}
+
+#[event]
+pub struct InitUserVolumeAccumulatorEvent {
+    pub payer: Address,
+    pub user: Address,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct CloseUserVolumeAccumulatorEvent {
+    pub user: Address,
+    pub timestamp: i64,
+    pub total_unclaimed_tokens: u64,
+    pub total_claimed_tokens: u64,
+    pub current_sol_volume: u64,
+    pub last_update_timestamp: i64,
+}
+
+#[event]
+pub struct ClaimCashbackEvent {
+    pub user: Address,
+    pub amount: u64,
+    pub timestamp: i64,
+    pub total_claimed: u64,
+    pub total_cashback_earned: u64,
+}
+
+#[event]
+pub struct ClaimTokenIncentivesEvent {
+    pub user: Address,
+    pub mint: Address,
+    pub amount: u64,
+    pub timestamp: i64,
+    pub total_claimed_tokens: u64,
+    pub current_sol_volume: u64,
+}

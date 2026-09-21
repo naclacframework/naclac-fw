@@ -15,11 +15,11 @@ export interface CreateTokenAccountWithMemoTransferRequiredAccounts {
    * `Discriminator` to check since this is a raw SPL `TokenAccount` +
    * `MemoTransfer` extension layout, not a naclac component.
    */
-  token_account: naclac.Address | string;
+  tokenAccount: naclac.Address | string;
   mint: naclac.Address | string;
   owner: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

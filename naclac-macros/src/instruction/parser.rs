@@ -26,6 +26,19 @@ pub struct ParsedField {
     pub pda_bump: Option<PdaBump>,
     pub init_config: Option<InitConfig>,
     pub is_init_if_needed: bool,
+    /// `init_unchecked` — same account-creation site as `init`, but calls
+    /// naclac-core's unchecked `CreateAccount` CPI (`create_account_signed_unchecked`/
+    /// `create_account_unchecked_for_init`) instead of the checked one: no
+    /// prefund-awareness (fails with `AccountAlreadyInUse` if the target
+    /// already holds lamports), and on pinocchio, skips the runtime
+    /// `is_borrowed()` aliasing check via `unsafe { invoke_signed_unchecked(...) }`.
+    /// Mutually exclusive with `init`/`init_if_needed`, and rejected on any
+    /// `associated_token::mint`/`mint::decimals`/`token::mint` field — those
+    /// paths don't call naclac-core's `create_account_*` helpers at all
+    /// (the ATA one CPIs into the Associated Token Program instead, which
+    /// handles its own account creation internally), so there's no checked
+    /// call to redirect.
+    pub is_init_unchecked: bool,
     pub close_destination: Option<Ident>,
     pub relations: Vec<RelationConfig>,
     pub owner: Option<syn::Expr>,
@@ -166,6 +179,7 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                     pda_bump: None,
                     init_config: None,
                     is_init_if_needed: false,
+                    is_init_unchecked: false,
                     close_destination: None,
                     relations: Vec::new(),
                     owner: None,
@@ -246,6 +260,7 @@ fn parse_one_field(idx: usize, field: &syn::Field) -> syn::Result<ParsedField> {
     let mut init_config = None;
     let mut is_init = false;
     let mut is_init_if_needed = false;
+    let mut is_init_unchecked = false;
     let mut close_destination = None;
     let mut init_payer: Option<syn::Expr> = None;
     let mut init_space: Option<syn::Expr> = None;
@@ -315,12 +330,18 @@ fn parse_one_field(idx: usize, field: &syn::Field) -> syn::Result<ParsedField> {
                         is_init_if_needed = true;
                         return Ok(());
                     }
+                    if meta.path.is_ident("init_unchecked") {
+                        is_mut = true;
+                        is_init_unchecked = true;
+                        return Ok(());
+                    }
 
                     let path = &meta.path;
                     let is_reserved = path.is_ident("signer")
                         || path.is_ident("mut")
                         || path.is_ident("init")
                         || path.is_ident("init_if_needed")
+                        || path.is_ident("init_unchecked")
                         || path.is_ident("owner")
                         || path.is_ident("address")
                         || path.is_ident("seeds")
@@ -526,17 +547,34 @@ fn parse_one_field(idx: usize, field: &syn::Field) -> syn::Result<ParsedField> {
         }
     }
 
-    // `init`/`init_if_needed` and `payer =` must appear together or not
-    // at all — previously independent, which let `payer = wallet` alone
-    // (no `init` keyword) silently run a full account-creation CPI with
-    // `is_mut` left false (excluding the field from duplicate-mutable-
-    // account protection even though it's being written via CPI this
-    // call), and let `init` alone (no `payer =`) silently generate zero
-    // creation logic at all (`generate_init_cpi` returns `quote!{}`
-    // when `init_config` is `None`) with no compile-time signal that
-    // `init` did nothing. See
+    // `init`, `init_if_needed`, and `init_unchecked` are three mutually
+    // exclusive creation modes, not independent flags — combining them
+    // leaves it ambiguous which behavior (idempotent existence check,
+    // checked-vs-unchecked CreateAccount CPI) actually wins.
+    if [is_init, is_init_if_needed, is_init_unchecked]
+        .iter()
+        .filter(|b| **b)
+        .count()
+        > 1
+    {
+        return Err(syn::Error::new_spanned(
+            &ident,
+            "Naclac Error: `init`, `init_if_needed`, and `init_unchecked` are mutually \
+                 exclusive on the same field — pick exactly one.",
+        ));
+    }
+
+    // `init`/`init_if_needed`/`init_unchecked` and `payer =` must appear
+    // together or not at all — previously independent, which let
+    // `payer = wallet` alone (no `init` keyword) silently run a full
+    // account-creation CPI with `is_mut` left false (excluding the field
+    // from duplicate-mutable-account protection even though it's being
+    // written via CPI this call), and let `init` alone (no `payer =`)
+    // silently generate zero creation logic at all (`generate_init_cpi`
+    // returns `quote!{}` when `init_config` is `None`) with no compile-time
+    // signal that `init` did nothing. See
     // `naclac-macros/docs/derive-accounts-gaps-audit.md`'s gap #2.
-    match (is_init || is_init_if_needed, init_payer) {
+    match (is_init || is_init_if_needed || is_init_unchecked, init_payer) {
         (true, Some(payer)) => {
             init_config = Some(InitConfig {
                 payer,
@@ -546,20 +584,29 @@ fn parse_one_field(idx: usize, field: &syn::Field) -> syn::Result<ParsedField> {
         (true, None) => {
             return Err(syn::Error::new_spanned(
                 &ident,
-                "Naclac Error: `init`/`init_if_needed` requires `payer = <account>` on the \
-                     same field — without it, no account-creation CPI is generated at all, and \
-                     this field would silently behave as an ordinary (non-created) account.",
+                "Naclac Error: `init`/`init_if_needed`/`init_unchecked` requires \
+                     `payer = <account>` on the same field — without it, no account-creation \
+                     CPI is generated at all, and this field would silently behave as an \
+                     ordinary (non-created) account.",
             ));
         }
         (false, Some(_)) => {
             return Err(syn::Error::new_spanned(
                 &ident,
-                "Naclac Error: `payer = ...` has no effect without `init` or \
-                     `init_if_needed` on the same field. Add `init` (or `init_if_needed`) \
-                     explicitly.",
+                "Naclac Error: `payer = ...` has no effect without `init`, `init_if_needed`, \
+                     or `init_unchecked` on the same field. Add one of them explicitly.",
             ));
         }
         (false, None) => {}
+    }
+    if is_init_unchecked && associated_token_mint.is_some() {
+        return Err(syn::Error::new_spanned(
+            &ident,
+            "Naclac Error: `init_unchecked` is not supported on an `associated_token::mint` \
+                 field — ATA creation CPIs into the Associated Token Program, which handles its \
+                 own account creation internally; there's no naclac-core `create_account_*` \
+                 call here to redirect. Use `init`/`init_if_needed` instead.",
+        ));
     }
     let realloc_space_variant = match (realloc_space, realloc_any_of) {
         (Some(_), Some(_)) => {
@@ -628,14 +675,14 @@ fn parse_one_field(idx: usize, field: &syn::Field) -> syn::Result<ParsedField> {
     // mistake, so it's rejected at compile time here rather than
     // failing opaquely at runtime (or silently succeeding-by-redundancy
     // and misleading a reader into thinking it does something).
-    if (is_init || is_init_if_needed) && pda_program.is_some() {
+    if (is_init || is_init_if_needed || is_init_unchecked) && pda_program.is_some() {
         return Err(syn::Error::new_spanned(
             &ident,
-            "Naclac Error: `init`/`init_if_needed` cannot be combined with `seeds::program = \
-                 ...` on the same field — the account-creation CPI always signs under the \
-                 currently executing program, so a `seeds::program` pointing anywhere else can \
-                 never satisfy the signature check, and pointing at the current program is \
-                 redundant. Remove `seeds::program` here.",
+            "Naclac Error: `init`/`init_if_needed`/`init_unchecked` cannot be combined with \
+                 `seeds::program = ...` on the same field — the account-creation CPI always \
+                 signs under the currently executing program, so a `seeds::program` pointing \
+                 anywhere else can never satisfy the signature check, and pointing at the \
+                 current program is redundant. Remove `seeds::program` here.",
         ));
     }
 
@@ -685,6 +732,7 @@ fn parse_one_field(idx: usize, field: &syn::Field) -> syn::Result<ParsedField> {
         pda_bump,
         init_config,
         is_init_if_needed,
+        is_init_unchecked,
         close_destination,
         relations,
         owner,

@@ -14,9 +14,9 @@ export interface CallSetupCounterAccounts {
    * program, not ours — we only ever forward it as a CPI account.
    */
   counter: naclac.Address | string;
-  caller_authority?: naclac.Address | string;
-  callee_program: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  callerAuthority?: naclac.Address | string;
+  calleeProgram: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

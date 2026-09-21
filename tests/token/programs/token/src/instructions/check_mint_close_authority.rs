@@ -9,7 +9,6 @@ pub struct CheckMintCloseAuthority {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_mint_close_authority(
     ctx: Context<CheckMintCloseAuthority>,
     expected_close_authority: Option<Address>,

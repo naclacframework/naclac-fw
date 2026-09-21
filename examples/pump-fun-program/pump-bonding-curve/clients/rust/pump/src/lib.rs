@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD");
+declare_id!("rT4zemULLMgPUZq5fE6Gr6jTqsShFbwRbJcQSWG8gtY");
 
 #[cfg(feature = "offchain")]
 pub fn get_amm_global_config_pda() -> (naclac_client::Address, u8) {
@@ -113,12 +113,12 @@ pub fn get_buyback_fee_recipient_pda(
 #[cfg(feature = "offchain")]
 pub fn get_creator_vault_pda(
     program_id: &naclac_client::Address,
-    bonding_curve_creator: &naclac_client::Address
+    creator: &naclac_client::Address
 ) -> (naclac_client::Address, u8) {
     naclac_client::Address::find_program_address(
         &[
             &[99, 114, 101, 97, 116, 111, 114, 45, 118, 97, 117, 108, 116],
-            bonding_curve_creator.as_ref(),
+            creator.as_ref(),
         ],
         program_id,
     )
@@ -395,7 +395,7 @@ pub struct Pump;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for Pump {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([219, 228, 38, 61, 197, 238, 49, 67, 254, 52, 90, 137, 137, 108, 51, 148, 9, 123, 135, 93, 203, 217, 165, 115, 223, 190, 144, 135, 242, 216, 223, 192])
+        sdk_core_cpi::Address::new_from_array([12, 170, 239, 144, 162, 141, 76, 98, 139, 178, 223, 154, 192, 78, 209, 63, 168, 193, 154, 116, 218, 222, 68, 60, 26, 150, 122, 184, 88, 131, 237, 17])
     }
 }
 

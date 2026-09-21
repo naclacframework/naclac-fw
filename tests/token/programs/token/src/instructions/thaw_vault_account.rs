@@ -18,7 +18,6 @@ pub struct ThawVaultAccount {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn thaw_vault_account(ctx: Context<ThawVaultAccount>) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

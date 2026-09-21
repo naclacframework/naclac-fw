@@ -13,7 +13,6 @@ pub struct SetVirtualQuoteReserves {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn set_virtual_quote_reserves(
     ctx: Context<SetVirtualQuoteReserves>,
     initial_virtual_quote_reserves: u64,

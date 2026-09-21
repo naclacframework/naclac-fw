@@ -87,3 +87,29 @@ pub fn derive_metadata_pda(
 pub fn derive_program_data_address(program_id: &Address) -> (Address, u8) {
     Address::find_program_address(&[program_id.as_ref()], &BPF_LOADER_UPGRADEABLE_ID)
 }
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// `seed_from_str`'s doc comment already says the `assert!` is meant to
+    /// catch a programmer error (an over-long literal seed), not user
+    /// input — this turns that informal guarantee into a machine-checked
+    /// one: proves the function never panics whenever `s.len() <=
+    /// SEED_LEN` (the actual contract), and that the zero-padding is always
+    /// correct (`seed[..s.len()] == s.as_bytes()`, the rest zero).
+    #[kani::proof]
+    fn prove_seed_from_str_within_contract_is_correct() {
+        let bytes: [u8; SEED_LEN] = kani::any();
+        let len: usize = kani::any();
+        kani::assume(len <= SEED_LEN);
+        kani::assume(core::str::from_utf8(&bytes[..len]).is_ok());
+        let s = core::str::from_utf8(&bytes[..len]).unwrap();
+
+        let seed = seed_from_str(s);
+        assert_eq!(&seed[..len], &bytes[..len], "prefix must match the input exactly");
+        for b in &seed[len..] {
+            assert_eq!(*b, 0, "bytes past the input's length must be zero-padded");
+        }
+    }
+}

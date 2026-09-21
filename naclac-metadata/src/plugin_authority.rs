@@ -31,6 +31,11 @@ pub enum PluginAuthorityArg {
     Address(Address),
 }
 
+/// Maximum Borsh-encoded width of a `PluginAuthorityArg`/`PluginAuthority`
+/// value: 1-byte tag + up to 32 bytes for the `Address` variant.
+#[cfg(feature = "pinocchio")]
+pub(crate) const MAX_PLUGIN_AUTHORITY_ENCODED_LEN: usize = 33;
+
 /// Approves `new_authority` to manage `plugin_type` (a raw `PluginType`
 /// discriminant — see `plugin_type` module) on an `Asset` via a real
 /// `ApprovePluginAuthorityV1` CPI.
@@ -43,41 +48,21 @@ pub fn approve_asset_plugin_authority_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::ApprovePluginAuthorityV1 {
-            asset: accounts.asset.address(),
-            collection: accounts.collection.as_ref().map(|c| c.address()),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-        }
-        .instruction(::mpl_core::instructions::ApprovePluginAuthorityV1InstructionArgs {
-            plugin_type: crate::plugin_type::to_real_plugin_type(plugin_type),
-            new_authority: to_real_plugin_authority(new_authority),
-        });
-
-        let cpi_accounts = [
-            CpiHandle::from(accounts.asset),
-            accounts
-                .collection
-                .map(CpiHandle::from)
-                .unwrap_or_else(|| program.clone()),
-            CpiHandle::from(accounts.payer),
-            accounts.authority.unwrap_or_else(|| program.clone()),
-            accounts.system_program,
-            accounts.log_wrapper.unwrap_or_else(|| program.clone()),
-            program,
-        ];
-        crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
+        let mut data = crate::prelude::Vec::new();
+        data.push(8u8); // ApprovePluginAuthorityV1 discriminator
+        data.push(plugin_type);
+        encode_plugin_authority_owned(&mut data, new_authority);
+        invoke_asset_plugin_authority_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut data = crate::prelude::Vec::with_capacity(35);
+        let mut data =
+            crate::fixed_buf::FixedBuf::<{ 1 + 1 + MAX_PLUGIN_AUTHORITY_ENCODED_LEN }>::new();
         data.push(8u8); // ApprovePluginAuthorityV1 discriminator
         data.push(plugin_type);
         encode_plugin_authority(&mut data, new_authority);
-        invoke_asset_plugin_authority_pinocchio(program, accounts, &data, signer_seeds)
+        invoke_asset_plugin_authority_signed(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -93,38 +78,26 @@ pub fn approve_collection_plugin_authority_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::ApproveCollectionPluginAuthorityV1 {
-            collection: accounts.collection.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-        }
-        .instruction(
-            ::mpl_core::instructions::ApproveCollectionPluginAuthorityV1InstructionArgs {
-                plugin_type: crate::plugin_type::to_real_plugin_type(plugin_type),
-                new_authority: to_real_plugin_authority(new_authority),
-            },
-        );
-
-        let cpi_accounts = [
-            CpiHandle::from(accounts.collection),
-            CpiHandle::from(accounts.payer),
-            accounts.authority.unwrap_or_else(|| program.clone()),
-            accounts.system_program,
-            accounts.log_wrapper.unwrap_or_else(|| program.clone()),
-            program,
-        ];
-        crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
+        let mut data = crate::prelude::Vec::new();
+        data.push(9u8); // ApproveCollectionPluginAuthorityV1 discriminator
+        data.push(plugin_type);
+        encode_plugin_authority_owned(&mut data, new_authority);
+        invoke_collection_plugin_authority_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut data = crate::prelude::Vec::with_capacity(35);
+        let mut data =
+            crate::fixed_buf::FixedBuf::<{ 1 + 1 + MAX_PLUGIN_AUTHORITY_ENCODED_LEN }>::new();
         data.push(9u8); // ApproveCollectionPluginAuthorityV1 discriminator
         data.push(plugin_type);
         encode_plugin_authority(&mut data, new_authority);
-        invoke_collection_plugin_authority_pinocchio(program, accounts, &data, signer_seeds)
+        invoke_collection_plugin_authority_signed(
+            program,
+            accounts,
+            data.as_slice(),
+            signer_seeds,
+        )
     }
 }
 
@@ -137,40 +110,8 @@ pub fn revoke_asset_plugin_authority_signed(
     plugin_type: u8,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    #[cfg(not(feature = "pinocchio"))]
-    {
-        let ix = ::mpl_core::instructions::RevokePluginAuthorityV1 {
-            asset: accounts.asset.address(),
-            collection: accounts.collection.as_ref().map(|c| c.address()),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-        }
-        .instruction(::mpl_core::instructions::RevokePluginAuthorityV1InstructionArgs {
-            plugin_type: crate::plugin_type::to_real_plugin_type(plugin_type),
-        });
-
-        let cpi_accounts = [
-            CpiHandle::from(accounts.asset),
-            accounts
-                .collection
-                .map(CpiHandle::from)
-                .unwrap_or_else(|| program.clone()),
-            CpiHandle::from(accounts.payer),
-            accounts.authority.unwrap_or_else(|| program.clone()),
-            accounts.system_program,
-            accounts.log_wrapper.unwrap_or_else(|| program.clone()),
-            program,
-        ];
-        crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
-    }
-
-    #[cfg(feature = "pinocchio")]
-    {
-        let data = [10u8, plugin_type]; // RevokePluginAuthorityV1 discriminator + PluginType tag
-        invoke_asset_plugin_authority_pinocchio(program, accounts, &data, signer_seeds)
-    }
+    let data = [10u8, plugin_type]; // RevokePluginAuthorityV1 discriminator + PluginType tag
+    invoke_asset_plugin_authority_signed(program, accounts, &data, signer_seeds)
 }
 
 /// Revokes whoever currently manages `plugin_type` (a raw `PluginType`
@@ -183,55 +124,15 @@ pub fn revoke_collection_plugin_authority_signed(
     plugin_type: u8,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    #[cfg(not(feature = "pinocchio"))]
-    {
-        let ix = ::mpl_core::instructions::RevokeCollectionPluginAuthorityV1 {
-            collection: accounts.collection.address(),
-            payer: accounts.payer.address(),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            system_program: accounts.system_program.address(),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-        }
-        .instruction(
-            ::mpl_core::instructions::RevokeCollectionPluginAuthorityV1InstructionArgs {
-                plugin_type: crate::plugin_type::to_real_plugin_type(plugin_type),
-            },
-        );
-
-        let cpi_accounts = [
-            CpiHandle::from(accounts.collection),
-            CpiHandle::from(accounts.payer),
-            accounts.authority.unwrap_or_else(|| program.clone()),
-            accounts.system_program,
-            accounts.log_wrapper.unwrap_or_else(|| program.clone()),
-            program,
-        ];
-        crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
-    }
-
-    #[cfg(feature = "pinocchio")]
-    {
-        let data = [11u8, plugin_type]; // RevokeCollectionPluginAuthorityV1 discriminator + PluginType tag
-        invoke_collection_plugin_authority_pinocchio(program, accounts, &data, signer_seeds)
-    }
+    let data = [11u8, plugin_type]; // RevokeCollectionPluginAuthorityV1 discriminator + PluginType tag
+    invoke_collection_plugin_authority_signed(program, accounts, &data, signer_seeds)
 }
 
+/// `solana`-only mirror of `encode_plugin_authority`, writing directly into
+/// a heap `Vec<u8>` instead of through the `pinocchio`-only `ByteSink`
+/// machinery (unavailable on this backend).
 #[cfg(not(feature = "pinocchio"))]
-pub(crate) fn to_real_plugin_authority(
-    authority: PluginAuthorityArg,
-) -> ::mpl_core::types::PluginAuthority {
-    match authority {
-        PluginAuthorityArg::None => ::mpl_core::types::PluginAuthority::None,
-        PluginAuthorityArg::Owner => ::mpl_core::types::PluginAuthority::Owner,
-        PluginAuthorityArg::UpdateAuthority => ::mpl_core::types::PluginAuthority::UpdateAuthority,
-        PluginAuthorityArg::Address(address) => {
-            ::mpl_core::types::PluginAuthority::Address { address }
-        }
-    }
-}
-
-#[cfg(feature = "pinocchio")]
-pub(crate) fn encode_plugin_authority(
+pub(crate) fn encode_plugin_authority_owned(
     data: &mut crate::prelude::Vec<u8>,
     authority: PluginAuthorityArg,
 ) {
@@ -246,12 +147,84 @@ pub(crate) fn encode_plugin_authority(
     }
 }
 
+#[cfg(feature = "pinocchio")]
+pub(crate) fn encode_plugin_authority<S: crate::fixed_buf::ByteSink>(
+    data: &mut S,
+    authority: PluginAuthorityArg,
+) {
+    match authority {
+        PluginAuthorityArg::None => data.push(0u8),
+        PluginAuthorityArg::Owner => data.push(1u8),
+        PluginAuthorityArg::UpdateAuthority => data.push(2u8),
+        PluginAuthorityArg::Address(address) => {
+            data.push(3u8);
+            data.extend_from_slice(address.as_ref());
+        }
+    }
+}
+
+/// `solana`-only: shared account-list/CPI-invoke mechanics for
+/// `ApprovePluginAuthorityV1`/`RevokePluginAuthorityV1` — same account
+/// shape as `add_asset_plugin_signed` (`plugin.rs`), just with
+/// caller-supplied `data` bytes.
+#[cfg(not(feature = "pinocchio"))]
+fn invoke_asset_plugin_authority_signed(
+    program: CpiHandle<'_>,
+    accounts: AddAssetPluginAccounts<'_>,
+    data: &[u8],
+    signer_seeds: &[&[&[u8]]],
+) -> Result<()> {
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+        match &accounts.collection {
+            Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: data.to_vec(),
+    };
+
+    let cpi_accounts = [
+        CpiHandle::from(accounts.asset),
+        accounts
+            .collection
+            .map(CpiHandle::from)
+            .unwrap_or_else(|| program.clone()),
+        CpiHandle::from(accounts.payer),
+        accounts.authority.unwrap_or_else(|| program.clone()),
+        accounts.system_program,
+        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
+        program,
+    ];
+    crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
+}
+
 /// `pinocchio`-only: shared account-list/CPI-invoke mechanics for
 /// `ApprovePluginAuthorityV1`/`RevokePluginAuthorityV1` — same account
 /// shape as `add_asset_plugin_signed_pinocchio` (`plugin.rs`), just with
 /// caller-supplied `data` bytes.
 #[cfg(feature = "pinocchio")]
-fn invoke_asset_plugin_authority_pinocchio(
+fn invoke_asset_plugin_authority_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     data: &[u8],
@@ -311,12 +284,60 @@ fn invoke_asset_plugin_authority_pinocchio(
     crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
 }
 
+/// `solana`-only: shared account-list/CPI-invoke mechanics for
+/// `ApproveCollectionPluginAuthorityV1`/`RevokeCollectionPluginAuthorityV1`
+/// — same account shape as `add_collection_plugin_signed` (`plugin.rs`),
+/// just with caller-supplied `data` bytes.
+#[cfg(not(feature = "pinocchio"))]
+fn invoke_collection_plugin_authority_signed(
+    program: CpiHandle<'_>,
+    accounts: AddCollectionPluginAccounts<'_>,
+    data: &[u8],
+    signer_seeds: &[&[&[u8]]],
+) -> Result<()> {
+    let accounts_meta = vec![
+        solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
+        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        match &accounts.authority {
+            Some(a) => {
+                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+        solana_program::instruction::AccountMeta::new_readonly(
+            accounts.system_program.address(),
+            false,
+        ),
+        match &accounts.log_wrapper {
+            Some(l) => {
+                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+            }
+            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+        },
+    ];
+    let ix = solana_program::instruction::Instruction {
+        program_id: crate::ID,
+        accounts: accounts_meta,
+        data: data.to_vec(),
+    };
+
+    let cpi_accounts = [
+        CpiHandle::from(accounts.collection),
+        CpiHandle::from(accounts.payer),
+        accounts.authority.unwrap_or_else(|| program.clone()),
+        accounts.system_program,
+        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
+        program,
+    ];
+    crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
+}
+
 /// `pinocchio`-only: shared account-list/CPI-invoke mechanics for
 /// `ApproveCollectionPluginAuthorityV1`/`RevokeCollectionPluginAuthorityV1`
 /// — same account shape as `add_collection_plugin_signed_pinocchio`
 /// (`plugin.rs`), just with caller-supplied `data` bytes.
 #[cfg(feature = "pinocchio")]
-fn invoke_collection_plugin_authority_pinocchio(
+fn invoke_collection_plugin_authority_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     data: &[u8],

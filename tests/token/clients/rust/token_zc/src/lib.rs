@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("BzKMREPDamgu2dCwbRmLHpmP8LAxob4Ng3we2acY97uW");
+declare_id!("8wrsJkY2VBYUC33JTMHUeJLZfjXypcCC8dos5pEZJpYa");
 
 #[cfg(feature = "offchain")]
 pub fn get_mint_pda(
@@ -59,7 +59,7 @@ pub struct TokenZc;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for TokenZc {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([163, 67, 185, 224, 229, 88, 241, 109, 163, 136, 144, 15, 249, 158, 126, 238, 207, 110, 57, 8, 55, 210, 241, 139, 213, 33, 152, 105, 144, 112, 31, 141])
+        sdk_core_cpi::Address::new_from_array([118, 15, 142, 175, 69, 206, 189, 183, 4, 249, 163, 130, 194, 214, 100, 45, 179, 56, 179, 113, 196, 58, 101, 195, 195, 139, 105, 58, 209, 214, 110, 75])
     }
 }
 

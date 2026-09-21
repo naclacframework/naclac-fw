@@ -50,7 +50,6 @@ pub struct CreateFeeSharingConfig {
     pub pump_fees_authority: AccountInfo,
 }
 
-#[instruction]
 pub fn create_fee_sharing_config(
     ctx: Context<CreateFeeSharingConfig>,
     bonding_curve_bump: u8,
@@ -75,6 +74,7 @@ pub fn create_fee_sharing_config(
     sharing_config.shareholders[0] = Shareholder {
         address: creator,
         share_bps: 10_000,
+        ..Default::default()
     };
     sharing_config.shareholders_len = 1;
 

@@ -26,7 +26,6 @@ pub struct ExerciseTokenMetadataRemoveKeyAndAuthority {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_token_metadata_remove_key_and_authority(
     ctx: Context<ExerciseTokenMetadataRemoveKeyAndAuthority>,
     key_to_remove: ZcString,

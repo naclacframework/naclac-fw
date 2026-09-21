@@ -45,13 +45,24 @@ pub fn generate_kit_client(
     client_content.push_str("\n  /** The on-chain program address. */\n  public get programId(): naclac.Address {\n    return this.program.idl.address as naclac.Address;\n  }\n");
 
     // ── Constructor ───────────────────────────────────────────────────────────
-    client_content.push_str("\n  constructor(\n    providerOrCluster: naclac.NaclacProvider | \"devnet\" | \"mainnet\" | \"localnet\",\n    payer?: naclac.KeyPairSigner\n  ) {\n");
+    // `payer` is required for every cluster string, litesvm included —
+    // `createProvider` (see `client/src/kit/setup.ts`) dispatches "litesvm"
+    // to `createLiteSvmProvider(payer)` internally, same as every real cluster.
+    client_content.push_str("\n  constructor(\n    providerOrCluster: naclac.NaclacProvider | \"devnet\" | \"mainnet\" | \"localnet\" | \"litesvm\",\n    payer?: naclac.KeyPairSigner\n  ) {\n");
     client_content.push_str("    let provider: naclac.NaclacProvider;\n");
     client_content.push_str("    if (typeof providerOrCluster === \"string\") {\n");
     client_content.push_str("      if (!payer) throw new Error(\"[Naclac] A payer KeyPairSigner is required when specifying a cluster string.\");\n");
     client_content.push_str("      provider = naclac.createProvider(providerOrCluster, payer);\n");
     client_content.push_str("    } else {\n      provider = providerOrCluster;\n    }\n");
-    client_content.push_str("    this.program = new naclac.Program(IDL, provider);\n");
+    // `idl.is_zero_copy` is a codegen-time-only fact (see `naclac-client-gen/
+    // src/typescript/shared.rs::generate_ts`'s doc comment for why it's
+    // never written into the IDL itself) — baked in here as a literal so
+    // the runtime `Program` knows which wire layout (`defined_types`)
+    // to use without needing it in the IDL data.
+    client_content.push_str(&format!(
+        "    this.program = new naclac.Program(IDL, provider, {});\n",
+        idl.is_zero_copy
+    ));
     client_content.push_str("  }\n\n");
 
     // ── Instruction methods ───────────────────────────────────────────────────
@@ -197,7 +208,7 @@ pub fn generate_kit_client(
                     if idl.defined_types.iter().any(|t| t.name == arg_ty) {
                         arg_ty = format!("types.{}", arg_ty);
                     }
-                    client_content.push_str(&format!("    {root}: {arg_ty};\n"));
+                    client_content.push_str(&format!("    {}: {arg_ty};\n", root.to_lower_camel_case()));
                 }
                 IdlSeed::Account { path, field_type } => {
                     if seen_seeds.contains(path) {
@@ -210,11 +221,11 @@ pub fn generate_kit_client(
                     if let Some(field_ty) = field_type {
                         // Resolved field-access seed (e.g. `registry.bump: u8`).
                         // `.` isn't valid in a plain TS property key.
-                        let key = path.replace('.', "_");
+                        let key = path.replace('.', "_").to_lower_camel_case();
                         let ts_ty = map_type_to_ts(&serde_json::json!(field_ty), idl.is_zero_copy);
                         client_content.push_str(&format!("    {key}: {ts_ty};\n"));
                     } else {
-                        client_content.push_str(&format!("    {path}: naclac.Address | string;\n"));
+                        client_content.push_str(&format!("    {}: naclac.Address | string;\n", path.to_lower_camel_case()));
                     }
                 }
                 _ => {}
@@ -240,24 +251,36 @@ pub fn generate_kit_client(
                         Some(ty) => serde_json::to_string(&ty).unwrap(),
                         None => "\"any\"".to_string(),
                     };
+                    // Each dotted segment is a TS property access — every
+                    // segment was camelCased when the corresponding
+                    // interface (top-level `seeds` param or a nested
+                    // `types.*` struct) was generated, so the read
+                    // expression must camelCase every segment too, not just
+                    // the root.
+                    let camel_path = path
+                        .split('.')
+                        .map(|seg| seg.to_lower_camel_case())
+                        .collect::<Vec<_>>()
+                        .join(".");
                     // naclac.getIdlCodec is exported from @naclac-fw/client — no direct codec import needed
                     seeds_exprs.push(format!(
-                        "new Uint8Array(naclac.getIdlCodec(JSON.parse('{arg_ty_json}')).encode(seeds.{path}))"
+                        "new Uint8Array(naclac.getIdlCodec(JSON.parse('{arg_ty_json}')).encode(seeds.{camel_path}))"
                     ));
                 }
                 IdlSeed::Account { path, field_type } => {
                     if let Some(field_ty) = field_type {
                         // Resolved field-access seed — same generic codec
                         // path the `IdlSeed::Arg` branch above uses.
-                        let key = path.replace('.', "_");
+                        let key = path.replace('.', "_").to_lower_camel_case();
                         let ty_json = serde_json::to_string(field_ty).unwrap();
                         seeds_exprs.push(format!(
                             "new Uint8Array(naclac.getIdlCodec(JSON.parse('{ty_json}')).encode(seeds.{key}))"
                         ));
                     } else {
                         // naclac.getAddressEncoder is re-exported from @naclac-fw/client/kit
+                        let camel_path = path.to_lower_camel_case();
                         seeds_exprs.push(format!(
-                            "new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.{path} === 'string' ? naclac.address(seeds.{path}) : seeds.{path}))"
+                            "new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.{camel_path} === 'string' ? naclac.address(seeds.{camel_path}) : seeds.{camel_path}))"
                         ));
                     }
                 }
@@ -543,7 +566,7 @@ pub fn generate_kit_client(
         for field in &acct.ty.fields {
             f.push_str(&format!(
                 "    [\"{}\", {}],\n",
-                field.name,
+                field.name.to_lower_camel_case(),
                 codec_for(&field.ty, "enc")
             ));
         }
@@ -556,7 +579,7 @@ pub fn generate_kit_client(
         for field in &acct.ty.fields {
             f.push_str(&format!(
                 "    [\"{}\", {}],\n",
-                field.name,
+                field.name.to_lower_camel_case(),
                 codec_for(&field.ty, "dec")
             ));
         }
@@ -692,6 +715,32 @@ export default defineConfig({
 });
 "#;
     fs::write(clients_dir.join("tsup.config.ts"), tsup_config)?;
+
+    // ── tsconfig.json ─────────────────────────────────────────────────────────
+    // Without this, tsup finds no tsconfig.json in this directory and walks
+    // up to the nearest one it can find — which, inside a naclac example
+    // project, is the *test suite's* tsconfig (`"types": ["mocha", "node"]`),
+    // whose `mocha` type dependency isn't installed here. Scoped to just this
+    // package so `npm run build` succeeds standalone, independent of whatever
+    // tsconfig happens to live in a parent directory.
+    let client_tsconfig = r#"{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2022"],
+    "declaration": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}
+"#;
+    fs::write(clients_dir.join("tsconfig.json"), client_tsconfig)?;
 
     Ok(())
 }

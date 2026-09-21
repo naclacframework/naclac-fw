@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-stack_safety = "YvZWqwBfnwzYFszL3HMWynJb3o81JhC4C661EuQL3JB"
+stack_safety = "2NRNEsBPXjtD4GzyGyesA7N69KY9pZBo4cpj5dYjhu2K"
 
 [provider]
 cluster = "localnet"

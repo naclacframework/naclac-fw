@@ -11,7 +11,6 @@ pub struct ToggleBoost {
     pub global_config: Account<GlobalConfig>,
 }
 
-#[instruction]
 pub fn toggle_boost(ctx: Context<ToggleBoost>, enabled: Bool) -> Result {
     require!(
         ctx.accounts.admin.address() == ctx.accounts.global_config.admin,

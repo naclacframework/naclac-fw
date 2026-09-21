@@ -4,161 +4,177 @@
 import * as naclac from "@naclac-fw/client";
 
 /** Auto-generated from the program IDL. */
+export interface ClaimCashbackV2Args {
+  associatedUserVolumeAccumulatorBump: number;
+  associatedQuoteUserBump: number;
+}
+
+/** Auto-generated from the program IDL. */
+export interface ClaimTokenIncentivesArgs {
+  globalIncentiveTokenAccountBump: number;
+}
+
+/** Auto-generated from the program IDL. */
 export interface BuyArgs {
   amount: bigint | number;
-  max_sol_cost: bigint | number;
-  track_volume: naclac.Bool;
-  bonding_curve_bump: number;
-  associated_bonding_curve_bump: number;
-  associated_user_bump: number;
-  creator_vault_bump: number;
-  user_volume_accumulator_bump: number;
-  fee_config_bump: number;
-  buyback_index: number;
-  buyback_vault_bump: number;
-  bonding_curve_v2_bump: number;
+  maxSolCost: bigint | number;
+  trackVolume: naclac.Bool;
+  bondingCurveBump: number;
+  associatedBondingCurveBump: number;
+  associatedUserBump: number;
+  creatorVaultBump: number;
+  userVolumeAccumulatorBump: number;
+  feeConfigBump: number;
+  buybackIndex: number;
+  buybackVaultBump: number;
+  bondingCurveV2Bump: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface BuyExactQuoteInV2Args {
-  spendable_quote_in: bigint | number;
-  min_tokens_out: bigint | number;
-  bonding_curve_bump: number;
-  associated_base_bonding_curve_bump: number;
-  associated_quote_bonding_curve_bump: number;
-  associated_base_user_bump: number;
-  associated_quote_user_bump: number;
-  creator_vault_bump: number;
-  associated_creator_vault_bump: number;
-  associated_quote_fee_recipient_bump: number;
-  associated_quote_buyback_fee_recipient_bump: number;
-  user_volume_accumulator_bump: number;
-  associated_user_volume_accumulator_bump: number;
-  fee_config_bump: number;
-  buyback_index: number;
-  buyback_vault_bump: number;
+  spendableQuoteIn: bigint | number;
+  minTokensOut: bigint | number;
+  bondingCurveBump: number;
+  associatedBaseBondingCurveBump: number;
+  associatedQuoteBondingCurveBump: number;
+  associatedBaseUserBump: number;
+  associatedQuoteUserBump: number;
+  creatorVaultBump: number;
+  associatedQuoteBuybackFeeRecipientBump: number;
+  userVolumeAccumulatorBump: number;
+  feeConfigBump: number;
+  buybackIndex: number;
+  buybackVaultBump: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface BuyExactSolInArgs {
-  spendable_sol_in: bigint | number;
-  min_tokens_out: bigint | number;
-  bonding_curve_bump: number;
-  associated_bonding_curve_bump: number;
-  associated_user_bump: number;
-  creator_vault_bump: number;
-  user_volume_accumulator_bump: number;
-  fee_config_bump: number;
-  buyback_index: number;
-  buyback_vault_bump: number;
+  spendableSolIn: bigint | number;
+  minTokensOut: bigint | number;
+  bondingCurveBump: number;
+  associatedBondingCurveBump: number;
+  associatedUserBump: number;
+  creatorVaultBump: number;
+  userVolumeAccumulatorBump: number;
+  feeConfigBump: number;
+  buybackIndex: number;
+  buybackVaultBump: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface BuyV2Args {
   amount: bigint | number;
-  max_sol_cost: bigint | number;
-  bonding_curve_bump: number;
-  associated_base_bonding_curve_bump: number;
-  associated_quote_bonding_curve_bump: number;
-  associated_base_user_bump: number;
-  associated_quote_user_bump: number;
-  creator_vault_bump: number;
-  associated_creator_vault_bump: number;
-  associated_quote_fee_recipient_bump: number;
-  associated_quote_buyback_fee_recipient_bump: number;
-  user_volume_accumulator_bump: number;
-  associated_user_volume_accumulator_bump: number;
-  fee_config_bump: number;
-  buyback_index: number;
-  buyback_vault_bump: number;
+  maxSolCost: bigint | number;
+  bondingCurveBump: number;
+  associatedBaseBondingCurveBump: number;
+  associatedQuoteBondingCurveBump: number;
+  associatedBaseUserBump: number;
+  associatedQuoteUserBump: number;
+  creatorVaultBump: number;
+  associatedQuoteBuybackFeeRecipientBump: number;
+  userVolumeAccumulatorBump: number;
+  feeConfigBump: number;
+  buybackIndex: number;
+  buybackVaultBump: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface MigrateArgs {
-  bonding_curve_bump: number;
-  associated_bonding_curve_bump: number;
-  pool_authority_bump: number;
-  pool_authority_mint_account_bump: number;
-  pool_authority_wsol_account_bump: number;
-  amm_global_config_bump: number;
-  pool_bump: number;
-  lp_mint_bump: number;
-  user_pool_token_account_bump: number;
-  pool_base_token_account_bump: number;
-  pool_quote_token_account_bump: number;
+  bondingCurveBump: number;
+  associatedBondingCurveBump: number;
+  poolAuthorityBump: number;
+  poolAuthorityMintAccountBump: number;
+  poolAuthorityWsolAccountBump: number;
+  ammGlobalConfigBump: number;
+  poolBump: number;
+  lpMintBump: number;
+  userPoolTokenAccountBump: number;
+  poolBaseTokenAccountBump: number;
+  poolQuoteTokenAccountBump: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface MigrateV2Args {
-  bonding_curve_bump: number;
-  associated_base_bonding_curve_bump: number;
-  associated_quote_bonding_curve_bump: number;
-  pool_authority_bump: number;
-  pool_authority_mint_account_bump: number;
-  pool_authority_quote_account_bump: number;
-  amm_global_config_bump: number;
-  pool_bump: number;
-  lp_mint_bump: number;
-  user_pool_token_account_bump: number;
-  pool_base_token_account_bump: number;
-  pool_quote_token_account_bump: number;
-  boost_vault_authority_bump: number;
-  boost_vault_bump: number;
+  bondingCurveBump: number;
+  associatedBaseBondingCurveBump: number;
+  associatedQuoteBondingCurveBump: number;
+  poolAuthorityBump: number;
+  poolAuthorityMintAccountBump: number;
+  poolAuthorityQuoteAccountBump: number;
+  ammGlobalConfigBump: number;
+  poolBump: number;
+  lpMintBump: number;
+  userPoolTokenAccountBump: number;
+  poolBaseTokenAccountBump: number;
+  poolQuoteTokenAccountBump: number;
+  boostVaultAuthorityBump: number;
+  boostVaultBump: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface SellArgs {
   amount: bigint | number;
-  min_sol_output: bigint | number;
-  bonding_curve_bump: number;
-  associated_bonding_curve_bump: number;
-  associated_user_bump: number;
-  creator_vault_bump: number;
-  user_volume_accumulator_bump: number;
-  fee_config_bump: number;
-  buyback_index: number;
-  buyback_vault_bump: number;
-  bonding_curve_v2_bump: number;
+  minSolOutput: bigint | number;
+  bondingCurveBump: number;
+  associatedBondingCurveBump: number;
+  associatedUserBump: number;
+  creatorVaultBump: number;
+  userVolumeAccumulatorBump: number;
+  feeConfigBump: number;
+  buybackIndex: number;
+  buybackVaultBump: number;
+  bondingCurveV2Bump: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface SellV2Args {
   amount: bigint | number;
-  min_sol_output: bigint | number;
-  bonding_curve_bump: number;
-  associated_base_bonding_curve_bump: number;
-  associated_quote_bonding_curve_bump: number;
-  associated_base_user_bump: number;
-  associated_quote_user_bump: number;
-  creator_vault_bump: number;
-  associated_creator_vault_bump: number;
-  associated_quote_fee_recipient_bump: number;
-  associated_quote_buyback_fee_recipient_bump: number;
-  user_volume_accumulator_bump: number;
-  associated_user_volume_accumulator_bump: number;
-  fee_config_bump: number;
-  buyback_index: number;
-  buyback_vault_bump: number;
+  minSolOutput: bigint | number;
+  bondingCurveBump: number;
+  associatedBaseBondingCurveBump: number;
+  associatedQuoteBondingCurveBump: number;
+  associatedBaseUserBump: number;
+  associatedQuoteUserBump: number;
+  creatorVaultBump: number;
+  associatedQuoteBuybackFeeRecipientBump: number;
+  userVolumeAccumulatorBump: number;
+  feeConfigBump: number;
+  buybackIndex: number;
+  buybackVaultBump: number;
+}
+
+/** Auto-generated from the program IDL. */
+export interface CollectCreatorFeeV2Args {
+  creatorVaultBump: number;
+  creatorTokenAccountBump: number;
+  creatorVaultTokenAccountBump: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface SetParamsArgs {
-  initial_virtual_token_reserves: bigint | number;
-  initial_virtual_sol_reserves: bigint | number;
-  initial_real_token_reserves: bigint | number;
-  token_total_supply: bigint | number;
-  fee_basis_points: bigint | number;
-  withdraw_authority: naclac.Address | string;
-  enable_migrate: naclac.Bool;
-  pool_migration_fee: bigint | number;
-  creator_fee_basis_points: bigint | number;
-  set_creator_authority: naclac.Address | string;
-  admin_set_creator_authority: naclac.Address | string;
+  initialVirtualTokenReserves: bigint | number;
+  initialVirtualSolReserves: bigint | number;
+  initialRealTokenReserves: bigint | number;
+  tokenTotalSupply: bigint | number;
+  feeBasisPoints: bigint | number;
+  withdrawAuthority: naclac.Address | string;
+  enableMigrate: naclac.Bool;
+  poolMigrationFee: bigint | number;
+  creatorFeeBasisPoints: bigint | number;
+  setCreatorAuthority: naclac.Address | string;
+  adminSetCreatorAuthority: naclac.Address | string;
+}
+
+/** Auto-generated from the program IDL. */
+export interface MinimumDistributableFeeEvent {
+  minimumRequired: bigint | number;
+  distributableFees: bigint | number;
+  canDistribute: naclac.Bool;
 }
 
 /** Auto-generated from the program IDL. */
 export interface Shareholder {
   address: naclac.Address | string;
-  share_bps: number;
+  shareBps: number;
 }
 

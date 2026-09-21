@@ -131,6 +131,14 @@ impl<T: Pod + core::fmt::Debug> core::fmt::Debug for Span<T> {
     }
 }
 
+impl<T: Pod + PartialEq> PartialEq for Span<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.len == other.len && self.iter().eq(other.iter())
+    }
+}
+
+impl<T: Pod + Eq> Eq for Span<T> {}
+
 /// A Zero-Copy view into a UTF-8 string.
 ///
 /// This is the zero-copy in-place replacement for `String` — but, like
@@ -250,6 +258,31 @@ mod tests {
     }
 
     #[test]
+    fn span_partial_eq_compares_by_value_not_by_pointer() {
+        let values: [u32; 3] = [7, 8, 9];
+        let bytes = crate::prelude::bytemuck::cast_slice::<u32, u8>(&values);
+        let mut other_backing = [0u8; 12];
+        other_backing.copy_from_slice(bytes);
+
+        let a = Span::<u32>::from_bytes(bytes).expect("well-sized bytes must parse");
+        let b = Span::<u32>::from_bytes(&other_backing).expect("well-sized bytes must parse");
+        assert_ne!(a.ptr, b.ptr, "test setup must use two distinct backing allocations");
+        assert_eq!(a, b);
+
+        let different: [u32; 3] = [7, 8, 10];
+        let c = Span::<u32>::from_bytes(crate::prelude::bytemuck::cast_slice::<u32, u8>(
+            &different,
+        ))
+        .expect("well-sized bytes must parse");
+        assert_ne!(a, c);
+
+        let shorter: [u32; 2] = [7, 8];
+        let d = Span::<u32>::from_bytes(crate::prelude::bytemuck::cast_slice::<u32, u8>(&shorter))
+            .expect("well-sized bytes must parse");
+        assert_ne!(a, d, "different lengths must not compare equal");
+    }
+
+    #[test]
     fn span_from_bytes_rejects_size_not_a_multiple_of_item_size() {
         // 5 raw bytes can't divide evenly into any whole number of `u32`s (4
         // bytes each) — must be rejected, not silently truncated.
@@ -310,5 +343,129 @@ mod tests {
         assert!(s.is_empty());
         assert_eq!(s.len(), 0);
         assert_eq!(s.as_str(), "");
+    }
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `Span::<T>::get` never reads out of bounds for a small bounded
+    /// backing buffer and any index, for every element size naclac actually
+    /// ships (1/2/4/8-byte types) — not just one. The `i * item_size`
+    /// pointer-arithmetic step in `get` is the one place a wrong
+    /// length/index could turn into real out-of-bounds memory access, since
+    /// it bypasses the bounds check only for `i < self.len`.
+    macro_rules! span_get_never_panics_harness {
+        ($name:ident, $ty:ty, $buf_len:expr) => {
+            #[kani::proof]
+            fn $name() {
+                let data: [u8; $buf_len] = kani::any();
+                if let Ok(span) = Span::<$ty>::from_bytes(&data) {
+                    let i: usize = kani::any();
+                    let _ = span.get(i);
+                }
+            }
+        };
+    }
+    span_get_never_panics_harness!(prove_span_u8_get_never_panics, u8, 8);
+    span_get_never_panics_harness!(prove_span_u16_get_never_panics, u16, 8);
+    span_get_never_panics_harness!(prove_span_u32_get_never_panics, u32, 16);
+    span_get_never_panics_harness!(prove_span_u64_get_never_panics, u64, 24);
+
+    /// Correctness, not just panic-freedom: for any in-bounds index, `get`
+    /// must return exactly the bytes actually stored at that offset — an
+    /// off-by-one in the `i * item_size` step would still "not panic", it
+    /// would just silently hand back the wrong element. For an out-of-range
+    /// index, must return `None`, not a stale or garbage value.
+    #[kani::proof]
+    fn prove_span_u32_get_reads_correct_bytes() {
+        let data: [u8; 16] = kani::any();
+        if let Ok(span) = Span::<u32>::from_bytes(&data) {
+            let i: usize = kani::any();
+            if i < span.len() {
+                let got = span.get(i).unwrap();
+                let expected = bytemuck::pod_read_unaligned::<u32>(&data[i * 4..i * 4 + 4]);
+                assert_eq!(
+                    got, expected,
+                    "get(i) must return the real bytes at offset i * size_of::<T>()"
+                );
+            } else {
+                assert!(
+                    span.get(i).is_none(),
+                    "an out-of-range index must return None"
+                );
+            }
+        }
+    }
+
+    /// `from_bytes` must reject any length that isn't an exact multiple of
+    /// the element size — accepting one would silently truncate the last
+    /// partial element instead of erroring.
+    #[kani::proof]
+    fn prove_span_u32_from_bytes_rejects_non_multiple_length() {
+        let data: [u8; 15] = kani::any(); // 15 is never a multiple of 4
+        assert!(Span::<u32>::from_bytes(&data).is_err());
+    }
+
+    /// `Span<u8>::as_bytes` must return exactly the original bytes, not a
+    /// mis-sized or offset view — the one element type with a real
+    /// zero-copy `&[u8]` escape hatch (see this type's own doc comment).
+    #[kani::proof]
+    fn prove_span_u8_as_bytes_round_trips() {
+        let data: [u8; 8] = kani::any();
+        let span = Span::<u8>::from_bytes(&data).unwrap();
+        assert_eq!(span.as_bytes(), &data);
+    }
+
+    /// `SpanIter` must yield exactly `len()` elements, each matching `get`
+    /// for its own index — an iterator that stopped early/late or skipped
+    /// an index would silently corrupt any code trusting `.iter().collect()`.
+    #[kani::proof]
+    fn prove_span_u32_iter_yields_exactly_len_elements() {
+        let data: [u8; 16] = kani::any();
+        if let Ok(span) = Span::<u32>::from_bytes(&data) {
+            let mut count = 0usize;
+            for (i, v) in span.iter().enumerate() {
+                assert_eq!(Some(v), span.get(i));
+                count += 1;
+            }
+            assert_eq!(count, span.len());
+        }
+    }
+
+    /// `ZcString::from_bytes` must reject anything that isn't valid UTF-8 —
+    /// Kani explores every byte pattern in the buffer, not just the
+    /// hand-picked invalid sequences the unit tests above use.
+    ///
+    /// `#[kani::unwind(8)]`: even though `data` is a fixed 6-byte array
+    /// (not a symbolic length), `core::str::from_utf8`'s internal
+    /// validation loop isn't a simple bounded counter — CBMC's automatic
+    /// unwind-bound inference can't derive a tight stopping point from it
+    /// and defaults to unwinding thousands of times before giving up. An
+    /// explicit bound above the real max (6 bytes, so 1 iteration/byte at
+    /// most) fixes this; Kani reports an "unwinding assertion" failure if 8
+    /// ever turns out insufficient, rather than silently under-proving.
+    #[kani::proof]
+    #[kani::unwind(8)]
+    fn prove_zc_string_from_bytes_matches_str_validation() {
+        let data: [u8; 6] = kani::any();
+        let is_valid_utf8 = core::str::from_utf8(&data).is_ok();
+        assert_eq!(ZcString::from_bytes(&data).is_ok(), is_valid_utf8);
+    }
+
+    /// When `ZcString::from_bytes` does succeed, `as_str` must return
+    /// exactly those bytes reinterpreted as `str` — proving the
+    /// `from_utf8_unchecked` inside `as_str` is sound given the validation
+    /// `from_bytes` already performed, not just "doesn't panic". See
+    /// `prove_zc_string_from_bytes_matches_str_validation`'s doc comment
+    /// for why the explicit unwind bound is needed here too.
+    #[kani::proof]
+    #[kani::unwind(8)]
+    fn prove_zc_string_as_str_matches_input_bytes() {
+        let data: [u8; 6] = kani::any();
+        if let Ok(s) = ZcString::from_bytes(&data) {
+            assert_eq!(s.as_str().as_bytes(), &data);
+        }
     }
 }

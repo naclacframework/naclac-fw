@@ -8,13 +8,13 @@ export const SET_CLAIM_RATE_LIMIT_DISCRIMINATOR = new Uint8Array([185, 211, 159,
 
 /** Instruction arguments for `setClaimRateLimit`. */
 export interface SetClaimRateLimitArgs {
-  claim_rate_limit: bigint | number;
+  claimRateLimit: bigint | number;
 }
 
 /** Accounts for the `setClaimRateLimit` instruction. */
 export interface SetClaimRateLimitAccounts {
   authority: naclac.Address | string;
-  fee_program_global?: naclac.Address | string;
+  feeProgramGlobal?: naclac.Address | string;
 }
 
 /**

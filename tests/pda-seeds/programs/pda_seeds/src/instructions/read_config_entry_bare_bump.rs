@@ -12,7 +12,6 @@ pub struct ReadConfigEntryBareBump {
     pub config_entry: Account<ConfigEntry>,
 }
 
-#[instruction]
 pub fn read_config_entry_bare_bump(
     ctx: Context<ReadConfigEntryBareBump>,
     is_pump_pool: Bool,

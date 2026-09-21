@@ -9,7 +9,6 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `FreezeDelegate` to an `Asset` via `add_plugin`.
@@ -21,20 +20,18 @@ pub fn attach_freeze_delegate_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin =
-            ::mpl_core::types::Plugin::FreezeDelegate(::mpl_core::types::FreezeDelegate { frozen });
-        add_asset_plugin_signed(program, accounts, plugin, signer_seeds)
+        let data = [2u8, plugin_type::FREEZE_DELEGATE, frozen as u8, 0u8];
+        add_asset_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        add_asset_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::FREEZE_DELEGATE,
-            &[frozen as u8],
-            signer_seeds,
-        )
+        let mut data = crate::fixed_buf::FixedBuf::<4>::new();
+        data.push(2u8); // AddPluginV1 discriminator
+        data.push(plugin_type::FREEZE_DELEGATE);
+        data.push(frozen as u8);
+        data.push(0u8); // init_authority: None
+        add_asset_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -49,12 +46,11 @@ pub fn fetch_asset_freeze_delegate(info: &AccountInfo) -> Result<Option<bool>> {
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let asset = ::mpl_core::Asset::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(asset
-        .plugin_list
-        .freeze_delegate
-        .map(|p| p.freeze_delegate.frozen))
+    let asset_view = crate::asset::AssetView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    read_freeze_delegate(&data, plugin_header_offset)
 }
 
 /// Reads an `Asset`'s `FreezeDelegate` plugin (whether it's frozen), if
@@ -68,10 +64,9 @@ pub fn fetch_asset_freeze_delegate(info: &AccountInfo) -> Result<Option<bool>> {
     read_freeze_delegate(info.data(), plugin_header_offset)
 }
 
-/// Lower-level variant of `fetch_asset_freeze_delegate`, `pinocchio`-only:
-/// see `edition.rs`'s `read_edition` for why this exists alongside the
-/// uniform-signature wrapper above.
-#[cfg(feature = "pinocchio")]
+/// Lower-level variant of `fetch_asset_freeze_delegate`, shared by both
+/// backends: see `edition.rs`'s `read_edition` for why this exists alongside
+/// the uniform-signature wrapper above.
 pub fn read_freeze_delegate(data: &[u8], plugin_header_offset: usize) -> Result<Option<bool>> {
     match find_plugin_offset(data, plugin_header_offset, plugin_type::FREEZE_DELEGATE)? {
         Some(offset) => {

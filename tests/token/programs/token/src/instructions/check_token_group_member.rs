@@ -15,7 +15,6 @@ pub struct CheckTokenGroupMember {
     pub member_mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_token_group_member(
     ctx: Context<CheckTokenGroupMember>,
     expected_mint: Address,

@@ -50,6 +50,19 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for DistributeCreatorFeesCpiIxArg
 /// remainder, so the vault never retains dust above its rent-exempt floor.
 /// This rounding rule is a reasonable implementation choice, not verified
 /// against the real bytecode's exact behavior for >1 shareholder.
+/// 
+/// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+/// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+/// without it, `creator_vault` (derived from `bonding_curve.creator`) and the
+/// payout list (`sharing_config.shareholders`, from whichever `sharing_config`
+/// the caller passes) would have nothing tying them together, letting anyone
+/// redirect any bonding curve's real accumulated fees to an unrelated
+/// `sharing_config` they control. Also rejects any executable shareholder
+/// recipient (real, live-confirmed check, `reference/fee-tier-probe/src/bin/probe73.rs`)
+/// — an executable account can't receive lamports, so a stale shareholder
+/// entry that's since become a program account must be removed via
+/// `update_fee_shares(_v2)` first rather than silently failing the whole
+/// distribution at the transfer step.
 pub struct DistributeCreatorFeesAccounts {
     /// SAFETY: only used as a seed input for `bonding_curve`/`sharing_config` below, never
     /// read or written — a wrong value just fails those seed checks.
@@ -79,6 +92,19 @@ pub struct DistributeCreatorFeesAccounts {
 /// remainder, so the vault never retains dust above its rent-exempt floor.
 /// This rounding rule is a reasonable implementation choice, not verified
 /// against the real bytecode's exact behavior for >1 shareholder.
+/// 
+/// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+/// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+/// without it, `creator_vault` (derived from `bonding_curve.creator`) and the
+/// payout list (`sharing_config.shareholders`, from whichever `sharing_config`
+/// the caller passes) would have nothing tying them together, letting anyone
+/// redirect any bonding curve's real accumulated fees to an unrelated
+/// `sharing_config` they control. Also rejects any executable shareholder
+/// recipient (real, live-confirmed check, `reference/fee-tier-probe/src/bin/probe73.rs`)
+/// — an executable account can't receive lamports, so a stale shareholder
+/// entry that's since become a program account must be removed via
+/// `update_fee_shares(_v2)` first rather than silently failing the whole
+/// distribution at the transfer step.
 pub fn build_distribute_creator_fees<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
@@ -117,6 +143,19 @@ pub fn build_distribute_creator_fees<'a>(
 /// remainder, so the vault never retains dust above its rent-exempt floor.
 /// This rounding rule is a reasonable implementation choice, not verified
 /// against the real bytecode's exact behavior for >1 shareholder.
+/// 
+/// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+/// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+/// without it, `creator_vault` (derived from `bonding_curve.creator`) and the
+/// payout list (`sharing_config.shareholders`, from whichever `sharing_config`
+/// the caller passes) would have nothing tying them together, letting anyone
+/// redirect any bonding curve's real accumulated fees to an unrelated
+/// `sharing_config` they control. Also rejects any executable shareholder
+/// recipient (real, live-confirmed check, `reference/fee-tier-probe/src/bin/probe73.rs`)
+/// — an executable account can't receive lamports, so a stale shareholder
+/// entry that's since become a program account must be removed via
+/// `update_fee_shares(_v2)` first rather than silently failing the whole
+/// distribution at the transfer step.
 pub struct DistributeCreatorFeesCpiAccounts<'a> {
     /// SAFETY: only used as a seed input for `bonding_curve`/`sharing_config` below, never
     /// read or written — a wrong value just fails those seed checks.
@@ -156,6 +195,19 @@ pub trait DistributeCreatorFeesCpi<'info> {
     /// remainder, so the vault never retains dust above its rent-exempt floor.
     /// This rounding rule is a reasonable implementation choice, not verified
     /// against the real bytecode's exact behavior for >1 shareholder.
+    /// 
+    /// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+    /// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+    /// without it, `creator_vault` (derived from `bonding_curve.creator`) and the
+    /// payout list (`sharing_config.shareholders`, from whichever `sharing_config`
+    /// the caller passes) would have nothing tying them together, letting anyone
+    /// redirect any bonding curve's real accumulated fees to an unrelated
+    /// `sharing_config` they control. Also rejects any executable shareholder
+    /// recipient (real, live-confirmed check, `reference/fee-tier-probe/src/bin/probe73.rs`)
+    /// — an executable account can't receive lamports, so a stale shareholder
+    /// entry that's since become a program account must be removed via
+    /// `update_fee_shares(_v2)` first rather than silently failing the whole
+    /// distribution at the transfer step.
     fn distribute_creator_fees<'a>(
         &self,
         accounts: DistributeCreatorFeesCpiAccounts<'a>,

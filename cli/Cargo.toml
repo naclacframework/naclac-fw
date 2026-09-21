@@ -37,3 +37,6 @@ indicatif = { workspace = true }
 ctrlc = { workspace = true }
 colored = { workspace = true }
 dialoguer = "0.12.0"
+
+[lints]
+workspace = true

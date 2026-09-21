@@ -8,7 +8,7 @@ export const REMOVE_QUOTE_MINT_DISCRIMINATOR = new Uint8Array([177, 65, 223, 38,
 
 /** Instruction arguments for `removeQuoteMint`. */
 export interface RemoveQuoteMintArgs {
-  quote_mint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
 }
 
 /** Accounts for the `removeQuoteMint` instruction. */

@@ -27,7 +27,6 @@ pub struct Swap {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Result {
     require!(amount_in > 0, crate::errors::AmmError::ZeroAmount);
 

@@ -21,7 +21,6 @@ pub struct InitEntry {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_entry(ctx: Context<InitEntry>, bump: u8) -> Result {
     let entry = &mut ctx.accounts.entry;
     entry.bump = bump;

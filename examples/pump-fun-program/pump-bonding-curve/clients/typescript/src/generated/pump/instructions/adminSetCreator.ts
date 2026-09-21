@@ -9,19 +9,19 @@ export const ADMIN_SET_CREATOR_DISCRIMINATOR = new Uint8Array([69, 25, 171, 142,
 /** Instruction arguments for `adminSetCreator`. */
 export interface AdminSetCreatorArgs {
   creator: naclac.Address | string;
-  bonding_curve_bump: number;
+  bondingCurveBump: number;
 }
 
 /** Accounts for the `adminSetCreator` instruction. */
 export interface AdminSetCreatorAccounts {
-  admin_set_creator_authority: naclac.Address | string;
+  adminSetCreatorAuthority: naclac.Address | string;
   global?: naclac.Address | string;
   /**
    * SAFETY: only used as a seed input for `bonding_curve` below, never
    * read or written -- a wrong value just fails that seed check.
    */
   mint: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
 }
 
 /**

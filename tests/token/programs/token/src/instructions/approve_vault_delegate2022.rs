@@ -19,7 +19,6 @@ pub struct ApproveVaultDelegate2022 {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn approve_vault_delegate2022(ctx: Context<ApproveVaultDelegate2022>, amount: u64) -> Result {
     ctx.accounts.token_program.approve(
         naclac_lang::prelude::ApproveAccounts {

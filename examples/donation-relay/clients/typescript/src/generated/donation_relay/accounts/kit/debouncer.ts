@@ -10,22 +10,22 @@ export const DEBOUNCER_DISCRIMINATOR = new Uint8Array([79, 245, 223, 155, 77, 25
 /** Gets the encoder for {@link Debouncer} account data. */
 export function getDebouncerEncoder(): naclac.FixedSizeEncoder<Debouncer> {
   return naclac.getStructEncoder([
-    ["bump", naclac.getU8Encoder()],
-    ["state", naclac.getU8Encoder()],
+    ["total_amount", naclac.getU64Encoder()],
     ["config_id", naclac.getAddressEncoder()],
     ["mint", naclac.getAddressEncoder()],
-    ["total_amount", naclac.getU64Encoder()],
+    ["bump", naclac.getU8Encoder()],
+    ["state", naclac.getU8Encoder()],
   ]) as naclac.FixedSizeEncoder<Debouncer>;
 }
 
 /** Gets the decoder for {@link Debouncer} account data. */
 export function getDebouncerDecoder(): naclac.FixedSizeDecoder<Debouncer> {
   return naclac.getStructDecoder([
-    ["bump", naclac.getU8Decoder()],
-    ["state", naclac.getU8Decoder()],
+    ["total_amount", naclac.getU64Decoder()],
     ["config_id", naclac.getAddressDecoder()],
     ["mint", naclac.getAddressDecoder()],
-    ["total_amount", naclac.getU64Decoder()],
+    ["bump", naclac.getU8Decoder()],
+    ["state", naclac.getU8Decoder()],
   ]) as naclac.FixedSizeDecoder<Debouncer>;
 }
 

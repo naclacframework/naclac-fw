@@ -8,8 +8,8 @@ export const CHECK_SCALED_UI_AMOUNT_CONFIG_DISCRIMINATOR = new Uint8Array([202, 
 
 /** Instruction arguments for `checkScaledUiAmountConfig`. */
 export interface CheckScaledUiAmountConfigArgs {
-  expected_authority: naclac.Address | string | null;
-  expected_multiplier_bits: bigint | number;
+  expectedAuthority: naclac.Address | string | null;
+  expectedMultiplierBits: bigint | number;
 }
 
 /** Accounts for the `checkScaledUiAmountConfig` instruction. */

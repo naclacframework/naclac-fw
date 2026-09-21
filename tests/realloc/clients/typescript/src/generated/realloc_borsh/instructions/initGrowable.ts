@@ -10,7 +10,7 @@ export const INIT_GROWABLE_DISCRIMINATOR = new Uint8Array([171, 24, 231, 25, 60,
 export interface InitGrowableAccounts {
   payer: naclac.Address | string;
   growable?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

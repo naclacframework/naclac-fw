@@ -17,7 +17,6 @@ pub struct RelatedVaultCustomError {
     pub authority: Signer,
 }
 
-#[instruction]
 pub fn related_vault_custom_error(ctx: Context<RelatedVaultCustomError>) -> Result {
     ctx.accounts.vault.value += 1;
     Ok(())

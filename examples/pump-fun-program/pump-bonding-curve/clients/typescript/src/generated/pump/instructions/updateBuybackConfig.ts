@@ -8,8 +8,8 @@ export const UPDATE_BUYBACK_CONFIG_DISCRIMINATOR = new Uint8Array([251, 224, 171
 
 /** Instruction arguments for `updateBuybackConfig`. */
 export interface UpdateBuybackConfigArgs {
-  buyback_basis_points: bigint | number | null;
-  buyback_vault_bumps: string | Uint8Array;
+  buybackBasisPoints: bigint | number | null;
+  buybackVaultBumps: string | Uint8Array;
 }
 
 /** Accounts for the `updateBuybackConfig` instruction. */

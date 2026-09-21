@@ -1,17 +1,14 @@
 use naclac_lang::prelude::*;
 use crate::constants::MAX_FEE_TIERS;
 
-#[derive(Default)]
-#[cfg_attr(feature = "debug-mode", derive(Debug))]
-#[naclac_pod]
+#[defined_type]
 pub struct Fees {
     pub lp_fee_bps: u64,
     pub protocol_fee_bps: u64,
     pub creator_fee_bps: u64,
 }
 
-#[cfg_attr(feature = "debug-mode", derive(Debug))]
-#[naclac_pod]
+#[defined_type]
 pub struct FeeTier {
     pub market_cap_lamports_threshold: u64,
     pub fees: Fees,

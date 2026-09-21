@@ -22,7 +22,6 @@ pub struct ReallocOptionalThing {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn realloc_optional_thing(_ctx: Context<ReallocOptionalThing>, _new_space: u64) -> Result {
     Ok(())
 }

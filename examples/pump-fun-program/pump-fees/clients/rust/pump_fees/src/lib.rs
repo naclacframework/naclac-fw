@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ");
+declare_id!("cBPbCAyFhnUXngDY23SoKwvPrS5ppDaS1VjakEegoDV");
 
 #[cfg(feature = "offchain")]
 pub fn get_bonding_curve_pda(
@@ -73,7 +73,7 @@ pub fn get_debouncer_pda(
     config_id: &naclac_client::Address,
     quote_mint: &naclac_client::Address
 ) -> (naclac_client::Address, u8) {
-    let __derivation_program = naclac_client::Address::new_from_array([23, 118, 164, 191, 192, 201, 243, 51, 32, 226, 179, 109, 83, 249, 158, 252, 119, 104, 39, 62, 96, 34, 156, 219, 131, 24, 131, 100, 36, 174, 205, 212]);
+    let __derivation_program = naclac_client::Address::new_from_array([109, 67, 17, 127, 178, 28, 192, 153, 17, 233, 35, 187, 36, 107, 62, 174, 120, 73, 22, 5, 133, 131, 3, 202, 99, 38, 247, 184, 170, 56, 230, 45]);
     naclac_client::Address::find_program_address(
         &[
             &[100, 101, 98, 111, 117, 110, 99, 101, 114, 95, 118, 49],
@@ -122,7 +122,7 @@ pub fn get_epoch_tracker_pda(
     config_id: &naclac_client::Address,
     quote_mint: &naclac_client::Address
 ) -> (naclac_client::Address, u8) {
-    let __derivation_program = naclac_client::Address::new_from_array([23, 118, 164, 191, 192, 201, 243, 51, 32, 226, 179, 109, 83, 249, 158, 252, 119, 104, 39, 62, 96, 34, 156, 219, 131, 24, 131, 100, 36, 174, 205, 212]);
+    let __derivation_program = naclac_client::Address::new_from_array([109, 67, 17, 127, 178, 28, 192, 153, 17, 233, 35, 187, 36, 107, 62, 174, 120, 73, 22, 5, 133, 131, 3, 202, 99, 38, 247, 184, 170, 56, 230, 45]);
     naclac_client::Address::find_program_address(
         &[
             &[101, 112, 111, 99, 104, 95, 116, 114, 97, 99, 107, 101, 114, 95, 118, 49],
@@ -288,7 +288,7 @@ pub struct PumpFees;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for PumpFees {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([116, 160, 86, 82, 248, 105, 32, 166, 17, 57, 245, 99, 88, 171, 78, 132, 34, 207, 106, 105, 27, 23, 177, 13, 84, 100, 151, 96, 23, 63, 63, 197])
+        sdk_core_cpi::Address::new_from_array([9, 3, 19, 99, 78, 44, 194, 36, 151, 49, 210, 205, 144, 105, 103, 183, 137, 235, 171, 26, 58, 214, 51, 103, 185, 102, 71, 251, 10, 92, 25, 20])
     }
 }
 

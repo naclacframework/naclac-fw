@@ -98,7 +98,6 @@ pub struct ResetFeeSharingConfig {
 /// entry per shareholder, in order), then overwrites `sharing_config` with a single
 /// 100%-share `new_admin` entry and bumps its version to 2 — confirmed end-to-end
 /// via `reference/fee-tier-probe/src/bin/probe11.rs` against the real bytecode.
-#[instruction]
 pub fn reset_fee_sharing_config(
     ctx: Context<ResetFeeSharingConfig>,
     bonding_curve_bump: u8,
@@ -164,7 +163,7 @@ pub fn reset_fee_sharing_config(
         ctx.accounts.sharing_config.shareholders[..shareholders_len].to_vec();
     let old_version = ctx.accounts.sharing_config.version;
     let new_admin = ctx.accounts.new_admin.address();
-    let new_shareholders = vec![Shareholder { address: new_admin, share_bps: 10_000 }];
+    let new_shareholders = vec![Shareholder { address: new_admin, share_bps: 10_000, ..Default::default() }];
 
     let sharing_config = &mut ctx.accounts.sharing_config;
     sharing_config.admin = new_admin;

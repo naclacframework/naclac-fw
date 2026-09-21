@@ -8,7 +8,7 @@ export const COUNTERINCREMENTED_EVENT_DISCRIMINATOR = new Uint8Array([219, 181, 
 
 /** Auto-generated event interface from the program IDL. */
 export interface CounterIncremented {
-  new_count: bigint | number;
+  newCount: bigint | number;
   timestamp: bigint | number;
 }
 

@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 
 /** The on-chain address of this program. */
-export const PROGRAM_ID = naclac.address("8rG6Zs43yJ71tkCsWoEqdxF1uN9HzpQnCS8huqkKuwPJ");
+export const PROGRAM_ID = naclac.address("cBPbCAyFhnUXngDY23SoKwvPrS5ppDaS1VjakEegoDV");
 export const FEE_CONFIG_SEED: Uint8Array = Uint8Array.from([102, 101, 101, 95, 99, 111, 110, 102, 105, 103]);
 export const FEE_PROGRAM_GLOBAL_SEED: string | Uint8Array = Uint8Array.from([102, 101, 101, 45, 112, 114, 111, 103, 114, 97, 109, 45, 103, 108, 111, 98, 97, 108]);
 export const SHARING_CONFIG_SEED: string | Uint8Array = Uint8Array.from([115, 104, 97, 114, 105, 110, 103, 45, 99, 111, 110, 102, 105, 103]);
@@ -46,5 +46,5 @@ export const IX_DONATE_PUBKEY_CONFIG_ID_WITH_PAYER_V1: string | Uint8Array = Uin
 export const MAX_BUYBACK_INDEX: number = 8;
 export const PUMP_PROGRAM_ID: naclac.Address | string = naclac.address("FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD");
 export const PUMP_AMM_PROGRAM_ID: naclac.Address | string = naclac.address("HymVkySKqosA3Qhhwg8cwkjMCEk815HYyBRzEwa8huPx");
-export const DONATION_RELAY_PROGRAM_ID: naclac.Address | string = naclac.address("2abJkQX74rXzAJEgKRq8PmrT62M2iFtachKGqc4wn9tX");
+export const DONATION_RELAY_PROGRAM_ID: naclac.Address | string = naclac.address("8MWkme4Dfe5NBPh17itoSro62n4FTGLmPNXYFRCUzu7A");
 export const WSOL_MINT: naclac.Address | string = naclac.address("So11111111111111111111111111111111111111112");

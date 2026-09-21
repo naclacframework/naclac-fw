@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use cpi_caller_client::{
     get_caller_authority_pda,
     instructions::{
@@ -10,29 +10,9 @@ use cpi_caller_client::{
 };
 use cpi_callee_client::{fetch_counter, get_counter_pda, types::PROGRAM_ID as CALLEE_PROGRAM_ID};
 
-fn load_programs(provider: &NaclacProvider) {
-    let mut caller_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    caller_path.pop(); // programs
-    caller_path.pop(); // cpi workspace root
-    let workspace_root = caller_path.clone();
-    caller_path.push("target/deploy/cpi_caller.so");
-
-    provider
-        .add_program(&CALLER_PROGRAM_ID, caller_path.to_str().unwrap())
-        .expect("Failed to load cpi_caller program binary");
-
-    let mut callee_path = workspace_root;
-    callee_path.push("target/deploy/cpi_callee.so");
-    provider
-        .add_program(&CALLEE_PROGRAM_ID, callee_path.to_str().unwrap())
-        .expect("Failed to load cpi_callee program binary");
-}
-
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_programs(&provider);
-    provider
+    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
 /// The full cross-program CPI story in one pass:
@@ -40,7 +20,7 @@ fn setup() -> NaclacProvider {
 /// 2. real cross-program CPI (unsigned) to a *second*, separately-deployed
 ///    naclac program, via that program's auto-generated client SDK
 ///    (`call_setup_counter` -> `cpi_callee`'s `init_counter`)
-/// 3. real cross-program CPI *signed with PDA seeds* — `cpi_callee`'s
+/// 3. real cross-program CPI *signed with PDA seeds* â€” `cpi_callee`'s
 ///    `authorized_increment` requires its `authority` to sign, and that
 ///    authority is `cpi_caller`'s own PDA, so the CPI must be
 ///    `invoke_signed` with that PDA's exact seeds

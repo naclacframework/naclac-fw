@@ -135,24 +135,36 @@ impl<'a> AsRef<::pinocchio::AccountView> for crate::prelude::CpiHandle<'a> {
 /// `system_program.rs`'s own `pinocchio_signers_from_seeds!`). Must be
 /// invoked directly inside a function returning `crate::prelude::Result<()>`
 /// — it returns early on overflow.
+///
+/// `#[macro_export]`'d so `naclac-token` (and any other downstream crate)
+/// can reuse this exact, single implementation instead of hand-rolling the
+/// same unsafe signer/seed-array construction independently at each CPI call
+/// site — which is what `naclac-token/src/token.rs` used to do, 9 times
+/// over, via raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
+/// `MaybeUninit` arrays (functionally the same job, more unsafe surface,
+/// nine separate places to keep in sync). Every `crate::` reference inside
+/// is `$crate::` instead — required for a macro invoked from a different
+/// crate to still resolve against naclac-core's own `prelude`, not the
+/// caller's.
 #[cfg(feature = "pinocchio")]
+#[macro_export]
 macro_rules! cpi_signers_from_seeds {
     ($seeds:expr, $signers_var:ident) => {
-        if $seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-            return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
+        if $seeds.len() > $crate::prelude::MAX_CPI_SIGNERS {
+            return Err($crate::prelude::NaclacError::TooManyCpiSigners.into());
         }
-        let mut __signers: [::pinocchio::cpi::Signer; crate::prelude::MAX_CPI_SIGNERS] =
+        let mut __signers: [::pinocchio::cpi::Signer; $crate::prelude::MAX_CPI_SIGNERS] =
             unsafe { core::mem::zeroed() };
         let mut __seeds_buffer: [::pinocchio::cpi::Seed;
-            crate::prelude::MAX_CPI_SEEDS_PER_SIGNER * crate::prelude::MAX_CPI_SIGNERS] =
+            $crate::prelude::MAX_CPI_SEEDS_PER_SIGNER * $crate::prelude::MAX_CPI_SIGNERS] =
             unsafe { core::mem::zeroed() };
-        let mut __seed_ranges = [(0usize, 0usize); crate::prelude::MAX_CPI_SIGNERS];
+        let mut __seed_ranges = [(0usize, 0usize); $crate::prelude::MAX_CPI_SIGNERS];
 
         let mut __seed_idx = 0;
 
         for (i, seed_parts) in $seeds.iter().enumerate() {
-            if seed_parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
+            if seed_parts.len() > $crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
+                return Err($crate::prelude::NaclacError::TooManyCpiSeeds.into());
             }
             let start_seed = __seed_idx;
             for part in seed_parts.iter() {
@@ -320,4 +332,79 @@ pub fn invoke_signed_pinocchio_unchecked(
         }
     }
     Ok(())
+}
+
+#[cfg(all(kani, feature = "pinocchio"))]
+mod kani_proofs {
+    use crate::prelude::{MAX_CPI_SEEDS_PER_SIGNER, MAX_CPI_SIGNERS};
+
+    /// Proves `cpi_signers_from_seeds!` rejects `> MAX_CPI_SIGNERS` signer
+    /// groups with a clean `TooManyCpiSigners` error rather than truncating
+    /// silently — this exact class of bug (silent truncation instead of
+    /// erroring) was found and fixed once already in
+    /// `system_program.rs`'s sibling macro (see docs/plan/kani-audit.md);
+    /// this proves the fix actually holds for the shared macro every CPI
+    /// call site in the workspace now goes through.
+    #[kani::proof]
+    fn prove_rejects_too_many_signers() -> crate::prelude::Result<()> {
+        let empty: &[&[u8]] = &[];
+        // One more than the real limit — every real limit is small (4), so
+        // a fixed array one longer than that is cheap to build directly.
+        let too_many: [&[&[u8]]; MAX_CPI_SIGNERS + 1] = [empty; MAX_CPI_SIGNERS + 1];
+        let signer_seeds: &[&[&[u8]]] = &too_many;
+        let result: crate::prelude::Result<()> = (|| {
+            cpi_signers_from_seeds!(signer_seeds, _signers);
+            Ok(())
+        })();
+        assert!(
+            result.is_err(),
+            "more than MAX_CPI_SIGNERS signer groups must be rejected, not silently truncated"
+        );
+        Ok(())
+    }
+
+    /// Same proof for the per-signer seed-count limit.
+    #[kani::proof]
+    fn prove_rejects_too_many_seeds_per_signer() -> crate::prelude::Result<()> {
+        let one_seed: &[u8] = &[0u8];
+        let too_many_seeds: [&[u8]; MAX_CPI_SEEDS_PER_SIGNER + 1] =
+            [one_seed; MAX_CPI_SEEDS_PER_SIGNER + 1];
+        let signer_seeds: &[&[&[u8]]] = &[&too_many_seeds];
+        let result: crate::prelude::Result<()> = (|| {
+            cpi_signers_from_seeds!(signer_seeds, _signers);
+            Ok(())
+        })();
+        assert!(
+            result.is_err(),
+            "more than MAX_CPI_SEEDS_PER_SIGNER seeds in one group must be rejected, not silently truncated"
+        );
+        Ok(())
+    }
+
+    /// Proves the macro never panics and produces a correctly-shaped
+    /// `signers` slice (one `Signer` per signer group, in order) for any
+    /// symbolic seed *bytes* within a small, bounded, realistic shape (2
+    /// signer groups, 2 seed parts each, 4 bytes per part) — deliberately
+    /// modest, per the same "keep buffers/unwind bounds small" lesson from
+    /// `external_plugin_registry`'s earlier resource blowup, since this
+    /// exercises the same macro body's loops regardless of exact
+    /// signer/seed count.
+    #[kani::proof]
+    fn prove_within_bounds_is_correct() -> crate::prelude::Result<()> {
+        let seed_a0: [u8; 4] = kani::any();
+        let seed_a1: [u8; 4] = kani::any();
+        let seed_b0: [u8; 4] = kani::any();
+        let seed_b1: [u8; 4] = kani::any();
+        let signer_a: [&[u8]; 2] = [&seed_a0, &seed_a1];
+        let signer_b: [&[u8]; 2] = [&seed_b0, &seed_b1];
+        let signer_seeds: &[&[&[u8]]] = &[&signer_a, &signer_b];
+
+        cpi_signers_from_seeds!(signer_seeds, signers);
+        assert_eq!(
+            signers.len(),
+            signer_seeds.len(),
+            "must produce exactly one Signer per input signer group"
+        );
+        Ok(())
+    }
 }

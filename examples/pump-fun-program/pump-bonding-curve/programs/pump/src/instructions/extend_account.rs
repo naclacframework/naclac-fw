@@ -37,7 +37,6 @@ pub struct ExtendAccount {
 /// Recognizes every component this program itself owns; add a new type to
 /// the `realloc::any_of` list above when a new component needs the same
 /// treatment.
-#[instruction]
 pub fn extend_account(ctx: Context<ExtendAccount>) -> Result {
     let current_size = ctx.accounts.account.try_borrow_data()?.len();
     let new_size = ctx.bumps.__realloc_space_account;

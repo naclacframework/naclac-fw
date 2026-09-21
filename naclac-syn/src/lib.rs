@@ -1,4 +1,6 @@
+pub mod discriminator;
 pub mod instruction;
+pub mod names;
 pub mod parser;
 pub mod pda;
 pub mod types;

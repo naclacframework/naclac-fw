@@ -37,7 +37,6 @@ pub struct CreateMint2022WithMetadataPointer {
 /// 4-byte TLV header + 64-byte `MetadataPointer` value.
 const MINT_WITH_METADATA_POINTER_SPACE: u64 = 82 + 83 + 1 + 4 + 64;
 
-#[instruction]
 pub fn create_mint2022_with_metadata_pointer(
     ctx: Context<CreateMint2022WithMetadataPointer>,
     args: CreateMint2022WithMetadataPointerArgs,

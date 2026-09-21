@@ -19,10 +19,10 @@ export interface CreateAtaIdempotentAccounts {
    * SAFETY: may not exist yet — created idempotently by the CPI below
    * (a no-op if it already exists).
    */
-  associated_token: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  associatedToken: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
 }
 
 /**

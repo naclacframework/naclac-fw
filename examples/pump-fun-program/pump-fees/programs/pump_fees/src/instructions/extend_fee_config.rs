@@ -28,7 +28,6 @@ pub struct ExtendFeeConfig {
 /// Realloc the `fee_config` PDA to `FeeConfig::CURRENT_SIZE`. Callable by
 /// any signer (`user` pays the rent delta, per the real program's IDL —
 /// there's no admin/ownership check on this instruction).
-#[instruction]
 pub fn extend_fee_config(ctx: Context<ExtendFeeConfig>) -> Result {
     let current_size = ctx.accounts.fee_config.to_account_info().data().len() as u64;
     let timestamp = unix_timestamp()?;

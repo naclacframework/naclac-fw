@@ -50,6 +50,13 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for DistributeCreatorFeesV2CpiIxA
 /// reverts `UnsupportedQuoteMint` for anything else. The WSOL path's
 /// distribution math and rounding rule are identical to `distribute_creator_fees`
 /// (v1) — see that instruction's doc comment.
+/// 
+/// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+/// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+/// see `distribute_creator_fees`'s own doc comment for why. Also rejects any
+/// executable shareholder recipient (real, live-confirmed check,
+/// `reference/fee-tier-probe/src/bin/probe73.rs`) — see that same doc
+/// comment for why.
 pub struct DistributeCreatorFeesV2Accounts {
     pub payer: naclac_client::Address,
     /// SAFETY: only used as a seed input for `bonding_curve`/`sharing_config` below, never
@@ -85,6 +92,13 @@ pub struct DistributeCreatorFeesV2Accounts {
 /// reverts `UnsupportedQuoteMint` for anything else. The WSOL path's
 /// distribution math and rounding rule are identical to `distribute_creator_fees`
 /// (v1) — see that instruction's doc comment.
+/// 
+/// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+/// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+/// see `distribute_creator_fees`'s own doc comment for why. Also rejects any
+/// executable shareholder recipient (real, live-confirmed check,
+/// `reference/fee-tier-probe/src/bin/probe73.rs`) — see that same doc
+/// comment for why.
 pub fn build_distribute_creator_fees_v2<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
@@ -128,6 +142,13 @@ pub fn build_distribute_creator_fees_v2<'a>(
 /// reverts `UnsupportedQuoteMint` for anything else. The WSOL path's
 /// distribution math and rounding rule are identical to `distribute_creator_fees`
 /// (v1) — see that instruction's doc comment.
+/// 
+/// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+/// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+/// see `distribute_creator_fees`'s own doc comment for why. Also rejects any
+/// executable shareholder recipient (real, live-confirmed check,
+/// `reference/fee-tier-probe/src/bin/probe73.rs`) — see that same doc
+/// comment for why.
 pub struct DistributeCreatorFeesV2CpiAccounts<'a> {
     pub payer: crate::sdk_core_cpi::CpiHandleMut<'a>,
     /// SAFETY: only used as a seed input for `bonding_curve`/`sharing_config` below, never
@@ -174,6 +195,13 @@ pub trait DistributeCreatorFeesV2Cpi<'info> {
     /// reverts `UnsupportedQuoteMint` for anything else. The WSOL path's
     /// distribution math and rounding rule are identical to `distribute_creator_fees`
     /// (v1) — see that instruction's doc comment.
+    /// 
+    /// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+    /// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+    /// see `distribute_creator_fees`'s own doc comment for why. Also rejects any
+    /// executable shareholder recipient (real, live-confirmed check,
+    /// `reference/fee-tier-probe/src/bin/probe73.rs`) — see that same doc
+    /// comment for why.
     fn distribute_creator_fees_v2<'a>(
         &self,
         accounts: DistributeCreatorFeesV2CpiAccounts<'a>,

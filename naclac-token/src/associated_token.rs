@@ -335,47 +335,11 @@ fn invoke_ata_ix<I: PinocchioAtaInstruction>(ix: I, signer_seeds: &[&[&[u8]]]) -
         return ix.invoke();
     }
 
-    if signer_seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-        return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-    }
-    for parts in signer_seeds.iter() {
-        if parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-            return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-        }
-    }
-
-    let mut signers = [const { core::mem::MaybeUninit::<::pinocchio::cpi::Signer>::uninit() };
-        crate::prelude::MAX_CPI_SIGNERS];
-    let mut all_seeds = [const {
-        [const { core::mem::MaybeUninit::<::pinocchio::cpi::Seed>::uninit() };
-            crate::prelude::MAX_CPI_SEEDS_PER_SIGNER]
-    }; crate::prelude::MAX_CPI_SIGNERS];
-
-    let signer_len = signer_seeds.len();
-    for i in 0..signer_len {
-        unsafe {
-            let src_signer = *signer_seeds.get_unchecked(i);
-            let seed_len = src_signer.len();
-            for j in 0..seed_len {
-                let src_seed = *src_signer.get_unchecked(j);
-                let seed_cell = &mut *all_seeds.get_unchecked_mut(i).as_mut_ptr().add(j);
-                seed_cell.write(::pinocchio::cpi::Seed::from(src_seed));
-            }
-            let seeds_slice = core::slice::from_raw_parts(
-                all_seeds.get_unchecked(i).as_ptr() as *const ::pinocchio::cpi::Seed,
-                seed_len,
-            );
-            let signer_cell = &mut *signers.as_mut_ptr().add(i);
-            signer_cell.write(::pinocchio::cpi::Signer::from(seeds_slice));
-        }
-    }
-    let signers = unsafe {
-        core::slice::from_raw_parts(
-            signers.as_ptr() as *const ::pinocchio::cpi::Signer,
-            signer_len,
-        )
-    };
-
+    // Shared, single implementation (naclac-core/src/cpi.rs) instead of the
+    // hand-rolled unsafe signer/seed-array construction this function used
+    // to duplicate independently — same fix, same reasoning as
+    // `token.rs`'s 9 CPI call sites (see that file's own comment on this).
+    naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
     ix.invoke_signed(signers)
 }
 

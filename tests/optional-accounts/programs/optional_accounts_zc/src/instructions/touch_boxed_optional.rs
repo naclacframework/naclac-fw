@@ -16,7 +16,6 @@ pub struct TouchBoxedOptional {
     pub thing: Option<Box<Account<Thing>>>,
 }
 
-#[instruction]
 pub fn touch_boxed_optional(ctx: Context<TouchBoxedOptional>) -> Result {
     if let Some(thing) = ctx.accounts.thing.as_mut() {
         thing.value += 1;

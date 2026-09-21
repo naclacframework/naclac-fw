@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use events_client::{
     instructions::{
         build_emit_via_self_cpi_sized, build_emit_via_sol_log_data_sized,
@@ -7,29 +7,16 @@ use events_client::{
     types::PROGRAM_ID,
 };
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // events workspace root
-    so_path.push("target/deploy/events.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load events program binary");
-}
-
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
-    provider
+    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
 /// Real, measured CU cost of both emit mechanisms across a range of payload
-/// sizes under pinocchio — answers whether CU scales with payload size, and
+/// sizes under pinocchio â€” answers whether CU scales with payload size, and
 /// if so how, for self-CPI vs. `sol_log_data`. `log_event`'s receiving arg
 /// is `ZcVec<u8>` (zero-copy view, no heap allocation), unlike
-/// `events_borsh`'s `Vec<u8>` — so this measures the mechanism itself, not
+/// `events_borsh`'s `Vec<u8>` â€” so this measures the mechanism itself, not
 /// an avoidable allocation cost. Every call reuses the same fresh
 /// `provider`/blockhash per size so results aren't polluted by
 /// replay-avoidance retries.

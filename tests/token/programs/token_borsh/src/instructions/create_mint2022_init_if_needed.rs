@@ -41,7 +41,6 @@ pub struct CreateMint2022InitIfNeeded {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn create_mint2022_init_if_needed(
     _ctx: Context<CreateMint2022InitIfNeeded>,
     _id: u64,

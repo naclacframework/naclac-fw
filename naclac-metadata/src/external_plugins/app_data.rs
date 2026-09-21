@@ -21,16 +21,44 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 use crate::external_plugin_registry::external_plugin_type;
 
+/// Max encoded width of `ExternalPluginAdapterKeyArg::AppData`/
+/// `ExternalPluginAdapterInitInfo::AppData`'s tag (1 byte) + a
+/// `PluginAuthorityArg`/`PluginAuthority` (`MAX_PLUGIN_AUTHORITY_ENCODED_LEN`).
+#[cfg(feature = "pinocchio")]
+const APP_DATA_KEY_ENCODED_LEN: usize = 1 + MAX_PLUGIN_AUTHORITY_ENCODED_LEN;
+
+/// Max total instruction data for `attach_asset_app_data_signed`/
+/// `attach_collection_app_data_signed`: 1-byte ix discriminator +
+/// `AppDataInitInfo` (`APP_DATA_KEY_ENCODED_LEN` for the `data_authority`
+/// tag+value, always exactly 1 byte for `init_plugin_authority: None`,
+/// always exactly 2 bytes for `schema: Some(..)`).
+#[cfg(feature = "pinocchio")]
+const ATTACH_APP_DATA_IX_LEN: usize = 1 + APP_DATA_KEY_ENCODED_LEN + 1 + 2;
+
+/// Max total instruction data for `update_asset_app_data_schema_signed`/
+/// `update_collection_app_data_schema_signed`: 1-byte ix discriminator +
+/// encoded `ExternalPluginAdapterKeyArg::AppData` (`APP_DATA_KEY_ENCODED_LEN`)
+/// + `AppDataUpdateInfo` (always exactly 3 bytes: variant tag + `schema:
+/// Some(..)`).
+#[cfg(feature = "pinocchio")]
+const UPDATE_APP_DATA_IX_LEN: usize = 1 + APP_DATA_KEY_ENCODED_LEN + 3;
+
 /// A fully-read `AppData` instance — header fields plus the actual data
-/// bytes (owned, copied out of the account).
+/// bytes. On `solana`, `data` is a heap-copied `Vec<u8>` (the account is
+/// only borrowed for the duration of the read). On `pinocchio`, `data` is a
+/// zero-copy `Span<u8>` view directly into the account's own live bytes —
+/// no heap allocation, no artificial size cap, since it reflects however
+/// many bytes are actually stored on-chain.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AppDataInfo {
     pub data_authority: PluginAuthorityArg,
     pub schema: ExternalPluginAdapterSchemaArg,
+    #[cfg(not(feature = "pinocchio"))]
     pub data: crate::prelude::Vec<u8>,
+    #[cfg(feature = "pinocchio")]
+    pub data: Span<u8>,
 }
 
 /// Attaches an `AppData` adapter to an `Asset` via `AddExternalPluginAdapterV1`.
@@ -43,26 +71,26 @@ pub fn attach_asset_app_data_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let init_info =
-            ::mpl_core::types::ExternalPluginAdapterInitInfo::AppData(
-                ::mpl_core::types::AppDataInitInfo {
-                    data_authority: to_real_plugin_authority(data_authority),
-                    init_plugin_authority: None,
-                    schema: Some(to_real_schema(schema)),
-                },
-            );
-        add_asset_external_adapter_signed(program, accounts, init_info, signer_seeds)
+        let mut data = crate::prelude::Vec::new();
+        data.push(22u8); // AddExternalPluginAdapterV1 discriminator
+        data.push(2u8); // ExternalPluginAdapterInitInfo::AppData tag
+        encode_plugin_authority_owned(&mut data, data_authority);
+        data.push(0u8); // init_plugin_authority: None
+        data.push(1u8); // schema: Some(...)
+        data.push(schema_tag(schema));
+        add_asset_external_adapter_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut payload = crate::prelude::Vec::new();
-        payload.push(2u8); // ExternalPluginAdapterInitInfo::AppData tag
-        encode_plugin_authority(&mut payload, data_authority);
-        payload.push(0u8); // init_plugin_authority: None
-        payload.push(1u8); // schema: Some(...)
-        payload.push(schema_tag(schema));
-        add_asset_external_adapter_signed(program, accounts, &payload, signer_seeds)
+        let mut data = crate::fixed_buf::FixedBuf::<ATTACH_APP_DATA_IX_LEN>::new();
+        data.push(22u8); // AddExternalPluginAdapterV1 discriminator
+        data.push(2u8); // ExternalPluginAdapterInitInfo::AppData tag
+        encode_plugin_authority(&mut data, data_authority);
+        data.push(0u8); // init_plugin_authority: None
+        data.push(1u8); // schema: Some(...)
+        data.push(schema_tag(schema));
+        add_asset_external_adapter_signed(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -77,26 +105,26 @@ pub fn attach_collection_app_data_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let init_info =
-            ::mpl_core::types::ExternalPluginAdapterInitInfo::AppData(
-                ::mpl_core::types::AppDataInitInfo {
-                    data_authority: to_real_plugin_authority(data_authority),
-                    init_plugin_authority: None,
-                    schema: Some(to_real_schema(schema)),
-                },
-            );
-        add_collection_external_adapter_signed(program, accounts, init_info, signer_seeds)
+        let mut data = crate::prelude::Vec::new();
+        data.push(23u8); // AddCollectionExternalPluginAdapterV1 discriminator
+        data.push(2u8); // ExternalPluginAdapterInitInfo::AppData tag
+        encode_plugin_authority_owned(&mut data, data_authority);
+        data.push(0u8); // init_plugin_authority: None
+        data.push(1u8); // schema: Some(...)
+        data.push(schema_tag(schema));
+        add_collection_external_adapter_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut payload = crate::prelude::Vec::new();
-        payload.push(2u8); // ExternalPluginAdapterInitInfo::AppData tag
-        encode_plugin_authority(&mut payload, data_authority);
-        payload.push(0u8); // init_plugin_authority: None
-        payload.push(1u8); // schema: Some(...)
-        payload.push(schema_tag(schema));
-        add_collection_external_adapter_signed(program, accounts, &payload, signer_seeds)
+        let mut data = crate::fixed_buf::FixedBuf::<ATTACH_APP_DATA_IX_LEN>::new();
+        data.push(23u8); // AddCollectionExternalPluginAdapterV1 discriminator
+        data.push(2u8); // ExternalPluginAdapterInitInfo::AppData tag
+        encode_plugin_authority(&mut data, data_authority);
+        data.push(0u8); // init_plugin_authority: None
+        data.push(1u8); // schema: Some(...)
+        data.push(schema_tag(schema));
+        add_collection_external_adapter_signed(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -110,35 +138,32 @@ pub fn update_asset_app_data_schema_signed(
     new_schema: ExternalPluginAdapterSchemaArg,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let key = ExternalPluginAdapterKeyArg::AppData(data_authority);
+    // `ExternalPluginAdapterUpdateInfo` tag scheme has only 6 variants (no
+    // `DataSection`) — `AppData` is index 2 here too, same as `InitInfo`/
+    // `Key`, purely coincidentally (verified both enums independently, not
+    // assumed identical).
     #[cfg(not(feature = "pinocchio"))]
     {
-        let update_info = ::mpl_core::types::ExternalPluginAdapterUpdateInfo::AppData(
-            ::mpl_core::types::AppDataUpdateInfo {
-                schema: Some(to_real_schema(new_schema)),
-            },
-        );
-        update_asset_external_adapter_signed(program, accounts, key, update_info, signer_seeds)
+        let mut data = crate::prelude::Vec::new();
+        data.push(26u8); // UpdateExternalPluginAdapterV1 discriminator
+        data.push(2u8); // ExternalPluginAdapterKeyArg::AppData tag
+        encode_plugin_authority_owned(&mut data, data_authority);
+        data.push(2u8); // ExternalPluginAdapterUpdateInfo::AppData tag
+        data.push(1u8); // schema: Some(...)
+        data.push(schema_tag(new_schema));
+        update_asset_external_adapter_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        // ExternalPluginAdapterUpdateInfo tag scheme has only 6 variants (no
-        // DataSection) — AppData is index 2 here too, same as InitInfo/Key,
-        // purely coincidentally (verified both enums independently, not
-        // assumed identical).
-        let update_info_bytes = crate::prelude::vec![
-            2u8, // ExternalPluginAdapterUpdateInfo::AppData tag
-            1u8, // schema: Some(...)
-            schema_tag(new_schema),
-        ];
-        update_asset_external_adapter_signed(
-            program,
-            accounts,
-            key,
-            &update_info_bytes,
-            signer_seeds,
-        )
+        let mut data = crate::fixed_buf::FixedBuf::<UPDATE_APP_DATA_IX_LEN>::new();
+        data.push(26u8); // UpdateExternalPluginAdapterV1 discriminator
+        data.push(2u8); // ExternalPluginAdapterKeyArg::AppData tag
+        encode_plugin_authority(&mut data, data_authority);
+        data.push(2u8); // ExternalPluginAdapterUpdateInfo::AppData tag
+        data.push(1u8); // schema: Some(...)
+        data.push(schema_tag(new_schema));
+        update_asset_external_adapter_signed(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -170,31 +195,28 @@ pub fn update_collection_app_data_schema_signed(
     new_schema: ExternalPluginAdapterSchemaArg,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let key = ExternalPluginAdapterKeyArg::AppData(data_authority);
     #[cfg(not(feature = "pinocchio"))]
     {
-        let update_info = ::mpl_core::types::ExternalPluginAdapterUpdateInfo::AppData(
-            ::mpl_core::types::AppDataUpdateInfo {
-                schema: Some(to_real_schema(new_schema)),
-            },
-        );
-        update_collection_external_adapter_signed(program, accounts, key, update_info, signer_seeds)
+        let mut data = crate::prelude::Vec::new();
+        data.push(27u8); // UpdateCollectionExternalPluginAdapterV1 discriminator
+        data.push(2u8); // ExternalPluginAdapterKeyArg::AppData tag
+        encode_plugin_authority_owned(&mut data, data_authority);
+        data.push(2u8); // ExternalPluginAdapterUpdateInfo::AppData tag
+        data.push(1u8); // schema: Some(...)
+        data.push(schema_tag(new_schema));
+        update_collection_external_adapter_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let update_info_bytes = crate::prelude::vec![
-            2u8, // ExternalPluginAdapterUpdateInfo::AppData tag
-            1u8, // schema: Some(...)
-            schema_tag(new_schema),
-        ];
-        update_collection_external_adapter_signed(
-            program,
-            accounts,
-            key,
-            &update_info_bytes,
-            signer_seeds,
-        )
+        let mut data = crate::fixed_buf::FixedBuf::<UPDATE_APP_DATA_IX_LEN>::new();
+        data.push(27u8); // UpdateCollectionExternalPluginAdapterV1 discriminator
+        data.push(2u8); // ExternalPluginAdapterKeyArg::AppData tag
+        encode_plugin_authority(&mut data, data_authority);
+        data.push(2u8); // ExternalPluginAdapterUpdateInfo::AppData tag
+        data.push(1u8); // schema: Some(...)
+        data.push(schema_tag(new_schema));
+        update_collection_external_adapter_signed(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -262,20 +284,11 @@ pub fn fetch_asset_app_data(
     let raw = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let asset = ::mpl_core::Asset::deserialize(&raw)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    let target = to_real_plugin_authority(data_authority);
-    for entry in &asset.external_plugin_adapter_list.app_data {
-        if entry.base.data_authority == target {
-            let data = raw[entry.data_offset..entry.data_offset + entry.data_len].to_vec();
-            return Ok(Some(AppDataInfo {
-                data_authority,
-                schema: from_real_schema(&entry.base.schema),
-                data,
-            }));
-        }
-    }
-    Ok(None)
+    let asset_view = crate::asset::AssetView::from_bytes(&raw)?;
+    let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    read_app_data(&raw, plugin_header_offset, data_authority)
 }
 
 /// Reads a `Collection`'s `AppData` adapter identified by `data_authority`,
@@ -292,37 +305,63 @@ pub fn fetch_collection_app_data(
     let raw = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let collection = ::mpl_core::Collection::deserialize(&raw)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    let target = to_real_plugin_authority(data_authority);
-    for entry in &collection.external_plugin_adapter_list.app_data {
-        if entry.base.data_authority == target {
-            let data = raw[entry.data_offset..entry.data_offset + entry.data_len].to_vec();
-            return Ok(Some(AppDataInfo {
-                data_authority,
-                schema: from_real_schema(&entry.base.schema),
-                data,
-            }));
-        }
-    }
-    Ok(None)
+    let collection_view = crate::collection::CollectionView::from_bytes(&raw)?;
+    let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    read_app_data(&raw, plugin_header_offset, data_authority)
 }
 
+/// `solana`-only: `AppDataInfo::data` is a heap `Vec<u8>` on this backend
+/// (see the struct's own doc comment), so this walks the same external
+/// registry `find_external_registry_match` does on `pinocchio`, but copies
+/// the matched data bytes into an owned `Vec` instead of a `Span`.
 #[cfg(not(feature = "pinocchio"))]
-fn from_real_schema(
-    schema: &::mpl_core::types::ExternalPluginAdapterSchema,
-) -> ExternalPluginAdapterSchemaArg {
-    match schema {
-        ::mpl_core::types::ExternalPluginAdapterSchema::Binary => {
-            ExternalPluginAdapterSchemaArg::Binary
-        }
-        ::mpl_core::types::ExternalPluginAdapterSchema::Json => {
-            ExternalPluginAdapterSchemaArg::Json
-        }
-        ::mpl_core::types::ExternalPluginAdapterSchema::MsgPack => {
-            ExternalPluginAdapterSchemaArg::MsgPack
-        }
+fn read_app_data(
+    data: &[u8],
+    plugin_header_offset: usize,
+    data_authority: PluginAuthorityArg,
+) -> Result<Option<AppDataInfo>> {
+    let Some(m) = crate::external_plugin_registry::find_external_registry_match(
+        data,
+        plugin_header_offset,
+        external_plugin_type::APP_DATA,
+        |candidate, data| {
+            let (candidate_authority, _) = read_plugin_authority(data, candidate.header_offset)?;
+            Ok(candidate_authority == data_authority)
+        },
+    )?
+    else {
+        return Ok(None);
+    };
+
+    let (_, authority_width) = read_plugin_authority(data, m.header_offset)?;
+    let schema_offset = checked_end(m.header_offset, authority_width)?;
+    if data.len() <= schema_offset {
+        return Err(NaclacError::AccountDataTooSmall.err(0));
     }
+    let schema = match data[schema_offset] {
+        0 => ExternalPluginAdapterSchemaArg::Binary,
+        1 => ExternalPluginAdapterSchemaArg::Json,
+        2 => ExternalPluginAdapterSchemaArg::MsgPack,
+        _ => return Err(NaclacError::InvalidInstructionData.err(0)),
+    };
+    let (Some(data_offset), Some(data_len)) = (m.data_offset, m.data_len) else {
+        return Ok(Some(AppDataInfo {
+            data_authority,
+            schema,
+            data: crate::prelude::Vec::new(),
+        }));
+    };
+    let end = checked_end(data_offset, data_len)?;
+    if data.len() < end {
+        return Err(NaclacError::AccountDataTooSmall.err(0));
+    }
+    Ok(Some(AppDataInfo {
+        data_authority,
+        schema,
+        data: data[data_offset..end].to_vec(),
+    }))
 }
 
 /// Reads an `Asset`'s `AppData` adapter identified by `data_authority`, if
@@ -337,44 +376,46 @@ pub fn fetch_asset_app_data(
         return Ok(None);
     };
     let data = info.data();
-    let matches = crate::external_plugin_registry::find_external_registry_matches(
+    let Some(m) = crate::external_plugin_registry::find_external_registry_match(
         data,
         plugin_header_offset,
         external_plugin_type::APP_DATA,
-    )?;
-    for m in matches {
-        let (candidate_authority, authority_width) =
-            read_plugin_authority(data, m.header_offset)?;
-        if candidate_authority != data_authority {
-            continue;
-        }
-        let schema_offset = m.header_offset + authority_width;
-        if data.len() <= schema_offset {
-            return Err(NaclacError::AccountDataTooSmall.err(0));
-        }
-        let schema = match data[schema_offset] {
-            0 => ExternalPluginAdapterSchemaArg::Binary,
-            1 => ExternalPluginAdapterSchemaArg::Json,
-            2 => ExternalPluginAdapterSchemaArg::MsgPack,
-            _ => return Err(NaclacError::InvalidInstructionData.err(0)),
-        };
-        let (Some(data_offset), Some(data_len)) = (m.data_offset, m.data_len) else {
-            return Ok(Some(AppDataInfo {
-                data_authority,
-                schema,
-                data: crate::prelude::Vec::new(),
-            }));
-        };
-        if data.len() < data_offset + data_len {
-            return Err(NaclacError::AccountDataTooSmall.err(0));
-        }
+        |candidate, data| {
+            let (candidate_authority, _) = read_plugin_authority(data, candidate.header_offset)?;
+            Ok(candidate_authority == data_authority)
+        },
+    )?
+    else {
+        return Ok(None);
+    };
+
+    let (_, authority_width) = read_plugin_authority(data, m.header_offset)?;
+    let schema_offset = checked_end(m.header_offset, authority_width)?;
+    if data.len() <= schema_offset {
+        return Err(NaclacError::AccountDataTooSmall.err(0));
+    }
+    let schema = match data[schema_offset] {
+        0 => ExternalPluginAdapterSchemaArg::Binary,
+        1 => ExternalPluginAdapterSchemaArg::Json,
+        2 => ExternalPluginAdapterSchemaArg::MsgPack,
+        _ => return Err(NaclacError::InvalidInstructionData.err(0)),
+    };
+    let (Some(data_offset), Some(data_len)) = (m.data_offset, m.data_len) else {
         return Ok(Some(AppDataInfo {
             data_authority,
             schema,
-            data: data[data_offset..data_offset + data_len].to_vec(),
+            data: Span::new(&[]),
         }));
+    };
+    let end = checked_end(data_offset, data_len)?;
+    if data.len() < end {
+        return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    Ok(None)
+    Ok(Some(AppDataInfo {
+        data_authority,
+        schema,
+        data: Span::new(&data[data_offset..end]),
+    }))
 }
 
 /// Reads a `Collection`'s `AppData` adapter identified by `data_authority`,
@@ -389,50 +430,51 @@ pub fn fetch_collection_app_data(
         return Ok(None);
     };
     let data = info.data();
-    let matches = crate::external_plugin_registry::find_external_registry_matches(
+    let Some(m) = crate::external_plugin_registry::find_external_registry_match(
         data,
         plugin_header_offset,
         external_plugin_type::APP_DATA,
-    )?;
-    for m in matches {
-        let (candidate_authority, authority_width) =
-            read_plugin_authority(data, m.header_offset)?;
-        if candidate_authority != data_authority {
-            continue;
-        }
-        let schema_offset = m.header_offset + authority_width;
-        if data.len() <= schema_offset {
-            return Err(NaclacError::AccountDataTooSmall.err(0));
-        }
-        let schema = match data[schema_offset] {
-            0 => ExternalPluginAdapterSchemaArg::Binary,
-            1 => ExternalPluginAdapterSchemaArg::Json,
-            2 => ExternalPluginAdapterSchemaArg::MsgPack,
-            _ => return Err(NaclacError::InvalidInstructionData.err(0)),
-        };
-        let (Some(data_offset), Some(data_len)) = (m.data_offset, m.data_len) else {
-            return Ok(Some(AppDataInfo {
-                data_authority,
-                schema,
-                data: crate::prelude::Vec::new(),
-            }));
-        };
-        if data.len() < data_offset + data_len {
-            return Err(NaclacError::AccountDataTooSmall.err(0));
-        }
+        |candidate, data| {
+            let (candidate_authority, _) = read_plugin_authority(data, candidate.header_offset)?;
+            Ok(candidate_authority == data_authority)
+        },
+    )?
+    else {
+        return Ok(None);
+    };
+
+    let (_, authority_width) = read_plugin_authority(data, m.header_offset)?;
+    let schema_offset = checked_end(m.header_offset, authority_width)?;
+    if data.len() <= schema_offset {
+        return Err(NaclacError::AccountDataTooSmall.err(0));
+    }
+    let schema = match data[schema_offset] {
+        0 => ExternalPluginAdapterSchemaArg::Binary,
+        1 => ExternalPluginAdapterSchemaArg::Json,
+        2 => ExternalPluginAdapterSchemaArg::MsgPack,
+        _ => return Err(NaclacError::InvalidInstructionData.err(0)),
+    };
+    let (Some(data_offset), Some(data_len)) = (m.data_offset, m.data_len) else {
         return Ok(Some(AppDataInfo {
             data_authority,
             schema,
-            data: data[data_offset..data_offset + data_len].to_vec(),
+            data: Span::new(&[]),
         }));
+    };
+    let end = checked_end(data_offset, data_len)?;
+    if data.len() < end {
+        return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    Ok(None)
+    Ok(Some(AppDataInfo {
+        data_authority,
+        schema,
+        data: Span::new(&data[data_offset..end]),
+    }))
 }
 
-/// Reads a `PluginAuthority` at `offset` — `pinocchio`-only. Returns the
-/// decoded value and its encoded width (1 byte for `None`/`Owner`/
+/// Reads a `PluginAuthority` at `offset`, shared by both backends. Returns
+/// the decoded value and its encoded width (1 byte for `None`/`Owner`/
 /// `UpdateAuthority`, 33 for `Address { .. }`).
-#[cfg(feature = "pinocchio")]
 pub(crate) fn read_plugin_authority(
     data: &[u8],
     offset: usize,
@@ -445,12 +487,28 @@ pub(crate) fn read_plugin_authority(
         1 => Ok((PluginAuthorityArg::Owner, 1)),
         2 => Ok((PluginAuthorityArg::UpdateAuthority, 1)),
         3 => {
-            if data.len() < offset + 33 {
+            let end = checked_end(offset, 33)?;
+            if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let bytes: [u8; 32] = data[offset + 1..offset + 33].try_into().unwrap();
+            let bytes: [u8; 32] = data[offset + 1..end].try_into().unwrap();
             Ok((PluginAuthorityArg::Address(Address::new_from_array(bytes)), 33))
         }
         _ => Err(NaclacError::InvalidInstructionData.err(0)),
+    }
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `read_plugin_authority` never panics for any bytes/offset,
+    /// including through its now-`checked_end`-guarded `Address` variant
+    /// (tag 3).
+    #[kani::proof]
+    fn prove_read_plugin_authority_never_panics() {
+        let data: [u8; 40] = kani::any();
+        let offset: usize = kani::any();
+        let _ = read_plugin_authority(&data, offset);
     }
 }

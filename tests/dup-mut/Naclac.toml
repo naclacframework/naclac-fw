@@ -6,9 +6,9 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-dup_mut = "EvHaZmAqALtVA6SQLcN1MZVrMRTY37odGCaLBwxBnhfy"
-dup_mut_borsh = "9ckKeo7g3MRX7fWNh1obrJfyWcbobGSHFXZwBfvnmHCr"
-dup_mut_zc = "H2NgEykTkDNkVsNgEoXUiSZ2A9UbyRhNbEXZnbrrFXjj"
+dup_mut = "H2pkKR14SWqrxXNR7EUZu54uTq9dvaKt5RBvJjVYpxuC"
+dup_mut_borsh = "3B6MfxvFZKbQeUANMazZZ2og8vg9VReJecNjE8XfMvFv"
+dup_mut_zc = "7WK1WtJA64Tii13vPp9p7h4mM8Skzd319DkHQzG2SQb6"
 
 [provider]
 cluster = "localnet"

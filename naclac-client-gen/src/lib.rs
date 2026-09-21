@@ -57,7 +57,16 @@ pub enum IdlTypeDefVariants {
     #[serde(rename = "struct")]
     Struct { fields: Vec<IdlField> },
     #[serde(rename = "enum")]
-    Enum { variants: Vec<IdlEnumVariant> },
+    Enum {
+        variants: Vec<IdlEnumVariant>,
+        /// The enum's `#[repr(uN)]` discriminant type, or `None` if it was
+        /// never written explicitly — `#[defined_type]`'s zero-copy branch
+        /// defaults an absent repr to `u8`, so zero-copy codegen reading
+        /// this field must apply that same default rather than treating
+        /// `None` as "no discriminant at all".
+        #[serde(default)]
+        repr: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -65,6 +74,24 @@ pub struct IdlEnumVariant {
     pub name: String,
     #[serde(default)]
     pub docs: Vec<String>,
+    #[serde(default)]
+    pub fields: Option<IdlEnumFields>,
+    /// This variant's real, fully-resolved discriminant value (decimal
+    /// string, possibly negative) — see `naclac_syn::types::
+    /// NaclacEnumVariant::discriminant`'s doc comment for the full
+    /// rationale.
+    #[serde(default)]
+    pub discriminant: String,
+}
+
+/// Matches the real Anchor IDL spec's `IdlDefinedFields` shape (untagged:
+/// named fields as `[{name, type}, ...]`, tuple fields as a bare
+/// `[type, ...]` array, absent entirely for a unit variant).
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum IdlEnumFields {
+    Named(Vec<IdlField>),
+    Tuple(Vec<serde_json::Value>),
 }
 
 #[derive(Serialize, Deserialize, Default)]

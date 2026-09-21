@@ -1,5 +1,7 @@
 use naclac_lang::prelude::*;
 
+// Already deployed on devnet — explicit padding for the two internal gaps
+// below, not a field reorder. Revisit alongside a redeploy.
 #[component]
 pub struct UserVolumeAccumulator {
     pub user: Address,

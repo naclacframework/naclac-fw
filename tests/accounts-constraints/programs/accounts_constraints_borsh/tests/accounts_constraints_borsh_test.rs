@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use accounts_constraints_borsh_client::{
     fetch_ledger, fetch_note, fetch_vault,
     get_ledger_pda, get_note_pda, get_seeded_pda, get_vault_pda,
@@ -19,26 +19,13 @@ use accounts_constraints_borsh_client::{
     types::PROGRAM_ID,
 };
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // accounts-constraints workspace root
-    so_path.push("target/deploy/accounts_constraints_borsh.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load accounts_constraints_borsh program binary");
-}
-
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
-    provider
+    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
 /// Asserts a transaction failed with exactly the given `Custom` error code
-/// — not just "any error", the specific numeric `NaclacError` (framework
+/// â€” not just "any error", the specific numeric `NaclacError` (framework
 /// errors, 3000s) the failure actually produces. Mirrors
 /// `tests/error-codes/programs/error_codes/tests/error_codes_test.rs`'s
 /// helper of the same name and shape.
@@ -82,7 +69,7 @@ fn init_creates_discriminator_and_rent_exempt_account() {
 }
 
 /// `init_if_needed`: the first call creates the account and sets its value;
-/// a second call with a *different* argument must not overwrite it — the
+/// a second call with a *different* argument must not overwrite it â€” the
 /// account-creation CPI is skipped, and (per the handler's own sentinel
 /// guard) so is the value write.
 #[test]
@@ -208,13 +195,13 @@ fn owner_constraint_rejects_wrong_owning_program() {
         CheckOwnerAccounts { target: vault_pda },
     )
     .send_and_confirm();
-    // `CheckOwner { target }` — `target` is field index 0 ->
+    // `CheckOwner { target }` â€” `target` is field index 0 ->
     // 3000 + 0*100 + ConstraintOwner(4) = 3004.
     assert_custom_code(wrong_owner_result, 3004);
 }
 
 /// `address`: rejects an account whose own key doesn't match the expected
-/// constant — distinct from `owner` (checks the account's *own* key, not
+/// constant â€” distinct from `owner` (checks the account's *own* key, not
 /// its owning program).
 #[test]
 fn address_constraint_rejects_mismatched_key() {
@@ -238,7 +225,7 @@ fn address_constraint_rejects_mismatched_key() {
         },
     )
     .send_and_confirm();
-    // `CheckAddress { target }` — `target` is field index 0 ->
+    // `CheckAddress { target }` â€” `target` is field index 0 ->
     // 3000 + 0*100 + ConstraintAddress(3) = 3003.
     assert_custom_code(mismatched_result, 3003);
 }
@@ -285,12 +272,12 @@ fn owner_constraint_relational_rejects_wrong_owning_program() {
         },
     )
     .send_and_confirm();
-    // `CheckOwnerRelational { target, expected_owner }` — `target` is field
+    // `CheckOwnerRelational { target, expected_owner }` â€” `target` is field
     // index 0 -> 3000 + 0*100 + ConstraintOwner(4) = 3004.
     assert_custom_code(wrong_owner_result, 3004);
 }
 
-/// `address = <another field>` (relational form) — same ordering proof as
+/// `address = <another field>` (relational form) â€” same ordering proof as
 /// the `owner` relational test above.
 #[test]
 fn address_constraint_relational_rejects_mismatched_key() {
@@ -316,7 +303,7 @@ fn address_constraint_relational_rejects_mismatched_key() {
         },
     )
     .send_and_confirm();
-    // `CheckAddressRelational { target, expected_address }` — `target` is
+    // `CheckAddressRelational { target, expected_address }` â€” `target` is
     // field index 0 -> 3000 + 0*100 + ConstraintAddress(3) = 3003.
     assert_custom_code(mismatched_result, 3003);
 }
@@ -325,7 +312,7 @@ fn address_constraint_relational_rejects_mismatched_key() {
 /// the transaction. The generated SDK's typed builder always marks this
 /// slot writable per the IDL, so the negative case is produced by taking
 /// the built `InstructionBuilder` and flipping the raw `AccountMeta`
-/// ourselves — proving the runtime check, not just the SDK's own honesty.
+/// ourselves â€” proving the runtime check, not just the SDK's own honesty.
 #[test]
 fn mut_constraint_rejects_non_writable_account_meta() {
     let provider = setup();
@@ -364,7 +351,7 @@ fn mut_constraint_rejects_non_writable_account_meta() {
     builder.accounts[vault_idx].is_writable = false;
 
     let result = builder.send_and_confirm();
-    // `TouchMutVault { vault }` — `vault` is field index 0 ->
+    // `TouchMutVault { vault }` â€” `vault` is field index 0 ->
     // 3000 + 0*100 + ConstraintMut(1) = 3001.
     assert_custom_code(result, 3001);
 }
@@ -401,7 +388,7 @@ fn relation_constraint_rejects_mismatched_admin() {
     )
     .signer(&stranger)
     .send_and_confirm();
-    // `RelatedVault { vault, authority }` — the relation check (`admin =
+    // `RelatedVault { vault, authority }` â€” the relation check (`admin =
     // authority`) is attached to `vault`, field index 0, and (no
     // `custom_error` given) emits `NaclacError::Unauthorized` ->
     // 3000 + 0*100 + Unauthorized(21) = 3021.
@@ -421,7 +408,7 @@ fn relation_constraint_rejects_mismatched_admin() {
 
 /// `seeds` + explicit `bump = <expr>` on an existing account: the correct
 /// stored bump is accepted, a deliberately wrong one is rejected
-/// (`NaclacError::ConstraintSeeds`) — the on-chain
+/// (`NaclacError::ConstraintSeeds`) â€” the on-chain
 /// `find_program_address`-banned hash-and-compare path.
 #[test]
 fn seeds_constraint_rejects_wrong_explicit_bump() {
@@ -457,7 +444,7 @@ fn seeds_constraint_rejects_wrong_explicit_bump() {
         TouchSeededAccounts { seeded: seeded_pda },
     )
     .send_and_confirm();
-    // `TouchSeeded { seeded }` — `seeded` is field index 0 ->
+    // `TouchSeeded { seeded }` â€” `seeded` is field index 0 ->
     // 3000 + 0*100 + ConstraintSeeds(6) = 3006.
     assert_custom_code(wrong_result, 3006);
 }
@@ -523,7 +510,7 @@ fn close_drains_lamports_and_account_cannot_be_reused() {
 
 /// `executable`: rejects an account whose `executable` flag isn't set.
 /// Meaningful specifically on a plain `AccountInfo` field (not `Program<T>`,
-/// which already enforces executable-ness internally on its own) — the real
+/// which already enforces executable-ness internally on its own) â€” the real
 /// System Program account (genuinely executable) must be accepted, and the
 /// payer's own signer account (not executable) must be rejected.
 #[test]
@@ -548,7 +535,7 @@ fn executable_constraint_rejects_non_executable_account() {
         },
     )
     .send_and_confirm();
-    // `CheckExecutable { target }` — `target` is field index 0 ->
+    // `CheckExecutable { target }` â€” `target` is field index 0 ->
     // 3000 + 0*100 + ConstraintExecutable(7) = 3007.
     assert_custom_code(non_executable_result, 3007);
 }
@@ -586,7 +573,7 @@ fn rent_exempt_constraint_rejects_underfunded_account() {
         },
     )
     .send_and_confirm();
-    // `CheckRentExempt { target }` — `target` is field index 0 ->
+    // `CheckRentExempt { target }` â€” `target` is field index 0 ->
     // 3000 + 0*100 + ConstraintRentExempt(5) = 3005.
     assert_custom_code(underfunded_result, 3005);
 }
@@ -612,7 +599,7 @@ fn close_rejects_self_close() {
         },
     )
     .send_and_confirm();
-    // `CloseVaultSelf { target, destination }` — the self-close guard
+    // `CloseVaultSelf { target, destination }` â€” the self-close guard
     // (`close_account.rs`, target == dest check) fires on `target`, field
     // index 0 -> 3000 + 0*100 + ConstraintClose(26) = 3026.
     assert_custom_code(result, 3026);
@@ -621,7 +608,7 @@ fn close_rejects_self_close() {
 /// Relation constraint custom error (`field @ CustomError` syntax):
 /// `admin = authority @ VaultError::WrongAdmin` replaces the default
 /// `NaclacError::Unauthorized` with the custom error's own code on a
-/// mismatch — never exercised elsewhere, since `related_vault` only takes
+/// mismatch â€” never exercised elsewhere, since `related_vault` only takes
 /// the default-error path.
 #[test]
 fn relation_constraint_custom_error_replaces_default_unauthorized() {
@@ -651,12 +638,12 @@ fn relation_constraint_custom_error_replaces_default_unauthorized() {
     )
     .signer(&stranger)
     .send_and_confirm();
-    // `admin = authority @ VaultError::WrongAdmin` — the `@` custom-error
+    // `admin = authority @ VaultError::WrongAdmin` â€” the `@` custom-error
     // suffix replaces the default `NaclacError::Unauthorized` with
     // `VaultError::WrongAdmin`'s own code. `#[error_code]` offsets custom
     // discriminants by 6000 (`naclac-macros/src/error_code.rs`); with no
     // explicit discriminant, `WrongAdmin` (the enum's only variant) lands
-    // at exactly 6000 — a genuinely different codespace from
+    // at exactly 6000 â€” a genuinely different codespace from
     // `NaclacError`'s 3000s, proving the custom-error path fired instead
     // of the default (which would have been 3021, as in
     // `relation_constraint_rejects_mismatched_admin` above).
@@ -675,7 +662,7 @@ fn relation_constraint_custom_error_replaces_default_unauthorized() {
 }
 
 /// `seeds::program`: derives/validates a PDA against a program ID other
-/// than the current program — here the real, well-known System Program
+/// than the current program â€” here the real, well-known System Program
 /// ID. The correctly-derived PDA (matching bump) must be accepted; a
 /// deliberately wrong bump must be rejected with
 /// `NaclacError::ConstraintSeeds`, the same as an on-program PDA would be.
@@ -710,7 +697,7 @@ fn seeds_program_constraint_derives_pda_against_external_program() {
         },
     )
     .send_and_confirm();
-    // `CheckExternalPda { target }` — `target` is field index 0 ->
+    // `CheckExternalPda { target }` â€” `target` is field index 0 ->
     // 3000 + 0*100 + ConstraintSeeds(6) = 3006.
     assert_custom_code(wrong_result, 3006);
 }
@@ -719,7 +706,7 @@ fn seeds_program_constraint_derives_pda_against_external_program() {
 /// `#[max_len]` `Vec`/`String` field allocates the real serialized size
 /// (`Note::SPACE`) by default, not `size_of::<Note>()` (naclac-macros gap
 /// #3). Writes a 190-byte name (close to the 200-byte `#[max_len]` cap) with
-/// no explicit `space =` on the `init` — this only succeeds if the account
+/// no explicit `space =` on the `init` â€” this only succeeds if the account
 /// was allocated with real room for the string, not the much smaller
 /// in-memory `String` pointer/len/cap representation.
 #[test]
@@ -751,7 +738,7 @@ fn init_note_allocates_real_max_len_space_not_in_memory_struct_size() {
 
 /// Real end-to-end proof that `init` handles a target account that already
 /// holds lamports (e.g. a PDA that received a plain SOL transfer before
-/// this instruction ran) — previously `create_account_signed` always used
+/// this instruction ran) â€” previously `create_account_signed` always used
 /// the raw `CreateAccount` System instruction, which requires a
 /// zero-lamport target and fails with `AccountAlreadyInUse` otherwise (see
 /// `naclac-macros/docs/derive-accounts-gaps-audit.md`'s gap #4). Pre-funds

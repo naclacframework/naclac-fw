@@ -21,7 +21,6 @@ pub struct SetTokenAccountOwner {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn set_token_account_owner(ctx: Context<SetTokenAccountOwner>) -> Result {
     let new_owner_address = ctx.accounts.new_owner.address();
 

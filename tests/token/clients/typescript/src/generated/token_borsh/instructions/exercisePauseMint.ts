@@ -8,9 +8,9 @@ export const EXERCISE_PAUSE_MINT_DISCRIMINATOR = new Uint8Array([111, 185, 188, 
 
 /** Accounts for the `exercisePauseMint` instruction. */
 export interface ExercisePauseMintAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -19,7 +19,6 @@ pub struct InitGrowable {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_growable(ctx: Context<InitGrowable>) -> Result {
     ctx.accounts.growable.bump = ctx.bumps.growable;
     ctx.accounts.growable.tag = 0;

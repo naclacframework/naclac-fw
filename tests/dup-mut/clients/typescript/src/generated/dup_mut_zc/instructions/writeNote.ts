@@ -15,7 +15,7 @@ export interface WriteNoteArgs {
 export interface WriteNoteAccounts {
   payer: naclac.Address | string;
   note?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

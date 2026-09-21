@@ -17,7 +17,7 @@ export interface CheckAddressRelationalAccounts {
    * SAFETY: only its own address is read, as the expected value; never
    * deserialized.
    */
-  expected_address: naclac.Address | string;
+  expectedAddress: naclac.Address | string;
 }
 
 /**

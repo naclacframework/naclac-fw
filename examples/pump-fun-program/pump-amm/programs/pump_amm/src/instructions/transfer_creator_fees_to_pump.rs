@@ -52,7 +52,6 @@ pub struct TransferCreatorFeesToPump {
 /// docstring: "If coin creator fees are currently below rent.minimum_balance
 /// (TokenAccount::LEN) the transfer will be skipped" — implemented below as an
 /// early no-op rather than an error.
-#[instruction]
 pub fn transfer_creator_fees_to_pump(
     ctx: Context<TransferCreatorFeesToPump>,
     coin_creator_vault_authority_bump: u8,

@@ -9,7 +9,7 @@ export const UPSERT_FEE_TIERS_DISCRIMINATOR = new Uint8Array([227, 23, 150, 12, 
 
 /** Instruction arguments for `upsertFeeTiers`. */
 export interface UpsertFeeTiersArgs {
-  fee_tiers: Array<types.FeeTier>;
+  feeTiers: Array<types.FeeTier>;
   offset: number;
 }
 
@@ -20,8 +20,8 @@ export interface UpsertFeeTiersAccounts {
    * SAFETY: only used as PDA seed material for `fee_config`; not
    * deserialized or invoked.
    */
-  config_program_id: naclac.Address | string;
-  fee_config?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  feeConfig?: naclac.Address | string;
 }
 
 /**

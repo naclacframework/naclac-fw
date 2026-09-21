@@ -212,7 +212,6 @@ pub enum CounterError {
     // --- instructions/initialize.rs ---
     let accounts_derive = "#[derive(Accounts)]";
     let account_type = "Account";
-    let instruction_attr = "#[instruction]";
 
     let initialize_rs = format!(
         r#"use naclac_lang::prelude::*;
@@ -235,7 +234,6 @@ pub struct Initialize {{
     pub system_program: Program<System>,
 }}
 
-{instruction_attr}
 pub fn initialize(ctx: Context<Initialize>) -> Result {{
     let counter = &mut ctx.accounts.counter_account;
 
@@ -247,8 +245,7 @@ pub fn initialize(ctx: Context<Initialize>) -> Result {{
 }}
 "#,
         accounts_derive = accounts_derive,
-        account_type = account_type,
-        instruction_attr = instruction_attr
+        account_type = account_type
     );
     write_file(
         &program_dir.join("src/instructions/initialize.rs"),
@@ -277,7 +274,6 @@ pub struct Increment {{
     pub counter_account: {account_type}<Counter>,
 }}
 
-{instruction_attr}
 pub fn increment(ctx: Context<Increment>) -> Result {{
     let counter_account = &mut ctx.accounts.counter_account;
 
@@ -292,8 +288,7 @@ pub fn increment(ctx: Context<Increment>) -> Result {{
 }}
 "#,
         accounts_derive = accounts_derive,
-        account_type = account_type,
-        instruction_attr = instruction_attr
+        account_type = account_type
     );
     write_file(
         &program_dir.join("src/instructions/increment.rs"),
@@ -364,6 +359,7 @@ describe("Naclac {type_name} Test Suite", () => {{
         type_name = type_name,
         snake_name = snake_name
     );
+    ensure_dir(&root_path.join("tests"));
     let test_path = root_path.join(format!("tests/{}.test.ts", snake_name));
     write_file(&test_path, &test_ts);
 }

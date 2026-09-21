@@ -19,7 +19,6 @@ pub struct UpsertStableFeeTiers {
 }
 
 /// Update or expand fee tiers (only callable by admin)
-#[instruction]
 pub fn upsert_stable_fee_tiers(
     ctx: Context<UpsertStableFeeTiers>,
     stable_fee_tiers: ZcVec<FeeTier>,

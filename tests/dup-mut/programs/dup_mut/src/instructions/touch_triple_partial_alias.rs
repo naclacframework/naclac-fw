@@ -34,7 +34,6 @@ pub struct TouchTriplePartialAlias {
     pub c: Account<Vault>,
 }
 
-#[instruction]
 pub fn touch_triple_partial_alias(ctx: Context<TouchTriplePartialAlias>) -> Result {
     ctx.accounts.a.balance += 1;
     ctx.accounts.b.balance += 1;

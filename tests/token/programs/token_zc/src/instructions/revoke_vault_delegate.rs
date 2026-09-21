@@ -16,7 +16,6 @@ pub struct RevokeVaultDelegate {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn revoke_vault_delegate(ctx: Context<RevokeVaultDelegate>) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

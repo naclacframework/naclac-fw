@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD",
+  "address": "rT4zemULLMgPUZq5fE6Gr6jTqsShFbwRbJcQSWG8gtY",
   "metadata": {
     "name": "pump",
     "version": "0.1.0",
@@ -548,7 +548,20 @@ export const IDL = {
         "gets `floor(available * share_bps / 10_000)`; the last gets the exact",
         "remainder, so the vault never retains dust above its rent-exempt floor.",
         "This rounding rule is a reasonable implementation choice, not verified",
-        "against the real bytecode's exact behavior for >1 shareholder."
+        "against the real bytecode's exact behavior for >1 shareholder.",
+        "",
+        "Requires `bonding_curve.creator == sharing_config`'s own address (real,",
+        "live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --",
+        "without it, `creator_vault` (derived from `bonding_curve.creator`) and the",
+        "payout list (`sharing_config.shareholders`, from whichever `sharing_config`",
+        "the caller passes) would have nothing tying them together, letting anyone",
+        "redirect any bonding curve's real accumulated fees to an unrelated",
+        "`sharing_config` they control. Also rejects any executable shareholder",
+        "recipient (real, live-confirmed check, `reference/fee-tier-probe/src/bin/probe73.rs`)",
+        "— an executable account can't receive lamports, so a stale shareholder",
+        "entry that's since become a program account must be removed via",
+        "`update_fee_shares(_v2)` first rather than silently failing the whole",
+        "distribution at the transfer step."
       ],
       "optionalAccountStrategy": "programId",
       "discriminator": [165,114,103,0,121,206,247,81],
@@ -627,7 +640,14 @@ export const IDL = {
         "`bonding-curve-01-overview.md`'s SOL-quote-only scope decision), and",
         "reverts `UnsupportedQuoteMint` for anything else. The WSOL path's",
         "distribution math and rounding rule are identical to `distribute_creator_fees`",
-        "(v1) — see that instruction's doc comment."
+        "(v1) — see that instruction's doc comment.",
+        "",
+        "Requires `bonding_curve.creator == sharing_config`'s own address (real,",
+        "live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --",
+        "see `distribute_creator_fees`'s own doc comment for why. Also rejects any",
+        "executable shareholder recipient (real, live-confirmed check,",
+        "`reference/fee-tier-probe/src/bin/probe73.rs`) — see that same doc",
+        "comment for why."
       ],
       "optionalAccountStrategy": "programId",
       "discriminator": [255,203,19,79,244,68,8,159],
@@ -715,6 +735,162 @@ export const IDL = {
         { "name": "creator_vault_bump", "type": "u8" },
         { "name": "initialize_ata", "type": { "defined": "Bool" } }
       ]
+    },
+    {
+      "name": "collect_creator_fee",
+      "docs": [
+        "Sweeps `creator_vault` down to its rent-exempt minimum, paying the full",
+        "swept amount to `creator` — the native-SOL sibling of",
+        "`distribute_creator_fees`'s own rent-exempt-floor sweep, just without a",
+        "shareholder split (100% to `creator`). Permissionless: anyone may crank",
+        "it, funds always land at the fixed `creator_vault` -> `creator` PDA pair."
+      ],
+      "optionalAccountStrategy": "programId",
+      "discriminator": [20,22,86,123,198,28,219,132],
+      "accounts": [
+        {
+          "name": "creator",
+          "docs": [
+            "SAFETY: only a native-lamport transfer destination and PDA seed",
+            "material for `creator_vault` below; never deserialized."
+          ],
+          "writable": true
+        },
+        {
+          "name": "creator_vault",
+          "docs": [
+            "SAFETY: the `seeds`/`bump` constraint already verifies its address;",
+            "it's a lamport-only PDA (no stored data) — only ever a lamport source",
+            "below via a signed System Program transfer, never deserialized."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [99,114,101,97,116,111,114,45,118,97,117,108,116], "name": "CREATOR_VAULT_SEED" },
+              { "kind": "account", "path": "creator" }
+            ]
+          }
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "creator_vault_bump", "type": "u8" }
+      ],
+      "returns": { "option": { "defined": "CollectCreatorFeeEvent" } }
+    },
+    {
+      "name": "collect_creator_fee_v2",
+      "docs": [
+        "Sweeps `creator_vault_token_account`'s full SPL-token balance to",
+        "`creator_token_account` — the SPL-token sibling of `collect_creator_fee`",
+        "(native SOL). Permissionless: anyone may crank it, funds always land at",
+        "the fixed `creator_vault_token_account` -> `creator_token_account` pair.",
+        "Unlike the native path there's no rent-exempt floor to preserve (an SPL",
+        "token account's rent is a fixed lamport reserve separate from its token",
+        "balance), so the entire token balance is swept."
+      ],
+      "optionalAccountStrategy": "programId",
+      "discriminator": [207,17,138,242,4,34,19,56],
+      "accounts": [
+        {
+          "name": "creator",
+          "docs": [
+            "SAFETY: only PDA seed material for `creator_vault`/`creator_token_account`",
+            "below; never deserialized."
+          ]
+        },
+        { "name": "creator_token_account", "writable": true },
+        {
+          "name": "creator_vault",
+          "docs": [
+            "SAFETY: the `seeds`/`bump` constraint already verifies its address;",
+            "it's a lamport-only PDA (no stored data) — only ever a CPI signer",
+            "below, never deserialized."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [99,114,101,97,116,111,114,45,118,97,117,108,116], "name": "CREATOR_VAULT_SEED" },
+              { "kind": "account", "path": "creator" }
+            ]
+          }
+        },
+        { "name": "creator_vault_token_account", "writable": true },
+        { "name": "quote_mint" },
+        { "name": "quote_token_program" },
+        { "name": "associated_token_program", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "args", "type": { "defined": "CollectCreatorFeeV2Args" } }
+      ],
+      "returns": { "option": { "defined": "CollectCreatorFeeEvent" } }
+    },
+    {
+      "name": "get_minimum_distributable_fee",
+      "docs": [
+        "Permissionless view instruction (confirmed via real IDL doc comment) that",
+        "reports whether `creator_vault` currently holds enough to be worth",
+        "cranking via `distribute_creator_fees(_v2)`. Real formula, empirically",
+        "confirmed against real deployed `pump.so` (`reference/fee-tier-probe/src/bin/probe71.rs`,",
+        "not inferred): `minimum_required` is a constant `2 *",
+        "CREATOR_VAULT_RENT_EXEMPT_MINIMUM`; `distributable_fees` is",
+        "`creator_vault`'s raw lamport balance down to the single rent-exempt",
+        "floor (matching `distribute_creator_fees`'s own calculation exactly);",
+        "`can_distribute` compares the *raw* `creator_vault` balance (not",
+        "`distributable_fees`) against `minimum_required`, inclusive (`>=`). Like",
+        "`pump_fees::get_fees`, this is a plain returned value, never `emit!`'d,",
+        "despite the real IDL naming the return type `*Event`."
+      ],
+      "optionalAccountStrategy": "programId",
+      "discriminator": [117,225,127,202,134,95,68,35],
+      "accounts": [
+        {
+          "name": "mint",
+          "docs": [
+            "SAFETY: only used as PDA seed material for `bonding_curve`/`sharing_config`",
+            "below, never read or invoked."
+          ]
+        },
+        {
+          "name": "bonding_curve",
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [98,111,110,100,105,110,103,45,99,117,114,118,101], "name": "BONDING_CURVE_SEED" },
+              { "kind": "account", "path": "mint" }
+            ]
+          }
+        },
+        {
+          "name": "sharing_config",
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [115,104,97,114,105,110,103,45,99,111,110,102,105,103], "name": "SHARING_CONFIG_SEED" },
+              { "kind": "account", "path": "mint" }
+            ],
+            "program": { "kind": "const", "value": [116,160,86,82,248,105,32,166,17,57,245,99,88,171,78,132,34,207,106,105,27,23,177,13,84,100,151,96,23,63,63,197], "name": "PUMP_FEES_PROGRAM_ID" }
+          }
+        },
+        {
+          "name": "creator_vault",
+          "docs": [
+            "SAFETY: the `seeds`/`bump` constraint already verifies its address;",
+            "it's a lamport-only PDA (no stored data), never deserialized — only",
+            "its raw lamport balance is read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [99,114,101,97,116,111,114,45,118,97,117,108,116], "name": "CREATOR_VAULT_SEED" },
+              { "kind": "account", "path": "bonding_curve.creator", "fieldType": "publicKey" }
+            ]
+          }
+        }
+      ],
+      "args": [
+        { "name": "bonding_curve_bump", "type": "u8" },
+        { "name": "creator_vault_bump", "type": "u8" }
+      ],
+      "returns": { "defined": "MinimumDistributableFeeEvent" }
     },
     {
       "name": "buy",
@@ -2222,6 +2398,195 @@ export const IDL = {
       "args": [
         { "name": "initial_virtual_quote_reserves", "type": "u64" }
       ]
+    },
+    {
+      "name": "init_user_volume_accumulator",
+      "docs": [
+        "Creates a brand-new, zeroed `UserVolumeAccumulator` PDA for `user`,",
+        "funded by `payer` -- permissionless, matching the real program's own",
+        "account list (no signer requirement on `user` at all)."
+      ],
+      "optionalAccountStrategy": "programId",
+      "discriminator": [94,6,202,115,255,96,232,183],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        {
+          "name": "user",
+          "docs": [
+            "SAFETY: only used as PDA seed material for `user_volume_accumulator`",
+            "below; never read or invoked."
+          ]
+        },
+        {
+          "name": "user_volume_accumulator", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [117,115,101,114,95,118,111,108,117,109,101,95,97,99,99,117,109,117,108,97,116,111,114], "name": "USER_VOLUME_ACCUMULATOR_SEED" },
+              { "kind": "account", "path": "user" }
+            ]
+          }
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "user_volume_accumulator_bump", "type": "u8" }
+      ]
+    },
+    {
+      "name": "close_user_volume_accumulator",
+      "docs": [
+        "Closes `user`'s own `UserVolumeAccumulator`, reclaiming its rent to",
+        "`user`. Unconditional -- no precondition on any pending reward field,",
+        "confirmed against the real deployed program."
+      ],
+      "optionalAccountStrategy": "programId",
+      "discriminator": [249,69,164,218,150,103,84,138],
+      "accounts": [
+        { "name": "user", "writable": true, "signer": true },
+        {
+          "name": "user_volume_accumulator", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [117,115,101,114,95,118,111,108,117,109,101,95,97,99,99,117,109,117,108,97,116,111,114], "name": "USER_VOLUME_ACCUMULATOR_SEED" },
+              { "kind": "account", "path": "user" }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_cashback",
+      "docs": [
+        "Sweeps `user_volume_accumulator`'s native-SOL cashback balance down to",
+        "its rent-exempt minimum, paying the swept amount to `user` -- confirmed",
+        "mechanism (`fees-07-donation-relay-progress.md`'s `probe16`): cashback",
+        "lives as real native lamports directly in `user_volume_accumulator`'s",
+        "own account balance (topped up by `buy`/`sell` on cashback-enabled",
+        "coins); `cashback_earned` is only a running-total tracker, not itself",
+        "spendable. `user_volume_accumulator` is owned by this program, so the",
+        "debit is a direct `sub_lamports` (no signed CPI needed, unlike",
+        "`creator_vault`'s System-owned sweep in `distribute_creator_fees`).",
+        "Permissionless, matching the real account list (no signer requirement",
+        "on `user`)."
+      ],
+      "optionalAccountStrategy": "programId",
+      "discriminator": [37,58,35,126,190,53,228,197],
+      "accounts": [
+        {
+          "name": "user",
+          "docs": [
+            "SAFETY: only a native-lamport transfer destination and PDA seed",
+            "material for `user_volume_accumulator` below; never deserialized."
+          ],
+          "writable": true
+        },
+        {
+          "name": "user_volume_accumulator", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [117,115,101,114,95,118,111,108,117,109,101,95,97,99,99,117,109,117,108,97,116,111,114], "name": "USER_VOLUME_ACCUMULATOR_SEED" },
+              { "kind": "account", "path": "user" }
+            ]
+          }
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [],
+      "returns": { "option": { "defined": "ClaimCashbackEvent" } }
+    },
+    {
+      "name": "claim_cashback_v2",
+      "docs": [
+        "Sweeps `associated_user_volume_accumulator`'s full SPL-token \"stable",
+        "cashback\" balance to `associated_quote_user` -- the SPL-token sibling of",
+        "`claim_cashback` (native SOL). No rent-exempt floor to preserve (an SPL",
+        "token account's rent is a fixed lamport reserve separate from its token",
+        "balance), so the entire balance is swept, matching",
+        "`collect_creator_fee_v2`'s identical shape. Permissionless (no signer",
+        "requirement on `user`)."
+      ],
+      "optionalAccountStrategy": "programId",
+      "discriminator": [122,243,204,65,94,116,29,55],
+      "accounts": [
+        {
+          "name": "user",
+          "docs": [
+            "SAFETY: only PDA seed material for `user_volume_accumulator`/",
+            "`associated_quote_user` below; never deserialized."
+          ],
+          "writable": true
+        },
+        {
+          "name": "user_volume_accumulator", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [117,115,101,114,95,118,111,108,117,109,101,95,97,99,99,117,109,117,108,97,116,111,114], "name": "USER_VOLUME_ACCUMULATOR_SEED" },
+              { "kind": "account", "path": "user" }
+            ]
+          }
+        },
+        { "name": "quote_mint" },
+        { "name": "quote_token_program" },
+        { "name": "associated_token_program", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" },
+        { "name": "associated_user_volume_accumulator", "writable": true },
+        { "name": "associated_quote_user", "writable": true },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "args", "type": { "defined": "ClaimCashbackV2Args" } }
+      ],
+      "returns": { "option": { "defined": "ClaimCashbackEvent" } }
+    },
+    {
+      "name": "claim_token_incentives",
+      "docs": [
+        "Sweeps `user_volume_accumulator`'s full `total_unclaimed_tokens` balance",
+        "out of the shared `global_incentive_token_account` pool into `user_ata`,",
+        "signed by `global_volume_accumulator`'s own literal-seed PDA authority",
+        "(same `bare bump` + `ctx.bumps.*` idiom already established for",
+        "`pump_fees_authority` elsewhere in this program). Mirrors",
+        "`collect_creator_fee_v2`'s full-balance-sweep shape (no partial claims)."
+      ],
+      "optionalAccountStrategy": "programId",
+      "discriminator": [16,4,71,28,204,1,40,27],
+      "accounts": [
+        {
+          "name": "user",
+          "docs": [
+            "SAFETY: only PDA seed material for `user_ata`/`user_volume_accumulator`",
+            "below; never deserialized."
+          ]
+        },
+        { "name": "user_ata", "writable": true },
+        {
+          "name": "global_volume_accumulator",
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [103,108,111,98,97,108,95,118,111,108,117,109,101,95,97,99,99,117,109,117,108,97,116,111,114], "name": "GLOBAL_VOLUME_ACCUMULATOR_SEED" }
+            ]
+          }
+        },
+        { "name": "global_incentive_token_account", "writable": true },
+        {
+          "name": "user_volume_accumulator", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [117,115,101,114,95,118,111,108,117,109,101,95,97,99,99,117,109,117,108,97,116,111,114], "name": "USER_VOLUME_ACCUMULATOR_SEED" },
+              { "kind": "account", "path": "user" }
+            ]
+          }
+        },
+        { "name": "mint" },
+        { "name": "token_program" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" },
+        { "name": "associated_token_program", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" },
+        { "name": "payer", "writable": true, "signer": true }
+      ],
+      "args": [
+        { "name": "args", "type": { "defined": "ClaimTokenIncentivesArgs" } }
+      ],
+      "returns": { "option": { "defined": "ClaimTokenIncentivesEvent" } }
     }
   ],
   "accounts": [
@@ -2546,6 +2911,60 @@ export const IDL = {
         { "name": "old_creator", "type": "publicKey", "index": false },
         { "name": "new_creator", "type": "publicKey", "index": false }
       ]
+    },
+    {
+      "name": "CollectCreatorFeeEvent",
+      "discriminator": [122,2,127,1,14,191,12,175],
+      "fields": [
+        { "name": "timestamp", "type": "i64", "index": false },
+        { "name": "creator", "type": "publicKey", "index": false },
+        { "name": "creator_fee", "type": "u64", "index": false },
+        { "name": "quote_mint", "type": "publicKey", "index": false }
+      ]
+    },
+    {
+      "name": "InitUserVolumeAccumulatorEvent",
+      "discriminator": [134,36,13,72,232,101,130,216],
+      "fields": [
+        { "name": "payer", "type": "publicKey", "index": false },
+        { "name": "user", "type": "publicKey", "index": false },
+        { "name": "timestamp", "type": "i64", "index": false }
+      ]
+    },
+    {
+      "name": "CloseUserVolumeAccumulatorEvent",
+      "discriminator": [146,159,189,172,146,88,56,244],
+      "fields": [
+        { "name": "user", "type": "publicKey", "index": false },
+        { "name": "timestamp", "type": "i64", "index": false },
+        { "name": "total_unclaimed_tokens", "type": "u64", "index": false },
+        { "name": "total_claimed_tokens", "type": "u64", "index": false },
+        { "name": "current_sol_volume", "type": "u64", "index": false },
+        { "name": "last_update_timestamp", "type": "i64", "index": false }
+      ]
+    },
+    {
+      "name": "ClaimCashbackEvent",
+      "discriminator": [226,214,246,33,7,242,147,229],
+      "fields": [
+        { "name": "user", "type": "publicKey", "index": false },
+        { "name": "amount", "type": "u64", "index": false },
+        { "name": "timestamp", "type": "i64", "index": false },
+        { "name": "total_claimed", "type": "u64", "index": false },
+        { "name": "total_cashback_earned", "type": "u64", "index": false }
+      ]
+    },
+    {
+      "name": "ClaimTokenIncentivesEvent",
+      "discriminator": [79,172,246,49,205,91,206,232],
+      "fields": [
+        { "name": "user", "type": "publicKey", "index": false },
+        { "name": "mint", "type": "publicKey", "index": false },
+        { "name": "amount", "type": "u64", "index": false },
+        { "name": "timestamp", "type": "i64", "index": false },
+        { "name": "total_claimed_tokens", "type": "u64", "index": false },
+        { "name": "current_sol_volume", "type": "u64", "index": false }
+      ]
     }
   ],
   "errors": [
@@ -2693,6 +3112,21 @@ export const IDL = {
       "code": 6028,
       "name": "WrongBuybackFeeRecipientsCount",
       "message": "buyback fee recipients require exactly 8 remaining accounts (or none)"
+    },
+    {
+      "code": 6029,
+      "name": "BondingCurveAndSharingConfigCreatorMismatch",
+      "message": "Bonding curve creator does not match sharing config"
+    },
+    {
+      "code": 6030,
+      "name": "UnableToDistributeCreatorVaultMigratedToSharingConfig",
+      "message": "creator_vault has been migrated to sharing config, use distribute_creator_fees(_v2) instead"
+    },
+    {
+      "code": 6031,
+      "name": "UnableToDistributeCreatorFeesToExecutableRecipient",
+      "message": "The recipient account is executable, so it cannot receive lamports; remove it from the team first"
     }
   ],
   "constants": [
@@ -2835,6 +3269,25 @@ export const IDL = {
   ],
   "definedTypes": [
     {
+      "name": "ClaimCashbackV2Args",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "associated_user_volume_accumulator_bump", "type": "u8" },
+          { "name": "associated_quote_user_bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "ClaimTokenIncentivesArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "global_incentive_token_account_bump", "type": "u8" }
+        ]
+      }
+    },
+    {
       "name": "BuyArgs",
       "type": {
         "kind": "struct",
@@ -2867,11 +3320,8 @@ export const IDL = {
           { "name": "associated_base_user_bump", "type": "u8" },
           { "name": "associated_quote_user_bump", "type": "u8" },
           { "name": "creator_vault_bump", "type": "u8" },
-          { "name": "associated_creator_vault_bump", "type": "u8" },
-          { "name": "associated_quote_fee_recipient_bump", "type": "u8" },
           { "name": "associated_quote_buyback_fee_recipient_bump", "type": "u8" },
           { "name": "user_volume_accumulator_bump", "type": "u8" },
-          { "name": "associated_user_volume_accumulator_bump", "type": "u8" },
           { "name": "fee_config_bump", "type": "u8" },
           { "name": "buyback_index", "type": "u8" },
           { "name": "buyback_vault_bump", "type": "u8" }
@@ -2909,11 +3359,8 @@ export const IDL = {
           { "name": "associated_base_user_bump", "type": "u8" },
           { "name": "associated_quote_user_bump", "type": "u8" },
           { "name": "creator_vault_bump", "type": "u8" },
-          { "name": "associated_creator_vault_bump", "type": "u8" },
-          { "name": "associated_quote_fee_recipient_bump", "type": "u8" },
           { "name": "associated_quote_buyback_fee_recipient_bump", "type": "u8" },
           { "name": "user_volume_accumulator_bump", "type": "u8" },
-          { "name": "associated_user_volume_accumulator_bump", "type": "u8" },
           { "name": "fee_config_bump", "type": "u8" },
           { "name": "buyback_index", "type": "u8" },
           { "name": "buyback_vault_bump", "type": "u8" }
@@ -2993,14 +3440,22 @@ export const IDL = {
           { "name": "associated_base_user_bump", "type": "u8" },
           { "name": "associated_quote_user_bump", "type": "u8" },
           { "name": "creator_vault_bump", "type": "u8" },
-          { "name": "associated_creator_vault_bump", "type": "u8" },
-          { "name": "associated_quote_fee_recipient_bump", "type": "u8" },
           { "name": "associated_quote_buyback_fee_recipient_bump", "type": "u8" },
           { "name": "user_volume_accumulator_bump", "type": "u8" },
-          { "name": "associated_user_volume_accumulator_bump", "type": "u8" },
           { "name": "fee_config_bump", "type": "u8" },
           { "name": "buyback_index", "type": "u8" },
           { "name": "buyback_vault_bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "CollectCreatorFeeV2Args",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "creator_vault_bump", "type": "u8" },
+          { "name": "creator_token_account_bump", "type": "u8" },
+          { "name": "creator_vault_token_account_bump", "type": "u8" }
         ]
       }
     },
@@ -3020,6 +3475,17 @@ export const IDL = {
           { "name": "creator_fee_basis_points", "type": "u64" },
           { "name": "set_creator_authority", "type": "publicKey" },
           { "name": "admin_set_creator_authority", "type": "publicKey" }
+        ]
+      }
+    },
+    {
+      "name": "MinimumDistributableFeeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "minimum_required", "type": "u64" },
+          { "name": "distributable_fees", "type": "u64" },
+          { "name": "can_distribute", "type": { "defined": "Bool" } }
         ]
       }
     },

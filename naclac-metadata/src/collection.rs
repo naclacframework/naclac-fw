@@ -4,17 +4,15 @@
 
 //! Read access to a Metaplex Core `Collection` account's base fields, and
 //! the `create_collection_v2` CPI that creates one. Mirrors `asset.rs`
-//! exactly — see that file's header for the full solana/pinocchio design
-//! rationale (real `mpl-core` crate vs. hand-rolled `no_std` walk, and the
-//! verified `mpl-core`-`Pubkey`-equals-naclac-`Address` type identity).
-//! `PluginHeaderV1` placement (immediately after the base struct's own
-//! encoding) is the same mechanism for `Collection` as for `Asset` —
-//! verified against the real crate's `hooked/collection.rs`, which uses the
-//! identical `PluginHeaderV1::from_bytes(&data[base_data.len()..])` pattern.
+//! exactly — see that file's header for why neither backend depends on the
+//! real `mpl-core` crate. `PluginHeaderV1` placement (immediately after the
+//! base struct's own encoding) is the same mechanism for `Collection` as
+//! for `Asset` — verified against the real crate's `hooked/collection.rs`,
+//! which uses the identical `PluginHeaderV1::from_bytes(&data[base_data.len()..])`
+//! pattern.
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 const KEY_COLLECTION_V1: u8 = 5;
 
 /// Backend-uniform read access to a Metaplex Core `Collection` account's
@@ -27,51 +25,64 @@ pub trait CollectionLike {
     fn current_size(&self) -> u32;
 }
 
-// ===========================================================================
-// solana backend — wraps the real `mpl-core` crate directly
-// ===========================================================================
-
-#[cfg(not(feature = "pinocchio"))]
-impl CollectionLike for ::mpl_core::accounts::BaseCollectionV1 {
-    fn update_authority(&self) -> Address {
-        self.update_authority
-    }
-    fn name(&self) -> &str {
-        &self.name
-    }
-    fn uri(&self) -> &str {
-        &self.uri
-    }
-    fn num_minted(&self) -> u32 {
-        self.num_minted
-    }
-    fn current_size(&self) -> u32 {
-        self.current_size
-    }
+/// Owned, backend-uniform snapshot of a `Collection` account's base
+/// (non-plugin) fields — what `fetch_collection` returns on both backends.
+/// See `asset.rs`'s `AssetData` doc comment for why this is owned rather
+/// than a borrowed `CollectionView<'_>`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CollectionData {
+    pub update_authority: Address,
+    pub name: crate::prelude::String,
+    pub uri: crate::prelude::String,
+    pub num_minted: u32,
+    pub current_size: u32,
 }
 
-/// Reads and fully deserializes a Metaplex Core `Collection` account. Fails
-/// if the account isn't owned by the Core program, or isn't a valid
-/// `CollectionV1`-keyed account.
+/// Reads and fully deserializes a Metaplex Core `Collection` account's base
+/// fields. Fails if the account isn't owned by the Core program, or isn't a
+/// valid `CollectionV1`-keyed account.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_collection(info: &AccountInfo) -> Result<::mpl_core::accounts::BaseCollectionV1> {
+pub fn fetch_collection(info: &AccountInfo) -> Result<CollectionData> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
     let solana_info = unsafe { info.to_lifetime() };
-    ::mpl_core::accounts::BaseCollectionV1::try_from(&solana_info)
-        .map_err(|_| NaclacError::DeserializationFailed.into())
+    let data = solana_info
+        .try_borrow_data()
+        .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
+    let view = CollectionView::from_bytes(&data)?;
+    Ok(CollectionData {
+        update_authority: view.update_authority(),
+        name: view.name().into(),
+        uri: view.uri().into(),
+        num_minted: view.num_minted(),
+        current_size: view.current_size(),
+    })
+}
+
+/// Reads and fully deserializes a Metaplex Core `Collection` account's base
+/// fields. Fails if the account isn't owned by the Core program, or isn't a
+/// valid `CollectionV1`-keyed account.
+#[cfg(feature = "pinocchio")]
+pub fn fetch_collection(info: &AccountInfo) -> Result<CollectionData> {
+    let view = CollectionView::try_from(info)?;
+    Ok(CollectionData {
+        update_authority: view.update_authority(),
+        name: view.name().into(),
+        uri: view.uri().into(),
+        num_minted: view.num_minted(),
+        current_size: view.current_size(),
+    })
 }
 
 // ===========================================================================
-// pinocchio backend — hand-rolled, no_std, no `mpl-core` dependency
+// CollectionView — hand-rolled byte walk, shared by both backends
 // ===========================================================================
 
 /// Zero-copy, sequential-offset view into a Metaplex Core `Collection`
 /// account's raw bytes. See this file's header, and `asset.rs`'s header,
 /// for why this is hand-rolled rather than backed by the real `mpl-core`
 /// crate.
-#[cfg(feature = "pinocchio")]
 #[derive(Clone, Copy)]
 pub struct CollectionView<'a> {
     data: &'a [u8],
@@ -87,8 +98,10 @@ pub struct CollectionView<'a> {
     base_encoding_end: usize,
 }
 
-#[cfg(feature = "pinocchio")]
 impl<'a> CollectionView<'a> {
+    /// `pinocchio`-only: see `AssetView::try_from`'s doc comment (`asset.rs`)
+    /// for why the `solana` backend must go through `from_bytes` directly.
+    #[cfg(feature = "pinocchio")]
     pub fn try_from(info: &'a AccountInfo) -> Result<Self> {
         if Owner::program_owner(info) != crate::ID {
             return Err(NaclacError::ConstraintOwner.into());
@@ -96,7 +109,7 @@ impl<'a> CollectionView<'a> {
         Self::from_bytes(info.data())
     }
 
-    fn from_bytes(data: &'a [u8]) -> Result<Self> {
+    pub(crate) fn from_bytes(data: &'a [u8]) -> Result<Self> {
         // key(1) + update_authority(32)
         if data.len() < 33 {
             return Err(NaclacError::AccountDataTooSmall.err(0));
@@ -112,10 +125,12 @@ impl<'a> CollectionView<'a> {
         let num_minted_offset = uri_offset + 4 + uri_len;
 
         // num_minted(4) + current_size(4)
-        if data.len() < num_minted_offset + 8 {
+        let base_encoding_end = num_minted_offset
+            .checked_add(8)
+            .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+        if data.len() < base_encoding_end {
             return Err(NaclacError::AccountDataTooSmall.err(0));
         }
-        let base_encoding_end = num_minted_offset + 8;
 
         Ok(Self {
             data,
@@ -144,7 +159,6 @@ impl<'a> CollectionView<'a> {
     }
 }
 
-#[cfg(feature = "pinocchio")]
 impl<'a> CollectionLike for CollectionView<'a> {
     fn update_authority(&self) -> Address {
         read_pubkey(self.data, 1)
@@ -186,19 +200,23 @@ impl<'a> CollectionLike for CollectionView<'a> {
     }
 }
 
-#[cfg(feature = "pinocchio")]
 fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
-    if data.len() < offset + 4 {
+    let prefix_end = offset
+        .checked_add(4)
+        .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+    if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-    if data.len() < offset + 4 + len {
+    let len = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let payload_end = prefix_end
+        .checked_add(len)
+        .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+    if data.len() < payload_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
     Ok(len)
 }
 
-#[cfg(feature = "pinocchio")]
 fn read_pubkey(data: &[u8], offset: usize) -> Address {
     let bytes: [u8; 32] = data[offset..offset + 32].try_into().unwrap();
     Address::new_from_array(bytes)
@@ -213,6 +231,14 @@ fn read_pubkey(data: &[u8], offset: usize) -> Address {
 /// is filled with the Core program's own address, matching what
 /// `mpl-core`'s real instruction builder does internally for the solana
 /// backend.
+/// Maximum `name`/`uri` byte length `create_collection_signed` accepts on
+/// `pinocchio` — same reasoning and cap as `asset::MAX_ASSET_NAME_LEN`/
+/// `asset::MAX_ASSET_URI_LEN`.
+#[cfg(feature = "pinocchio")]
+pub const MAX_COLLECTION_NAME_LEN: usize = 32;
+#[cfg(feature = "pinocchio")]
+pub const MAX_COLLECTION_URI_LEN: usize = 200;
+
 pub struct CreateCollectionAccounts<'a> {
     pub collection: CpiHandleMut<'a>,
     pub update_authority: Option<CpiHandle<'a>>,
@@ -231,18 +257,43 @@ pub fn create_collection_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::CreateCollectionV2 {
-            collection: accounts.collection.address(),
-            update_authority: accounts.update_authority.as_ref().map(|u| u.address()),
-            payer: accounts.payer.address(),
-            system_program: accounts.system_program.address(),
-        }
-        .instruction(::mpl_core::instructions::CreateCollectionV2InstructionArgs {
-            name: name.to_string(),
-            uri: uri.to_string(),
-            plugins: None,
-            external_plugin_adapters: None,
-        });
+        // CreateCollectionV2 wire format verified against the real
+        // `mpl-core` crate's own generated `instructions/create_collection_v2.rs`:
+        // discriminator(1) + `CreateCollectionV2InstructionArgs { name:
+        // String, uri: String, plugins: Option<Vec<..>>(1),
+        // external_plugin_adapters: Option<Vec<..>>(1) }` — same shape as
+        // `CreateV2` minus `data_state`. Always no initial plugins/adapters
+        // here — same as the `pinocchio` branch below, which encodes this
+        // identical layout by hand already.
+        let mut data = crate::prelude::Vec::with_capacity(1 + 4 + name.len() + 4 + uri.len() + 2);
+        data.push(21u8); // CreateCollectionV2 discriminator
+        data.extend_from_slice(&(name.len() as u32).to_le_bytes());
+        data.extend_from_slice(name.as_bytes());
+        data.extend_from_slice(&(uri.len() as u32).to_le_bytes());
+        data.extend_from_slice(uri.as_bytes());
+        data.push(0u8); // plugins: None
+        data.push(0u8); // external_plugin_adapters: None
+
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.collection.address(), true),
+            match &accounts.update_authority {
+                Some(u) => {
+                    solana_program::instruction::AccountMeta::new_readonly(u.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.system_program.address(),
+                false,
+            ),
+        ];
+
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data,
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.collection),
@@ -260,8 +311,12 @@ pub fn create_collection_signed(
     {
         let name_bytes = name.as_bytes();
         let uri_bytes = uri.as_bytes();
-        let mut data =
-            crate::prelude::Vec::with_capacity(1 + 4 + name_bytes.len() + 4 + uri_bytes.len() + 2);
+        if name_bytes.len() > MAX_COLLECTION_NAME_LEN || uri_bytes.len() > MAX_COLLECTION_URI_LEN {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let mut data = crate::fixed_buf::FixedBuf::<
+            { 1 + 4 + MAX_COLLECTION_NAME_LEN + 4 + MAX_COLLECTION_URI_LEN + 2 },
+        >::new();
         data.push(21u8); // CreateCollectionV2 discriminator
         data.extend_from_slice(&(name_bytes.len() as u32).to_le_bytes());
         data.extend_from_slice(name_bytes);
@@ -291,7 +346,7 @@ pub fn create_collection_signed(
         let instruction = ::pinocchio::instruction::InstructionView {
             program_id: program.info.view.address(),
             accounts: &ix_accounts,
-            data: &data,
+            data: data.as_slice(),
         };
         let handles = [
             collection_handle,
@@ -300,5 +355,22 @@ pub fn create_collection_signed(
             accounts.system_program,
         ];
         crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
+    }
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `CollectionView::from_bytes` never panics for any account
+    /// bytes — including through `read_borsh_string_len`'s (now-
+    /// `checked_end`-guarded) name/uri length prefixes and the
+    /// `num_minted_offset + 8` arithmetic, both part of this audit's
+    /// crate-wide overflow-panic fix (see docs/plan/kani-audit.md).
+    #[kani::proof]
+    #[kani::unwind(6)]
+    fn prove_collection_view_from_bytes_never_panics() {
+        let data: [u8; 48] = kani::any();
+        let _ = CollectionView::from_bytes(&data);
     }
 }

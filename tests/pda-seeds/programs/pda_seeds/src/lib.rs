@@ -1,7 +1,7 @@
 #![no_std]
 use naclac_lang::prelude::*;
 
-declare_id!("G2V85CrtmdvgCCTr1e38gSWhw4Leo5p9EYM89bFNrPAa");
+declare_id!("2tRXuaWn92zA5D4ftmsu693hXg3FXUVymLcqDkPrE27A");
 
 pub mod components;
 pub mod constants;
@@ -32,6 +32,10 @@ pub mod pda_seeds {
 
     pub fn init_child(ctx: Context<InitChild>, bump: u8) -> Result {
         init_child::init_child(ctx, bump)
+    }
+
+    pub fn init_child_safe(ctx: Context<InitChildSafe>) -> Result {
+        init_child_safe::init_child_safe(ctx)
     }
 
     pub fn init_tagged_child(ctx: Context<InitTaggedChild>, bump: u8) -> Result {

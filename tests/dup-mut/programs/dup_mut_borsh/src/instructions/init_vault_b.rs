@@ -17,7 +17,6 @@ pub struct InitVaultB {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_vault_b(ctx: Context<InitVaultB>) -> Result {
     let vault_b = &mut ctx.accounts.vault_b;
     vault_b.balance = 0;

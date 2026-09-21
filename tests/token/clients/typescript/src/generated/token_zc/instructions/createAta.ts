@@ -22,10 +22,10 @@ export interface CreateAtaAccounts {
    * this is a raw SPL `TokenAccount` layout created by a separate
    * program.
    */
-  associated_token: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  associatedToken: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
 }
 
 /**

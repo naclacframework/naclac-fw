@@ -15,9 +15,9 @@ export interface CrankDonationFeePdaArgs {
 /** Accounts for the `crankDonationFeePda` instruction. */
 export interface CrankDonationFeePdaAccounts {
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   /**
    * SAFETY: address pinned via `address = RENT_SYSVAR_ID`; passed to the
    * manual `sync_native_with_extra_accounts` call below, whose second
@@ -25,35 +25,35 @@ export interface CrankDonationFeePdaAccounts {
    * specifically requires to be the Rent sysvar.
    */
   rent?: naclac.Address | string;
-  fee_program_global?: naclac.Address | string;
+  feeProgramGlobal?: naclac.Address | string;
   /** SAFETY: only used as PDA seed material below; not deserialized. */
-  base_mint: naclac.Address | string;
+  baseMint: naclac.Address | string;
   /**
    * SAFETY: plain address material distinguishing donation campaigns;
    * not a signer, never deserialized.
    */
-  config_id: naclac.Address | string;
-  donation_fee_pda?: naclac.Address | string;
-  quote_mint?: naclac.Address | string;
-  donation_fee_pda_ata: naclac.Address | string;
-  donation_relay_program: naclac.Address | string;
+  configId: naclac.Address | string;
+  donationFeePda?: naclac.Address | string;
+  quoteMint?: naclac.Address | string;
+  donationFeePdaAta: naclac.Address | string;
+  donationRelayProgram: naclac.Address | string;
   /**
    * SAFETY: dead — real `donation_relay` bypasses its own mint-safety
    * check for WSOL unconditionally; kept for account-shape parity only.
    */
-  mint_whitelist: naclac.Address | string;
+  mintWhitelist: naclac.Address | string;
   /**
    * SAFETY: owned by `donation_relay_program`; only ever passed through
    * as a CPI handle below, never deserialized here.
    */
-  epoch_tracker?: naclac.Address | string;
+  epochTracker?: naclac.Address | string;
   /** SAFETY: same as `epoch_tracker` above. */
   debouncer?: naclac.Address | string;
   /**
    * SAFETY: `debouncer`'s own WSOL ATA; created idempotently by the
    * nested CPI itself, only passed through as a CPI handle here.
    */
-  debouncer_ata?: naclac.Address | string;
+  debouncerAta?: naclac.Address | string;
 }
 
 /**

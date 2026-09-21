@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("2pYvma2nEiPYHr3Ar6XzQkm3AxdKzNhhAi2VKLyrZ8hj");
+declare_id!("3buQWRXdp8UE62AN4jnTKyb7xUDQ62GkMpcRgMgxpEgA");
 
 #[cfg(feature = "offchain")]
 pub fn get_caller_authority_pda(
@@ -44,7 +44,7 @@ pub struct CpiCaller;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for CpiCaller {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([27, 10, 21, 192, 226, 80, 142, 131, 208, 157, 111, 229, 221, 36, 15, 160, 145, 76, 252, 29, 184, 2, 201, 129, 74, 198, 166, 61, 3, 156, 91, 6])
+        sdk_core_cpi::Address::new_from_array([38, 168, 96, 80, 0, 227, 131, 8, 2, 176, 143, 9, 33, 144, 64, 153, 229, 50, 149, 82, 173, 240, 220, 251, 206, 7, 190, 145, 34, 199, 195, 91])
     }
 }
 

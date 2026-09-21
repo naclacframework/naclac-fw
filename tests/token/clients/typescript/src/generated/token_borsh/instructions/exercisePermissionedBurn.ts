@@ -13,10 +13,10 @@ export interface ExercisePermissionedBurnArgs {
 
 /** Accounts for the `exercisePermissionedBurn` instruction. */
 export interface ExercisePermissionedBurnAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
   vault: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

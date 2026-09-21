@@ -10,38 +10,38 @@ export const POOL_DISCRIMINATOR = new Uint8Array([241, 154, 109, 4, 17, 177, 109
 /** Gets the encoder for {@link Pool} account data. */
 export function getPoolEncoder(): naclac.FixedSizeEncoder<Pool> {
   return naclac.getStructEncoder([
-    ["pool_bump", naclac.getU8Encoder()],
+    ["poolBump", naclac.getU8Encoder()],
     ["index", naclac.getU16Encoder()],
     ["creator", naclac.getAddressEncoder()],
-    ["base_mint", naclac.getAddressEncoder()],
-    ["quote_mint", naclac.getAddressEncoder()],
-    ["lp_mint", naclac.getAddressEncoder()],
-    ["pool_base_token_account", naclac.getAddressEncoder()],
-    ["pool_quote_token_account", naclac.getAddressEncoder()],
-    ["coin_creator", naclac.getAddressEncoder()],
-    ["lp_supply", naclac.getU64Encoder()],
-    ["is_mayhem_mode", naclac.getU8Encoder() /* TODO: complex type */],
-    ["is_cashback_coin", naclac.getU8Encoder() /* TODO: complex type */],
-    ["virtual_quote_reserves", naclac.getU8Encoder() /* TODO: complex type */],
+    ["baseMint", naclac.getAddressEncoder()],
+    ["quoteMint", naclac.getAddressEncoder()],
+    ["lpMint", naclac.getAddressEncoder()],
+    ["poolBaseTokenAccount", naclac.getAddressEncoder()],
+    ["poolQuoteTokenAccount", naclac.getAddressEncoder()],
+    ["coinCreator", naclac.getAddressEncoder()],
+    ["lpSupply", naclac.getU64Encoder()],
+    ["isMayhemMode", naclac.getU8Encoder() /* TODO: complex type */],
+    ["isCashbackCoin", naclac.getU8Encoder() /* TODO: complex type */],
+    ["virtualQuoteReserves", naclac.getU8Encoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeEncoder<Pool>;
 }
 
 /** Gets the decoder for {@link Pool} account data. */
 export function getPoolDecoder(): naclac.FixedSizeDecoder<Pool> {
   return naclac.getStructDecoder([
-    ["pool_bump", naclac.getU8Decoder()],
+    ["poolBump", naclac.getU8Decoder()],
     ["index", naclac.getU16Decoder()],
     ["creator", naclac.getAddressDecoder()],
-    ["base_mint", naclac.getAddressDecoder()],
-    ["quote_mint", naclac.getAddressDecoder()],
-    ["lp_mint", naclac.getAddressDecoder()],
-    ["pool_base_token_account", naclac.getAddressDecoder()],
-    ["pool_quote_token_account", naclac.getAddressDecoder()],
-    ["coin_creator", naclac.getAddressDecoder()],
-    ["lp_supply", naclac.getU64Decoder()],
-    ["is_mayhem_mode", naclac.getU8Decoder() /* TODO: complex type */],
-    ["is_cashback_coin", naclac.getU8Decoder() /* TODO: complex type */],
-    ["virtual_quote_reserves", naclac.getU8Decoder() /* TODO: complex type */],
+    ["baseMint", naclac.getAddressDecoder()],
+    ["quoteMint", naclac.getAddressDecoder()],
+    ["lpMint", naclac.getAddressDecoder()],
+    ["poolBaseTokenAccount", naclac.getAddressDecoder()],
+    ["poolQuoteTokenAccount", naclac.getAddressDecoder()],
+    ["coinCreator", naclac.getAddressDecoder()],
+    ["lpSupply", naclac.getU64Decoder()],
+    ["isMayhemMode", naclac.getU8Decoder() /* TODO: complex type */],
+    ["isCashbackCoin", naclac.getU8Decoder() /* TODO: complex type */],
+    ["virtualQuoteReserves", naclac.getU8Decoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeDecoder<Pool>;
 }
 

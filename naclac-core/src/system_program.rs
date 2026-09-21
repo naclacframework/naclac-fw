@@ -15,10 +15,14 @@
 //! before this instruction ran) — falling back to `CreateAccountAllowPrefund`
 //! (SIMD-0312) instead of failing with `AccountAlreadyInUse`, the way plain
 //! `CreateAccount` would. `create_account_unchecked`/
-//! `create_account_signed_unchecked` are the raw, no-prefund-awareness,
-//! no-borrow-check primitives for callers who know what they're doing and
-//! want to skip that overhead — exposed for manual use, but never what the
-//! `#[derive(Accounts)]` macro's own `init`/`init_if_needed` codegen calls.
+//! `create_account_signed_unchecked` are the raw, no-prefund-awareness
+//! primitives — on pinocchio, they also skip the runtime `is_borrowed()`
+//! aliasing check via `unsafe { invoke_signed_unchecked(...) }` — for
+//! callers who know what they're doing and want to skip that overhead.
+//! `#[derive(Accounts)]`'s `init`/`init_if_needed` codegen always calls the
+//! checked path; `init_unchecked` is the one exception, calling this
+//! unchecked path instead (and is rejected at compile time on an ATA field,
+//! which has no create-account call of its own to redirect).
 
 use crate::prelude::{ToCpiHandle, ToCpiHandleMut};
 
@@ -307,35 +311,36 @@ mod pinocchio_system {
     /// instead of duplicating this conversion in each one.
     macro_rules! pinocchio_signers_from_seeds {
         ($seeds:expr, $signers_var:ident) => {
-            let mut __signers: [::pinocchio::cpi::Signer; 4] = unsafe { core::mem::zeroed() };
-            let mut __seeds_buffer: [::pinocchio::cpi::Seed; 32] = unsafe { core::mem::zeroed() };
-            let mut __seed_ranges = [(0usize, 0usize); 4];
+            if $seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
+                return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
+            }
+            let mut __signers: [::pinocchio::cpi::Signer; crate::prelude::MAX_CPI_SIGNERS] =
+                unsafe { core::mem::zeroed() };
+            let mut __seeds_buffer: [::pinocchio::cpi::Seed;
+                crate::prelude::MAX_CPI_SEEDS_PER_SIGNER * crate::prelude::MAX_CPI_SIGNERS] =
+                unsafe { core::mem::zeroed() };
+            let mut __seed_ranges = [(0usize, 0usize); crate::prelude::MAX_CPI_SIGNERS];
 
             let mut __seed_idx = 0;
-            let mut __signer_idx = 0;
 
             for (i, seed_parts) in $seeds.iter().enumerate() {
-                if i >= __signers.len() {
-                    break;
+                if seed_parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
+                    return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
                 }
                 let start_seed = __seed_idx;
                 for part in seed_parts.iter() {
-                    if __seed_idx >= __seeds_buffer.len() {
-                        break;
-                    }
                     __seeds_buffer[__seed_idx] = ::pinocchio::cpi::Seed::from(*part);
                     __seed_idx += 1;
                 }
                 __seed_ranges[i] = (start_seed, __seed_idx);
-                __signer_idx += 1;
             }
 
-            for i in 0..__signer_idx {
+            for i in 0..$seeds.len() {
                 let (start, end) = __seed_ranges[i];
                 __signers[i] = ::pinocchio::cpi::Signer::from(&__seeds_buffer[start..end]);
             }
 
-            let $signers_var: &[::pinocchio::cpi::Signer] = &__signers[..__signer_idx];
+            let $signers_var: &[::pinocchio::cpi::Signer] = &__signers[..$seeds.len()];
         };
     }
 
@@ -507,8 +512,8 @@ mod pinocchio_system {
     /// (both already in scope in the generated code) rather than
     /// `CpiHandleMut`/raw seeds, avoiding a redundant round-trip through
     /// `CpiHandleMut` and `pinocchio_signers_from_seeds!` for state the
-    /// caller already has. Always the checked, prefund-aware path — the
-    /// macro must never generate the unchecked one.
+    /// caller already has. Always the checked, prefund-aware path — use
+    /// `create_account_unchecked_for_init` for `init_unchecked`.
     pub fn create_account_checked_for_init(
         from: &crate::prelude::AccountView,
         to: &crate::prelude::AccountView,
@@ -518,6 +523,25 @@ mod pinocchio_system {
         signer_seeds: &[::pinocchio::cpi::Signer],
     ) -> Result<()> {
         create_account_checked_raw(from, to, lamports, space, owner, signer_seeds)
+    }
+
+    /// Same already-built-view calling convention as
+    /// `create_account_checked_for_init`, but the unchecked path —
+    /// `naclac-macros`' `init_unchecked` codegen entry point. Skips both the
+    /// prefund-awareness branch and pinocchio's runtime `is_borrowed()`
+    /// aliasing check (see `create_account_unchecked_raw`'s own
+    /// `unsafe { invoke_signed_unchecked(...) }`) — safe to call only when
+    /// the caller has not retained a live borrow on `from`'s or `to`'s
+    /// account data across this call.
+    pub fn create_account_unchecked_for_init(
+        from: &crate::prelude::AccountView,
+        to: &crate::prelude::AccountView,
+        lamports: u64,
+        space: u64,
+        owner: &crate::prelude::Address,
+        signer_seeds: &[::pinocchio::cpi::Signer],
+    ) -> Result<()> {
+        create_account_unchecked_raw(from, to, lamports, space, owner, signer_seeds)
     }
 }
 
@@ -533,7 +557,8 @@ pub use solana_system::{
 #[cfg(feature = "pinocchio")]
 pub use pinocchio_system::{
     create_account, create_account_checked_for_init, create_account_signed,
-    create_account_signed_unchecked, create_account_unchecked, transfer, transfer_signed, ID,
+    create_account_signed_unchecked, create_account_unchecked, create_account_unchecked_for_init,
+    transfer, transfer_signed, ID,
 };
 
 #[derive(Debug)]

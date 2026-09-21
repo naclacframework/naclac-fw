@@ -25,7 +25,6 @@ pub struct CloseVaultAccount {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn close_vault_account(ctx: Context<CloseVaultAccount>) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
     let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

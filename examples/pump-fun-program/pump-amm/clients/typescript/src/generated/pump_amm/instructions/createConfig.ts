@@ -9,8 +9,8 @@ export const CREATE_CONFIG_DISCRIMINATOR = new Uint8Array([201, 207, 243, 114, 7
 /** Accounts for the `createConfig` instruction. */
 export interface CreateConfigAccounts {
   admin?: naclac.Address | string;
-  global_config?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  globalConfig?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

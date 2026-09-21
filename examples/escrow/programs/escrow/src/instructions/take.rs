@@ -39,7 +39,6 @@ pub struct Take {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn take(ctx: Context<Take>, seed: u64) -> Result {
     // Verify vault token account mint and owner
     require!(

@@ -8,24 +8,25 @@
 //! a separate plugin-registry walk starting at `AssetView::plugin_header_offset`,
 //! not through this file.
 //!
-//! The `solana` backend wraps the real `mpl-core` crate's own `BaseAssetV1`/
-//! `CreateV2` directly — `mpl-core`'s `Pubkey` and naclac's own `Address` are
-//! the exact same type (both resolve to the identical `solana-address` crate
-//! instance; confirmed empirically with a compile-time assignment check,
-//! since `cargo tree` alone reports the version as ambiguous). The
-//! `pinocchio` backend has no such crate to lean on — `mpl-core` requires
-//! `solana_program` and has no no_std/pinocchio-native sibling (verified: no
-//! `pinocchio-mpl-core`/`mpl-core-pinocchio` exists on crates.io) — so
-//! `AssetView` hand-walks the same real Borsh layout directly off the
-//! account's raw bytes. This is necessarily a sequential offset walk, not
-//! the fixed-stride `Span<T>`/`bytemuck::Pod` shape naclac-token's TLV
-//! extensions use, since `name`/`uri` are variable-length; per-field offsets
-//! are computed once in `AssetView::try_from` and cached, so later accessor
-//! calls are plain O(1) slot reads with no re-validation.
+//! Neither backend depends on the real `mpl-core` crate: its `Cargo.toml`
+//! declares `crate-type = ["cdylib", "lib"]` (both), which Solana's own docs
+//! (`solana.com/docs/programs/limitations`) document as precluding dead-code
+//! elimination for consumers — real, verified `cargo build-sbf` stack-frame
+//! overflow errors resulted (`docs/07-solana-backend-stack-overflow-fix.md`),
+//! not a hypothetical. `AssetView` hand-walks the real Borsh layout directly
+//! off the account's raw bytes on **both** backends instead — necessarily a
+//! sequential offset walk, not the fixed-stride `Span<T>`/`bytemuck::Pod`
+//! shape naclac-token's TLV extensions use, since `name`/`uri` are
+//! variable-length; per-field offsets are computed once in
+//! `AssetView::try_from`/`from_bytes` and cached, so later accessor calls
+//! are plain O(1) slot reads with no re-validation. CPI instruction bytes
+//! (`CreateV2`'s discriminator + Borsh-encoded args) are likewise hand-built
+//! on both backends, verified against the real `mpl-core` crate's own
+//! generated `instructions/create_v2.rs` (cloned locally for reference at
+//! `naclac-metadata/mpl-core/`, not a runtime dependency).
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 const KEY_ASSET_V1: u8 = 1;
 
 /// Backend-uniform view of an `Asset`'s `update_authority` field. The real
@@ -49,56 +50,65 @@ pub trait AssetLike {
     fn seq(&self) -> Option<u64>;
 }
 
-// ===========================================================================
-// solana backend — wraps the real `mpl-core` crate directly
-// ===========================================================================
-
-#[cfg(not(feature = "pinocchio"))]
-impl AssetLike for ::mpl_core::accounts::BaseAssetV1 {
-    fn owner(&self) -> Address {
-        self.owner
-    }
-    fn update_authority(&self) -> UpdateAuthorityKind {
-        match &self.update_authority {
-            ::mpl_core::types::UpdateAuthority::None => UpdateAuthorityKind::None,
-            ::mpl_core::types::UpdateAuthority::Address(a) => UpdateAuthorityKind::Address(*a),
-            ::mpl_core::types::UpdateAuthority::Collection(a) => {
-                UpdateAuthorityKind::Collection(*a)
-            }
-        }
-    }
-    fn name(&self) -> &str {
-        &self.name
-    }
-    fn uri(&self) -> &str {
-        &self.uri
-    }
-    fn seq(&self) -> Option<u64> {
-        self.seq
-    }
+/// Owned, backend-uniform snapshot of an `Asset` account's base (non-plugin)
+/// fields — what `fetch_asset` returns on both backends, built from
+/// `AssetView` either way (`solana`'s real `AccountInfo` only hands out
+/// `Ref`-guarded borrows via `try_borrow_data()`, so returning a borrowed
+/// `AssetView<'_>` isn't possible there without extending its lifetime past
+/// the guard; an owned snapshot sidesteps that entirely).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AssetData {
+    pub owner: Address,
+    pub update_authority: UpdateAuthorityKind,
+    pub name: crate::prelude::String,
+    pub uri: crate::prelude::String,
+    pub seq: Option<u64>,
 }
 
-/// Reads and fully deserializes a Metaplex Core `Asset` account. Fails if
-/// the account isn't owned by the Core program, or isn't a valid
-/// `AssetV1`-keyed account.
+/// Reads and fully deserializes a Metaplex Core `Asset` account's base
+/// fields. Fails if the account isn't owned by the Core program, or isn't a
+/// valid `AssetV1`-keyed account.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_asset(info: &AccountInfo) -> Result<::mpl_core::accounts::BaseAssetV1> {
+pub fn fetch_asset(info: &AccountInfo) -> Result<AssetData> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
     let solana_info = unsafe { info.to_lifetime() };
-    ::mpl_core::accounts::BaseAssetV1::try_from(&solana_info)
-        .map_err(|_| NaclacError::DeserializationFailed.into())
+    let data = solana_info
+        .try_borrow_data()
+        .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
+    let view = AssetView::from_bytes(&data)?;
+    Ok(AssetData {
+        owner: view.owner(),
+        update_authority: view.update_authority(),
+        name: view.name().into(),
+        uri: view.uri().into(),
+        seq: view.seq(),
+    })
+}
+
+/// Reads and fully deserializes a Metaplex Core `Asset` account's base
+/// fields. Fails if the account isn't owned by the Core program, or isn't a
+/// valid `AssetV1`-keyed account.
+#[cfg(feature = "pinocchio")]
+pub fn fetch_asset(info: &AccountInfo) -> Result<AssetData> {
+    let view = AssetView::try_from(info)?;
+    Ok(AssetData {
+        owner: view.owner(),
+        update_authority: view.update_authority(),
+        name: view.name().into(),
+        uri: view.uri().into(),
+        seq: view.seq(),
+    })
 }
 
 // ===========================================================================
-// pinocchio backend — hand-rolled, no_std, no `mpl-core` dependency
+// AssetView — hand-rolled byte walk, shared by both backends
 // ===========================================================================
 
 /// Zero-copy, sequential-offset view into a Metaplex Core `Asset` account's
 /// raw bytes. See this file's header for why this is hand-rolled rather
 /// than backed by the real `mpl-core` crate.
-#[cfg(feature = "pinocchio")]
 #[derive(Clone, Copy)]
 pub struct AssetView<'a> {
     data: &'a [u8],
@@ -121,8 +131,13 @@ pub struct AssetView<'a> {
     base_encoding_end: usize,
 }
 
-#[cfg(feature = "pinocchio")]
 impl<'a> AssetView<'a> {
+    /// `pinocchio`-only: `AccountInfo::data()` (a plain, un-guarded `&[u8]`)
+    /// only exists on that backend. On `solana`, callers must go through
+    /// `try_borrow_data()` themselves (a `Ref`-guarded borrow) and construct
+    /// via `from_bytes` directly instead — see e.g. `plugins/attributes.rs`'s
+    /// `fetch_asset_attributes`.
+    #[cfg(feature = "pinocchio")]
     pub fn try_from(info: &'a AccountInfo) -> Result<Self> {
         if Owner::program_owner(info) != crate::ID {
             return Err(NaclacError::ConstraintOwner.into());
@@ -130,7 +145,7 @@ impl<'a> AssetView<'a> {
         Self::from_bytes(info.data())
     }
 
-    fn from_bytes(data: &'a [u8]) -> Result<Self> {
+    pub(crate) fn from_bytes(data: &'a [u8]) -> Result<Self> {
         // key(1) + owner(32) + update_authority tag(1)
         if data.len() < 34 {
             return Err(NaclacError::AccountDataTooSmall.err(0));
@@ -166,10 +181,13 @@ impl<'a> AssetView<'a> {
         let base_encoding_end = match data[seq_tag_offset] {
             0 => seq_tag_offset + 1,
             1 => {
-                if data.len() < seq_tag_offset + 9 {
+                let end = seq_tag_offset
+                    .checked_add(9)
+                    .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+                if data.len() < end {
                     return Err(NaclacError::AccountDataTooSmall.err(0));
                 }
-                seq_tag_offset + 9
+                end
             }
             _ => return Err(NaclacError::InvalidInstructionData.err(0)),
         };
@@ -203,7 +221,6 @@ impl<'a> AssetView<'a> {
     }
 }
 
-#[cfg(feature = "pinocchio")]
 impl<'a> AssetLike for AssetView<'a> {
     fn owner(&self) -> Address {
         read_pubkey(self.data, 1)
@@ -256,19 +273,23 @@ impl<'a> AssetLike for AssetView<'a> {
 /// and validates the full string (prefix + payload) fits within `data`.
 /// Shared by every variable-length-string field this crate walks by hand
 /// (`Asset`/`Collection` `name`/`uri`, and later plugin payloads).
-#[cfg(feature = "pinocchio")]
 fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
-    if data.len() < offset + 4 {
+    let prefix_end = offset
+        .checked_add(4)
+        .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+    if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-    if data.len() < offset + 4 + len {
+    let len = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let payload_end = prefix_end
+        .checked_add(len)
+        .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
+    if data.len() < payload_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
     Ok(len)
 }
 
-#[cfg(feature = "pinocchio")]
 fn read_pubkey(data: &[u8], offset: usize) -> Address {
     let bytes: [u8; 32] = data[offset..offset + 32].try_into().unwrap();
     Address::new_from_array(bytes)
@@ -283,6 +304,15 @@ fn read_pubkey(data: &[u8], offset: usize) -> Address {
 /// Core program's own address (matching what `mpl-core`'s real instruction
 /// builder does internally for the solana backend), so both backends
 /// substitute `program`'s own handle into that slot rather than omitting it.
+/// Maximum `name`/`uri` byte length `create_asset_signed` accepts on
+/// `pinocchio` — no real protocol maximum exists (verified: `mpl-core`'s
+/// processor enforces none), so this is a fixed cap sized for a stack
+/// buffer rather than a heap `Vec`.
+#[cfg(feature = "pinocchio")]
+pub const MAX_ASSET_NAME_LEN: usize = 32;
+#[cfg(feature = "pinocchio")]
+pub const MAX_ASSET_URI_LEN: usize = 200;
+
 pub struct CreateAssetAccounts<'a> {
     pub asset: CpiHandleMut<'a>,
     pub collection: Option<CpiHandleMut<'a>>,
@@ -306,23 +336,66 @@ pub fn create_asset_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = ::mpl_core::instructions::CreateV2 {
-            asset: accounts.asset.address(),
-            collection: accounts.collection.as_ref().map(|c| c.address()),
-            authority: accounts.authority.as_ref().map(|a| a.address()),
-            payer: accounts.payer.address(),
-            owner: accounts.owner.as_ref().map(|o| o.address()),
-            update_authority: accounts.update_authority.as_ref().map(|u| u.address()),
-            system_program: accounts.system_program.address(),
-            log_wrapper: accounts.log_wrapper.as_ref().map(|l| l.address()),
-        }
-        .instruction(::mpl_core::instructions::CreateV2InstructionArgs {
-            data_state: ::mpl_core::types::DataState::AccountState,
-            name: name.to_string(),
-            uri: uri.to_string(),
-            plugins: None,
-            external_plugin_adapters: None,
-        });
+        // CreateV2 wire format verified against the real `mpl-core` crate's
+        // own generated `instructions/create_v2.rs`: discriminator(1) +
+        // `CreateV2InstructionArgs { data_state: DataState(1), name: String,
+        // uri: String, plugins: Option<Vec<..>>(1), external_plugin_adapters:
+        // Option<Vec<..>>(1) }`. Always `DataState::AccountState`(0) with no
+        // initial plugins/adapters here — same as the `pinocchio` branch
+        // below, which encodes this identical layout by hand already.
+        let mut data =
+            crate::prelude::Vec::with_capacity(2 + 4 + name.len() + 4 + uri.len() + 2);
+        data.push(20u8); // CreateV2 discriminator
+        data.push(0u8); // DataState::AccountState
+        data.extend_from_slice(&(name.len() as u32).to_le_bytes());
+        data.extend_from_slice(name.as_bytes());
+        data.extend_from_slice(&(uri.len() as u32).to_le_bytes());
+        data.extend_from_slice(uri.as_bytes());
+        data.push(0u8); // plugins: None
+        data.push(0u8); // external_plugin_adapters: None
+
+        let accounts_meta = vec![
+            solana_program::instruction::AccountMeta::new(accounts.asset.address(), true),
+            match &accounts.collection {
+                Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.authority {
+                Some(a) => {
+                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            match &accounts.owner {
+                Some(o) => {
+                    solana_program::instruction::AccountMeta::new_readonly(o.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            match &accounts.update_authority {
+                Some(u) => {
+                    solana_program::instruction::AccountMeta::new_readonly(u.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+            solana_program::instruction::AccountMeta::new_readonly(
+                accounts.system_program.address(),
+                false,
+            ),
+            match &accounts.log_wrapper {
+                Some(l) => {
+                    solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
+                }
+                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            },
+        ];
+
+        let ix = solana_program::instruction::Instruction {
+            program_id: crate::ID,
+            accounts: accounts_meta,
+            data,
+        };
 
         let cpi_accounts = [
             CpiHandle::from(accounts.asset),
@@ -347,8 +420,12 @@ pub fn create_asset_signed(
     {
         let name_bytes = name.as_bytes();
         let uri_bytes = uri.as_bytes();
-        let mut data =
-            crate::prelude::Vec::with_capacity(2 + 4 + name_bytes.len() + 4 + uri_bytes.len() + 2);
+        if name_bytes.len() > MAX_ASSET_NAME_LEN || uri_bytes.len() > MAX_ASSET_URI_LEN {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let mut data = crate::fixed_buf::FixedBuf::<
+            { 2 + 4 + MAX_ASSET_NAME_LEN + 4 + MAX_ASSET_URI_LEN + 2 },
+        >::new();
         data.push(20u8); // CreateV2 discriminator
         data.push(0u8); // DataState::AccountState
         data.extend_from_slice(&(name_bytes.len() as u32).to_le_bytes());
@@ -408,7 +485,7 @@ pub fn create_asset_signed(
         let instruction = ::pinocchio::instruction::InstructionView {
             program_id: program.info.view.address(),
             accounts: &ix_accounts,
-            data: &data,
+            data: data.as_slice(),
         };
         let handles = [
             asset_handle,
@@ -421,5 +498,22 @@ pub fn create_asset_signed(
             log_wrapper_handle,
         ];
         crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
+    }
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `AssetView::from_bytes` never panics for any account bytes —
+    /// including through `read_borsh_string_len`'s (now-`checked_end`-
+    /// guarded) name/uri length prefixes and the `seq_tag_offset + 9`
+    /// arithmetic, both part of this audit's crate-wide overflow-panic fix
+    /// (see docs/plan/kani-audit.md).
+    #[kani::proof]
+    #[kani::unwind(6)]
+    fn prove_asset_view_from_bytes_never_panics() {
+        let data: [u8; 48] = kani::any();
+        let _ = AssetView::from_bytes(&data);
     }
 }

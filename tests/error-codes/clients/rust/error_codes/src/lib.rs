@@ -19,7 +19,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("EiSye4Pp5SNNDE8Hc9y51MqdNuCVHPduYK4GprP8uqyR");
+declare_id!("AUejAUt7m2v3QFitS8f6v7y9FqAnNtFAP4q1s7tgEVmV");
 
 #[cfg(feature = "cpi")]
 #[derive(Clone, Copy)]
@@ -28,7 +28,7 @@ pub struct ErrorCodes;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for ErrorCodes {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([203, 198, 29, 110, 250, 186, 14, 232, 144, 109, 197, 174, 22, 248, 70, 110, 80, 24, 20, 133, 185, 11, 247, 18, 194, 62, 60, 125, 153, 110, 199, 152])
+        sdk_core_cpi::Address::new_from_array([140, 206, 133, 174, 21, 242, 140, 27, 255, 11, 204, 126, 160, 130, 75, 118, 117, 63, 39, 36, 122, 212, 131, 51, 70, 73, 225, 12, 86, 164, 56, 220])
     }
 }
 

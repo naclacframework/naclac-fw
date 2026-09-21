@@ -10,7 +10,7 @@ export const INIT_REGISTRY_DISCRIMINATOR = new Uint8Array([131, 22, 4, 103, 24, 
 export interface InitRegistryAccounts {
   payer: naclac.Address | string;
   registry?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

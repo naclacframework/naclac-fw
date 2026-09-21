@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use single_file_layout_client::{
     fetch_counter, get_counter_pda,
     instructions::{
@@ -8,19 +8,8 @@ use single_file_layout_client::{
     types::PROGRAM_ID,
 };
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // single-file-layout workspace root
-    so_path.push("target/deploy/single_file_layout.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load single_file_layout program binary");
-}
-
 /// Proves `naclac-syn`'s source discovery (a plain recursive walk of every
-/// `.rs` file under `src/` — see `naclac-syn/src/lib.rs`'s
+/// `.rs` file under `src/` â€” see `naclac-syn/src/lib.rs`'s
 /// `parse_workspace_program`) doesn't require the `components/`/
 /// `instructions/` folder split every other test/example uses: the
 /// `#[component]`, both `#[derive(Accounts)]` structs, and both
@@ -32,8 +21,7 @@ fn load_program(provider: &NaclacProvider) {
 #[test]
 fn single_file_program_generates_a_working_sdk() {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
 
     let (counter_pda, _bump) = get_counter_pda(&PROGRAM_ID);
 

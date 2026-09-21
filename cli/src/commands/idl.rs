@@ -220,8 +220,34 @@ pub fn execute_upload(program_id_str: &str) {
         }
     };
 
+    // Parse naclac's own IDL shape and convert it to the real Anchor IDL
+    // shape (naclac_idl::converter) before uploading — see
+    // docs/plan/anchor-idl-conversion-and-enum-pod-audit.md for how every
+    // field-level rule here was verified against real, non-naclac Anchor
+    // IDLs. `target/idl/<name>.json` itself is untouched by this — the
+    // conversion only ever exists in memory, right before compression.
+    let idl: naclac_idl::Idl = match serde_json::from_str(&idl_content) {
+        Ok(idl) => idl,
+        Err(e) => {
+            ui::error_line(format!(
+                "Failed to parse {} as a naclac IDL: {}",
+                idl_path.display(),
+                e
+            ));
+            return;
+        }
+    };
+    let anchor_idl = naclac_idl::converter::to_anchor_idl(&idl);
+    let anchor_idl_json = match serde_json::to_string(&anchor_idl) {
+        Ok(json) => json,
+        Err(e) => {
+            ui::error_line(format!("Failed to serialize converted Anchor IDL: {}", e));
+            return;
+        }
+    };
+
     let mut encoder = ZlibEncoder::new(Vec::new(), ZlibCompression::default());
-    encoder.write_all(idl_content.as_bytes()).unwrap();
+    encoder.write_all(anchor_idl_json.as_bytes()).unwrap();
     let compressed = encoder.finish().unwrap();
 
     let seed = program_metadata::seed_from_str("idl");
@@ -236,7 +262,7 @@ pub fn execute_upload(program_id_str: &str) {
 
     let client = RpcClient::new(config.rpc_url.clone());
 
-    let already_exists = client.get_account(&metadata_pda).is_ok();
+    let already_exists = is_initialized_metadata(&client, &metadata_pda);
 
     if already_exists {
         update_existing(
@@ -256,6 +282,71 @@ pub fn execute_upload(program_id_str: &str) {
             program_data: &program_data,
         };
         create_new(&client, &payer, accounts, &seed, &compressed);
+    }
+}
+
+/// True only if `address` already holds a finalized `Metadata` account
+/// owned by the Program Metadata Program — never true for an address that
+/// merely has *some* account at it (e.g. rent-exemption-funded by a prior
+/// `upload` that was interrupted before `initialize`/`set_data` finished:
+/// that leaves a System-Program-owned, empty-data account, which
+/// `RpcClient::get_account` still returns `Ok` for). Callers use this to
+/// decide between the create and update paths; treating "exists at all" as
+/// "already uploaded" routes an interrupted upload's retry into `set_data`,
+/// which requires an already-initialized header and fails immediately.
+fn is_initialized_metadata(client: &RpcClient, address: &Address) -> bool {
+    let Ok(account) = client.get_account(address) else {
+        return false;
+    };
+    account.owner == program_metadata::PROGRAM_METADATA_ID
+        && matches!(
+            header::parse_header(&account.data).map(|h| h.discriminator),
+            Some(header::AccountDiscriminator::Metadata)
+        )
+}
+
+/// Clears `target` for a fresh `allocate` when it's a leftover `Buffer`
+/// account from an upload interrupted after `allocate`/`write` but before
+/// `close` — `allocate` only succeeds on an address that's brand new or
+/// already `Empty`, so without this every retry hits the same
+/// already-initialized leftover forever. No-op (returns `true`) if `target`
+/// doesn't exist yet or isn't owned by the Program Metadata Program. Refuses
+/// (returns `false` without closing) if `target` is unexpectedly a
+/// finalized `Metadata` account rather than a `Buffer` — closing that would
+/// destroy real uploaded data, so this only ever reclaims `Buffer` state.
+fn reclaim_stray_buffer(
+    client: &RpcClient,
+    payer: &Keypair,
+    target: &Address,
+    program_id: &Address,
+    program_data: &Address,
+    authority: &Address,
+) -> bool {
+    let Ok(account) = client.get_account(target) else {
+        return true;
+    };
+    if account.owner != program_metadata::PROGRAM_METADATA_ID {
+        return true;
+    }
+    match header::parse_header(&account.data).map(|h| h.discriminator) {
+        Some(header::AccountDiscriminator::Buffer) => {
+            let close_ix =
+                program_metadata::close(target, authority, program_id, program_data, authority);
+            send(
+                client,
+                payer,
+                close_ix,
+                "Close (reclaim leftover buffer from interrupted upload)",
+            )
+        }
+        Some(header::AccountDiscriminator::Metadata) => {
+            ui::error_line(format!(
+                "{} is unexpectedly a finalized metadata account where a buffer was expected — aborting to avoid data loss.",
+                target
+            ));
+            false
+        }
+        Some(header::AccountDiscriminator::Empty) | None => true,
     }
 }
 
@@ -367,6 +458,16 @@ fn create_new(
     // (avoids needing per-chunk top-ups as `write` grows it), allocate it
     // as a buffer, write it in chunks, then finalize with an empty-data
     // initialize.
+    if !reclaim_stray_buffer(
+        client,
+        payer,
+        accounts.metadata,
+        accounts.program,
+        accounts.program_data,
+        accounts.authority,
+    ) {
+        return;
+    }
     if !ensure_rent_exempt(client, payer, accounts.metadata, final_size) {
         return;
     }
@@ -452,6 +553,9 @@ fn update_existing(
     let (buffer_pda, _bump) =
         program_metadata::derive_canonical_metadata_pda(program_id, &buffer_seed);
 
+    if !reclaim_stray_buffer(client, payer, &buffer_pda, program_id, program_data, authority) {
+        return;
+    }
     if !ensure_rent_exempt(client, payer, &buffer_pda, final_size) {
         return;
     }

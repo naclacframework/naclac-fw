@@ -6,9 +6,9 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-optional_accounts = "9dXpwCYcH4duDXVSjHvaEgvSjt7Em59PGkmhD1QZJHtq"
-optional_accounts_borsh = "8BqTEfKKWonQmvi4Vzo3x2CLtbodzH9EFi2sm2ytfjJ6"
-optional_accounts_zc = "6Gh2cGPQ1qr85uQjMS8iK3UAtchEBV1yWdsUnbqeWn5Z"
+optional_accounts = "F7pYTDUWNek3GUAwuSuKcvEkXhRtFegwBuzWMdrQGU7E"
+optional_accounts_borsh = "13AwmpZtsjATXdwGx7wLkH9bU5sw9sL9KBqizRTau1Yd"
+optional_accounts_zc = "FCQ4CPLttWgHoJdSqAyC48MDbkxZV5fCoe6nMXANKKQr"
 
 [provider]
 cluster = "localnet"

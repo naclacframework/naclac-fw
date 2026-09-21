@@ -8,7 +8,7 @@ export const SET_VIRTUAL_QUOTE_RESERVES_DISCRIMINATOR = new Uint8Array([101, 135
 
 /** Instruction arguments for `setVirtualQuoteReserves`. */
 export interface SetVirtualQuoteReservesArgs {
-  initial_virtual_quote_reserves: bigint | number;
+  initialVirtualQuoteReserves: bigint | number;
 }
 
 /** Accounts for the `setVirtualQuoteReserves` instruction. */

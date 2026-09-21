@@ -7,19 +7,11 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
 pub struct CheckScaledUiAmountConfigIxArgs {
     pub expected_authority: Option<crate::sdk_core_offchain::Address>,
     pub expected_multiplier_bits: u64,
 }
-
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CheckScaledUiAmountConfigIxArgs {}
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CheckScaledUiAmountConfigIxArgs {}
 
 #[cfg(feature = "cpi")]
 #[cfg(feature = "borsh")]
@@ -27,19 +19,11 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
 pub struct CheckScaledUiAmountConfigCpiIxArgs {
     pub expected_authority: Option<crate::sdk_core_cpi::Address>,
     pub expected_multiplier_bits: u64,
 }
-
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CheckScaledUiAmountConfigCpiIxArgs {}
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CheckScaledUiAmountConfigCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
 pub struct CheckScaledUiAmountConfigAccounts {
@@ -61,7 +45,17 @@ pub fn build_check_scaled_ui_amount_config<'a>(
     };
     #[cfg(not(feature = "borsh"))]
     {
-        ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(&args));
+        match &args.expected_authority {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_offchain::Address>()]);
+            }
+        }
+        ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(&args.expected_multiplier_bits));
     }
     #[cfg(feature = "borsh")]
     {
@@ -140,7 +134,17 @@ impl<'info> CheckScaledUiAmountConfigCpi<'info> for crate::sdk_core_cpi::Program
         ix_data.extend_from_slice(&[202, 110, 5, 227, 53, 32, 96, 126]);
         #[cfg(not(feature = "borsh"))]
         {
-        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args));
+        match &args.expected_authority {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_cpi::Address>()]);
+            }
+        }
+        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args.expected_multiplier_bits));
         }
         #[cfg(feature = "borsh")]
         {

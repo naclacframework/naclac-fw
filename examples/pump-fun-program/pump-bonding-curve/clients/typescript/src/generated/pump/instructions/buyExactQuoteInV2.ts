@@ -15,69 +15,69 @@ export interface BuyExactQuoteInV2Args {
 /** Accounts for the `buyExactQuoteInV2` instruction. */
 export interface BuyExactQuoteInV2Accounts {
   global?: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
-  base_token_program: naclac.Address | string;
-  quote_token_program: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  baseTokenProgram: naclac.Address | string;
+  quoteTokenProgram: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   /**
    * SAFETY: validated in the handler body against
    * `{global.fee_recipient} ∪ {global.fee_recipients}` (pool membership,
    * not a single fixed address — no declarative constraint supports OR);
    * never deserialized, only a lamport/ATA-transfer destination below.
    */
-  fee_recipient: naclac.Address | string;
-  associated_quote_fee_recipient: naclac.Address | string;
+  feeRecipient: naclac.Address | string;
+  associatedQuoteFeeRecipient: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`owner` constraints fully validate this as a real
    * `pump_fees::BuybackVault` PDA; `buyback_index` is caller-supplied —
    * every index 0..8 is an equally valid, protocol-owned vault, so that
    * constraint alone is the whole security boundary, never deserialized.
    */
-  buyback_fee_recipient?: naclac.Address | string;
+  buybackFeeRecipient?: naclac.Address | string;
   /**
    * SAFETY: real `pump.so` does not auto-create this ATA (confirmed via
    * probe) — must already exist.
    */
-  associated_quote_buyback_fee_recipient: naclac.Address | string;
-  bonding_curve?: naclac.Address | string;
-  associated_base_bonding_curve: naclac.Address | string;
-  associated_quote_bonding_curve: naclac.Address | string;
+  associatedQuoteBuybackFeeRecipient: naclac.Address | string;
+  bondingCurve?: naclac.Address | string;
+  associatedBaseBondingCurve: naclac.Address | string;
+  associatedQuoteBondingCurve: naclac.Address | string;
   user: naclac.Address | string;
   /**
    * SAFETY: must already exist — caller is expected to have created it
    * beforehand, same as classic `buy`.
    */
-  associated_base_user: naclac.Address | string;
+  associatedBaseUser: naclac.Address | string;
   /**
    * SAFETY: must already exist — caller is expected to have created it
    * beforehand. For a SOL-paired coin this is still a real WSOL ATA per
    * the account list shape, but the actual value transfer uses native
    * lamports instead (see `buy_v2.rs`'s same treatment).
    */
-  associated_quote_user: naclac.Address | string;
+  associatedQuoteUser: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump` constraint already verifies its address;
    * it's a lamport-only PDA (no stored data), never `init`'d so still
    * System-owned — receives a native-SOL rent-exempt top-up regardless of
    * quote mint (confirmed via probe), never deserialized.
    */
-  creator_vault?: naclac.Address | string;
-  associated_creator_vault: naclac.Address | string;
+  creatorVault?: naclac.Address | string;
+  associatedCreatorVault: naclac.Address | string;
   /**
    * SAFETY: confirmed via probe (`buy_v2`/`sell_v2`) — not read/required
    * for a coin that hasn't opted into fee-sharing; pure account-shape
    * parity, same category as `bonding_curve_v2` elsewhere in this program.
    */
-  sharing_config: naclac.Address | string;
+  sharingConfig: naclac.Address | string;
   /**
    * SAFETY: real `buy_exact_quote_in_v2` never writes this account (same
    * as classic `buy`/`buy_v2`/`buy_exact_sol_in`) — must already exist,
    * never `init_if_needed` here.
    */
-  global_volume_accumulator?: naclac.Address | string;
-  user_volume_accumulator?: naclac.Address | string;
-  associated_user_volume_accumulator: naclac.Address | string;
+  globalVolumeAccumulator?: naclac.Address | string;
+  userVolumeAccumulator?: naclac.Address | string;
+  associatedUserVolumeAccumulator: naclac.Address | string;
   /**
    * SAFETY: self-reference, unused beyond seed material for `fee_config`
    * below — naclac's `emit!` needs no `event_authority`/self-CPI account,
@@ -89,15 +89,15 @@ export interface BuyExactQuoteInV2Accounts {
    * passed as a CPI account to `pump_fees::get_fees` below, never
    * deserialized here.
    */
-  fee_config?: naclac.Address | string;
-  fee_program: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  feeConfig?: naclac.Address | string;
+  feeProgram: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * SAFETY: the `seeds`/`bump` constraint already verifies its address;
    * it's a lamport-only PDA (no stored data) — only ever used as the
    * signed-CPI proof-of-origin for `pump_fees::get_fees` below.
    */
-  pump_authority?: naclac.Address | string;
+  pumpAuthority?: naclac.Address | string;
 }
 
 /**

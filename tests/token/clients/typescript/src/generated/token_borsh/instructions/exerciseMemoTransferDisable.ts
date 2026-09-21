@@ -10,7 +10,7 @@ export const EXERCISE_MEMO_TRANSFER_DISABLE_DISCRIMINATOR = new Uint8Array([249,
 export interface ExerciseMemoTransferDisableAccounts {
   vault: naclac.Address | string;
   owner: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

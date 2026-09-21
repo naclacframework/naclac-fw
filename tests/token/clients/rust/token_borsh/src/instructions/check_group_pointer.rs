@@ -7,19 +7,11 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
 pub struct CheckGroupPointerIxArgs {
     pub expected_authority: Option<crate::sdk_core_offchain::Address>,
     pub expected_group_address: Option<crate::sdk_core_offchain::Address>,
 }
-
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CheckGroupPointerIxArgs {}
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CheckGroupPointerIxArgs {}
 
 #[cfg(feature = "cpi")]
 #[cfg(feature = "borsh")]
@@ -27,19 +19,11 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
 pub struct CheckGroupPointerCpiIxArgs {
     pub expected_authority: Option<crate::sdk_core_cpi::Address>,
     pub expected_group_address: Option<crate::sdk_core_cpi::Address>,
 }
-
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CheckGroupPointerCpiIxArgs {}
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CheckGroupPointerCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
 pub struct CheckGroupPointerAccounts {
@@ -61,7 +45,26 @@ pub fn build_check_group_pointer<'a>(
     };
     #[cfg(not(feature = "borsh"))]
     {
-        ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(&args));
+        match &args.expected_authority {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_offchain::Address>()]);
+            }
+        }
+        match &args.expected_group_address {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_offchain::Address>()]);
+            }
+        }
     }
     #[cfg(feature = "borsh")]
     {
@@ -140,7 +143,26 @@ impl<'info> CheckGroupPointerCpi<'info> for crate::sdk_core_cpi::Program<crate::
         ix_data.extend_from_slice(&[254, 151, 35, 152, 242, 0, 4, 180]);
         #[cfg(not(feature = "borsh"))]
         {
-        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args));
+        match &args.expected_authority {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_cpi::Address>()]);
+            }
+        }
+        match &args.expected_group_address {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_cpi::Address>()]);
+            }
+        }
         }
         #[cfg(feature = "borsh")]
         {

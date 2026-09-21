@@ -9,8 +9,8 @@ export const INIT_VAULT_C_DISCRIMINATOR = new Uint8Array([121, 83, 62, 0, 42, 66
 /** Accounts for the `initVaultC` instruction. */
 export interface InitVaultCAccounts {
   payer: naclac.Address | string;
-  vault_c?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  vaultC?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

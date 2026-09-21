@@ -13,7 +13,6 @@
 
 use crate::prelude::*;
 
-#[cfg(feature = "pinocchio")]
 use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// One `key`/`value` entry — backend-neutral, owned (borrowed from the
@@ -33,22 +32,20 @@ pub fn attach_attributes_signed(
     attributes: &[(&str, &str)],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
+    let mut data = crate::prelude::Vec::new();
+    data.push(2u8); // AddPluginV1 discriminator
+    data.push(plugin_type::ATTRIBUTES);
+    encode_attributes_payload(&mut data, attributes);
+    data.push(0u8); // init_authority: None
+
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin = ::mpl_core::types::Plugin::Attributes(build_attributes(attributes));
-        add_asset_plugin_signed(program, accounts, plugin, signer_seeds)
+        add_asset_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let payload = encode_attributes_payload(attributes);
-        add_asset_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::ATTRIBUTES,
-            &payload,
-            signer_seeds,
-        )
+        add_asset_plugin_signed_pinocchio(program, accounts, &data, signer_seeds)
     }
 }
 
@@ -59,41 +56,24 @@ pub fn attach_collection_attributes_signed(
     attributes: &[(&str, &str)],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
+    let mut data = crate::prelude::Vec::new();
+    data.push(3u8); // AddCollectionPluginV1 discriminator
+    data.push(plugin_type::ATTRIBUTES);
+    encode_attributes_payload(&mut data, attributes);
+    data.push(0u8); // init_authority: None
+
     #[cfg(not(feature = "pinocchio"))]
     {
-        let plugin = ::mpl_core::types::Plugin::Attributes(build_attributes(attributes));
-        add_collection_plugin_signed(program, accounts, plugin, signer_seeds)
+        add_collection_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let payload = encode_attributes_payload(attributes);
-        add_collection_plugin_signed_pinocchio(
-            program,
-            accounts,
-            plugin_type::ATTRIBUTES,
-            &payload,
-            signer_seeds,
-        )
+        add_collection_plugin_signed_pinocchio(program, accounts, &data, signer_seeds)
     }
 }
 
-#[cfg(not(feature = "pinocchio"))]
-fn build_attributes(attributes: &[(&str, &str)]) -> ::mpl_core::types::Attributes {
-    ::mpl_core::types::Attributes {
-        attribute_list: attributes
-            .iter()
-            .map(|(k, v)| ::mpl_core::types::Attribute {
-                key: k.to_string(),
-                value: v.to_string(),
-            })
-            .collect(),
-    }
-}
-
-#[cfg(feature = "pinocchio")]
-fn encode_attributes_payload(attributes: &[(&str, &str)]) -> crate::prelude::Vec<u8> {
-    let mut data = crate::prelude::Vec::new();
+fn encode_attributes_payload(data: &mut crate::prelude::Vec<u8>, attributes: &[(&str, &str)]) {
     data.extend_from_slice(&(attributes.len() as u32).to_le_bytes());
     for (key, value) in attributes {
         data.extend_from_slice(&(key.len() as u32).to_le_bytes());
@@ -101,7 +81,6 @@ fn encode_attributes_payload(attributes: &[(&str, &str)]) -> crate::prelude::Vec
         data.extend_from_slice(&(value.len() as u32).to_le_bytes());
         data.extend_from_slice(value.as_bytes());
     }
-    data
 }
 
 /// Reads an `Asset`'s `Attributes` plugin, if attached. Callable identically
@@ -117,18 +96,11 @@ pub fn fetch_asset_attributes(
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let asset = ::mpl_core::Asset::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(asset.plugin_list.attributes.map(|p| {
-        p.attributes
-            .attribute_list
-            .into_iter()
-            .map(|a| AttributeEntry {
-                key: a.key,
-                value: a.value,
-            })
-            .collect()
-    }))
+    let asset_view = crate::asset::AssetView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    read_attributes(&data, plugin_header_offset)
 }
 
 /// Reads an `Asset`'s `Attributes` plugin, if attached. Callable identically
@@ -157,18 +129,11 @@ pub fn fetch_collection_attributes(
     let data = solana_info
         .try_borrow_data()
         .map_err(|_| NaclacError::AccountBorrowFailed.err(0))?;
-    let collection = ::mpl_core::Collection::deserialize(&data)
-        .map_err(|_| NaclacError::DeserializationFailed.err(0))?;
-    Ok(collection.plugin_list.attributes.map(|p| {
-        p.attributes
-            .attribute_list
-            .into_iter()
-            .map(|a| AttributeEntry {
-                key: a.key,
-                value: a.value,
-            })
-            .collect()
-    }))
+    let collection_view = crate::collection::CollectionView::from_bytes(&data)?;
+    let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
+        return Ok(None);
+    };
+    read_attributes(&data, plugin_header_offset)
 }
 
 /// Reads a `Collection`'s `Attributes` plugin, if attached. Callable
@@ -184,10 +149,9 @@ pub fn fetch_collection_attributes(
     read_attributes(info.data(), plugin_header_offset)
 }
 
-/// Lower-level variant of `fetch_asset_attributes`, `pinocchio`-only: see
-/// `edition.rs`'s `read_edition` for why this exists alongside the
+/// Lower-level variant of `fetch_asset_attributes`, shared by both backends:
+/// see `edition.rs`'s `read_edition` for why this exists alongside the
 /// uniform-signature wrapper above.
-#[cfg(feature = "pinocchio")]
 pub fn read_attributes(
     data: &[u8],
     plugin_header_offset: usize,
@@ -198,13 +162,14 @@ pub fn read_attributes(
     };
     let offset = offset as usize;
 
-    if data.len() < offset + 4 {
+    let count_end = checked_end(offset, 4)?;
+    if data.len() < count_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap());
+    let count = u32::from_le_bytes(data[offset..count_end].try_into().unwrap());
 
     let mut entries = crate::prelude::Vec::with_capacity(count as usize);
-    let mut cursor = offset + 4;
+    let mut cursor = count_end;
     for _ in 0..count {
         let key_len = read_borsh_string_len(data, cursor)?;
         let key_start = cursor + 4;
@@ -231,14 +196,32 @@ pub fn read_attributes(
     Ok(Some(entries))
 }
 
-#[cfg(feature = "pinocchio")]
 fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
-    if data.len() < offset + 4 {
+    let prefix_end = checked_end(offset, 4)?;
+    if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-    if data.len() < offset + 4 + len {
+    let len = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let payload_end = checked_end(prefix_end, len)?;
+    if data.len() < payload_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
     Ok(len)
+}
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `read_attributes` never panics end-to-end, including through
+    /// `find_plugin_offset` and the now-`checked_end`-guarded entry point —
+    /// same class of overflow this crate's audit found repeated across ~15
+    /// files (see docs/plan/kani-audit.md).
+    #[kani::proof]
+    #[kani::unwind(10)]
+    fn prove_read_attributes_never_panics() {
+        let data: [u8; 32] = kani::any();
+        let plugin_header_offset: usize = kani::any();
+        let _ = read_attributes(&data, plugin_header_offset);
+    }
 }

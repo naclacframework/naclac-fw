@@ -32,6 +32,9 @@ export const ProgramErrors = {
   6026: { code: 6026, name: "CashbackNotEnabled", message: "Cashback is not enabled" },
   6027: { code: 6027, name: "MayhemModeDisabled", message: "Mayhem mode is not enabled by the admin" },
   6028: { code: 6028, name: "WrongBuybackFeeRecipientsCount", message: "buyback fee recipients require exactly 8 remaining accounts (or none)" },
+  6029: { code: 6029, name: "BondingCurveAndSharingConfigCreatorMismatch", message: "Bonding curve creator does not match sharing config" },
+  6030: { code: 6030, name: "UnableToDistributeCreatorVaultMigratedToSharingConfig", message: "creator_vault has been migrated to sharing config, use distribute_creator_fees(_v2) instead" },
+  6031: { code: 6031, name: "UnableToDistributeCreatorFeesToExecutableRecipient", message: "The recipient account is executable, so it cannot receive lamports; remove it from the team first" },
 } as const;
 
 export type ProgramErrorCode = keyof typeof ProgramErrors;

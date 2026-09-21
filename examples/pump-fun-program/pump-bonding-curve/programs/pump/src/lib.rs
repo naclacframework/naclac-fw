@@ -1,7 +1,7 @@
 #![no_std]
 use naclac_lang::prelude::*;
 
-declare_id!("FoN4cWC8wuVYK3Dd2ge1WVTLpPUvj4CcWXZsq4wmadwD");
+declare_id!("rT4zemULLMgPUZq5fE6Gr6jTqsShFbwRbJcQSWG8gtY");
 
 pub mod components;
 pub mod instructions;
@@ -10,6 +10,8 @@ pub mod errors;
 pub mod constants;
 pub mod systems;
 
+use components::MinimumDistributableFeeEvent;
+use events::{ClaimCashbackEvent, ClaimTokenIncentivesEvent, CollectCreatorFeeEvent};
 use instructions::*;
 
 #[program]
@@ -133,6 +135,28 @@ pub mod pump {
         )
     }
 
+    pub fn collect_creator_fee(
+        ctx: Context<CollectCreatorFee>,
+        creator_vault_bump: u8,
+    ) -> Result<Option<CollectCreatorFeeEvent>> {
+        collect_creator_fee::collect_creator_fee(ctx, creator_vault_bump)
+    }
+
+    pub fn collect_creator_fee_v2(
+        ctx: Context<CollectCreatorFeeV2>,
+        args: CollectCreatorFeeV2Args,
+    ) -> Result<Option<CollectCreatorFeeEvent>> {
+        collect_creator_fee_v2::collect_creator_fee_v2(ctx, args)
+    }
+
+    pub fn get_minimum_distributable_fee(
+        ctx: Context<GetMinimumDistributableFee>,
+        bonding_curve_bump: u8,
+        creator_vault_bump: u8,
+    ) -> Result<MinimumDistributableFeeEvent> {
+        get_minimum_distributable_fee::get_minimum_distributable_fee(ctx, bonding_curve_bump, creator_vault_bump)
+    }
+
     pub fn buy(ctx: Context<Buy>, args: BuyArgs) -> Result {
         buy::buy(ctx, args)
     }
@@ -182,5 +206,28 @@ pub mod pump {
         initial_virtual_quote_reserves: u64,
     ) -> Result {
         set_virtual_quote_reserves::set_virtual_quote_reserves(ctx, initial_virtual_quote_reserves)
+    }
+
+    pub fn init_user_volume_accumulator(
+        ctx: Context<InitUserVolumeAccumulator>,
+        user_volume_accumulator_bump: u8,
+    ) -> Result {
+        init_user_volume_accumulator::init_user_volume_accumulator(ctx, user_volume_accumulator_bump)
+    }
+
+    pub fn close_user_volume_accumulator(ctx: Context<CloseUserVolumeAccumulator>) -> Result {
+        close_user_volume_accumulator::close_user_volume_accumulator(ctx)
+    }
+
+    pub fn claim_cashback(ctx: Context<ClaimCashback>) -> Result<Option<ClaimCashbackEvent>> {
+        claim_cashback::claim_cashback(ctx)
+    }
+
+    pub fn claim_cashback_v2(ctx: Context<ClaimCashbackV2>, args: ClaimCashbackV2Args) -> Result<Option<ClaimCashbackEvent>> {
+        claim_cashback_v2::claim_cashback_v2(ctx, args)
+    }
+
+    pub fn claim_token_incentives(ctx: Context<ClaimTokenIncentives>, args: ClaimTokenIncentivesArgs) -> Result<Option<ClaimTokenIncentivesEvent>> {
+        claim_token_incentives::claim_token_incentives(ctx, args)
     }
 }

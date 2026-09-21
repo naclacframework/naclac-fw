@@ -30,7 +30,7 @@ export class PdaSeedsClient {
   }
 
   constructor(
-    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet",
+    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet" | "litesvm",
     payer?: naclac.KeyPairSigner
   ) {
     let provider: naclac.NaclacProvider;
@@ -40,7 +40,7 @@ export class PdaSeedsClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider);
+    this.program = new naclac.Program(IDL, provider, true);
   }
 
   /**
@@ -84,6 +84,14 @@ export class PdaSeedsClient {
   }
 
   /**
+   * Builds the `initChildSafe` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public initChildSafe(args?: Record<string, never>, accounts?: Partial<instructions.InitChildSafeAccounts>) {
+    return instructions.initChildSafe(this.program, args ?? {}, accounts);
+  }
+
+  /**
    * Builds the `initTaggedChild` instruction pipeline.
    * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
    */
@@ -117,26 +125,39 @@ export class PdaSeedsClient {
 
   /** Derives the PDA for a `child` account. */
   public async getChildPda(seeds: {
-    registry_bump: number;
+    registryBump: number;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([99, 104, 105, 108, 100]),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.registry_bump))
+        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.registryBump))
+      ]
+    });
+  }
+
+  /** Derives the PDA for a `child_safe` account. */
+  public async getChildSafePda(seeds: {
+    registryBump: number;
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([99, 104, 105, 108, 100, 95, 115, 97, 102, 101]),
+        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u8"')).encode(seeds.registryBump))
       ]
     });
   }
 
   /** Derives the PDA for a `config_entry` account. */
   public async getConfigEntryPda(seeds: {
-    config_program_id: naclac.Address | string;
+    configProgramId: naclac.Address | string;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([99, 111, 110, 102, 105, 103, 95, 101, 110, 116, 114, 121]),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.config_program_id === 'string' ? naclac.address(seeds.config_program_id) : seeds.config_program_id))
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.configProgramId === 'string' ? naclac.address(seeds.configProgramId) : seeds.configProgramId))
       ]
     });
   }

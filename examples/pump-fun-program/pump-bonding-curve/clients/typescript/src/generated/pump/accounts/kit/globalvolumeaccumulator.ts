@@ -10,26 +10,26 @@ export const GLOBALVOLUMEACCUMULATOR_DISCRIMINATOR = new Uint8Array([202, 42, 24
 /** Gets the encoder for {@link GlobalVolumeAccumulator} account data. */
 export function getGlobalVolumeAccumulatorEncoder(): naclac.FixedSizeEncoder<GlobalVolumeAccumulator> {
   return naclac.getStructEncoder([
-    ["start_time", naclac.getI64Encoder()],
-    ["end_time", naclac.getI64Encoder()],
-    ["seconds_in_a_day", naclac.getI64Encoder()],
+    ["startTime", naclac.getI64Encoder()],
+    ["endTime", naclac.getI64Encoder()],
+    ["secondsInADay", naclac.getI64Encoder()],
     ["mint", naclac.getAddressEncoder()],
-    ["total_token_supply", naclac.getU8Encoder() /* TODO: complex type */],
-    ["sol_volumes", naclac.getU8Encoder() /* TODO: complex type */],
-    ["reserved_trailing", naclac.getU8Encoder() /* TODO: complex type */],
+    ["totalTokenSupply", naclac.getU8Encoder() /* TODO: complex type */],
+    ["solVolumes", naclac.getU8Encoder() /* TODO: complex type */],
+    ["reservedTrailing", naclac.getU8Encoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeEncoder<GlobalVolumeAccumulator>;
 }
 
 /** Gets the decoder for {@link GlobalVolumeAccumulator} account data. */
 export function getGlobalVolumeAccumulatorDecoder(): naclac.FixedSizeDecoder<GlobalVolumeAccumulator> {
   return naclac.getStructDecoder([
-    ["start_time", naclac.getI64Decoder()],
-    ["end_time", naclac.getI64Decoder()],
-    ["seconds_in_a_day", naclac.getI64Decoder()],
+    ["startTime", naclac.getI64Decoder()],
+    ["endTime", naclac.getI64Decoder()],
+    ["secondsInADay", naclac.getI64Decoder()],
     ["mint", naclac.getAddressDecoder()],
-    ["total_token_supply", naclac.getU8Decoder() /* TODO: complex type */],
-    ["sol_volumes", naclac.getU8Decoder() /* TODO: complex type */],
-    ["reserved_trailing", naclac.getU8Decoder() /* TODO: complex type */],
+    ["totalTokenSupply", naclac.getU8Decoder() /* TODO: complex type */],
+    ["solVolumes", naclac.getU8Decoder() /* TODO: complex type */],
+    ["reservedTrailing", naclac.getU8Decoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeDecoder<GlobalVolumeAccumulator>;
 }
 

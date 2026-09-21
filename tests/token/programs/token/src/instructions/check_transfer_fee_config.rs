@@ -22,7 +22,6 @@ pub struct CheckTransferFeeConfig {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_transfer_fee_config(
     ctx: Context<CheckTransferFeeConfig>,
     args: CheckTransferFeeConfigArgs,

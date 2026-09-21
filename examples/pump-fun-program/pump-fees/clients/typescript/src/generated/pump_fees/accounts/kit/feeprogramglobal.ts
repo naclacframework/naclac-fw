@@ -10,11 +10,11 @@ export const FEEPROGRAMGLOBAL_DISCRIMINATOR = new Uint8Array([162, 165, 245, 49,
 /** Gets the encoder for {@link FeeProgramGlobal} account data. */
 export function getFeeProgramGlobalEncoder(): naclac.FixedSizeEncoder<FeeProgramGlobal> {
   return naclac.getStructEncoder([
-    ["claim_rate_limit", naclac.getU64Encoder()],
+    ["claimRateLimit", naclac.getU64Encoder()],
     ["authority", naclac.getAddressEncoder()],
-    ["social_claim_authority", naclac.getAddressEncoder()],
+    ["socialClaimAuthority", naclac.getAddressEncoder()],
     ["bump", naclac.getU8Encoder()],
-    ["disable_flags", naclac.getU8Encoder()],
+    ["disableFlags", naclac.getU8Encoder()],
     ["reserved", naclac.getU8Encoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeEncoder<FeeProgramGlobal>;
 }
@@ -22,11 +22,11 @@ export function getFeeProgramGlobalEncoder(): naclac.FixedSizeEncoder<FeeProgram
 /** Gets the decoder for {@link FeeProgramGlobal} account data. */
 export function getFeeProgramGlobalDecoder(): naclac.FixedSizeDecoder<FeeProgramGlobal> {
   return naclac.getStructDecoder([
-    ["claim_rate_limit", naclac.getU64Decoder()],
+    ["claimRateLimit", naclac.getU64Decoder()],
     ["authority", naclac.getAddressDecoder()],
-    ["social_claim_authority", naclac.getAddressDecoder()],
+    ["socialClaimAuthority", naclac.getAddressDecoder()],
     ["bump", naclac.getU8Decoder()],
-    ["disable_flags", naclac.getU8Decoder()],
+    ["disableFlags", naclac.getU8Decoder()],
     ["reserved", naclac.getU8Decoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeDecoder<FeeProgramGlobal>;
 }

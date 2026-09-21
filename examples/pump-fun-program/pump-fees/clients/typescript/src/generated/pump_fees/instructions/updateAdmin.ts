@@ -13,13 +13,13 @@ export interface UpdateAdminAccounts {
    * SAFETY: only used as PDA seed material for `fee_config`; not
    * deserialized or invoked.
    */
-  config_program_id: naclac.Address | string;
-  fee_config?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  feeConfig?: naclac.Address | string;
   /**
    * SAFETY: new admin is passed as an account (not instruction data);
    * its pubkey is only stored, never deserialized or invoked.
    */
-  new_admin: naclac.Address | string;
+  newAdmin: naclac.Address | string;
 }
 
 /**

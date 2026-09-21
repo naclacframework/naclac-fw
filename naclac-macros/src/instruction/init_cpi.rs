@@ -320,6 +320,16 @@ pub fn generate_init_cpi(
                 }
             }
         };
+        let create_call_solana = if field.is_init_unchecked {
+            quote! { naclac_lang::prelude::system_program::create_account_signed_unchecked }
+        } else {
+            quote! { naclac_lang::prelude::system_program::create_account_signed }
+        };
+        let create_call_pinocchio = if field.is_init_unchecked {
+            quote! { naclac_lang::prelude::system_program::create_account_unchecked_for_init }
+        } else {
+            quote! { naclac_lang::prelude::system_program::create_account_checked_for_init }
+        };
         return quote! {
             #existence_check
             if info.data_is_empty() {
@@ -348,7 +358,7 @@ pub fn generate_init_cpi(
                     let rent = naclac_lang::solana_program::rent::Rent::get()?;
                     let lamports = rent.minimum_balance(82_usize);
 
-                    naclac_lang::prelude::system_program::create_account_signed(
+                    #create_call_solana(
                         naclac_lang::prelude::CpiHandleMut { info: __payer_info.clone(), _phantom: core::marker::PhantomData },
                         naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
                         naclac_lang::prelude::CpiHandle { info: __tok_prog_info.clone(), _phantom: core::marker::PhantomData },
@@ -360,10 +370,8 @@ pub fn generate_init_cpi(
                 }
                 #[cfg(feature = "pinocchio")]
                 {
-                    const __STORAGE_OVERHEAD: u64 = 128;
-                    const __LAMPORTS_PER_BYTE: u64 = 6960;
-                    let __lamports = (__STORAGE_OVERHEAD + 82u64).wrapping_mul(__LAMPORTS_PER_BYTE);
-                    naclac_lang::prelude::system_program::create_account_checked_for_init(
+                    let __lamports = naclac_lang::prelude::const_rent_lamports(82);
+                    #create_call_pinocchio(
                         &__payer_info.view,
                         &info.view,
                         __lamports,
@@ -415,6 +423,16 @@ pub fn generate_init_cpi(
                 }
             }
         };
+        let create_call_solana = if field.is_init_unchecked {
+            quote! { naclac_lang::prelude::system_program::create_account_signed_unchecked }
+        } else {
+            quote! { naclac_lang::prelude::system_program::create_account_signed }
+        };
+        let create_call_pinocchio = if field.is_init_unchecked {
+            quote! { naclac_lang::prelude::system_program::create_account_unchecked_for_init }
+        } else {
+            quote! { naclac_lang::prelude::system_program::create_account_checked_for_init }
+        };
         return quote! {
             #existence_check
             if info.data_is_empty() {
@@ -442,7 +460,7 @@ pub fn generate_init_cpi(
                     let rent = naclac_lang::solana_program::rent::Rent::get()?;
                     let lamports = rent.minimum_balance(165_usize);
 
-                    naclac_lang::prelude::system_program::create_account_signed(
+                    #create_call_solana(
                         naclac_lang::prelude::CpiHandleMut { info: __payer_info.clone(), _phantom: core::marker::PhantomData },
                         naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
                         naclac_lang::prelude::CpiHandle { info: __tok_prog_info.clone(), _phantom: core::marker::PhantomData },
@@ -454,10 +472,8 @@ pub fn generate_init_cpi(
                 }
                 #[cfg(feature = "pinocchio")]
                 {
-                    const __STORAGE_OVERHEAD: u64 = 128;
-                    const __LAMPORTS_PER_BYTE: u64 = 6960;
-                    let __lamports = (__STORAGE_OVERHEAD + 165u64).wrapping_mul(__LAMPORTS_PER_BYTE);
-                    naclac_lang::prelude::system_program::create_account_checked_for_init(
+                    let __lamports = naclac_lang::prelude::const_rent_lamports(165);
+                    #create_call_pinocchio(
                         &__payer_info.view,
                         &info.view,
                         __lamports,
@@ -620,6 +636,22 @@ pub fn generate_init_cpi(
             quote! {}
         };
 
+        if let Some(bump_expr) = &field.associated_token_bump {
+            return syn::Error::new_spanned(
+                bump_expr,
+                format!(
+                    "Naclac Error: `associated_token::bump` on field `{}` is never read here -- \
+                     `init`/`init_if_needed` associated-token accounts are verified by the real \
+                     Associated Token Program's own CPI (it re-derives and checks the canonical \
+                     address internally on every call), so naclac never reads this value for \
+                     them. Remove the `associated_token::bump = ...` line; it only matters on an \
+                     existing (non-init) associated_token field.",
+                    field.ident
+                ),
+            )
+            .to_compile_error();
+        }
+
         return quote! {
             #existence_check
 
@@ -685,6 +717,16 @@ pub fn generate_init_cpi(
             }
         }
     };
+    let create_call_solana = if field.is_init_unchecked {
+        quote! { naclac_lang::prelude::system_program::create_account_signed_unchecked }
+    } else {
+        quote! { naclac_lang::prelude::system_program::create_account_signed }
+    };
+    let create_call_pinocchio = if field.is_init_unchecked {
+        quote! { naclac_lang::prelude::system_program::create_account_unchecked_for_init }
+    } else {
+        quote! { naclac_lang::prelude::system_program::create_account_checked_for_init }
+    };
 
     quote! {
         let __needs_init = if info.data_is_empty() {
@@ -712,8 +754,13 @@ pub fn generate_init_cpi(
         if __needs_init {
             #[cfg(not(feature = "pinocchio"))]
             {
-                let rent = naclac_lang::solana_program::rent::Rent::get()?;
-                let lamports = rent.minimum_balance((#space_tokens) as usize);
+                // Const-rent formula, not `Rent::get()` + `minimum_balance()`:
+                // measured at ~668 CU for the real sysvar fetch + calculation
+                // versus ~101 CU here — the same trade pinocchio's own branch
+                // below already makes. Shared, single implementation
+                // (naclac-core's own `const_rent_lamports`, Kani-proven)
+                // instead of re-deriving this formula as generated tokens.
+                let lamports = naclac_lang::prelude::const_rent_lamports((#space_tokens) as usize);
 
                 #signer_seeds_logic
 
@@ -732,7 +779,7 @@ pub fn generate_init_cpi(
                     // "call the shared dual-backend helper" pattern already used by
                     // `realloc.rs` (`system_program::transfer`) and the `associated_token::mint`
                     // constraint (`associated_token::create`).
-                    naclac_lang::prelude::system_program::create_account_signed(
+                    #create_call_solana(
                         naclac_lang::prelude::CpiHandleMut { info: __payer_info_wrapper, _phantom: core::marker::PhantomData },
                         naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
                         naclac_lang::prelude::CpiHandle { info: __sys_info.clone(), _phantom: core::marker::PhantomData },
@@ -759,17 +806,16 @@ pub fn generate_init_cpi(
                 let __payer_info = #payer_ref;
 
                 if info.data_is_empty() {
-                    // Const-rent formula: eliminates Rent::get() sysvar call.
-                    // (ACCOUNT_STORAGE_OVERHEAD + space) * DEFAULT_LAMPORTS_PER_BYTE
-                    const __STORAGE_OVERHEAD: u64 = 128;
-                    const __LAMPORTS_PER_BYTE: u64 = 6960;
-                    let __space = (#space_tokens) as u64;
-                    let __lamports = (__STORAGE_OVERHEAD + __space).wrapping_mul(__LAMPORTS_PER_BYTE);
-                    naclac_lang::prelude::system_program::create_account_checked_for_init(
+                    // Shared, single implementation (naclac-core's own
+                    // `const_rent_lamports`, Kani-proven): eliminates
+                    // Rent::get() sysvar call.
+                    let __space = (#space_tokens) as usize;
+                    let __lamports = naclac_lang::prelude::const_rent_lamports(__space);
+                    #create_call_pinocchio(
                         &__payer_info.view,
                         &info.view,
                         __lamports,
-                        __space,
+                        __space as u64,
                         program_id,
                         pinocchio_signer_seeds,
                     )?;

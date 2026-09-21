@@ -2109,11 +2109,13 @@ dependencies = [
  "solana-commitment-config",
  "solana-instruction",
  "solana-keypair",
+ "solana-loader-v3-interface 8.0.1",
  "solana-message 4.4.1",
  "solana-program",
  "solana-reward-info",
  "solana-rpc-client",
  "solana-rpc-client-api",
+ "solana-sdk-ids",
  "solana-signature",
  "solana-signer",
  "solana-system-interface 3.2.0",
@@ -2124,6 +2126,7 @@ dependencies = [
  "spl-token",
  "spl-token-2022",
  "thiserror 2.0.18",
+ "toml",
  "wincode 0.5.5",
 ]
 
@@ -2142,6 +2145,7 @@ dependencies = [
  "pinocchio-pubkey",
  "pinocchio-system",
  "solana-address 2.6.1",
+ "solana-define-syscall 5.1.0",
  "solana-program",
  "solana-system-interface 3.2.0",
 ]
@@ -2152,6 +2156,7 @@ version = "0.1.0"
 dependencies = [
  "naclac-core",
  "naclac-macros",
+ "naclac-metadata",
  "naclac-token",
 ]
 
@@ -2161,12 +2166,37 @@ version = "0.1.0"
 dependencies = [
  "bs58",
  "heck",
+ "naclac-syn",
  "proc-macro2",
  "quote",
  "sha2 0.11.0",
  "solana-address 2.6.1",
  "syn 3.0.3",
  "toml",
+]
+
+[[package]]
+name = "naclac-metadata"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "naclac-core",
+ "pinocchio 0.11.2",
+ "solana-program",
+]
+
+[[package]]
+name = "naclac-syn"
+version = "0.1.0"
+dependencies = [
+ "bs58",
+ "heck",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "syn 3.0.3",
 ]
 
 [[package]]
@@ -4004,6 +4034,9 @@ version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "362b468fbde4c20521b9ff5ef743bc0d9b410455a5a92a8b29fd46954e89345f"
 dependencies = [
+ "serde",
+ "serde_bytes",
+ "serde_derive",
  "solana-instruction",
  "solana-pubkey 4.2.0",
  "solana-sdk-ids",

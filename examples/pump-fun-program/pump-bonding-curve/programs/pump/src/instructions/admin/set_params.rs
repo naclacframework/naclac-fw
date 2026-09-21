@@ -34,7 +34,6 @@ pub struct SetParams {
 // (`reference/fee-tier-probe/src/bin/probe21.rs`); not documented in the
 // real IDL's own `args` list at all. Each must be rent-exempt, matching the
 // real `ConstraintRentExempt` check.
-#[instruction]
 pub fn set_params(ctx: Context<SetParams>, args: SetParamsArgs) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.global.authority,

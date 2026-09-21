@@ -14,7 +14,7 @@ export interface UpdateGlobalAuthorityAccounts {
    * SAFETY: only its address is read, written into `global.authority` --
    * never deserialized.
    */
-  new_authority: naclac.Address | string;
+  newAuthority: naclac.Address | string;
 }
 
 /**

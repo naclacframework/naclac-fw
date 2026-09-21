@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use pump_fees_client::{
     instructions::{
         build_claim_social_fee_pda, build_claim_social_fee_pda_v2, build_create_social_fee_pda,
@@ -42,19 +42,8 @@ use pump_client::{
 };
 use pump_amm_client::PROGRAM_ID as PUMP_AMM_PROGRAM_ID;
 
-fn load_program(provider: &NaclacProvider) {
-    let mut workspace_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    workspace_root.pop(); // programs
-    workspace_root.pop(); // pump-fees workspace root
-    let so_path = resolve_cargo_target_dir(&workspace_root).join("deploy/pump_fees.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load pump_fees.so");
-}
-
 /// Loads `pump`'s real compiled program alongside `pump_fees` in the same
-/// provider — `create_fee_sharing_config` genuinely CPIs into it, so
+/// provider â€” `create_fee_sharing_config` genuinely CPIs into it, so
 /// exercising that path needs the real on-chain program, not a fixture.
 fn load_pump_program(provider: &NaclacProvider) {
     let mut pump_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -69,7 +58,7 @@ fn load_pump_program(provider: &NaclacProvider) {
         .expect("Failed to load pump.so");
 }
 
-/// `pump::create` genuinely CPIs into real Metaplex Token Metadata — anything
+/// `pump::create` genuinely CPIs into real Metaplex Token Metadata â€” anything
 /// that loads `pump.so` and calls `create` needs this loaded too.
 fn load_mpl_token_metadata_program(provider: &NaclacProvider) {
     let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -83,7 +72,7 @@ fn load_mpl_token_metadata_program(provider: &NaclacProvider) {
         .expect("Failed to load mpl_token_metadata.so");
 }
 
-/// Loads `pump_amm`'s real compiled program alongside `pump_fees`/`pump` —
+/// Loads `pump_amm`'s real compiled program alongside `pump_fees`/`pump` â€”
 /// `reset_fee_sharing_config(_v2)`/`update_fee_shares(_v2)` genuinely CPI into
 /// it (via `pump` in turn), so exercising those paths needs the real on-chain
 /// program, not a fixture.
@@ -101,12 +90,12 @@ fn load_pump_amm_program(provider: &NaclacProvider) {
 }
 
 /// Loads the test-only keypair `constants::ADMIN_PUBKEY` is pinned to
-/// (`tests/wallets/test_admin.json`) — the real program's admin key's
+/// (`tests/wallets/test_admin.json`) â€” the real program's admin key's
 /// private half isn't held by anyone, so `initialize_fee_config`'s golden
 /// path can only be exercised against a keypair this project controls.
 /// Loads `donation_relay`'s real compiled program (`examples/donation-relay`,
-/// a sibling of `pump-fun-program` rather than nested under it — one more
-/// `pop()` than `load_pump_amm_program`) — `crank_donation_fee_pda` genuinely
+/// a sibling of `pump-fun-program` rather than nested under it â€” one more
+/// `pop()` than `load_pump_amm_program`) â€” `crank_donation_fee_pda` genuinely
 /// CPIs into it, so exercising that path needs the real on-chain program.
 fn load_donation_relay_program(provider: &NaclacProvider) {
     let mut donation_relay_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -138,13 +127,11 @@ fn load_test_admin_keypair() -> Keypair {
 
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
-    provider
+    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
 /// Mirrors `tests/token/programs/token/tests/token_test.rs`'s helper of the
-/// same name and shape — asserts the exact numeric `NaclacError` code, not
+/// same name and shape â€” asserts the exact numeric `NaclacError` code, not
 /// just "any error".
 fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientError>, expected: u32) {
     match result {
@@ -166,7 +153,7 @@ fn discriminated_bytes<T: bytemuck::Pod>(disc: [u8; 8], value: &T) -> Vec<u8> {
 }
 
 /// Injects a `Global` account owned by the (not-yet-built) bonding curve
-/// program at `get_pump_global_pda` — `initialize_fee_program_global` reads
+/// program at `get_pump_global_pda` â€” `initialize_fee_program_global` reads
 /// `authority` off this foreign account, so it needs real backing data. No
 /// way to create it via a real instruction since we don't own that program.
 fn setup_pump_global(provider: &NaclacProvider, authority: Address) -> Address {
@@ -183,7 +170,7 @@ fn setup_pump_global(provider: &NaclacProvider, authority: Address) -> Address {
 }
 
 /// Injects a `FeeConfig` account directly, bypassing `initialize_fee_config`
-/// entirely — most tests here just need a `FeeConfig` to already exist and
+/// entirely â€” most tests here just need a `FeeConfig` to already exist and
 /// don't care about its creation path (`initialize_fee_config` itself is
 /// covered separately, by `initialize_fee_config_creates_state` /
 /// `initialize_fee_config_rejects_non_admin_signer`).
@@ -203,7 +190,9 @@ fn setup_fee_config(
             lp_fee_bps: 0,
             protocol_fee_bps: 0,
             creator_fee_bps: 0,
+            ..Default::default()
         },
+        ..Default::default()
     };
     let mut tiers_arr = [zero_tier; 50];
     for (i, t) in fee_tiers.iter().enumerate() {
@@ -222,6 +211,7 @@ fn setup_fee_config(
         stable_fee_tiers_len: stable_fee_tiers.len() as u32,
         bump,
         admin,
+        ..Default::default()
     };
     let data = discriminated_bytes(FEECONFIG_DISCRIMINATOR, &cfg);
     provider
@@ -230,7 +220,7 @@ fn setup_fee_config(
     pda
 }
 
-/// Returns `(fee_program_global, authority)` — the authority keypair is
+/// Returns `(fee_program_global, authority)` â€” the authority keypair is
 /// handed back (not discarded) since several other instructions
 /// (`set_claim_rate_limit`, `set_disable_flags`, ...) require signing as
 /// this exact same admin authority afterward.
@@ -270,7 +260,7 @@ fn setup_fee_program_global(
 /// Real end-to-end flow: injects the foreign `pump_global` fixture, calls
 /// the real `initialize_fee_program_global` instruction, and verifies the
 /// resulting on-chain state. `pump_global.authority` is fully under our own
-/// control (we wrote the fixture), so — unlike `initialize_fee_config` —
+/// control (we wrote the fixture), so â€” unlike `initialize_fee_config` â€”
 /// this instruction's golden path needs no hardcoded admin key.
 #[test]
 fn initialize_fee_program_global_creates_state() {
@@ -310,7 +300,7 @@ fn initialize_fee_config_rejects_non_admin_signer() {
     .log()
     .send_and_confirm();
 
-    // `InitializeFeeConfig { admin, .. }` — `admin` is field index 0 ->
+    // `InitializeFeeConfig { admin, .. }` â€” `admin` is field index 0 ->
     // 3000 + 0*100 + ConstraintAddress(3) = 3003.
     assert_custom_code(result, 3003);
 }
@@ -350,7 +340,7 @@ fn initialize_fee_config_creates_state() {
 
 /// fees-06#14 (probe6, resolved earlier this project): `claim_social_fee_pda`
 /// drains `social_fee_pda`'s entire native SOL balance down to rent-exemption
-/// and transfers all of it to `recipient` — the same full-balance-sweep shape
+/// and transfers all of it to `recipient` â€” the same full-balance-sweep shape
 /// as `sweep_buyback`. Exercises `create_social_fee_pda` -> top-up ->
 /// `claim_social_fee_pda` end-to-end against the real compiled program.
 #[test]
@@ -419,8 +409,8 @@ fn social_fee_pda_create_and_claim_v1_sweeps_native_sol() {
     assert_eq!(pda_state.total_claimed, amount_claimed);
 }
 
-/// fees-06#9: the claim rate limit is inclusive (`>=`) and a soft no-op —
-/// log and return, no revert, no state change — unlike `sweep_buyback`'s
+/// fees-06#9: the claim rate limit is inclusive (`>=`) and a soft no-op â€”
+/// log and return, no revert, no state change â€” unlike `sweep_buyback`'s
 /// strict + hard-revert rate limit.
 ///
 /// Deliberately doesn't rely on any assumption about litesvm's default
@@ -542,7 +532,7 @@ fn read_token_account_amount(provider: &NaclacProvider, address: &Address) -> u6
 }
 
 /// fees-06#14 follow-up (probe7, resolved earlier this project): `_v2` uses
-/// the identical full-balance-sweep shape as v1, this time of SPL tokens —
+/// the identical full-balance-sweep shape as v1, this time of SPL tokens â€”
 /// `associated_social_fee_pda`'s entire balance moves to `associated_recipient`
 /// (created idempotently by the instruction's own `init_if_needed`
 /// constraint, so it's only *derived* here, never pre-created). Also
@@ -585,7 +575,7 @@ fn claim_social_fee_pda_v2_sweeps_full_token_balance() {
     .expect("create_social_fee_pda should succeed");
 
     // Real SPL mint + a real ATA owned by social_fee_pda, funded with a
-    // claimable balance — via naclac_client's genuine CPI-backed test
+    // claimable balance â€” via naclac_client's genuine CPI-backed test
     // helpers, not hand-built account bytes.
     let mint_authority = Keypair::new();
     provider.airdrop(&mint_authority.address(), 10_000_000_000).unwrap();
@@ -606,7 +596,7 @@ fn claim_social_fee_pda_v2_sweeps_full_token_balance() {
     let recipient = Keypair::new();
     provider.airdrop(&recipient.address(), 1_000_000).unwrap();
     // Not pre-created: `claim_social_fee_pda_v2`'s own `init_if_needed`
-    // constraint creates it idempotently — only its deterministic address
+    // constraint creates it idempotently â€” only its deterministic address
     // is needed up front, derived the same way `create_ata` does internally.
     let (associated_recipient, _) = Address::find_program_address(
         &[
@@ -669,7 +659,7 @@ fn claim_social_fee_pda_v2_sweeps_full_token_balance() {
 /// through its own `initialize`/`create` to produce a genuine on-chain
 /// `BondingCurve`, then calls `create_fee_sharing_config` and confirms the
 /// real `migrate_bonding_curve_creator` CPI actually reassigned
-/// `bonding_curve.creator` — not a fixture-injected approximation of either
+/// `bonding_curve.creator` â€” not a fixture-injected approximation of either
 /// program's state.
 #[test]
 fn create_fee_sharing_config_reassigns_creator_via_real_cpi() {
@@ -815,7 +805,7 @@ fn set_authority_updates_authority() {
 /// Representative rejection test for the whole class of simple
 /// `authority`-gated `FeeProgramGlobal` setters (`set_authority`,
 /// `set_claim_rate_limit`, `set_disable_flags`, `set_social_claim_authority`)
-/// — all four share the exact same `require!(authority == fee_program_global.authority, FeesError::InvalidAdmin)`
+/// â€” all four share the exact same `require!(authority == fee_program_global.authority, FeesError::InvalidAdmin)`
 /// shape, so this is checked once rather than once per instruction.
 #[test]
 fn set_authority_rejects_non_authority_signer() {
@@ -854,6 +844,7 @@ fn update_admin_transfers_admin() {
         lp_fee_bps: 1,
         protocol_fee_bps: 1,
         creator_fee_bps: 1,
+        ..Default::default()
     };
     let fee_config_pda =
         setup_fee_config(&provider, config_program_id, admin.address(), flat_fees, vec![], vec![]);
@@ -968,6 +959,7 @@ fn update_fee_config_replaces_tiers_and_flat_fees() {
         lp_fee_bps: 1,
         protocol_fee_bps: 1,
         creator_fee_bps: 1,
+        ..Default::default()
     };
     let fee_config_pda = setup_fee_config(
         &provider,
@@ -982,6 +974,7 @@ fn update_fee_config_replaces_tiers_and_flat_fees() {
         lp_fee_bps: 100,
         protocol_fee_bps: 50,
         creator_fee_bps: 25,
+        ..Default::default()
     };
     let new_tier = FeeTier {
         market_cap_lamports_threshold: 0,
@@ -989,7 +982,9 @@ fn update_fee_config_replaces_tiers_and_flat_fees() {
             lp_fee_bps: 200,
             protocol_fee_bps: 80,
             creator_fee_bps: 40,
+            ..Default::default()
         },
+        ..Default::default()
     };
 
     build_update_fee_config(
@@ -1025,6 +1020,7 @@ fn update_stable_fee_config_replaces_stable_tiers() {
         lp_fee_bps: 1,
         protocol_fee_bps: 1,
         creator_fee_bps: 1,
+        ..Default::default()
     };
     let fee_config_pda =
         setup_fee_config(&provider, config_program_id, admin.address(), flat_fees, vec![], vec![]);
@@ -1035,7 +1031,9 @@ fn update_stable_fee_config_replaces_stable_tiers() {
             lp_fee_bps: 10,
             protocol_fee_bps: 5,
             creator_fee_bps: 2,
+            ..Default::default()
         },
+        ..Default::default()
     };
 
     build_update_stable_fee_config(
@@ -1059,8 +1057,8 @@ fn update_stable_fee_config_replaces_stable_tiers() {
     assert_eq!(fetched.stable_fee_tiers[0].fees.lp_fee_bps, 10);
 }
 
-/// Also exercises `upsert_fee_tiers`'s continuity check —
-/// `FeesError::OffsetNotContinuous` (fees-05 cross-cutting #7) — since that's
+/// Also exercises `upsert_fee_tiers`'s continuity check â€”
+/// `FeesError::OffsetNotContinuous` (fees-05 cross-cutting #7) â€” since that's
 /// real business logic specific to this instruction, not just an
 /// admin-signer gate shared with everything else.
 #[test]
@@ -1073,6 +1071,7 @@ fn upsert_fee_tiers_appends_and_rejects_noncontinuous_offset() {
         lp_fee_bps: 1,
         protocol_fee_bps: 1,
         creator_fee_bps: 1,
+        ..Default::default()
     };
     let tier0 = FeeTier {
         market_cap_lamports_threshold: 0,
@@ -1080,7 +1079,9 @@ fn upsert_fee_tiers_appends_and_rejects_noncontinuous_offset() {
             lp_fee_bps: 300,
             protocol_fee_bps: 100,
             creator_fee_bps: 50,
+            ..Default::default()
         },
+        ..Default::default()
     };
     let fee_config_pda = setup_fee_config(
         &provider,
@@ -1097,7 +1098,9 @@ fn upsert_fee_tiers_appends_and_rejects_noncontinuous_offset() {
             lp_fee_bps: 200,
             protocol_fee_bps: 80,
             creator_fee_bps: 40,
+            ..Default::default()
         },
+        ..Default::default()
     };
 
     let accounts = || UpsertFeeTiersAccounts {
@@ -1137,6 +1140,7 @@ fn upsert_stable_fee_tiers_appends_tiers() {
         lp_fee_bps: 1,
         protocol_fee_bps: 1,
         creator_fee_bps: 1,
+        ..Default::default()
     };
     let fee_config_pda =
         setup_fee_config(&provider, config_program_id, admin.address(), flat_fees, vec![], vec![]);
@@ -1147,7 +1151,9 @@ fn upsert_stable_fee_tiers_appends_tiers() {
             lp_fee_bps: 10,
             protocol_fee_bps: 5,
             creator_fee_bps: 2,
+            ..Default::default()
         },
+        ..Default::default()
     };
 
     build_upsert_stable_fee_tiers(
@@ -1173,7 +1179,7 @@ fn upsert_stable_fee_tiers_appends_tiers() {
 }
 
 /// Both fee-sharing-authority instructions are dead code in the real
-/// program — confirmed via direct execution against the real bytecode
+/// program â€” confirmed via direct execution against the real bytecode
 /// (`revoke_fee_sharing_authority.rs`/`transfer_fee_sharing_authority.rs`'s
 /// own doc comments): they always revert with `DeprecatedInstruction`
 /// before touching any accounts, regardless of signer or state.
@@ -1203,7 +1209,7 @@ fn transfer_fee_sharing_authority_is_always_deprecated() {
 /// `FeeConfig` is a fixed-size zero-copy `#[component]` in this
 /// reimplementation (no growable `Vec<FeeTier>` the way the real, Borsh-based
 /// program has), so `fee_config`'s real on-chain size never needs to reach
-/// `FeeConfig::CURRENT_SIZE` in the first place — `initialize_fee_config`
+/// `FeeConfig::CURRENT_SIZE` in the first place â€” `initialize_fee_config`
 /// already allocates the account at its full fixed size. This test still
 /// exercises the real realloc path end-to-end (any signer may pay, no
 /// admin/ownership check, per the real IDL) and confirms it's a safe no-op
@@ -1218,6 +1224,7 @@ fn extend_fee_config_reallocs_without_losing_data() {
         lp_fee_bps: 100,
         protocol_fee_bps: 50,
         creator_fee_bps: 25,
+        ..Default::default()
     };
     let fee_config_pda =
         setup_fee_config(&provider, config_program_id, admin.address(), flat_fees, vec![], vec![]);
@@ -1259,7 +1266,7 @@ fn extend_fee_config_reallocs_without_losing_data() {
 // All four instructions genuinely CPI into the real `pump`/`pump_amm`
 // programs (via `pump-client`/`pump-amm-client`), and the real
 // `distribute_creator_fees_v2`/`transfer_creator_fees_to_pump_v2` targets only
-// implement the wrapped-SOL path (`UnsupportedQuoteMint` otherwise) — so a
+// implement the wrapped-SOL path (`UnsupportedQuoteMint` otherwise) â€” so a
 // genuine happy-path test needs the real WSOL mint address specifically, not
 // an arbitrary fresh mint. `create_mint` can't produce an account at that
 // fixed address (no keypair controls it), so its `Mint`/`TokenAccount` bytes
@@ -1298,10 +1305,10 @@ fn wsol_mint_address() -> Address {
         .expect("WSOL mint address must parse")
 }
 
-/// SPL Token account rent-exempt reserve (165 bytes) — same value
+/// SPL Token account rent-exempt reserve (165 bytes) â€” same value
 /// `probe11.rs`/`probe12.rs` use.
 const TOKEN_ACCOUNT_RENT_EXEMPT_RESERVE: u64 = 2_039_280;
-/// Rent-exempt minimum for a 0-byte (lamport-only) account — empirically
+/// Rent-exempt minimum for a 0-byte (lamport-only) account â€” empirically
 /// observed via `probe11.rs`'s `AFTER: pump_creator_vault=890880` output.
 const LAMPORT_VAULT_RENT_EXEMPT_MINIMUM: u64 = 890_880;
 
@@ -1318,7 +1325,7 @@ fn inject_wsol_mint(provider: &NaclacProvider) -> Address {
 /// the real `pump` program, grants `pump_authority` control over
 /// `global.admin_set_creator_authority` via `pump::set_params`, then migrates
 /// the coin's creator to a fresh `sharing_config` via the real
-/// `create_fee_sharing_config` — mirrors
+/// `create_fee_sharing_config` â€” mirrors
 /// `create_fee_sharing_config_reassigns_creator_via_real_cpi`'s setup.
 ///
 /// `create_fee_sharing_config` always sets `shareholders[0].address = creator`
@@ -1329,7 +1336,7 @@ fn inject_wsol_mint(provider: &NaclacProvider) -> Address {
 /// `sharing_config.admin` *and* passes the sole current shareholder via
 /// `remaining_accounts`: if the two were the same address (the `false`
 /// case), naclac's accounts macro rejects the instruction outright as a
-/// `ConstraintDuplicateMutableAccount` — a real aliasing-safety guard in
+/// `ConstraintDuplicateMutableAccount` â€” a real aliasing-safety guard in
 /// naclac's zero-copy account model that the real Anchor-based mainnet
 /// program doesn't need (and so doesn't enforce the same way), not a bug in
 /// the scenario itself. Tests that need `sharing_config.admin == creator`
@@ -1364,7 +1371,7 @@ fn setup_graduated_sharing_config(
     .send_and_confirm()
     .expect("pump::initialize should succeed");
 
-    // `set_params` requires exactly 8 remaining accounts, each rent-exempt —
+    // `set_params` requires exactly 8 remaining accounts, each rent-exempt â€”
     // `remaining_accounts[0]` -> `Global.fee_recipient`,
     // `remaining_accounts[1..8]` -> `Global.fee_recipients` (confirmed real
     // mechanism, see `fees-07-donation-relay-progress.md`'s `probe21`). Their
@@ -1392,6 +1399,7 @@ fn setup_graduated_sharing_config(
             creator_fee_basis_points: 0,
             set_creator_authority: Address::default(),
             admin_set_creator_authority: admin_set_creator_authority.address(),
+            ..Default::default()
         },
         SetParamsAccounts {
             global: pump_global_pda,
@@ -1606,7 +1614,75 @@ fn reset_fee_sharing_config_full_flow_sweeps_and_resets() {
     assert_eq!(sharing_config.version, 2);
 }
 
-/// `authority` must equal `global.admin_set_creator_authority` — confirmed
+/// `pump::distribute_creator_fees` rejects any shareholder recipient that is
+/// itself an executable program account (`UnableToDistributeCreatorFeesToExecutableRecipient`,
+/// confirmed live against real deployed `pump.so` via `reference/fee-tier-probe/src/bin/probe73.rs`).
+/// Only reachable through `pump_fees`'s real CPI (this check lives inside
+/// `distribute_creator_fees`, whose `pump_fees_authority` signer can't be
+/// faked from a standalone `pump`-only test), so this patches the real,
+/// already-created `sharing_config`'s sole shareholder to `TOKEN_PROGRAM_ID`
+/// (an already-loaded, genuinely executable account) after the real
+/// `create_fee_sharing_config` CPI already ran, then drives the existing
+/// `reset_fee_sharing_config` flow to reach it.
+#[test]
+fn reset_fee_sharing_config_rejects_executable_shareholder() {
+    let provider = setup();
+    let admin_set_creator_authority = Keypair::new();
+    let (mint, _creator, _pump_authority, pump_global_pda, bonding_curve_pda, bonding_curve_bump, sharing_config_pda, _sharing_config_bump) =
+        setup_graduated_sharing_config(&provider, &admin_set_creator_authority, false);
+    provider.airdrop(&admin_set_creator_authority.address(), 10_000_000_000).unwrap();
+
+    let mut sharing_config = fetch_sharing_config(&provider, &sharing_config_pda)
+        .expect("sharing_config should be readable");
+    sharing_config.shareholders[0].address = TOKEN_PROGRAM_ID;
+    let sharing_config_lamports = provider.get_balance(&sharing_config_pda).unwrap();
+    let data = discriminated_bytes(pump_fees_client::SHARINGCONFIG_DISCRIMINATOR, &sharing_config);
+    provider
+        .set_account(&sharing_config_pda, data, &PROGRAM_ID, sharing_config_lamports)
+        .expect("patch sharing_config's sole shareholder to an executable account");
+
+    let wsol_mint = inject_wsol_mint(&provider);
+    let (pump_creator_vault_pda, pump_creator_vault_bump, coin_creator_vault_authority_pda, coin_creator_vault_authority_bump, coin_creator_vault_ata) =
+        fund_creator_fee_vaults(&provider, &sharing_config_pda, &wsol_mint, 3_000_000_000, 2_000_000_000);
+
+    let new_admin = Keypair::new().address();
+
+    let result = build_reset_fee_sharing_config(
+        &provider,
+        PROGRAM_ID,
+        bonding_curve_bump,
+        pump_creator_vault_bump,
+        coin_creator_vault_authority_bump,
+        ResetFeeSharingConfigAccounts {
+            new_admin,
+            authority: admin_set_creator_authority.address(),
+            global: pump_global_pda,
+            mint: mint.address(),
+            sharing_config: sharing_config_pda,
+            bonding_curve: bonding_curve_pda,
+            pump_creator_vault: pump_creator_vault_pda,
+            system_program: SYSTEM_PROGRAM_ID,
+            pump_program: PUMP_PROGRAM_ID,
+            pump_amm_program: PUMP_AMM_PROGRAM_ID,
+            wsol_mint,
+            token_program: TOKEN_PROGRAM_ID,
+            associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
+            coin_creator_vault_authority: coin_creator_vault_authority_pda,
+            coin_creator_vault_ata,
+            pump_fees_authority: get_pump_fees_authority_pda(&PROGRAM_ID).0,
+        },
+    )
+    .signer(&admin_set_creator_authority)
+    .remaining_accounts(vec![AccountMeta { address: TOKEN_PROGRAM_ID, is_signer: false, is_writable: true }])
+    .log()
+    .send_and_confirm();
+
+    // `PumpError::UnableToDistributeCreatorFeesToExecutableRecipient` is enum
+    // index 31 in `pump`'s own `errors.rs` -> 6000 + 31 = 6031.
+    assert_custom_code(result, 6031);
+}
+
+/// `authority` must equal `global.admin_set_creator_authority` â€” confirmed
 /// empirically via `probe11.rs`. No vault funding needed: the check fires
 /// before either nested CPI runs.
 #[test]
@@ -1665,7 +1741,7 @@ fn reset_fee_sharing_config_rejects_wrong_authority() {
 }
 
 /// Full happy path for the generalized `_v2` variant (WSOL passed as a
-/// generic `quote_mint`, not hardcoded) — same real-bytecode CPI chain as
+/// generic `quote_mint`, not hardcoded) â€” same real-bytecode CPI chain as
 /// `reset_fee_sharing_config_full_flow_sweeps_and_resets`. `pump_creator_vault_ata`
 /// is a dead-but-declared account in this scoped WSOL-only pass (never read or
 /// written), so an arbitrary unfunded address suffices for it.
@@ -1730,6 +1806,71 @@ fn reset_fee_sharing_config_v2_full_flow_sweeps_and_resets() {
     assert_eq!(sharing_config.version, 2);
 }
 
+/// Same real check as `reset_fee_sharing_config_rejects_executable_shareholder`,
+/// but through the `_v2` payout path (`distribute_creator_fees_v2`, not v1) --
+/// these are two separate functions in `pump`'s own source, so the check
+/// needed its own dedicated test rather than assuming v1 coverage implies v2
+/// is also exercised.
+#[test]
+fn reset_fee_sharing_config_v2_rejects_executable_shareholder() {
+    let provider = setup();
+    let admin_set_creator_authority = Keypair::new();
+    let (mint, _creator, _pump_authority, pump_global_pda, bonding_curve_pda, bonding_curve_bump, sharing_config_pda, _sharing_config_bump) =
+        setup_graduated_sharing_config(&provider, &admin_set_creator_authority, false);
+    provider.airdrop(&admin_set_creator_authority.address(), 10_000_000_000).unwrap();
+
+    let mut sharing_config = fetch_sharing_config(&provider, &sharing_config_pda)
+        .expect("sharing_config should be readable");
+    sharing_config.shareholders[0].address = TOKEN_PROGRAM_ID;
+    let sharing_config_lamports = provider.get_balance(&sharing_config_pda).unwrap();
+    let data = discriminated_bytes(pump_fees_client::SHARINGCONFIG_DISCRIMINATOR, &sharing_config);
+    provider
+        .set_account(&sharing_config_pda, data, &PROGRAM_ID, sharing_config_lamports)
+        .expect("patch sharing_config's sole shareholder to an executable account");
+
+    let wsol_mint = inject_wsol_mint(&provider);
+    let (pump_creator_vault_pda, pump_creator_vault_bump, coin_creator_vault_authority_pda, coin_creator_vault_authority_bump, coin_creator_vault_ata) =
+        fund_creator_fee_vaults(&provider, &sharing_config_pda, &wsol_mint, 3_000_000_000, 2_000_000_000);
+    let pump_creator_vault_ata = Keypair::new().address();
+
+    let new_admin = Keypair::new().address();
+
+    let result = build_reset_fee_sharing_config_v2(
+        &provider,
+        PROGRAM_ID,
+        bonding_curve_bump,
+        pump_creator_vault_bump,
+        coin_creator_vault_authority_bump,
+        ResetFeeSharingConfigV2Accounts {
+            new_admin,
+            authority: admin_set_creator_authority.address(),
+            global: pump_global_pda,
+            mint: mint.address(),
+            sharing_config: sharing_config_pda,
+            bonding_curve: bonding_curve_pda,
+            pump_creator_vault: pump_creator_vault_pda,
+            pump_creator_vault_ata,
+            system_program: SYSTEM_PROGRAM_ID,
+            pump_program: PUMP_PROGRAM_ID,
+            pump_amm_program: PUMP_AMM_PROGRAM_ID,
+            quote_mint: wsol_mint,
+            token_program: TOKEN_PROGRAM_ID,
+            associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
+            coin_creator_vault_authority: coin_creator_vault_authority_pda,
+            coin_creator_vault_ata,
+            pump_fees_authority: get_pump_fees_authority_pda(&PROGRAM_ID).0,
+        },
+    )
+    .signer(&admin_set_creator_authority)
+    .remaining_accounts(vec![AccountMeta { address: TOKEN_PROGRAM_ID, is_signer: false, is_writable: true }])
+    .log()
+    .send_and_confirm();
+
+    // `PumpError::UnableToDistributeCreatorFeesToExecutableRecipient` is enum
+    // index 31 in `pump`'s own `errors.rs` -> 6000 + 31 = 6031.
+    assert_custom_code(result, 6031);
+}
+
 /// Full happy path for the legacy WSOL-hardcoded `update_fee_shares`: sets a
 /// brand-new two-shareholder split and confirms the previous sole shareholder
 /// (the coin creator) received the swept pending fees before the split
@@ -1756,8 +1897,8 @@ fn update_fee_shares_full_flow_updates_shareholders() {
         pump_creator_vault_bump,
         coin_creator_vault_authority_bump,
         vec![
-            Shareholder { address: new_shareholder_a, share_bps: 6_000 },
-            Shareholder { address: new_shareholder_b, share_bps: 4_000 },
+            Shareholder { address: new_shareholder_a, share_bps: 6_000, ..Default::default() },
+            Shareholder { address: new_shareholder_b, share_bps: 4_000, ..Default::default() },
         ],
         UpdateFeeSharesAccounts {
             authority: admin.address(), // sharing_config.admin
@@ -1843,7 +1984,7 @@ fn update_fee_shares_v2_full_flow_updates_shareholders_and_revokes_admin() {
         bonding_curve_bump,
         pump_creator_vault_bump,
         coin_creator_vault_authority_bump,
-        vec![Shareholder { address: new_shareholder, share_bps: 10_000 }],
+        vec![Shareholder { address: new_shareholder, share_bps: 10_000, ..Default::default() }],
         accounts(),
     )
     .signer(&admin)
@@ -1865,7 +2006,7 @@ fn update_fee_shares_v2_full_flow_updates_shareholders_and_revokes_admin() {
 
 /// The probe12 regression, isolated: signing with `global.admin_set_creator_authority`
 /// instead of `sharing_config.admin` must fail `NotAuthorized`, before any CPI
-/// runs — no vault funding needed.
+/// runs â€” no vault funding needed.
 #[test]
 fn update_fee_shares_v2_rejects_global_admin_set_creator_authority_signer() {
     let provider = setup();
@@ -1894,7 +2035,7 @@ fn update_fee_shares_v2_rejects_global_admin_set_creator_authority_signer() {
         bonding_curve_bump,
         pump_creator_vault_bump,
         coin_creator_vault_authority_bump,
-        vec![Shareholder { address: Keypair::new().address(), share_bps: 10_000 }],
+        vec![Shareholder { address: Keypair::new().address(), share_bps: 10_000, ..Default::default() }],
         UpdateFeeSharesV2Accounts {
             authority: admin_set_creator_authority.address(), // NOT sharing_config.admin
             global: pump_global_pda,
@@ -1923,7 +2064,7 @@ fn update_fee_shares_v2_rejects_global_admin_set_creator_authority_signer() {
     assert_custom_code(result, 6016);
 }
 
-/// Calling `update_fee_shares_v2` a second time — even signed correctly —
+/// Calling `update_fee_shares_v2` a second time â€” even signed correctly â€”
 /// must fail once `admin_revoked` is set, before any CPI runs.
 #[test]
 fn update_fee_shares_v2_rejects_second_call_after_admin_revoked() {
@@ -1962,7 +2103,7 @@ fn update_fee_shares_v2_rejects_second_call_after_admin_revoked() {
         bonding_curve_bump,
         pump_creator_vault_bump,
         coin_creator_vault_authority_bump,
-        vec![Shareholder { address: Keypair::new().address(), share_bps: 10_000 }],
+        vec![Shareholder { address: Keypair::new().address(), share_bps: 10_000, ..Default::default() }],
         accounts(),
     )
     .signer(&admin)
@@ -1978,7 +2119,7 @@ fn update_fee_shares_v2_rejects_second_call_after_admin_revoked() {
         bonding_curve_bump,
         pump_creator_vault_bump,
         coin_creator_vault_authority_bump,
-        vec![Shareholder { address: Keypair::new().address(), share_bps: 10_000 }],
+        vec![Shareholder { address: Keypair::new().address(), share_bps: 10_000, ..Default::default() }],
         accounts(),
     )
     .signer(&admin)
@@ -1989,7 +2130,7 @@ fn update_fee_shares_v2_rejects_second_call_after_admin_revoked() {
     assert_custom_code(result, 6024);
 }
 
-/// Table of `validate_shareholders` rejections — all fire before either
+/// Table of `validate_shareholders` rejections â€” all fire before either
 /// nested CPI runs, so a single funded-vault-free setup covers every case.
 #[test]
 fn update_fee_shares_v2_rejects_invalid_shareholders() {
@@ -2048,7 +2189,7 @@ fn update_fee_shares_v2_rejects_invalid_shareholders() {
 
     // Too many (31 > MAX_SHAREHOLDERS=30) -> TooManyShareholders (enum index 11 -> 6011).
     let too_many: Vec<Shareholder> = (0..31)
-        .map(|_| Shareholder { address: Keypair::new().address(), share_bps: 1 })
+        .map(|_| Shareholder { address: Keypair::new().address(), share_bps: 1, ..Default::default() })
         .collect();
     assert_custom_code(run(too_many), 6011);
 
@@ -2056,27 +2197,27 @@ fn update_fee_shares_v2_rejects_invalid_shareholders() {
     let dup_addr = Keypair::new().address();
     assert_custom_code(
         run(vec![
-            Shareholder { address: dup_addr, share_bps: 5_000 },
-            Shareholder { address: dup_addr, share_bps: 5_000 },
+            Shareholder { address: dup_addr, share_bps: 5_000, ..Default::default() },
+            Shareholder { address: dup_addr, share_bps: 5_000, ..Default::default() },
         ]),
         6012,
     );
 
     // Zero share_bps -> ZeroShareNotAllowed (enum index 17 -> 6017).
     assert_custom_code(
-        run(vec![Shareholder { address: Keypair::new().address(), share_bps: 0 }]),
+        run(vec![Shareholder { address: Keypair::new().address(), share_bps: 0, ..Default::default() }]),
         6017,
     );
 
     // Sum != 10_000 -> InvalidShareTotal (enum index 14 -> 6014).
     assert_custom_code(
-        run(vec![Shareholder { address: Keypair::new().address(), share_bps: 9_999 }]),
+        run(vec![Shareholder { address: Keypair::new().address(), share_bps: 9_999, ..Default::default() }]),
         6014,
     );
 }
 
 /// `remaining_accounts` must have exactly one entry per *current* shareholder
-/// — omitting it must fail before either nested CPI runs.
+/// â€” omitting it must fail before either nested CPI runs.
 #[test]
 fn update_fee_shares_v2_rejects_remaining_accounts_mismatch() {
     let provider = setup();
@@ -2101,7 +2242,7 @@ fn update_fee_shares_v2_rejects_remaining_accounts_mismatch() {
         bonding_curve_bump,
         pump_creator_vault_bump,
         coin_creator_vault_authority_bump,
-        vec![Shareholder { address: Keypair::new().address(), share_bps: 10_000 }],
+        vec![Shareholder { address: Keypair::new().address(), share_bps: 10_000, ..Default::default() }],
         UpdateFeeSharesV2Accounts {
             authority: creator.address(),
             global: pump_global_pda,
@@ -2133,14 +2274,14 @@ fn update_fee_shares_v2_rejects_remaining_accounts_mismatch() {
 // --- crank_donation_fee_pda ---
 //
 // `donation_relay` has no Rust integration test coverage of its own (only a
-// `.test.ts`), and no other `pump_fees` test exercises this instruction —
+// `.test.ts`), and no other `pump_fees` test exercises this instruction â€”
 // this is the only runtime proof (rather than just a clean build) that
 // `DonatePubkeyConfigIdWithPayerV1Args`'s `message: ZcString` field
 // round-trips correctly through the real CPI call, closing out the
 // raw-pointer-cast soundness bug `naclac-macros`'s `#[instruction_args]`
 // used to have for dynamic fields.
 
-/// Bypasses `initialize_fee_program_global` — that instruction needs a
+/// Bypasses `initialize_fee_program_global` â€” that instruction needs a
 /// fixture `pump_global`, but `setup_graduated_sharing_config` already
 /// performs a real `pump::initialize` at the same PDA, so injecting a
 /// competing fixture there would corrupt that real account. Mirrors
@@ -2154,6 +2295,7 @@ fn setup_fee_program_global_fixture(provider: &NaclacProvider, authority: Addres
         bump,
         disable_flags: 0,
         reserved: [0u8; 256],
+        ..Default::default()
     };
     let data = discriminated_bytes(FEEPROGRAMGLOBAL_DISCRIMINATOR, &global);
     provider
@@ -2216,7 +2358,7 @@ fn crank_donation_fee_pda_sweeps_wsol_and_lamport_excess_via_real_cpi() {
         &[donation_fee_pda_pda.as_ref(), TOKEN_PROGRAM_ID.as_ref(), wsol_mint.as_ref()],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    // Must be marked as a native (wrapped-SOL) SPL account — the crank calls
+    // Must be marked as a native (wrapped-SOL) SPL account â€” the crank calls
     // the real classic-Token `SyncNative` instruction on this account, which
     // rejects any account whose `is_native` `COption` isn't `Some`.
     let ata_wsol_amount = 42_000_000u64;
@@ -2234,7 +2376,7 @@ fn crank_donation_fee_pda_sweeps_wsol_and_lamport_excess_via_real_cpi() {
         )
         .expect("inject donation_fee_pda_ata fixture");
 
-    // Real lamport excess above `donation_fee_pda`'s rent-exempt minimum —
+    // Real lamport excess above `donation_fee_pda`'s rent-exempt minimum â€”
     // the crank must sweep this too, on top of the ATA's WSOL balance.
     let lamport_excess = 7_591_840u64;
     let current_lamports = provider.get_account(&donation_fee_pda_pda).unwrap().lamports;
@@ -2267,6 +2409,7 @@ fn crank_donation_fee_pda_sweeps_wsol_and_lamport_excess_via_real_cpi() {
             epoch_tracker_bump,
             debouncer_bump,
             debouncer_ata_bump,
+            ..Default::default()
         },
         CrankDonationFeePdaAccounts {
             payer: cranker.address(),
@@ -2305,7 +2448,7 @@ fn crank_donation_fee_pda_sweeps_wsol_and_lamport_excess_via_real_cpi() {
     assert_eq!(event.quote_mint, wsol_mint);
     // `setup_graduated_sharing_config` also creates a `sharing_config`, which
     // reassigns `bonding_curve.creator` away from the original creator wallet
-    // to `sharing_config`'s own address (`migrate_bonding_curve_creator`) —
+    // to `sharing_config`'s own address (`migrate_bonding_curve_creator`) â€”
     // `create_donation_fee_pda` reads whatever `bonding_curve.creator` is at
     // that point, so it's `sharing_config_pda`, not the original creator.
     assert_eq!(event.creator, sharing_config_pda);
@@ -2317,7 +2460,7 @@ fn crank_donation_fee_pda_sweeps_wsol_and_lamport_excess_via_real_cpi() {
     assert_eq!(updated.last_crank_ts, crank_timestamp);
 
     // Proves the base58 `message` (`base_mint + "," + creator`) genuinely
-    // round-tripped through the real `donation_relay` CPI as a `ZcString` —
+    // round-tripped through the real `donation_relay` CPI as a `ZcString` â€”
     // the pre-fix raw-pointer-cast bug would crash or corrupt memory before
     // ever reaching this real SPL transfer into the debouncer's WSOL ATA.
     let debouncer_ata_data = provider.get_account_data(&debouncer_ata).unwrap();

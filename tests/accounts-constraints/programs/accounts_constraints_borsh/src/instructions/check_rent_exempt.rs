@@ -15,7 +15,6 @@ pub struct CheckRentExempt {
     pub target: AccountInfo,
 }
 
-#[instruction]
 pub fn check_rent_exempt(_ctx: Context<CheckRentExempt>) -> Result {
     Ok(())
 }

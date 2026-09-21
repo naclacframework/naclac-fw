@@ -23,7 +23,6 @@ pub struct CheckVaultProgram {
     pub vault: AccountInfo,
 }
 
-#[instruction]
 pub fn check_vault_program(_ctx: Context<CheckVaultProgram>) -> Result {
     Ok(())
 }

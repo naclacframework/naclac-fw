@@ -9,7 +9,6 @@ pub struct CheckPermanentDelegate {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_permanent_delegate(
     ctx: Context<CheckPermanentDelegate>,
     expected_delegate: Option<Address>,

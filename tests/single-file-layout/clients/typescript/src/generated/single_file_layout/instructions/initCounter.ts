@@ -10,7 +10,7 @@ export const INIT_COUNTER_DISCRIMINATOR = new Uint8Array([247, 168, 146, 45, 125
 export interface InitCounterAccounts {
   payer: naclac.Address | string;
   counter?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

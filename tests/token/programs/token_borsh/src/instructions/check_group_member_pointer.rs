@@ -9,7 +9,6 @@ pub struct CheckGroupMemberPointer {
     pub mint: InterfaceAccount<Mint>,
 }
 
-#[instruction]
 pub fn check_group_member_pointer(
     ctx: Context<CheckGroupMemberPointer>,
     expected_authority: Option<Address>,

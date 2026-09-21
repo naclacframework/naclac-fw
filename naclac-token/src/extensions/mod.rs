@@ -331,3 +331,163 @@ fn ceil_div_u128(numerator: u128, denominator: u128) -> Option<u128> {
         .checked_sub(1)?
         .checked_div(denominator)
 }
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// `read_u64`/`read_u16` panic by design when `bytes` is too short for
+    /// `offset` (documented via `unwrap()` on the length-checked slice
+    /// conversion) — every real call site passes a fixed, statically
+    /// in-bounds offset into a fixed-size extension buffer (e.g.
+    /// `TransferFeeConfig`'s 108-byte layout), so the real contract is
+    /// "safe when `offset + width <= bytes.len()`", not total over all
+    /// offsets. This proves that contract precisely.
+    #[kani::proof]
+    fn prove_read_u64_within_contract_never_panics() {
+        let bytes: [u8; 16] = kani::any();
+        let offset: usize = kani::any();
+        // `kani::assume(offset + 8 <= bytes.len())` would evaluate `offset +
+        // 8` eagerly before `assume` ever gets to filter it — the exact
+        // overflow-before-guard mistake this whole audit exists to catch,
+        // just written into the proof itself instead of the code under
+        // test. `bytes.len()` is a small compile-time constant here, so
+        // subtracting first is always safe.
+        kani::assume(offset <= bytes.len() - 8);
+        let _ = read_u64(&bytes, offset);
+    }
+
+    #[kani::proof]
+    fn prove_read_u16_within_contract_never_panics() {
+        let bytes: [u8; 16] = kani::any();
+        let offset: usize = kani::any();
+        kani::assume(offset <= bytes.len() - 2);
+        let _ = read_u16(&bytes, offset);
+    }
+
+    /// `ceil_div_u128` never panics for any input — including a zero
+    /// denominator (correctly yields `None` via `checked_div`, not a
+    /// divide-by-zero panic) and a numerator so large that
+    /// `numerator + denominator` would overflow `u128` (correctly yields
+    /// `None` via `checked_add`, not a wraparound).
+    #[kani::proof]
+    fn prove_ceil_div_u128_never_panics() {
+        let numerator: u128 = kani::any();
+        let denominator: u128 = kani::any();
+        let _ = ceil_div_u128(numerator, denominator);
+    }
+
+    /// Correctness, not just panic-freedom: when `ceil_div_u128` succeeds,
+    /// the result must be the true mathematical ceiling of
+    /// `numerator / denominator` — `result * denominator >= numerator`, and
+    /// one less than `result` (when `result > 0`) is not enough. A `+
+    /// checked_add(denominator) - 1` formula that were subtly off by one
+    /// would still "not panic" while quietly overcharging or undercharging
+    /// every transfer fee this backs.
+    #[kani::proof]
+    fn prove_ceil_div_u128_is_true_ceiling() {
+        let numerator: u128 = kani::any();
+        let denominator: u128 = kani::any();
+        kani::assume(denominator > 0);
+        kani::assume(denominator < 1_000_000); // keep the state space tractable
+        kani::assume(numerator < 1_000_000_000);
+        if let Some(result) = ceil_div_u128(numerator, denominator) {
+            assert!(
+                result * denominator >= numerator,
+                "result must be large enough to cover numerator"
+            );
+            if result > 0 {
+                assert!(
+                    (result - 1) * denominator < numerator,
+                    "result must be the smallest such value, not an overshoot"
+                );
+            } else {
+                assert_eq!(numerator, 0, "result 0 is only correct when numerator is 0");
+            }
+        }
+    }
+
+    /// Proves `find_extension_bytes` never panics for any account bytes —
+    /// this is the shared TLV walk every extension type's `get_extension`
+    /// goes through, over data that (unlike `TransferFeeConfig`'s own raw
+    /// bytes) is read *before* any type-specific validation, so it sees
+    /// whatever bytes the account actually has, well-formed or not.
+    /// `TransferFeeAmount` (8 bytes) stands in as a representative `Ext` —
+    /// the walk logic itself doesn't depend on which concrete extension
+    /// type is being searched for.
+    ///
+    /// `base_len` is concrete (165 or 82), not symbolic — confirmed by
+    /// grepping every real call site (`get_extension_from_info`'s two
+    /// callers: `165` for `TokenAccount`, `82` for `Mint`), no other value
+    /// is ever passed in practice. A first attempt left `base_len` fully
+    /// symbolic (0..=165), which made the all-zero padding check
+    /// (`data[base_len..EXTENSION_BASE_OFFSET].iter().any(...)`, a *second*,
+    /// separate loop from the TLV walk) need up to 165 unwindings — far more
+    /// than the `#[kani::unwind(8)]` sized for the TLV loop alone, causing a
+    /// real "unwinding assertion" failure (not a bug in the code, a gap in
+    /// the harness). Testing the two real values directly is both more
+    /// faithful to actual usage and avoids the unbounded range.
+    #[kani::proof]
+    #[kani::unwind(8)]
+    fn prove_find_extension_bytes_never_panics_token_account() {
+        let data: [u8; 182] = kani::any();
+        let _ = find_extension_bytes::<TransferFeeAmount>(&data, 165);
+    }
+
+    #[kani::proof]
+    #[kani::unwind(90)]
+    fn prove_find_extension_bytes_never_panics_mint() {
+        let data: [u8; 182] = kani::any();
+        let _ = find_extension_bytes::<TransferFeeAmount>(&data, 82);
+    }
+
+    /// Proves `get_extension` never panics, including through its one
+    /// `unsafe` step (`read_unaligned`) — the preceding `bytes.len() ==
+    /// size_of::<Ext>()` check is what's supposed to make that read sound;
+    /// this proves it actually is, not just that it looks like it should be.
+    /// Same concrete-`base_len` reasoning as `find_extension_bytes` above.
+    #[kani::proof]
+    #[kani::unwind(8)]
+    fn prove_get_extension_never_panics_token_account() {
+        let data: [u8; 182] = kani::any();
+        let _ = get_extension::<TransferFeeAmount>(&data, 165);
+    }
+
+    #[kani::proof]
+    #[kani::unwind(90)]
+    fn prove_get_extension_never_panics_mint() {
+        let data: [u8; 182] = kani::any();
+        let _ = get_extension::<TransferFeeAmount>(&data, 82);
+    }
+
+    /// `read_optional_address` panics by design when `bytes` is too short
+    /// for a 32-byte read at `offset` — same "safe within its real
+    /// contract" shape as `read_u64`/`read_u16` above.
+    #[kani::proof]
+    fn prove_read_optional_address_within_contract_never_panics() {
+        let bytes: [u8; 64] = kani::any();
+        let offset: usize = kani::any();
+        kani::assume(offset <= bytes.len() - 32);
+        let _ = read_optional_address(&bytes, offset);
+    }
+
+    /// Correctness: `read_optional_address` must return `None` exactly when
+    /// the 32-byte window is all zero, and `Some` with those exact bytes
+    /// otherwise — not an approximation (e.g. only checking the first few
+    /// bytes) that would misclassify a real, non-zero address as absent.
+    #[kani::proof]
+    fn prove_read_optional_address_correctness() {
+        let bytes: [u8; 32] = kani::any();
+        let result = read_optional_address(&bytes, 0);
+        if bytes == [0u8; 32] {
+            assert!(result.is_none(), "an all-zero window must decode as None");
+        } else {
+            let got: Option<[u8; 32]> = result.map(|a| a.as_ref().try_into().unwrap());
+            assert_eq!(
+                got,
+                Some(bytes),
+                "a non-zero window must decode to exactly those bytes"
+            );
+        }
+    }
+}

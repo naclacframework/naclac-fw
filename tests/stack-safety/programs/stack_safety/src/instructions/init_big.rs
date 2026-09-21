@@ -19,7 +19,6 @@ pub struct InitBig {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_big(ctx: Context<InitBig>) -> Result {
     let big = &mut ctx.accounts.big;
     big.bump = ctx.bumps.big;

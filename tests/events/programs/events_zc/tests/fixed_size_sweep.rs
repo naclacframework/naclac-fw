@@ -1,4 +1,4 @@
-use naclac_client::*;
+﻿use naclac_client::*;
 use events_zc_client::{
     instructions::{
         build_emit_fixed_128, build_emit_fixed_2048, build_emit_fixed_512, build_emit_fixed_8,
@@ -11,22 +11,9 @@ use events_zc_client::{
     types::PROGRAM_ID,
 };
 
-fn load_program(provider: &NaclacProvider) {
-    let mut so_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    so_path.pop(); // programs
-    so_path.pop(); // events workspace root
-    so_path.push("target/deploy/events_zc.so");
-
-    provider
-        .add_program(&PROGRAM_ID, so_path.to_str().unwrap())
-        .expect("Failed to load events_zc program binary");
-}
-
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new("litesvm", payer);
-    load_program(&provider);
-    provider
+    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
 fn expire(provider: &NaclacProvider) {
@@ -37,7 +24,7 @@ fn expire(provider: &NaclacProvider) {
 
 /// Real, measured CU cost of the fixed-size (`bytemuck::bytes_of`, no
 /// allocation) `sol_log_data` emit path vs. a length-prefix-free self-CPI,
-/// across the same sizes used in the dynamic (`#[event(alloc)]`) sweep — so
+/// across the same sizes used in the dynamic (`#[event(alloc)]`) sweep â€” so
 /// the two mechanisms can be compared directly under solana-program +
 /// zero-copy.
 #[test]

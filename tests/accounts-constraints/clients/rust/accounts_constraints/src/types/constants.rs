@@ -3,12 +3,12 @@
 
 #[cfg(feature = "offchain")]
 pub const PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_array([
-    63, 71, 44, 117, 65, 248, 132, 126, 200, 16, 148, 66, 125, 58, 79, 101, 101, 56, 206, 187, 51, 230, 38, 30, 224, 243, 242, 127, 137, 12, 31, 139
+    57, 221, 66, 231, 212, 135, 26, 234, 255, 162, 150, 109, 15, 60, 146, 109, 196, 108, 90, 5, 216, 222, 172, 151, 74, 246, 19, 165, 60, 59, 65, 161
 ]);
 
-#[cfg(not(feature = "offchain"))]
-pub const PROGRAM_ID: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
-    63, 71, 44, 117, 65, 248, 132, 126, 200, 16, 148, 66, 125, 58, 79, 101, 101, 56, 206, 187, 51, 230, 38, 30, 224, 243, 242, 127, 137, 12, 31, 139
+#[cfg(feature = "cpi")]
+pub const PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([
+    57, 221, 66, 231, 212, 135, 26, 234, 255, 162, 150, 109, 15, 60, 146, 109, 196, 108, 90, 5, 216, 222, 172, 151, 74, 246, 19, 165, 60, 59, 65, 161
 ]);
 
 pub const SEED_VAULT: &[u8] = &[118, 97, 117, 108, 116];

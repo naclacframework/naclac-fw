@@ -23,7 +23,6 @@ pub struct InitVault {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_vault(ctx: Context<InitVault>) -> Result {
     let vault = &mut ctx.accounts.vault;
     vault.admin = ctx.accounts.payer.address();

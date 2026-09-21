@@ -29,7 +29,6 @@ pub struct InitTaggedChild {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_tagged_child(ctx: Context<InitTaggedChild>, bump: u8) -> Result {
     let tagged_child = &mut ctx.accounts.tagged_child;
     tagged_child.bump = bump;

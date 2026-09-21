@@ -39,7 +39,6 @@ pub struct CreateMint2022WithPermanentDelegate {
 /// 4-byte TLV header + 32-byte `PermanentDelegate` value.
 const MINT_WITH_PERMANENT_DELEGATE_SPACE: u64 = 82 + 83 + 1 + 4 + 32;
 
-#[instruction]
 pub fn create_mint2022_with_permanent_delegate(
     ctx: Context<CreateMint2022WithPermanentDelegate>,
     args: CreateMint2022WithPermanentDelegateArgs,

@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "YvZWqwBfnwzYFszL3HMWynJb3o81JhC4C661EuQL3JB",
+  "address": "2NRNEsBPXjtD4GzyGyesA7N69KY9pZBo4cpj5dYjhu2K",
   "metadata": {
     "name": "stack_safety",
     "version": "0.1.0",

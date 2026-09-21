@@ -30,7 +30,6 @@ pub struct CreateMint2022WithPermissionedBurn {
 /// 4-byte TLV header + 32-byte `PermissionedBurnConfig` value.
 const MINT_WITH_PERMISSIONED_BURN_SPACE: u64 = 82 + 83 + 1 + 4 + 32;
 
-#[instruction]
 pub fn create_mint2022_with_permissioned_burn(
     ctx: Context<CreateMint2022WithPermissionedBurn>,
     id: u64,

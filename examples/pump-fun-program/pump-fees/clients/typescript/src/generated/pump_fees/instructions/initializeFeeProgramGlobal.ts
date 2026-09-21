@@ -8,17 +8,17 @@ export const INITIALIZE_FEE_PROGRAM_GLOBAL_DISCRIMINATOR = new Uint8Array([35, 2
 
 /** Instruction arguments for `initializeFeeProgramGlobal`. */
 export interface InitializeFeeProgramGlobalArgs {
-  social_claim_authority: naclac.Address | string;
-  disable_flags: number;
-  claim_rate_limit: bigint | number;
+  socialClaimAuthority: naclac.Address | string;
+  disableFlags: number;
+  claimRateLimit: bigint | number;
 }
 
 /** Accounts for the `initializeFeeProgramGlobal` instruction. */
 export interface InitializeFeeProgramGlobalAccounts {
   authority: naclac.Address | string;
-  pump_global?: naclac.Address | string;
-  fee_program_global?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  pumpGlobal?: naclac.Address | string;
+  feeProgramGlobal?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

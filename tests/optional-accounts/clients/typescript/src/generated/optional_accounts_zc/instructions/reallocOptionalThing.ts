@@ -8,14 +8,14 @@ export const REALLOC_OPTIONAL_THING_DISCRIMINATOR = new Uint8Array([1, 187, 211,
 
 /** Instruction arguments for `reallocOptionalThing`. */
 export interface ReallocOptionalThingArgs {
-  new_space: bigint | number;
+  newSpace: bigint | number;
 }
 
 /** Accounts for the `reallocOptionalThing` instruction. */
 export interface ReallocOptionalThingAccounts {
   payer: naclac.Address | string;
-  optional_thing?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  optionalThing?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("9ckKeo7g3MRX7fWNh1obrJfyWcbobGSHFXZwBfvnmHCr");
+declare_id!("3B6MfxvFZKbQeUANMazZZ2og8vg9VReJecNjE8XfMvFv");
 
 #[cfg(feature = "offchain")]
 pub fn get_vault_a_pda(
@@ -68,7 +68,7 @@ pub struct DupMutBorsh;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for DupMutBorsh {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([128, 5, 206, 190, 141, 126, 3, 70, 92, 169, 187, 200, 131, 205, 25, 227, 8, 50, 2, 124, 176, 136, 113, 40, 95, 207, 73, 123, 145, 213, 174, 63])
+        sdk_core_cpi::Address::new_from_array([32, 77, 61, 11, 113, 41, 7, 116, 207, 225, 31, 199, 171, 253, 25, 247, 18, 43, 240, 204, 26, 190, 87, 110, 52, 114, 133, 114, 34, 106, 196, 85])
     }
 }
 

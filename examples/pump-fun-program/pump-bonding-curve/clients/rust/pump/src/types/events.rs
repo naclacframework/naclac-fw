@@ -870,3 +870,201 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for AdminSetCreatorEventCpi 
 #[cfg(not(feature = "borsh"))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for AdminSetCreatorEventCpi {}
 
+#[cfg(feature = "offchain")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct CollectCreatorFeeEvent {
+    pub timestamp: i64,
+    pub creator: crate::sdk_core_offchain::Address,
+    pub creator_fee: u64,
+    pub quote_mint: crate::sdk_core_offchain::Address,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CollectCreatorFeeEvent {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CollectCreatorFeeEvent {}
+
+#[cfg(feature = "cpi")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct CollectCreatorFeeEventCpi {
+    pub timestamp: i64,
+    pub creator: crate::sdk_core_cpi::Address,
+    pub creator_fee: u64,
+    pub quote_mint: crate::sdk_core_cpi::Address,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CollectCreatorFeeEventCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CollectCreatorFeeEventCpi {}
+
+#[cfg(feature = "offchain")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct InitUserVolumeAccumulatorEvent {
+    pub payer: crate::sdk_core_offchain::Address,
+    pub user: crate::sdk_core_offchain::Address,
+    pub timestamp: i64,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for InitUserVolumeAccumulatorEvent {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for InitUserVolumeAccumulatorEvent {}
+
+#[cfg(feature = "cpi")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct InitUserVolumeAccumulatorEventCpi {
+    pub payer: crate::sdk_core_cpi::Address,
+    pub user: crate::sdk_core_cpi::Address,
+    pub timestamp: i64,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for InitUserVolumeAccumulatorEventCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for InitUserVolumeAccumulatorEventCpi {}
+
+#[cfg(feature = "offchain")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct CloseUserVolumeAccumulatorEvent {
+    pub user: crate::sdk_core_offchain::Address,
+    pub timestamp: i64,
+    pub total_unclaimed_tokens: u64,
+    pub total_claimed_tokens: u64,
+    pub current_sol_volume: u64,
+    pub last_update_timestamp: i64,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CloseUserVolumeAccumulatorEvent {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CloseUserVolumeAccumulatorEvent {}
+
+#[cfg(feature = "cpi")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct CloseUserVolumeAccumulatorEventCpi {
+    pub user: crate::sdk_core_cpi::Address,
+    pub timestamp: i64,
+    pub total_unclaimed_tokens: u64,
+    pub total_claimed_tokens: u64,
+    pub current_sol_volume: u64,
+    pub last_update_timestamp: i64,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CloseUserVolumeAccumulatorEventCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CloseUserVolumeAccumulatorEventCpi {}
+
+#[cfg(feature = "offchain")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct ClaimCashbackEvent {
+    pub user: crate::sdk_core_offchain::Address,
+    pub amount: u64,
+    pub timestamp: i64,
+    pub total_claimed: u64,
+    pub total_cashback_earned: u64,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for ClaimCashbackEvent {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for ClaimCashbackEvent {}
+
+#[cfg(feature = "cpi")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct ClaimCashbackEventCpi {
+    pub user: crate::sdk_core_cpi::Address,
+    pub amount: u64,
+    pub timestamp: i64,
+    pub total_claimed: u64,
+    pub total_cashback_earned: u64,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for ClaimCashbackEventCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for ClaimCashbackEventCpi {}
+
+#[cfg(feature = "offchain")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct ClaimTokenIncentivesEvent {
+    pub user: crate::sdk_core_offchain::Address,
+    pub mint: crate::sdk_core_offchain::Address,
+    pub amount: u64,
+    pub timestamp: i64,
+    pub total_claimed_tokens: u64,
+    pub current_sol_volume: u64,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for ClaimTokenIncentivesEvent {}
+#[cfg(feature = "offchain")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for ClaimTokenIncentivesEvent {}
+
+#[cfg(feature = "cpi")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(feature = "borsh"), repr(C))]
+pub struct ClaimTokenIncentivesEventCpi {
+    pub user: crate::sdk_core_cpi::Address,
+    pub mint: crate::sdk_core_cpi::Address,
+    pub amount: u64,
+    pub timestamp: i64,
+    pub total_claimed_tokens: u64,
+    pub current_sol_volume: u64,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for ClaimTokenIncentivesEventCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(feature = "borsh"))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for ClaimTokenIncentivesEventCpi {}
+

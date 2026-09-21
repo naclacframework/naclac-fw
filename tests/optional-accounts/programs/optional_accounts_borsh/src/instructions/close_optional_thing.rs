@@ -14,7 +14,6 @@ pub struct CloseOptionalThing {
     pub optional_thing: Option<Account<Thing>>,
 }
 
-#[instruction]
 pub fn close_optional_thing(_ctx: Context<CloseOptionalThing>) -> Result {
     Ok(())
 }

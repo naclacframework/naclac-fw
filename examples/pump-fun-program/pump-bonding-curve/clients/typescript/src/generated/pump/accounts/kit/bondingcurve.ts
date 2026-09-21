@@ -10,34 +10,34 @@ export const BONDINGCURVE_DISCRIMINATOR = new Uint8Array([23, 183, 248, 55, 96, 
 /** Gets the encoder for {@link BondingCurve} account data. */
 export function getBondingCurveEncoder(): naclac.FixedSizeEncoder<BondingCurve> {
   return naclac.getStructEncoder([
-    ["virtual_token_reserves", naclac.getU64Encoder()],
-    ["virtual_quote_reserves", naclac.getU64Encoder()],
-    ["real_token_reserves", naclac.getU64Encoder()],
-    ["real_quote_reserves", naclac.getU64Encoder()],
-    ["token_total_supply", naclac.getU64Encoder()],
+    ["virtualTokenReserves", naclac.getU64Encoder()],
+    ["virtualQuoteReserves", naclac.getU64Encoder()],
+    ["realTokenReserves", naclac.getU64Encoder()],
+    ["realQuoteReserves", naclac.getU64Encoder()],
+    ["tokenTotalSupply", naclac.getU64Encoder()],
     ["complete", naclac.getU8Encoder() /* TODO: complex type */],
     ["creator", naclac.getAddressEncoder()],
-    ["is_mayhem_mode", naclac.getU8Encoder() /* TODO: complex type */],
-    ["is_cashback_coin", naclac.getU8Encoder() /* TODO: complex type */],
-    ["quote_mint", naclac.getAddressEncoder()],
-    ["reserved_trailing", naclac.getU8Encoder() /* TODO: complex type */],
+    ["isMayhemMode", naclac.getU8Encoder() /* TODO: complex type */],
+    ["isCashbackCoin", naclac.getU8Encoder() /* TODO: complex type */],
+    ["quoteMint", naclac.getAddressEncoder()],
+    ["reservedTrailing", naclac.getU8Encoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeEncoder<BondingCurve>;
 }
 
 /** Gets the decoder for {@link BondingCurve} account data. */
 export function getBondingCurveDecoder(): naclac.FixedSizeDecoder<BondingCurve> {
   return naclac.getStructDecoder([
-    ["virtual_token_reserves", naclac.getU64Decoder()],
-    ["virtual_quote_reserves", naclac.getU64Decoder()],
-    ["real_token_reserves", naclac.getU64Decoder()],
-    ["real_quote_reserves", naclac.getU64Decoder()],
-    ["token_total_supply", naclac.getU64Decoder()],
+    ["virtualTokenReserves", naclac.getU64Decoder()],
+    ["virtualQuoteReserves", naclac.getU64Decoder()],
+    ["realTokenReserves", naclac.getU64Decoder()],
+    ["realQuoteReserves", naclac.getU64Decoder()],
+    ["tokenTotalSupply", naclac.getU64Decoder()],
     ["complete", naclac.getU8Decoder() /* TODO: complex type */],
     ["creator", naclac.getAddressDecoder()],
-    ["is_mayhem_mode", naclac.getU8Decoder() /* TODO: complex type */],
-    ["is_cashback_coin", naclac.getU8Decoder() /* TODO: complex type */],
-    ["quote_mint", naclac.getAddressDecoder()],
-    ["reserved_trailing", naclac.getU8Decoder() /* TODO: complex type */],
+    ["isMayhemMode", naclac.getU8Decoder() /* TODO: complex type */],
+    ["isCashbackCoin", naclac.getU8Decoder() /* TODO: complex type */],
+    ["quoteMint", naclac.getAddressDecoder()],
+    ["reservedTrailing", naclac.getU8Decoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeDecoder<BondingCurve>;
 }
 

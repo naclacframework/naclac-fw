@@ -34,7 +34,6 @@ pub struct AddLiquidity {
     pub token_program: Program<Token>,
 }
 
-#[instruction]
 pub fn add_liquidity(
     ctx: Context<AddLiquidity>,
     max_amount_a: u64,

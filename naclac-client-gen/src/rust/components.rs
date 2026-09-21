@@ -66,29 +66,120 @@ pub fn generate_components(
                 acc_camel.clone()
             };
 
+            // Field types (mapped once — both the Borsh and zero-copy
+            // declarations below need them, and so does the `syn`-based
+            // padded-field reconstruction).
+            let mapped_field_tys: Vec<String> = acc
+                .ty
+                .fields
+                .iter()
+                .map(|field| {
+                    if for_cpi {
+                        map_type_to_rust_cpi(&field.ty, idl.is_zero_copy, "")
+                    } else {
+                        map_type_to_rust_with_prefix(&field.ty, idl.is_zero_copy, "")
+                    }
+                })
+                .collect();
+
+            // Borsh mode and zero-copy mode can no longer share one body via
+            // `cfg_attr` — the zero-copy declaration below gets real,
+            // verified padding fields spliced in (via the same copied
+            // `pod_struct_checks::generate` `types/typedefs.rs`'s struct
+            // branch uses), which the Borsh derive must never see (Borsh has
+            // no padding, ever). Two fully separate, mutually-exclusive
+            // (`feature = "borsh"` vs `not(feature = "borsh")`) struct
+            // declarations instead — same rationale as `types/typedefs.rs`.
+
+            // --- Borsh-mode declaration: original fields, no padding, no
+            // Pod concept at all.
             comp_content.push_str(cfg);
+            comp_content.push_str("#[cfg(feature = \"borsh\")]\n");
             comp_content.push_str(&render_docs(&acc.docs, ""));
             comp_content.push_str(&format!(
-                "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]\n\
-                 #[cfg_attr(feature = \"borsh\", borsh(crate = \"{sdk_core}::borsh\"))]\n\
-                 #[cfg_attr(not(feature = \"borsh\"), derive(Copy, Clone, Debug))]\n\
-                 #[cfg_attr(not(feature = \"borsh\"), repr(C))]\n\
+                "#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]\n\
+                 #[borsh(crate = \"{sdk_core}::borsh\")]\n\
                  pub struct {name} {{\n",
                 sdk_core = sdk_core,
                 name = struct_name
             ));
-
-            for field in &acc.ty.fields {
+            for (field, field_ty) in acc.ty.fields.iter().zip(&mapped_field_tys) {
                 let field_snake = AsSnakeCase(&field.name).to_string();
-                let field_ty = if for_cpi {
-                    map_type_to_rust_cpi(&field.ty, idl.is_zero_copy, "")
-                } else {
-                    map_type_to_rust_with_prefix(&field.ty, idl.is_zero_copy, "")
-                };
                 comp_content.push_str(&render_docs(&field.docs, "    "));
                 comp_content.push_str(&format!("    pub {}: {},\n", field_snake, field_ty));
             }
             comp_content.push_str("}\n\n");
+
+            // --- Zero-copy-mode declaration: real, verified padding. Every
+            // `#[component]` zero-copy account is assumed Pod-eligible by
+            // construction (on-chain, the macro's own real `#[derive(Pod,
+            // Zeroable)]` on the struct enforces this at compile time — a
+            // heap-owning/dynamic field simply couldn't compile there), so
+            // — unlike `types/typedefs.rs`'s struct branch — there's no
+            // `is_pod` check needed here; this path is unconditional.
+            let mut scratch_fields_src = String::new();
+            for (field, field_ty) in acc.ty.fields.iter().zip(&mapped_field_tys) {
+                let field_snake = AsSnakeCase(&field.name).to_string();
+                scratch_fields_src.push_str(&format!("pub {}: {},\n", field_snake, field_ty));
+            }
+            let scratch_src = format!("struct {} {{ {} }}", struct_name, scratch_fields_src);
+            let parsed_struct: syn::ItemStruct = syn::parse_str(&scratch_src).unwrap_or_else(|e| {
+                panic!(
+                    "component: generated account struct `{}` failed to parse as a \
+                     syn::ItemStruct (bug in naclac-client-gen's type-string generation, \
+                     not in the source IDL): {e}",
+                    struct_name
+                )
+            });
+            let struct_ident: syn::Ident = syn::parse_str(&struct_name)
+                .expect("component: account struct name must be a valid identifier");
+            let (padded_fields, extra_items) = crate::rust::pod_codegen::pod_struct_checks::generate(
+                &struct_ident,
+                &parsed_struct.fields,
+                sdk_core,
+            );
+            let struct_item_tokens = quote::quote! {
+                #[derive(Copy, Clone, Debug)]
+                #[repr(C)]
+                pub struct #struct_ident #padded_fields
+            };
+            let struct_file: syn::File = syn::parse2(struct_item_tokens)
+                .expect("component: generated account struct item must parse as a syn::File");
+
+            comp_content.push_str(cfg);
+            comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+            comp_content.push_str(&render_docs(&acc.docs, ""));
+            comp_content.push_str(&prettyplease::unparse(&struct_file));
+            comp_content.push('\n');
+
+            // Same multi-item cfg-gating requirement `types/typedefs.rs`'s
+            // struct branch already documents: `#[cfg(...)]` only gates the
+            // single item directly below it, so each of `extra_items`'
+            // several top-level `const` items needs both gates attached
+            // individually.
+            let mut extra_file: syn::File = syn::parse2(extra_items)
+                .expect("component: pod_struct_checks::generate output must parse as a syn::File");
+            let offchain_cpi_cfg: syn::Attribute = if for_cpi {
+                syn::parse_quote!(#[cfg(feature = "cpi")])
+            } else {
+                syn::parse_quote!(#[cfg(feature = "offchain")])
+            };
+            let not_borsh_cfg: syn::Attribute = syn::parse_quote!(#[cfg(not(feature = "borsh"))]);
+            for item in &mut extra_file.items {
+                let attrs = match item {
+                    syn::Item::Const(c) => &mut c.attrs,
+                    syn::Item::Fn(f) => &mut f.attrs,
+                    other => panic!(
+                        "component: pod_struct_checks::generate produced an unexpected item \
+                         kind that this cfg-gating pass doesn't handle: {:?}",
+                        other
+                    ),
+                };
+                attrs.insert(0, not_borsh_cfg.clone());
+                attrs.insert(0, offchain_cpi_cfg.clone());
+            }
+            comp_content.push_str(&prettyplease::unparse(&extra_file));
+            comp_content.push('\n');
 
             comp_content.push_str(cfg);
             comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
@@ -100,6 +191,17 @@ pub fn generate_components(
             comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
             comp_content.push_str(&format!(
                 "unsafe impl {}::bytemuck::Pod for {} {{}}\n",
+                sdk_core, struct_name
+            ));
+            // Matches `types/typedefs.rs`'s struct branch and the real
+            // on-chain `#[component]` macro (`naclac-macros/src/
+            // component.rs`) — needed so a construction site like
+            // `Struct { field: v, ..Default::default() }` keeps working
+            // without knowing the auto-inserted padding field's name.
+            comp_content.push_str(cfg);
+            comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+            comp_content.push_str(&format!(
+                "impl core::default::Default for {1} {{\n    fn default() -> Self {{\n        {0}::bytemuck::Zeroable::zeroed()\n    }}\n}}\n\n",
                 sdk_core, struct_name
             ));
         }

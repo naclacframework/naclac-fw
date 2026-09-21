@@ -8,7 +8,7 @@ export const CHECK_IMMUTABLE_OWNER_DISCRIMINATOR = new Uint8Array([39, 115, 111,
 
 /** Instruction arguments for `checkImmutableOwner`. */
 export interface CheckImmutableOwnerArgs {
-  expected_present: number;
+  expectedPresent: number;
 }
 
 /** Accounts for the `checkImmutableOwner` instruction. */

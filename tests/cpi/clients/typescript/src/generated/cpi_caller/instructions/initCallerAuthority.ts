@@ -9,8 +9,8 @@ export const INIT_CALLER_AUTHORITY_DISCRIMINATOR = new Uint8Array([19, 43, 92, 1
 /** Accounts for the `initCallerAuthority` instruction. */
 export interface InitCallerAuthorityAccounts {
   payer: naclac.Address | string;
-  caller_authority?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  callerAuthority?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

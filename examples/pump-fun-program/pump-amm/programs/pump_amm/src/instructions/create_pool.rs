@@ -25,9 +25,6 @@ pub struct CreatePoolArgs {
     pub lp_mint_bump: u8,
     pub user_base_token_account_bump: u8,
     pub user_quote_token_account_bump: u8,
-    pub user_pool_token_account_bump: u8,
-    pub pool_base_token_account_bump: u8,
-    pub pool_quote_token_account_bump: u8,
 }
 
 #[derive(Accounts)]
@@ -84,8 +81,9 @@ pub struct CreatePool {
     )]
     pub user_quote_token_account: InterfaceAccount<TokenAccount>,
 
-    /// SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump` below
-    /// fully validate and construct this account via a real CPI — there is
+    /// SAFETY: `init` + `associated_token::mint`/`::authority` below, plus
+    /// the real Associated Token Program's own CPI-level address
+    /// verification, fully validate and construct this account — there is
     /// no naclac `Discriminator` to check since this is a raw SPL
     /// `TokenAccount` layout, so `AccountInfo` is correct here, not a gap in
     /// coverage (same reasoning as `pump::create`'s own `mint` field).
@@ -94,7 +92,6 @@ pub struct CreatePool {
         payer = creator,
         associated_token::mint = lp_mint,
         associated_token::authority = creator,
-        associated_token::bump = args.user_pool_token_account_bump,
         token::program = token_2022_program,
     )]
     pub user_pool_token_account: AccountInfo,
@@ -111,7 +108,6 @@ pub struct CreatePool {
         payer = creator,
         associated_token::mint = base_mint,
         associated_token::authority = pool,
-        associated_token::bump = args.pool_base_token_account_bump,
         token::program = base_token_program,
     )]
     pub pool_base_token_account: AccountInfo,
@@ -122,7 +118,6 @@ pub struct CreatePool {
         payer = creator,
         associated_token::mint = quote_mint,
         associated_token::authority = pool,
-        associated_token::bump = args.pool_quote_token_account_bump,
         token::program = quote_token_program,
     )]
     pub pool_quote_token_account: AccountInfo,
@@ -134,7 +129,6 @@ pub struct CreatePool {
     pub associated_token_program: Program<AssociatedToken>,
 }
 
-#[instruction]
 pub fn create_pool(ctx: Context<CreatePool>, args: CreatePoolArgs) -> Result {
     require!(
         ctx.accounts.global_config.disable_flags & DISABLE_CREATE_POOL_FLAG == 0,

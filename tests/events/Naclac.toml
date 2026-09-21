@@ -6,9 +6,9 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-events = "3SiLWRe94GRqgeQtXgdiWg3FxXJ5nUeTHfE8HwayedN3"
-events_borsh = "GeUhSoFri6AhtUaertqekvpJYcYn8UopffEzFgnnbYkh"
-events_zc = "25vZAXT6uz5SeU1UbeCqMCFqXYCtHLoEUejdKAftvuPC"
+events = "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
+events_borsh = "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
+events_zc = "B1duziKPKpCnbbzRpBMzkKfivDR6a1D1MfWhd5EF25VA"
 
 [provider]
 cluster = "localnet"

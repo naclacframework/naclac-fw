@@ -9,15 +9,15 @@ export const UPDATE_BUYBACK_CLAIM_RATE_LIMIT_DISCRIMINATOR = new Uint8Array([186
 /** Instruction arguments for `updateBuybackClaimRateLimit`. */
 export interface UpdateBuybackClaimRateLimitArgs {
   index: number;
-  buyback_vault_bump: number;
-  claim_rate_limit: bigint | number;
+  buybackVaultBump: number;
+  claimRateLimit: bigint | number;
 }
 
 /** Accounts for the `updateBuybackClaimRateLimit` instruction. */
 export interface UpdateBuybackClaimRateLimitAccounts {
   authority: naclac.Address | string;
-  fee_program_global?: naclac.Address | string;
-  buyback_vault?: naclac.Address | string;
+  feeProgramGlobal?: naclac.Address | string;
+  buybackVault?: naclac.Address | string;
 }
 
 /**

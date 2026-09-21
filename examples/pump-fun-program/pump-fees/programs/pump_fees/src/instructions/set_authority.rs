@@ -11,7 +11,6 @@ pub struct SetAuthority {
     pub fee_program_global: Account<FeeProgramGlobal>,
 }
 
-#[instruction]
 pub fn set_authority(ctx: Context<SetAuthority>, new_authority: Address) -> Result {
     require!(
         ctx.accounts.authority.address() == ctx.accounts.fee_program_global.authority,

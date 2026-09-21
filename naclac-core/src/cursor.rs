@@ -324,3 +324,110 @@ impl AccountBitvec {
             != 0
     }
 }
+
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// Proves `get`/`set`/`intersects` never panic for any `u8` index —
+    /// `arr_index = index / 64` must stay `< 4` for the full `0..=255` range,
+    /// which this exhaustively checks rather than assumes from the type
+    /// shapes lining up.
+    #[kani::proof]
+    fn prove_account_bitvec_get_set_never_panics() {
+        let mut bv = AccountBitvec::default();
+        let index: u8 = kani::any();
+        bv.set(index);
+        let _ = bv.get(index);
+        let mask: [u64; 4] = kani::any();
+        let _ = bv.intersects(&mask);
+    }
+
+    /// Correctness, not just panic-freedom: setting a bit must make `get`
+    /// report it set. A `set` that missed the real underlying bit (a wrong
+    /// shift/index derivation) would silently defeat the whole
+    /// duplicate-mutable-account guard while still "not panicking".
+    #[kani::proof]
+    fn prove_account_bitvec_set_then_get_is_true() {
+        let mut bv = AccountBitvec::default();
+        let index: u8 = kani::any();
+        bv.set(index);
+        assert!(bv.get(index), "set(index) must make get(index) true");
+    }
+
+    /// Correctness: setting one bit must not disturb any other bit — a
+    /// guard whose `set` had any bit-index collision would let two
+    /// different accounts alias the same tracked bit, silently defeating
+    /// duplicate detection for one of them.
+    #[kani::proof]
+    fn prove_account_bitvec_set_does_not_disturb_other_bits() {
+        let mut bv = AccountBitvec::default();
+        let set_index: u8 = kani::any();
+        let other_index: u8 = kani::any();
+        kani::assume(set_index != other_index);
+        let before = bv.get(other_index);
+        bv.set(set_index);
+        let after = bv.get(other_index);
+        assert_eq!(
+            before, after,
+            "set(set_index) must not change get(other_index) for other_index != set_index"
+        );
+    }
+
+    /// Correctness for `intersects`: a bitvec with exactly one bit set must
+    /// report an intersection against a mask with that same bit set, and no
+    /// intersection against a mask with only a different bit set.
+    #[kani::proof]
+    fn prove_account_bitvec_intersects_correctness() {
+        let mut bv = AccountBitvec::default();
+        let bit: u8 = kani::any();
+        bv.set(bit);
+
+        let mut same_mask = [0u64; 4];
+        same_mask[(bit as usize) / 64] |= 1u64 << ((bit as usize) % 64);
+        assert!(
+            bv.intersects(&same_mask),
+            "matching bit must be detected as intersecting"
+        );
+
+        let other_bit: u8 = kani::any();
+        kani::assume(other_bit != bit);
+        let mut other_mask = [0u64; 4];
+        other_mask[(other_bit as usize) / 64] |= 1u64 << ((other_bit as usize) % 64);
+        assert!(
+            !bv.intersects(&other_mask),
+            "non-matching bit must not be reported as intersecting"
+        );
+    }
+
+    /// `mut_mask_set_bit` is only ever called at macro-expansion time with a
+    /// small literal `bit` (an account field's declaration index), never a
+    /// user-controlled runtime value — its real contract is "safe for `bit
+    /// < 256`", not "safe for all `usize`" (unlike `AccountBitvec::set`,
+    /// whose `index: u8` bounds this at the type level, `bit` here is a bare
+    /// `usize` with no such guarantee, and `mask[bit / 64]` panics
+    /// out-of-bounds for `bit >= 256`). This proves the real contract
+    /// exactly, plus the same set-bit/no-disturbance correctness
+    /// `AccountBitvec::set` gets above — it does not claim totality over
+    /// every `usize`, since that claim is false.
+    #[kani::proof]
+    fn prove_mut_mask_set_bit_within_contract() {
+        let mask: [u64; 4] = kani::any();
+        let bit: usize = kani::any();
+        kani::assume(bit < 256);
+        let result = mut_mask_set_bit(mask, bit);
+        assert_eq!(
+            (result[bit / 64] >> (bit % 64)) & 1,
+            1,
+            "the target bit must end up set"
+        );
+        for word in 0..4 {
+            if word != bit / 64 {
+                assert_eq!(
+                    result[word], mask[word],
+                    "words other than the target must be untouched"
+                );
+            }
+        }
+    }
+}

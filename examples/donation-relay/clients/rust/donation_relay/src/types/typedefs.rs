@@ -36,6 +36,3 @@ pub struct DonatePubkeyConfigIdWithPayerV1ArgsCpi {
     pub from_token_account_bump: u8,
 }
 
-#[cfg(all(feature = "cpi", not(feature = "offchain")))]
-pub type DonatePubkeyConfigIdWithPayerV1Args = DonatePubkeyConfigIdWithPayerV1ArgsCpi;
-

@@ -14,9 +14,9 @@ export interface BurnVaultTokensArgs {
 /** Accounts for the `burnVaultTokens` instruction. */
 export interface BurnVaultTokensAccounts {
   mint: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   vault: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

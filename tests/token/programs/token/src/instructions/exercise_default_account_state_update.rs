@@ -19,7 +19,6 @@ pub struct ExerciseDefaultAccountStateUpdate {
     pub token_program: Program<Token2022>,
 }
 
-#[instruction]
 pub fn exercise_default_account_state_update(
     ctx: Context<ExerciseDefaultAccountStateUpdate>,
     new_state: u8,

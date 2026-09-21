@@ -15,9 +15,9 @@ export interface CreatePoolArgs {
 /** Accounts for the `createPool` instruction. */
 export interface CreatePoolAccounts {
   creator: naclac.Address | string;
-  base_mint: naclac.Address | string;
-  quote_mint: naclac.Address | string;
-  global_config?: naclac.Address | string;
+  baseMint: naclac.Address | string;
+  quoteMint: naclac.Address | string;
+  globalConfig?: naclac.Address | string;
   pool?: naclac.Address | string;
   /**
    * SAFETY: `init` + `mint::decimals`/`mint::authority` below fully
@@ -26,17 +26,18 @@ export interface CreatePoolAccounts {
    * `Mint` layout, so `AccountInfo` is correct here, not a gap in
    * coverage (same reasoning as `pump::create`'s own `mint` field).
    */
-  lp_mint?: naclac.Address | string;
-  user_base_token_account: naclac.Address | string;
-  user_quote_token_account: naclac.Address | string;
+  lpMint?: naclac.Address | string;
+  userBaseTokenAccount: naclac.Address | string;
+  userQuoteTokenAccount: naclac.Address | string;
   /**
-   * SAFETY: `init` + `associated_token::mint`/`::authority`/`::bump` below
-   * fully validate and construct this account via a real CPI — there is
+   * SAFETY: `init` + `associated_token::mint`/`::authority` below, plus
+   * the real Associated Token Program's own CPI-level address
+   * verification, fully validate and construct this account — there is
    * no naclac `Discriminator` to check since this is a raw SPL
    * `TokenAccount` layout, so `AccountInfo` is correct here, not a gap in
    * coverage (same reasoning as `pump::create`'s own `mint` field).
    */
-  user_pool_token_account: naclac.Address | string;
+  userPoolTokenAccount: naclac.Address | string;
   /**
    * SAFETY: same as `user_pool_token_account` above. `init_if_needed`
    * (not strict `init`) — `pump::migrate` pre-creates this itself before
@@ -46,14 +47,14 @@ export interface CreatePoolAccounts {
    * already exist by the time the real program's nested `CreatePool`
    * call starts), so a strict `init` would wrongly reject that path.
    */
-  pool_base_token_account: naclac.Address | string;
+  poolBaseTokenAccount: naclac.Address | string;
   /** SAFETY: same as `pool_base_token_account` above. */
-  pool_quote_token_account: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  token_2022_program?: naclac.Address | string;
-  base_token_program: naclac.Address | string;
-  quote_token_program: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  poolQuoteTokenAccount: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  token2022Program?: naclac.Address | string;
+  baseTokenProgram: naclac.Address | string;
+  quoteTokenProgram: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -8,10 +8,10 @@ export const READ_CONFIG_ENTRY_BARE_BUMP_DISCRIMINATOR = new Uint8Array([210, 17
 
 /** Instruction arguments for `readConfigEntryBareBump`. */
 export interface ReadConfigEntryBareBumpArgs {
-  is_pump_pool: naclac.Bool;
-  market_cap_lamports: bigint | number;
-  trade_size_lamports: bigint | number;
-  is_new_quote_mint: naclac.Bool;
+  isPumpPool: naclac.Bool;
+  marketCapLamports: bigint | number;
+  tradeSizeLamports: bigint | number;
+  isNewQuoteMint: naclac.Bool;
 }
 
 /** Accounts for the `readConfigEntryBareBump` instruction. */
@@ -20,8 +20,8 @@ export interface ReadConfigEntryBareBumpAccounts {
    * SAFETY: only used as PDA seed material for `config_entry` below; never
    * deserialized, invoked, or otherwise trusted for its own contents.
    */
-  config_program_id: naclac.Address | string;
-  config_entry?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  configEntry?: naclac.Address | string;
 }
 
 /**

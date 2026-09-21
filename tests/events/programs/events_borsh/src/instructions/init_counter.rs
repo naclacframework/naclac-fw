@@ -18,7 +18,6 @@ pub struct InitCounter {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_counter(ctx: Context<InitCounter>) -> Result {
     // Bare `bump`'s auto-write-back is zero-copy-only (see
     // `init_mint_authority` in tests/token/ for the same gotcha) — without

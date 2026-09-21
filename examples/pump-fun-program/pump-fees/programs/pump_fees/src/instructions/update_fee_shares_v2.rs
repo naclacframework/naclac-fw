@@ -106,7 +106,6 @@ pub struct UpdateFeeSharesV2 {
 /// any currently pending bonding-curve creator fees to the *current* (pre-update)
 /// shareholder list, then (3) overwrites `sharing_config.shareholders` and sets
 /// `admin_revoked = true` so no further call can succeed.
-#[instruction]
 pub fn update_fee_shares_v2(
     ctx: Context<UpdateFeeSharesV2>,
     bonding_curve_bump: u8,

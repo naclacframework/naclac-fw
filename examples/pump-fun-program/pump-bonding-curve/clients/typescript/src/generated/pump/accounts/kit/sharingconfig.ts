@@ -15,8 +15,8 @@ export function getSharingConfigEncoder(): naclac.FixedSizeEncoder<SharingConfig
     ["status", naclac.getU8Encoder()],
     ["mint", naclac.getAddressEncoder()],
     ["admin", naclac.getAddressEncoder()],
-    ["admin_revoked", naclac.getU8Encoder()],
-    ["shareholders_len", naclac.getU32Encoder()],
+    ["adminRevoked", naclac.getU8Encoder()],
+    ["shareholdersLen", naclac.getU32Encoder()],
     ["shareholders", naclac.getU8Encoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeEncoder<SharingConfig>;
 }
@@ -29,8 +29,8 @@ export function getSharingConfigDecoder(): naclac.FixedSizeDecoder<SharingConfig
     ["status", naclac.getU8Decoder()],
     ["mint", naclac.getAddressDecoder()],
     ["admin", naclac.getAddressDecoder()],
-    ["admin_revoked", naclac.getU8Decoder()],
-    ["shareholders_len", naclac.getU32Decoder()],
+    ["adminRevoked", naclac.getU8Decoder()],
+    ["shareholdersLen", naclac.getU32Decoder()],
     ["shareholders", naclac.getU8Decoder() /* TODO: complex type */],
   ]) as naclac.FixedSizeDecoder<SharingConfig>;
 }

@@ -1,4 +1,4 @@
-//! Sequential, idempotent, cross-cluster lifecycle test for the pump_fees
+﻿//! Sequential, idempotent, cross-cluster lifecycle test for the pump_fees
 //! program -- the pump_fees counterpart to `pump-bonding-curve`'s own
 //! `pump_lifecycle_test.rs`. Creates the real on-chain state
 //! (`FeeProgramGlobal`, `FeeConfig`, the 8 buyback vaults) that
@@ -44,17 +44,9 @@ const CLUSTER: &str = "devnet";
 
 fn setup() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    let provider = NaclacProvider::new(CLUSTER, payer);
+    let provider = NaclacProvider::new(CLUSTER, payer).expect("Failed to construct NaclacProvider");
 
     if provider.cluster == RpcCluster::Litesvm {
-        let mut own_workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        own_workspace_root.pop(); // programs
-        own_workspace_root.pop(); // pump-fees workspace root
-        let pump_fees_so = resolve_cargo_target_dir(&own_workspace_root).join("deploy/pump_fees.so");
-        provider
-            .add_program(&PROGRAM_ID, pump_fees_so.to_str().unwrap())
-            .expect("Failed to load pump_fees.so");
-
         let mut pump_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         pump_root.pop(); // programs
         pump_root.pop(); // pump-fees workspace root
@@ -209,7 +201,8 @@ fn ensure_fee_config(provider: &NaclacProvider) -> Address {
         PROGRAM_ID,
         vec![FeeTier {
             market_cap_lamports_threshold: 0,
-            fees: Fees { lp_fee_bps: 0, protocol_fee_bps: 95, creator_fee_bps: 30 },
+            fees: Fees { lp_fee_bps: 0, protocol_fee_bps: 95, creator_fee_bps: 30, ..Default::default() },
+            ..Default::default()
         }],
         0,
         UpsertFeeTiersAccounts {
@@ -228,7 +221,8 @@ fn ensure_fee_config(provider: &NaclacProvider) -> Address {
         PROGRAM_ID,
         vec![FeeTier {
             market_cap_lamports_threshold: 0,
-            fees: Fees { lp_fee_bps: 0, protocol_fee_bps: 95, creator_fee_bps: 30 },
+            fees: Fees { lp_fee_bps: 0, protocol_fee_bps: 95, creator_fee_bps: 30, ..Default::default() },
+            ..Default::default()
         }],
         0,
         UpsertStableFeeTiersAccounts {

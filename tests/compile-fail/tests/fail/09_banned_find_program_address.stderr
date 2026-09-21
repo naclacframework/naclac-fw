@@ -1,7 +1,0 @@
-error: Naclac Error: 'find_program_address' and 'create_program_address' are not supported in Naclac. To optimize Compute Units (CUs), Naclac strictly bans on-chain PDA derivation searches. Please pass the bump seed from the client and validate using the hash-and-compare optimization (e.g., using `#[account(seeds = [...], bump = my_bump)]` or `#[account(seeds = [...], bump)]`).
- --> tests/fail/09_banned_find_program_address.rs:9:1
-  |
-9 | #[instruction]
-  | ^^^^^^^^^^^^^^
-  |
-  = note: this error originates in the attribute macro `instruction` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -26,7 +26,6 @@ pub struct InitIfNeededLedger {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_if_needed_ledger(ctx: Context<InitIfNeededLedger>, value: u64) -> Result {
     let ledger = &mut ctx.accounts.ledger;
     if ledger.value == 0 {

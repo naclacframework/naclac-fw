@@ -46,7 +46,6 @@ pub struct SetCreator {
 // `None`/empty does the raw `creator` arg get written, literally -- including
 // writing `Address::default()` if that's what's passed; there is no
 // zero-arg-as-sentinel special case.
-#[instruction]
 pub fn set_creator(
     ctx: Context<SetCreator>,
     creator: Address,

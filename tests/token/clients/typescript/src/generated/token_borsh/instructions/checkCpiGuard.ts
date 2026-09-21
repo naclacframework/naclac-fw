@@ -8,8 +8,8 @@ export const CHECK_CPI_GUARD_DISCRIMINATOR = new Uint8Array([252, 156, 176, 45, 
 
 /** Instruction arguments for `checkCpiGuard`. */
 export interface CheckCpiGuardArgs {
-  expected_present: number;
-  expected_locked: number;
+  expectedPresent: number;
+  expectedLocked: number;
 }
 
 /** Accounts for the `checkCpiGuard` instruction. */

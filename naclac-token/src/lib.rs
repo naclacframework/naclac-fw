@@ -67,8 +67,9 @@ pub mod prelude {
         InterestBearingConfig, MemoTransfer, MetadataPointer, MintCloseAuthority,
         NonTransferable,
         NonTransferableAccount, PausableAccount, PausableConfig, PermanentDelegate,
-        PermissionedBurnConfig, ScaledUiAmountConfig,
+        PermissionedBurnCheckedParams, PermissionedBurnConfig, ScaledUiAmountConfig,
         TokenInterfaceAccountExtensions,
+        TransferCheckedWithFeeParams,
         TransferFeeAmount, TransferFeeConfig, TransferHook, TransferHookAccount,
         MAX_TRANSFER_FEE_SOURCE_ACCOUNTS,
     };

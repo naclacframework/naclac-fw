@@ -19,8 +19,24 @@ heck = "0.5.0"
 solana-address = { workspace = true }
 bs58 = { workspace = true }
 toml = { workspace = true }
+# Mandatory, not feature-gated: naclac-syn is the single source of truth for
+# discriminator hashing and enum discriminant sequencing (see
+# `naclac-syn::discriminator`) — this crate calls those shared functions
+# instead of keeping its own independently-drifting copies. naclac-syn has
+# no dependency back on this crate, so no cycle.
+naclac-syn = { workspace = true }
+naclac-idl = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 
 [features]
 debug-mode = []
 pinocchio = []
 borsh = []
+# See docs/plan/idl-build-compilation-migration.md — this feature is being
+# migrated from a macro-expansion-time diagnostic into the real
+# compilation-based IDL generation path (a `#[test]`-emission mechanism
+# modeled on Anchor's `idl-build`). Not yet complete.
+idl-build = ["dep:naclac-idl", "dep:serde_json"]
+
+[lints]
+workspace = true

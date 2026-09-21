@@ -9,8 +9,8 @@ export const UPDATE_FEE_CONFIG_DISCRIMINATOR = new Uint8Array([104, 184, 103, 24
 
 /** Instruction arguments for `updateFeeConfig`. */
 export interface UpdateFeeConfigArgs {
-  fee_tiers: Array<types.FeeTier>;
-  flat_fees: types.Fees;
+  feeTiers: Array<types.FeeTier>;
+  flatFees: types.Fees;
 }
 
 /** Accounts for the `updateFeeConfig` instruction. */
@@ -20,8 +20,8 @@ export interface UpdateFeeConfigAccounts {
    * SAFETY: only used as PDA seed material for `fee_config`; not
    * deserialized or invoked.
    */
-  config_program_id: naclac.Address | string;
-  fee_config?: naclac.Address | string;
+  configProgramId: naclac.Address | string;
+  feeConfig?: naclac.Address | string;
 }
 
 /**

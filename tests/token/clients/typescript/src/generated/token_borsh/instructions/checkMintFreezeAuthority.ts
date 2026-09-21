@@ -17,7 +17,7 @@ export interface CheckMintFreezeAuthorityAccounts {
    * convention as `check_vault_constraints.rs`'s `mint`/`mint_authority`
    * preceding `vault`).
    */
-  freeze_authority: naclac.Address | string;
+  freezeAuthority: naclac.Address | string;
   mint: naclac.Address | string;
 }
 

@@ -20,7 +20,7 @@ export interface ApproveVaultDelegate2022Accounts {
    */
   delegate: naclac.Address | string;
   owner: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

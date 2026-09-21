@@ -17,7 +17,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("FmAd3YoDDWu1csNEeKJQ51yi79oAwvf61CbKP1bMaM5R");
+declare_id!("6qhCvUthJPdcroNcaPF6TPzuLNCJH5wjbdeLc4zYV3iK");
 
 #[cfg(feature = "cpi")]
 #[derive(Clone, Copy)]
@@ -26,7 +26,7 @@ pub struct TestTransferHook;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for TestTransferHook {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([219, 84, 13, 51, 230, 238, 25, 53, 116, 100, 104, 69, 8, 196, 54, 214, 82, 163, 176, 167, 216, 127, 161, 79, 217, 237, 183, 187, 131, 100, 116, 120])
+        sdk_core_cpi::Address::new_from_array([86, 195, 198, 38, 233, 209, 169, 37, 103, 206, 160, 84, 173, 127, 192, 94, 38, 85, 25, 180, 212, 88, 120, 189, 35, 114, 180, 165, 167, 51, 124, 212])
     }
 }
 

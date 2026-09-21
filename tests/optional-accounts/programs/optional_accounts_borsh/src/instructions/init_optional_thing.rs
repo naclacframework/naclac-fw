@@ -23,7 +23,6 @@ pub struct InitOptionalThing {
     pub system_program: Program<System>,
 }
 
-#[instruction]
 pub fn init_optional_thing(ctx: Context<InitOptionalThing>) -> Result {
     if let Some(optional_thing) = ctx.accounts.optional_thing.as_mut() {
         optional_thing.value = 42;
