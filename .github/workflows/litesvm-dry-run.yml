@@ -1,0 +1,22 @@
+name: litesvm dry-run
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - pending
+    paths:
+      - naclac-litesvm-node/**
+      - .github/workflows/publish-litesvm-npm.yml
+      - .github/workflows/litesvm-dry-run.yml
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish-litesvm-npm-dryrun:
+    name: Publish litesvm npm packages (dry-run)
+    uses: ./.github/workflows/publish-litesvm-npm.yml
+    with:
+      dry_run: true
