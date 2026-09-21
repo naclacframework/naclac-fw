@@ -97,3 +97,10 @@ jobs:
     with:
       dry_run: false
     secrets: inherit
+
+  publish-litesvm-npm:
+    name: Publish litesvm npm packages
+    uses: ./.github/workflows/publish-litesvm-npm.yml
+    with:
+      dry_run: false
+    secrets: inherit

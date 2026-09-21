@@ -1,0 +1,13 @@
+/node_modules
+/npm/
+/target
+*.node
+naclac-litesvm.wasi*
+naclac-litesvm.wasm32*
+naclac-litesvm.wasip1*
+wasi-worker*.mjs
+.napi-rs-filesystem-transaction.swp
+.*.prepared.tmp
+.*.retired.tmp
+.*.rollback.tmp
+.*.tmp

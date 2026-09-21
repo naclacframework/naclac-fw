@@ -1,0 +1,105 @@
+name: Publish litesvm npm packages
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        description: "If true, build and stage packages but use --dry-run instead of actually publishing"
+        required: true
+        type: boolean
+
+jobs:
+  build-litesvm:
+    name: Build litesvm addon for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    defaults:
+      run:
+        working-directory: naclac-litesvm-node
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn napi build --platform --release --target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: litesvm-bindings-${{ matrix.target }}
+          path: naclac-litesvm-node/*.node
+          if-no-files-found: error
+
+  publish-litesvm:
+    name: Publish litesvm npm packages
+    needs: build-litesvm
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    environment:
+      name: release
+    defaults:
+      run:
+        working-directory: naclac-litesvm-node
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: naclac-litesvm-node/artifacts
+          pattern: litesvm-bindings-*
+          merge-multiple: true
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn napi create-npm-dirs --npm-dir ./npm
+
+      - run: yarn napi artifacts --output-dir ./artifacts --npm-dir ./npm
+
+      - run: yarn napi pre-publish --npm-dir ./npm
+
+      - name: Publish platform packages (dry-run)
+        if: ${{ inputs.dry_run }}
+        run: |
+          for dir in npm/*/; do
+            (cd "$dir" && npm publish --dry-run --access public)
+          done
+          npm publish --dry-run --access public
+
+      - name: Publish platform packages
+        if: ${{ !inputs.dry_run }}
+        run: |
+          for dir in npm/*/; do
+            (cd "$dir" && npm publish --provenance --access public)
+          done
+          npm publish --provenance --access public
