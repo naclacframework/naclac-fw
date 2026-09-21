@@ -87,6 +87,9 @@ jobs:
   publish-crates:
     name: Publish crates
     uses: ./.github/workflows/publish-crates.yml
+    permissions:
+      contents: read
+      id-token: write
     with:
       dry_run: false
     secrets: inherit
@@ -94,6 +97,9 @@ jobs:
   publish-npm:
     name: Publish npm package
     uses: ./.github/workflows/publish-npm.yml
+    permissions:
+      contents: read
+      id-token: write
     with:
       dry_run: false
     secrets: inherit
@@ -101,6 +107,10 @@ jobs:
   publish-litesvm-npm:
     name: Publish litesvm npm packages
     uses: ./.github/workflows/publish-litesvm-npm.yml
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
     with:
       dry_run: false
     secrets: inherit

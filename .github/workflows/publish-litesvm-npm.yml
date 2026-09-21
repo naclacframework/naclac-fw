@@ -55,6 +55,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      actions: read
     environment:
       name: release
     defaults:

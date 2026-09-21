@@ -15,6 +15,11 @@ on:
       - .github/workflows/publish-litesvm-npm.yml
       - .github/workflows/release-dry-run.yml
 
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
 jobs:
   publish-crates-dryrun:
     name: Publish crates (dry-run)
