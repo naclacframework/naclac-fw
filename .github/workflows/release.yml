@@ -66,7 +66,7 @@ jobs:
         Compress-Archive -Path nacvm.exe -DestinationPath ../../../nacvm-${{ matrix.target }}.zip
 
     - name: Attest build provenance
-      uses: actions/attest-build-provenance@v3
+      uses: actions/attest-build-provenance@v4
       with:
         subject-path: |
           naclac-${{ matrix.target }}.*

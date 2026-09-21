@@ -27,28 +27,22 @@ jobs:
       run:
         working-directory: naclac-litesvm-node
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          node-version: "24"
+          package-manager-cache: false
 
       - run: yarn install --frozen-lockfile
 
       - run: yarn napi build --platform --release --target ${{ matrix.target }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: litesvm-bindings-${{ matrix.target }}
           path: naclac-litesvm-node/*.node
@@ -67,14 +61,15 @@ jobs:
       run:
         working-directory: naclac-litesvm-node
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "24"
+          package-manager-cache: false
           registry-url: "https://registry.npmjs.org"
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: naclac-litesvm-node/artifacts
           pattern: litesvm-bindings-*
