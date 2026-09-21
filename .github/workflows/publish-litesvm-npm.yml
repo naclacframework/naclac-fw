@@ -68,7 +68,6 @@ jobs:
         with:
           node-version: "24"
           package-manager-cache: false
-          registry-url: "https://registry.npmjs.org"
 
       - uses: actions/download-artifact@v8
         with:
@@ -91,6 +90,14 @@ jobs:
             (cd "$dir" && npm publish --dry-run --access public)
           done
           npm publish --dry-run --access public
+
+      - name: Configure npm registry for trusted publishing
+        if: ${{ !inputs.dry_run }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+          registry-url: "https://registry.npmjs.org"
 
       - name: Publish platform packages
         if: ${{ !inputs.dry_run }}
