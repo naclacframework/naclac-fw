@@ -12,3 +12,8 @@
 /examples/magicblock-labs/ephemeral-rollups-sdk
 /examples/magicblock-labs/magicblock-validator
 /examples/pump-fun-program/pump-public-docs
+*.log
+/docs/
+.stavreng-ignore
+.cargo/
+target
