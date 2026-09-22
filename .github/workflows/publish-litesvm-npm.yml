@@ -81,7 +81,7 @@ jobs:
 
       - run: yarn napi artifacts --output-dir ./artifacts --npm-dir ./npm
 
-      - run: yarn napi pre-publish --npm-dir ./npm
+      - run: yarn napi pre-publish --npm-dir ./npm --no-gh-release
 
       - name: Publish platform packages (dry-run)
         if: ${{ inputs.dry_run }}
