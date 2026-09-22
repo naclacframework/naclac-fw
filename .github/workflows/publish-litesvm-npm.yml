@@ -7,6 +7,17 @@ on:
         description: "If true, build and stage packages but use --dry-run instead of actually publishing"
         required: true
         type: boolean
+  # Lets litesvm publish on its own cadence, independent of release.yml's
+  # tag-triggered flow (which also publishes crates and @naclac-fw/client
+  # together) — useful since this crate doesn't need to move in lockstep
+  # with the rest of the framework.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "If true, build and stage packages but use --dry-run instead of actually publishing"
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   build-litesvm:
