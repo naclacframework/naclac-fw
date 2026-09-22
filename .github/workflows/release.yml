@@ -1,5 +1,11 @@
 name: Release Naclac CLI
 
+# TEMPORARY: build-release/publish-crates/publish-npm removed for a one-off
+# litesvm-only publish (client/crates aren't ready to publish yet). This
+# lets the trust config already pointing at release.yml work without
+# needing a separate trust entry for a throwaway workflow filename. Revert
+# this commit right after the litesvm publish succeeds.
+
 on:
   push:
     tags:
@@ -9,101 +15,6 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
-    name: Build for ${{ matrix.target }}
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
-      id-token: write
-      attestations: write
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-            artifact_name: naclac
-            use_shell: true
-          - target: x86_64-apple-darwin
-            os: macos-latest
-            artifact_name: naclac
-            use_shell: true
-          - target: aarch64-apple-darwin
-            os: macos-latest
-            artifact_name: naclac
-            use_shell: true
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            artifact_name: naclac.exe
-            use_shell: false
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v7
-
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: ${{ matrix.target }}
-
-    - name: Build CLI and Version Manager in Release Mode
-      run: |
-        cargo build --release --bin naclac --target ${{ matrix.target }}
-        cargo build --release --bin nacvm --target ${{ matrix.target }}
-
-    - name: Package Binary (Unix)
-      if: matrix.use_shell
-      run: |
-        cd target/${{ matrix.target }}/release
-        tar -czf ../../../naclac-${{ matrix.target }}.tar.gz ${{ matrix.artifact_name }}
-        tar -czf ../../../nacvm-${{ matrix.target }}.tar.gz nacvm
-
-    - name: Package Binary (Windows)
-      if: ${{ !matrix.use_shell }}
-      shell: pwsh
-      run: |
-        cd target/${{ matrix.target }}/release
-        Compress-Archive -Path ${{ matrix.artifact_name }} -DestinationPath ../../../naclac-${{ matrix.target }}.zip
-        Compress-Archive -Path nacvm.exe -DestinationPath ../../../nacvm-${{ matrix.target }}.zip
-
-    - name: Attest build provenance
-      uses: actions/attest-build-provenance@v4
-      with:
-        subject-path: |
-          naclac-${{ matrix.target }}.*
-          nacvm-${{ matrix.target }}.*
-
-    - name: Upload Release Artifacts
-      uses: softprops/action-gh-release@v3
-      with:
-        prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-rc') || contains(github.ref, '-alpha') }}
-        files: |
-          naclac-${{ matrix.target }}.tar.gz
-          naclac-${{ matrix.target }}.zip
-          nacvm-${{ matrix.target }}.tar.gz
-          nacvm-${{ matrix.target }}.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-crates:
-    name: Publish crates
-    uses: ./.github/workflows/publish-crates.yml
-    permissions:
-      contents: read
-      id-token: write
-    with:
-      dry_run: false
-    secrets: inherit
-
-  publish-npm:
-    name: Publish npm package
-    uses: ./.github/workflows/publish-npm.yml
-    permissions:
-      contents: read
-      id-token: write
-    with:
-      dry_run: false
-    secrets: inherit
-
   publish-litesvm-npm:
     name: Publish litesvm npm packages
     uses: ./.github/workflows/publish-litesvm-npm.yml
