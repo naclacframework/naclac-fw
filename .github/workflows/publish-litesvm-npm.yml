@@ -98,7 +98,13 @@ jobs:
 
       - run: yarn napi artifacts --output-dir ./artifacts --npm-dir ./npm
 
-      - run: yarn napi pre-publish --npm-dir ./npm --no-gh-release
+      # `--skip-optional-publish`: pre-publish's own internal per-package
+      # validation call for each optionalDependencies package (the 4
+      # platform packages) runs from a directory our project-level .npmrc
+      # doesn't reach and needs real registry auth even for that internal
+      # check — our own explicit publish loop below already validates and
+      # publishes each of them correctly, so this internal one is redundant.
+      - run: yarn napi pre-publish --npm-dir ./npm --no-gh-release --skip-optional-publish
 
       - name: Publish platform packages (dry-run)
         if: ${{ inputs.dry_run }}
