@@ -58,6 +58,15 @@ jobs:
       actions: read
     environment:
       name: release
+    env:
+      # `actions/setup-node`'s `registry-url` input writes a job-wide
+      # `.npmrc` referencing `${NODE_AUTH_TOKEN}` (via NPM_CONFIG_USERCONFIG),
+      # regardless of whether the actual publish uses OIDC trusted publishing
+      # instead of a token. Yarn's config parser throws on any unresolved
+      # `${VAR}` reference, even for commands that never touch the registry,
+      # so this must stay defined (empty is fine) for every later yarn
+      # invocation in this job to succeed.
+      NODE_AUTH_TOKEN: ""
     defaults:
       run:
         working-directory: naclac-litesvm-node
