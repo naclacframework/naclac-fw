@@ -1,0 +1,24 @@
+name: litesvm real publish (one-off)
+
+# Temporary: workflow_dispatch on publish-litesvm-npm.yml can't be used
+# until that file exists on the default branch (main), which we're
+# deliberately not merging to yet. This is a push-triggered stand-in for a
+# single real publish — delete this file once the publish job succeeds.
+on:
+  push:
+    branches:
+      - pending
+    paths:
+      - .github/workflows/litesvm-real-publish-once.yml
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  publish-litesvm-npm-real:
+    name: Publish litesvm npm packages (real)
+    uses: ./.github/workflows/publish-litesvm-npm.yml
+    with:
+      dry_run: false
