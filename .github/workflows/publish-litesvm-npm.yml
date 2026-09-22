@@ -86,12 +86,13 @@ jobs:
 
       - run: yarn install --frozen-lockfile
 
-      - name: Configure npm registry
-        uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          package-manager-cache: false
-          registry-url: "https://registry.npmjs.org"
+      # A plain project-level .npmrc, not `actions/setup-node`'s
+      # `registry-url` input: that mechanism only reliably reaches commands
+      # run directly by this workflow, not `napi pre-publish`'s own internal
+      # `execSync('npm publish ...')` validation call, which was still
+      # falling back to yarn's default registry regardless. A file in the
+      # working directory is what every child process here resolves first.
+      - run: echo "registry=https://registry.npmjs.org" > .npmrc
 
       - run: yarn napi create-npm-dirs --npm-dir ./npm
 
