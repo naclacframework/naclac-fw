@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Node.js bindings for naclac's litesvm test provider — an in-process, RPC-shaped Solana test validator backed by the same litesvm Rust crate the Rust NaclacProvider already uses.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/naclacframework/naclac-fw"
+  },
   "main": "index.js",
   "types": "index.d.ts",
   "files": [
