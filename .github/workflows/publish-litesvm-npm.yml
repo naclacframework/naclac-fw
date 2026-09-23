@@ -143,6 +143,15 @@ jobs:
           echo "--- project-level .npmrc (naclac-litesvm-node/.npmrc) ---"
           cat .npmrc || echo "none"
 
+      # npm 11.5.1 is the documented minimum for OIDC trusted publishing,
+      # but a real-world reproduction of our exact "package not found"
+      # exchange failure (npm/cli#9088) was resolved by upgrading npm
+      # further still — the feature is new enough (GA July 2025) that
+      # exchange-specific bugs have been fixed in patch releases since.
+      - name: Upgrade to latest npm
+        if: ${{ !inputs.dry_run }}
+        run: npm install -g npm@latest
+
       - name: Publish platform packages
         if: ${{ !inputs.dry_run }}
         run: |
