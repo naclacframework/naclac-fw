@@ -146,7 +146,17 @@ jobs:
       - name: Publish platform packages
         if: ${{ !inputs.dry_run }}
         run: |
+          echo "npm version: $(npm --version)"
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL set: $( [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ] && echo yes || echo no )"
+          echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN set: $( [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ] && echo yes || echo no )"
+          set +e
           for dir in npm/*/; do
-            (cd "$dir" && npm publish --provenance --access public)
+            (cd "$dir" && npm publish --provenance --access public --loglevel silly)
           done
-          npm publish --provenance --access public
+          npm publish --provenance --access public --loglevel silly
+          status=$?
+          if [ $status -ne 0 ]; then
+            echo "=== npm debug log ==="
+            cat /home/runner/.npm/_logs/*-debug-0.log 2>/dev/null | tail -200
+            exit $status
+          fi
