@@ -116,6 +116,33 @@ jobs:
           done
           npm publish --dry-run --access public
 
+      # Something in this chain (the runner image's own default npmrc, or
+      # napi pre-publish itself) writes a `//registry.npmjs.org/:_authToken=`
+      # line whose `${NODE_AUTH_TOKEN}` placeholder resolves to empty since
+      # we never set that secret (OIDC trusted publishing needs no token at
+      # all). npm CLI treats a present-but-empty authToken line as "auth is
+      # configured" and skips its own automatic OIDC exchange entirely,
+      # producing ENEEDAUTH instead — confirmed via npm/documentation#1960.
+      # Stripping the line right before publishing, from whichever npmrc is
+      # actually in effect, is what actually lets OIDC detection run.
+      - name: Strip any authToken line so npm attempts OIDC
+        if: ${{ !inputs.dry_run }}
+        run: |
+          echo "NPM_CONFIG_USERCONFIG=$NPM_CONFIG_USERCONFIG"
+          npmrc="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          echo "Resolved npmrc path: $npmrc"
+          if [ -f "$npmrc" ]; then
+            echo "--- contents before ---"
+            cat "$npmrc"
+            sed -i '/_authToken/d' "$npmrc"
+            echo "--- contents after ---"
+            cat "$npmrc"
+          else
+            echo "No npmrc file found at that path."
+          fi
+          echo "--- project-level .npmrc (naclac-litesvm-node/.npmrc) ---"
+          cat .npmrc || echo "none"
+
       - name: Publish platform packages
         if: ${{ !inputs.dry_run }}
         run: |
