@@ -152,20 +152,20 @@ jobs:
         if: ${{ !inputs.dry_run }}
         run: npm install -g npm@latest
 
-      - name: Publish platform packages
+      # The trusted-publisher entries on npmjs.com are stage-only ("npm stage
+      # publish" allowed, "Allow npm publish" unchecked), so a plain
+      # `npm publish` is rejected with 403 "OIDC permission denied for this
+      # action". `npm stage publish` (npm >= 11.15) submits each package to
+      # npm's staging area; a maintainer then approves it with 2FA on
+      # npmjs.com or via `npm stage approve <stage-id>`. Every package is
+      # attempted and any single failure fails the job.
+      - name: Stage platform packages and main package
         if: ${{ !inputs.dry_run }}
         run: |
           echo "npm version: $(npm --version)"
-          echo "ACTIONS_ID_TOKEN_REQUEST_URL set: $( [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ] && echo yes || echo no )"
-          echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN set: $( [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ] && echo yes || echo no )"
-          set +e
+          failed=0
           for dir in npm/*/; do
-            (cd "$dir" && npm publish --provenance --access public --loglevel silly)
+            (cd "$dir" && npm stage publish --provenance --access public --loglevel verbose) || failed=1
           done
-          npm publish --provenance --access public --loglevel silly
-          status=$?
-          if [ $status -ne 0 ]; then
-            echo "=== npm debug log ==="
-            cat /home/runner/.npm/_logs/*-debug-0.log 2>/dev/null | tail -200
-            exit $status
-          fi
+          npm stage publish --provenance --access public --loglevel verbose || failed=1
+          exit $failed
