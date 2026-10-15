@@ -4,11 +4,9 @@
 //! its items from here, so the AST IDL generator, the compiled `idl-build`
 //! path and the macros agree on what the crate declares and where.
 
-use std::{
-    collections::{HashMap, HashSet},
-    fs,
-    path::{Path, PathBuf},
-};
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 /// One module of the crate.
 #[derive(Clone)]

@@ -1,12 +1,11 @@
-use {
-    super::{
-        map_type_to_rust_cpi, map_type_to_rust_with_prefix, references_defined_type, render_docs,
-        sdk_core_alias,
-    },
-    crate::Idl,
-    heck::{AsSnakeCase, ToUpperCamelCase},
-    std::{fs, path::Path},
+use super::{
+    map_type_to_rust_cpi, map_type_to_rust_with_prefix, references_defined_type, render_docs,
+    sdk_core_alias,
 };
+use crate::Idl;
+use heck::{AsSnakeCase, ToUpperCamelCase};
+use std::fs;
+use std::path::Path;
 
 pub fn generate_components(
     idl: &Idl,

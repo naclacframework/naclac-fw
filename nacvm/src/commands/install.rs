@@ -1,14 +1,11 @@
-use {
-    crate::config::Config,
-    colored::*,
-    std::{
-        env, fs,
-        io::{self, Write},
-        process::{Command, Stdio},
-        thread,
-        time::Duration,
-    },
-};
+use crate::config::Config;
+use colored::*;
+use std::env;
+use std::fs;
+use std::io::{self, Write};
+use std::process::{Command, Stdio};
+use std::thread;
+use std::time::Duration;
 
 pub fn execute(config: &Config, version: &str) {
     let resolved_version = if version.to_lowercase() == "latest" {

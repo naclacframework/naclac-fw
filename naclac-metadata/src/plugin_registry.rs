@@ -24,12 +24,13 @@
 //! against the real `mpl-core` crate's `generated::accounts::{PluginHeaderV1,
 //! PluginRegistryV1}`/`generated::types::RegistryRecord`.
 
+use crate::prelude::*;
+
 /// Re-exported here so existing `use crate::plugin_registry::{find_plugin_offset,
 /// plugin_type}` call sites throughout `plugins/*.rs` don't need updating —
 /// the constants themselves now live in `plugin_type.rs` since they're
 /// needed on both backends (see that file's header).
 pub use crate::plugin_type;
-use crate::prelude::*;
 
 const KEY_PLUGIN_HEADER_V1: u8 = 3;
 const KEY_PLUGIN_REGISTRY_V1: u8 = 4;

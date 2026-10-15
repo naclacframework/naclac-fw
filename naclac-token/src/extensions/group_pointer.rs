@@ -8,14 +8,13 @@
 //! `token_2022_extensions::group_pointer` module as the parity target,
 //! which exposes exactly these two functions.
 
+use super::{read_optional_address, Extension};
+use crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
+
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use {
-    super::{read_optional_address, Extension},
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
-};
 
 /// Raw Token-2022 `GroupPointer` mint extension (64 bytes): the authority
 /// allowed to change the group address, plus the account that holds the

@@ -8,10 +8,9 @@
 //! `master_edition.rs` for the per-`Collection` series-declaration
 //! companion plugin.
 
-use crate::{
-    plugin_registry::{find_plugin_offset, plugin_type},
-    prelude::*,
-};
+use crate::prelude::*;
+
+use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `Edition` to an `Asset` via `add_plugin`.
 pub fn attach_edition_signed(

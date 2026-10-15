@@ -32,11 +32,9 @@
 //! guess, and choosing between two different field orderings isn't
 //! expressible via a deferred `const` the way sizing a fixed padding slot is.
 
-use {
-    proc_macro2::{Ident, TokenStream},
-    quote::{format_ident, quote},
-    syn::Fields,
-};
+use proc_macro2::{Ident, TokenStream};
+use quote::{format_ident, quote};
+use syn::Fields;
 
 fn align_max_expr(field_tys: &[&syn::Type]) -> TokenStream {
     if field_tys.is_empty() {

@@ -5,10 +5,8 @@
 //! consumer re-implemented these independently; kept here instead so there
 //! is exactly one implementation to get right.
 
-use {
-    sha2::{Digest, Sha256},
-    std::path::Path,
-};
+use sha2::{Digest, Sha256};
+use std::path::Path;
 
 /// Width of a discriminator that is derived from the item's name.
 pub const DEFAULT_DISCRIMINATOR_LEN: usize = 8;
@@ -426,7 +424,8 @@ fn parse_discriminant_expr(expr: &syn::Expr) -> i128 {
 
 #[cfg(test)]
 mod tests {
-    use {super::*, std::fs};
+    use super::*;
+    use std::fs;
 
     fn expr(src: &str) -> syn::Expr {
         syn::parse_str(src).expect("test source must parse as an expression")

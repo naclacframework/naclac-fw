@@ -1,10 +1,8 @@
-use {
-    colored::*,
-    indicatif::{ProgressBar, ProgressStyle},
-    naclac_idl::Idl,
-    std::fs,
-    toml::Value,
-};
+use colored::*;
+use indicatif::{ProgressBar, ProgressStyle};
+use naclac_idl::Idl;
+use std::fs;
+use toml::Value;
 
 pub fn execute(target_file: Option<&str>, run_order: bool) {
     let current_dir = std::env::current_dir().unwrap();

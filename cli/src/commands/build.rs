@@ -1,13 +1,9 @@
-use {
-    crate::ui,
-    colored::Colorize,
-    std::{
-        fs,
-        io::{BufRead, BufReader},
-        path::{Path, PathBuf},
-        process::{Command, Stdio},
-    },
-};
+use crate::ui;
+use colored::Colorize;
+use std::fs;
+use std::io::{BufRead, BufReader};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 // platform-tools versions naclac will use as-is if already cached locally,
 // newest first. v1.55 is the floor — it fixes a relocation-addends-under-SBPFv3

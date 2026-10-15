@@ -11,14 +11,13 @@
 //! `close_account_signed` CPI naclac-token already has — no dedicated
 //! "close mint" action exists in the real protocol.
 
+use super::Extension;
+use crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
+
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use {
-    super::Extension,
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
-};
 
 /// Raw Token-2022 `MintCloseAuthority` mint extension (32 bytes): the
 /// authority allowed to close the mint once its supply is zero. Layout

@@ -5,12 +5,10 @@
 //! 1. **Immediate Metadata Checks**: Validates raw `AccountInfo` properties (signer, mut, owner, PDA seeds).
 //! 2. **Relational Checks**: Validates cross-account relationships (e.g., `has_one`) after all accounts are parsed.
 
-use {
-    crate::instruction::parser::{ParsedField, PdaBump},
-    proc_macro2::TokenStream,
-    quote::{format_ident, quote},
-    syn::spanned::Spanned,
-};
+use crate::instruction::parser::{ParsedField, PdaBump};
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+use syn::spanned::Spanned;
 
 /// Common "borrow this field's raw account data" prelude shared by every
 /// `token::*`/`mint::*`/`associated_token::*` existing-account check —

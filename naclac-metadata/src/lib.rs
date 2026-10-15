@@ -83,37 +83,54 @@ pub mod external_plugin_adapter;
 pub mod external_plugins;
 
 pub mod prelude {
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::asset::*;
+    pub use naclac_core::prelude::*;
+
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub(crate) use crate::checked_end;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::asset::*;
+
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::collection::*;
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::execute::*;
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::external_plugin_adapter::*;
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::external_plugin_registry::*;
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::external_plugins::*;
+
+    pub use crate::plugin_type;
+
     #[cfg(feature = "pinocchio")]
     pub(crate) use crate::fixed_buf::ByteSink;
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::group::*;
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::group_relationship::*;
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::lifecycle::*;
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::plugin::*;
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::plugin_authority::*;
+
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::plugin_registry::*;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::plugin::*;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::plugin_authority::*;
+
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::plugins::*;
-    pub use {crate::plugin_type, naclac_core::prelude::*};
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::lifecycle::*;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::execute::*;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::group::*;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::group_relationship::*;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::external_plugin_registry::*;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::external_plugin_adapter::*;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::external_plugins::*;
 }
 
 #[cfg(all(kani, any(feature = "solana", feature = "pinocchio")))]

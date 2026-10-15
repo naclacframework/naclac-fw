@@ -1,18 +1,15 @@
-use {
-    heck::ToSnakeCase,
-    std::{path::Path, process::Command},
-};
+use heck::ToSnakeCase;
+use std::path::Path;
+use std::process::Command;
 
 pub mod templates;
 pub mod utils;
 
-use self::{
-    templates::{
-        generate_program, parse_mode, parse_package_manager, parse_ts_framework,
-        prompt_mode_selection, prompt_ts_framework, TsFramework,
-    },
-    utils::{ensure_dir, generate_keypair, write_file},
+use self::templates::{
+    generate_program, parse_mode, parse_package_manager, parse_ts_framework, prompt_mode_selection,
+    prompt_ts_framework, TsFramework,
 };
+use self::utils::{ensure_dir, generate_keypair, write_file};
 
 pub fn execute(
     name: &str,

@@ -1,10 +1,9 @@
-use {
-    crate::types::*,
-    quote::ToTokens,
-    serde_json::{json, Value},
-    std::collections::{HashMap, HashSet},
-    syn::Item,
-};
+use crate::types::*;
+use syn::Item;
+
+use quote::ToTokens;
+use serde_json::{json, Value};
+use std::collections::{HashMap, HashSet};
 
 /// The name the IDL gives a field, account or argument written as `raw` in
 /// source: leading underscores (the "intentionally unused" marker) dropped.

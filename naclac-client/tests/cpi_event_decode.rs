@@ -3,12 +3,10 @@
 //! whose first account is that program's `event_authority` PDA and whose data
 //! starts with the program's tag, may be decoded as an event.
 
-use {
-    bytemuck::{Pod, Zeroable},
-    naclac_client::{NaclacEvent, NaclacInnerInstruction, NaclacTransactionMetadata},
-    solana_address::Address,
-    solana_signature::Signature,
-};
+use bytemuck::{Pod, Zeroable};
+use naclac_client::{NaclacEvent, NaclacInnerInstruction, NaclacTransactionMetadata};
+use solana_address::Address;
+use solana_signature::Signature;
 
 const PROGRAM: Address = Address::new_from_array([7; 32]);
 const OTHER_PROGRAM: Address = Address::new_from_array([8; 32]);

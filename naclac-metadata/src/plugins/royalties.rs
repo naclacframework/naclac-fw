@@ -12,10 +12,9 @@
 //! `None=0` / `ProgramAllowList=1(Vec<Address>)` / `ProgramDenyList=2(Vec<Address>)`,
 //! each pubkey fixed-width too).
 
-use crate::{
-    plugin_registry::{find_plugin_offset, plugin_type},
-    prelude::*,
-};
+use crate::prelude::*;
+
+use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// One entry of `Royalties.creators` — backend-neutral, since the real
 /// `mpl-core` `Creator` type isn't available on `pinocchio`. `#[repr(C)]`

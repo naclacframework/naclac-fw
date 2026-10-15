@@ -2,15 +2,12 @@
 //!
 //! Provides the Signer wrapper to enforce that a given account has signed the transaction.
 
+use crate::prelude::AccountInfo;
 #[cfg(feature = "pinocchio")]
 use crate::prelude::AccountView;
-use {
-    crate::{
-        prelude::{AccountInfo, Address, NaclacError, Result},
-        wrappers::{ToAccountInfo, ToAddress},
-    },
-    core::ops::Deref,
-};
+use crate::prelude::{Address, NaclacError, Result};
+use crate::wrappers::{ToAccountInfo, ToAddress};
+use core::ops::Deref;
 
 /// Wrapper for accounts that must be signers.
 #[derive(Clone)]

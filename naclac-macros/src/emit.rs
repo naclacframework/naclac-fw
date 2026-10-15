@@ -2,12 +2,10 @@
 //! the two macros accept exactly the same event syntax and differ only in how
 //! the built event is sent.
 
-use {
-    proc_macro::TokenStream,
-    proc_macro2::{Ident, Span, TokenStream as TokenStream2},
-    quote::quote,
-    syn::parse_macro_input,
-};
+use proc_macro::TokenStream;
+use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
+use quote::quote;
+use syn::parse_macro_input;
 
 /// Binds the event written in a macro call to `var`. A struct literal
 /// `Event { a, b: 2 }` starts from `Default` and assigns each field through

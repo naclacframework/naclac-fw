@@ -1,12 +1,11 @@
-use {
-    super::super::{
-        is_type_pod, is_zero_copy_struct_pod, map_type_to_rust_cpi, map_type_to_rust_with_prefix,
-        render_docs, sdk_core_alias,
-    },
-    crate::{Idl, IdlEnumFields, IdlTypeDefVariants},
-    heck::{AsSnakeCase, ToUpperCamelCase},
-    std::{fs, path::Path},
+use super::super::{
+    is_type_pod, is_zero_copy_struct_pod, map_type_to_rust_cpi, map_type_to_rust_with_prefix,
+    render_docs, sdk_core_alias,
 };
+use crate::{Idl, IdlEnumFields, IdlTypeDefVariants};
+use heck::{AsSnakeCase, ToUpperCamelCase};
+use std::fs;
+use std::path::Path;
 
 pub fn generate(
     idl: &Idl,

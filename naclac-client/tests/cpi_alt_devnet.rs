@@ -5,21 +5,19 @@
 //! devnet at `PROGRAM_ID` (`tests/events`); needs network access and a
 //! devnet-funded wallet.
 
-use {
-    bytemuck::{Pod, Zeroable},
-    naclac_client::{load_node_wallet, NaclacEvent, NaclacProvider},
-    solana_address::Address,
-    solana_address_lookup_table_interface::{
-        instruction::{create_lookup_table, extend_lookup_table},
-        state::AddressLookupTable,
-    },
-    solana_commitment_config::CommitmentConfig,
-    solana_instruction::{AccountMeta, Instruction},
-    solana_message::{v0, AddressLookupTableAccount, VersionedMessage},
-    solana_rpc_client::rpc_client::RpcClient,
-    solana_signer::Signer,
-    solana_transaction::{versioned::VersionedTransaction, Transaction},
+use bytemuck::{Pod, Zeroable};
+use naclac_client::{load_node_wallet, NaclacEvent, NaclacProvider};
+use solana_address::Address;
+use solana_address_lookup_table_interface::{
+    instruction::{create_lookup_table, extend_lookup_table},
+    state::AddressLookupTable,
 };
+use solana_commitment_config::CommitmentConfig;
+use solana_instruction::{AccountMeta, Instruction};
+use solana_message::{v0, AddressLookupTableAccount, VersionedMessage};
+use solana_rpc_client::rpc_client::RpcClient;
+use solana_signer::Signer;
+use solana_transaction::{versioned::VersionedTransaction, Transaction};
 
 const PROGRAM_ID: Address = Address::from_str_const("7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL");
 const EVENT_CPI_EMIT_DISCRIMINATOR: [u8; 8] = [115, 58, 67, 15, 26, 157, 167, 201];

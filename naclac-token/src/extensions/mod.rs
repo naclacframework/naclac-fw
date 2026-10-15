@@ -26,14 +26,12 @@
 //! shared `Extension` trait and byte-reading helpers defined here in via
 //! `use super::{...}`.
 
-use crate::{
-    prelude::{
-        AccountInfo, Address, CpiHandle, InterfaceAccount, NaclacError, Owner, Pod, Result,
-        Zeroable, TOKEN_2022_PROGRAM_ID,
-    },
-    token::{Mint, TokenAccount},
-    wrappers::ToAddress,
+use crate::prelude::{
+    AccountInfo, Address, CpiHandle, InterfaceAccount, NaclacError, Owner, Pod, Result, Zeroable,
+    TOKEN_2022_PROGRAM_ID,
 };
+use crate::token::{Mint, TokenAccount};
+use crate::wrappers::ToAddress;
 
 /// Every Token-2022 extension CPI in this module must call this first, on
 /// whichever account it's about to invoke as the token program. Unlike
@@ -73,13 +71,24 @@ pub mod token_metadata;
 pub mod transfer_fee;
 pub mod transfer_hook;
 
-pub use {
-    cpi_guard::*, default_account_state::*, group_member_pointer::*, group_pointer::*,
-    immutable_owner::*, interest_bearing_mint::*, memo_transfer::*, metadata_pointer::*,
-    mint_close_authority::*, non_transferable::*, pausable::*, permanent_delegate::*,
-    permissioned_burn::*, scaled_ui_amount::*, token_group::*, token_metadata::*, transfer_fee::*,
-    transfer_hook::*,
-};
+pub use cpi_guard::*;
+pub use default_account_state::*;
+pub use group_member_pointer::*;
+pub use group_pointer::*;
+pub use immutable_owner::*;
+pub use interest_bearing_mint::*;
+pub use memo_transfer::*;
+pub use metadata_pointer::*;
+pub use mint_close_authority::*;
+pub use non_transferable::*;
+pub use pausable::*;
+pub use permanent_delegate::*;
+pub use permissioned_burn::*;
+pub use scaled_ui_amount::*;
+pub use token_group::*;
+pub use token_metadata::*;
+pub use transfer_fee::*;
+pub use transfer_hook::*;
 
 /// Invokes an `Instruction` built by a real SPL interface crate's own
 /// `instruction::*` constructor (`spl-token-metadata-interface`,

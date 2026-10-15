@@ -13,14 +13,13 @@
 //! same ElGamal/zero-knowledge-proof machinery as `ConfidentialTransfer`,
 //! out of scope for the same reason.
 
+use super::Extension;
+use crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
+
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use {
-    super::Extension,
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
-};
 
 /// Raw Token-2022 `PermissionedBurnConfig` mint extension (32 bytes): the
 /// authority that must co-sign any burn of this mint's tokens, alongside

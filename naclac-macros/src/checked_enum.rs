@@ -22,11 +22,9 @@
 //! Rust's own trait resolution, exactly like real `bytemuck_derive` does
 //! for arbitrarily nested `CheckedBitPattern` types.
 
-use {
-    proc_macro2::{Ident, TokenStream},
-    quote::{format_ident, quote},
-    syn::{Fields, Variant},
-};
+use proc_macro2::{Ident, TokenStream};
+use quote::{format_ident, quote};
+use syn::{Fields, Variant};
 
 /// Generates the extra items (per-variant payload/Bits structs, the union)
 /// plus the `impl bytemuck::CheckedBitPattern for #ident` body, for a

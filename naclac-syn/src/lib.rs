@@ -9,7 +9,8 @@ pub mod parser;
 pub mod pda;
 pub mod types;
 
-use {std::path::Path, types::NaclacProgram};
+use std::path::Path;
+use types::NaclacProgram;
 
 /// Doc comments of the named `#[program]` handlers, resolved from the crate's
 /// modules exactly as `parse_workspace_program` resolves them for the IDL

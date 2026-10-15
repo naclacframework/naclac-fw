@@ -2,15 +2,12 @@
 //!
 //! Provides the Program wrapper to enforce that a given account is executable.
 
+use crate::prelude::AccountInfo;
 #[cfg(feature = "pinocchio")]
 use crate::prelude::AccountView;
-use {
-    crate::{
-        prelude::{AccountInfo, Address, NaclacError, Result},
-        wrappers::{ToAccountInfo, ToAddress},
-    },
-    core::ops::Deref,
-};
+use crate::prelude::{Address, NaclacError, Result};
+use crate::wrappers::{ToAccountInfo, ToAddress};
+use core::ops::Deref;
 
 /// Wrapper for executable program accounts.
 #[cfg_attr(not(feature = "pinocchio"), derive(Clone))]

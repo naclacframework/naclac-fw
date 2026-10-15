@@ -1,12 +1,13 @@
+use solana_address::Address;
+use solana_rpc_client::rpc_client::RpcClient;
+
+use bs58;
+use serde_json::{Map, Value};
+use std::fs;
+use std::str::FromStr;
+
 // Re-defining parts of IDL for decoding
 use serde::Deserialize;
-use {
-    bs58,
-    serde_json::{Map, Value},
-    solana_address::Address,
-    solana_rpc_client::rpc_client::RpcClient,
-    std::{fs, str::FromStr},
-};
 
 #[derive(Deserialize, Debug)]
 struct Idl {

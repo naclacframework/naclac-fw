@@ -8,10 +8,9 @@
 //! as zero bytes). Provided for both `Asset` and `Collection` since nothing
 //! in the real crate's generated code pins it to one level.
 
-use crate::{
-    plugin_registry::{find_plugin_offset, plugin_type},
-    prelude::*,
-};
+use crate::prelude::*;
+
+use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `ImmutableMetadata` to an `Asset` via `add_plugin`.
 pub fn attach_immutable_metadata_signed(

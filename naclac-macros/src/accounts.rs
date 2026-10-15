@@ -3,12 +3,15 @@
 //! Handles the expansion of the `#[derive(Accounts)]` macro, generating highly
 //! optimized account validation, instruction deserialization, and Zero-Copy safety logic.
 
-use {
-    crate::instruction::{close_account, init_cpi, parser, realloc, security},
-    proc_macro::TokenStream,
-    quote::quote,
-    syn::{parse_macro_input, Data, DeriveInput, Fields},
-};
+use proc_macro::TokenStream;
+use quote::quote;
+use syn::{parse_macro_input, Data, DeriveInput, Fields};
+
+use crate::instruction::close_account;
+use crate::instruction::init_cpi;
+use crate::instruction::parser;
+use crate::instruction::realloc;
+use crate::instruction::security;
 
 /// Converts a macro-expansion-time-resolved `naclac_syn::types::NaclacSeed::Const`
 /// (from `naclac_syn::pda`'s literal-seed helpers — always `Const`, since

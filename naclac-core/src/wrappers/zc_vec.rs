@@ -3,10 +3,9 @@
 //! `ZcVec` and `ZcString` are the strictly zero-allocation pointer types used
 //! to parse slices and strings out of instruction data in Pinocchio/Zero-Copy environments.
 
-use {
-    crate::prelude::{bytemuck, NaclacError, NaclacPod, Pod, Result},
-    core::{marker::PhantomData, ops::Deref},
-};
+use crate::prelude::{bytemuck, NaclacError, NaclacPod, Pod, Result};
+use core::marker::PhantomData;
+use core::ops::Deref;
 
 /// A zero-copy view into a slice of data.
 ///

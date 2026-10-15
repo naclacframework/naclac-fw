@@ -18,14 +18,13 @@
 //! `NonTransferableAccount` has no CPI of its own — Token-2022 attaches it
 //! automatically to every token account of a `NonTransferable` mint.
 
+use super::Extension;
+use crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
+
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use {
-    super::Extension,
-    crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
-};
 
 /// Raw Token-2022 `NonTransferable` mint extension — a zero-byte marker;
 /// its mere presence (not any field value) means tokens of this mint can

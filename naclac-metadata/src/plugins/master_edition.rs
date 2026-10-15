@@ -9,10 +9,9 @@
 //! `{ max_supply: Option<u32>, name: Option<String>, uri: Option<String> }`.
 //! See `edition.rs` for the per-`Asset` print-number companion plugin.
 
-use crate::{
-    plugin_registry::{find_plugin_offset, plugin_type},
-    prelude::*,
-};
+use crate::prelude::*;
+
+use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Backend-neutral `MasterEdition` payload — `fetch_collection_master_edition`
 /// returns this on both backends (rather than the real `::mpl_core::types::MasterEdition`

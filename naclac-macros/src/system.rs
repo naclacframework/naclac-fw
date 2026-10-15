@@ -52,20 +52,18 @@
 //! #[system(rounding = "up", invariant = "result <= y", kani)]
 //! ```
 
-use {
-    proc_macro::TokenStream,
-    proc_macro2::TokenStream as TokenStream2,
-    quote::{format_ident, quote},
-    std::collections::HashMap,
-    syn::{
-        parse::{Parse, ParseStream},
-        parse_macro_input,
-        spanned::Spanned,
-        visit::Visit,
-        visit_mut::VisitMut,
-        BinOp, Error, Expr, ExprBinary, ExprLit, FnArg, ItemFn, Lit, LitInt, Pat, PatIdent,
-        PatType, ReturnType, Token, Type,
-    },
+use proc_macro::TokenStream;
+use proc_macro2::TokenStream as TokenStream2;
+use quote::{format_ident, quote};
+use std::collections::HashMap;
+use syn::{
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    spanned::Spanned,
+    visit::Visit,
+    visit_mut::VisitMut,
+    BinOp, Error, Expr, ExprBinary, ExprLit, FnArg, ItemFn, Lit, LitInt, Pat, PatIdent, PatType,
+    ReturnType, Token, Type,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

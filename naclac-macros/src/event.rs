@@ -7,11 +7,9 @@
 //! (`#[event(alloc)]`, for events needing `Vec`/`String`/`Option`), or standard Borsh
 //! serialization.
 
-use {
-    proc_macro::TokenStream,
-    quote::quote,
-    syn::{parse_macro_input, GenericArgument, ItemStruct, PathArguments, Type},
-};
+use proc_macro::TokenStream;
+use quote::quote;
+use syn::{parse_macro_input, GenericArgument, ItemStruct, PathArguments, Type};
 
 /// How a field's bytes get written into an `#[event(alloc)]` buffer.
 enum FieldKind {

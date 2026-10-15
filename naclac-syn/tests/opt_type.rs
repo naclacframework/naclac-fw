@@ -1,10 +1,8 @@
 //! Pins the IDL names of naclac's `Opt<T>` and that naming and parsing them
 //! are exact inverses.
 
-use {
-    naclac_syn::opt_type::{opt_inner_type, opt_type_name},
-    serde_json::{json, Value},
-};
+use naclac_syn::opt_type::{opt_inner_type, opt_type_name};
+use serde_json::{json, Value};
 
 fn defined(name: &str) -> bool {
     matches!(name, "Pair" | "Box2x3")

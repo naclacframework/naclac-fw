@@ -1,10 +1,11 @@
-use {
-    crate::ui,
-    solana_address::Address,
-    solana_keypair::Keypair,
-    solana_signer::Signer,
-    std::{fs, process::Command, str::FromStr},
-};
+use crate::ui;
+use solana_address::Address;
+
+use solana_keypair::Keypair;
+use solana_signer::Signer;
+use std::fs;
+use std::process::Command;
+use std::str::FromStr;
 
 pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&str>) {
     let program_id = match Address::from_str(program_id_str) {

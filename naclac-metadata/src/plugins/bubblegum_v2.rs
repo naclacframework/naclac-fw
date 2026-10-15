@@ -10,10 +10,9 @@
 //! `generated::types::BubblegumV2`: an empty struct (Borsh encodes it as
 //! zero bytes).
 
-use crate::{
-    plugin_registry::{find_plugin_offset, plugin_type},
-    prelude::*,
-};
+use crate::prelude::*;
+
+use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `BubblegumV2` to an `Asset` via `add_plugin`.
 pub fn attach_bubblegum_v2_signed(

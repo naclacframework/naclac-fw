@@ -3,11 +3,9 @@
 //! Generates the dynamic account resizing logic for accounts marked with
 //! `#[account(realloc = space, realloc::payer = payer, realloc::zero = true)]`.
 
-use {
-    crate::instruction::parser::ParsedField,
-    proc_macro2::TokenStream,
-    quote::{format_ident, quote},
-};
+use crate::instruction::parser::ParsedField;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 
 /// Generates account reallocation logic.
 ///

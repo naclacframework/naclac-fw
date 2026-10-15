@@ -4,7 +4,8 @@
 //! wrapper when it has any, otherwise from the implementation elsewhere in the
 //! crate.
 
-use {naclac_syn::parse_workspace_program, std::fs};
+use naclac_syn::parse_workspace_program;
+use std::fs;
 
 const LIB_RS: &str = r#"
 use naclac_lang::prelude::*;

@@ -1,8 +1,7 @@
-use {
-    crate::Idl,
-    heck::AsSnakeCase,
-    std::{fs, path::Path},
-};
+use crate::Idl;
+use heck::AsSnakeCase;
+use std::fs;
+use std::path::Path;
 
 pub mod components;
 pub mod instructions;

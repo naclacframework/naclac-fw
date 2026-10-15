@@ -11,17 +11,13 @@
 //! Every offset indexes into the buffer the loader wrote, so none of the
 //! offset arithmetic can overflow `usize`.
 
-use {
-    crate::prelude::Vec,
-    core::{
-        alloc::{GlobalAlloc, Layout},
-        mem::size_of,
-        ptr::null_mut,
-        slice::{from_raw_parts, from_raw_parts_mut},
-    },
-    solana_account_info::{AccountInfo, MAX_PERMITTED_DATA_INCREASE},
-    solana_address::Address,
-};
+use crate::prelude::Vec;
+use core::alloc::{GlobalAlloc, Layout};
+use core::mem::size_of;
+use core::ptr::null_mut;
+use core::slice::{from_raw_parts, from_raw_parts_mut};
+use solana_account_info::{AccountInfo, MAX_PERMITTED_DATA_INCREASE};
+use solana_address::Address;
 
 /// The value `entrypoint` returns when the instruction succeeded.
 pub const SUCCESS: u64 = 0;
@@ -236,10 +232,9 @@ macro_rules! naclac_solana_entrypoint {
 
 #[cfg(test)]
 mod tests {
-    use {
-        super::*,
-        alloc::{rc::Rc, vec},
-    };
+    use super::*;
+    use alloc::rc::Rc;
+    use alloc::vec;
 
     enum Record {
         Account {

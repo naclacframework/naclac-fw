@@ -1,8 +1,10 @@
-use {
-    crate::{modules::CrateModule, parser::rust_type_to_idl, pda::parse_pda_seeds, types::*},
-    std::{collections::HashMap, path::Path},
-    syn::{Item, ItemFn},
-};
+use crate::modules::CrateModule;
+use crate::parser::rust_type_to_idl;
+use crate::pda::parse_pda_seeds;
+use crate::types::*;
+use std::collections::HashMap;
+use std::path::Path;
+use syn::{Item, ItemFn};
 
 /// Resolves a constant's raw IDL `value` string down to a plain base58
 /// address string. Handles a plain string literal (`"..."`) and a

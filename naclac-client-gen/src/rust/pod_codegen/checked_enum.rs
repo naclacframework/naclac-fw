@@ -39,11 +39,9 @@
 //! `naclac-macros/src/checked_enum.rs` ever changes, this file must be
 //! updated to match by hand — nothing enforces that automatically.
 
-use {
-    proc_macro2::{Ident, TokenStream},
-    quote::{format_ident, quote},
-    syn::{Fields, Variant},
-};
+use proc_macro2::{Ident, TokenStream};
+use quote::{format_ident, quote};
+use syn::{Fields, Variant};
 
 /// Computes each variant's real discriminant value, mirroring Rust's own
 /// enum discriminant rule exactly (same algorithm as bytemuck_derive's

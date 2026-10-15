@@ -4,7 +4,9 @@
 //! Handles transferring lamports to the destination account, zeroing out the target's data,
 //! and reassigning ownership back to the System Program.
 
-use {crate::instruction::parser::ParsedField, proc_macro2::TokenStream, quote::quote};
+use crate::instruction::parser::ParsedField;
+use proc_macro2::TokenStream;
+use quote::quote;
 
 /// Generates account closure logic for `#[account(close = ...)]` constraints.
 ///

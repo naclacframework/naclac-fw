@@ -9,15 +9,11 @@
 //! require rebuilding the on-chain program, and regenerating the IDL
 //! doesn't require the client-gen step to also run.
 
-use {
-    crate::ui,
-    std::{
-        fs,
-        io::Read,
-        path::{Path, PathBuf},
-        process::{Command, Stdio},
-    },
-};
+use crate::ui;
+use std::fs;
+use std::io::Read;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 /// Which client SDK(s) to (re)generate. `None` means both.
 #[derive(Clone, Copy)]

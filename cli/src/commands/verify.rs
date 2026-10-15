@@ -1,11 +1,12 @@
-use {
-    crate::ui,
-    sha2::{Digest, Sha256},
-    solana_address::Address,
-    solana_keypair::Keypair,
-    solana_signer::Signer,
-    std::{fs, process::Command, str::FromStr},
-};
+use crate::ui;
+use sha2::{Digest, Sha256};
+use solana_address::Address;
+use std::fs;
+use std::process::Command;
+
+use solana_keypair::Keypair;
+use solana_signer::Signer;
+use std::str::FromStr;
 
 pub fn execute(program_id_str: &String) {
     // Validate the pubkey format early even though we use it as a string for display

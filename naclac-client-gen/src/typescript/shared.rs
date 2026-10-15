@@ -1,11 +1,7 @@
-use {
-    crate::{
-        rust::{collect_defined_type_names, references_defined_type},
-        Idl, IdlEnumFields, IdlTypeDefVariants,
-    },
-    heck::{ToLowerCamelCase, ToUpperCamelCase},
-    std::fs,
-};
+use crate::rust::{collect_defined_type_names, references_defined_type};
+use crate::{Idl, IdlEnumFields, IdlTypeDefVariants};
+use heck::{ToLowerCamelCase, ToUpperCamelCase};
+use std::fs;
 
 // ─── Type Mapping ─────────────────────────────────────────────────────────────────────────────────
 

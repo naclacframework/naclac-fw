@@ -9,14 +9,12 @@
 //! values themselves, since naclac doesn't model its own type-expression
 //! grammar as a Rust enum either.
 
-use {
-    crate::{
-        Idl, IdlAccount, IdlEnumFields, IdlEnumVariant, IdlField, IdlInstruction, IdlPda, IdlSeed,
-        IdlType, IdlTypeDef,
-    },
-    serde::Serialize,
-    serde_json::Value,
+use crate::{
+    Idl, IdlAccount, IdlEnumFields, IdlEnumVariant, IdlField, IdlInstruction, IdlPda, IdlSeed,
+    IdlType, IdlTypeDef,
 };
+use serde::Serialize;
+use serde_json::Value;
 
 #[derive(Serialize)]
 pub struct AnchorIdl {

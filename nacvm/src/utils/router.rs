@@ -1,7 +1,6 @@
-use {
-    crate::config::Config,
-    std::{fs, io},
-};
+use crate::config::Config;
+use std::fs;
+use std::io;
 
 #[cfg(target_family = "unix")]
 pub fn create_router(config: &Config, version: &str) -> io::Result<()> {

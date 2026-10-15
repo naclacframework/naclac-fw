@@ -2,10 +2,8 @@ mod commands;
 mod config;
 mod utils;
 
-use {
-    clap::{Parser, Subcommand},
-    config::Config,
-};
+use clap::{Parser, Subcommand};
+use config::Config;
 
 #[derive(Parser)]
 #[command(name = "nacvm")]

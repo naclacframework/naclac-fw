@@ -5,11 +5,10 @@
 //! is verified directly against `solana-program/program-metadata`'s own
 //! processor source and test suite, not inferred from documentation.
 
-use {
-    super::{Seed, PROGRAM_METADATA_ID, RENT_SYSVAR_ID},
-    solana_address::Address,
-    solana_instruction::{AccountMeta, Instruction},
-};
+use solana_address::Address;
+use solana_instruction::{AccountMeta, Instruction};
+
+use super::{Seed, PROGRAM_METADATA_ID, RENT_SYSVAR_ID};
 
 /// The on-chain program's `encoding` instruction-data byte values (mirrors
 /// `program-metadata`'s own `state::Encoding` enum ordinals).
@@ -327,7 +326,8 @@ pub fn close(
 
 #[cfg(test)]
 mod tests {
-    use {super::*, crate::program_metadata::seed_from_str};
+    use super::*;
+    use crate::program_metadata::seed_from_str;
 
     fn addr(byte: u8) -> Address {
         Address::new_from_array([byte; 32])

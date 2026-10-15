@@ -19,7 +19,9 @@
 //! filtering the external registry by type first, then reading each
 //! candidate's own header to find the matching `data_authority`.
 
-use crate::{external_plugin_registry::external_plugin_type, prelude::*};
+use crate::prelude::*;
+
+use crate::external_plugin_registry::external_plugin_type;
 
 /// Max encoded width of `ExternalPluginAdapterKeyArg::AppData`/
 /// `ExternalPluginAdapterInitInfo::AppData`'s tag (1 byte) + a

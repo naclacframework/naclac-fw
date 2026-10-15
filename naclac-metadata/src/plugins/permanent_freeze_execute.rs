@@ -12,10 +12,9 @@
 //! here is inherited by every member asset that doesn't set its own
 //! (verified in `utils/mod.rs`'s `validate_asset_permissions`).
 
-use crate::{
-    plugin_registry::{find_plugin_offset, plugin_type},
-    prelude::*,
-};
+use crate::prelude::*;
+
+use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `PermanentFreezeExecute` to an `Asset` via `add_plugin`.
 pub fn attach_permanent_freeze_execute_signed(

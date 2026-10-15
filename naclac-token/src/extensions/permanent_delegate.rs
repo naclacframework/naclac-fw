@@ -9,14 +9,13 @@
 //! acts through the ordinary `transfer`/`burn` CPIs once set, no dedicated
 //! action CPI exists in the real protocol.
 
+use super::{read_optional_address, Extension};
+use crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
+
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use {
-    super::{read_optional_address, Extension},
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
-};
 
 /// Raw Token-2022 `PermanentDelegate` mint extension (32 bytes): an optional
 /// authority that can `Transfer`/`Burn` from *any* account holding this

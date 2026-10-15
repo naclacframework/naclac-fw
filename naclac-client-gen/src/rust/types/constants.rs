@@ -1,8 +1,7 @@
-use {
-    super::super::{map_type_to_rust, render_docs},
-    crate::Idl,
-    std::{fs, path::Path},
-};
+use super::super::{map_type_to_rust, render_docs};
+use crate::Idl;
+use std::fs;
+use std::path::Path;
 
 pub fn generate(
     idl: &Idl,

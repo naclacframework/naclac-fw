@@ -239,6 +239,7 @@ mod solana_system {
 #[cfg(feature = "pinocchio")]
 mod pinocchio_system {
     use crate::prelude::{CpiHandle, CpiHandleMut, Result};
+
     // Re-use the system program ID directly from pinocchio-system crate
     pub use ::pinocchio_system::ID;
 
@@ -538,16 +539,17 @@ mod pinocchio_system {
 // ===========================================================================
 // Re-exports
 // ===========================================================================
+#[cfg(not(feature = "pinocchio"))]
+pub use solana_system::{
+    create_account, create_account_signed, create_account_signed_unchecked,
+    create_account_unchecked, transfer, transfer_signed, ID,
+};
+
 #[cfg(feature = "pinocchio")]
 pub use pinocchio_system::{
     create_account, create_account_checked_for_init, create_account_signed,
     create_account_signed_unchecked, create_account_unchecked, create_account_unchecked_for_init,
     transfer, transfer_signed, ID,
-};
-#[cfg(not(feature = "pinocchio"))]
-pub use solana_system::{
-    create_account, create_account_signed, create_account_signed_unchecked,
-    create_account_unchecked, transfer, transfer_signed, ID,
 };
 
 #[derive(Debug)]

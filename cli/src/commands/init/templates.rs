@@ -1,9 +1,8 @@
-use {
-    super::utils::{ensure_dir, write_file},
-    dialoguer::{theme::ColorfulTheme, Select},
-    heck::{ToSnakeCase, ToUpperCamelCase},
-    std::path::Path,
-};
+use super::utils::{ensure_dir, write_file};
+use dialoguer::theme::ColorfulTheme;
+use dialoguer::Select;
+use heck::{ToSnakeCase, ToUpperCamelCase};
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProgramMode {

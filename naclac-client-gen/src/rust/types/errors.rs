@@ -1,8 +1,7 @@
-use {
-    crate::Idl,
-    heck::ToUpperCamelCase,
-    std::{fs, path::Path},
-};
+use crate::Idl;
+use heck::ToUpperCamelCase;
+use std::fs;
+use std::path::Path;
 
 pub fn generate(
     idl: &Idl,

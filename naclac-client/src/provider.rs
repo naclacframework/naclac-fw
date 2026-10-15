@@ -1,21 +1,18 @@
-use {
-    crate::error::{translate_error_code, NaclacClientError},
-    litesvm::LiteSVM,
-    solana_account::Account,
-    solana_address::Address,
-    solana_commitment_config::CommitmentConfig,
-    solana_hash::Hash,
-    solana_instruction_error::InstructionError,
-    solana_keypair::Keypair,
-    solana_rpc_client::rpc_client::RpcClient,
-    solana_signature::Signature,
-    solana_signer::Signer,
-    solana_transaction::{versioned::VersionedTransaction, TransactionError},
-    std::{
-        collections::HashMap,
-        sync::{Arc, Mutex, OnceLock},
-    },
-};
+use crate::error::{translate_error_code, NaclacClientError};
+use litesvm::LiteSVM;
+use solana_account::Account;
+use solana_address::Address;
+use solana_commitment_config::CommitmentConfig;
+use solana_hash::Hash;
+use solana_instruction_error::InstructionError;
+use solana_keypair::Keypair;
+use solana_rpc_client::rpc_client::RpcClient;
+use solana_signature::Signature;
+use solana_signer::Signer;
+use solana_transaction::versioned::VersionedTransaction;
+use solana_transaction::TransactionError;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, OnceLock};
 
 #[derive(Debug, Clone)]
 pub struct NaclacTransactionMetadata {
@@ -970,13 +967,11 @@ impl NaclacProvider {
                 Ok(results)
             }
             ClientBackend::Rpc(client) => {
-                use {
-                    solana_account_decoder::{UiAccountData, UiAccountEncoding},
-                    solana_rpc_client_api::{
-                        config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
-                        filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
-                    },
+                use solana_account_decoder::{UiAccountData, UiAccountEncoding};
+                use solana_rpc_client_api::config::{
+                    RpcAccountInfoConfig, RpcProgramAccountsConfig,
                 };
+                use solana_rpc_client_api::filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType};
 
                 let filters = discriminator.map(|disc| {
                     vec![RpcFilterType::Memcmp(Memcmp::new(
@@ -1367,11 +1362,9 @@ impl NaclacProvider {
         program_id: &solana_address::Address,
         cluster_url: &str,
     ) -> Result<(), NaclacClientError> {
-        use {
-            solana_loader_v3_interface::state::UpgradeableLoaderState,
-            solana_sdk_ids::{bpf_loader, bpf_loader_deprecated, bpf_loader_upgradeable},
-            wincode::DeserializeOwned,
-        };
+        use solana_loader_v3_interface::state::UpgradeableLoaderState;
+        use solana_sdk_ids::{bpf_loader, bpf_loader_deprecated, bpf_loader_upgradeable};
+        use wincode::DeserializeOwned;
 
         const MAX_FETCH_ATTEMPTS: u32 = 5;
         const RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(1);
@@ -1542,7 +1535,8 @@ fn write_profile_log(tx: &VersionedTransaction, meta: &NaclacTransactionMetadata
         });
 
         if let Ok(log_str) = serde_json::to_string(&log_entry) {
-            use std::{fs::OpenOptions, io::Write};
+            use std::fs::OpenOptions;
+            use std::io::Write;
             if let Some(parent) = std::path::Path::new(&file_path).parent() {
                 let _ = std::fs::create_dir_all(parent);
             }

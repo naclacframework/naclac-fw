@@ -8,10 +8,9 @@
 //! encodes it as zero bytes) — presence/absence of the plugin itself is the
 //! only state.
 
-use crate::{
-    plugin_registry::{find_plugin_offset, plugin_type},
-    prelude::*,
-};
+use crate::prelude::*;
+
+use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `BurnDelegate` to an `Asset` via `add_plugin`.
 pub fn attach_burn_delegate_signed(

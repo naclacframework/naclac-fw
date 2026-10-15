@@ -8,10 +8,9 @@
 //! empty struct (Borsh encodes it as zero bytes) — presence/absence of the
 //! plugin itself is the only state.
 
-use crate::{
-    plugin_registry::{find_plugin_offset, plugin_type},
-    prelude::*,
-};
+use crate::prelude::*;
+
+use crate::plugin_registry::{find_plugin_offset, plugin_type};
 
 /// Attaches `TransferDelegate` to an `Asset` via `add_plugin`.
 pub fn attach_transfer_delegate_signed(

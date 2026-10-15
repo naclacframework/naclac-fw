@@ -1,7 +1,5 @@
-use {
-    crate::{Idl, IdlInstruction},
-    heck::{AsSnakeCase, ToUpperCamelCase},
-};
+use crate::{Idl, IdlInstruction};
+use heck::{AsSnakeCase, ToUpperCamelCase};
 
 pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     let mut offchain_content = String::new();

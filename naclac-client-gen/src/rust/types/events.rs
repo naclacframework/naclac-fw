@@ -1,12 +1,11 @@
-use {
-    super::super::{
-        map_type_to_rust, map_type_to_rust_cpi, map_type_to_rust_with_prefix, render_docs,
-        sdk_core_alias,
-    },
-    crate::{Idl, IdlEventDef},
-    heck::{AsSnakeCase, ToUpperCamelCase},
-    std::{fs, path::Path},
+use super::super::{
+    map_type_to_rust, map_type_to_rust_cpi, map_type_to_rust_with_prefix, render_docs,
+    sdk_core_alias,
 };
+use crate::{Idl, IdlEventDef};
+use heck::{AsSnakeCase, ToUpperCamelCase};
+use std::fs;
+use std::path::Path;
 
 /// Mirrors naclac-macros' `classify_field_type` — structural (not
 /// string-matching) detection of `String`/`Vec<T>`/`Option<T>` from an IDL

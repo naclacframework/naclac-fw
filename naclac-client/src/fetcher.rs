@@ -1,17 +1,11 @@
-use {
-    crate::{
-        error::NaclacClientError,
-        provider::{ClientBackend, NaclacProvider},
-    },
-    borsh::BorshDeserialize,
-    bytemuck::Pod,
-    solana_account::Account,
-    solana_address::Address,
-    solana_rpc_client_api::{
-        config::RpcProgramAccountsConfig,
-        filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
-    },
-};
+use crate::error::NaclacClientError;
+use crate::provider::{ClientBackend, NaclacProvider};
+use borsh::BorshDeserialize;
+use bytemuck::Pod;
+use solana_account::Account;
+use solana_address::Address;
+use solana_rpc_client_api::config::RpcProgramAccountsConfig;
+use solana_rpc_client_api::filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType};
 
 /// A type that knows how to decode itself from raw on-chain account bytes.
 ///
@@ -111,7 +105,8 @@ pub fn decode_pod_unchecked<T: Pod>(data: &[u8]) -> Result<T, NaclacClientError>
 
 #[cfg(kani)]
 mod kani_proofs {
-    use {super::*, crate::token::TokenAccount};
+    use super::*;
+    use crate::token::TokenAccount;
 
     /// Proves `decode_pod_checked`/`decode_pod_unchecked` never panic for
     /// any account bytes and any discriminator — `size = size_of::<T>()` is
