@@ -3,12 +3,15 @@
 //! Provides generic program interface wrappers (Interface, TokenInterface) for
 //! dynamic program resolution.
 
-use crate::prelude::AccountInfo;
 #[cfg(feature = "pinocchio")]
 use crate::prelude::AccountView;
-use crate::prelude::{Address, NaclacError, Result};
-use crate::wrappers::{ToAccountInfo, ToAddress};
-use core::ops::Deref;
+use {
+    crate::{
+        prelude::{AccountInfo, Address, NaclacError, Result},
+        wrappers::{ToAccountInfo, ToAddress},
+    },
+    core::ops::Deref,
+};
 
 /// Wrapper for executable program accounts that adhere to an interface with multiple possible IDs.
 #[derive(Clone)]

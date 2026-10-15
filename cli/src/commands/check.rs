@@ -1,6 +1,4 @@
-use std::fs;
-use std::path::PathBuf;
-use std::process::Command;
+use std::{fs, path::PathBuf, process::Command};
 
 /// Runs `cargo clippy` against each program in the workspace, one at a time —
 /// mirroring `build.rs`'s program discovery and feature detection (so a

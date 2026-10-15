@@ -12,8 +12,10 @@
 //! normal build, and never to read a value or a type shape, only a name
 //! and the path needed to call that item's own generated print function.
 
-use crate::modules::{cfg_attrs, crate_modules, reaches_root, CrateModule};
-use std::path::Path;
+use {
+    crate::modules::{cfg_attrs, crate_modules, reaches_root, CrateModule},
+    std::path::Path,
+};
 
 /// One `const`/`struct`/`enum` item found carrying the scanned-for
 /// attribute.

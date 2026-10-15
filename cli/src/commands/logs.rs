@@ -1,6 +1,7 @@
-use std::fs;
-use std::process::Command;
-use toml::Value;
+use {
+    std::{fs, process::Command},
+    toml::Value,
+};
 
 pub fn execute(program_id: Option<&str>) {
     let current_dir = std::env::current_dir().unwrap();

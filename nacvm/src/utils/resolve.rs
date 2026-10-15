@@ -1,5 +1,4 @@
-use serde::Deserialize;
-use std::process::Command;
+use {serde::Deserialize, std::process::Command};
 
 #[derive(Deserialize)]
 struct GitHubRelease {

@@ -1,6 +1,7 @@
-use crate::Idl;
-use std::fs;
-use std::path::Path;
+use {
+    crate::Idl,
+    std::{fs, path::Path},
+};
 
 pub mod constants;
 pub mod errors;

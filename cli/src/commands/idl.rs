@@ -3,27 +3,31 @@
 //! `upload` (create/update), `set-immutable`, `close`, `trim`, and
 //! `set-authority`.
 
-use flate2::read::{GzDecoder, ZlibDecoder};
-use flate2::write::ZlibEncoder;
-use flate2::Compression as ZlibCompression;
-use naclac_idl::program_metadata::{
-    self, compression, data_source, encoding, format, header, MetadataAccounts, Seed,
-    SetDataSource, HEADER_LEN,
+use {
+    crate::ui,
+    flate2::{
+        read::{GzDecoder, ZlibDecoder},
+        write::ZlibEncoder,
+        Compression as ZlibCompression,
+    },
+    naclac_idl::program_metadata::{
+        self, compression, data_source, encoding, format, header, MetadataAccounts, Seed,
+        SetDataSource, HEADER_LEN,
+    },
+    solana_address::Address,
+    solana_instruction::Instruction,
+    solana_keypair::Keypair,
+    solana_rpc_client::rpc_client::RpcClient,
+    solana_signer::Signer,
+    solana_transaction::Transaction,
+    std::{
+        fs,
+        io::{Read as _, Write as _},
+        path::{Path, PathBuf},
+        str::FromStr,
+    },
+    toml::Value,
 };
-use solana_address::Address;
-use solana_instruction::Instruction;
-use solana_keypair::Keypair;
-use solana_rpc_client::rpc_client::RpcClient;
-use solana_signer::Signer;
-use solana_transaction::Transaction;
-use std::fs;
-use std::io::Read as _;
-use std::io::Write as _;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use toml::Value;
-
-use crate::ui;
 
 /// Conservative per-transaction payload budget for `write`/inline calls —
 /// Solana caps total transaction size at 1232 bytes; this leaves headroom

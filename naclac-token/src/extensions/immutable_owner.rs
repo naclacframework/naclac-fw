@@ -9,13 +9,14 @@
 //! extension is enforced by the protocol itself on every `SetAuthority`
 //! targeting the account's owner, no dedicated action CPI exists.
 
-use super::Extension;
-use crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
-
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
+use {
+    super::Extension,
+    crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+};
 
 /// Raw Token-2022 `ImmutableOwner` token-account extension — a zero-byte
 /// marker; its mere presence means the account's owner can never be

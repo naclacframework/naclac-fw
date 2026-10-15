@@ -3,10 +3,14 @@
 //! success, and report errors — instead of each command hand-rolling its
 //! own `eprintln!` formatting and emoji choices.
 
-use colored::Colorize;
-use indicatif::{ProgressBar, ProgressStyle};
-use std::fmt::Display;
-use std::time::{Duration, Instant};
+use {
+    colored::Colorize,
+    indicatif::{ProgressBar, ProgressStyle},
+    std::{
+        fmt::Display,
+        time::{Duration, Instant},
+    },
+};
 
 /// Formats a duration the way every timed result line in this module does:
 /// sub-second as whole milliseconds, otherwise seconds to one decimal place.

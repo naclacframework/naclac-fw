@@ -1,5 +1,4 @@
-use std::fs;
-use std::process::Command;
+use std::{fs, process::Command};
 
 pub fn execute(program_id: Option<&str>) {
     let current_dir = std::env::current_dir().unwrap();

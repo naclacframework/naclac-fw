@@ -4,8 +4,7 @@
 //! second, independent parser guessing it from source text — see
 //! docs/plan/idl-build-compilation-migration.md for the full design.
 
-use crate::IdlTypeDef;
-use std::collections::BTreeMap;
+use {crate::IdlTypeDef, std::collections::BTreeMap};
 
 pub trait NaclacIdlBuild {
     /// Builds this type's IDL shape. `None` means this type is reachable

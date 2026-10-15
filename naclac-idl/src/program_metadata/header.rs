@@ -5,9 +5,7 @@
 //! derive (which was never independently verified and is exactly the kind
 //! of custom-wrapper code this module already found one real bug in).
 
-use solana_address::Address;
-
-use super::Seed;
+use {super::Seed, solana_address::Address};
 
 /// Real on-chain size of a `Header`/`Buffer` account — see [`super::HEADER_LEN`].
 const HEADER_LEN: usize = super::HEADER_LEN;

@@ -27,8 +27,10 @@
 //! `UpdateGroupMaxSize`/`UpdateGroupAuthority`, both real,
 //! separately-dispatched interface instructions it omits.
 
-use super::Extension;
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, Result};
+use {
+    super::Extension,
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, Result},
+};
 
 /// `TokenGroup`/`TokenGroupMember` (`spl_token_group_interface::state`) are
 /// real, already `#[repr(C)]`/`Pod`/`Zeroable` fixed-size structs — unlike

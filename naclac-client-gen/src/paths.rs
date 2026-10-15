@@ -1,5 +1,7 @@
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 pub fn read_target_dir_from_cargo_config(workspace_root: &Path) -> Option<PathBuf> {
     for config_name in &["config.toml", "config"] {

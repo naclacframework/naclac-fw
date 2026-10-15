@@ -17,13 +17,14 @@
 //! real processor (verified directly — `pausable::processor::process_toggle_pause`
 //! has no `in_cpi()`-style check), so these are ordinary CPI helpers.
 
-use super::Extension;
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
-
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
+use {
+    super::Extension,
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+};
 
 /// Raw Token-2022 `PausableConfig` mint extension (33 bytes): the authority
 /// that can pause/resume the mint, plus whether it's currently paused.

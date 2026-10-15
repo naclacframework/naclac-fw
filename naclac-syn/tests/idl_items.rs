@@ -2,9 +2,13 @@
 //! declarations: unique names per namespace, unique error codes, and
 //! existence that depends only on features.
 
-use naclac_syn::idl_items::{declarations, violations};
-use naclac_syn::modules::crate_modules;
-use std::fs;
+use {
+    naclac_syn::{
+        idl_items::{declarations, violations},
+        modules::crate_modules,
+    },
+    std::fs,
+};
 
 fn messages(tag: &str, lib_rs: &str) -> Vec<String> {
     let dir = std::env::temp_dir().join(format!(
@@ -159,8 +163,7 @@ fn only_feature_and_test_cfgs_are_allowed_on_idl_items() {
 
 #[test]
 fn error_code_arguments_other_than_offset_are_rejected() {
-    use naclac_syn::idl_items::error_code_offset_tokens;
-    use quote::quote;
+    use {naclac_syn::idl_items::error_code_offset_tokens, quote::quote};
     assert_eq!(error_code_offset_tokens(quote! {}).unwrap(), 6000);
     assert_eq!(
         error_code_offset_tokens(quote! { offset = 7000 }).unwrap(),

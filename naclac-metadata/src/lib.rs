@@ -83,8 +83,6 @@ pub mod external_plugin_adapter;
 pub mod external_plugins;
 
 pub mod prelude {
-    pub use naclac_core::prelude::*;
-
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub(crate) use crate::checked_end;
 
@@ -93,8 +91,6 @@ pub mod prelude {
 
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::collection::*;
-
-    pub use crate::plugin_type;
 
     #[cfg(feature = "pinocchio")]
     pub(crate) use crate::fixed_buf::ByteSink;
@@ -131,6 +127,7 @@ pub mod prelude {
 
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::external_plugins::*;
+    pub use {crate::plugin_type, naclac_core::prelude::*};
 }
 
 #[cfg(all(kani, any(feature = "solana", feature = "pinocchio")))]

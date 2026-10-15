@@ -2,9 +2,11 @@
 //! parsing for Naclac, plus a client for uploading a generated IDL to
 //! Solana's on-chain Program Metadata Program (see [`program_metadata`]).
 
-use heck::ToUpperCamelCase;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use {
+    heck::ToUpperCamelCase,
+    serde::{Deserialize, Serialize},
+    serde_json::Value,
+};
 
 pub mod converter;
 pub mod idl_build;
@@ -16,9 +18,10 @@ pub mod program_metadata;
 /// direct dependencies just to compile the generated `NaclacIdlBuild` impls
 /// — mirrors Anchor's own `anchor_lang::__private` re-export shim.
 pub mod __private {
-    pub use serde_json;
-    pub use std::collections::BTreeMap;
-    pub use std::string::String;
+    pub use {
+        serde_json,
+        std::{collections::BTreeMap, string::String},
+    };
 }
 pub use serde_json;
 

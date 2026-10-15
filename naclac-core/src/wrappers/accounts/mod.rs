@@ -11,12 +11,11 @@
 pub mod account;
 pub mod interface_account;
 
+use crate::prelude::NaclacError;
 #[cfg(not(all(feature = "borsh", feature = "wincode")))]
 pub use account::Account;
 #[cfg(not(all(feature = "borsh", feature = "wincode")))]
 pub use interface_account::InterfaceAccount;
-
-use crate::prelude::NaclacError;
 
 /// Discards a Borsh serializer error without running its destructor. Callers
 /// replace the error with one that fails the transaction, so the leaked

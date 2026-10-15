@@ -13,9 +13,10 @@
 //! doesn't set its own (verified in `utils/mod.rs`'s
 //! `validate_asset_permissions`).
 
-use crate::prelude::*;
-
-use crate::plugin_registry::{find_plugin_offset, plugin_type};
+use crate::{
+    plugin_registry::{find_plugin_offset, plugin_type},
+    prelude::*,
+};
 
 /// Attaches `PermanentBurnDelegate` to an `Asset` via `add_plugin`.
 pub fn attach_permanent_burn_delegate_signed(

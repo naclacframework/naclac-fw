@@ -7,11 +7,13 @@
 //! Provides dual-backend wrappers for invoking the SPL Associated Token Program.
 //! Enforces borrow-checking via CPI handles.
 
-use crate::prelude::{
-    derive_program_address, find_bump_for_address, Address, CpiHandle, CpiHandleMut, NaclacError,
-    Result,
+use crate::{
+    prelude::{
+        derive_program_address, find_bump_for_address, Address, CpiHandle, CpiHandleMut,
+        NaclacError, Result,
+    },
+    wrappers::{ToAddress, ToCpiHandle, ToCpiHandleMut},
 };
-use crate::wrappers::{ToAddress, ToCpiHandle, ToCpiHandleMut};
 
 /// Validates the three CPI-target program accounts for a `Create`/
 /// `CreateIdempotent` invocation: `program` must genuinely be the

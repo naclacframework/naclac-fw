@@ -1,7 +1,5 @@
 #![no_std]
 
-pub(crate) use naclac_core::wrappers;
-
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
 pub(crate) use naclac_core::cpi;
 
@@ -18,6 +16,7 @@ pub(crate) use naclac_core::borsh;
     not(feature = "borsh")
 ))]
 pub(crate) use naclac_core::wincode;
+pub(crate) use naclac_core::wrappers;
 
 extern crate alloc;
 
@@ -34,8 +33,6 @@ pub mod extensions;
 pub use token::*;
 
 pub mod prelude {
-    pub use naclac_core::prelude::*;
-
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::token::*;
 
@@ -110,6 +107,7 @@ pub mod prelude {
         spl_associated_token_account, spl_token, spl_token_2022, spl_token_group_interface,
         spl_token_metadata_interface,
     };
+    pub use naclac_core::prelude::*;
 }
 
 #[cfg(feature = "pinocchio")]

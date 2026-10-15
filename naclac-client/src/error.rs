@@ -1,6 +1,7 @@
-use naclac_core::error::FRAMEWORK_ERROR_BASE;
-use solana_instruction_error::InstructionError;
-use thiserror::Error;
+use {
+    naclac_core::error::FRAMEWORK_ERROR_BASE, solana_instruction_error::InstructionError,
+    thiserror::Error,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum NaclacError {

@@ -4,9 +4,11 @@
 //! into native Solana `ProgramError`s whose code is the enum's `offset` (6000 unless set with
 //! `#[error_code(offset = N)]`) plus the variant's discriminant.
 
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, ItemEnum};
+use {
+    proc_macro::TokenStream,
+    quote::quote,
+    syn::{parse_macro_input, ItemEnum},
+};
 
 /// Builds `impl #name { pub fn __naclac_idl_errors() -> Vec<IdlError> }` —
 /// each variant's `code` is `offset` plus its *real* Rust discriminant (via

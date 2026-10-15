@@ -1,7 +1,8 @@
-use crate::config::Config;
-use crate::utils::active;
-use colored::*;
-use std::fs;
+use {
+    crate::{config::Config, utils::active},
+    colored::*,
+    std::fs,
+};
 
 pub fn execute(config: &Config, version: &str) {
     let root_path = config.versions_dir.join(version);

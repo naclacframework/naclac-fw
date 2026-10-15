@@ -16,22 +16,23 @@ pub mod signer;
 pub mod zc_enum;
 pub mod zc_vec;
 
-pub use accounts::*;
-pub use cpi_handle::*;
-pub use interface::*;
-pub use program::*;
-pub use signer::*;
-pub use zc_enum::{
-    event_bytes_of, event_field_default, event_slice_bytes, Align, AlignTo, ZcEnum, ZcEnumKind,
-    ZcEventDefault, ZcEventField, ZcField, ZcFieldWrite, ZcStorage, ZcWrite,
-};
-pub use zc_vec::*;
-
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::AccountInfo;
 use crate::prelude::Address;
 #[cfg(feature = "pinocchio")]
 use crate::prelude::{AccountInfo, AccountView, PinocchioAddress};
+pub use {
+    accounts::*,
+    cpi_handle::*,
+    interface::*,
+    program::*,
+    signer::*,
+    zc_enum::{
+        event_bytes_of, event_field_default, event_slice_bytes, Align, AlignTo, ZcEnum, ZcEnumKind,
+        ZcEventDefault, ZcEventField, ZcField, ZcFieldWrite, ZcStorage, ZcWrite,
+    },
+    zc_vec::*,
+};
 
 /// Trait to convert a type into an Address.
 pub trait ToAddress {

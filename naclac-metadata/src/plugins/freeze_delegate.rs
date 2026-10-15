@@ -7,9 +7,10 @@
 //! verified against `mpl-core`'s `generated::types::FreezeDelegate`:
 //! `{ frozen: bool }`.
 
-use crate::prelude::*;
-
-use crate::plugin_registry::{find_plugin_offset, plugin_type};
+use crate::{
+    plugin_registry::{find_plugin_offset, plugin_type},
+    prelude::*,
+};
 
 /// Attaches `FreezeDelegate` to an `Asset` via `add_plugin`.
 pub fn attach_freeze_delegate_signed(

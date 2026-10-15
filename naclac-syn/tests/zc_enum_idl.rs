@@ -1,8 +1,10 @@
 //! A zero-copy `ZcEnum<E>` field has the same IDL type as the plain `E` a
 //! Borsh or Wincode program writes, and `Opt<ZcEnum<E>>` names its `Opt` from `E`.
 
-use naclac_syn::parser::{defined_type_leaf, rust_type_to_idl};
-use serde_json::json;
+use {
+    naclac_syn::parser::{defined_type_leaf, rust_type_to_idl},
+    serde_json::json,
+};
 
 fn idl(ty: &str) -> serde_json::Value {
     rust_type_to_idl(&syn::parse_str(ty).unwrap(), &[])

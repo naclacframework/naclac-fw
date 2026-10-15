@@ -1,10 +1,12 @@
-use naclac_client::{
-    load_node_wallet, AccountMeta, InstructionBuilder, NaclacProvider, SignerAddressExt,
-    TransactionVersion, VersionedTransaction, SYSTEM_PROGRAM_ID,
+use {
+    naclac_client::{
+        load_node_wallet, AccountMeta, InstructionBuilder, NaclacProvider, SignerAddressExt,
+        TransactionVersion, VersionedTransaction, SYSTEM_PROGRAM_ID,
+    },
+    solana_address::Address,
+    solana_keypair::Keypair,
+    solana_message::VersionedMessage,
 };
-use solana_address::Address;
-use solana_keypair::Keypair;
-use solana_message::VersionedMessage;
 
 fn system_transfer_builder<'a>(
     provider: &'a NaclacProvider,

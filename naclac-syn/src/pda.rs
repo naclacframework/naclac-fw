@@ -1,7 +1,9 @@
-use crate::types::{NaclacAccountStruct, NaclacPda, NaclacSeed};
-use quote::ToTokens;
-use std::collections::HashMap;
-use syn::Expr;
+use {
+    crate::types::{NaclacAccountStruct, NaclacPda, NaclacSeed},
+    quote::ToTokens,
+    std::collections::HashMap,
+    syn::Expr,
+};
 
 /// Builds a `NaclacSeed::Account`, resolving `field_type` when `path` is a
 /// dotted field access (e.g. `registry.bump`) whose root account's backing

@@ -5,26 +5,27 @@ pub mod provider;
 pub mod token;
 pub mod utils;
 
-pub use token::{Mint, TokenAccount};
-
-pub use builder::InstructionBuilder;
-pub use error::{decode_custom_error, translate_error_code, NaclacClientError, NaclacError};
-pub use fetcher::{
-    decode_borsh_checked, decode_pod_checked, decode_pod_unchecked, decode_wincode_checked,
-    AccountFetcher, NaclacDecode,
-};
-pub use provider::{
-    ClientBackend, NaclacAllocEvent, NaclacEvent, NaclacInnerInstruction, NaclacProvider,
-    NaclacTransactionMetadata, RpcCluster, TransactionVersion,
-};
-pub use utils::{
-    create_ata, create_ata_with_program, create_mint, create_token_account, load_node_wallet,
-    mint_to, resolve_cargo_target_dir, transfer_sol, SignerAddressExt, ASSOCIATED_TOKEN_PROGRAM_ID,
-    RENT_SYSVAR_ID, SYSTEM_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
-};
-
 // Custom AccountMeta and Address
 pub use solana_address::{address, Address};
+pub use {
+    builder::InstructionBuilder,
+    error::{decode_custom_error, translate_error_code, NaclacClientError, NaclacError},
+    fetcher::{
+        decode_borsh_checked, decode_pod_checked, decode_pod_unchecked, decode_wincode_checked,
+        AccountFetcher, NaclacDecode,
+    },
+    provider::{
+        ClientBackend, NaclacAllocEvent, NaclacEvent, NaclacInnerInstruction, NaclacProvider,
+        NaclacTransactionMetadata, RpcCluster, TransactionVersion,
+    },
+    token::{Mint, TokenAccount},
+    utils::{
+        create_ata, create_ata_with_program, create_mint, create_token_account, load_node_wallet,
+        mint_to, resolve_cargo_target_dir, transfer_sol, SignerAddressExt,
+        ASSOCIATED_TOKEN_PROGRAM_ID, RENT_SYSVAR_ID, SYSTEM_PROGRAM_ID, TOKEN_2022_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
+    },
+};
 
 #[derive(Clone, Debug)]
 pub struct AccountMeta {
@@ -149,9 +150,7 @@ mod kani_proofs {
 }
 
 // Standard Solana SDK Re-exports
-pub use borsh;
-pub use bytemuck;
-pub use wincode;
+pub use {borsh, bytemuck, wincode};
 
 /// Off-chain mirror of `naclac_core::wincode_config` — deliberately a
 /// separate definition, not a re-export. `naclac-client` is a shared
@@ -181,12 +180,13 @@ pub mod wincode_config {
         .with_tag_encoding::<u8>();
 }
 
-pub use solana_instruction::Instruction;
-pub use solana_instruction_error::InstructionError;
-pub use solana_keypair::Keypair;
-pub use solana_signature::Signature;
-pub use solana_signer::Signer;
-pub use solana_transaction::versioned::VersionedTransaction;
-pub use std::string::String;
 pub use std::vec;
-pub use std::vec::Vec;
+pub use {
+    solana_instruction::Instruction,
+    solana_instruction_error::InstructionError,
+    solana_keypair::Keypair,
+    solana_signature::Signature,
+    solana_signer::Signer,
+    solana_transaction::versioned::VersionedTransaction,
+    std::{string::String, vec::Vec},
+};

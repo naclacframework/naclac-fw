@@ -1,11 +1,14 @@
-use heck::ToSnakeCase;
-use std::fs;
-
-use crate::commands::init::templates::{
-    generate_program, parse_mode, parse_ts_framework, prompt_mode_selection, prompt_ts_framework,
-    TsFramework,
+use {
+    crate::commands::init::{
+        templates::{
+            generate_program, parse_mode, parse_ts_framework, prompt_mode_selection,
+            prompt_ts_framework, TsFramework,
+        },
+        utils::generate_keypair,
+    },
+    heck::ToSnakeCase,
+    std::fs,
 };
-use crate::commands::init::utils::generate_keypair;
 
 pub fn execute(name: &str, mode_flag: Option<&str>, ts_flag: Option<&str>) {
     let current_dir = std::env::current_dir().unwrap();

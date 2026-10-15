@@ -38,7 +38,6 @@
 //! instructions it omits.
 
 use crate::prelude::{Address, CpiHandle, CpiHandleMut, Result, String};
-
 pub use spl_token_metadata_interface::state::Field;
 
 /// Borsh-serializes `data`, prefixed by its real `SPL_DISCRIMINATOR_SLICE` —

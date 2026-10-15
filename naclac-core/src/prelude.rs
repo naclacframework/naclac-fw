@@ -11,14 +11,18 @@
 // solana_program symbol and replaces it with the pinocchio equivalents.
 // ===========================================================================
 
-pub use crate::context::{
-    Bumps, Context, EventCpiAccounts, EventCpiAuthority, EventCpiTag, LoadableAccounts,
-    ValidationResult,
-};
-pub use crate::cpi::{self, AccountMeta, ToAccountMetas};
 #[cfg(feature = "pinocchio")]
 pub use crate::cpi::{invoke_signed_pinocchio, invoke_signed_pinocchio_unchecked};
-pub use naclac_macros::*;
+pub use {
+    crate::{
+        context::{
+            Bumps, Context, EventCpiAccounts, EventCpiAuthority, EventCpiTag, LoadableAccounts,
+            ValidationResult,
+        },
+        cpi::{self, AccountMeta, ToAccountMetas},
+    },
+    naclac_macros::*,
+};
 
 // --- Wrappers: common types (shared by both backends) ---
 pub use crate::error::NaclacError;
@@ -41,8 +45,7 @@ pub use crate::wrappers::{Account, InterfaceAccount};
 
 pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};
 
-pub use crate::realloc::const_rent_lamports;
-pub use crate::realloc::resize_with_rent;
+pub use crate::realloc::{const_rent_lamports, resize_with_rent};
 
 // ---------------------------------------------------------------------------
 // CPI Stack-Allocation Limits
@@ -125,9 +128,16 @@ pub use crate::wrappers::ToAccountInfos;
 // Pinocchio-only: AccountView is already exported from the pinocchio block below (line ~159)
 // Do NOT re-export it from wrappers here — that creates a circular private import
 
-pub use core::fmt;
-
-pub use alloc::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
+pub use alloc::vec;
+pub use {
+    alloc::{
+        boxed::Box,
+        format,
+        string::{String, ToString},
+        vec::Vec,
+    },
+    core::fmt,
+};
 
 #[cfg(all(
     feature = "borsh",
@@ -137,8 +147,7 @@ pub use alloc::{boxed::Box, format, string::String, string::ToString, vec, vec::
 pub use borsh::io;
 
 // --- Bytemuck (both backends need this for zero-copy) ---
-pub use crate::bytemuck;
-pub use crate::bytemuck::{Pod, Zeroable};
+pub use crate::bytemuck::{self, Pod, Zeroable};
 
 // ===========================================================================
 // SOLANA-PROGRAM BACKEND  (feature = "solana")

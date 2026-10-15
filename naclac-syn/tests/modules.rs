@@ -3,9 +3,13 @@
 //! module, undeclared files, `cfg` evaluation over default features, and
 //! visibility from the crate root.
 
-use naclac_syn::modules::{active_crate_modules, crate_modules, default_features, CrateModule};
-use std::fs;
-use std::path::{Path, PathBuf};
+use {
+    naclac_syn::modules::{active_crate_modules, crate_modules, default_features, CrateModule},
+    std::{
+        fs,
+        path::{Path, PathBuf},
+    },
+};
 
 fn write(root: &Path, rel: &str, body: &str) {
     let path = root.join(rel);

@@ -3,9 +3,11 @@
 //! Handles the expansion of the `#[program]` macro, serving as the core router
 //! and instruction dispatcher for the smart contract across all execution modes.
 
-use proc_macro::TokenStream;
-use quote::{format_ident, quote};
-use syn::{parse_macro_input, FnArg, Item, ItemMod, Pat, Type};
+use {
+    proc_macro::TokenStream,
+    quote::{format_ident, quote},
+    syn::{parse_macro_input, FnArg, Item, ItemMod, Pat, Type},
+};
 
 /// Real `idl-build` assembler — replaces the old `idl_json_const` (removed;
 /// it called `naclac_idl::generate_idl`, the AST walker, at macro-expansion

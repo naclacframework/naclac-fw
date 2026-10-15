@@ -11,13 +11,14 @@
 //! anchor-spl-v2's own `token_2022_extensions::transfer_fee` module as the
 //! parity target — that module exposes exactly these six functions, no more.
 
-use super::{ceil_div_u128, read_optional_address, read_u16, read_u64, Extension};
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, NaclacError, Pod, Result, Zeroable};
-
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
+use {
+    super::{ceil_div_u128, read_optional_address, read_u16, read_u64, Extension},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, NaclacError, Pod, Result, Zeroable},
+};
 
 /// Raw Token-2022 `TransferFeeConfig` mint extension (108 bytes): current
 /// and upcoming fee rate/cap, plus the withheld-and-not-yet-withdrawn

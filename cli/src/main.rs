@@ -1,6 +1,8 @@
-use clap::{Parser, Subcommand};
-use solana_address::Address;
-use std::str::FromStr;
+use {
+    clap::{Parser, Subcommand},
+    solana_address::Address,
+    std::str::FromStr,
+};
 
 mod commands;
 mod ui;
@@ -212,8 +214,7 @@ pub enum IdlAction {
     },
 }
 
-use std::fs;
-use toml::Value;
+use {std::fs, toml::Value};
 
 fn get_target_programs(cli_arg: Option<&String>) -> Vec<String> {
     let current_dir = std::env::current_dir().unwrap();

@@ -17,7 +17,4 @@ pub mod data_section;
 pub mod linked_app_data;
 pub mod oracle;
 
-pub use app_data::*;
-pub use data_section::*;
-pub use linked_app_data::*;
-pub use oracle::*;
+pub use {app_data::*, data_section::*, linked_app_data::*, oracle::*};

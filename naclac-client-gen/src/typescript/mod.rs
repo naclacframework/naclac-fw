@@ -1,5 +1,4 @@
-use crate::Idl;
-use std::fs;
+use {crate::Idl, std::fs};
 
 pub mod kit;
 pub mod legacy;

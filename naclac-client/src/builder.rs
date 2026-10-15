@@ -1,12 +1,16 @@
-use crate::error::NaclacClientError;
-use crate::provider::{NaclacProvider, NaclacTransactionMetadata, TransactionVersion};
-use crate::AccountMeta;
-use solana_address::Address;
-use solana_instruction::Instruction;
-use solana_keypair::Keypair;
-use solana_message::{v0, v1, Message as LegacyMessage, VersionedMessage};
-use solana_signer::Signer;
-use solana_transaction::versioned::VersionedTransaction;
+use {
+    crate::{
+        error::NaclacClientError,
+        provider::{NaclacProvider, NaclacTransactionMetadata, TransactionVersion},
+        AccountMeta,
+    },
+    solana_address::Address,
+    solana_instruction::Instruction,
+    solana_keypair::Keypair,
+    solana_message::{v0, v1, Message as LegacyMessage, VersionedMessage},
+    solana_signer::Signer,
+    solana_transaction::versioned::VersionedTransaction,
+};
 
 pub struct InstructionBuilder<'a> {
     pub provider: &'a NaclacProvider,

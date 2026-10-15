@@ -13,7 +13,6 @@ pub mod header;
 mod instructions;
 
 pub use instructions::*;
-
 use solana_address::Address;
 
 /// Program Metadata Program's on-chain address.

@@ -1,6 +1,4 @@
-use std::fs;
-use std::path::PathBuf;
-use std::process::Command;
+use std::{fs, path::PathBuf, process::Command};
 
 pub fn execute(program_id: Option<&str>, features: Vec<String>) {
     let current_dir = std::env::current_dir().unwrap();
