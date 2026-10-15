@@ -17,9 +17,30 @@
 //! `unsafe(alias)` as the correct spelling of what bare `alias` rejects).
 //! These catch the opposite regression: a check becoming too strict and
 //! rejecting valid code.
+/// Fixtures whose `.stderr` embeds an absolute path outside this crate, so the
+/// snapshot only matches on the machine that blessed it. Skipped when `CI` is set.
+const LOCAL_ONLY_FIXTURES: &[&str] = &["48_event_alloc_bare_enum_field.rs"];
+
 #[test]
 fn macro_rejections_and_valid_counterparts() {
     let t = trybuild::TestCases::new();
-    t.compile_fail("tests/fail/*.rs");
+    if std::env::var_os("CI").is_none() {
+        t.compile_fail("tests/fail/*.rs");
+    } else {
+        let mut fixtures: Vec<_> = std::fs::read_dir("tests/fail")
+            .expect("tests/fail must exist")
+            .map(|entry| entry.expect("readable directory entry").path())
+            .filter(|path| path.extension().is_some_and(|ext| ext == "rs"))
+            .filter(|path| {
+                !LOCAL_ONLY_FIXTURES
+                    .iter()
+                    .any(|name| path.file_name().is_some_and(|file| file == *name))
+            })
+            .collect();
+        fixtures.sort();
+        for fixture in fixtures {
+            t.compile_fail(fixture);
+        }
+    }
     t.pass("tests/pass/*.rs");
 }

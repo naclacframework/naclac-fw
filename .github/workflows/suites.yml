@@ -106,7 +106,7 @@ jobs:
           echo "${{ runner.temp }}/bin" >> "$GITHUB_PATH"
 
       - name: Run suite
-        run: ./scripts/test-all.sh ${{ matrix.suite }}
+        run: bash scripts/test-all.sh ${{ matrix.suite }}
 
       - name: Generated files must match what is committed
         run: git diff --exit-code -- tests/${{ matrix.suite }}
@@ -130,7 +130,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
-          version: 9
+          package_json_file: client/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -185,7 +185,7 @@ jobs:
           chmod +x "${{ runner.temp }}/bin/naclac"
           echo "${{ runner.temp }}/bin" >> "$GITHUB_PATH"
 
-      - run: ./run.sh
+      - run: bash run.sh
         working-directory: tests/idl-parity
 
   all-green:
