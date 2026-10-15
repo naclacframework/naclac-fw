@@ -21,22 +21,6 @@ fn home_dir() -> String {
         .unwrap_or_else(|_| std::env::var("USERPROFILE").unwrap_or_else(|_| ".".to_string()))
 }
 
-/// True when `NACLAC_KEEP_IDS` is set. In that mode `naclac build` never
-/// generates a deploy keypair and never rewrites `declare_id!` or
-/// `Naclac.toml`: the program ID in the source is the source of truth, and
-/// IDL generation reads it from `declare_id!` instead of a keypair.
-pub fn keep_ids() -> bool {
-    std::env::var_os("NACLAC_KEEP_IDS").is_some()
-}
-
-/// The address inside the first `declare_id!("...")` of `<program_dir>/src/lib.rs`.
-pub fn declared_program_id(program_dir: &Path) -> Option<String> {
-    let lib_code = fs::read_to_string(program_dir.join("src/lib.rs")).ok()?;
-    let start = lib_code.find("declare_id!(\"")? + "declare_id!(\"".len();
-    let end = lib_code[start..].find("\")")?;
-    Some(lib_code[start..start + end].to_string())
-}
-
 /// Highest version in `ACCEPTED_PLATFORM_TOOLS` that `cargo-build-sbf` has
 /// already downloaded to its cache — i.e. one we can use without triggering
 /// a fresh download.
@@ -212,9 +196,6 @@ pub fn execute(
             .to_str()
             .unwrap()
             .to_string();
-        if keep_ids() {
-            continue;
-        }
         let keypair_path = target_deploy_dir.join(format!("{}-keypair.json", program_name));
 
         if !keypair_path.exists() {

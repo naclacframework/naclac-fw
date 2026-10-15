@@ -307,6 +307,7 @@ fn the_account_bytes_match_the_golden_fixture_shared_with_the_typescript_client(
     let mut data = provider.get_account_data(&state).unwrap();
     let admin_at = STATE_DISCRIMINATOR.len() + core::mem::offset_of!(State, admin);
     data[admin_at..admin_at + 32].fill(0);
+    data[STATE_DISCRIMINATOR.len() + core::mem::offset_of!(State, bump)] = 0;
     let hex: String = data.iter().map(|b| format!("{b:02x}")).collect();
 
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/state_zc.hex");

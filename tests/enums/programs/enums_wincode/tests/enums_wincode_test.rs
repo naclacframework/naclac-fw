@@ -230,6 +230,7 @@ fn the_account_bytes_match_the_golden_fixture_shared_with_the_typescript_client(
     let mut data = provider.get_account_data(&state).unwrap();
     let admin_at = DISCRIMINATOR_LEN + 1;
     data[admin_at..admin_at + 32].fill(0);
+    data[DISCRIMINATOR_LEN] = 0;
     assert_golden("wincode_state.hex", &data);
 }
 
