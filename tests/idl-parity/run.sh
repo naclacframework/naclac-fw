@@ -125,8 +125,10 @@ EOF
 
   TARGET=$(target_dir_of "$WS/Cargo.toml") || return 1
   mkdir -p "$TARGET/deploy"
-  local keypair="$TARGET/deploy/${CRATE}-keypair.json"
+  mkdir -p "$WORK/keys"
+  local keypair="$WORK/keys/${CRATE}-keypair.json"
   [ -f "$keypair" ] || solana-keygen new --no-bip39-passphrase --silent --force -o "$keypair" >/dev/null || return 1
+  cp "$keypair" "$TARGET/deploy/${CRATE}-keypair.json"
   PUBKEY=$(solana-keygen pubkey "$keypair") || return 1
 
   find "$prog/src" -name '*.rs' -exec sed -i "s/__CRATE__/$CRATE/g; s/__PROGRAM_ID__/$PUBKEY/g" {} +

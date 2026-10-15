@@ -35,7 +35,7 @@
 //! **`AddExternalPluginAdapterV1`/`WriteExternalPluginAdapterDataV1` both
 //! reject `DataSection`/`LinkedLifecycleHook`/`LinkedAppData` outright** —
 //! verified directly in the real processor:
-//! ```rust
+//! ```text
 //! match &args.init_info {
 //!     ExternalPluginAdapterInitInfo::LinkedLifecycleHook(_)
 //!     | ExternalPluginAdapterInitInfo::LinkedAppData(_) => {

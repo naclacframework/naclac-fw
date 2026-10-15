@@ -36,6 +36,8 @@ jobs:
     needs: cli
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      NACLAC_KEEP_IDS: "1"
     strategy:
       fail-fast: false
       max-parallel: 6

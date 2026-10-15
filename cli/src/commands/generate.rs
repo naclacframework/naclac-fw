@@ -321,23 +321,32 @@ pub fn generate_idl_for_program(
     show_output: bool,
 ) -> (String, Vec<String>) {
     let target_dir = naclac_client_gen::resolve_target_dir(workspace_root);
-    let keypair_path = target_dir
-        .join("deploy")
-        .join(format!("{}-keypair.json", prog_name));
-    if !keypair_path.exists() {
-        ui::error(format!(
-            "No deploy keypair found for '{}' — run `naclac build` at least once first.",
-            prog_name
-        ));
-    }
-    let address_output = Command::new("solana-keygen")
-        .arg("pubkey")
-        .arg(&keypair_path)
-        .output()
-        .expect("Failed to run solana-keygen");
-    let actual_address = String::from_utf8_lossy(&address_output.stdout)
-        .trim()
-        .to_string();
+    let actual_address = if crate::commands::build::keep_ids() {
+        crate::commands::build::declared_program_id(program_dir).unwrap_or_else(|| {
+            ui::error(format!(
+                "No `declare_id!(\"...\")` found in '{}' src/lib.rs.",
+                prog_name
+            ))
+        })
+    } else {
+        let keypair_path = target_dir
+            .join("deploy")
+            .join(format!("{}-keypair.json", prog_name));
+        if !keypair_path.exists() {
+            ui::error(format!(
+                "No deploy keypair found for '{}' — run `naclac build` at least once first.",
+                prog_name
+            ));
+        }
+        let address_output = Command::new("solana-keygen")
+            .arg("pubkey")
+            .arg(&keypair_path)
+            .output()
+            .expect("Failed to run solana-keygen");
+        String::from_utf8_lossy(&address_output.stdout)
+            .trim()
+            .to_string()
+    };
 
     let (idl_json_pretty, alloc_event_names) = if program_declares_idl_build(program_dir) {
         match generate_idl_via_idl_build(&target_dir, program_dir, prog_name, show_output) {
