@@ -83,7 +83,7 @@ const _: () = {
         ::core::mem::size_of:: < Registry > () == (::core::mem::size_of:: < u8 > () +
         __Registry_GAP_0 + ::core::mem::size_of:: < u32 > () + __Registry_GAP_1 +
         ::core::mem::size_of:: < [u8; 4] > () + __Registry_GAP_2),
-        "defined_type/#[component]: `Registry`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `Registry`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -186,7 +186,7 @@ const _: () = {
         ::core::mem::size_of:: < RegistryCpi > () == (::core::mem::size_of:: < u8 > () +
         __RegistryCpi_GAP_0 + ::core::mem::size_of:: < u32 > () + __RegistryCpi_GAP_1 +
         ::core::mem::size_of:: < [u8; 4] > () + __RegistryCpi_GAP_2),
-        "defined_type/#[component]: `RegistryCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `RegistryCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

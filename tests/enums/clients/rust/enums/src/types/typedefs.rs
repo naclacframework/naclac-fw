@@ -1128,7 +1128,7 @@ const _: () = {
         __Limits_GAP_0 + ::core::mem::size_of:: < u64 > () + __Limits_GAP_1 +
         ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum < crate ::types::Color
         > > () + __Limits_GAP_2),
-        "defined_type/#[component]: `Limits`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `Limits`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -1236,7 +1236,7 @@ const _: () = {
         __LimitsCpi_GAP_0 + ::core::mem::size_of:: < u64 > () + __LimitsCpi_GAP_1 +
         ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum < crate ::types::ColorCpi >
         > () + __LimitsCpi_GAP_2),
-        "defined_type/#[component]: `LimitsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `LimitsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -1346,7 +1346,7 @@ const _: () = {
         ::core::mem::size_of:: < ModeArgs > () == (::core::mem::size_of:: < crate
         ::sdk_core_offchain::ZcEnum < crate ::types::Color > > () + __ModeArgs_GAP_0 +
         ::core::mem::size_of:: < u64 > () + __ModeArgs_GAP_1),
-        "defined_type/#[component]: `ModeArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `ModeArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -1435,7 +1435,7 @@ const _: () = {
         ::core::mem::size_of:: < ModeArgsCpi > () == (::core::mem::size_of:: < crate
         ::sdk_core_cpi::ZcEnum < crate ::types::ColorCpi > > () + __ModeArgsCpi_GAP_0 +
         ::core::mem::size_of:: < u64 > () + __ModeArgsCpi_GAP_1),
-        "defined_type/#[component]: `ModeArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `ModeArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -1544,7 +1544,7 @@ const _: () = {
         ::sdk_core_offchain::ZcEnum < crate ::types::Color > > () + __OptColor_GAP_0 +
         ::core::mem::size_of:: < u8 > () + __OptColor_GAP_1 + ::core::mem::size_of:: <
         [u8; 7] > () + __OptColor_GAP_2),
-        "defined_type/#[component]: `OptColor`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `OptColor`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -1654,7 +1654,7 @@ const _: () = {
         ::sdk_core_cpi::ZcEnum < crate ::types::ColorCpi > > () + __OptColorCpi_GAP_0 +
         ::core::mem::size_of:: < u8 > () + __OptColorCpi_GAP_1 + ::core::mem::size_of:: <
         [u8; 7] > () + __OptColorCpi_GAP_2),
-        "defined_type/#[component]: `OptColorCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `OptColorCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

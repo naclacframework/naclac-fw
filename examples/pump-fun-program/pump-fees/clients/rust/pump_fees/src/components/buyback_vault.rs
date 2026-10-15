@@ -167,7 +167,7 @@ const _: () = {
         ::core::mem::size_of:: < i64 > () + __BuybackVault_GAP_4 + ::core::mem::size_of::
         < i64 > () + __BuybackVault_GAP_5 + ::core::mem::size_of:: < [u8; 128] > () +
         __BuybackVault_GAP_6),
-        "defined_type/#[component]: `BuybackVault`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `BuybackVault`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -359,7 +359,7 @@ const _: () = {
         __BuybackVaultCpi_GAP_4 + ::core::mem::size_of:: < i64 > () +
         __BuybackVaultCpi_GAP_5 + ::core::mem::size_of:: < [u8; 128] > () +
         __BuybackVaultCpi_GAP_6),
-        "defined_type/#[component]: `BuybackVaultCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `BuybackVaultCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

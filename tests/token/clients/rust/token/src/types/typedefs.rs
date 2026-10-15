@@ -226,7 +226,7 @@ const _: () = {
         ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgs_GAP_4 +
         ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgs_GAP_5 +
         ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgs_GAP_6),
-        "defined_type/#[component]: `CheckTransferFeeConfigArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CheckTransferFeeConfigArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -420,7 +420,7 @@ const _: () = {
         ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgsCpi_GAP_4 +
         ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgsCpi_GAP_5 +
         ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgsCpi_GAP_6),
-        "defined_type/#[component]: `CheckTransferFeeConfigArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CheckTransferFeeConfigArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -570,7 +570,7 @@ const _: () = {
         u8 > () + __CreateMint2022WithDefaultAccountStateArgs_GAP_2 +
         ::core::mem::size_of:: < u8 > () +
         __CreateMint2022WithDefaultAccountStateArgs_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithDefaultAccountStateArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithDefaultAccountStateArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -717,7 +717,7 @@ const _: () = {
         ::core::mem::size_of:: < u8 > () +
         __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_2 + ::core::mem::size_of:: <
         u8 > () + __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithDefaultAccountStateArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithDefaultAccountStateArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -855,7 +855,7 @@ const _: () = {
         u8 > () + __CreateMint2022WithGroupMemberPointerArgs_GAP_2 +
         ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
         __CreateMint2022WithGroupMemberPointerArgs_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -997,7 +997,7 @@ const _: () = {
         __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_2 + ::core::mem::size_of:: <
         crate ::sdk_core_cpi::Address > () +
         __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -1122,7 +1122,7 @@ const _: () = {
         __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_1 +
         ::core::mem::size_of:: < u8 > () +
         __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_2),
-        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerAndMemberArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerAndMemberArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -1246,7 +1246,7 @@ const _: () = {
         __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_1 +
         ::core::mem::size_of:: < u8 > () +
         __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_2),
-        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerAndMemberArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerAndMemberArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -1380,7 +1380,7 @@ const _: () = {
         ::core::mem::size_of:: < u8 > () + __CreateMint2022WithGroupPointerArgs_GAP_2 +
         ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
         __CreateMint2022WithGroupPointerArgs_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithGroupPointerArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithGroupPointerArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -1516,7 +1516,7 @@ const _: () = {
         () + __CreateMint2022WithGroupPointerArgsCpi_GAP_2 + ::core::mem::size_of:: <
         crate ::sdk_core_cpi::Address > () +
         __CreateMint2022WithGroupPointerArgsCpi_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithGroupPointerArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithGroupPointerArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -1679,7 +1679,7 @@ const _: () = {
         ::core::mem::size_of:: < u8 > () +
         __CreateMint2022WithGroupPointerAndGroupArgs_GAP_2 + ::core::mem::size_of:: < u64
         > () + __CreateMint2022WithGroupPointerAndGroupArgs_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithGroupPointerAndGroupArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithGroupPointerAndGroupArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -1842,7 +1842,7 @@ const _: () = {
         ::core::mem::size_of:: < u8 > () +
         __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_2 + ::core::mem::size_of:: <
         u64 > () + __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithGroupPointerAndGroupArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithGroupPointerAndGroupArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -1985,7 +1985,7 @@ const _: () = {
         u8 > () + __CreateMint2022WithInterestBearingMintArgs_GAP_2 +
         ::core::mem::size_of:: < i16 > () +
         __CreateMint2022WithInterestBearingMintArgs_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithInterestBearingMintArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithInterestBearingMintArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -2128,7 +2128,7 @@ const _: () = {
         ::core::mem::size_of:: < u8 > () +
         __CreateMint2022WithInterestBearingMintArgsCpi_GAP_2 + ::core::mem::size_of:: <
         i16 > () + __CreateMint2022WithInterestBearingMintArgsCpi_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithInterestBearingMintArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithInterestBearingMintArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -2264,7 +2264,7 @@ const _: () = {
         () + __CreateMint2022WithMetadataPointerArgs_GAP_2 + ::core::mem::size_of:: <
         crate ::sdk_core_offchain::Address > () +
         __CreateMint2022WithMetadataPointerArgs_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithMetadataPointerArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithMetadataPointerArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -2402,7 +2402,7 @@ const _: () = {
         u8 > () + __CreateMint2022WithMetadataPointerArgsCpi_GAP_2 +
         ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > () +
         __CreateMint2022WithMetadataPointerArgsCpi_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithMetadataPointerArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithMetadataPointerArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -2572,7 +2572,7 @@ const _: () = {
         __CreateMint2022WithNonTransferableArgs_GAP_0 + ::core::mem::size_of:: < u8 > ()
         + __CreateMint2022WithNonTransferableArgs_GAP_1 + ::core::mem::size_of:: < u8 >
         () + __CreateMint2022WithNonTransferableArgs_GAP_2),
-        "defined_type/#[component]: `CreateMint2022WithNonTransferableArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithNonTransferableArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -2693,7 +2693,7 @@ const _: () = {
         __CreateMint2022WithNonTransferableArgsCpi_GAP_0 + ::core::mem::size_of:: < u8 >
         () + __CreateMint2022WithNonTransferableArgsCpi_GAP_1 + ::core::mem::size_of:: <
         u8 > () + __CreateMint2022WithNonTransferableArgsCpi_GAP_2),
-        "defined_type/#[component]: `CreateMint2022WithNonTransferableArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithNonTransferableArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -2812,7 +2812,7 @@ const _: () = {
         __CreateMint2022WithPermanentDelegateArgs_GAP_0 + ::core::mem::size_of:: < u8 >
         () + __CreateMint2022WithPermanentDelegateArgs_GAP_1 + ::core::mem::size_of:: <
         u8 > () + __CreateMint2022WithPermanentDelegateArgs_GAP_2),
-        "defined_type/#[component]: `CreateMint2022WithPermanentDelegateArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithPermanentDelegateArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -2935,7 +2935,7 @@ const _: () = {
         > () + __CreateMint2022WithPermanentDelegateArgsCpi_GAP_1 +
         ::core::mem::size_of:: < u8 > () +
         __CreateMint2022WithPermanentDelegateArgsCpi_GAP_2),
-        "defined_type/#[component]: `CreateMint2022WithPermanentDelegateArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithPermanentDelegateArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -3098,7 +3098,7 @@ const _: () = {
         ::core::mem::size_of:: < u8 > () + __CreateMint2022WithTransferFeeArgs_GAP_2 +
         ::core::mem::size_of:: < u16 > () + __CreateMint2022WithTransferFeeArgs_GAP_3 +
         ::core::mem::size_of:: < u64 > () + __CreateMint2022WithTransferFeeArgs_GAP_4),
-        "defined_type/#[component]: `CreateMint2022WithTransferFeeArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithTransferFeeArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -3264,7 +3264,7 @@ const _: () = {
         + ::core::mem::size_of:: < u16 > () +
         __CreateMint2022WithTransferFeeArgsCpi_GAP_3 + ::core::mem::size_of:: < u64 > ()
         + __CreateMint2022WithTransferFeeArgsCpi_GAP_4),
-        "defined_type/#[component]: `CreateMint2022WithTransferFeeArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithTransferFeeArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -3404,7 +3404,7 @@ const _: () = {
         ::core::mem::size_of:: < u8 > () + __CreateMint2022WithTransferHookArgs_GAP_2 +
         ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
         __CreateMint2022WithTransferHookArgs_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithTransferHookArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithTransferHookArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -3544,7 +3544,7 @@ const _: () = {
         () + __CreateMint2022WithTransferHookArgsCpi_GAP_2 + ::core::mem::size_of:: <
         crate ::sdk_core_cpi::Address > () +
         __CreateMint2022WithTransferHookArgsCpi_GAP_3),
-        "defined_type/#[component]: `CreateMint2022WithTransferHookArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreateMint2022WithTransferHookArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -3749,7 +3749,7 @@ const _: () = {
         ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgs_GAP_4 +
         ::core::mem::size_of:: < u16 > () + __ExerciseTransferFeeCpisArgs_GAP_5 +
         ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgs_GAP_6),
-        "defined_type/#[component]: `ExerciseTransferFeeCpisArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `ExerciseTransferFeeCpisArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -3957,7 +3957,7 @@ const _: () = {
         ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_4 +
         ::core::mem::size_of:: < u16 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_5 +
         ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_6),
-        "defined_type/#[component]: `ExerciseTransferFeeCpisArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `ExerciseTransferFeeCpisArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

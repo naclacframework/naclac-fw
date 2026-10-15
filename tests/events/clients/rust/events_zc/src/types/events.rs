@@ -65,7 +65,7 @@ const _: () = {
         ::core::mem::size_of:: < BatchTouched > () == (::core::mem::size_of:: < u64 > ()
         + __BatchTouched_GAP_0 + ::core::mem::size_of:: < [u64; 8] > () +
         __BatchTouched_GAP_1),
-        "defined_type/#[component]: `BatchTouched`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `BatchTouched`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -142,7 +142,7 @@ const _: () = {
         ::core::mem::size_of:: < BatchTouchedCpi > () == (::core::mem::size_of:: < u64 >
         () + __BatchTouchedCpi_GAP_0 + ::core::mem::size_of:: < [u64; 8] > () +
         __BatchTouchedCpi_GAP_1),
-        "defined_type/#[component]: `BatchTouchedCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `BatchTouchedCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -268,7 +268,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < CounterIncremented > () == (::core::mem::size_of:: < u64
         > () + __CounterIncremented_GAP_0),
-        "defined_type/#[component]: `CounterIncremented`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CounterIncremented`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -326,7 +326,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < CounterIncrementedCpi > () == (::core::mem::size_of:: <
         u64 > () + __CounterIncrementedCpi_GAP_0),
-        "defined_type/#[component]: `CounterIncrementedCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CounterIncrementedCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -391,7 +391,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < FixedPayload128 > () == (::core::mem::size_of:: < [u8;
         128] > () + __FixedPayload128_GAP_0),
-        "defined_type/#[component]: `FixedPayload128`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FixedPayload128`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -449,7 +449,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < FixedPayload128Cpi > () == (::core::mem::size_of:: <
         [u8; 128] > () + __FixedPayload128Cpi_GAP_0),
-        "defined_type/#[component]: `FixedPayload128Cpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FixedPayload128Cpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -514,7 +514,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < FixedPayload2048 > () == (::core::mem::size_of:: < [u8;
         2048] > () + __FixedPayload2048_GAP_0),
-        "defined_type/#[component]: `FixedPayload2048`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FixedPayload2048`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -572,7 +572,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < FixedPayload2048Cpi > () == (::core::mem::size_of:: <
         [u8; 2048] > () + __FixedPayload2048Cpi_GAP_0),
-        "defined_type/#[component]: `FixedPayload2048Cpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FixedPayload2048Cpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -637,7 +637,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < FixedPayload512 > () == (::core::mem::size_of:: < [u8;
         512] > () + __FixedPayload512_GAP_0),
-        "defined_type/#[component]: `FixedPayload512`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FixedPayload512`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -695,7 +695,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < FixedPayload512Cpi > () == (::core::mem::size_of:: <
         [u8; 512] > () + __FixedPayload512Cpi_GAP_0),
-        "defined_type/#[component]: `FixedPayload512Cpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FixedPayload512Cpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
@@ -760,7 +760,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < FixedPayload8 > () == (::core::mem::size_of:: < [u8; 8]
         > () + __FixedPayload8_GAP_0),
-        "defined_type/#[component]: `FixedPayload8`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FixedPayload8`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -818,7 +818,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < FixedPayload8Cpi > () == (::core::mem::size_of:: < [u8;
         8] > () + __FixedPayload8Cpi_GAP_0),
-        "defined_type/#[component]: `FixedPayload8Cpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FixedPayload8Cpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

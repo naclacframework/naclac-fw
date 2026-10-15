@@ -156,7 +156,7 @@ const _: () = {
         __EscrowState_GAP_2 + ::core::mem::size_of:: < u64 > () + __EscrowState_GAP_3 +
         ::core::mem::size_of:: < u64 > () + __EscrowState_GAP_4 + ::core::mem::size_of::
         < u8 > () + __EscrowState_GAP_5),
-        "defined_type/#[component]: `EscrowState`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `EscrowState`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -329,7 +329,7 @@ const _: () = {
         __EscrowStateCpi_GAP_3 + ::core::mem::size_of:: < u64 > () +
         __EscrowStateCpi_GAP_4 + ::core::mem::size_of:: < u8 > () +
         __EscrowStateCpi_GAP_5),
-        "defined_type/#[component]: `EscrowStateCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `EscrowStateCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

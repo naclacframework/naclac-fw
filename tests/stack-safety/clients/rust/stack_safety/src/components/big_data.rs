@@ -72,7 +72,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < BigData > () == (::core::mem::size_of:: < u8 > () +
         __BigData_GAP_0 + ::core::mem::size_of:: < [u8; 300] > () + __BigData_GAP_1),
-        "defined_type/#[component]: `BigData`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `BigData`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -164,7 +164,7 @@ const _: () = {
         ::core::mem::size_of:: < BigDataCpi > () == (::core::mem::size_of:: < u8 > () +
         __BigDataCpi_GAP_0 + ::core::mem::size_of:: < [u8; 300] > () +
         __BigDataCpi_GAP_1),
-        "defined_type/#[component]: `BigDataCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `BigDataCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

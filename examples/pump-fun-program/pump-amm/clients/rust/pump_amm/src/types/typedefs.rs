@@ -255,7 +255,7 @@ const _: () = {
         __CreatePoolArgs_GAP_7 + ::core::mem::size_of:: < u8 > () +
         __CreatePoolArgs_GAP_8 + ::core::mem::size_of:: < u8 > () +
         __CreatePoolArgs_GAP_9),
-        "defined_type/#[component]: `CreatePoolArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreatePoolArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -528,7 +528,7 @@ const _: () = {
         __CreatePoolArgsCpi_GAP_7 + ::core::mem::size_of:: < u8 > () +
         __CreatePoolArgsCpi_GAP_8 + ::core::mem::size_of:: < u8 > () +
         __CreatePoolArgsCpi_GAP_9),
-        "defined_type/#[component]: `CreatePoolArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CreatePoolArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

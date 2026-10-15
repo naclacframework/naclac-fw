@@ -219,7 +219,7 @@ const _: () = {
         __SocialFeePda_GAP_5 + ::core::mem::size_of:: < u8 > () + __SocialFeePda_GAP_6 +
         ::core::mem::size_of:: < [u8; 20] > () + __SocialFeePda_GAP_7 +
         ::core::mem::size_of:: < [u8; 120] > () + __SocialFeePda_GAP_8),
-        "defined_type/#[component]: `SocialFeePda`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `SocialFeePda`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -466,7 +466,7 @@ const _: () = {
         __SocialFeePdaCpi_GAP_6 + ::core::mem::size_of:: < [u8; 20] > () +
         __SocialFeePdaCpi_GAP_7 + ::core::mem::size_of:: < [u8; 120] > () +
         __SocialFeePdaCpi_GAP_8),
-        "defined_type/#[component]: `SocialFeePdaCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `SocialFeePdaCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

@@ -64,7 +64,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < Growable > () == (::core::mem::size_of:: < u8 > () +
         __Growable_GAP_0 + ::core::mem::size_of:: < u32 > () + __Growable_GAP_1),
-        "defined_type/#[component]: `Growable`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `Growable`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -147,7 +147,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < GrowableCpi > () == (::core::mem::size_of:: < u8 > () +
         __GrowableCpi_GAP_0 + ::core::mem::size_of:: < u32 > () + __GrowableCpi_GAP_1),
-        "defined_type/#[component]: `GrowableCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `GrowableCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

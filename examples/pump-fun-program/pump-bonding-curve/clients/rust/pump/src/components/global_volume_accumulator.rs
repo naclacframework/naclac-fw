@@ -168,7 +168,7 @@ const _: () = {
         ::core::mem::size_of:: < [u64; 30] > () + __GlobalVolumeAccumulator_GAP_4 +
         ::core::mem::size_of:: < [u64; 30] > () + __GlobalVolumeAccumulator_GAP_5 +
         ::core::mem::size_of:: < [u8; 56] > () + __GlobalVolumeAccumulator_GAP_6),
-        "defined_type/#[component]: `GlobalVolumeAccumulator`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `GlobalVolumeAccumulator`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -365,7 +365,7 @@ const _: () = {
         __GlobalVolumeAccumulatorCpi_GAP_4 + ::core::mem::size_of:: < [u64; 30] > () +
         __GlobalVolumeAccumulatorCpi_GAP_5 + ::core::mem::size_of:: < [u8; 56] > () +
         __GlobalVolumeAccumulatorCpi_GAP_6),
-        "defined_type/#[component]: `GlobalVolumeAccumulatorCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `GlobalVolumeAccumulatorCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

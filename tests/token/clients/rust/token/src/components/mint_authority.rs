@@ -47,7 +47,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < MintAuthority > () == (::core::mem::size_of:: < u8 > ()
         + __MintAuthority_GAP_0),
-        "defined_type/#[component]: `MintAuthority`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `MintAuthority`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -112,7 +112,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < MintAuthorityCpi > () == (::core::mem::size_of:: < u8 >
         () + __MintAuthorityCpi_GAP_0),
-        "defined_type/#[component]: `MintAuthorityCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `MintAuthorityCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

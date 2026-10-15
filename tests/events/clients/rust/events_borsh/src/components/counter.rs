@@ -64,7 +64,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < Counter > () == (::core::mem::size_of:: < u8 > () +
         __Counter_GAP_0 + ::core::mem::size_of:: < u64 > () + __Counter_GAP_1),
-        "defined_type/#[component]: `Counter`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `Counter`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -147,7 +147,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < CounterCpi > () == (::core::mem::size_of:: < u8 > () +
         __CounterCpi_GAP_0 + ::core::mem::size_of:: < u64 > () + __CounterCpi_GAP_1),
-        "defined_type/#[component]: `CounterCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `CounterCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

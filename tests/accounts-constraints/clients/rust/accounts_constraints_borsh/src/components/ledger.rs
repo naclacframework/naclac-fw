@@ -64,7 +64,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < Ledger > () == (::core::mem::size_of:: < u8 > () +
         __Ledger_GAP_0 + ::core::mem::size_of:: < u64 > () + __Ledger_GAP_1),
-        "defined_type/#[component]: `Ledger`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `Ledger`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -147,7 +147,7 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < LedgerCpi > () == (::core::mem::size_of:: < u8 > () +
         __LedgerCpi_GAP_0 + ::core::mem::size_of:: < u64 > () + __LedgerCpi_GAP_1),
-        "defined_type/#[component]: `LedgerCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `LedgerCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

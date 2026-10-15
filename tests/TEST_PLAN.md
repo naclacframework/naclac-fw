@@ -1126,7 +1126,7 @@ and `pda_seeds_zc`.
 
 ## 13. `tests/cli/` — `naclac` command surface (not `cargo test`-shaped; needs its own harness)
 
-These test the CLI binary's *behavior*, not naclac-core/-macros. Likely
+These test the CLI binary's *behavior*, not the core or macros crates. Likely
 needs a shell/integration-test harness (e.g. `assert_cmd` crate) rather than
 fitting the `tests/<case>/Cargo.toml` workspace pattern used above — flagging
 that distinction rather than prescribing the wrong shape.

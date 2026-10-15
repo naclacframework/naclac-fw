@@ -197,7 +197,7 @@ const _: () = {
         ::core::mem::size_of:: < u8 > () + __SharingConfig_GAP_5 + ::core::mem::size_of::
         < u32 > () + __SharingConfig_GAP_6 + ::core::mem::size_of:: < [Shareholder; 30] >
         () + __SharingConfig_GAP_7),
-        "defined_type/#[component]: `SharingConfig`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `SharingConfig`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -418,7 +418,7 @@ const _: () = {
         < u8 > () + __SharingConfigCpi_GAP_5 + ::core::mem::size_of:: < u32 > () +
         __SharingConfigCpi_GAP_6 + ::core::mem::size_of:: < [ShareholderCpi; 30] > () +
         __SharingConfigCpi_GAP_7),
-        "defined_type/#[component]: `SharingConfigCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `SharingConfigCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

@@ -173,7 +173,7 @@ const _: () = {
         ::core::mem::size_of:: < u32 > () + __FeeConfig_GAP_4 + ::core::mem::size_of:: <
         u8 > () + __FeeConfig_GAP_5 + ::core::mem::size_of:: < crate
         ::sdk_core_offchain::Address > () + __FeeConfig_GAP_6),
-        "defined_type/#[component]: `FeeConfig`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FeeConfig`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -369,7 +369,7 @@ const _: () = {
         ::core::mem::size_of:: < u32 > () + __FeeConfigCpi_GAP_4 + ::core::mem::size_of::
         < u8 > () + __FeeConfigCpi_GAP_5 + ::core::mem::size_of:: < crate
         ::sdk_core_cpi::Address > () + __FeeConfigCpi_GAP_6),
-        "defined_type/#[component]: `FeeConfigCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `FeeConfigCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

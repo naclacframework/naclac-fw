@@ -274,7 +274,7 @@ const _: () = {
         () + __BondingCurve_GAP_8 + ::core::mem::size_of:: < crate
         ::sdk_core_offchain::Address > () + __BondingCurve_GAP_9 + ::core::mem::size_of::
         < [u8; 36] > () + __BondingCurve_GAP_10),
-        "defined_type/#[component]: `BondingCurve`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `BondingCurve`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -575,7 +575,7 @@ const _: () = {
         __BondingCurveCpi_GAP_8 + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address
         > () + __BondingCurveCpi_GAP_9 + ::core::mem::size_of:: < [u8; 36] > () +
         __BondingCurveCpi_GAP_10),
-        "defined_type/#[component]: `BondingCurveCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `BondingCurveCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

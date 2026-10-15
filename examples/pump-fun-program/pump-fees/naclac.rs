@@ -91,7 +91,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `Fees`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `Fees`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -177,7 +177,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `FeeTier`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `FeeTier`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -338,7 +338,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `FeeConfig`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `FeeConfig`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -535,7 +535,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `FeeProgramGlobal`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `FeeProgramGlobal`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -678,7 +678,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `Shareholder`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `Shareholder`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -864,7 +864,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `SharingConfig`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `SharingConfig`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -1125,7 +1125,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `SocialFeePda`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `SocialFeePda`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -1387,7 +1387,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `DonationFeePda`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `DonationFeePda`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -1606,7 +1606,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `BuybackVault`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `BuybackVault`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -2474,7 +2474,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `Global`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `Global`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -2802,7 +2802,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `BondingCurve`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `BondingCurve`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -3219,7 +3219,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `Pool`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[component]: `Pool`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }

@@ -882,7 +882,7 @@ const _: () = {
         ::core::mem::size_of:: < u64 > () + __Global_GAP_25 + ::core::mem::size_of:: <
         u64 > () + __Global_GAP_26 + ::core::mem::size_of:: < [crate
         ::sdk_core_offchain::Address; 2] > () + __Global_GAP_27),
-        "defined_type/#[component]: `Global`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `Global`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -1844,7 +1844,7 @@ const _: () = {
         __GlobalCpi_GAP_25 + ::core::mem::size_of:: < u64 > () + __GlobalCpi_GAP_26 +
         ::core::mem::size_of:: < [crate ::sdk_core_cpi::Address; 2] > () +
         __GlobalCpi_GAP_27),
-        "defined_type/#[component]: `GlobalCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `GlobalCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]

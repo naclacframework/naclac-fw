@@ -81,7 +81,7 @@ const _: () = {
         ::core::mem::size_of:: < Vault > () == (::core::mem::size_of:: < u8 > () +
         __Vault_GAP_0 + ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > ()
         + __Vault_GAP_1 + ::core::mem::size_of:: < u64 > () + __Vault_GAP_2),
-        "defined_type/#[component]: `Vault`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `Vault`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "offchain")]
@@ -182,7 +182,7 @@ const _: () = {
         ::core::mem::size_of:: < VaultCpi > () == (::core::mem::size_of:: < u8 > () +
         __VaultCpi_GAP_0 + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > () +
         __VaultCpi_GAP_1 + ::core::mem::size_of:: < u64 > () + __VaultCpi_GAP_2),
-        "defined_type/#[component]: `VaultCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        "defined_type/#[component]: `VaultCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
     );
 };
 #[cfg(feature = "cpi")]
