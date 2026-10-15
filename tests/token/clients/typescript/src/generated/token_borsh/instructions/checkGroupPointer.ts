@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_group_pointer` instruction. */
+/** Discriminator for the `check_group_pointer` instruction. */
 export const CHECK_GROUP_POINTER_DISCRIMINATOR = new Uint8Array([254, 151, 35, 152, 242, 0, 4, 180]);
 
 /** Instruction arguments for `checkGroupPointer`. */

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_config` instruction. */
+/** Discriminator for the `init_config` instruction. */
 export const INIT_CONFIG_DISCRIMINATOR = new Uint8Array([23, 235, 115, 232, 168, 96, 1, 231]);
 
 /** Accounts for the `initConfig` instruction. */

@@ -28,7 +28,7 @@ use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::commitment_config::CommitmentConfig;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::native_token::LAMPORTS_PER_SOL;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{read_keypair_file, Signer};
 use solana_sdk::transaction::Transaction;
 
@@ -44,7 +44,7 @@ use fixtures::{
 const LOCAL_RPC: &str = "http://127.0.0.1:8899";
 const QUOTE_DECIMALS: u32 = 6;
 
-fn parse_args() -> (Pubkey, u64) {
+fn parse_args() -> (Address, u64) {
     let mut args = std::env::args().skip(1);
     let wallet_str = args
         .next()
@@ -52,7 +52,7 @@ fn parse_args() -> (Pubkey, u64) {
     let amount_str = args
         .next()
         .unwrap_or_else(|| panic!("usage: airdropusdc <WALLET> <AMOUNT>"));
-    let wallet = Pubkey::from_str(&wallet_str).expect("WALLET must be a valid base58 pubkey");
+    let wallet = Address::from_str(&wallet_str).expect("WALLET must be a valid base58 pubkey");
     let usdc: f64 = amount_str
         .parse()
         .expect("AMOUNT must be a number (e.g. 100 or 1.5)");
@@ -69,7 +69,7 @@ fn parse_args() -> (Pubkey, u64) {
     (wallet, raw as u64)
 }
 
-async fn ensure_authority_funded(rpc: &RpcClient, authority: &Pubkey) {
+async fn ensure_authority_funded(rpc: &RpcClient, authority: &Address) {
     if rpc.get_balance(authority).await.unwrap_or(0) >= LAMPORTS_PER_SOL {
         return;
     }

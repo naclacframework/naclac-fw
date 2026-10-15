@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `update_collection_app_data` instruction. */
+/** Discriminator for the `update_collection_app_data` instruction. */
 export const UPDATE_COLLECTION_APP_DATA_DISCRIMINATOR = new Uint8Array([48, 62, 77, 91, 131, 140, 107, 210]);
 
 /** Accounts for the `updateCollectionAppData` instruction. */
 export interface UpdateCollectionAppDataAccounts {
   collection: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

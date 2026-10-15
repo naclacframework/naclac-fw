@@ -35,19 +35,10 @@ pub fn add_assets_to_group(ctx: Context<AddAssetsToGroup>) -> Result {
 }
 
 /// Copies a remaining-account's `AccountInfo` into a `CpiHandleMut` — a
-/// plain data copy (`AccountInfo` is `Copy` on `pinocchio`, `Clone` on
-/// `solana`), not a real exclusive Rust borrow; matches
+/// plain data copy, not a real exclusive Rust borrow; matches
 /// `naclac-metadata`'s own `execute.rs::ExecutePayer::AssetSignerPda`
 /// branch, which builds a `CpiHandleMut` the same way from a shared
 /// reference.
-#[cfg(not(feature = "pinocchio"))]
-fn to_item(info: &AccountInfo) -> CpiHandleMut<'_> {
-    CpiHandleMut {
-        info: info.clone(),
-        _phantom: core::marker::PhantomData,
-    }
-}
-#[cfg(feature = "pinocchio")]
 fn to_item(info: &AccountInfo) -> CpiHandleMut<'_> {
     CpiHandleMut {
         info: *info,

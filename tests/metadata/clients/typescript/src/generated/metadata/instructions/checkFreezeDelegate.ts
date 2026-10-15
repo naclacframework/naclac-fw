@@ -3,12 +3,12 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_freeze_delegate` instruction. */
+/** Discriminator for the `check_freeze_delegate` instruction. */
 export const CHECK_FREEZE_DELEGATE_DISCRIMINATOR = new Uint8Array([227, 66, 85, 97, 164, 1, 37, 21]);
 
 /** Instruction arguments for `checkFreezeDelegate`. */
 export interface CheckFreezeDelegateArgs {
-  expected_frozen: naclac.Bool;
+  expectedFrozen: naclac.Bool;
 }
 
 /** Accounts for the `checkFreezeDelegate` instruction. */

@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `emit_via_self_cpi_fixed_128` instruction. */
+/** Discriminator for the `emit_via_self_cpi_fixed_128` instruction. */
 export const EMIT_VIA_SELF_CPI_FIXED_128_DISCRIMINATOR = new Uint8Array([129, 232, 188, 192, 5, 157, 66, 73]);
 
 /** Accounts for the `emitViaSelfCpiFixed128` instruction. */
 export interface EmitViaSelfCpiFixed128Accounts {
   /** SAFETY: only its address is checked; its data is never read. */
-  program: naclac.Address | string;
+  program?: naclac.Address | string;
 }
 
 /**

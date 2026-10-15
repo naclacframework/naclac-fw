@@ -133,8 +133,20 @@ function wrapNativeRpc(svm: import("@naclac-fw/litesvm").LiteSvm) {
         const result = svm.getTransaction(signature);
         return {
           meta: {
+            err: null,
             logMessages: result.logs,
             computeUnitsConsumed: result.computeUnitsConsumed,
+            // The native binding resolves account keys itself (litesvm keeps
+            // only compiled instructions), so `.rpc()` reads this ready-made
+            // list instead of resolving `innerInstructions` against a
+            // message. Absent means the binding couldn't supply them.
+            naclacInnerInstructions: result.innerInstructions?.map((call) => ({
+              outerIndex: call.outerIndex,
+              stackHeight: call.stackHeight,
+              programId: call.programId,
+              accounts: call.accounts,
+              data: new Uint8Array(call.data),
+            })),
           },
         };
       }),
@@ -186,6 +198,7 @@ export function createLiteSvmProvider(signer: TransactionSigner, walletPath?: st
     rpcSubscriptions: undefined as any,
     signer,
     commitment: "confirmed",
+    defaultTxVersion: "v1",
     litesvm: svm,
     // `client/src/kit/token.ts`'s `getSendAndConfirm` checks this before
     // falling back to `sendAndConfirmTransactionFactory` (which needs a

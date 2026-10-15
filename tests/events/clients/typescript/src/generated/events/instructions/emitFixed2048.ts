@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `emit_fixed_2048` instruction. */
+/** Discriminator for the `emit_fixed_2048` instruction. */
 export const EMIT_FIXED_2048_DISCRIMINATOR = new Uint8Array([180, 35, 94, 49, 242, 85, 196, 100]);
 
 /** Accounts for the `emitFixed2048` instruction. */
 export interface EmitFixed2048Accounts {
   /** SAFETY: only its address is checked; its data is never read. */
-  program: naclac.Address | string;
+  program?: naclac.Address | string;
 }
 
 /**

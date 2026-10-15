@@ -104,6 +104,18 @@ export interface AccountInfoResult {
   rentEpoch: bigint
 }
 
+/**
+ * One CPI-invoked instruction with its account keys already resolved to
+ * base58 addresses. Mirrors `naclac_client::NaclacInnerInstruction`.
+ */
+export interface InnerInstructionResult {
+  outerIndex: number
+  stackHeight: number
+  programId: string
+  accounts: Array<string>
+  data: Buffer
+}
+
 export interface LatestBlockhashResult {
   blockhash: string
 }
@@ -121,6 +133,11 @@ export interface SendTransactionResult {
   signature: string
   logs: Array<string>
   computeUnitsConsumed: bigint
+  /**
+   * Absent when the backend couldn't supply inner instructions (which is
+   * different from present-and-empty: the transaction made no CPIs).
+   */
+  innerInstructions?: Array<InnerInstructionResult>
 }
 
 export interface TokenBalanceResult {

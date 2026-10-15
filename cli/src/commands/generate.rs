@@ -28,17 +28,23 @@ pub enum ClientKind {
 /// `is_zero_copy`), so the same file only gets parsed once.
 pub struct ProgramFeatures {
     pub use_pinocchio: bool,
-    /// True when the program is Pinocchio, or when it isn't requesting the
-    /// `borsh` feature at all — there is no third representation for
-    /// account data in this framework, so `!borsh` is a complete signal,
-    /// not a heuristic.
+    /// True only for the program's *raw* zero-copy/bytemuck representation
+    /// (Pinocchio, or neither `borsh` nor `wincode` requested) — there are
+    /// three account-data representations in this framework (Borsh, Wincode,
+    /// raw zero-copy), not two, so this is `use_pinocchio || (!use_borsh &&
+    /// !use_wincode)`, not a plain `!use_borsh`.
     pub is_zero_copy: bool,
+    /// True when the program requests the `wincode` feature (and isn't
+    /// Pinocchio, which is always raw zero-copy regardless of this flag).
+    pub use_wincode: bool,
 }
 
 pub fn detect_program_features(program_dir: &Path) -> ProgramFeatures {
     let cargo_toml_path = program_dir.join("Cargo.toml");
     let mut use_pinocchio = false;
     let mut use_borsh = false;
+    let mut use_wincode = false;
+    let mut declares_pinocchio_feature = false;
     if let Ok(content) = fs::read_to_string(&cargo_toml_path) {
         if let Ok(parsed) = toml::from_str::<toml::Value>(&content) {
             if let Some(features) = parsed.get("features").and_then(|f| f.as_table()) {
@@ -47,13 +53,13 @@ pub fn detect_program_features(program_dir: &Path) -> ProgramFeatures {
                         .iter()
                         .any(|v| v.as_str() == Some("pinocchio"));
                     use_borsh = default_feats.iter().any(|v| v.as_str() == Some("borsh"));
+                    use_wincode = default_feats.iter().any(|v| v.as_str() == Some("wincode"));
                 }
-                if !use_pinocchio {
-                    use_pinocchio = features.contains_key("pinocchio");
-                }
+                declares_pinocchio_feature = features.contains_key("pinocchio");
             }
-            // `borsh` may also be requested directly on the naclac-lang dependency
-            // rather than declared as the program's own default feature.
+            // `borsh`/`wincode` may also be requested directly on the
+            // naclac-lang dependency rather than declared as the program's
+            // own default feature.
             if !use_borsh {
                 use_borsh = parsed
                     .get("dependencies")
@@ -63,11 +69,24 @@ pub fn detect_program_features(program_dir: &Path) -> ProgramFeatures {
                     .map(|arr| arr.iter().any(|v| v.as_str() == Some("borsh")))
                     .unwrap_or(false);
             }
+            if !use_wincode {
+                use_wincode = parsed
+                    .get("dependencies")
+                    .and_then(|d| d.get("naclac-lang"))
+                    .and_then(|dep| dep.get("features"))
+                    .and_then(|f| f.as_array())
+                    .map(|arr| arr.iter().any(|v| v.as_str() == Some("wincode")))
+                    .unwrap_or(false);
+            }
+            if !use_borsh && !use_wincode {
+                use_pinocchio |= declares_pinocchio_feature;
+            }
         }
     }
     ProgramFeatures {
         use_pinocchio,
-        is_zero_copy: use_pinocchio || !use_borsh,
+        is_zero_copy: use_pinocchio || (!use_borsh && !use_wincode),
+        use_wincode,
     }
 }
 
@@ -102,12 +121,12 @@ fn read_package_name(program_dir: &Path) -> Option<String> {
 /// AST-walker path returns, so callers don't need to know which mechanism
 /// actually produced it.
 ///
-/// The print binary lives in a throwaway, self-contained runner crate —
-/// its own `[workspace]` marker, so it never becomes a member of the
-/// caller's real workspace — created under the resolved `target/`
-/// directory just for this run and deleted again once the JSON has been
-/// captured. The target program's own `Cargo.toml`/`src` tree is never
-/// touched.
+/// The program is compiled in place, from its own manifest, as an `rlib`
+/// regardless of the `crate-type` it declares. It must be built from its real
+/// directory: the proc-macros locate `src/` and `Naclac.toml` through
+/// `CARGO_MANIFEST_DIR`, and the program workspace's `Cargo.lock` must apply.
+/// A throwaway runner source file linked against that `rlib` prints the IDL
+/// JSON. The program's own `Cargo.toml`/`src` tree is never modified.
 fn generate_idl_via_idl_build(
     target_dir: &Path,
     program_dir: &Path,
@@ -117,117 +136,63 @@ fn generate_idl_via_idl_build(
     let crate_name = read_package_name(program_dir).unwrap_or_else(|| prog_name.to_string());
     let lib_ident = crate_name.replace('-', "_");
 
-    let runner_dir = target_dir.join("__naclac_idl_build");
+    let program_dir_abs = program_dir.canonicalize().map_err(|e| e.to_string())?;
+    let artifact_dir = target_dir.join("__naclac_idl_build");
+    let cargo_target_dir = artifact_dir.join("target");
+    let runner_dir = artifact_dir.join("runner");
     if runner_dir.exists() {
         fs::remove_dir_all(&runner_dir).map_err(|e| e.to_string())?;
     }
-    fs::create_dir_all(runner_dir.join("src/bin")).map_err(|e| e.to_string())?;
-
-    let program_dir_abs = program_dir.canonicalize().map_err(|e| e.to_string())?;
-
-    let mut manifest = toml::map::Map::new();
-    manifest.insert(
-        "workspace".into(),
-        toml::Value::Table(toml::map::Map::new()),
-    );
-    let mut package = toml::map::Map::new();
-    package.insert(
-        "name".into(),
-        toml::Value::String("__naclac_idl_build".into()),
-    );
-    package.insert("version".into(), toml::Value::String("0.1.0".into()));
-    package.insert("edition".into(), toml::Value::String("2021".into()));
-    package.insert("publish".into(), toml::Value::Boolean(false));
-    manifest.insert("package".into(), toml::Value::Table(package));
-
-    let mut bin = toml::map::Map::new();
-    bin.insert("name".into(), toml::Value::String(crate_name.clone()));
-    bin.insert(
-        "path".into(),
-        toml::Value::String(format!("src/bin/{crate_name}.rs")),
-    );
-    bin.insert(
-        "required-features".into(),
-        toml::Value::Array(vec![toml::Value::String("idl-build".into())]),
-    );
-    manifest.insert("bin".into(), toml::Value::Array(vec![toml::Value::Table(bin)]));
-
-    let mut features = toml::map::Map::new();
-    features.insert(
-        "idl-build".into(),
-        toml::Value::Array(vec![toml::Value::String(format!(
-            "{crate_name}/idl-build"
-        ))]),
-    );
-    manifest.insert("features".into(), toml::Value::Table(features));
-
-    let mut dep = toml::map::Map::new();
-    dep.insert(
-        "path".into(),
-        toml::Value::String(program_dir_abs.display().to_string()),
-    );
-    let mut dependencies = toml::map::Map::new();
-    dependencies.insert(crate_name.clone(), toml::Value::Table(dep));
-    manifest.insert("dependencies".into(), toml::Value::Table(dependencies));
-
-    let cargo_toml_content = toml::to_string(&toml::Value::Table(manifest)).map_err(|e| e.to_string())?;
-    fs::write(runner_dir.join("Cargo.toml"), cargo_toml_content).map_err(|e| e.to_string())?;
-
-    let bin_rs = format!("fn main() {{ {lib_ident}::__naclac_print_idl(); }}\n");
-    fs::write(
-        runner_dir.join("src/bin").join(format!("{crate_name}.rs")),
-        bin_rs,
-    )
-    .map_err(|e| e.to_string())?;
-
-    let mut cmd = Command::new("cargo");
-    cmd.args(["run", "--bin", &crate_name, "--features", "idl-build"])
-        .current_dir(&runner_dir)
-        .stdout(Stdio::piped())
-        .stderr(if show_output {
-            Stdio::inherit()
-        } else {
-            Stdio::piped()
-        });
+    fs::create_dir_all(&runner_dir).map_err(|e| e.to_string())?;
 
     let result = (|| {
-        let mut child = cmd.spawn().map_err(|e| format!("failed to run cargo: {e}"))?;
-        let mut stdout_pipe = child.stdout.take().expect("stdout was piped");
-        let stderr_pipe = child.stderr.take();
+        let mut build = Command::new("cargo");
+        build
+            .arg("rustc")
+            .arg("--manifest-path")
+            .arg(program_dir_abs.join("Cargo.toml"))
+            .args(["--lib", "--crate-type", "rlib", "--features", "idl-build"])
+            .arg("--target-dir")
+            .arg(&cargo_target_dir)
+            .current_dir(&program_dir_abs);
+        run_capturing_stdout(
+            build,
+            show_output,
+            &format!("idl-build compilation for '{prog_name}'"),
+        )?;
 
-        // Cargo's own compile output (potentially many lines) goes to
-        // stderr; the print binary's one-shot JSON goes to stdout. Both
-        // must be drained concurrently — reading one to completion before
-        // touching the other risks the child blocking on a full pipe
-        // buffer for the stream nobody is draining yet.
-        let stderr_thread = stderr_pipe.map(|mut pipe| {
-            std::thread::spawn(move || {
-                let mut buf = String::new();
-                let _ = pipe.read_to_string(&mut buf);
-                buf
-            })
-        });
+        let main_rs = runner_dir.join("main.rs");
+        fs::write(
+            &main_rs,
+            format!("fn main() {{ {lib_ident}::__naclac_print_idl(); }}\n"),
+        )
+        .map_err(|e| e.to_string())?;
 
-        let mut stdout_buf = String::new();
-        stdout_pipe
-            .read_to_string(&mut stdout_buf)
-            .map_err(|e| format!("failed to read idl-build stdout: {e}"))?;
-        let captured_stderr = stderr_thread.map(|t| t.join().unwrap_or_default());
+        let debug_dir = cargo_target_dir.join("debug");
+        let runner_bin = runner_dir.join(format!("idl_runner{}", std::env::consts::EXE_SUFFIX));
+        let mut link = Command::new("rustc");
+        link.args(["--edition", "2021"])
+            .arg(&main_rs)
+            .arg("--extern")
+            .arg(format!(
+                "{lib_ident}={}",
+                debug_dir.join(format!("lib{lib_ident}.rlib")).display()
+            ))
+            .arg("-L")
+            .arg(format!("dependency={}", debug_dir.join("deps").display()))
+            .arg("-o")
+            .arg(&runner_bin);
+        run_capturing_stdout(
+            link,
+            show_output,
+            &format!("idl-build runner link for '{prog_name}'"),
+        )?;
 
-        let status = child
-            .wait()
-            .map_err(|e| format!("failed to wait on cargo: {e}"))?;
-        if !status.success() {
-            return Err(match captured_stderr {
-                Some(stderr) => {
-                    format!("idl-build compilation failed for '{}':\n{}", prog_name, stderr)
-                }
-                None => format!(
-                    "idl-build compilation failed for '{}' — see compiler output above.",
-                    prog_name
-                ),
-            });
-        }
+        let stdout_buf = run_capturing_stdout(
+            Command::new(&runner_bin),
+            show_output,
+            &format!("idl-build print binary for '{prog_name}'"),
+        )?;
 
         let mut value: serde_json::Value = serde_json::from_str(stdout_buf.trim())
             .map_err(|e| format!("idl-build output was not valid JSON: {e}"))?;
@@ -249,6 +214,51 @@ fn generate_idl_via_idl_build(
 
     let _ = fs::remove_dir_all(&runner_dir);
     result
+}
+
+/// Runs `cmd` to completion and returns its stdout. Stderr is inherited when
+/// `show_output` is set; otherwise it is captured and included in the error
+/// returned for a non-zero exit.
+fn run_capturing_stdout(mut cmd: Command, show_output: bool, what: &str) -> Result<String, String> {
+    cmd.stdout(Stdio::piped()).stderr(if show_output {
+        Stdio::inherit()
+    } else {
+        Stdio::piped()
+    });
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("failed to start {what}: {e}"))?;
+    let mut stdout_pipe = child.stdout.take().expect("stdout was piped");
+    let stderr_pipe = child.stderr.take();
+
+    // Stdout and stderr must be drained concurrently — reading one to
+    // completion before touching the other risks the child blocking on a full
+    // pipe buffer for the stream nobody is draining yet.
+    let stderr_thread = stderr_pipe.map(|mut pipe| {
+        std::thread::spawn(move || {
+            let mut buf = String::new();
+            let _ = pipe.read_to_string(&mut buf);
+            buf
+        })
+    });
+
+    let mut stdout_buf = String::new();
+    stdout_pipe
+        .read_to_string(&mut stdout_buf)
+        .map_err(|e| format!("failed to read stdout of {what}: {e}"))?;
+    let captured_stderr = stderr_thread.map(|t| t.join().unwrap_or_default());
+
+    let status = child
+        .wait()
+        .map_err(|e| format!("failed to wait on {what}: {e}"))?;
+    if !status.success() {
+        return Err(match captured_stderr {
+            Some(stderr) => format!("{what} failed:\n{stderr}"),
+            None => format!("{what} failed — see compiler output above."),
+        });
+    }
+    Ok(stdout_buf)
 }
 
 pub fn resolve_workspace_root() -> PathBuf {
@@ -285,19 +295,29 @@ fn zero_copy_marker_path(workspace_root: &Path, prog_name: &str) -> PathBuf {
     naclac_client_gen::resolve_target_dir(workspace_root).join(format!(".{}-zero-copy", prog_name))
 }
 
+/// Mirrors `zero_copy_marker_path` for the `wincode` backend — client-gen
+/// (`naclac-client-gen/src/rust/mod.rs`) only ever sees the IDL JSON, not the
+/// program's `Cargo.toml`, so which of the three backends (Borsh/Wincode/raw
+/// zero-copy) a program uses has to reach it the same way `is_zero_copy`
+/// already does: a marker file written here, checked there.
+fn wincode_marker_path(workspace_root: &Path, prog_name: &str) -> PathBuf {
+    naclac_client_gen::resolve_target_dir(workspace_root).join(format!(".{}-wincode", prog_name))
+}
+
 /// Regenerates and persists one program's IDL: resolves its deploy-keypair
 /// address, calls `naclac_idl::generate_idl`, writes `target/idl/<name>.json`,
-/// and — when `is_zero_copy` — writes the zero-copy marker file with the
-/// real `#[event(alloc)]` names (not a placeholder), consumed by client-gen
-/// afterward. Does **not** remove the marker; the caller owns that, since
-/// whether it should be removed immediately or kept around for a following
-/// client-gen step depends on the caller's own flow (see `execute_idl` vs
-/// `execute_all` below).
+/// and — when `is_zero_copy`/`use_wincode` — writes the corresponding marker
+/// file (the zero-copy one carries the real `#[event(alloc)]` names, not a
+/// placeholder), consumed by client-gen afterward. Does **not** remove either
+/// marker; the caller owns that, since whether it should be removed
+/// immediately or kept around for a following client-gen step depends on the
+/// caller's own flow (see `execute_idl` vs `execute_all` below).
 pub fn generate_idl_for_program(
     workspace_root: &Path,
     program_dir: &Path,
     prog_name: &str,
     is_zero_copy: bool,
+    use_wincode: bool,
     show_output: bool,
 ) -> (String, Vec<String>) {
     let target_dir = naclac_client_gen::resolve_target_dir(workspace_root);
@@ -330,7 +350,6 @@ pub fn generate_idl_for_program(
             prog_name,
             &actual_address,
             env!("CARGO_PKG_VERSION"),
-            is_zero_copy,
         ) {
             Ok(result) => result,
             Err(e) => ui::error(format!("Failed to generate IDL for '{}': {}", prog_name, e)),
@@ -346,14 +365,18 @@ pub fn generate_idl_for_program(
         let marker_path = zero_copy_marker_path(workspace_root, prog_name);
         let _ = fs::write(&marker_path, alloc_event_names.join(","));
     }
+    if use_wincode {
+        let marker_path = wincode_marker_path(workspace_root, prog_name);
+        let _ = fs::write(&marker_path, "");
+    }
 
     (idl_json_pretty, alloc_event_names)
 }
 
 /// `naclac generate idl` — regenerates the IDL JSON from source only. No
-/// `cargo build-sbf`, no client SDK regeneration. Self-contained: writes
-/// its own zero-copy marker (if any) and removes it again before returning,
-/// since nothing else runs in this same command to consume it.
+/// `cargo build-sbf`, no client SDK regeneration. Self-contained: writes its
+/// own zero-copy/wincode markers (if any) and removes them again before
+/// returning, since nothing else runs in this same command to consume them.
 pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
     let workspace_root = resolve_workspace_root();
     let program_dirs = target_program_dirs(&workspace_root, program_id);
@@ -377,7 +400,10 @@ pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
         let step = if use_idl_build {
             None
         } else {
-            Some(ui::Step::start(format!("Generating IDL ({})...", prog_name)))
+            Some(ui::Step::start(format!(
+                "Generating IDL ({})...",
+                prog_name
+            )))
         };
         let program_features = detect_program_features(program_dir);
         generate_idl_for_program(
@@ -385,10 +411,14 @@ pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
             program_dir,
             &prog_name,
             program_features.is_zero_copy,
+            program_features.use_wincode,
             show_output,
         );
         if program_features.is_zero_copy {
             let _ = fs::remove_file(zero_copy_marker_path(&workspace_root, &prog_name));
+        }
+        if program_features.use_wincode {
+            let _ = fs::remove_file(wincode_marker_path(&workspace_root, &prog_name));
         }
         match step {
             Some(step) => step.done(format!("IDL written ({})", prog_name)),
@@ -424,15 +454,19 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
             let path = entry.path();
             if path.extension().unwrap_or_default() == "json" {
                 let content = fs::read_to_string(&path).unwrap();
-                // Just a cheap parse to see if it matches pid
                 let idl: serde_json::Value = serde_json::from_str(&content).unwrap();
-                if content.contains(pid) {
-                    let program_name = idl
-                        .get("metadata")
-                        .and_then(|m| m.get("name"))
-                        .and_then(|n| n.as_str())
-                        .unwrap_or_else(|| path.file_stem().unwrap().to_str().unwrap())
-                        .to_string();
+                let program_name = idl
+                    .get("metadata")
+                    .and_then(|m| m.get("name"))
+                    .and_then(|n| n.as_str())
+                    .unwrap_or_else(|| path.file_stem().unwrap().to_str().unwrap())
+                    .to_string();
+                // Exact match only — a substring check here (e.g. matching
+                // "accounts_constraints" against "accounts_constraints_borsh.json")
+                // would regenerate the wrong sibling program's client and silently
+                // leave the intended one stale, since directory iteration order
+                // isn't guaranteed and this loop stops at the first hit.
+                if program_name == pid {
                     target_json_paths.push((path, program_name));
                     break;
                 }
@@ -463,12 +497,24 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
 
         let program_dir = workspace_root.join("programs").join(&program_name);
         let marker_path = zero_copy_marker_path(&workspace_root, &program_name);
+        let wincode_marker_path = wincode_marker_path(&workspace_root, &program_name);
         let marker_existed = marker_path.exists();
-        let created_placeholder = if !marker_existed
-            && program_dir.exists()
-            && detect_program_features(&program_dir).is_zero_copy
+        let wincode_marker_existed = wincode_marker_path.exists();
+        let program_features = program_dir
+            .exists()
+            .then(|| detect_program_features(&program_dir));
+
+        let created_placeholder =
+            if !marker_existed && program_features.as_ref().is_some_and(|f| f.is_zero_copy) {
+                let _ = fs::write(&marker_path, "");
+                true
+            } else {
+                false
+            };
+        let created_wincode_placeholder = if !wincode_marker_existed
+            && program_features.as_ref().is_some_and(|f| f.use_wincode)
         {
-            let _ = fs::write(&marker_path, "");
+            let _ = fs::write(&wincode_marker_path, "");
             true
         } else {
             false
@@ -489,6 +535,9 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
 
         if created_placeholder {
             let _ = fs::remove_file(&marker_path);
+        }
+        if created_wincode_placeholder {
+            let _ = fs::remove_file(&wincode_marker_path);
         }
 
         match res {
@@ -514,6 +563,7 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
     }
 
     let mut zero_copy_programs = Vec::new();
+    let mut wincode_programs = Vec::new();
     for program_dir in &program_dirs {
         let prog_name = program_dir
             .file_name()
@@ -525,7 +575,10 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
         let step = if use_idl_build {
             None
         } else {
-            Some(ui::Step::start(format!("Generating IDL ({})...", prog_name)))
+            Some(ui::Step::start(format!(
+                "Generating IDL ({})...",
+                prog_name
+            )))
         };
         let program_features = detect_program_features(program_dir);
         generate_idl_for_program(
@@ -533,6 +586,7 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
             program_dir,
             &prog_name,
             program_features.is_zero_copy,
+            program_features.use_wincode,
             show_output,
         );
         match step {
@@ -540,7 +594,10 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
             None => ui::success(format!("IDL written ({})", prog_name)),
         }
         if program_features.is_zero_copy {
-            zero_copy_programs.push(prog_name);
+            zero_copy_programs.push(prog_name.clone());
+        }
+        if program_features.use_wincode {
+            wincode_programs.push(prog_name);
         }
     }
 
@@ -548,5 +605,8 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
 
     for prog_name in zero_copy_programs {
         let _ = fs::remove_file(zero_copy_marker_path(&workspace_root, &prog_name));
+    }
+    for prog_name in wincode_programs {
+        let _ = fs::remove_file(wincode_marker_path(&workspace_root, &prog_name));
     }
 }

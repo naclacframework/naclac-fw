@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_note` instruction. */
+/** Discriminator for the `init_note` instruction. */
 export const INIT_NOTE_DISCRIMINATOR = new Uint8Array([210, 21, 99, 159, 132, 44, 76, 125]);
 
 /** Instruction arguments for `initNote`. */

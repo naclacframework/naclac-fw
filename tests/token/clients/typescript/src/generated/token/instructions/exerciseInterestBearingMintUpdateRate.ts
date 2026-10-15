@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_interest_bearing_mint_update_rate` instruction. */
+/** Discriminator for the `exercise_interest_bearing_mint_update_rate` instruction. */
 export const EXERCISE_INTEREST_BEARING_MINT_UPDATE_RATE_DISCRIMINATOR = new Uint8Array([50, 131, 151, 72, 54, 250, 165, 155]);
 
 /** Instruction arguments for `exerciseInterestBearingMintUpdateRate`. */
 export interface ExerciseInterestBearingMintUpdateRateArgs {
-  new_rate: number;
+  newRate: number;
 }
 
 /** Accounts for the `exerciseInterestBearingMintUpdateRate` instruction. */
 export interface ExerciseInterestBearingMintUpdateRateAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

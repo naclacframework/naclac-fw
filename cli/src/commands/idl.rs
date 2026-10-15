@@ -553,7 +553,14 @@ fn update_existing(
     let (buffer_pda, _bump) =
         program_metadata::derive_canonical_metadata_pda(program_id, &buffer_seed);
 
-    if !reclaim_stray_buffer(client, payer, &buffer_pda, program_id, program_data, authority) {
+    if !reclaim_stray_buffer(
+        client,
+        payer,
+        &buffer_pda,
+        program_id,
+        program_data,
+        authority,
+    ) {
         return;
     }
     if !ensure_rent_exempt(client, payer, &buffer_pda, final_size) {

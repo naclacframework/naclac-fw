@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `authorized_increment` instruction. */
+/** Discriminator for the `authorized_increment` instruction. */
 export const AUTHORIZED_INCREMENT_DISCRIMINATOR = new Uint8Array([149, 164, 161, 180, 189, 180, 114, 220]);
 
 /** Accounts for the `authorizedIncrement` instruction. */

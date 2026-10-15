@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_caller_authority` instruction. */
+/** Discriminator for the `init_caller_authority` instruction. */
 export const INIT_CALLER_AUTHORITY_DISCRIMINATOR = new Uint8Array([19, 43, 92, 16, 194, 225, 143, 217]);
 
 /** Accounts for the `initCallerAuthority` instruction. */

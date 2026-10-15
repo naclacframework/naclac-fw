@@ -4,7 +4,6 @@ use borsh::BorshDeserialize;
 use bytemuck::Pod;
 use solana_account::Account;
 use solana_address::Address;
-use solana_program::pubkey::Pubkey;
 use solana_rpc_client_api::config::RpcProgramAccountsConfig;
 use solana_rpc_client_api::filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType};
 
@@ -22,43 +21,66 @@ use solana_rpc_client_api::filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType};
 /// bytes are "wrong" (any bit pattern is a valid `Pod` value), so a wrong
 /// guess would silently produce garbage field values instead of a clean error.
 pub trait NaclacDecode: Sized {
-    /// This type's 8-byte discriminator, or `None` for foreign types with no
-    /// Naclac discriminator prefix (e.g. raw SPL `TokenAccount`/`Mint`).
-    const DISCRIMINATOR: Option<[u8; 8]> = None;
+    /// This type's discriminator (from the program's IDL), or `None` for
+    /// foreign types with no Naclac discriminator prefix (e.g. raw SPL
+    /// `TokenAccount`/`Mint`).
+    const DISCRIMINATOR: Option<&'static [u8]> = None;
 
     fn naclac_decode(data: &[u8]) -> Result<Self, NaclacClientError>;
 }
 
-/// Checks the 8-byte discriminator prefix matches, then Borsh-deserializes the rest.
+/// Checks the discriminator prefix matches, then Borsh-deserializes the rest.
 pub fn decode_borsh_checked<T: BorshDeserialize>(
     data: &[u8],
-    discriminator: [u8; 8],
+    discriminator: &[u8],
 ) -> Result<T, NaclacClientError> {
-    if data.len() < 8 || data[..8] != discriminator {
+    let disc_len = discriminator.len();
+    if data.len() < disc_len || &data[..disc_len] != discriminator {
         return Err(NaclacClientError::DeserializationError(
             "Account discriminator mismatch (wrong account type, or account not yet initialized)"
                 .to_string(),
         ));
     }
-    let mut reader = &data[8..];
+    let mut reader = &data[disc_len..];
     T::deserialize(&mut reader).map_err(|e| {
         NaclacClientError::DeserializationError(format!("Borsh decode failed: {:?}", e))
     })
 }
 
-/// Checks the 8-byte discriminator prefix matches, then byte-casts the rest as `T`.
-pub fn decode_pod_checked<T: Pod>(
+/// Checks the discriminator prefix matches, then Wincode-deserializes the rest.
+pub fn decode_wincode_checked<
+    T: wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>,
+>(
     data: &[u8],
-    discriminator: [u8; 8],
+    discriminator: &[u8],
 ) -> Result<T, NaclacClientError> {
-    let size = std::mem::size_of::<T>();
-    if data.len() < 8 + size || data[..8] != discriminator {
+    let disc_len = discriminator.len();
+    if data.len() < disc_len || &data[..disc_len] != discriminator {
         return Err(NaclacClientError::DeserializationError(
             "Account discriminator mismatch (wrong account type, or account not yet initialized)"
                 .to_string(),
         ));
     }
-    let casted = bytemuck::try_from_bytes::<T>(&data[8..8 + size]).map_err(|e| {
+    let mut reader = &data[disc_len..];
+    wincode::config::deserialize_from(&mut reader, crate::wincode_config::CONFIG).map_err(|e| {
+        NaclacClientError::DeserializationError(format!("Wincode decode failed: {:?}", e))
+    })
+}
+
+/// Checks the discriminator prefix matches, then byte-casts the rest as `T`.
+pub fn decode_pod_checked<T: Pod>(
+    data: &[u8],
+    discriminator: &[u8],
+) -> Result<T, NaclacClientError> {
+    let size = std::mem::size_of::<T>();
+    let disc_len = discriminator.len();
+    if data.len() < disc_len + size || &data[..disc_len] != discriminator {
+        return Err(NaclacClientError::DeserializationError(
+            "Account discriminator mismatch (wrong account type, or account not yet initialized)"
+                .to_string(),
+        ));
+    }
+    let casted = bytemuck::try_from_bytes::<T>(&data[disc_len..disc_len + size]).map_err(|e| {
         NaclacClientError::DeserializationError(format!("Zero-Copy cast failed: {:?}", e))
     })?;
     Ok(*casted)
@@ -97,7 +119,7 @@ mod kani_proofs {
     fn prove_decode_pod_checked_never_panics() {
         let data: [u8; 200] = kani::any();
         let discriminator: [u8; 8] = kani::any();
-        let _ = decode_pod_checked::<TokenAccount>(&data, discriminator);
+        let _ = decode_pod_checked::<TokenAccount>(&data, &discriminator);
     }
 
     #[kani::proof]
@@ -188,9 +210,9 @@ impl<'a> AccountFetcher<'a> {
                 Ok(results)
             }
             ClientBackend::Rpc(client) => {
-                let pubkeys: Vec<Pubkey> = addresses
+                let pubkeys: Vec<Address> = addresses
                     .iter()
-                    .map(|addr| Pubkey::new_from_array(addr.to_bytes()))
+                    .map(|addr| Address::new_from_array(addr.to_bytes()))
                     .collect();
                 client
                     .get_multiple_accounts_with_commitment(&pubkeys, self.provider.commitment)
@@ -205,7 +227,7 @@ impl<'a> AccountFetcher<'a> {
     fn get_program_accounts(
         &self,
         program_id: &Address,
-        discriminator: [u8; 8],
+        discriminator: &[u8],
     ) -> Result<Vec<(Address, Account)>, NaclacClientError> {
         match &self.provider.backend {
             ClientBackend::LiteSVM(_) => {
@@ -220,7 +242,7 @@ impl<'a> AccountFetcher<'a> {
                 let memcmp = Memcmp::new(0, MemcmpEncodedBytes::Base58(encoded_discriminator));
                 config.filters = Some(vec![RpcFilterType::Memcmp(memcmp)]);
 
-                let program_pubkey = Pubkey::new_from_array(program_id.to_bytes());
+                let program_pubkey = Address::new_from_array(program_id.to_bytes());
                 let accounts = client.get_program_ui_accounts_with_config(&program_pubkey, config)
                     .map_err(|e| NaclacClientError::RpcError(format!("get_program_accounts failed: {}", e)))?;
 

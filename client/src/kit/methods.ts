@@ -4,8 +4,12 @@ import {
   appendTransactionMessageInstructions,
   createTransactionMessage,
   getBase64EncodedWireTransaction,
+  getProgramDerivedAddress,
   pipe,
   sendAndConfirmTransactionFactory,
+  setTransactionMessageComputeUnitLimit,
+  setTransactionMessageLoadedAccountsDataSizeLimit,
+  setTransactionMessagePriorityFeeLamports,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
   signTransactionMessageWithSigners,
@@ -21,13 +25,18 @@ import type {
   Blockhash,
 } from "@solana/kit";
 
-import type { NaclacProvider } from "./provider";
+import { type NaclacProvider, type TxVersion, normalizeTxVersion } from "./provider";
 import type { NaclacIdl, IdlInstruction } from "../idl";
 import { encodeInstructionData } from "../coder/instruction";
 import { resolvePdas } from "../utils/pda";
 import { translateRpcError } from "../utils/rpc";
 import { toCamelCase } from "../utils/case";
-import { parseEventsFromLogs } from "../events";
+import {
+  parseEventsFromTransaction,
+  resolveRpcInnerInstructions,
+  eventFieldLayout,
+  type NaclacInnerInstruction,
+} from "../events";
 import {
   SYSTEM_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
@@ -47,7 +56,37 @@ import {
 export interface NaclacRpcResult {
   signature: string;
   logs: string[];
+  /** `undefined` when the backend couldn't supply them (not the same as `[]`). */
+  innerInstructions?: NaclacInnerInstruction[];
   parseEvents<T = any>(eventName: string): T[];
+}
+
+/**
+ * Inner instructions of a kit `getTransaction` result (fetched with
+ * `maxSupportedTransactionVersion: 1` and the default `json` encoding), with
+ * every account index resolved to an address — static keys first, then those
+ * loaded through address lookup tables (writable, then readonly), so it also
+ * serves a v0 transaction the caller sent themselves. `undefined` when the
+ * node omitted them or the transaction failed (a failed transaction's inner
+ * instructions were never committed, so none of them may vouch for an event).
+ * Pass the result to a generated client's
+ * `parseXxxEventsFromTransaction({ logs, innerInstructions })`.
+ */
+export function innerInstructionsFromKitTransaction(
+  txResult: { transaction: { message: any }; meta?: any } | null | undefined,
+): NaclacInnerInstruction[] | undefined {
+  if (!txResult?.meta || txResult.meta.err) return undefined;
+  const meta = txResult.meta;
+  if (meta.naclacInnerInstructions) {
+    // litesvm mode: the native binding already resolved account keys.
+    return meta.naclacInnerInstructions;
+  }
+  const keys: string[] = [
+    ...txResult.transaction.message.accountKeys,
+    ...(meta.loadedAddresses?.writable ?? []),
+    ...(meta.loadedAddresses?.readonly ?? []),
+  ];
+  return resolveRpcInnerInstructions(keys, meta.innerInstructions);
 }
 
 /**
@@ -59,6 +98,7 @@ export class MethodsBuilder {
   private readonly args: Record<string, unknown>;
   private readonly provider: NaclacProvider;
   private readonly isZeroCopy: boolean;
+  private readonly allocEvents: readonly string[];
   private programId: Address;
 
   private _userAccounts: Record<string, Address> = {};
@@ -66,6 +106,10 @@ export class MethodsBuilder {
   private _remainingAccounts: Address[] = [];
   private _preInstructions: Instruction<string>[] = [];
   private _postInstructions: Instruction<string>[] = [];
+  private _txVersion?: TxVersion;
+  private _computeUnitLimit?: number;
+  private _loadedAccountsDataSizeLimit?: number;
+  private _priorityFee?: bigint | number;
 
   constructor(
     idl: NaclacIdl,
@@ -73,12 +117,14 @@ export class MethodsBuilder {
     args: Record<string, unknown>,
     provider: NaclacProvider,
     isZeroCopy = false,
+    allocEvents: readonly string[] = [],
   ) {
     this.idl = idl;
     this.ixDef = ixDef;
     this.args = args;
     this.provider = provider;
     this.isZeroCopy = isZeroCopy;
+    this.allocEvents = allocEvents;
     this.programId = address(idl.address);
   }
 
@@ -112,6 +158,41 @@ export class MethodsBuilder {
 
   postInstructions(ixs: Instruction<string>[]): this {
     this._postInstructions.push(...ixs);
+    return this;
+  }
+
+  v1(): this {
+    this._txVersion = "v1";
+    return this;
+  }
+
+  v0(): this {
+    this._txVersion = "v0";
+    return this;
+  }
+
+  legacy(): this {
+    this._txVersion = "legacy";
+    return this;
+  }
+
+  version(version: TxVersion): this {
+    this._txVersion = version;
+    return this;
+  }
+
+  computeUnitLimit(units: number): this {
+    this._computeUnitLimit = units;
+    return this;
+  }
+
+  loadedAccountsDataSizeLimit(bytes: number): this {
+    this._loadedAccountsDataSizeLimit = bytes;
+    return this;
+  }
+
+  priorityFee(lamports: bigint | number): this {
+    this._priorityFee = lamports;
     return this;
   }
 
@@ -204,7 +285,7 @@ export class MethodsBuilder {
     return { data, accountMetas };
   }
 
-  async transaction() {
+  async transaction(): Promise<any> {
     const commitment = this.provider.commitment ?? "confirmed";
 
     const { data, accountMetas } = await this._buildInstructionMetasAndData();
@@ -227,10 +308,28 @@ export class MethodsBuilder {
       .getLatestBlockhash({ commitment })
       .send();
 
+    const targetVersion = normalizeTxVersion(this._txVersion ?? this.provider.defaultTxVersion);
+
+    let baseMsg: any;
+    if (targetVersion === 1) {
+      baseMsg = pipe(
+        createTransactionMessage({ version: 1 }),
+        (msg) => setTransactionMessageComputeUnitLimit(this._computeUnitLimit ?? 1_400_000, msg),
+        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(this._loadedAccountsDataSizeLimit ?? 64 * 1024 * 1024, msg),
+        (msg) => this._priorityFee !== undefined
+          ? setTransactionMessagePriorityFeeLamports(BigInt(this._priorityFee), msg)
+          : msg,
+      );
+    } else if (targetVersion === 0) {
+      baseMsg = createTransactionMessage({ version: 0 });
+    } else {
+      baseMsg = createTransactionMessage({ version: "legacy" });
+    }
+
     const txMessage = pipe(
-      createTransactionMessage({ version: 0 }),
-      (msg) => setTransactionMessageFeePayerSigner(this.provider.signer, msg),
-      (msg) =>
+      baseMsg,
+      (msg: any) => setTransactionMessageFeePayerSigner(this.provider.signer, msg),
+      (msg: any) =>
         setTransactionMessageLifetimeUsingBlockhash(
           {
             ...latestBlockhash,
@@ -238,7 +337,7 @@ export class MethodsBuilder {
           },
           msg,
         ),
-      (msg) => appendTransactionMessageInstructions(allInstructions, msg),
+      (msg: any) => appendTransactionMessageInstructions(allInstructions, msg),
     );
 
     return txMessage;
@@ -246,7 +345,7 @@ export class MethodsBuilder {
 
   async simulate() {
     const txMessage = await this.transaction();
-    const signedTx = await signTransactionMessageWithSigners(txMessage);
+    const signedTx = await signTransactionMessageWithSigners(txMessage as any);
     const base64Tx = getBase64EncodedWireTransaction(signedTx as any);
 
     try {
@@ -281,14 +380,14 @@ export class MethodsBuilder {
 
   async encoded(): Promise<string> {
     const txMessage = await this.transaction();
-    const signedTx = await signTransactionMessageWithSigners(txMessage);
+    const signedTx = await signTransactionMessageWithSigners(txMessage as any);
     return getBase64EncodedWireTransaction(signedTx as any);
   }
 
   async send(options: { skipPreflight?: boolean } = {}): Promise<string> {
     const commitment = this.provider.commitment ?? "confirmed";
     const txMessage = await this.transaction();
-    const signedTx = await signTransactionMessageWithSigners(txMessage);
+    const signedTx = await signTransactionMessageWithSigners(txMessage as any);
 
     const rpc = this.provider.rpc as any;
     const base64Tx = getBase64EncodedWireTransaction(signedTx as any);
@@ -378,7 +477,7 @@ export class MethodsBuilder {
     const commitment = this.provider.commitment ?? "confirmed";
     const txMessage = await this.transaction();
 
-    const signedTx = await signTransactionMessageWithSigners(txMessage);
+    const signedTx = await signTransactionMessageWithSigners(txMessage as any);
 
     const rpc = this.provider.rpc as any;
     let signature: string;
@@ -424,24 +523,36 @@ export class MethodsBuilder {
     // a live `logsSubscribe` subscription, which can miss events broadcast
     // before the subscription handshake finishes connecting).
     let logs: string[] = [];
+    let innerInstructions: NaclacInnerInstruction[] | undefined;
     try {
       const txResult = await rpc
         .getTransaction(signature, {
           commitment: commitment === "finalized" ? "finalized" : "confirmed",
-          maxSupportedTransactionVersion: 0,
+          maxSupportedTransactionVersion: 1,
         })
         .send();
       logs = (txResult?.meta?.logMessages as string[] | undefined) ?? [];
+      innerInstructions = innerInstructionsFromKitTransaction(txResult as any);
     } catch {
       // Logs are a best-effort convenience; a failure fetching them shouldn't
       // fail an already-confirmed transaction.
     }
 
+    const [eventAuthority] = await getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [new TextEncoder().encode("__event_authority")],
+    });
     return {
       signature,
       logs,
+      innerInstructions,
       parseEvents: <T = any>(eventName: string) =>
-        parseEventsFromLogs<T>(this.idl, eventName, logs, this.isZeroCopy),
+        parseEventsFromTransaction<T>(
+          this.idl,
+          eventName,
+          { logs, innerInstructions, eventAuthority },
+          eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+        ),
     };
   }
 

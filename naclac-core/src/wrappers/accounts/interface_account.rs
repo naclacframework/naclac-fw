@@ -27,17 +27,33 @@
 // Borsh branch — owns a deserialized copy of T
 // ===========================================================================
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 use crate::prelude::{
     AccountInfo, Address, BorshDeserialize, BorshSerialize, NaclacError, Owner, Result,
     TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
 };
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 use crate::wrappers::{ToAccountInfo, ToAddress};
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 use core::ops::{Deref, DerefMut};
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 fn check_interface_owner(
     info: &AccountInfo,
     index: usize,
@@ -55,7 +71,11 @@ fn check_interface_owner(
 /// every method here mirror `Account<T>`'s Borsh branch exactly, except
 /// `try_from`/`try_from_mut` check the owner directly instead of calling
 /// `T::validate_account`.
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 #[derive(Clone)]
 pub struct InterfaceAccount<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> {
     pub info: AccountInfo,
@@ -65,7 +85,11 @@ pub struct InterfaceAccount<T: BorshDeserialize + BorshSerialize + crate::wrappe
     index: usize,
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<
         T: BorshDeserialize
             + BorshSerialize
@@ -76,21 +100,23 @@ impl<
     pub fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         check_interface_owner(info, index).map_err(|e| e.err(index))?;
         let raw = info.try_borrow_data()?;
-        let disc_len = T::discriminator_len();
+        let disc_len = T::DISCRIMINATOR.len();
         if raw.len() < disc_len {
             return Err(NaclacError::AccountDataTooSmall.err(index));
         }
-        if raw[..disc_len] != T::DISCRIMINATOR[..disc_len] {
+        if &raw[..disc_len] != T::DISCRIMINATOR {
             return Err(NaclacError::AccountNotInitialized.err(index));
         }
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(index))?;
 
         let mut reader = &raw[disc_len..];
-        let data = T::deserialize(&mut reader)
-            .map_err(|_| NaclacError::DeserializationFailed.err(index))?;
+        let data = T::deserialize(&mut reader).map_err(|error| {
+            super::discard_error(error);
+            NaclacError::DeserializationFailed.err(index)
+        })?;
 
         Ok(Self {
-            info: info.clone(),
+            info: *info,
             data,
             index,
         })
@@ -113,34 +139,43 @@ impl<
     pub fn reload(&mut self) -> Result<()> {
         check_interface_owner(&self.info, self.index).map_err(|e| e.err(self.index))?;
         let raw = self.info.try_borrow_data()?;
-        let disc_len = T::discriminator_len();
+        let disc_len = T::DISCRIMINATOR.len();
         if raw.len() < disc_len {
             return Err(NaclacError::AccountDataTooSmall.err(self.index));
         }
-        if raw[..disc_len] != T::DISCRIMINATOR[..disc_len] {
+        if &raw[..disc_len] != T::DISCRIMINATOR {
             return Err(NaclacError::AccountNotInitialized.err(self.index));
         }
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(self.index))?;
 
         let mut reader = &raw[disc_len..];
-        self.data = T::deserialize(&mut reader)
-            .map_err(|_| NaclacError::DeserializationFailed.err(self.index))?;
+        self.data = T::deserialize(&mut reader).map_err(|error| {
+            super::discard_error(error);
+            NaclacError::DeserializationFailed.err(self.index)
+        })?;
         Ok(())
     }
 
     pub fn exit(&self) -> Result<()> {
         let mut data = self.info.try_borrow_mut_data()?;
-        let disc_len = T::discriminator_len();
-        data[..disc_len].copy_from_slice(&T::DISCRIMINATOR[..disc_len]);
-        let mut writer = &mut data[disc_len..];
-        self.data
-            .serialize(&mut writer)
-            .map_err(|_| NaclacError::SerializationFailed.err(self.index))?;
+        let disc_len = T::DISCRIMINATOR.len();
+        let (discriminator, mut writer) = data
+            .split_at_mut_checked(disc_len)
+            .ok_or_else(|| NaclacError::AccountDataTooSmall.err(self.index))?;
+        discriminator.copy_from_slice(T::DISCRIMINATOR);
+        self.data.serialize(&mut writer).map_err(|error| {
+            super::discard_error(error);
+            NaclacError::SerializationFailed.err(self.index)
+        })?;
         Ok(())
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> crate::wrappers::Owner
     for InterfaceAccount<T>
 {
@@ -149,7 +184,11 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> crat
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Deref
     for InterfaceAccount<T>
 {
@@ -159,7 +198,11 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Dere
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> DerefMut
     for InterfaceAccount<T>
 {
@@ -168,25 +211,37 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Dere
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> ToAccountInfo
     for InterfaceAccount<T>
 {
     fn to_account_info(&self) -> AccountInfo {
-        self.info.clone()
+        self.info
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     crate::wrappers::ToAccountInfos for InterfaceAccount<T>
 {
     fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
-        crate::prelude::vec![self.info.clone()]
+        crate::prelude::vec![self.info]
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> ToAddress
     for InterfaceAccount<T>
 {
@@ -195,7 +250,11 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> ToAd
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> InterfaceAccount<T> {
     pub fn sub_lamports(&self, amount: u64) -> Result<()> {
         self.info.sub_lamports(amount)
@@ -210,7 +269,11 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Inte
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<'a, T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     crate::wrappers::cpi_handle::ToCpiHandle<'a> for InterfaceAccount<T>
 {
@@ -220,7 +283,11 @@ impl<'a, T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<'a, T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     crate::wrappers::cpi_handle::ToCpiHandleMut<'a> for InterfaceAccount<T>
 {
@@ -230,7 +297,11 @@ impl<'a, T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     crate::wrappers::AsRefByteSlice for InterfaceAccount<T>
 {
@@ -239,7 +310,11 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<
         T: BorshDeserialize
             + BorshSerialize
@@ -248,12 +323,356 @@ impl<
     > crate::wrappers::NaclacAccount for InterfaceAccount<T>
 {
     #[inline(always)]
-    fn try_from(info: &crate::prelude::AccountType, index: usize) -> Result<Self> {
+    fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from(info, index)
     }
 
     #[inline(always)]
-    fn try_from_mut(info: &crate::prelude::AccountType, index: usize) -> Result<Self> {
+    fn try_from_mut(info: &AccountInfo, index: usize) -> Result<Self> {
+        Self::try_from_mut(info, index)
+    }
+
+    #[inline(always)]
+    fn exit(&self, program_id: &crate::prelude::Address) -> Result<()> {
+        if *self.info.owner == *program_id {
+            self.exit()
+        } else {
+            Ok(())
+        }
+    }
+}
+
+// ===========================================================================
+// Wincode branch
+// ===========================================================================
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+use crate::prelude::{
+    AccountInfo, Address, NaclacError, Owner, Result, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
+};
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+use crate::wrappers::{ToAccountInfo, ToAddress};
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+use core::ops::{Deref, DerefMut};
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+fn check_interface_owner_wincode(
+    info: &AccountInfo,
+    index: usize,
+) -> core::result::Result<(), NaclacError> {
+    let owner = Owner::program_owner(info);
+    if owner != TOKEN_PROGRAM_ID && owner != TOKEN_2022_PROGRAM_ID {
+        return Err(NaclacError::ConstraintOwner);
+    }
+    let _ = index;
+    Ok(())
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+#[derive(Clone)]
+pub struct InterfaceAccount<
+    T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+        + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+        + crate::wrappers::Discriminator,
+> {
+    pub info: AccountInfo,
+    pub data: T,
+    index: usize,
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator
+            + crate::wrappers::ValidateInterfaceLayout,
+    > InterfaceAccount<T>
+{
+    pub fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+        check_interface_owner_wincode(info, index).map_err(|e| e.err(index))?;
+        let raw = info.try_borrow_data()?;
+        let disc_len = T::DISCRIMINATOR.len();
+        if raw.len() < disc_len {
+            return Err(NaclacError::AccountDataTooSmall.err(index));
+        }
+        if &raw[..disc_len] != T::DISCRIMINATOR {
+            return Err(NaclacError::AccountNotInitialized.err(index));
+        }
+        T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(index))?;
+
+        let mut reader = &raw[disc_len..];
+        let data = crate::prelude::wincode::config::deserialize_from(
+            &mut reader,
+            crate::wincode_config::CONFIG,
+        )
+        .map_err(|_| NaclacError::DeserializationFailed.err(index))?;
+
+        Ok(Self {
+            info: *info,
+            data,
+            index,
+        })
+    }
+
+    #[inline(always)]
+    pub fn try_from_mut(info: &AccountInfo, index: usize) -> Result<Self> {
+        Self::try_from(info, index)
+    }
+
+    pub fn reload(&mut self) -> Result<()> {
+        check_interface_owner_wincode(&self.info, self.index).map_err(|e| e.err(self.index))?;
+        let raw = self.info.try_borrow_data()?;
+        let disc_len = T::DISCRIMINATOR.len();
+        if raw.len() < disc_len {
+            return Err(NaclacError::AccountDataTooSmall.err(self.index));
+        }
+        if &raw[..disc_len] != T::DISCRIMINATOR {
+            return Err(NaclacError::AccountNotInitialized.err(self.index));
+        }
+        T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(self.index))?;
+
+        let mut reader = &raw[disc_len..];
+        self.data = crate::prelude::wincode::config::deserialize_from(
+            &mut reader,
+            crate::wincode_config::CONFIG,
+        )
+        .map_err(|_| NaclacError::DeserializationFailed.err(self.index))?;
+        Ok(())
+    }
+
+    pub fn exit(&self) -> Result<()> {
+        let mut data = self.info.try_borrow_mut_data()?;
+        let disc_len = T::DISCRIMINATOR.len();
+        let (discriminator, mut writer) = data
+            .split_at_mut_checked(disc_len)
+            .ok_or_else(|| NaclacError::AccountDataTooSmall.err(self.index))?;
+        discriminator.copy_from_slice(T::DISCRIMINATOR);
+        crate::prelude::wincode::config::serialize_into(
+            &mut writer,
+            &self.data,
+            crate::wincode_config::CONFIG,
+        )
+        .map_err(|_| NaclacError::SerializationFailed.err(self.index))?;
+        Ok(())
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > crate::wrappers::Owner for InterfaceAccount<T>
+{
+    fn program_owner(&self) -> Address {
+        *self.info.owner
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > Deref for InterfaceAccount<T>
+{
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > DerefMut for InterfaceAccount<T>
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > ToAccountInfo for InterfaceAccount<T>
+{
+    fn to_account_info(&self) -> AccountInfo {
+        self.info
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > crate::wrappers::ToAccountInfos for InterfaceAccount<T>
+{
+    fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
+        crate::prelude::vec![self.info]
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > ToAddress for InterfaceAccount<T>
+{
+    fn address(&self) -> Address {
+        self.info.address()
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > InterfaceAccount<T>
+{
+    pub fn sub_lamports(&self, amount: u64) -> Result<()> {
+        self.info.sub_lamports(amount)
+    }
+
+    pub fn add_lamports(&self, amount: u64) -> Result<()> {
+        self.info.add_lamports(amount)
+    }
+
+    pub fn address(&self) -> Address {
+        self.info.address()
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        'a,
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > crate::wrappers::cpi_handle::ToCpiHandle<'a> for InterfaceAccount<T>
+{
+    #[inline(always)]
+    fn to_cpi_handle(&'a self) -> crate::wrappers::cpi_handle::CpiHandle<'a> {
+        crate::wrappers::cpi_handle::ToCpiHandle::to_cpi_handle(&self.info)
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        'a,
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > crate::wrappers::cpi_handle::ToCpiHandleMut<'a> for InterfaceAccount<T>
+{
+    #[inline(always)]
+    fn to_cpi_handle_mut(&'a mut self) -> crate::wrappers::cpi_handle::CpiHandleMut<'a> {
+        crate::wrappers::cpi_handle::ToCpiHandleMut::to_cpi_handle_mut(&mut self.info)
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator,
+    > crate::wrappers::AsRefByteSlice for InterfaceAccount<T>
+{
+    fn as_ref_byte_slice(&self) -> &[u8] {
+        self.info.key.as_ref()
+    }
+}
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+impl<
+        T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
+            + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
+            + crate::wrappers::Discriminator
+            + crate::wrappers::ValidateInterfaceLayout,
+    > crate::wrappers::NaclacAccount for InterfaceAccount<T>
+{
+    #[inline(always)]
+    fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+        Self::try_from(info, index)
+    }
+
+    #[inline(always)]
+    fn try_from_mut(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from_mut(info, index)
     }
 
@@ -271,20 +690,38 @@ impl<
 // Zero-copy branch — caches a raw pointer into the account's own buffer
 // ===========================================================================
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 use crate::prelude::{
     AccountInfo, Address, NaclacError, Owner, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
 };
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 use crate::wrappers::accounts::NaclacZeroCopy;
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 use crate::wrappers::ToAccountInfo;
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 use core::marker::PhantomData;
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 use core::ops::{Deref, DerefMut};
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 fn check_interface_owner_zc(
     info: &AccountInfo,
     index: usize,
@@ -301,16 +738,25 @@ fn check_interface_owner_zc(
 /// every method here mirror `Account<T>`'s zero-copy branch
 /// (`accounts/account.rs`) exactly, except `try_from`/`try_from_mut` check
 /// the owner directly instead of calling `T::validate_account`.
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 pub struct InterfaceAccount<T: NaclacZeroCopy> {
     pub info: AccountInfo,
     header_ptr: *mut T,
     pub _phantom: PhantomData<T>,
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 unsafe impl<T: NaclacZeroCopy + Send> Send for InterfaceAccount<T> {}
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 unsafe impl<T: NaclacZeroCopy + Sync> Sync for InterfaceAccount<T> {}
 
 #[cfg(feature = "pinocchio")]
@@ -321,12 +767,15 @@ impl<T: NaclacZeroCopy> Clone for InterfaceAccount<T> {
     }
 }
 
-#[cfg(all(not(feature = "pinocchio"), not(feature = "borsh")))]
+#[cfg(all(
+    not(feature = "pinocchio"),
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy> Clone for InterfaceAccount<T> {
     #[inline(always)]
     fn clone(&self) -> Self {
         Self {
-            info: self.info.clone(),
+            info: self.info,
             header_ptr: self.header_ptr,
             _phantom: PhantomData,
         }
@@ -336,12 +785,15 @@ impl<T: NaclacZeroCopy> Clone for InterfaceAccount<T> {
 #[cfg(feature = "pinocchio")]
 impl<T: NaclacZeroCopy> Copy for InterfaceAccount<T> {}
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAccount<T> {
     pub fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         check_interface_owner_zc(info, index).map_err(|e| e.err(index))?;
         let header_ptr: *mut T;
-        let disc_len = T::discriminator_len();
+        let disc_len = T::DISCRIMINATOR.len();
 
         #[cfg(not(feature = "pinocchio"))]
         {
@@ -366,56 +818,21 @@ impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAcco
         }
 
         Ok(Self {
-            info: {
-                #[cfg(feature = "pinocchio")]
-                {
-                    *info
-                }
-                #[cfg(not(feature = "pinocchio"))]
-                {
-                    info.clone()
-                }
-            },
+            info: *info,
             header_ptr,
             _phantom: PhantomData,
         })
     }
 
+    /// Alias for `try_from`, kept for symmetry with `Account<T>::try_from_mut`
+    /// and with `init` accounts. Previously validated size and layout but
+    /// never called `T::load`, so it skipped the discriminator check
+    /// entirely — a `mut` slot with no `seeds`/`address` constraint accepted
+    /// any same-owner account of the wrong type. See `Account::try_from_mut`'s
+    /// doc comment for why "verified earlier" doesn't hold for a `mut` field.
     #[inline(always)]
     pub fn try_from_mut(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
-        check_interface_owner_zc(info, index).map_err(|e| e.err(index))?;
-        let disc_len = T::discriminator_len();
-        let space = core::mem::size_of::<T>() + disc_len;
-
-        #[cfg(feature = "pinocchio")]
-        {
-            let data = info.data();
-            if data.len() < space {
-                return Err(NaclacError::AccountDataTooSmall.err(index));
-            }
-            T::validate_interface_layout(&data[disc_len..]).map_err(|e| e.err(index))?;
-            let header_ptr = unsafe { info.view.data_ptr().add(disc_len) as *mut T };
-            Ok(Self {
-                info: *info,
-                header_ptr,
-                _phantom: PhantomData,
-            })
-        }
-
-        #[cfg(not(feature = "pinocchio"))]
-        {
-            let data = info.try_borrow_data()?;
-            if data.len() < space {
-                return Err(NaclacError::AccountDataTooSmall.err(index));
-            }
-            T::validate_interface_layout(&data[disc_len..]).map_err(|e| e.err(index))?;
-            let header_ptr = unsafe { (data.as_ptr() as *mut u8).add(disc_len) as *mut T };
-            Ok(Self {
-                info: info.clone(),
-                header_ptr,
-                _phantom: PhantomData,
-            })
-        }
+        Self::try_from(info, index)
     }
 
     /// Re-validates ownership of `self.info`. `header_ptr` already points
@@ -433,7 +850,10 @@ impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAcco
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy> Deref for InterfaceAccount<T> {
     type Target = T;
 
@@ -445,7 +865,10 @@ impl<T: NaclacZeroCopy> Deref for InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy> DerefMut for InterfaceAccount<T> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut T {
@@ -454,29 +877,31 @@ impl<T: NaclacZeroCopy> DerefMut for InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy> ToAccountInfo for InterfaceAccount<T> {
     #[inline(always)]
     fn to_account_info(&self) -> AccountInfo {
-        #[cfg(feature = "pinocchio")]
-        {
-            self.info
-        }
-        #[cfg(not(feature = "pinocchio"))]
-        {
-            self.info.clone()
-        }
+        self.info
     }
 }
 
-#[cfg(all(not(feature = "pinocchio"), not(feature = "borsh")))]
+#[cfg(all(
+    not(feature = "pinocchio"),
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy> crate::wrappers::ToAccountInfos for InterfaceAccount<T> {
     fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
-        crate::prelude::vec![self.info.clone()]
+        crate::prelude::vec![self.info]
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy> Owner for InterfaceAccount<T> {
     #[inline(always)]
     fn program_owner(&self) -> Address {
@@ -484,7 +909,10 @@ impl<T: NaclacZeroCopy> Owner for InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy> crate::wrappers::ToAddress for InterfaceAccount<T> {
     #[inline(always)]
     fn address(&self) -> Address {
@@ -492,7 +920,10 @@ impl<T: NaclacZeroCopy> crate::wrappers::ToAddress for InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy> InterfaceAccount<T> {
     pub fn sub_lamports(&self, amount: u64) -> crate::prelude::Result<()> {
         self.info.sub_lamports(amount)
@@ -507,7 +938,10 @@ impl<T: NaclacZeroCopy> InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<'a, T: NaclacZeroCopy> crate::wrappers::cpi_handle::ToCpiHandle<'a> for InterfaceAccount<T> {
     #[inline(always)]
     fn to_cpi_handle(&'a self) -> crate::wrappers::cpi_handle::CpiHandle<'a> {
@@ -515,7 +949,10 @@ impl<'a, T: NaclacZeroCopy> crate::wrappers::cpi_handle::ToCpiHandle<'a> for Int
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<'a, T: NaclacZeroCopy> crate::wrappers::cpi_handle::ToCpiHandleMut<'a>
     for InterfaceAccount<T>
 {
@@ -525,7 +962,10 @@ impl<'a, T: NaclacZeroCopy> crate::wrappers::cpi_handle::ToCpiHandleMut<'a>
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy> crate::wrappers::AsRefByteSlice for InterfaceAccount<T> {
     fn as_ref_byte_slice(&self) -> &[u8] {
         #[cfg(feature = "pinocchio")]
@@ -539,20 +979,20 @@ impl<T: NaclacZeroCopy> crate::wrappers::AsRefByteSlice for InterfaceAccount<T> 
     }
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(any(
+    feature = "pinocchio",
+    not(any(feature = "borsh", feature = "wincode"))
+))]
 impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> crate::wrappers::NaclacAccount
     for InterfaceAccount<T>
 {
     #[inline(always)]
-    fn try_from(info: &crate::prelude::AccountType, index: usize) -> crate::prelude::Result<Self> {
+    fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         Self::try_from(info, index)
     }
 
     #[inline(always)]
-    fn try_from_mut(
-        info: &crate::prelude::AccountType,
-        index: usize,
-    ) -> crate::prelude::Result<Self> {
+    fn try_from_mut(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         Self::try_from_mut(info, index)
     }
 }

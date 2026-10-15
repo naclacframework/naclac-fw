@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_token_metadata_remove_key_and_authority` instruction. */
+/** Discriminator for the `exercise_token_metadata_remove_key_and_authority` instruction. */
 export const EXERCISE_TOKEN_METADATA_REMOVE_KEY_AND_AUTHORITY_DISCRIMINATOR = new Uint8Array([55, 100, 74, 102, 201, 101, 188, 82]);
 
 /** Instruction arguments for `exerciseTokenMetadataRemoveKeyAndAuthority`. */

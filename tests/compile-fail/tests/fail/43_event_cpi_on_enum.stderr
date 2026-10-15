@@ -1,0 +1,5 @@
+error: expected `struct`
+ --> tests/fail/43_event_cpi_on_enum.rs:7:5
+  |
+7 | pub enum Foo {
+  |     ^^^^

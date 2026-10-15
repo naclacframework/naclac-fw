@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022_init_if_needed` instruction. */
+/** Discriminator for the `create_mint2022_init_if_needed` instruction. */
 export const CREATE_MINT2022_INIT_IF_NEEDED_DISCRIMINATOR = new Uint8Array([83, 162, 16, 109, 36, 224, 251, 98]);
 
 /** Instruction arguments for `createMint2022InitIfNeeded`. */

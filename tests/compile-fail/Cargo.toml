@@ -6,6 +6,12 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+debug-mode = []
+pinocchio = []
+borsh = []
+wincode = []
+
 [dependencies]
 naclac-lang = { path = "../../naclac-lang", features = ["token"] }
 

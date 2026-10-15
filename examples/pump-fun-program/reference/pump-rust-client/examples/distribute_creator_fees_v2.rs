@@ -2,7 +2,7 @@
 mod common;
 
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{Keypair, Signer};
 
 use pump_rust_client::accounts::decode_sharing_config;
@@ -32,7 +32,7 @@ async fn main() {
             .data,
     )
     .expect("decode SharingConfig");
-    let shareholders: Vec<Pubkey> = sharing_config
+    let shareholders: Vec<Address> = sharing_config
         .shareholders
         .iter()
         .map(|s| s.address)

@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_edition` instruction. */
+/** Discriminator for the `attach_edition` instruction. */
 export const ATTACH_EDITION_DISCRIMINATOR = new Uint8Array([46, 41, 117, 235, 219, 100, 210, 231]);
 
 /** Accounts for the `attachEdition` instruction. */
 export interface AttachEditionAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

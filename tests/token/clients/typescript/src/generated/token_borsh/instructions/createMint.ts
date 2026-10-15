@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint` instruction. */
+/** Discriminator for the `create_mint` instruction. */
 export const CREATE_MINT_DISCRIMINATOR = new Uint8Array([69, 44, 215, 132, 253, 214, 41, 45]);
 
 /** Instruction arguments for `createMint`. */

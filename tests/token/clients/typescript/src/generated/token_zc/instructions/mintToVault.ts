@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `mint_to_vault` instruction. */
+/** Discriminator for the `mint_to_vault` instruction. */
 export const MINT_TO_VAULT_DISCRIMINATOR = new Uint8Array([197, 102, 31, 8, 93, 20, 64, 185]);
 
 /** Instruction arguments for `mintToVault`. */

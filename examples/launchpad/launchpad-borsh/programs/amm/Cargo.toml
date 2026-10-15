@@ -5,7 +5,7 @@ description = "Created with Naclac Framework"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []
@@ -25,5 +25,5 @@ amm-client = { path = "../../clients/rust/amm" }
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("pinocchio", "solana", "borsh"))'
+    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
 ] }

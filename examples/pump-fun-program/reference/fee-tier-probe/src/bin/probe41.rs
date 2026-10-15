@@ -19,7 +19,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -38,23 +38,23 @@ const REAL_MINT: &str = "3Dqqpf2icam1GKayjBh3baFKQLqiUwHrztnXbMmdpump";
 const BUY_EXACT_SOL_IN_DISCRIMINATOR: [u8; 8] = [56, 252, 116, 8, 158, 223, 205, 95];
 const GET_FEES_DISCRIMINATOR: [u8; 8] = [231, 37, 126, 85, 207, 91, 63, 52];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 /// `solana-rpc-client` (pinned `^3`) and `litesvm`/`solana-sdk` (`*`) resolve
-/// to different major versions of the underlying `solana-account`/`Pubkey`
+/// to different major versions of the underlying `solana-account`/`Address`
 /// crates, so `RpcClient::get_account`'s return type isn't directly usable
 /// with `LiteSVM::set_account`. Converts by field access (never naming the
 /// foreign `Account` type directly) plus a base58-string round-trip for
 /// `owner` (guaranteed stable across both versions, unlike any
 /// version-specific byte-conversion API).
-fn fetch_account(client: &RpcClient, pubkey: &Pubkey) -> Result<Account, String> {
+fn fetch_account(client: &RpcClient, pubkey: &Address) -> Result<Account, String> {
     let remote = client.get_account(pubkey).map_err(|e| format!("{e:?}"))?;
     Ok(Account {
         lamports: remote.lamports,
         data: remote.data.clone(),
-        owner: Pubkey::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
+        owner: Address::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
         executable: remote.executable,
         rent_epoch: remote.rent_epoch,
     })
@@ -66,15 +66,15 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
 /// Minimal fresh classic-Token-layout token account (165 bytes) — used only
 /// for our own new `associated_user`, which doesn't need to match any real
 /// on-chain account (we're not replaying the original user, just buying
 /// with a fresh signer against the real, cloned curve state).
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -94,22 +94,22 @@ fn main() {
 
     println!("Fetching real accounts from mainnet...");
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let global_account = fetch_account(&client, &global).expect("fetch global failed");
     println!("  global: {} bytes, owner={}", global_account.data.len(), global_account.owner);
 
-    let (fee_config, _) = Pubkey::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
+    let (fee_config, _) = Address::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
     let fee_config_account = fetch_account(&client, &fee_config).expect("fetch fee_config failed");
     println!("  fee_config: {} bytes, owner={}", fee_config_account.data.len(), fee_config_account.owner);
 
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
     let bonding_curve_account = fetch_account(&client, &bonding_curve).expect("fetch bonding_curve failed");
     println!("  bonding_curve: {} bytes, owner={}", bonding_curve_account.data.len(), bonding_curve_account.owner);
 
     // Real field layout (confirmed): disc(8), virtual_token_reserves(8),
     // virtual_quote_reserves(8), real_token_reserves(8), real_quote_reserves(8),
     // token_total_supply(8), complete(1), creator(32) at [49..81).
-    let creator = Pubkey::try_from(&bonding_curve_account.data[49..81]).expect("creator pubkey");
+    let creator = Address::try_from(&bonding_curve_account.data[49..81]).expect("creator pubkey");
     let complete = bonding_curve_account.data[48] != 0;
     let real_token_reserves = u64::from_le_bytes(bonding_curve_account.data[24..32].try_into().unwrap());
     println!("  bonding_curve.creator = {creator}, complete = {complete}, real_token_reserves = {real_token_reserves}");
@@ -125,17 +125,17 @@ fn main() {
     let associated_bonding_curve_account = fetch_account(&client, &associated_bonding_curve).expect("fetch associated_bonding_curve failed");
     println!("  associated_bonding_curve: {} bytes", associated_bonding_curve_account.data.len());
 
-    let (global_volume_accumulator, _) = Pubkey::find_program_address(&[b"global_volume_accumulator"], &pump_program);
+    let (global_volume_accumulator, _) = Address::find_program_address(&[b"global_volume_accumulator"], &pump_program);
     let global_volume_accumulator_account = fetch_account(&client, &global_volume_accumulator).expect("fetch global_volume_accumulator failed");
     println!("  global_volume_accumulator: {} bytes", global_volume_accumulator_account.data.len());
 
     // Real, confirmed offset (inspect_buy_tx.rs): buyback_fee_recipients[8] starts at 8+733.
     let buyback_start = 8 + 733;
-    let buyback_fee_recipient = Pubkey::try_from(&global_account.data[buyback_start..buyback_start + 32]).expect("buyback pubkey");
+    let buyback_fee_recipient = Address::try_from(&global_account.data[buyback_start..buyback_start + 32]).expect("buyback pubkey");
     let buyback_vault_account = fetch_account(&client, &buyback_fee_recipient).expect("fetch buyback vault failed");
     println!("  buyback_fee_recipient (from real global[0]) = {buyback_fee_recipient}");
 
-    let (bonding_curve_v2, _) = Pubkey::find_program_address(&[b"bonding-curve-v2", mint.as_ref()], &pump_program);
+    let (bonding_curve_v2, _) = Address::find_program_address(&[b"bonding-curve-v2", mint.as_ref()], &pump_program);
     let bonding_curve_v2_account = fetch_account(&client, &bonding_curve_v2).unwrap_or(Account {
         lamports: 0,
         data: vec![],
@@ -145,10 +145,10 @@ fn main() {
     });
     println!("  bonding_curve_v2: {} bytes (may legitimately not exist)", bonding_curve_v2_account.data.len());
 
-    let fee_recipient = Pubkey::try_from(&global_account.data[41..73]).expect("fee_recipient pubkey");
+    let fee_recipient = Address::try_from(&global_account.data[41..73]).expect("fee_recipient pubkey");
     println!("  fee_recipient (from real global) = {fee_recipient}");
 
-    let (creator_vault, _) = Pubkey::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
+    let (creator_vault, _) = Address::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
     let creator_vault_account = fetch_account(&client, &creator_vault).unwrap_or(Account {
         lamports: 1_000_000,
         data: vec![],
@@ -215,7 +215,7 @@ fn main() {
     // that's what's actually gating this.
     let real_user_volume_accumulator = pk("8R9jsYewwYmP3r2THQXGBB9MgWBkTgrxJj2xhkAKNPF9");
     let real_uva_account = fetch_account(&client, &real_user_volume_accumulator).expect("fetch real user_volume_accumulator failed");
-    let (user_volume_accumulator, _) = Pubkey::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
+    let (user_volume_accumulator, _) = Address::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
     let mut uva_data = real_uva_account.data.clone();
     uva_data[8..40].copy_from_slice(user.pubkey().as_ref());
     svm.set_account(
@@ -224,7 +224,7 @@ fn main() {
     )
     .unwrap();
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
     let spendable_sol_in: u64 = 300_000_000; // same magnitude as the real confirmed tx
     let mut data = BUY_EXACT_SOL_IN_DISCRIMINATOR.to_vec();

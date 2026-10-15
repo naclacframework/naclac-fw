@@ -16,7 +16,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -40,14 +40,14 @@ const FEE_TIERS_LEN: usize = 1; // real on-chain state per fees-06#2, at time of
 const STABLE_FEE_TIERS_VEC_START: usize = FEE_TIERS_VEC_START + 4 + FEE_TIERS_LEN * 40; // 109
 const STABLE_FEE_TIERS_0_FEES_START: usize = STABLE_FEE_TIERS_VEC_START + 4 + 16; // 129
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn build_get_fees_ix(
-    program_id: Pubkey,
-    fee_config: Pubkey,
-    config_program_id: Pubkey,
+    program_id: Address,
+    fee_config: Address,
+    config_program_id: Address,
     is_pump_pool: bool,
     market_cap_lamports: u128,
     is_new_quote_mint: bool,

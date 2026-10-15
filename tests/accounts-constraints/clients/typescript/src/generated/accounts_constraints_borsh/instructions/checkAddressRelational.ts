@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_address_relational` instruction. */
+/** Discriminator for the `check_address_relational` instruction. */
 export const CHECK_ADDRESS_RELATIONAL_DISCRIMINATOR = new Uint8Array([171, 64, 177, 170, 149, 28, 7, 185]);
 
 /** Accounts for the `checkAddressRelational` instruction. */
@@ -12,7 +12,7 @@ export interface CheckAddressRelationalAccounts {
    * SAFETY: only the account's own address is inspected via the
    * `address` constraint below; its data is never read or deserialized.
    */
-  target?: naclac.Address | string;
+  target: naclac.Address | string;
   /**
    * SAFETY: only its own address is read, as the expected value; never
    * deserialized.

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_two_optional` instruction. */
+/** Discriminator for the `touch_two_optional` instruction. */
 export const TOUCH_TWO_OPTIONAL_DISCRIMINATOR = new Uint8Array([91, 54, 255, 176, 185, 7, 22, 197]);
 
 /** Accounts for the `touchTwoOptional` instruction. */

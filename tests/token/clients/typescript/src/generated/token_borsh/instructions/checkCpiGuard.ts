@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_cpi_guard` instruction. */
+/** Discriminator for the `check_cpi_guard` instruction. */
 export const CHECK_CPI_GUARD_DISCRIMINATOR = new Uint8Array([252, 156, 176, 45, 116, 156, 24, 123]);
 
 /** Instruction arguments for `checkCpiGuard`. */

@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `revoke_collection_plugin_authority` instruction. */
+/** Discriminator for the `revoke_collection_plugin_authority` instruction. */
 export const REVOKE_COLLECTION_PLUGIN_AUTHORITY_DISCRIMINATOR = new Uint8Array([42, 136, 103, 104, 254, 118, 92, 36]);
 
 /** Accounts for the `revokeCollectionPluginAuthority` instruction. */
 export interface RevokeCollectionPluginAuthorityAccounts {
   collection: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_metadata_pointer_update` instruction. */
+/** Discriminator for the `exercise_metadata_pointer_update` instruction. */
 export const EXERCISE_METADATA_POINTER_UPDATE_DISCRIMINATOR = new Uint8Array([143, 10, 173, 100, 86, 19, 26, 216]);
 
 /** Instruction arguments for `exerciseMetadataPointerUpdate`. */
 export interface ExerciseMetadataPointerUpdateArgs {
-  new_metadata_address: naclac.Address | string;
+  newMetadataAddress: naclac.Address | string;
 }
 
 /** Accounts for the `exerciseMetadataPointerUpdate` instruction. */
 export interface ExerciseMetadataPointerUpdateAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `burn_collection` instruction. */
+/** Discriminator for the `burn_collection` instruction. */
 export const BURN_COLLECTION_DISCRIMINATOR = new Uint8Array([229, 178, 26, 169, 246, 141, 86, 26]);
 
 /** Accounts for the `burnCollection` instruction. */
@@ -11,7 +11,7 @@ export interface BurnCollectionAccounts {
   collection: naclac.Address | string;
   payer: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

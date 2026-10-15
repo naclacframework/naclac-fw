@@ -1,0 +1,318 @@
+use {
+    agave_feature_set::{relax_post_exec_min_balance_check, FeatureSet},
+    litesvm::LiteSVM,
+    solana_account::Account,
+    solana_address::Address,
+    solana_instruction::error::InstructionError,
+    solana_keypair::Keypair,
+    solana_message::Message,
+    solana_native_token::LAMPORTS_PER_SOL,
+    solana_signer::Signer,
+    solana_system_interface::instruction::{allocate, create_account, transfer},
+    solana_transaction::Transaction,
+    solana_transaction_error::TransactionError,
+};
+
+fn svm_with_simd_0392(active: bool) -> LiteSVM {
+    let mut feature_set = FeatureSet::default();
+    if active {
+        feature_set.activate(&relax_post_exec_min_balance_check::ID, 0);
+    }
+    LiteSVM::new().with_feature_set(feature_set)
+}
+
+#[test_log::test]
+fn system_transfer() {
+    let from_keypair = Keypair::new();
+    let from = from_keypair.pubkey();
+    let to = Address::new_unique();
+
+    let mut svm = LiteSVM::new();
+    let expected_fee = 5000;
+    let original_balance = LAMPORTS_PER_SOL;
+    svm.airdrop(&from, original_balance).unwrap();
+    svm.airdrop(&to, original_balance).unwrap();
+
+    let transfer_amount = 64;
+    let instruction = transfer(&from, &to, transfer_amount);
+    let tx = Transaction::new(
+        &[&from_keypair],
+        Message::new(&[instruction], Some(&from)),
+        svm.latest_blockhash(),
+    );
+    let tx_res = svm.send_transaction(tx);
+
+    let from_account = svm.get_account(&from);
+    let to_account = svm.get_account(&to);
+
+    assert!(tx_res.is_ok());
+    assert_eq!(
+        from_account.unwrap().lamports,
+        original_balance - expected_fee - transfer_amount
+    );
+    assert_eq!(
+        to_account.unwrap().lamports,
+        original_balance + transfer_amount
+    );
+}
+
+#[test_log::test]
+fn rent_epoch_created_account_matches_svm() {
+    let from_keypair = Keypair::new();
+    let new_account = Keypair::new();
+    let from = from_keypair.pubkey();
+
+    let mut svm = LiteSVM::new();
+    let expected_fee = 5000 * 2; // two signers
+    let space = 10;
+    let rent_amount = svm.minimum_balance_for_rent_exemption(space);
+    let lamports = rent_amount + expected_fee;
+    svm.airdrop(&from, lamports).unwrap();
+
+    let instruction = create_account(
+        &from,
+        &new_account.pubkey(),
+        rent_amount,
+        space as u64,
+        &solana_sdk_ids::system_program::id(),
+    );
+    let tx = Transaction::new(
+        &[&from_keypair, &new_account],
+        Message::new(&[instruction], Some(&from)),
+        svm.latest_blockhash(),
+    );
+    svm.send_transaction(tx).unwrap();
+
+    let account = svm.get_account(&new_account.pubkey()).unwrap();
+
+    assert_eq!(account.lamports, rent_amount);
+    assert_eq!(account.data.len(), space);
+    assert_eq!(account.owner, solana_sdk_ids::system_program::id());
+    assert_eq!(account.rent_epoch, u64::MAX);
+}
+
+#[test_log::test]
+fn rent_epoch_existing_writable_rent_exempt_account_matches_svm() {
+    let payer = Keypair::new();
+    let recipient = Address::new_unique();
+    let mut svm = LiteSVM::new();
+    svm.airdrop(&payer.pubkey(), LAMPORTS_PER_SOL).unwrap();
+    svm.set_account(
+        recipient,
+        Account {
+            lamports: svm.minimum_balance_for_rent_exemption(0),
+            owner: solana_sdk_ids::system_program::id(),
+            rent_epoch: 7,
+            ..Account::default()
+        },
+    )
+    .unwrap();
+
+    let tx = Transaction::new(
+        &[&payer],
+        Message::new(
+            &[transfer(&payer.pubkey(), &recipient, 1)],
+            Some(&payer.pubkey()),
+        ),
+        svm.latest_blockhash(),
+    );
+    svm.send_transaction(tx).unwrap();
+
+    assert_eq!(svm.get_account(&recipient).unwrap().rent_epoch, u64::MAX);
+}
+
+#[test_log::test]
+fn system_allocate_account() {
+    let from_keypair = Keypair::new();
+    let new_account_keypair = Keypair::new();
+    let from = from_keypair.pubkey();
+    let new_account = new_account_keypair.pubkey();
+
+    let mut svm = LiteSVM::new();
+    svm.airdrop(&from, 10 * LAMPORTS_PER_SOL).unwrap();
+
+    let instruction = allocate(&new_account, 10);
+
+    let tx = Transaction::new(
+        &[&from_keypair, &new_account_keypair],
+        Message::new(&[instruction], Some(&from)),
+        svm.latest_blockhash(),
+    );
+    svm.send_transaction(tx).unwrap();
+
+    assert!(svm.get_account(&new_account).is_none());
+}
+
+#[test_log::test]
+fn test_rent_check_does_not_override_program_error() {
+    let from_keypair = Keypair::new();
+    let from = from_keypair.pubkey();
+    let new_account = Keypair::new();
+    let owner = Address::new_unique();
+
+    let mut svm = LiteSVM::new();
+    svm.airdrop(&from, 10 * LAMPORTS_PER_SOL).unwrap();
+
+    // The first instruction creates an underfunded (rent-paying) data account,
+    // which on its own would trip the post-execution rent check.
+    let ix1 = create_account(&from, &new_account.pubkey(), 1, 10, &owner);
+    // The second instruction creates the same account again and fails with
+    // `SystemError::AccountAlreadyInUse`, unrelated to rent.
+    let ix2 = create_account(&from, &new_account.pubkey(), 1, 10, &owner);
+
+    let tx = Transaction::new(
+        &[&from_keypair, &new_account],
+        Message::new(&[ix1, ix2], Some(&from)),
+        svm.latest_blockhash(),
+    );
+    let tx_res = svm.send_transaction(tx);
+
+    // The failed transaction must surface its original instruction error, not
+    // `TransactionError::InsufficientFundsForRent` from the rent check on
+    // account state that is discarded anyway.
+    assert_eq!(
+        tx_res.unwrap_err().err,
+        TransactionError::InstructionError(1, InstructionError::Custom(0))
+    );
+}
+
+#[test_log::test]
+fn test_rent_check_still_fails_successful_transaction() {
+    for simd_0392_active in [false, true] {
+        let from_keypair = Keypair::new();
+        let from = from_keypair.pubkey();
+        let new_account = Keypair::new();
+        let owner = Address::new_unique();
+
+        let mut svm = svm_with_simd_0392(simd_0392_active);
+        svm.airdrop(&from, 10 * LAMPORTS_PER_SOL).unwrap();
+
+        // A newly created account must satisfy the current rent-exempt minimum,
+        // even after the SIMD-0392 relaxation is activated.
+        let instruction = create_account(&from, &new_account.pubkey(), 1, 10, &owner);
+        let tx = Transaction::new(
+            &[&from_keypair, &new_account],
+            Message::new(&[instruction], Some(&from)),
+            svm.latest_blockhash(),
+        );
+        let tx_res = svm.send_transaction(tx);
+
+        assert_eq!(
+            tx_res.unwrap_err().err,
+            TransactionError::InsufficientFundsForRent { account_index: 1 }
+        );
+    }
+}
+
+#[test_log::test]
+fn simd_0392_allows_topping_up_grandfathered_accounts() {
+    for simd_0392_active in [false, true] {
+        let payer = Keypair::new();
+        let recipient = Address::new_unique();
+        let mut svm = svm_with_simd_0392(simd_0392_active);
+        svm.airdrop(&payer.pubkey(), 10 * LAMPORTS_PER_SOL).unwrap();
+
+        let data_size = 64;
+        let initial_balance = svm.minimum_balance_for_rent_exemption(data_size) / 2;
+        svm.set_account(
+            recipient,
+            Account {
+                lamports: initial_balance,
+                data: vec![0; data_size],
+                owner: solana_sdk_ids::system_program::id(),
+                rent_epoch: u64::MAX,
+                executable: false,
+            },
+        )
+        .unwrap();
+
+        let tx = Transaction::new(
+            &[&payer],
+            Message::new(
+                &[transfer(&payer.pubkey(), &recipient, 1)],
+                Some(&payer.pubkey()),
+            ),
+            svm.latest_blockhash(),
+        );
+        let result = svm.send_transaction(tx);
+
+        if simd_0392_active {
+            result.unwrap();
+            assert_eq!(svm.get_balance(&recipient), Some(initial_balance + 1));
+        } else {
+            assert_eq!(
+                result.unwrap_err().err,
+                TransactionError::InsufficientFundsForRent { account_index: 1 }
+            );
+            assert_eq!(svm.get_balance(&recipient), Some(initial_balance));
+        }
+    }
+}
+
+#[test_log::test]
+fn simd_0392_applies_to_fee_payer_debits() {
+    for simd_0392_active in [false, true] {
+        let payer = Keypair::new();
+        let mut svm = svm_with_simd_0392(simd_0392_active);
+        let starting_balance = svm.minimum_balance_for_rent_exemption(0) - 1;
+        svm.set_account(
+            payer.pubkey(),
+            Account {
+                lamports: starting_balance,
+                owner: solana_sdk_ids::system_program::id(),
+                rent_epoch: u64::MAX,
+                ..Account::default()
+            },
+        )
+        .unwrap();
+
+        let tx = Transaction::new(
+            &[&payer],
+            Message::new(&[], Some(&payer.pubkey())),
+            svm.latest_blockhash(),
+        );
+        let result = svm.send_transaction(tx);
+
+        if simd_0392_active {
+            assert_eq!(
+                result.unwrap_err().err,
+                TransactionError::InsufficientFundsForRent { account_index: 0 }
+            );
+        } else {
+            result.unwrap();
+            assert_eq!(
+                svm.get_balance(&payer.pubkey()),
+                Some(starting_balance - 5000)
+            );
+        }
+    }
+}
+
+#[test_log::test]
+fn test_airdrop_pubkey() {
+    let funding_amount = 10 * LAMPORTS_PER_SOL;
+    let mut svm = LiteSVM::new().with_lamports(funding_amount);
+
+    let airdrop_pubkey = svm.airdrop_pubkey();
+
+    let initial_balance = svm.get_balance(&airdrop_pubkey).unwrap();
+    assert_eq!(initial_balance, funding_amount);
+
+    let recipient = Address::new_unique();
+    let airdrop_amount = LAMPORTS_PER_SOL;
+    svm.airdrop(&recipient, airdrop_amount).unwrap();
+
+    let after_airdrop = svm.get_balance(&airdrop_pubkey).unwrap();
+    assert!(after_airdrop < initial_balance);
+    assert_eq!(
+        after_airdrop,
+        initial_balance - airdrop_amount - 5000 // transaction fee
+    );
+
+    assert_eq!(svm.get_balance(&recipient).unwrap(), airdrop_amount);
+    assert_eq!(svm.airdrop_pubkey(), airdrop_pubkey);
+
+    let recipient2 = Address::new_unique();
+    svm.airdrop(&recipient2, airdrop_amount).unwrap();
+    assert_eq!(svm.get_balance(&recipient2).unwrap(), airdrop_amount);
+}

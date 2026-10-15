@@ -5,7 +5,7 @@ description = "Regression test: event emission round-trips correctly in all thre
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []
@@ -13,6 +13,7 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
+idl-build = ["naclac-lang/idl-build"]
 
 [dependencies]
 naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }

@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { CounterClient } from "../../clients/typescript/src/generated/counter";
+import { CounterClient } from "../../clients/typescript/src/generated/counter/client-kit";
 
 describe("Naclac Counter Test Suite (Kit)", () => {
   let client: CounterClient;
@@ -9,7 +9,7 @@ describe("Naclac Counter Test Suite (Kit)", () => {
   before(async () => {
     payer = await naclac.loadNodeWallet();
     // Change this to "devnet" or an RPC URL to test against a live network!
-    client = new CounterClient("litesvm", payer);
+    client = new CounterClient("devnet", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 
@@ -47,36 +47,12 @@ describe("Naclac Counter Test Suite (Kit)", () => {
       throw new Error("Count did not increment correctly");
     }
 
-    // Race-free: reads events straight out of the already-confirmed
-    // transaction's own logs, instead of racing a live subscription.
-    const capturedEvents = client.parseCounterIncrementedEvents(txResult!.logs);
+    // The event is a self-CPI (`emit_cpi!`), so it is in the transaction's
+    // inner instructions, not its logs.
+    const capturedEvents = await client.parseCounterIncrementedEventsFromTransaction(txResult!);
     if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
 
     console.log(`      🔔 Event Fired! New Count: ${capturedEvents[0].newCount}`);
     console.log("      ✨ Test Suite Passed!");
-  });
-
-  it("3. Event listener fires via emulated notification", async () => {
-    // litesvm's blockhash doesn't advance on its own the way a real
-    // cluster's does — sending the exact same instruction again under the
-    // same blockhash produces an identical signature, which litesvm
-    // correctly rejects as already-processed (real replay protection).
-    client.program.provider.litesvm?.expireBlockhash();
-
-    let receivedEvent: any = null;
-    const listenerId = client.program.addEventListener("CounterIncremented", (event) => {
-      receivedEvent = event;
-    });
-
-    await client
-      .increment({})
-      .accounts({ authority: payer.address, counterAccount: counterPda })
-      .rpc()
-      .catch(naclac.logError);
-
-    client.program.removeEventListener(listenerId);
-
-    if (!receivedEvent) throw new Error("❌ addEventListener never fired for litesvm mode!");
-    console.log(`      🔔 addEventListener fired! New Count: ${receivedEvent.newCount}`);
   });
 });

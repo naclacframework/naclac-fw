@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { Vault } from "../../types";
 
-/** 8-byte on-chain discriminator for `Vault` accounts. */
+/** On-chain discriminator for `Vault` accounts. */
 export const VAULT_DISCRIMINATOR = new Uint8Array([211, 8, 232, 43, 2, 152, 117, 119]);
 
 /** Fetches a `Vault` account. Throws if it does not exist. */

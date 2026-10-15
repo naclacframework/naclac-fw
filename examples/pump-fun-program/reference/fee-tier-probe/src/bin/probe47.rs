@@ -16,7 +16,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -34,8 +34,8 @@ const INIT_BOOST_DISCRIMINATOR: [u8; 8] = [140, 233, 33, 94, 132, 90, 194, 143];
 const TOGGLE_BOOST_DISCRIMINATOR: [u8; 8] = [117, 161, 160, 74, 223, 137, 118, 99];
 const SET_BOOST_AUTHORITY_DISCRIMINATOR: [u8; 8] = [227, 149, 76, 42, 130, 39, 234, 205];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -44,8 +44,8 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
 fn mint_account_data(decimals: u8) -> Vec<u8> {
@@ -55,7 +55,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -67,13 +67,13 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
 fn pool_account_data(
     pool_bump: u8,
     index: u16,
-    creator: &Pubkey,
-    base_mint: &Pubkey,
-    quote_mint: &Pubkey,
-    lp_mint: &Pubkey,
-    pool_base_token_account: &Pubkey,
-    pool_quote_token_account: &Pubkey,
-    coin_creator: &Pubkey,
+    creator: &Address,
+    base_mint: &Address,
+    quote_mint: &Address,
+    lp_mint: &Address,
+    pool_base_token_account: &Address,
+    pool_quote_token_account: &Address,
+    coin_creator: &Address,
     lp_supply: u64,
     is_mayhem_mode: bool,
     is_cashback_coin: bool,
@@ -98,18 +98,18 @@ fn pool_account_data(
     data
 }
 
-fn fetch_account(client: &RpcClient, pubkey: &Pubkey) -> Result<Account, String> {
+fn fetch_account(client: &RpcClient, pubkey: &Address) -> Result<Account, String> {
     let remote = client.get_account(pubkey).map_err(|e| format!("{e:?}"))?;
     Ok(Account {
         lamports: remote.lamports,
         data: remote.data.clone(),
-        owner: Pubkey::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
+        owner: Address::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
         executable: remote.executable,
         rent_epoch: remote.rent_epoch,
     })
 }
 
-fn token_balance(svm: &LiteSVM, addr: &Pubkey) -> Option<u64> {
+fn token_balance(svm: &LiteSVM, addr: &Address) -> Option<u64> {
     svm.get_account(addr).map(|acc| u64::from_le_bytes(acc.data[64..72].try_into().unwrap()))
 }
 
@@ -135,9 +135,9 @@ fn main() {
     svm.add_program_from_file(pump_amm_program, &so_path).unwrap_or_else(|e| panic!("load pump_amm.so: {e:?}"));
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
-    let (amm_global_config, _) = Pubkey::find_program_address(&[b"global_config"], &pump_amm_program);
+    let (amm_global_config, _) = Address::find_program_address(&[b"global_config"], &pump_amm_program);
     let mut amm_global_config_account = fetch_account(&client, &amm_global_config).expect("fetch amm global_config failed");
-    let real_admin = Pubkey::try_from(&amm_global_config_account.data[8..40]).unwrap();
+    let real_admin = Address::try_from(&amm_global_config_account.data[8..40]).unwrap();
     println!("real amm_global_config.admin = {real_admin}");
 
     // Patch admin (offset 8..40) and boost_authority (offset 907..939) to
@@ -150,22 +150,22 @@ fn main() {
     let quote_mint_account = fetch_account(&client, &quote_mint).expect("fetch USDC mint failed");
     svm.set_account(quote_mint, quote_mint_account).unwrap();
 
-    let base_mint = Pubkey::new_unique();
+    let base_mint = Address::new_unique();
     svm.set_account(base_mint, Account { lamports: 10_000_000, data: mint_account_data(6), owner: base_token_program, executable: false, rent_epoch: 0 }).unwrap();
-    let pool_creator_field = Pubkey::new_unique(); // Pool's own stored `creator` field
+    let pool_creator_field = Address::new_unique(); // Pool's own stored `creator` field
     // index deliberately 0 this time (previous run used 7, no effect
     // observed there, but every real migrate_v2-created pool is always at
     // index 0 -- testing whether boost only applies to the canonical
     // migration pool).
     let pool_index: u16 = 0;
-    let (pool, pool_bump) = Pubkey::find_program_address(
+    let (pool, pool_bump) = Address::find_program_address(
         &[b"pool", &pool_index.to_le_bytes(), pool_creator_field.as_ref(), base_mint.as_ref(), quote_mint.as_ref()],
         &pump_amm_program,
     );
-    let lp_mint = Pubkey::new_unique();
+    let lp_mint = Address::new_unique();
     let pool_base_token_account = ata_address(&pool, &base_mint, &base_token_program);
     let pool_quote_token_account = ata_address(&pool, &quote_mint, &quote_token_program);
-    let coin_creator = Pubkey::new_unique();
+    let coin_creator = Address::new_unique();
 
     let real_quote_split_amount = 3_460_000_000u64; // mirrors probe45/46's real observed boost allocation
 
@@ -200,12 +200,12 @@ fn main() {
         Account { lamports: 2_039_280, data: token_account_data(&quote_mint, &pool, real_quote_split_amount * 5), owner: quote_token_program, executable: false, rent_epoch: 0 },
     ).unwrap();
 
-    let (boost_vault_authority, _) = Pubkey::find_program_address(&[b"boost_vault", pool.as_ref()], &pump_amm_program);
+    let (boost_vault_authority, _) = Address::find_program_address(&[b"boost_vault", pool.as_ref()], &pump_amm_program);
     let boost_vault = ata_address(&boost_vault_authority, &quote_mint, &quote_token_program);
     // boost_vault deliberately left NOT pre-created this time -- letting
     // init_boost create it itself, per the hypothesis above.
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_amm_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_amm_program);
 
     // "creator" signer deliberately does NOT match pool_creator_field (the
     // Pool account's own stored `creator` field) -- testing whether the real
@@ -241,7 +241,7 @@ fn main() {
     println!("boost_vault before = {:?} (expect None -- not yet created)", token_balance(&svm, &boost_vault));
     let blockhash = svm.latest_blockhash();
     let msg = Message::new(&[set_compute_unit_limit_ix(400_000), init_boost_ix], Some(&creator_signer.pubkey()));
-    let account_keys: Vec<Pubkey> = msg.account_keys.clone();
+    let account_keys: Vec<Address> = msg.account_keys.clone();
     let tx = Transaction::new(&[&creator_signer], msg, blockhash);
     match svm.send_transaction(tx) {
         Ok(meta) => {
@@ -312,7 +312,7 @@ fn main() {
 
     // ---- Test 3: set_boost_authority ----
     println!("\n=== Test 3: set_boost_authority ===");
-    let new_boost_authority = Pubkey::new_unique();
+    let new_boost_authority = Address::new_unique();
     let set_ba_ix = Instruction {
         program_id: pump_amm_program,
         accounts: vec![
@@ -332,7 +332,7 @@ fn main() {
         Ok(meta) => {
             println!("RESULT: SUCCESS, {} CU", meta.compute_units_consumed);
             if let Some(acc) = svm.get_account(&amm_global_config) {
-                let ba = Pubkey::try_from(&acc.data[907..939]).unwrap();
+                let ba = Address::try_from(&acc.data[907..939]).unwrap();
                 println!("global_config.boost_authority after = {ba} (expected {new_boost_authority})");
             }
         }

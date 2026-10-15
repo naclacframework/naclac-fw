@@ -1,0 +1,156 @@
+---
+title: "On-Chain Account Data Structures with the #[component] Macro"
+sidebarTitle: "Components"
+description: "Use the #[component] macro to define Solana account data structures with automatic discriminator injection and zero-copy layout support."
+---
+
+Components are the on-chain data structures your program stores in Solana accounts. The `#[component]` macro injects an 8-byte discriminator prefix, derives the correct serialization traits for your chosen execution mode, and calculates the total account space automatically — you never write a manual `SPACE` constant.
+
+## Standard Component
+
+Define a component by placing `#[component]` on a plain Rust struct:
+
+```rust
+use naclac_lang::prelude::*;
+
+#[component]
+pub struct Counter {
+    pub count: u64,
+    pub authority: Pubkey,
+    pub bump: u8,
+}
+```
+
+In standard mode, `#[component]` does the following:
+
+- Prepends an 8-byte discriminator to the on-chain layout (derived from `SHA256("account:<TypeName>")`).
+- Derives `BorshSerialize` and `BorshDeserialize` for reading and writing the struct.
+- Generates a `Counter::SPACE` constant equal to `8 + core::mem::size_of::<Counter>()`.
+
+When your instruction uses `Account<'info, Counter>`, Naclac deserializes the account data into a `Counter` value on the heap via Borsh. Changes are serialized back on `teardown`.
+
+## Zero-Copy Component
+
+For maximum throughput, switch to zero-copy mode:
+
+```rust
+#[component(zero_copy)]
+pub struct Counter {
+    pub count: u64,
+    pub authority: Pubkey,
+    pub bump: u8,
+}
+```
+
+`#[component(zero_copy)]` applies `#[repr(C)]` to the struct and derives `bytemuck::Pod` and `bytemuck::Zeroable`. Instead of deserializing account data into an owned value, Naclac casts a raw pointer directly over the account data slice. Reads and writes go straight to the account buffer — no copy, no allocation.
+
+Use `AccountLoader<'info, Counter>` in your accounts struct to access a zero-copy component:
+
+```rust
+pub counter_account: AccountLoader<'info, Counter>,
+```
+
+The loader calls `core::ptr::read_unaligned` to project the `Counter` type over the raw bytes. Mutations are written back immediately because the reference points into the live account data.
+
+## Supported Field Types
+
+Keep component fields to types that are safe to represent in a packed C layout. The following types are always supported in both modes:
+
+**Primitive and fixed-size types:**
+- Unsigned integers: `u8`, `u16`, `u32`, `u64`, `u128`
+- Signed integers: `i8`, `i16`, `i32`, `i64`
+- `bool` *(standard mode only — use `Bool` in zero-copy)*
+- `Pubkey` (32 bytes)
+- Fixed-size arrays: `[u8; N]`, `[u64; N]`, etc.
+
+**Zero-copy-specific helper types** (defined in `naclac_lang::prelude`):
+- `Bool` — a `#[repr(transparent)]` wrapper around `u8`, deriving `Pod` + `Zeroable`
+- `Opt<T>` — a `#[repr(C)]` optional wrapper around any `Pod` type, with an 8-byte aligned layout
+
+Avoid `Vec<T>`, `String`, `Box<T>`, and any type that contains a heap pointer in zero-copy components. The Pinocchio backend enforces this at compile time and emits an error if you use heap types in account storage.
+
+## Using `Bool` and `Opt` in Zero-Copy Mode
+
+Use `Bool` instead of `bool` and `Opt<T>` instead of `Option<T>` in any `#[component(zero_copy)]` struct:
+
+```rust
+use naclac_lang::prelude::*;
+
+#[component(zero_copy)]
+pub struct UserProfile {
+    pub owner: Pubkey,
+    pub balance: u64,
+    pub is_active: Bool,       // zero-copy safe boolean
+    pub referrer: Opt<Pubkey>, // zero-copy optional
+}
+```
+
+`Bool` wraps a `u8` (0 = false, non-zero = true) and converts bidirectionally with `bool` via `From`:
+
+```rust
+let active: bool = profile.is_active.into(); // Bool → bool
+profile.is_active = true.into();             // bool → Bool
+```
+
+`Opt<T>` stores the inner value plus a `has_value: u8` discriminant, padded to 8-byte alignment. Convert from a standard `Option<T>` using `From`:
+
+```rust
+profile.referrer = Some(referrer_key).into();  // Some(Pubkey) → Opt<Pubkey>
+profile.referrer = None::<Pubkey>.into();      // None         → Opt<Pubkey>
+```
+
+The `Opt` layout is:
+```
+[value: size_of<T> bytes][has_value: 1 byte][padding: 7 bytes]
+```
+
+## The `SPACE` Constant
+
+Every `#[component]` struct gets a `SPACE` associated constant you use directly in `init` constraints:
+
+```rust
+#[account(
+    init,
+    payer = payer,
+    space = Counter::SPACE,
+    seeds = [SEED_COUNTER],
+    bump
+)]
+pub counter_account: AccountLoader<'info, Counter>,
+```
+
+`Counter::SPACE` equals `8 + core::mem::size_of::<Counter>()` — the 8-byte discriminator plus the raw struct size. The discriminator occupies the first 8 bytes of every Naclac account, so account ownership can be verified without deserializing the full payload.
+
+Never allocate less than `T::SPACE` bytes for a component account. If you need to add fields to an existing component after deployment, use the `realloc` constraint to grow the account in an upgrade instruction.
+
+## Organizing Components
+
+Place each component in its own file under `src/components/`, then re-export everything from `src/components/mod.rs`:
+
+```
+src/
+  components/
+    mod.rs       ← pub mod counter; pub use counter::*;
+    counter.rs   ← #[component] pub struct Counter { ... }
+    user.rs      ← #[component] pub struct UserProfile { ... }
+```
+
+`mod.rs` pattern:
+
+```rust
+pub mod counter;
+pub mod user;
+
+pub use counter::*;
+pub use user::*;
+```
+
+Import components in instruction files with:
+
+```rust
+use crate::components::counter::Counter;
+```
+
+<Tip>
+In zero-copy mode, all fields in a `#[component(zero_copy)]` struct must implement `bytemuck::Pod` and `bytemuck::Zeroable`. Avoid `Vec`, `String`, and any other heap-allocated type — they contain raw pointers that are not valid Pod values and will corrupt account data. For dynamic-length instruction arguments (not stored state), use `ZcVec<T>` (a.k.a. `Span<T>`) or `ZcString` — these borrow from the instruction data buffer and are never written to account storage.
+</Tip>

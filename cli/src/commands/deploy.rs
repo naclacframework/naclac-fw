@@ -85,10 +85,7 @@ pub fn execute(program_id: Option<&str>) {
         println!("Deploying program \"{}\"...", program_name);
         println!("Program path: {}\n", so_file.display());
 
-        // Execute the native Solana deploy command with the exact URL and Wallet.
-        // NOTE: If this fails midway, running it again will automatically RESUME
-        // because the Solana CLI detects the existing buffer account for this keypair!
-        let mut child = Command::new("solana")
+        let output = Command::new("solana")
             .arg("program")
             .arg("deploy")
             .arg(&so_file)
@@ -96,16 +93,33 @@ pub fn execute(program_id: Option<&str>) {
             .arg(cluster_url)
             .arg("--keypair")
             .arg(&expanded_wallet)
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit())
-            .spawn()
+            .output()
             .expect("Failed to execute solana program deploy");
 
-        let status = child.wait().expect("Failed to wait on deployment");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
 
-        if status.success() {
+        if output.status.success() {
+            for line in stdout.lines() {
+                let trimmed = line.trim();
+                if !is_ephemeral_recovery_line(trimmed) && !trimmed.is_empty() {
+                    println!("{}", trimmed);
+                }
+            }
+            for line in stderr.lines() {
+                let trimmed = line.trim();
+                if !is_ephemeral_recovery_line(trimmed) && !trimmed.is_empty() {
+                    eprintln!("{}", trimmed);
+                }
+            }
             println!("\n✅ Successfully deployed '{}'!", program_name);
         } else {
+            if !stdout.is_empty() {
+                print!("{}", stdout);
+            }
+            if !stderr.is_empty() {
+                eprint!("{}", stderr);
+            }
             eprintln!(
                 "\n❌ Failed to deploy '{}'. Run `naclac deploy` again to resume the deployment.",
                 program_name
@@ -113,4 +127,31 @@ pub fn execute(program_id: Option<&str>) {
             std::process::exit(1);
         }
     }
+}
+
+fn is_ephemeral_recovery_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.starts_with("====") {
+        return true;
+    }
+    if trimmed.contains("Recover the intermediate account")
+        || trimmed.contains("solana-keygen recover")
+        || trimmed.contains("following 12-word seed phrase")
+        || trimmed.contains("To resume a deploy")
+        || trimmed.contains("[BUFFER_SIGNER]")
+        || trimmed.contains("solana program write-buffer")
+        || trimmed.contains("Or to recover the account's lamports")
+        || trimmed.contains("solana program close")
+    {
+        return true;
+    }
+    let words: Vec<&str> = trimmed.split_whitespace().collect();
+    if (words.len() == 12 || words.len() == 24)
+        && words
+            .iter()
+            .all(|w| w.chars().all(|c| c.is_ascii_lowercase()))
+    {
+        return true;
+    }
+    false
 }

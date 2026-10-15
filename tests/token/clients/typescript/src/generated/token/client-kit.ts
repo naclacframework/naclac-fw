@@ -30,7 +30,7 @@ export class TokenClient {
   }
 
   constructor(
-    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet",
+    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet" | "litesvm",
     payer?: naclac.KeyPairSigner
   ) {
     let provider: naclac.NaclacProvider;
@@ -40,7 +40,7 @@ export class TokenClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider);
+    this.program = new naclac.Program(IDL, provider, true, []);
   }
 
   /**
@@ -699,7 +699,7 @@ export class TokenClient {
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([109, 101, 109, 98, 101, 114, 95, 109, 105, 110, 116]),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.args.member_seed))
+        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.args.memberSeed))
       ]
     });
   }

@@ -19,7 +19,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -39,12 +39,12 @@ const DEBOUNCER_V1_SEED: &[u8] = b"debouncer_v1";
 const MINT_WHITELIST_V1_SEED: &[u8] = b"mint_whitelist_v1";
 const MINT_WHITELIST_V1_DISCRIMINATOR: [u8; 8] = [73, 115, 177, 235, 234, 1, 95, 67];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(
         &[owner.as_ref(), token_program.as_ref(), mint.as_ref()],
         &pk(ASSOCIATED_TOKEN_PROGRAM_ID),
     )
@@ -60,7 +60,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -69,7 +69,7 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
     data
 }
 
-fn mint_whitelist_v1_account_data(bump: u8, mints: &[Pubkey]) -> Vec<u8> {
+fn mint_whitelist_v1_account_data(bump: u8, mints: &[Address]) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&MINT_WHITELIST_V1_DISCRIMINATOR);
     data.push(bump);
@@ -87,7 +87,7 @@ fn mint_whitelist_v1_account_data(bump: u8, mints: &[Pubkey]) -> Vec<u8> {
 /// `Err((custom_code, logs))` on failure.
 fn run_scenario(
     scenario_name: &str,
-    mint: Pubkey,
+    mint: Address,
     decimals: u8,
     message: &str,
 ) -> Result<(), (Option<u32>, Vec<String>)> {
@@ -115,7 +115,7 @@ fn run_scenario(
 
     // Empty whitelist — the point is to prove the mint passes on its own merit, not via bypass.
     let (mint_whitelist, mint_whitelist_bump) =
-        Pubkey::find_program_address(&[MINT_WHITELIST_V1_SEED], &program_id);
+        Address::find_program_address(&[MINT_WHITELIST_V1_SEED], &program_id);
     svm.set_account(
         mint_whitelist,
         Account {
@@ -147,19 +147,19 @@ fn run_scenario(
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
 
-    let config_id = Pubkey::new_unique();
-    let credited_to = Pubkey::new_unique();
+    let config_id = Address::new_unique();
+    let credited_to = Address::new_unique();
 
-    let (epoch_tracker, _) = Pubkey::find_program_address(
+    let (epoch_tracker, _) = Address::find_program_address(
         &[EPOCH_TRACKER_V1_SEED, config_id.as_ref(), mint.as_ref()],
         &program_id,
     );
-    let (debouncer, _) = Pubkey::find_program_address(
+    let (debouncer, _) = Address::find_program_address(
         &[DEBOUNCER_V1_SEED, config_id.as_ref(), mint.as_ref()],
         &program_id,
     );
     let debouncer_token_account = ata_address(&debouncer, &mint, &token_program);
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &program_id).0;
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &program_id).0;
 
     let mut data = DONATE_PUBKEY_CONFIG_ID_WITH_PAYER_V1_DISCRIMINATOR.to_vec();
     data.extend_from_slice(&DONATION_AMOUNT.to_le_bytes());
@@ -223,21 +223,21 @@ fn main() {
 
     // Also check a WSOL-*shaped* but different-address mint, to isolate
     // "any no-authority mint passes" from "WSOL specifically is hardcoded".
-    let shaped_mint = Pubkey::new_unique();
+    let shaped_mint = Address::new_unique();
     let shaped_result = run_scenario("WSOL-shaped but different address, empty whitelist", shaped_mint, 9, "shape-test");
 
     // --- Question 2: is there a real on-chain message length limit? ---
     let short_msg = "a".repeat(32);
-    let short_result = run_scenario("short message (32 chars)", Pubkey::new_unique(), 9, &short_msg);
+    let short_result = run_scenario("short message (32 chars)", Address::new_unique(), 9, &short_msg);
 
     let medium_msg = "a".repeat(128);
-    let medium_result = run_scenario("medium message (128 chars)", Pubkey::new_unique(), 9, &medium_msg);
+    let medium_result = run_scenario("medium message (128 chars)", Address::new_unique(), 9, &medium_msg);
 
     let long_msg = "a".repeat(256);
-    let long_result = run_scenario("long message (256 chars)", Pubkey::new_unique(), 9, &long_msg);
+    let long_result = run_scenario("long message (256 chars)", Address::new_unique(), 9, &long_msg);
 
     let very_long_msg = "a".repeat(600);
-    let very_long_result = run_scenario("very long message (600 chars)", Pubkey::new_unique(), 9, &very_long_msg);
+    let very_long_result = run_scenario("very long message (600 chars)", Address::new_unique(), 9, &very_long_msg);
 
     println!("\n=== CONCLUSIONS ===");
     println!(

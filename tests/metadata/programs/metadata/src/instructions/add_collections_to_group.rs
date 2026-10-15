@@ -35,14 +35,6 @@ pub fn add_collections_to_group(ctx: Context<AddCollectionsToGroup>) -> Result {
 }
 
 /// See `add_assets_to_group.rs`'s `to_item` doc comment.
-#[cfg(not(feature = "pinocchio"))]
-fn to_item(info: &AccountInfo) -> CpiHandleMut<'_> {
-    CpiHandleMut {
-        info: info.clone(),
-        _phantom: core::marker::PhantomData,
-    }
-}
-#[cfg(feature = "pinocchio")]
 fn to_item(info: &AccountInfo) -> CpiHandleMut<'_> {
     CpiHandleMut {
         info: *info,

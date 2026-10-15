@@ -30,7 +30,7 @@ export class EventsClient {
   }
 
   constructor(
-    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet",
+    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet" | "litesvm",
     payer?: naclac.KeyPairSigner
   ) {
     let provider: naclac.NaclacProvider;
@@ -40,7 +40,7 @@ export class EventsClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider);
+    this.program = new naclac.Program(IDL, provider, true, ["NestedPadded","SizedPayload"]);
   }
 
   /**
@@ -227,6 +227,62 @@ export class EventsClient {
     return instructions.emitViaSelfCpiSignedBaseline(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `eventCpiSmoke` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public eventCpiSmoke(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiSmokeAccounts>) {
+    return instructions.eventCpiSmoke(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiEmit` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public eventCpiEmit(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiEmitAccounts>) {
+    return instructions.eventCpiEmit(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `emitViaSelfCpiNoProgram` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public emitViaSelfCpiNoProgram(args?: Record<string, never>, accounts?: Partial<instructions.EmitViaSelfCpiNoProgramAccounts>) {
+    return instructions.emitViaSelfCpiNoProgram(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiEmitNested` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public eventCpiEmitNested(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiEmitNestedAccounts>) {
+    return instructions.eventCpiEmitNested(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiNoop` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public eventCpiNoop(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiNoopAccounts>) {
+    return instructions.eventCpiNoop(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiLogOne` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public eventCpiLogOne(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiLogOneAccounts>) {
+    return instructions.eventCpiLogOne(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiEmitOne` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public eventCpiEmitOne(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiEmitOneAccounts>) {
+    return instructions.eventCpiEmitOne(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `counter` account. */
   public async getCounterPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
@@ -284,34 +340,9 @@ export class EventsClient {
     return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs);
   }
 
-  /** Subscribes to `SizedPayload` events. Returns a listener ID. */
-  public onSizedPayload(callback: (event: types.SizedPayload, slot: number, signature: string) => void) {
-    return types.addSizedPayloadListener(this.program, callback);
-  }
-
-  /** Awaits the next `SizedPayload` event. Resolves `null` on timeout. */
-  public waitForSizedPayload(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.SizedPayload>("SizedPayload", options);
-  }
-
-  /** Decodes every `SizedPayload` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSizedPayload` — prefer this when you already know which transaction you're checking. */
-  public parseSizedPayloadEvents(logs: readonly string[]) {
-    return this.program.parseEvents<types.SizedPayload>("SizedPayload", logs);
-  }
-
-  /** Subscribes to `FixedPayload8` events. Returns a listener ID. */
-  public onFixedPayload8(callback: (event: types.FixedPayload8, slot: number, signature: string) => void) {
-    return types.addFixedPayload8Listener(this.program, callback);
-  }
-
-  /** Awaits the next `FixedPayload8` event. Resolves `null` on timeout. */
-  public waitForFixedPayload8(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.FixedPayload8>("FixedPayload8", options);
-  }
-
-  /** Decodes every `FixedPayload8` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload8` — prefer this when you already know which transaction you're checking. */
-  public parseFixedPayload8Events(logs: readonly string[]) {
-    return this.program.parseEvents<types.FixedPayload8>("FixedPayload8", logs);
+  /** Like `parseCounterIncrementedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseCounterIncrementedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.CounterIncremented[]> {
+    return this.program.parseEventsFromTransaction<types.CounterIncremented>("CounterIncremented", tx);
   }
 
   /** Subscribes to `FixedPayload128` events. Returns a listener ID. */
@@ -329,19 +360,9 @@ export class EventsClient {
     return this.program.parseEvents<types.FixedPayload128>("FixedPayload128", logs);
   }
 
-  /** Subscribes to `FixedPayload512` events. Returns a listener ID. */
-  public onFixedPayload512(callback: (event: types.FixedPayload512, slot: number, signature: string) => void) {
-    return types.addFixedPayload512Listener(this.program, callback);
-  }
-
-  /** Awaits the next `FixedPayload512` event. Resolves `null` on timeout. */
-  public waitForFixedPayload512(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.FixedPayload512>("FixedPayload512", options);
-  }
-
-  /** Decodes every `FixedPayload512` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload512` — prefer this when you already know which transaction you're checking. */
-  public parseFixedPayload512Events(logs: readonly string[]) {
-    return this.program.parseEvents<types.FixedPayload512>("FixedPayload512", logs);
+  /** Like `parseFixedPayload128Events`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseFixedPayload128EventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.FixedPayload128[]> {
+    return this.program.parseEventsFromTransaction<types.FixedPayload128>("FixedPayload128", tx);
   }
 
   /** Subscribes to `FixedPayload2048` events. Returns a listener ID. */
@@ -357,6 +378,91 @@ export class EventsClient {
   /** Decodes every `FixedPayload2048` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload2048` — prefer this when you already know which transaction you're checking. */
   public parseFixedPayload2048Events(logs: readonly string[]) {
     return this.program.parseEvents<types.FixedPayload2048>("FixedPayload2048", logs);
+  }
+
+  /** Like `parseFixedPayload2048Events`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseFixedPayload2048EventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.FixedPayload2048[]> {
+    return this.program.parseEventsFromTransaction<types.FixedPayload2048>("FixedPayload2048", tx);
+  }
+
+  /** Subscribes to `FixedPayload512` events. Returns a listener ID. */
+  public onFixedPayload512(callback: (event: types.FixedPayload512, slot: number, signature: string) => void) {
+    return types.addFixedPayload512Listener(this.program, callback);
+  }
+
+  /** Awaits the next `FixedPayload512` event. Resolves `null` on timeout. */
+  public waitForFixedPayload512(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.FixedPayload512>("FixedPayload512", options);
+  }
+
+  /** Decodes every `FixedPayload512` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload512` — prefer this when you already know which transaction you're checking. */
+  public parseFixedPayload512Events(logs: readonly string[]) {
+    return this.program.parseEvents<types.FixedPayload512>("FixedPayload512", logs);
+  }
+
+  /** Like `parseFixedPayload512Events`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseFixedPayload512EventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.FixedPayload512[]> {
+    return this.program.parseEventsFromTransaction<types.FixedPayload512>("FixedPayload512", tx);
+  }
+
+  /** Subscribes to `FixedPayload8` events. Returns a listener ID. */
+  public onFixedPayload8(callback: (event: types.FixedPayload8, slot: number, signature: string) => void) {
+    return types.addFixedPayload8Listener(this.program, callback);
+  }
+
+  /** Awaits the next `FixedPayload8` event. Resolves `null` on timeout. */
+  public waitForFixedPayload8(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.FixedPayload8>("FixedPayload8", options);
+  }
+
+  /** Decodes every `FixedPayload8` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload8` — prefer this when you already know which transaction you're checking. */
+  public parseFixedPayload8Events(logs: readonly string[]) {
+    return this.program.parseEvents<types.FixedPayload8>("FixedPayload8", logs);
+  }
+
+  /** Like `parseFixedPayload8Events`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseFixedPayload8EventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.FixedPayload8[]> {
+    return this.program.parseEventsFromTransaction<types.FixedPayload8>("FixedPayload8", tx);
+  }
+
+  /** Subscribes to `NestedPadded` events. Returns a listener ID. */
+  public onNestedPadded(callback: (event: types.NestedPadded, slot: number, signature: string) => void) {
+    return types.addNestedPaddedListener(this.program, callback);
+  }
+
+  /** Awaits the next `NestedPadded` event. Resolves `null` on timeout. */
+  public waitForNestedPadded(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.NestedPadded>("NestedPadded", options);
+  }
+
+  /** Decodes every `NestedPadded` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForNestedPadded` — prefer this when you already know which transaction you're checking. */
+  public parseNestedPaddedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.NestedPadded>("NestedPadded", logs);
+  }
+
+  /** Like `parseNestedPaddedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseNestedPaddedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.NestedPadded[]> {
+    return this.program.parseEventsFromTransaction<types.NestedPadded>("NestedPadded", tx);
+  }
+
+  /** Subscribes to `SizedPayload` events. Returns a listener ID. */
+  public onSizedPayload(callback: (event: types.SizedPayload, slot: number, signature: string) => void) {
+    return types.addSizedPayloadListener(this.program, callback);
+  }
+
+  /** Awaits the next `SizedPayload` event. Resolves `null` on timeout. */
+  public waitForSizedPayload(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.SizedPayload>("SizedPayload", options);
+  }
+
+  /** Decodes every `SizedPayload` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSizedPayload` — prefer this when you already know which transaction you're checking. */
+  public parseSizedPayloadEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.SizedPayload>("SizedPayload", logs);
+  }
+
+  /** Like `parseSizedPayloadEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseSizedPayloadEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.SizedPayload[]> {
+    return this.program.parseEventsFromTransaction<types.SizedPayload>("SizedPayload", tx);
   }
 
   /** Removes a registered event listener by its ID. */

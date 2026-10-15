@@ -23,7 +23,7 @@ use crate::wrappers::ToAddress;
 /// declared permanent delegate, distinct from any per-account `Approve`
 /// delegate. Layout verified against
 /// `spl-token-2022-interface::extension::permanent_delegate::PermanentDelegate`'s
-/// real field (a single `OptionalNonZeroPubkey`).
+/// real field (a single `OptionalNonZeroAddress`).
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct PermanentDelegate(pub [u8; 32]);
@@ -48,7 +48,7 @@ impl PermanentDelegate {
 /// authorities, `delegate` is not optional here: the real
 /// `InitializePermanentDelegate` instruction always takes a concrete pubkey,
 /// verified against `spl-token-2022-interface`'s real
-/// `TokenInstruction::InitializePermanentDelegate { delegate: Pubkey }`
+/// `TokenInstruction::InitializePermanentDelegate { delegate: Address }`
 /// (discriminant `35`, no presence tag, 32 raw bytes), and independently
 /// cross-checked against `pinocchio-token-2022`'s own
 /// `InitializePermanentDelegate::invoke` — both agree.
@@ -72,9 +72,9 @@ pub fn initialize_permanent_delegate_signed(
         let mut data = vec![35u8];
         data.extend_from_slice(delegate.as_ref());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],

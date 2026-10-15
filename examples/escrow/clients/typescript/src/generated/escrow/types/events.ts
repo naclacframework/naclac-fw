@@ -3,7 +3,40 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for `EscrowCreated` events in transaction logs. */
+/** Discriminator for `EscrowCancelled` events in transaction logs. */
+export const ESCROWCANCELLED_EVENT_DISCRIMINATOR = new Uint8Array([98, 241, 195, 122, 213, 0, 162, 161]);
+
+/** Auto-generated event interface from the program IDL. */
+export interface EscrowCancelled {
+  maker: naclac.Address | string;
+  amountA: bigint | number;
+}
+
+/** Subscribes to `EscrowCancelled` events. Returns a listener ID for cleanup. */
+export function addEscrowCancelledListener(
+  program: any,
+  callback: (event: EscrowCancelled, slot: number, signature: string) => void
+): number {
+  return program.addEventListener("EscrowCancelled", callback);
+}
+
+/** Waits for the next `EscrowCancelled` event. Resolves `null` if the timeout expires. */
+export async function waitForEscrowCancelled(
+  program: any,
+  options?: { timeoutMs?: number }
+): Promise<EscrowCancelled | null> {
+  return program.waitForEvent("EscrowCancelled", options) as Promise<EscrowCancelled | null>;
+}
+
+/** Decodes every `EscrowCancelled` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowCancelled`/`addEscrowCancelledListener` — prefer this when you already know which transaction you're checking. Logs only: events emitted via `emit_cpi!` never appear in logs, so use the client's own `parse...Events` method with the inner instructions for those. */
+export function parseEscrowCancelledEvents(
+  program: any,
+  logs: readonly string[]
+): EscrowCancelled[] {
+  return program.parseEvents("EscrowCancelled", logs) as EscrowCancelled[];
+}
+
+/** Discriminator for `EscrowCreated` events in transaction logs. */
 export const ESCROWCREATED_EVENT_DISCRIMINATOR = new Uint8Array([70, 127, 105, 102, 92, 97, 7, 173]);
 
 /** Auto-generated event interface from the program IDL. */
@@ -29,7 +62,15 @@ export async function waitForEscrowCreated(
   return program.waitForEvent("EscrowCreated", options) as Promise<EscrowCreated | null>;
 }
 
-/** 8-byte discriminator for `EscrowExchanged` events in transaction logs. */
+/** Decodes every `EscrowCreated` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowCreated`/`addEscrowCreatedListener` — prefer this when you already know which transaction you're checking. Logs only: events emitted via `emit_cpi!` never appear in logs, so use the client's own `parse...Events` method with the inner instructions for those. */
+export function parseEscrowCreatedEvents(
+  program: any,
+  logs: readonly string[]
+): EscrowCreated[] {
+  return program.parseEvents("EscrowCreated", logs) as EscrowCreated[];
+}
+
+/** Discriminator for `EscrowExchanged` events in transaction logs. */
 export const ESCROWEXCHANGED_EVENT_DISCRIMINATOR = new Uint8Array([227, 173, 205, 57, 1, 154, 129, 42]);
 
 /** Auto-generated event interface from the program IDL. */
@@ -55,29 +96,12 @@ export async function waitForEscrowExchanged(
   return program.waitForEvent("EscrowExchanged", options) as Promise<EscrowExchanged | null>;
 }
 
-/** 8-byte discriminator for `EscrowCancelled` events in transaction logs. */
-export const ESCROWCANCELLED_EVENT_DISCRIMINATOR = new Uint8Array([98, 241, 195, 122, 213, 0, 162, 161]);
-
-/** Auto-generated event interface from the program IDL. */
-export interface EscrowCancelled {
-  maker: naclac.Address | string;
-  amountA: bigint | number;
-}
-
-/** Subscribes to `EscrowCancelled` events. Returns a listener ID for cleanup. */
-export function addEscrowCancelledListener(
+/** Decodes every `EscrowExchanged` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowExchanged`/`addEscrowExchangedListener` — prefer this when you already know which transaction you're checking. Logs only: events emitted via `emit_cpi!` never appear in logs, so use the client's own `parse...Events` method with the inner instructions for those. */
+export function parseEscrowExchangedEvents(
   program: any,
-  callback: (event: EscrowCancelled, slot: number, signature: string) => void
-): number {
-  return program.addEventListener("EscrowCancelled", callback);
-}
-
-/** Waits for the next `EscrowCancelled` event. Resolves `null` if the timeout expires. */
-export async function waitForEscrowCancelled(
-  program: any,
-  options?: { timeoutMs?: number }
-): Promise<EscrowCancelled | null> {
-  return program.waitForEvent("EscrowCancelled", options) as Promise<EscrowCancelled | null>;
+  logs: readonly string[]
+): EscrowExchanged[] {
+  return program.parseEvents("EscrowExchanged", logs) as EscrowExchanged[];
 }
 
 /** Removes a previously registered event listener. */

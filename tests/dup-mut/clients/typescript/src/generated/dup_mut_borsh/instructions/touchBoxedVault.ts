@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_boxed_vault` instruction. */
+/** Discriminator for the `touch_boxed_vault` instruction. */
 export const TOUCH_BOXED_VAULT_DISCRIMINATOR = new Uint8Array([136, 73, 198, 15, 185, 22, 147, 122]);
 
 /** Accounts for the `touchBoxedVault` instruction. */

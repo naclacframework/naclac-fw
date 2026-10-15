@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `transfer_tokens` instruction. */
+/** Discriminator for the `transfer_tokens` instruction. */
 export const TRANSFER_TOKENS_DISCRIMINATOR = new Uint8Array([54, 180, 238, 175, 74, 85, 126, 188]);
 
 /** Instruction arguments for `transferTokens`. */
@@ -13,11 +13,11 @@ export interface TransferTokensArgs {
 
 /** Accounts for the `transferTokens` instruction. */
 export interface TransferTokensAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
   from: naclac.Address | string;
   to: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

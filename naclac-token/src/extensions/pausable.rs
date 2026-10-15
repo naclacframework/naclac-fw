@@ -95,9 +95,9 @@ pub fn initialize_pausable_config_signed(
         let mut data = vec![44u8, 0u8];
         data.extend_from_slice(authority.as_ref());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -112,7 +112,7 @@ pub fn initialize_pausable_config_signed(
         let ix = ::pinocchio_token_2022::instructions::pausable::Initialize {
             mint: &mint.info.view,
             authority: authority.as_address(),
-            token_program: &program.info.view.address(),
+            token_program: program.info.view.address(),
         };
         let _ = signer_seeds;
         ix.invoke()
@@ -148,11 +148,11 @@ pub fn pause_mint_signed(
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),
@@ -205,11 +205,11 @@ pub fn resume_mint_signed(
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),

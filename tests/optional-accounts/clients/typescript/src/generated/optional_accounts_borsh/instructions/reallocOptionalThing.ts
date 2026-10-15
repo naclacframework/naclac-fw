@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `realloc_optional_thing` instruction. */
+/** Discriminator for the `realloc_optional_thing` instruction. */
 export const REALLOC_OPTIONAL_THING_DISCRIMINATOR = new Uint8Array([1, 187, 211, 99, 129, 226, 42, 95]);
 
 /** Instruction arguments for `reallocOptionalThing`. */

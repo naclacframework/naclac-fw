@@ -275,21 +275,16 @@ pub fn create_collection_signed(
         data.push(0u8); // external_plugin_adapters: None
 
         let accounts_meta = vec![
-            solana_program::instruction::AccountMeta::new(accounts.collection.address(), true),
+            solana_instruction::AccountMeta::new(accounts.collection.address(), true),
             match &accounts.update_authority {
-                Some(u) => {
-                    solana_program::instruction::AccountMeta::new_readonly(u.address(), false)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(u) => solana_instruction::AccountMeta::new_readonly(u.address(), false),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
-            solana_program::instruction::AccountMeta::new_readonly(
-                accounts.system_program.address(),
-                false,
-            ),
+            solana_instruction::AccountMeta::new(accounts.payer.address(), true),
+            solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
         ];
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: crate::ID,
             accounts: accounts_meta,
             data,
@@ -297,9 +292,7 @@ pub fn create_collection_signed(
 
         let cpi_accounts = [
             CpiHandle::from(accounts.collection),
-            accounts
-                .update_authority
-                .unwrap_or_else(|| program.clone()),
+            accounts.update_authority.unwrap_or(program),
             CpiHandle::from(accounts.payer),
             accounts.system_program,
             program,

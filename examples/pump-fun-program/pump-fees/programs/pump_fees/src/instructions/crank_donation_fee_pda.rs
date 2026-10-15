@@ -1,13 +1,13 @@
 use naclac_lang::prelude::*;
 use donation_relay_client::instructions::{
-    DonatePubkeyConfigIdWithPayerV1Cpi, DonatePubkeyConfigIdWithPayerV1CpiAccounts,
+    DonateAddressConfigIdWithPayerV1Cpi, DonateAddressConfigIdWithPayerV1CpiAccounts,
 };
 // `pump_fees` depends on `donation-relay-client` both as a normal `cpi`
 // dependency and (via `[dev-dependencies]`, for its own offchain-built
 // tests) as an `offchain` one, unifying both features on the same crate —
 // the `Cpi`-suffixed name disambiguates which shape this is, since the
 // plain name only exists when a build activates `cpi` alone.
-use donation_relay_client::types::DonatePubkeyConfigIdWithPayerV1ArgsCpi;
+use donation_relay_client::types::DonateAddressConfigIdWithPayerV1ArgsCpi;
 use donation_relay_client::DonationRelay;
 use crate::components::{DonationFeePda, FeeProgramGlobal};
 use crate::constants::{
@@ -186,7 +186,7 @@ pub fn crank_donation_fee_pda(
     let donation_fee_pda_signer: &[&[&[u8]]] = &[donation_fee_pda_signer_seeds];
 
     ctx.accounts.donation_relay_program.donate_pubkey_config_id_with_payer_v1_signed(
-        DonatePubkeyConfigIdWithPayerV1CpiAccounts {
+        DonateAddressConfigIdWithPayerV1CpiAccounts {
             payer: ctx.accounts.payer.to_cpi_handle_mut(),
             from: ctx.accounts.donation_fee_pda.to_cpi_handle_mut(),
             mint: ctx.accounts.quote_mint.to_cpi_handle_mut(),
@@ -199,7 +199,7 @@ pub fn crank_donation_fee_pda(
             token_program: ctx.accounts.token_program.to_cpi_handle(),
             system_program: ctx.accounts.system_program.to_cpi_handle(),
         },
-        DonatePubkeyConfigIdWithPayerV1ArgsCpi {
+        DonateAddressConfigIdWithPayerV1ArgsCpi {
             amount,
             config_id: config_id_addr,
             tip_bps: 0,

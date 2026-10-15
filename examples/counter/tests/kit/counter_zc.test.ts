@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { CounterZcClient } from "../../clients/typescript/src/generated/counter_zc";
+import { CounterZcClient } from "../../clients/typescript/src/generated/counter_zc/client-kit";
 
 describe("Naclac CounterZc Test Suite (Kit)", () => {
   let client: CounterZcClient;
@@ -8,7 +8,7 @@ describe("Naclac CounterZc Test Suite (Kit)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterZcClient("litesvm", payer);
+    client = new CounterZcClient("devnet", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 
@@ -46,9 +46,9 @@ describe("Naclac CounterZc Test Suite (Kit)", () => {
       throw new Error("Count did not increment correctly");
     }
 
-    // Race-free: reads events straight out of the already-confirmed
-    // transaction's own logs, instead of racing a live subscription.
-    const capturedEvents = client.parseCounterIncrementedEvents(txResult!.logs);
+    // The event is a self-CPI (`emit_cpi!`), so it is in the transaction's
+    // inner instructions, not its logs.
+    const capturedEvents = await client.parseCounterIncrementedEventsFromTransaction(txResult!);
     if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
 
     console.log(`      🔔 Event Fired! New Count: ${capturedEvents[0].newCount}`);

@@ -1,0 +1,18 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+custom_disc = "C8VH6s1cFT1YkXyN8AbEk68gbrtvPwc79mgwJkoSnu1g"
+custom_disc_borsh = "2Rs1DX3cySXCAJQeVmRH6GtCP2dZrCTajrEc6EJ4MTNN"
+custom_disc_zc = "85F2zcpmLjihxbK9ELMksx9zTdUHcJbQADBPTnNi7g5U"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"

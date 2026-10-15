@@ -9,3 +9,9 @@ codegen-units = 1
 panic = "abort"
 strip = true
 overflow-checks = true
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
+] }

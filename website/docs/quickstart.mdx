@@ -1,0 +1,246 @@
+---
+title: "Naclac Quickstart: Build and Test Your First Solana Program"
+sidebarTitle: "Quick Start"
+description: "Scaffold a Naclac counter program, compile to SBF, generate a TypeScript client, deploy to a local validator, and run your first on-chain test in minutes."
+---
+
+This guide takes you from zero to a deployed, tested Solana program in about ten minutes. You will scaffold a counter workspace, explore the generated code, compile to SBF, deploy to a local validator, and run the generated TypeScript test suite. By the end you will have a working program and a clear picture of how Naclac's build pipeline fits together.
+
+Before you start, make sure the [Naclac CLI is installed](/installation) and `naclac doctor` reports all green.
+
+---
+
+<Steps>
+
+  <Step title="Create a new workspace">
+    Run `naclac init` with your project name and a mode flag:
+
+    ```bash
+    naclac init my_counter --mode standard
+    ```
+
+    The `--mode` flag accepts three values:
+
+    | Value | Execution mode |
+    |---|---|
+    | `standard` | `solana-program` + Borsh serialization (broadest compatibility) |
+    | `optimized` | `solana-program` + zero-copy deserialization via `bytemuck` |
+    | `pinocchio` | `pinocchio` crate, `no_std`, zero heap allocation |
+
+    If you omit `--mode`, Naclac presents an interactive prompt. For this guide, `standard` gives you the most readable generated code.
+
+    The command produces this directory layout:
+
+    ```
+    my_counter/
+    ├── Cargo.toml                    # workspace manifest
+    ├── Naclac.toml                   # cluster, wallet, and script config
+    ├── package.json                  # TypeScript dev dependencies
+    ├── tsconfig.json
+    ├── .gitignore
+    ├── programs/
+    │   └── my_counter/
+    │       ├── Cargo.toml
+    │       └── src/
+    │           ├── lib.rs
+    │           ├── constants.rs
+    │           ├── components/
+    │           │   ├── mod.rs
+    │           │   └── counter.rs
+    │           ├── instructions/
+    │           │   ├── mod.rs
+    │           │   ├── initialize.rs
+    │           │   └── increment.rs
+    │           ├── systems/
+    │           │   ├── mod.rs
+    │           │   └── math.rs
+    │           ├── events.rs
+    │           └── errors.rs
+    └── tests/
+        └── my_counter.test.ts
+    ```
+
+    `Naclac.toml` is set to `cluster = "localnet"` by default and points your wallet at `~/.config/solana/id.json`. Change these values to target devnet or mainnet when you are ready.
+
+    Node dependencies are installed automatically during `naclac init` using whichever of Yarn, pnpm, or npm is available on your PATH.
+  </Step>
+
+  <Step title="Understand the generated code">
+    Open `programs/my_counter/src/lib.rs`. It looks like this:
+
+    ```rust
+    use naclac_lang::prelude::*;
+
+    declare_id!("...");
+
+    pub mod components;
+    pub mod instructions;
+    pub mod systems;
+    pub mod events;
+    pub mod errors;
+    pub mod constants;
+
+    use instructions::*;
+
+    #[naclac_program]
+    pub mod my_counter {
+        pub fn initialize(ctx: Context<Initialize>) -> Result {
+            initialize::initialize(ctx)
+        }
+
+        pub fn increment(ctx: Context<Increment>) -> Result {
+            increment::increment(ctx)
+        }
+    }
+    ```
+
+    The `#[naclac_program]` attribute does the heavy lifting:
+
+    - Generates the BPF entrypoint (`entrypoint!` macro call)
+    - Reads the first 8 bytes of every incoming instruction as a discriminator
+    - Routes to the matching handler by comparing against `SHA256("global:<fn_name>")[..8]`
+    - Returns a typed error if no discriminator matches
+
+    Each instruction handler lives in its own file under `src/instructions/`. The `initialize.rs` file defines the `Initialize` account context struct with `#[derive(Accounts)]` and a plain `initialize` function as the handler. The `Counter` component in `src/components/counter.rs` is annotated `#[component]`, which derives Borsh serialization and calculates the `SPACE` constant automatically.
+
+    The `systems/math.rs` file introduces the `#[system]` pattern—pure functions that operate on component data and can be tested independently of any Solana runtime context.
+
+    Events are declared in `src/events.rs` with `#[event]`. The generated TypeScript client exposes a `waitForCounterIncremented()` method that subscribes to program logs and resolves when the event fires.
+  </Step>
+
+  <Step title="Build the program">
+    From inside the workspace directory, run:
+
+    ```bash
+    cd my_counter
+    naclac build
+    ```
+
+    `naclac build` does the following in sequence:
+
+    1. **Syncs program IDs** — reads `target/deploy/my_counter-keypair.json`, derives the public key, and patches `declare_id!` in `lib.rs` and the `[programs.localnet]` table in `Naclac.toml` if they differ
+    2. **Compiles to SBF** — calls `cargo build-sbf` for each program in `programs/`
+    3. **Generates the IDL** — parses your macro-annotated source and writes `target/idl/my_counter.json`
+    4. **Generates TypeScript types** — writes `target/types/my_counter.ts` from the IDL
+    5. **Runs `naclac generate`** — produces the full SDK client under `clients/src/generated/my_counter/`
+
+    After a successful build you will see output like:
+
+    ```
+    🔨 Compiling Native SBF...
+       📦 Building standard Solana program for 'my_counter'...
+    ✅ IDL written to: target/idl/my_counter.json
+    ✅ Types written to: target/types/my_counter.ts
+    🔄 Auto-generating TypeScript SDK for 'my_counter'...
+    ```
+
+    You now have a `.so` binary in `target/deploy/`, a machine-readable IDL, and a typed client—all from one command.
+  </Step>
+
+  <Step title="Start a local validator and deploy">
+    Open a second terminal and start a local Solana test validator:
+
+    ```bash
+    solana-test-validator
+    ```
+
+    Back in your workspace terminal, deploy the program:
+
+    ```bash
+    naclac deploy
+    ```
+
+    `naclac deploy` reads the cluster from `Naclac.toml` (`localnet` by default), picks the keypair from `target/deploy/my_counter-keypair.json`, and calls `solana program deploy`. The program is now live at the address printed by `declare_id!`.
+
+    To deploy to a different cluster without editing `Naclac.toml`, set your Solana config:
+
+    ```bash
+    solana config set --url devnet
+    ```
+
+    Then re-run `naclac deploy`. The `[provider]` section in `Naclac.toml` controls the default.
+  </Step>
+
+  <Step title="Run the tests">
+    Execute the generated TypeScript test suite:
+
+    ```bash
+    naclac test
+    ```
+
+    This runs `ts-mocha` against `tests/my_counter.test.ts` using the script defined in `Naclac.toml`. The generated test file covers the full lifecycle:
+
+    ```typescript
+    import * as naclac from "@naclac-fw/client";
+    import { MyCounterClient } from "../clients/src/generated/my_counter";
+
+    describe("Naclac MyCounter Test Suite", () => {
+      let client: MyCounterClient;
+      let payer: naclac.KeyPairSigner;
+      let counterPda: naclac.Address;
+
+      before(async () => {
+        payer = await naclac.loadNodeWallet();
+        client = new MyCounterClient("localnet", payer);
+        counterPda = await client.getCounterAccountPda({});
+      });
+
+      it("1. Setup & Initialize Counter", async () => {
+        try {
+          await client.fetchCounter(counterPda);
+          // Counter already exists — skip initialization
+        } catch (e) {
+          await client
+            .initialize({})
+            .accounts({ payer: payer.address, counterAccount: counterPda })
+            .rpc()
+            .catch(naclac.logError);
+        }
+      });
+
+      it("2. Increment and Verify Event", async () => {
+        const stateBefore = await client.fetchCounter(counterPda);
+        const startCount = Number(stateBefore.count);
+
+        // Subscribe BEFORE sending the transaction so the event is never missed
+        const eventPromise = client.waitForCounterIncremented({ timeoutMs: 10000 });
+
+        await client
+          .increment({})
+          .accounts({ authority: payer.address, counterAccount: counterPda })
+          .rpc()
+          .catch(naclac.logError);
+
+        const stateAfter = await client.fetchCounter(counterPda);
+        if (Number(stateAfter.count) !== startCount + 1) {
+          throw new Error("Count did not increment correctly");
+        }
+
+        const capturedEvent = await eventPromise;
+        if (!capturedEvent) throw new Error("Event was not captured!");
+        console.log(`Event fired — new count: ${capturedEvent.newCount}`);
+      });
+    });
+    ```
+
+    The `MyCounterClient` is generated entirely from the IDL. Methods like `fetchCounter`, `initialize`, `increment`, and `waitForCounterIncremented` are typed to your program's exact interface—no manual client code required.
+  </Step>
+
+</Steps>
+
+<Tip>
+  Run `naclac test --all` to build, deploy, and test in a single command. This is the fastest way to iterate: it re-compiles only what has changed, redeploys the updated binary, and immediately runs the full test suite.
+</Tip>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Execution Modes" icon="gauge-high" href="/concepts/execution-modes">
+    Understand the trade-offs between Standard, Optimized, and Pinocchio modes and when to migrate between them.
+  </Card>
+  <Card title="Defining Instructions" icon="code" href="/guides/defining-instructions">
+    Learn how to add new instructions, define account constraints, emit events, and handle errors in your program.
+  </Card>
+</CardGroup>

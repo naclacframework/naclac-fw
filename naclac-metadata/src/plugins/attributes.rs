@@ -175,16 +175,13 @@ pub fn read_attributes(
         let key_start = cursor + 4;
         // SAFETY: bounds validated by `read_borsh_string_len`; Core's own
         // write path always encodes these as valid Borsh (UTF-8) `String`s.
-        let key = unsafe {
-            core::str::from_utf8_unchecked(&data[key_start..key_start + key_len])
-        };
+        let key = unsafe { core::str::from_utf8_unchecked(&data[key_start..key_start + key_len]) };
         cursor = key_start + key_len;
 
         let value_len = read_borsh_string_len(data, cursor)?;
         let value_start = cursor + 4;
-        let value = unsafe {
-            core::str::from_utf8_unchecked(&data[value_start..value_start + value_len])
-        };
+        let value =
+            unsafe { core::str::from_utf8_unchecked(&data[value_start..value_start + value_len]) };
         cursor = value_start + value_len;
 
         entries.push(AttributeEntry {

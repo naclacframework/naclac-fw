@@ -1,0 +1,176 @@
+1:"$Sreact.fragment"
+2:I[65685,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js"],"TopNav"]
+3:T1004,:root {
+  --default-border-color: var(--gray-800);
+}
+
+.dark {
+  --default-border-color: var(--gray-800);
+}
+
+#sidebar .nav-dropdown-trigger {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-left: 0.375rem;
+}
+
+#sidebar .nav-dropdown-trigger:hover {
+  background-color: rgb(0 0 0 / 0.04) !important;
+}
+
+.dark #sidebar .nav-dropdown-trigger:hover {
+  background-color: rgb(255 255 255 / 0.06) !important;
+}
+
+#sidebar .nav-dropdown-trigger .nav-dropdown-item-icon {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  height: auto !important;
+  width: auto !important;
+  padding: 0 !important;
+}
+
+.nav-dropdown-content {
+  border-radius: 0 !important;
+}
+
+.nav-dropdown-content .nav-dropdown-item {
+  border-radius: 0 !important;
+}
+
+.nav-dropdown-content .nav-dropdown-item-icon {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  height: auto !important;
+  width: auto !important;
+  padding: 0 !important;
+}
+
+.nav-dropdown-content .nav-dropdown-item-description {
+  display: none !important;
+}
+
+#sidebar .nav-anchor span {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] {
+  color: rgb(var(--primary)) !important;
+  font-weight: 600 !important;
+}
+
+body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] span {
+  color: inherit !important;
+}
+
+body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] svg {
+  background-color: rgb(var(--primary)) !important;
+}
+
+.dark body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] {
+  color: rgb(var(--primary-light)/var(--tw-text-opacity,1)) !important;
+}
+
+.dark body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] svg {
+  background-color: rgb(var(--primary-light)/var(--tw-text-opacity,1)) !important;
+}
+
+:is(#content-area[data-current-path='/'], [data-current-path='/'] #content-area):has([data-product-guide-index]) {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:is(#content-area[data-current-path='/'], [data-current-path='/'] #content-area):has([data-product-guide-index]) > div:first-child {
+  background: transparent !important;
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0 !important;
+}
+
+[data-product-guide-index] a:not(.product-guide-feature-card) {
+  background-color: #fafafa !important;
+}
+
+.dark [data-product-guide-index] a:not(.product-guide-feature-card) {
+  background-color: #08080a !important;
+}
+
+.product-guide-feature-card {
+  grid-column: 1 / -1;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 260px;
+  background: url('/images/sample-feature-light.png') center / cover no-repeat !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: white !important;
+  .dark & {
+    background-image: url('/images/sample-feature-dark.png') !important;
+  }
+}
+
+.product-guide-feature-card > div {
+  display: flex !important;
+  flex: 1;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.product-guide-feature-card :is(h2, h3, p, span, svg) {
+  color: white !important;
+}
+
+.product-guide-feature-card :is(svg, [class*='icon']) {
+  background-color: white !important;
+  width: 2em !important;
+  height: 2em !important;
+  margin-top: 2px;
+}
+
+.product-guide-feature-card-title {
+  font-size: 1.2em;
+  font-weight: 500;
+}
+
+.product-guide-feature-card :is(h2, h3, p, span, svg).product-guide-feature-card-description {
+  font-size: 1.05em;
+  font-weight: 400;
+  color: rgb(var(--gray-50) / 62.5%) !important;
+  .dark & {
+    color: rgb(var(--gray-50) / 50%) !important;
+  }
+}
+7:X
+0:{"buildId":"luk2k8Bw6kxoxDQrfURbX","data":[{"rsc":["$","$1","c",{"children":[[["$","script","script-0",{"src":"/_next/static/chunks/22i43cg4l4-dq.js","async":true}],["$","script","script-1",{"src":"/_next/static/chunks/3x7_subm8f70z.js","async":true}]],["$","div",null,{"className":"relative flex min-h-screen flex-col overflow-x-clip w-full max-w-full","children":[false,["$","$L2",null,{"tabs":[{"tab":"Documentation","groups":[{"group":"Overview","pages":[{"id":"index","slug":["index"],"title":"Introduction"}]},{"group":"How It Works","pages":[{"id":"trading","slug":["trading"],"title":"Trading"},{"id":"mechanics","slug":["mechanics"],"title":"Prediction & Reward Mechanics"},{"id":"btc-hourly","slug":["btc-hourly"],"title":"BTC Hourly Markets"},{"id":"referrals","slug":["referrals"],"title":"Referrals"},{"id":"privacy","slug":["privacy"],"title":"Privacy"}]},{"group":"Resources","pages":[{"id":"faq","slug":["faq"],"title":"FAQ"},{"id":"technical","slug":["technical"],"title":"Technical Overview"},{"id":"risks","slug":["risks"],"title":"Risks & Disclaimer"}]}]},{"tab":"Legal","groups":[{"group":"Legal","pages":[{"id":"legal/terms","slug":["legal","terms"],"title":"Terms & Conditions"},{"id":"legal/privacy-policy","slug":["legal","privacy-policy"],"title":"Privacy Policy"}]}]}],"currentTab":"Documentation","currentSlugKey":"referrals","pages":[{"id":"index","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:0:groups:0:pages:0:slug","title":"Introduction","tab":"Documentation","group":"Overview","description":"Swiv is a private precision market protocol that enables users to forecast real-world outcomes using numerical predictions."},{"id":"trading","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:0:groups:1:pages:0:slug","title":"Trading","tab":"Documentation","group":"How It Works","description":"How Swiv prediction pools work, their lifecycle, and how to participate."},{"id":"mechanics","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:0:groups:1:pages:1:slug","title":"Prediction & Reward Mechanics","tab":"Documentation","group":"How It Works","description":"How Swiv calculates weights, accuracy scores, and reward distributions."},{"id":"btc-hourly","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:0:groups:1:pages:2:slug","title":"BTC Hourly Markets","tab":"Documentation","group":"How It Works","description":"Continuous hourly prediction pools for Bitcoin price forecasting."},{"id":"referrals","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:0:groups:1:pages:3:slug","title":"Referrals","tab":"Documentation","group":"How It Works","description":"Invite others to Swiv and earn a share of the protocol fee they generate."},{"id":"privacy","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:0:groups:1:pages:4:slug","title":"Privacy","tab":"Documentation","group":"How It Works","description":"How Swiv keeps all user activity private until settlement."},{"id":"faq","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:0:groups:2:pages:0:slug","title":"FAQ","tab":"Documentation","group":"Resources","description":"Answers to common questions about using Swiv."},{"id":"technical","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:0:groups:2:pages:1:slug","title":"Technical Overview","tab":"Documentation","group":"Resources","description":"How Swiv is built — Solana, private execution, oracle integration, and backend services."},{"id":"risks","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:0:groups:2:pages:2:slug","title":"Risks & Disclaimer","tab":"Documentation","group":"Resources","description":"Important risks and disclosures to understand before using Swiv."},{"id":"legal/terms","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:1:groups:0:pages:0:slug","title":"Terms & Conditions","tab":"Legal","group":"Legal","description":"Terms governing your use of Swiv."},{"id":"legal/privacy-policy","slug":"$0:data:0:rsc:props:children:1:props:children:1:props:tabs:1:groups:0:pages:1:slug","title":"Privacy Policy","tab":"Legal","group":"Legal","description":"How Swiv collects, uses, and protects your information."}],"site":{"name":"Swiv Docs","theme":"sequoia","description":"Documentation for Swiv — a private precision market protocol for numerical predictions.","favicon":"/icon.png","colors":{"primaryRgb":"122 77 235","lightRgb":"122 77 235","darkRgb":"122 77 235"},"cssVariables":{"backgroundDark":"11 10 15","backgroundLight":"255 255 255","gray50":"246 245 250","gray100":"241 240 245","gray200":"226 224 229","gray300":"209 208 213","gray400":"162 160 165","gray500":"115 114 119","gray600":"83 82 87","gray700":"66 64 69","gray800":"41 39 44","gray900":"26 25 29","gray950":"13 12 17"},"logo":{"light":"/logo/light.png","dark":"/logo/dark.png"},"primaryButton":{"label":"Launch App","href":"https://app.swiv.xyz"},"navbarLinks":[],"anchors":[{"anchor":"Website","icon":"globe","href":"https://swiv.xyz"},{"anchor":"Support","icon":"life-buoy","href":"mailto:support@swiv.xyz"}],"footer":{"socials":{"x":"https://x.com/SwivOfficial","discord":"https://discord.com/invite/bSTQFNNg7w","telegram":"https://twitter.com/SwivOfficial","github":"https://github.com/swiv-labs","website":"https://twitter.com/SwivOfficial"}},"icons":{"library":"lucide"},"styling":{"eyebrows":"breadcrumbs"},"contextual":{"options":["copy","view","assistant","chatgpt","claude","perplexity","grok","aistudio","devin","windsurf","mcp","add-mcp","cursor","vscode","devin-mcp"]},"customCss":"$3"},"stars":null}],"$L4","$L5"]}]]}],"isPartial":"$@6","staleTime":"$7","varyParams":null}],"isUpgradeableISRFallback":false,"a":"$@8","rootVaryParams":null,"needsRuntimeRequest":"$@9"}
+a:I[22016,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js","/_next/static/chunks/1v6wc17awxgle.js","/_next/static/chunks/2_d267mikrasa.js"],""]
+12:I[39536,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js"],"PageScrollbar"]
+4:["$","div",null,{"id":"content-container","className":"mx-auto flex w-full max-w-[88rem] flex-1 gap-8 px-4 sm:px-6 py-8 min-w-0","children":[["$","nav",null,{"id":"sidebar-content","aria-label":"Pages","className":"scrollbar-common sticky top-20 hidden max-h-[calc(100vh-6rem)] shrink-0 self-start overflow-y-auto lg:block text-sm w-72 border-r border-gray-100 dark:border-white/10 pr-6","children":["$","div",null,{"id":"navigation-items","className":"min-w-0 flex-1 min-h-0","children":[["$","ul",null,{"className":"list-none mb-6 space-y-1","children":[["$","li","https://swiv.xyz",{"className":"list-none","children":["$","a",null,{"href":"https://swiv.xyz","target":"_blank","rel":"noreferrer","className":"link nav-anchor pl-4 group flex items-center lg:text-sm lg:leading-6 py-1 gap-3.5 text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 transition-colors","children":[["$","svg",null,{"className":"size-4 shrink-0 bg-gray-400 dark:bg-gray-500 group-hover:bg-primary dark:group-hover:bg-primary-light transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/lucide/v1.16.0/globe.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/lucide/v1.16.0/globe.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center","maskSize":"100%"}}],["$","span",null,{"children":"Website"}]]}]}],["$","li","mailto:support@swiv.xyz",{"className":"list-none","children":["$","a",null,{"href":"mailto:support@swiv.xyz","target":"_blank","rel":"noreferrer","className":"link nav-anchor pl-4 group flex items-center lg:text-sm lg:leading-6 py-1 gap-3.5 text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 transition-colors","children":[["$","svg",null,{"className":"size-4 shrink-0 bg-gray-400 dark:bg-gray-500 group-hover:bg-primary dark:group-hover:bg-primary-light transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/lucide/v1.16.0/life-buoy.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/lucide/v1.16.0/life-buoy.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center","maskSize":"100%"}}],["$","span",null,{"children":"Support"}]]}]}]]}],["$","div",null,{"className":"flex flex-col mt-2 gap-6 lg:gap-8 first:mt-0","children":[["$","div","Overview",{"children":[["$","div",null,{"className":"sidebar-group-header flex items-center gap-2.5 pl-4 mb-3.5 lg:mb-2.5 text-gray-900 dark:text-gray-200 text-xs font-normal","children":["$","h3",null,{"className":"sidebar-title","children":"Overview"}]}],["$","ul",null,{"className":"sidebar-group space-y-px flex flex-col","children":[["$","li","index",{"id":"/index","data-title":"Introduction","children":["$","$La",null,{"href":"/index","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Introduction"}]}]}]]}]]}],["$","div","How It Works",{"children":[["$","div",null,{"className":"sidebar-group-header flex items-center gap-2.5 pl-4 mb-3.5 lg:mb-2.5 text-gray-900 dark:text-gray-200 text-xs font-normal","children":["$","h3",null,{"className":"sidebar-title","children":"How It Works"}]}],["$","ul",null,{"className":"sidebar-group space-y-px flex flex-col","children":[["$","li","trading",{"id":"/trading","data-title":"Trading","children":["$","$La",null,{"href":"/trading","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Trading"}]}]}],"$Lb","$Lc","$Ld","$Le"]}]]}],"$Lf"]}]]}]}],"$L10","$L11"]}]
+5:["$","$L12",null,{}]
+9:true
+13:I[7587,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js"],"PageTransition"]
+14:I[39756,["/_next/static/chunks/2wo-mzypa7a-v.js"],"default"]
+15:I[37457,["/_next/static/chunks/2wo-mzypa7a-v.js"],"default"]
+19:I[42080,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js"],"Toc"]
+b:["$","li","mechanics",{"id":"/mechanics","data-title":"Prediction & Reward Mechanics","children":["$","$La",null,{"href":"/mechanics","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Prediction & Reward Mechanics"}]}]}]
+c:["$","li","btc-hourly",{"id":"/btc-hourly","data-title":"BTC Hourly Markets","children":["$","$La",null,{"href":"/btc-hourly","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"BTC Hourly Markets"}]}]}]
+d:["$","li","referrals",{"id":"/referrals","data-title":"Referrals","data-active":"true","children":["$","$La",null,{"href":"/referrals","data-active":"true","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-primary dark:text-primary-light [text-shadow:-0.2px_0_0_currentColor,0.2px_0_0_currentColor]","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Referrals"}]}]}]
+e:["$","li","privacy",{"id":"/privacy","data-title":"Privacy","children":["$","$La",null,{"href":"/privacy","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Privacy"}]}]}]
+f:["$","div","Resources",{"children":[["$","div",null,{"className":"sidebar-group-header flex items-center gap-2.5 pl-4 mb-3.5 lg:mb-2.5 text-gray-900 dark:text-gray-200 text-xs font-normal","children":["$","h3",null,{"className":"sidebar-title","children":"Resources"}]}],["$","ul",null,{"className":"sidebar-group space-y-px flex flex-col","children":[["$","li","faq",{"id":"/faq","data-title":"FAQ","children":["$","$La",null,{"href":"/faq","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"FAQ"}]}]}],["$","li","technical",{"id":"/technical","data-title":"Technical Overview","children":["$","$La",null,{"href":"/technical","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Technical Overview"}]}]}],["$","li","risks",{"id":"/risks","data-title":"Risks & Disclaimer","children":["$","$La",null,{"href":"/risks","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Risks & Disclaimer"}]}]}]]}]]}]
+10:["$","main",null,{"id":"content-area","data-current-path":"/referrals","className":"min-w-0 max-w-full flex-1 overflow-x-clip","children":[["$","$L13",null,{"children":["$","$L14",null,{"parallelRouterKey":"children","template":["$","$L15",null,{}],"notFound":[["$","div",null,{"className":"flex flex-col items-center px-6 py-24 text-center","children":[["$","p",null,{"className":"text-8xl font-bold text-gray-200 dark:text-gray-800","children":"404"}],["$","h1",null,{"className":"mt-4 text-2xl font-semibold text-gray-950 dark:text-gray-50","children":"Page not found"}],["$","p",null,{"className":"mt-2 max-w-md text-gray-600 dark:text-gray-400","children":"The page you're looking for doesn't exist or may have moved."}],["$","$La",null,{"href":"/","className":"mt-8 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90","children":"Go home"}],["$","div",null,{"className":"mt-12 w-full max-w-sm text-left","children":[["$","p",null,{"className":"mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100","children":"You might be looking for"}],["$","ul",null,{"className":"flex flex-col gap-2","children":[["$","li","index",{"children":["$","$La",null,{"href":"/index","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"Introduction"}]}],["$","li","trading",{"children":["$","$La",null,{"href":"/trading","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"Trading"}]}],["$","li","mechanics",{"children":["$","$La",null,{"href":"/mechanics","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"Prediction & Reward Mechanics"}]}],["$","li","btc-hourly",{"children":["$","$La",null,{"href":"/btc-hourly","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"BTC Hourly Markets"}]}],["$","li","referrals",{"children":["$","$La",null,{"href":"/referrals","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"Referrals"}]}]]}]]}]]}],[]]}]}],["$","footer",null,{"id":"footer","className":"flex gap-12 justify-between pt-10 border-t border-gray-100 sm:flex dark:border-gray-800/50 pb-28 mt-16","children":["$","div",null,{"className":"flex gap-6 flex-wrap","children":[["$","a","x",{"href":"https://x.com/SwivOfficial","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"x"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/x-twitter.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/x-twitter.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}],["$","a","discord",{"href":"https://discord.com/invite/bSTQFNNg7w","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"discord"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/discord.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/discord.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}],"$L16","$L17","$L18"]}]}]]}]
+11:["$","$L19",null,{"theme":"sequoia"}]
+7:300
+16:["$","a","telegram",{"href":"https://twitter.com/SwivOfficial","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"telegram"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/telegram.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/telegram.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}]
+17:["$","a","github",{"href":"https://github.com/swiv-labs","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"github"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/github.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/github.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}]
+18:["$","a","website",{"href":"https://twitter.com/SwivOfficial","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"website"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/solid/earth-americas.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/solid/earth-americas.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}]
+7:C
+8:0
+6:"$undefined"

@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `emit_via_sol_log_data_baseline` instruction. */
+/** Discriminator for the `emit_via_sol_log_data_baseline` instruction. */
 export const EMIT_VIA_SOL_LOG_DATA_BASELINE_DISCRIMINATOR = new Uint8Array([119, 135, 121, 219, 213, 134, 102, 56]);
 
 /** Accounts for the `emitViaSolLogDataBaseline` instruction. */
 export interface EmitViaSolLogDataBaselineAccounts {
   /** SAFETY: only its address is checked; its data is never read. */
-  program: naclac.Address | string;
+  program?: naclac.Address | string;
 }
 
 /**

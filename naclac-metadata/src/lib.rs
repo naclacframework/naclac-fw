@@ -1,9 +1,8 @@
-#![cfg_attr(feature = "pinocchio", no_std)]
+#![no_std]
 
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
 pub(crate) use naclac_core::cpi;
 
-#[cfg(feature = "pinocchio")]
 extern crate alloc;
 
 /// The real Metaplex Core program address
@@ -33,10 +32,7 @@ pub const ID: naclac_core::prelude::Address = unsafe {
 /// confirmed in `plugin_registry::find_plugin_offset`, then found to be a
 /// crate-wide pattern (see docs/plan/kani-audit.md).
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
-pub(crate) fn checked_end(
-    offset: usize,
-    len: usize,
-) -> naclac_core::prelude::Result<usize> {
+pub(crate) fn checked_end(offset: usize, len: usize) -> naclac_core::prelude::Result<usize> {
     offset
         .checked_add(len)
         .ok_or_else(|| naclac_core::prelude::NaclacError::AccountDataTooSmall.err(0))
@@ -150,7 +146,11 @@ mod kani_proofs {
         let offset: usize = kani::any();
         let len: usize = kani::any();
         match checked_end(offset, len) {
-            Ok(end) => assert_eq!(end, offset + len, "Ok must carry the real, non-overflowing sum"),
+            Ok(end) => assert_eq!(
+                end,
+                offset + len,
+                "Ok must carry the real, non-overflowing sum"
+            ),
             Err(_) => assert!(
                 offset.checked_add(len).is_none(),
                 "Err must only occur on genuine overflow"

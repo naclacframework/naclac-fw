@@ -13,7 +13,7 @@
 //!
 //! Usage: cargo run --bin find_buyback_setter [-- <rpc-url>]
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::{GetConfirmedSignaturesForAddress2Config, RpcClient};
 use solana_rpc_client_api::config::RpcTransactionConfig;
 use solana_transaction_status_client_types::{EncodedTransaction, UiMessage, UiTransactionEncoding};
@@ -46,11 +46,11 @@ const KNOWN: &[(&str, [u8; 8])] = &[
     ("migrate", [155, 234, 231, 146, 236, 158, 162, 30]),
 ];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
-fn process_signature(client: &RpcClient, sig_str: &str, global: &Pubkey, global_str: &str) -> Option<[u8; 8]> {
+fn process_signature(client: &RpcClient, sig_str: &str, global: &Address, global_str: &str) -> Option<[u8; 8]> {
     let signature = solana_signature::Signature::from_str(sig_str).ok()?;
     let tx = client
         .get_transaction_with_config(
@@ -105,7 +105,7 @@ fn process_signature(client: &RpcClient, sig_str: &str, global: &Pubkey, global_
 fn main() {
     let rpc_url = std::env::args().nth(1).unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
     let pump_program = pk(PUMP_PROGRAM_ID);
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let global_str = global.to_string();
     println!("global = {global}\n");
 

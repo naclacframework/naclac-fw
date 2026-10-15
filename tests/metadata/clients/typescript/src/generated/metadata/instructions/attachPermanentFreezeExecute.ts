@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_permanent_freeze_execute` instruction. */
+/** Discriminator for the `attach_permanent_freeze_execute` instruction. */
 export const ATTACH_PERMANENT_FREEZE_EXECUTE_DISCRIMINATOR = new Uint8Array([72, 8, 33, 210, 34, 104, 27, 29]);
 
 /** Accounts for the `attachPermanentFreezeExecute` instruction. */
 export interface AttachPermanentFreezeExecuteAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

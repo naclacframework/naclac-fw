@@ -33,6 +33,13 @@ fn is_exact_signer_type(ty: &syn::Type) -> bool {
     crate::type_classify::is_exactly(ty, "Signer")
 }
 
+const HASH_ONLY_INELIGIBLE_MSG: &str =
+    "Naclac Error: this existing PDA field has no bump, and its type can't have one discovered \
+     on-chain. Bump discovery skips the curve check, which is only sound when the account type \
+     proves the program that derives it created the account: `Account<T>`/`InterfaceAccount<T>` \
+     (owner- and discriminator-validated). Use one of those types, or supply the bump explicitly. \
+     Example: #[account(seeds = [...], bump = <precomputed_bump>)]";
+
 /// True if this field's declared type is an account wrapper
 /// (`Account<T>`/`InterfaceAccount<T>`) *and* the whole crate is compiled in
 /// zero-copy mode (`pinocchio`, or `solana` without `borsh` — the same
@@ -181,46 +188,51 @@ pub fn generate_security_checks(
     let mut constraint_checks = Vec::new();
     let idx = field.index;
 
-    // 1. Signer Check (Handled by the Wrapper try_from normally, but explicitly added if raw)
+    // Binds `__actual_address: &Address` to this field's own account
+    // address. Pinocchio borrows it from the raw `info`; the other backends
+    // copy it.
+    let actual_address_ref = quote! {
+        #[cfg(feature = "pinocchio")]
+        let __actual_address: &naclac_lang::prelude::Address =
+            naclac_lang::prelude::Address::from_address_ref(info.view.address());
+        #[cfg(not(feature = "pinocchio"))]
+        let __actual_address_owned: naclac_lang::prelude::Address = (info).address();
+        #[cfg(not(feature = "pinocchio"))]
+        let __actual_address: &naclac_lang::prelude::Address = &__actual_address_owned;
+    };
+
+    // 1-2b. Signer / mutability / executable checks. On pinocchio these are
+    // enforced by `load_and_validate`'s declared-account walk before
+    // any field loader runs, so only the other backends emit them here.
     if field.is_signer && !is_exact_signer_type(&field.ty) {
         metadata_checks.push(quote! {
             #[cfg(not(feature = "pinocchio"))]
-            let __is_signer = info.is_signer;
-            #[cfg(feature = "pinocchio")]
-            let __is_signer = info.is_signer();
-
-            if !__is_signer {
-                return Err(naclac_lang::prelude::NaclacError::ConstraintSigner.err(#idx));
+            {
+                if !info.is_signer {
+                    return Err(naclac_lang::prelude::NaclacError::ConstraintSigner.err(#idx));
+                }
             }
         });
     }
 
-    // 2. Mutability Check
     if field.is_mut {
         metadata_checks.push(quote! {
-            let __is_writable = {
-                #[cfg(not(feature = "pinocchio"))]
-                { info.is_writable }
-                #[cfg(feature = "pinocchio")]
-                { info.is_writable() }
-            };
-            if !__is_writable {
-                return Err(naclac_lang::prelude::NaclacError::ConstraintMut.err(#idx));
+            #[cfg(not(feature = "pinocchio"))]
+            {
+                if !info.is_writable {
+                    return Err(naclac_lang::prelude::NaclacError::ConstraintMut.err(#idx));
+                }
             }
         });
     }
 
-    // 2b. Executable Check
     if field.is_executable {
         metadata_checks.push(quote! {
-            let __is_executable = {
-                #[cfg(not(feature = "pinocchio"))]
-                { info.executable }
-                #[cfg(feature = "pinocchio")]
-                { info.is_executable() }
-            };
-            if !__is_executable {
-                return Err(naclac_lang::prelude::NaclacError::ConstraintExecutable.err(#idx));
+            #[cfg(not(feature = "pinocchio"))]
+            {
+                if !info.executable {
+                    return Err(naclac_lang::prelude::NaclacError::ConstraintExecutable.err(#idx));
+                }
             }
         });
     }
@@ -234,17 +246,8 @@ pub fn generate_security_checks(
             #[cfg(feature = "pinocchio")]
             let __rent_exempt_data_len = info.data().len();
 
-            #[cfg(not(feature = "pinocchio"))]
-            let __is_rent_exempt = naclac_lang::solana_program::rent::Rent::get()?
-                .is_exempt(__rent_exempt_lamports, __rent_exempt_data_len);
-            #[cfg(feature = "pinocchio")]
-            let __is_rent_exempt = {
-                // Shared, single implementation (naclac-core's own
-                // `const_rent_lamports`, Kani-proven) instead of
-                // re-deriving this formula as generated tokens here — no
-                // `Rent::get()` sysvar call is available under pinocchio.
-                __rent_exempt_lamports >= naclac_lang::prelude::const_rent_lamports(__rent_exempt_data_len)
-            };
+            let __is_rent_exempt = __rent_exempt_lamports
+                >= naclac_lang::prelude::const_rent_lamports(__rent_exempt_data_len);
 
             if !__is_rent_exempt {
                 return Err(naclac_lang::prelude::NaclacError::ConstraintRentExempt.err(#idx));
@@ -384,10 +387,23 @@ pub fn generate_security_checks(
         let field_ident = &field.ident;
         let bump_cap = format_ident!("__bump_{}", field_ident);
 
-        let pda_program_tokens = if let Some(prog_expr) = &field.pda_program {
-            quote! { #prog_expr }
+        // Binds `__pda_program: &Address`. Pinocchio borrows the
+        // instruction's own `program_id` when no foreign `seeds::program` is
+        // given; every other case copies it.
+        let pda_program_ref = if let Some(prog_expr) = &field.pda_program {
+            quote! {
+                let __pda_program_owned = naclac_lang::prelude::ToAddress::address(&#prog_expr);
+                let __pda_program: &naclac_lang::prelude::Address = &__pda_program_owned;
+            }
         } else {
-            quote! { program_id }
+            quote! {
+                #[cfg(feature = "pinocchio")]
+                let __pda_program: &naclac_lang::prelude::Address = program_id;
+                #[cfg(not(feature = "pinocchio"))]
+                let __pda_program_owned = naclac_lang::prelude::ToAddress::address(&program_id);
+                #[cfg(not(feature = "pinocchio"))]
+                let __pda_program: &naclac_lang::prelude::Address = &__pda_program_owned;
+            }
         };
 
         // Resolve compile-time precomputed PDA if all seeds are literals
@@ -474,6 +490,7 @@ pub fn generate_security_checks(
         // bump supplied instead, since no such search happens for one.
         let mut find_pda_error: Option<String> = None;
         let mut use_manual_search = false;
+        let mut use_hash_only_search = false;
 
         if is_pda_precomputed {
             // Decode the precomputed PDA at proc-macro compile time into a byte literal
@@ -486,7 +503,8 @@ pub fn generate_security_checks(
             // `resolve_seed_literal` got these bytes by parsing source text,
             // not by asking the compiler to resolve the identifier — proc
             // macros run before name resolution, so no such API exists here.
-            let literal_seed_exprs: Vec<_> = seed_array.elems.iter().collect();
+            let literal_seed_exprs: Vec<_> =
+                seed_array.elems.iter().map(seed_literal_root).collect();
             // Same reasoning as the seed-expr re-reference below: when
             // `seeds::program = X` is what made this PDA precomputable, `X`
             // itself never appears in the generated code (its address is
@@ -520,7 +538,6 @@ pub fn generate_security_checks(
                 };
             }
         } else {
-            // Dynamic PDA path (hash-and-compare optimization or find_program_address)
             let mut bump_expr = quote! {};
 
             match &field.pda_bump {
@@ -546,18 +563,10 @@ pub fn generate_security_checks(
                         } else {
                             quote! { #field_ident.data.bump }
                         };
+                    } else if crate::type_classify::is_account_wrapper(&field.ty) {
+                        use_hash_only_search = true;
                     } else {
-                        find_pda_error = Some(
-                            "Naclac Error: this field's account type has no recognized way to read \
-                             back its own stored bump automatically (only `Account<T>` exposes \
-                             `.bump`). Since this account isn't being freshly initialized (no \
-                             `init`), its canonical bump must already be known — on-chain \
-                             'find_program_address' search only runs for a freshly-initialized \
-                             account under non-literal seeds, never to verify an existing one. \
-                             Supply the bump explicitly instead. \
-                             Example: #[account(seeds = [...], bump = <precomputed_bump>)]"
-                                .to_string(),
-                        );
+                        find_pda_error = Some(HASH_ONLY_INELIGIBLE_MSG.to_string());
                     }
                 }
                 Some(PdaBump::Auto) => {
@@ -578,8 +587,8 @@ pub fn generate_security_checks(
                         }
                     };
                 }
-                None => {
-                    find_pda_error = Some(if field.init_config.is_some() {
+                None if field.init_config.is_some() => {
+                    find_pda_error = Some(
                         "Naclac Error: PDA validation seeds constraint requires a 'bump' value or \
                          attribute. This account is being freshly initialized ('init') under seeds \
                          naclac can't resolve at compile time, so add 'bump' to perform a real, \
@@ -587,24 +596,34 @@ pub fn generate_security_checks(
                          'find_program_address' is actually used for — or supply \
                          'bump = <precomputed_bump>' if you already know it off-chain. \
                          Example: #[account(init, seeds = [...], bump)]"
-                            .to_string()
+                            .to_string(),
+                    );
+                }
+                None => {
+                    if crate::type_classify::is_account_wrapper(&field.ty) {
+                        use_hash_only_search = true;
                     } else {
-                        "Naclac Error: PDA validation seeds constraint requires a 'bump' value or \
-                         attribute. This account isn't being freshly initialized, so its canonical \
-                         bump must already be known: add 'bump' if this field's type can read its \
-                         own stored bump automatically (e.g. `Account<T>`), or supply it explicitly \
-                         with 'bump = <precomputed_bump>' otherwise. On-chain 'find_program_address' \
-                         search only runs for a freshly-initialized account under non-literal seeds, \
-                         never to verify an existing one. \
-                         Example: #[account(seeds = [...], bump = <precomputed_bump>)]"
-                            .to_string()
-                    });
+                        find_pda_error = Some(HASH_ONLY_INELIGIBLE_MSG.to_string());
+                    }
                 }
             }
 
             if let Some(msg) = &find_pda_error {
                 pda_creation_logic = quote! {
                     compile_error!(#msg);
+                };
+            } else if use_hash_only_search {
+                pda_creation_logic = quote! {
+                    #(#seed_bindings)*
+                    #pda_program_ref
+                    #actual_address_ref
+                    let __seeds: &[&[u8]] = &[ #( #seed_refs, )* ];
+                    let expected_bump = naclac_lang::prelude::find_bump_for_address(
+                        __seeds,
+                        __pda_program,
+                        __actual_address,
+                    )
+                    .ok_or(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
                 };
             } else if use_manual_search {
                 // Real, bounded on-chain canonical search — the one exception
@@ -615,10 +634,10 @@ pub fn generate_security_checks(
                 // search loop into every `init` field's own codegen.
                 pda_creation_logic = quote! {
                     #(#seed_bindings)*
-                    let __pda_program = naclac_lang::prelude::ToAddress::address(&#pda_program_tokens);
+                    #pda_program_ref
                     let __seeds: &[&[u8]] = &[ #( #seed_refs, )* ];
                     let (expected_pda, expected_bump) =
-                        naclac_lang::prelude::find_program_address(__seeds, &__pda_program)
+                        naclac_lang::prelude::find_program_address(__seeds, __pda_program)
                             .map_err(|_| naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
                 };
             } else {
@@ -629,23 +648,21 @@ pub fn generate_security_checks(
                 pda_creation_logic = quote! {
                     #(#seed_bindings)*
                     let expected_bump = #bump_expr;
-                    let __pda_program = naclac_lang::prelude::ToAddress::address(&#pda_program_tokens);
+                    #pda_program_ref
                     let __seeds: &[&[u8]] = &[ #( #seed_refs, )* ];
                     let expected_pda = naclac_lang::prelude::derive_program_address(
                         __seeds,
                         expected_bump,
-                        &__pda_program,
+                        __pda_program,
                     );
                 };
             }
         }
 
-        // When the compile-error path above didn't fire: the SHA256 loop already confirmed that the hash of
-        // (seeds || [bump] || program_id || "PDA") == expected_pda (= Key::key(&field_ident)).
-        // The post-loop address comparison is therefore tautologically true and is omitted.
-        // When is_pda_precomputed=true or hash-and-compare path: the comparison IS needed
-        // because expected_pda is a compile-time constant that might differ from the account key.
-        let skip_address_check = false;
+        // `find_bump_for_address` only returns a bump whose derived address
+        // equals the field's own address, so on that path the address
+        // comparison below would be tautological.
+        let skip_address_check = use_hash_only_search;
         if field.init_config.is_none() {
             if skip_address_check {
                 constraint_checks.push(quote! {
@@ -656,34 +673,43 @@ pub fn generate_security_checks(
             } else {
                 constraint_checks.push(quote! {
                     #pda_creation_logic
-                    if (#field_ident).address() != naclac_lang::prelude::ToAddress::address(&expected_pda) {
-                        return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
+                    #[cfg(feature = "pinocchio")]
+                    {
+                        #actual_address_ref
+                        if *__actual_address != expected_pda {
+                            return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
+                        }
+                    }
+                    #[cfg(not(feature = "pinocchio"))]
+                    {
+                        if (#field_ident).address() != naclac_lang::prelude::ToAddress::address(&expected_pda) {
+                            return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
+                        }
                     }
                     #bump_verification_logic
                     let #bump_cap = expected_bump;
                 });
             }
         } else {
-            if skip_address_check {
-                // SHA256 loop already verified: sha256(seeds||bump||program_id||"PDA") == info.address().
-                // The post-loop key comparison is tautologically true — skip it.
-                // expected_pda is not defined in this path (the compile-error path above fired instead).
-                metadata_checks.push(quote! {
-                    #pda_creation_logic
-                    #bump_verification_logic
-                    let #bump_cap = expected_bump;
-                });
-            } else {
-                metadata_checks.push(quote! {
-                    #pda_creation_logic
+            metadata_checks.push(quote! {
+                #pda_creation_logic
+                #[cfg(feature = "pinocchio")]
+                {
+                    #actual_address_ref
+                    if *__actual_address != expected_pda {
+                        return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
+                    }
+                }
+                #[cfg(not(feature = "pinocchio"))]
+                {
                     let __key = (info).address();
                     if __key != naclac_lang::prelude::ToAddress::address(&expected_pda) {
                         return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
                     }
-                    #bump_verification_logic
-                    let #bump_cap = expected_bump;
-                });
-            }
+                }
+                #bump_verification_logic
+                let #bump_cap = expected_bump;
+            });
         }
     } else if field.pda_bump.is_some() {
         constraint_checks.push(quote! {
@@ -791,16 +817,13 @@ pub fn generate_security_checks(
     // branch calls `create`/`create_idempotent` unconditionally every call
     // (not gated behind `data_is_empty()`), so the real Associated Token
     // Program CPI always runs and self-validates the account's address from
-    // `(authority, mint, token_program)` on its own — widening this gate the
-    // same way as block 6 would wrongly force `associated_token::bump =` to
-    // be required on every `init_if_needed` ATA field, which never needed it
-    // (confirmed the hard way: doing so broke `create_ata_idempotent.rs`).
+    // `(authority, mint, token_program)` on its own.
     if field.init_config.is_none() {
         let field_ident = &field.ident;
         let data_prelude = borrow_field_data_tokens(field_ident);
         // Entering this branch on EITHER attribute alone (not just both) is
         // deliberate: it's what lets the match arms below emit a clear
-        // compile_error! when only part of the required trio is present,
+        // compile_error! when only one of mint/authority is present,
         // instead of the constraint silently doing nothing — which is
         // exactly the bug this replaces (see
         // naclac-token/docs/04-associated-token-existing-account-gap.md).
@@ -810,9 +833,30 @@ pub fn generate_security_checks(
                 field.associated_token_authority.as_ref(),
                 field.associated_token_bump.as_ref(),
             ) {
-                (Some(ata_mint_expr), Some(ata_authority_expr), Some(ata_bump_expr)) => {
+                (Some(ata_mint_expr), Some(ata_authority_expr), ata_bump_expr) => {
                     let actual_mint_access = resolve_smart_key(ata_mint_expr, all_fields);
                     let actual_authority_access = resolve_smart_key(ata_authority_expr, all_fields);
+                    let ata_address_check = match ata_bump_expr {
+                        Some(ata_bump_expr) => quote! {
+                            let __ata_bump: u8 = #ata_bump_expr;
+                            naclac_lang::associated_token::check_associated_token_address(
+                                __actual_address,
+                                &actual_authority,
+                                &__token_program_addr,
+                                &actual_mint,
+                                __ata_bump,
+                            ).map_err(|e| e.err(#idx))?;
+                        },
+                        None => quote! {
+                            naclac_lang::associated_token::find_associated_token_bump(
+                                __actual_address,
+                                &actual_authority,
+                                &__token_program_addr,
+                                &actual_mint,
+                            )
+                            .ok_or(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
+                        },
+                    };
 
                     match crate::instruction::init_cpi::resolve_token_program_idx(field, all_fields)
                     {
@@ -833,15 +877,8 @@ pub fn generate_security_checks(
                                         return Err(naclac_lang::prelude::NaclacError::ConstraintOwner.err(#idx));
                                     }
 
-                                    let __ata_bump: u8 = #ata_bump_expr;
-                                    let __actual_address = (info).address();
-                                    naclac_lang::associated_token::check_associated_token_address(
-                                        &__actual_address,
-                                        &actual_authority,
-                                        &__token_program_addr,
-                                        &actual_mint,
-                                        __ata_bump,
-                                    ).map_err(|e| e.err(#idx))?;
+                                    #actual_address_ref
+                                    #ata_address_check
                                 }
                             });
                         }
@@ -850,17 +887,12 @@ pub fn generate_security_checks(
                 }
                 (None, _, _) => {
                     constraint_checks.push(quote! {
-                        compile_error!("Naclac Error: associated_token::mint must be specified alongside associated_token::authority and associated_token::bump. Example: #[account(associated_token::mint = mint, associated_token::authority = owner, associated_token::bump = <precomputed_bump>)]");
+                        compile_error!("Naclac Error: associated_token::mint must be specified alongside associated_token::authority. Example: #[account(associated_token::mint = mint, associated_token::authority = owner)]");
                     });
                 }
                 (_, None, _) => {
                     constraint_checks.push(quote! {
-                        compile_error!("Naclac Error: associated_token::authority must be specified alongside associated_token::mint and associated_token::bump. Example: #[account(associated_token::mint = mint, associated_token::authority = owner, associated_token::bump = <precomputed_bump>)]");
-                    });
-                }
-                (_, _, None) => {
-                    constraint_checks.push(quote! {
-                        compile_error!("Naclac Error: associated_token::bump must be specified on existing (non-init) associated_token accounts. On-chain 'find_program_address' is strictly banned in Naclac, so the canonical ATA bump must be supplied explicitly. Example: #[account(associated_token::mint = mint, associated_token::authority = owner, associated_token::bump = <precomputed_bump>)]");
+                        compile_error!("Naclac Error: associated_token::authority must be specified alongside associated_token::mint. Example: #[account(associated_token::mint = mint, associated_token::authority = owner)]");
                     });
                 }
             }
@@ -1003,6 +1035,12 @@ pub fn generate_relational_checks(fields: &[ParsedField], prefix: TokenStream) -
     checks
 }
 
+/// The bytes of a seed expression known at macro-expansion time: a string,
+/// byte-string or byte literal; a bare constant name; `CONST.as_ref()` or
+/// `CONST.as_bytes()` on such a constant; or a `&` reference to any of
+/// these. Every form it accepts must yield exactly the bytes the program
+/// would hash at runtime, and a subset of the seeds naclac-syn's IDL
+/// generator (`parse_single_seed`) records as constants.
 fn resolve_seed_literal(expr: &syn::Expr) -> Option<Vec<u8>> {
     match expr {
         syn::Expr::Lit(expr_lit) => match &expr_lit.lit {
@@ -1016,56 +1054,85 @@ fn resolve_seed_literal(expr: &syn::Expr) -> Option<Vec<u8>> {
             let (const_expr, _file_path) = find_const_expr(&ident_str)?;
             expr_to_bytes(&const_expr)
         }
+        syn::Expr::MethodCall(method_call)
+            if method_call.args.is_empty()
+                && method_call.turbofish.is_none()
+                && (method_call.method == "as_ref" || method_call.method == "as_bytes")
+                && matches!(&*method_call.receiver, syn::Expr::Path(_)) =>
+        {
+            resolve_seed_literal(&method_call.receiver)
+        }
+        syn::Expr::Reference(reference) => resolve_seed_literal(&reference.expr),
         _ => None,
     }
 }
 
-/// Locates the top-level `const IDENT: T = <expr>;` declaration for
-/// `ident_str` anywhere under the crate's own `src/` tree. Must resolve
-/// to the same constant initializer expression naclac-syn's IDL generator
-/// sees, since the seed/PDA-program-id precomputation path depends on it.
+/// The literal or constant path inside a seed expression accepted by
+/// `resolve_seed_literal`, with the `.as_ref()`/`.as_bytes()` call and `&`
+/// wrappers removed.
+fn seed_literal_root(expr: &syn::Expr) -> &syn::Expr {
+    match expr {
+        syn::Expr::MethodCall(method_call) => seed_literal_root(&method_call.receiver),
+        syn::Expr::Reference(reference) => seed_literal_root(&reference.expr),
+        _ => expr,
+    }
+}
+
+/// The crate's modules (see `naclac_syn::modules`), read from the crate
+/// being compiled.
+fn current_crate_modules() -> Vec<naclac_syn::modules::CrateModule> {
+    std::env::var("CARGO_MANIFEST_DIR")
+        .map(|dir| naclac_syn::modules::crate_modules(std::path::Path::new(&dir)))
+        .unwrap_or_default()
+}
+
+/// Locates the `const IDENT: T = <expr>;` declaration for `ident_str` in any
+/// module of the crate. Must resolve to the same constant initializer
+/// expression naclac-syn's IDL generator sees, since the seed/PDA-program-id
+/// precomputation path depends on it. Returns `None` when several constants
+/// share the name but not the initializer: which one a seed refers to
+/// depends on module scope, so the caller must derive that seed at runtime
+/// instead of guessing.
 fn find_const_expr(ident_str: &str) -> Option<(syn::Expr, String)> {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").ok()?;
-    let src_dir = std::path::Path::new(&manifest_dir).join("src");
-    for file_path in collect_rs_files(&src_dir) {
-        let Ok(content) = std::fs::read_to_string(&file_path) else {
-            continue;
-        };
-        let Ok(syntax_tree) = syn::parse_file(&content) else {
-            continue;
-        };
-        for item in &syntax_tree.items {
+    use quote::ToTokens;
+
+    let mut found: Option<(syn::Expr, String)> = None;
+    for module in current_crate_modules() {
+        for item in &module.items {
             if let syn::Item::Const(item_const) = item {
                 if item_const.ident == ident_str {
-                    return Some(((*item_const.expr).clone(), file_path.to_str()?.to_string()));
+                    match &found {
+                        None => {
+                            found = Some((
+                                (*item_const.expr).clone(),
+                                module.file.to_str()?.to_string(),
+                            ));
+                        }
+                        Some((first, _))
+                            if first.to_token_stream().to_string()
+                                != item_const.expr.to_token_stream().to_string() =>
+                        {
+                            return None;
+                        }
+                        Some(_) => {}
+                    }
                 }
             }
         }
     }
-    None
+    found
 }
 
-/// True if the component struct named `ident_str` (searched the same way
-/// `find_const_expr` finds top-level consts — anywhere under the crate's
-/// own `src/` tree, via real `syn` parsing) declares a field literally
+/// True if the component struct named `ident_str` (searched in every module
+/// of the crate, as `find_const_expr` searches) declares a field literally
 /// named `bump`. Used to decide whether an `init`-bump write-back into
 /// `.bump` is even possible for a given account type: a component with no
 /// `bump` field of its own has nothing to cache the derived bump into, and
 /// that's a legitimate, deliberate choice (nothing else in the program
 /// ever reads this account's bump back), not an error.
 pub(crate) fn component_declares_bump_field(ident_str: &str) -> bool {
-    let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") else {
-        return false;
-    };
-    let src_dir = std::path::Path::new(&manifest_dir).join("src");
-    for file_path in collect_rs_files(&src_dir) {
-        let Ok(content) = std::fs::read_to_string(&file_path) else {
-            continue;
-        };
-        let Ok(syntax_tree) = syn::parse_file(&content) else {
-            continue;
-        };
-        for item in &syntax_tree.items {
+    for module in current_crate_modules() {
+        for item in &module.items {
             if let syn::Item::Struct(item_struct) = item {
                 if item_struct.ident == ident_str {
                     return item_struct
@@ -1080,9 +1147,9 @@ pub(crate) fn component_declares_bump_field(ident_str: &str) -> bool {
 }
 
 /// Searched the same way `find_const_expr`/`component_declares_bump_field`
-/// find their targets (anywhere under the crate's own `src/` tree, via real
-/// `syn` parsing) — if `ident_str` names a struct with a field whose type is
-/// `ZcVec<T>`/`Span<T>`/`ZcString`, returns that field's name. Used by
+/// find their targets (every module of the crate) — if `ident_str` names a
+/// struct with a field whose type is
+/// `ZcVec<T>`/`ZcString`, returns that field's name. Used by
 /// `program.rs` to give a clear, purpose-built error for an instruction
 /// argument whose type is an *opaque* struct name (not itself literally
 /// `ZcVec`/`ZcString`, which `program.rs` already recognizes directly)
@@ -1093,16 +1160,8 @@ pub(crate) fn component_declares_bump_field(ident_str: &str) -> bool {
 /// error instead of `#[instruction_args]`'s error followed by an unrelated
 /// `BorshDeserialize` trait-bound cascade at the point of use.
 pub(crate) fn dynamic_view_field_of(ident_str: &str) -> Option<String> {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").ok()?;
-    let src_dir = std::path::Path::new(&manifest_dir).join("src");
-    for file_path in collect_rs_files(&src_dir) {
-        let Ok(content) = std::fs::read_to_string(&file_path) else {
-            continue;
-        };
-        let Ok(syntax_tree) = syn::parse_file(&content) else {
-            continue;
-        };
-        for item in &syntax_tree.items {
+    for module in current_crate_modules() {
+        for item in &module.items {
             if let syn::Item::Struct(item_struct) = item {
                 if item_struct.ident == ident_str {
                     return item_struct.fields.iter().find_map(|f| {
@@ -1111,7 +1170,12 @@ pub(crate) fn dynamic_view_field_of(ident_str: &str) -> Option<String> {
                             crate::type_classify::DynamicKind::ZcVec
                                 | crate::type_classify::DynamicKind::ZcString
                         )
-                        .then(|| f.ident.as_ref().map(|id| id.to_string()).unwrap_or_default())
+                        .then(|| {
+                            f.ident
+                                .as_ref()
+                                .map(|id| id.to_string())
+                                .unwrap_or_default()
+                        })
                     });
                 }
             }
@@ -1161,30 +1225,6 @@ fn expr_to_bytes(expr: &syn::Expr) -> Option<Vec<u8>> {
     }
 }
 
-/// Recursively collects every `.rs` file under `dir`. Mirrors
-/// `naclac-syn`'s `parse_workspace_program` source-discovery walk — a
-/// literal seed constant can live anywhere under `src/` (a dedicated
-/// `constants.rs`, `lib.rs` directly, or any other module), not just a
-/// hardcoded `constants.rs` path. See `tests/single-file-layout/`, which
-/// specifically exercises a constant declared in `lib.rs`.
-fn collect_rs_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
-    let mut files = Vec::new();
-    let mut dirs_to_visit = vec![dir.to_path_buf()];
-    while let Some(d) = dirs_to_visit.pop() {
-        if let Ok(entries) = std::fs::read_dir(&d) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    dirs_to_visit.push(path);
-                } else if path.extension().unwrap_or_default() == "rs" {
-                    files.push(path);
-                }
-            }
-        }
-    }
-    files
-}
-
 /// Resolves a `seeds::program = X` expression to a literal base58 address,
 /// for the precompute path — looks for a top-level `const IDENT: Address =
 /// address!("...")` (or `pubkey!("...")`) declaration via real `syn` parsing,
@@ -1209,7 +1249,7 @@ fn resolve_program_id_literal(expr: &syn::Expr) -> Option<(String, String)> {
     Some((lit.value(), file_path))
 }
 
-fn find_program_id(crate_name: &str) -> Option<(String, String)> {
+pub(crate) fn find_program_id(crate_name: &str) -> Option<(String, String)> {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").ok()?;
     let mut path = std::path::PathBuf::from(manifest_dir);
     for _ in 0..10 {
@@ -1246,7 +1286,10 @@ fn find_program_id(crate_name: &str) -> Option<(String, String)> {
     None
 }
 
-fn find_pda_at_compile_time(seeds: &[Vec<u8>], program_id_str: &str) -> Option<(String, u8)> {
+pub(crate) fn find_pda_at_compile_time(
+    seeds: &[Vec<u8>],
+    program_id_str: &str,
+) -> Option<(String, u8)> {
     // solana_address::Address has no FromStr or Display impl, so we use bs58.
     let decoded = bs58::decode(program_id_str).into_vec().ok()?;
     if decoded.len() != 32 {

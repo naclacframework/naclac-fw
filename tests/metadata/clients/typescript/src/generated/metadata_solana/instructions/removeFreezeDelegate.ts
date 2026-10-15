@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `remove_freeze_delegate` instruction. */
+/** Discriminator for the `remove_freeze_delegate` instruction. */
 export const REMOVE_FREEZE_DELEGATE_DISCRIMINATOR = new Uint8Array([101, 175, 74, 161, 9, 116, 53, 50]);
 
 /** Accounts for the `removeFreezeDelegate` instruction. */
 export interface RemoveFreezeDelegateAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

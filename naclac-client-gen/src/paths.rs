@@ -1,12 +1,47 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// Resolves the real cargo target directory for `workspace_root`, honoring
-/// `CARGO_TARGET_DIR` and `.cargo/config.toml`'s `target-dir` the same way
-/// `cargo` itself does — by asking `cargo metadata` directly rather than
-/// re-implementing cargo's own env-var/config-file resolution order. Falls
-/// back to `workspace_root/target` if `cargo metadata` can't be run at all
-/// (e.g. no `Cargo.toml` present yet, cargo missing from `PATH`).
+pub fn read_target_dir_from_cargo_config(workspace_root: &Path) -> Option<PathBuf> {
+    for config_name in &["config.toml", "config"] {
+        let config_path = workspace_root.join(".cargo").join(config_name);
+        if let Ok(contents) = std::fs::read_to_string(&config_path) {
+            if let Ok(parsed) = toml::from_str::<toml::Value>(&contents) {
+                if let Some(target_dir) = parsed
+                    .get("build")
+                    .and_then(|b| b.get("target-dir"))
+                    .and_then(|v| v.as_str())
+                {
+                    let path = PathBuf::from(target_dir);
+                    return Some(if path.is_absolute() {
+                        path
+                    } else {
+                        workspace_root.join(path)
+                    });
+                }
+            }
+        }
+    }
+    None
+}
+
+fn read_target_dir_from_env(workspace_root: &Path) -> Option<PathBuf> {
+    std::env::var("CARGO_TARGET_DIR").ok().and_then(|val| {
+        let trimmed = val.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            let path = PathBuf::from(trimmed);
+            Some(if path.is_absolute() {
+                path
+            } else {
+                workspace_root.join(path)
+            })
+        }
+    })
+}
+
+/// Resolves the cargo target directory for `workspace_root`, honoring
+/// `CARGO_TARGET_DIR` and `.cargo/config.toml`'s `target-dir`.
 pub fn resolve_target_dir(workspace_root: &Path) -> PathBuf {
     let manifest_path = workspace_root.join("Cargo.toml");
     if manifest_path.exists() {
@@ -28,12 +63,14 @@ pub fn resolve_target_dir(workspace_root: &Path) -> PathBuf {
             }
         }
     }
-    workspace_root.join("target")
+    read_target_dir_from_env(workspace_root)
+        .or_else(|| read_target_dir_from_cargo_config(workspace_root))
+        .unwrap_or_else(|| workspace_root.join("target"))
 }
 
 pub fn find_naclac_framework_root(start_dir: &Path) -> Option<PathBuf> {
     let mut dir = start_dir.canonicalize().ok()?;
-    loop {
+    for _ in 0..7 {
         if dir.join("naclac-lang/Cargo.toml").exists()
             && dir.join("naclac-client/Cargo.toml").exists()
         {
@@ -43,6 +80,7 @@ pub fn find_naclac_framework_root(start_dir: &Path) -> Option<PathBuf> {
             return None;
         }
     }
+    None
 }
 
 pub fn relative_path(from: &Path, to: &Path) -> PathBuf {
@@ -64,44 +102,51 @@ pub fn relative_path(from: &Path, to: &Path) -> PathBuf {
     result
 }
 
-/// Relative path (using forward slashes, for Cargo.toml portability) from a
-/// generated client's own directory to `naclac-lang`/`naclac-client`,
-/// discovered dynamically rather than assumed at a fixed nesting depth.
-/// `workspace_root` must already exist (used to search upward for the
-/// naclac-fw root); `clients_dir` need not — it only needs to already be
-/// absolute and normalized (i.e. derived from `workspace_root` by joining
-/// path components, not containing its own `..`/symlink segments).
 pub fn naclac_dep_paths(workspace_root: &Path, clients_dir: &Path) -> Option<(String, String)> {
     let root = find_naclac_framework_root(workspace_root)?;
-    let lang_path = relative_path(clients_dir, &root.join("naclac-lang"));
-    let client_path = relative_path(clients_dir, &root.join("naclac-client"));
+    let canon_ws = workspace_root.canonicalize().ok()?;
+    let canon_clients = if let Ok(canon) = clients_dir.canonicalize() {
+        canon
+    } else if clients_dir.is_relative() {
+        canon_ws.join(clients_dir)
+    } else {
+        clients_dir.to_path_buf()
+    };
+    let lang_path = relative_path(&canon_clients, &root.join("naclac-lang"));
+    let client_path = relative_path(&canon_clients, &root.join("naclac-client"));
     Some((
         lang_path.to_string_lossy().replace('\\', "/"),
         client_path.to_string_lossy().replace('\\', "/"),
     ))
 }
 
-/// `(naclac-lang path fragment, naclac-client path fragment)`, each either
-/// `, path = "..."` (ready to splice directly after the crate name in a
-/// Cargo.toml dependency line) or an empty string when the naclac-fw root
-/// couldn't be located — in which case a warning is printed and the
-/// resulting Cargo.toml is deliberately left with no `path`, so `cargo`'s
-/// own dependency resolution produces the real error when it actually runs,
-/// rather than this tool guessing a path that may or may not be correct.
 pub fn naclac_dep_path_fragments(workspace_root: &Path, clients_dir: &Path) -> (String, String) {
     match naclac_dep_paths(workspace_root, clients_dir) {
         Some((lang, client)) => (
             format!(", path = \"{lang}\""),
             format!(", path = \"{client}\""),
         ),
-        None => {
-            eprintln!(
-                "⚠️  Could not locate 'naclac-lang'/'naclac-client' on disk relative to {:?} — \
-                 generating their Cargo.toml dependency entries without a `path`. This will \
-                 likely fail to resolve when the build actually runs.",
-                workspace_root
-            );
-            (String::new(), String::new())
+        None => (String::new(), String::new()),
+    }
+}
+
+pub fn naclac_ts_dep_specs(workspace_root: &Path) -> (String, String) {
+    if let Some(root) = find_naclac_framework_root(workspace_root) {
+        if let Ok(canon_ws) = workspace_root.canonicalize() {
+            let client_target = root.join("client");
+            let litesvm_target = root.join("naclac-litesvm-node");
+            if client_target.join("package.json").exists()
+                && litesvm_target.join("package.json").exists()
+            {
+                let client_rel = relative_path(&canon_ws, &client_target)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                let litesvm_rel = relative_path(&canon_ws, &litesvm_target)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                return (format!("link:{client_rel}"), format!("link:{litesvm_rel}"));
+            }
         }
     }
+    ("0.1.0".to_string(), "0.1.0".to_string())
 }

@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_default_account_state` instruction. */
+/** Discriminator for the `create_mint2022_with_default_account_state` instruction. */
 export const CREATE_MINT2022_WITH_DEFAULT_ACCOUNT_STATE_DISCRIMINATOR = new Uint8Array([41, 226, 85, 25, 65, 127, 171, 38]);
 
 /** Instruction arguments for `createMint2022WithDefaultAccountState`. */
@@ -22,9 +22,9 @@ export interface CreateMint2022WithDefaultAccountStateAccounts {
    * `DefaultAccountState` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

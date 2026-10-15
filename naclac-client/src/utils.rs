@@ -1,10 +1,9 @@
 use crate::error::NaclacClientError;
-use crate::provider::NaclacProvider;
-use sha2::{Digest, Sha256};
+use crate::provider::{NaclacProvider, TransactionVersion};
 use solana_address::Address;
+use solana_instruction::Instruction;
 use solana_keypair::Keypair;
-use solana_message::{v0, VersionedMessage};
-use solana_program::{instruction::Instruction, pubkey::Pubkey};
+use solana_message::{v0, v1, Message as LegacyMessage, VersionedMessage};
 use solana_signature::Signature;
 use solana_signer::Signer;
 use solana_transaction::versioned::VersionedTransaction;
@@ -14,8 +13,7 @@ pub const ASSOCIATED_TOKEN_PROGRAM_ID: Address =
     Address::new_from_array(spl_associated_token_account::ID.to_bytes());
 pub const TOKEN_2022_PROGRAM_ID: Address = Address::new_from_array(spl_token_2022::ID.to_bytes());
 pub const SYSTEM_PROGRAM_ID: Address = Address::new_from_array([0; 32]);
-pub const RENT_SYSVAR_ID: Address =
-    Address::new_from_array(solana_program::sysvar::rent::ID.to_bytes());
+pub const RENT_SYSVAR_ID: Address = Address::new_from_array(solana_sysvar::rent::ID.to_bytes());
 
 pub trait SignerAddressExt {
     fn address(&self) -> Address;
@@ -29,12 +27,12 @@ impl<T: Signer + ?Sized> SignerAddressExt for T {
 
 fn to_sdk_instruction(ix: solana_instruction::Instruction) -> Instruction {
     Instruction {
-        program_id: Pubkey::new_from_array(ix.program_id.to_bytes()),
+        program_id: Address::new_from_array(ix.program_id.to_bytes()),
         accounts: ix
             .accounts
             .into_iter()
-            .map(|meta| solana_program::instruction::AccountMeta {
-                pubkey: Pubkey::new_from_array(meta.pubkey.to_bytes()),
+            .map(|meta| solana_instruction::AccountMeta {
+                pubkey: Address::new_from_array(meta.pubkey.to_bytes()),
                 is_signer: meta.is_signer,
                 is_writable: meta.is_writable,
             })
@@ -43,11 +41,37 @@ fn to_sdk_instruction(ix: solana_instruction::Instruction) -> Instruction {
     }
 }
 
-pub fn get_discriminator(name: &str) -> [u8; 8] {
-    let preimage = format!("global:{}", name);
-    let mut disc = [0u8; 8];
-    disc.copy_from_slice(&Sha256::digest(preimage.as_bytes())[0..8]);
-    disc
+fn compile_provider_message(
+    provider: &NaclacProvider,
+    ixs: &[Instruction],
+) -> Result<VersionedMessage, NaclacClientError> {
+    let payer_pubkey = provider.payer.pubkey();
+    let recent_blockhash = provider.get_latest_blockhash()?;
+    match provider.default_tx_version {
+        TransactionVersion::V1 => {
+            let config = v1::TransactionConfig::empty()
+                .with_compute_unit_limit(1_400_000)
+                .with_loaded_accounts_data_size_limit(64 * 1024 * 1024);
+            let v1_msg =
+                v1::Message::try_compile_with_config(&payer_pubkey, ixs, recent_blockhash, config)
+                    .map_err(|e| {
+                        NaclacClientError::General(format!("Failed to compile v1 message: {:?}", e))
+                    })?;
+            Ok(VersionedMessage::V1(v1_msg))
+        }
+        TransactionVersion::V0 => {
+            let v0_msg = v0::Message::try_compile(&payer_pubkey, ixs, &[], recent_blockhash)
+                .map_err(|e| {
+                    NaclacClientError::General(format!("Failed to compile v0 message: {:?}", e))
+                })?;
+            Ok(VersionedMessage::V0(v0_msg))
+        }
+        TransactionVersion::Legacy => {
+            let legacy_msg =
+                LegacyMessage::new_with_blockhash(ixs, Some(&payer_pubkey), &recent_blockhash);
+            Ok(VersionedMessage::Legacy(legacy_msg))
+        }
+    }
 }
 
 /// Resolves the real cargo target directory for the crate at `manifest_dir`
@@ -116,13 +140,7 @@ pub fn transfer_sol(
         lamports,
     );
     let ix = to_sdk_instruction(sys_ix);
-    let payer_pubkey = provider.payer.pubkey();
-    let recent_blockhash = provider.get_latest_blockhash()?;
-    let v0_msg =
-        v0::Message::try_compile(&payer_pubkey, &[ix], &[], recent_blockhash).map_err(|e| {
-            NaclacClientError::General(format!("Failed to compile v0 message: {:?}", e))
-        })?;
-    let versioned_message = VersionedMessage::V0(v0_msg);
+    let versioned_message = compile_provider_message(provider, &[ix])?;
     let tx = VersionedTransaction::try_new(versioned_message, &[&*provider.payer])
         .map_err(|e| NaclacClientError::General(format!("Failed to sign transaction: {:?}", e)))?;
     provider
@@ -175,24 +193,15 @@ pub fn create_mint_with_program(
     data.extend_from_slice(&[0u8; 32]); // freeze_authority dummy
 
     let init_mint_ix = Instruction {
-        program_id: Pubkey::new_from_array(token_program_id.to_bytes()),
-        accounts: vec![solana_program::instruction::AccountMeta::new(
-            Pubkey::new_from_array(mint_address.to_bytes()),
+        program_id: Address::new_from_array(token_program_id.to_bytes()),
+        accounts: vec![solana_instruction::AccountMeta::new(
+            Address::new_from_array(mint_address.to_bytes()),
             false,
         )],
         data,
     };
 
-    let payer_pubkey = provider.payer.pubkey();
-    let recent_blockhash = provider.get_latest_blockhash()?;
-    let v0_msg = v0::Message::try_compile(
-        &payer_pubkey,
-        &[create_account_ix, init_mint_ix],
-        &[],
-        recent_blockhash,
-    )
-    .map_err(|e| NaclacClientError::General(format!("Failed to compile v0 message: {:?}", e)))?;
-    let versioned_message = VersionedMessage::V0(v0_msg);
+    let versioned_message = compile_provider_message(provider, &[create_account_ix, init_mint_ix])?;
     let tx = VersionedTransaction::try_new(versioned_message, &[&*provider.payer, mint_signer])
         .map_err(|e| NaclacClientError::General(format!("Failed to sign transaction: {:?}", e)))?;
 
@@ -231,13 +240,7 @@ pub fn create_ata_with_program(
     );
     let ix = to_sdk_instruction(sys_ix);
 
-    let payer_pubkey = provider.payer.pubkey();
-    let recent_blockhash = provider.get_latest_blockhash()?;
-    let v0_msg =
-        v0::Message::try_compile(&payer_pubkey, &[ix], &[], recent_blockhash).map_err(|e| {
-            NaclacClientError::General(format!("Failed to compile v0 message: {:?}", e))
-        })?;
-    let versioned_message = VersionedMessage::V0(v0_msg);
+    let versioned_message = compile_provider_message(provider, &[ix])?;
     let tx = VersionedTransaction::try_new(versioned_message, &[&*provider.payer])
         .map_err(|e| NaclacClientError::General(format!("Failed to sign transaction: {:?}", e)))?;
 
@@ -278,31 +281,22 @@ pub fn mint_to_with_program(
     data.extend_from_slice(&amount.to_le_bytes());
 
     let ix = Instruction {
-        program_id: Pubkey::new_from_array(token_program_id.to_bytes()),
+        program_id: Address::new_from_array(token_program_id.to_bytes()),
         accounts: vec![
-            solana_program::instruction::AccountMeta::new(
-                Pubkey::new_from_array(mint.to_bytes()),
+            solana_instruction::AccountMeta::new(Address::new_from_array(mint.to_bytes()), false),
+            solana_instruction::AccountMeta::new(
+                Address::new_from_array(destination.to_bytes()),
                 false,
             ),
-            solana_program::instruction::AccountMeta::new(
-                Pubkey::new_from_array(destination.to_bytes()),
-                false,
-            ),
-            solana_program::instruction::AccountMeta::new_readonly(
-                Pubkey::new_from_array(authority_address.to_bytes()),
+            solana_instruction::AccountMeta::new_readonly(
+                Address::new_from_array(authority_address.to_bytes()),
                 true,
             ),
         ],
         data,
     };
 
-    let payer_pubkey = provider.payer.pubkey();
-    let recent_blockhash = provider.get_latest_blockhash()?;
-    let v0_msg =
-        v0::Message::try_compile(&payer_pubkey, &[ix], &[], recent_blockhash).map_err(|e| {
-            NaclacClientError::General(format!("Failed to compile v0 message: {:?}", e))
-        })?;
-    let versioned_message = VersionedMessage::V0(v0_msg);
+    let versioned_message = compile_provider_message(provider, &[ix])?;
     let signers: &[&dyn Signer] = if provider.payer.pubkey() == authority.pubkey() {
         &[&*provider.payer]
     } else {
@@ -376,30 +370,22 @@ pub fn create_token_account_with_program_and_space(
     data.extend_from_slice(&owner.to_bytes());
 
     let init_account_ix = Instruction {
-        program_id: Pubkey::new_from_array(token_program_id.to_bytes()),
+        program_id: Address::new_from_array(token_program_id.to_bytes()),
         accounts: vec![
-            solana_program::instruction::AccountMeta::new(
-                Pubkey::new_from_array(account_address.to_bytes()),
+            solana_instruction::AccountMeta::new(
+                Address::new_from_array(account_address.to_bytes()),
                 false,
             ),
-            solana_program::instruction::AccountMeta::new_readonly(
-                Pubkey::new_from_array(mint.to_bytes()),
+            solana_instruction::AccountMeta::new_readonly(
+                Address::new_from_array(mint.to_bytes()),
                 false,
             ),
         ],
         data,
     };
 
-    let payer_pubkey = provider.payer.pubkey();
-    let recent_blockhash = provider.get_latest_blockhash()?;
-    let v0_msg = v0::Message::try_compile(
-        &payer_pubkey,
-        &[create_account_ix, init_account_ix],
-        &[],
-        recent_blockhash,
-    )
-    .map_err(|e| NaclacClientError::General(format!("Failed to compile v0 message: {:?}", e)))?;
-    let versioned_message = VersionedMessage::V0(v0_msg);
+    let versioned_message =
+        compile_provider_message(provider, &[create_account_ix, init_account_ix])?;
     let tx = VersionedTransaction::try_new(versioned_message, &[&*provider.payer, account_signer])
         .map_err(|e| NaclacClientError::General(format!("Failed to sign transaction: {:?}", e)))?;
 

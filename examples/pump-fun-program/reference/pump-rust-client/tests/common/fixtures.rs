@@ -11,36 +11,36 @@
 //! refresh `artifacts/accounts_to_load.zst`, then restart the local
 //! validator.
 
-use solana_program::{pubkey, pubkey::Pubkey};
+use solana_{pubkey, pubkey::Address};
 
 /// Devnet mint that has graduated from the bonding curve onto `pump_amm`.
 /// Used by AMM buy/sell tests.
-pub const GRADUATED_DEVNET_MINT: Pubkey = pubkey!("4bYhSvpXvDQ1dXTELLtf6p9fPV3Th1PKBu4A1yN7pump");
+pub const GRADUATED_DEVNET_MINT: Address = pubkey!("4bYhSvpXvDQ1dXTELLtf6p9fPV3Th1PKBu4A1yN7pump");
 
 /// Devnet mint still on the bonding curve. Used by `buy_v2` / `sell_v2`
 /// tests and by the `AsyncPumpClient` fetch tests.
-pub const NOT_GRADUATED_DEVNET_MINT: Pubkey =
+pub const NOT_GRADUATED_DEVNET_MINT: Address =
     pubkey!("6Uw9RM7bxQYeGH9drfbEwTMqWJLaAsVe8wJJpq29pump");
 
-pub const GRADUATED_DEVNET_MINT_WITH_QUOTE_MINT: Pubkey =
+pub const GRADUATED_DEVNET_MINT_WITH_QUOTE_MINT: Address =
     pubkey!("2FLTYhPLpiBpjANBgp9zq5XcX1yCZrVdBv5vZiDdpump");
 // When the account is cloned from devnet we change the bondingCurve.quoteMint to USDC_QUOTE_MINT
-pub const NOT_GRADUATED_DEVNET_MINT_WITH_QUOTE_MINT: Pubkey =
+pub const NOT_GRADUATED_DEVNET_MINT_WITH_QUOTE_MINT: Address =
     pubkey!("5bztZmMVYUaoucJKmbGbL4bBqVREi9KC13aCWqEDpump");
-pub const NON_GRADUATED_WITH_SHARING_FEE_CONFIG_AND_QUOTE_MINT: Pubkey =
+pub const NON_GRADUATED_WITH_SHARING_FEE_CONFIG_AND_QUOTE_MINT: Address =
     pubkey!("FRkJN46usFvkCaMUMnPqNQmXwkXNEbW4hqKRYbzXpump");
-pub const GRADUATED_WITH_SHARING_FEE_CONFIG_AND_QUOTE_MINT: Pubkey =
+pub const GRADUATED_WITH_SHARING_FEE_CONFIG_AND_QUOTE_MINT: Address =
     pubkey!("5LMXdz8i1NPhVMNgR71maKb3gWLXWHz3s5rJ3sqJpump");
 
 /// Test-only quote mint injected into the cloned `Global.whitelisted_quote_mints`
 /// and synthesized as a legacy SPL Token mint by `clone_devnet_accounts` so
 /// custom-quote `create_v2` / `buy_v2` / `sell_v2` flows can run on the local
 /// validator. Paired with [`USDC_QUOTE_MINT_AUTHORITY`] so tests can mint freely.
-pub const USDC_QUOTE_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+pub const USDC_QUOTE_MINT: Address = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
 /// Mint authority for [`USDC_QUOTE_MINT`]. The matching `Keypair` lives at
 /// [`USDC_QUOTE_MINT`] and must sign `mint_to` ixs in tests.
-pub const USDC_QUOTE_MINT_AUTHORITY: Pubkey =
+pub const USDC_QUOTE_MINT_AUTHORITY: Address =
     pubkey!("6ycYUmdKav4kycBvZXSHfQVNzpEbt8SCVdxUgTLcuTF3");
 
 /// Path to the `Keypair` JSON file for [`USDC_QUOTE_MINT`].
@@ -64,7 +64,7 @@ pub const USDC_QUOTE_MINT_AUTHORITY_KEYPAIR_PATH: &str = concat!(
 #[derive(Clone, Copy, Debug)]
 pub struct FixtureMint {
     pub label: &'static str,
-    pub mint: Pubkey,
+    pub mint: Address,
     /// When true, the cloned `bonding_curve`'s `quote_mint` field is
     /// rewritten to [`USDC_QUOTE_MINT`] so local-validator tests can exercise
     /// the non-SOL-quote (USDC) trade path without needing a real

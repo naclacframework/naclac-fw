@@ -413,7 +413,7 @@ fn create_v2_creates_token2022_mint_with_metadata_and_revokes_authorities() {
 
     let mint_data = provider.get_account_data(&mint.address()).expect("mint account should exist");
     assert_eq!(read_mint_decimals(&provider, &mint.address()), 6);
-    // Mint authority `Option` presence flag (byte 0, `COption<Pubkey>` layout)
+    // Mint authority `Option` presence flag (byte 0, `COption<Address>` layout)
     // -- 0 means `None`, confirming `SetAuthority(MintTokens, None)` ran.
     assert_eq!(mint_data[0], 0, "mint authority should be revoked after create_v2");
     let supply = u64::from_le_bytes(mint_data[36..44].try_into().unwrap());

@@ -39,7 +39,7 @@ export class DiscriminatorBorshClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider, false);
+    this.program = new naclac.LegacyProgram(IDL, provider, false, []);
   }
 
   /**
@@ -64,6 +64,14 @@ export class DiscriminatorBorshClient {
    */
   public readVault(args?: Record<string, never>, accounts?: Partial<instructions.ReadVaultAccounts>) {
     return instructions.readVault(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchConfig` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public touchConfig(args?: Record<string, never>, accounts?: Partial<instructions.TouchConfigAccounts>) {
+    return instructions.touchConfig(this.program, args ?? {}, accounts);
   }
 
   /** Derives the PDA for a `config` account. Returns `[PublicKey, bumpSeed]`. */

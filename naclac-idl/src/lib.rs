@@ -45,6 +45,112 @@ pub struct Idl {
     pub defined_types: Vec<IdlType>,
     /// Top-level PDA definitions — additive alongside per-instruction embedded PDAs.
     pub pdas: Vec<IdlPdaDef>,
+    /// The reserved instruction-category tag that prefixes a self-CPI event
+    /// payload. Present only for a program some instruction of which uses
+    /// `#[event_cpi]`; a client decoding events from inner instructions
+    /// strips it, then reads the event's own discriminator and fields.
+    #[serde(
+        rename = "eventCpiTag",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub event_cpi_tag: Option<Vec<u8>>,
+}
+
+impl Idl {
+    /// Puts every list whose order carries no meaning into one fixed order:
+    /// by name, with errors by code. Both IDL generators call this, so the
+    /// output does not depend on how either one discovered its items (a
+    /// directory walk, a map iteration). Instructions keep program order.
+    /// Also defines every `Opt<T>` instantiation the IDL references (see
+    /// `naclac_syn::opt_type`), so each `{"defined": ..}` resolves.
+    pub fn canonicalize(&mut self) {
+        self.define_opt_types();
+        self.accounts.sort_by(|a, b| a.name.cmp(&b.name));
+        self.events.sort_by(|a, b| a.name.cmp(&b.name));
+        self.errors
+            .sort_by(|a, b| (a.code, &a.name).cmp(&(b.code, &b.name)));
+        self.constants.sort_by(|a, b| a.name.cmp(&b.name));
+        self.defined_types.sort_by(|a, b| a.name.cmp(&b.name));
+        self.pdas.sort_by(|a, b| a.name.cmp(&b.name));
+    }
+
+    /// Adds a struct definition for every referenced `Opt<T>` name that has
+    /// none, repeating until the set is closed (an `Opt` of an `Opt`-holding
+    /// type). Panics when a user type already has an `Opt<T>` name but a
+    /// different shape: one IDL name would then mean two layouts.
+    fn define_opt_types(&mut self) {
+        loop {
+            let Ok(whole) = serde_json::to_value(&*self) else {
+                return;
+            };
+            let mut referenced = std::collections::BTreeSet::new();
+            collect_defined_names(&whole, &mut referenced);
+            let mut added = false;
+            for name in referenced {
+                let known: std::collections::BTreeSet<String> =
+                    self.defined_types.iter().map(|t| t.name.clone()).collect();
+                let Some(inner) =
+                    naclac_syn::opt_type::opt_inner_type(&name, |n| known.contains(n))
+                else {
+                    continue;
+                };
+                let definition = IdlTypeDef::Struct {
+                    fields: naclac_syn::opt_type::opt_fields(inner)
+                        .into_iter()
+                        .map(|(field, ty)| IdlField {
+                            name: field.to_string(),
+                            docs: Vec::new(),
+                            ty,
+                        })
+                        .collect(),
+                    docs: Vec::new(),
+                };
+                match self.defined_types.iter().find(|t| t.name == name) {
+                    Some(existing) => {
+                        let same = serde_json::to_value(&existing.ty).ok()
+                            == serde_json::to_value(&definition).ok();
+                        if !same {
+                            panic!(
+                                "Naclac Error: the type `{name}` has the name naclac's IDL gives \
+                                 an `Opt<T>`, but a different shape. Rename it."
+                            );
+                        }
+                    }
+                    None => {
+                        self.defined_types.push(IdlType {
+                            name,
+                            docs: Vec::new(),
+                            ty: definition,
+                        });
+                        added = true;
+                    }
+                }
+            }
+            if !added {
+                return;
+            }
+        }
+    }
+}
+
+fn collect_defined_names(value: &Value, out: &mut std::collections::BTreeSet<String>) {
+    match value {
+        Value::Object(map) => {
+            if let Some(Value::String(name)) = map.get("defined") {
+                out.insert(name.clone());
+            }
+            for v in map.values() {
+                collect_defined_names(v, out);
+            }
+        }
+        Value::Array(items) => {
+            for v in items {
+                collect_defined_names(v, out);
+            }
+        }
+        _ => {}
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -67,17 +173,26 @@ pub struct IdlType {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "kind")]
 pub enum IdlTypeDef {
+    /// `docs` is the struct's own doc comment. It is never serialised: it
+    /// only rides along with the definition so the `idl-build` assembler can
+    /// copy it into the enclosing `IdlType`/`IdlAccountStruct`'s `docs`.
     #[serde(rename = "struct")]
-    Struct { fields: Vec<IdlField> },
+    Struct {
+        fields: Vec<IdlField>,
+        #[serde(skip)]
+        docs: Vec<String>,
+    },
     #[serde(rename = "enum")]
     Enum {
         variants: Vec<IdlEnumVariant>,
-        /// The enum's `#[repr(uN)]` discriminant type, or `None` if none was
-        /// written explicitly — `#[defined_type]`'s zero-copy branch
-        /// defaults an absent repr to `u8` (`naclac-macros/src/lib.rs`), so
-        /// any consumer reading this field for the real discriminant width
-        /// must apply that same default rather than treating `None` as
-        /// "no discriminant".
+        /// Same role as `Struct::docs`.
+        #[serde(skip)]
+        docs: Vec<String>,
+        /// The width of the enum's tag on the wire. Zero-copy programs: the
+        /// `#[repr(uN)]` written in source, or `u8` when none is. Borsh and
+        /// Wincode programs: always `u8`, whatever the source says, because
+        /// both encode the tag as one byte. Always populated by the IDL
+        /// generators; a reader that finds it absent applies `u8`.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         repr: Option<String>,
     },
@@ -122,7 +237,9 @@ pub struct IdlInstruction {
     /// How optional accounts are filled when not provided. Standard: "programId".
     #[serde(rename = "optionalAccountStrategy")]
     pub optional_account_strategy: String,
-    pub discriminator: [u8; 8],
+    /// 1 to 8 bytes; `sha256("global:<name>")[..8]` unless the handler
+    /// carries `#[discriminator = ..]`.
+    pub discriminator: Vec<u8>,
     pub accounts: Vec<IdlAccount>,
     pub args: Vec<IdlField>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -192,8 +309,9 @@ pub struct IdlAccountStruct {
     pub name: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub docs: Vec<String>,
-    /// 8-byte on-chain discriminator: sha256("account:<Name>")[0..8]
-    pub discriminator: [u8; 8],
+    /// 1 to 8 bytes; `sha256("account:<Name>")[..8]` unless the component
+    /// carries `discriminator = ..`.
+    pub discriminator: Vec<u8>,
     #[serde(rename = "type")]
     pub ty: IdlTypeStruct,
 }
@@ -209,8 +327,9 @@ pub struct IdlEvent {
     pub name: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub docs: Vec<String>,
-    /// 8-byte event discriminator: sha256("event:<Name>")[0..8]
-    pub discriminator: [u8; 8],
+    /// 1 to 8 bytes; `sha256("event:<Name>")[..8]` unless the event carries
+    /// `discriminator = ..`.
+    pub discriminator: Vec<u8>,
     pub fields: Vec<IdlEventField>,
 }
 
@@ -243,10 +362,6 @@ pub struct IdlConstant {
     pub value: String,
 }
 
-// ─── Discriminator Helpers ────────────────────────────────────────────────────
-
-use naclac_syn::discriminator::compute_discriminator;
-
 fn to_idl_seed(seed: &naclac_syn::types::NaclacSeed) -> IdlSeed {
     match seed {
         naclac_syn::types::NaclacSeed::Const { value, name } => IdlSeed::Const {
@@ -272,9 +387,8 @@ pub fn generate_idl(
     program_name: &str,
     address: &str,
     version: &str,
-    is_zero_copy: bool,
 ) -> Result<(String, Vec<String>), Box<dyn std::error::Error>> {
-    let ast = naclac_syn::parse_workspace_program(program_dir, program_name, is_zero_copy);
+    let ast = naclac_syn::parse_workspace_program(program_dir, program_name);
 
     let metadata = IdlMetadata {
         name: program_name.to_string(),
@@ -323,7 +437,11 @@ pub fn generate_idl(
                 signer: acc.signer,
                 optional: is_optional,
                 pda,
-                address: acc.address.clone(),
+                address: if acc.address_is_program_id {
+                    Some(address.to_string())
+                } else {
+                    acc.address.clone()
+                },
                 docs: acc.docs.clone(),
             });
         }
@@ -351,7 +469,7 @@ pub fn generate_idl(
             name: ix.name.clone(),
             // Standard Solana convention: use program ID to fill optional account slots
             optional_account_strategy: "programId".to_string(),
-            discriminator: ix.discriminator,
+            discriminator: ix.discriminator.clone(),
             accounts: idl_accounts,
             args: idl_args,
             docs: ix.docs.clone(),
@@ -370,11 +488,9 @@ pub fn generate_idl(
                 docs: f.docs.clone(),
             });
         }
-        // Compute the 8-byte discriminator: sha256("account:<Name>")[0..8]
-        let discriminator = compute_discriminator("account", &acc.name);
         accounts.push(IdlAccountStruct {
             name: acc.name.clone(),
-            discriminator,
+            discriminator: acc.discriminator.clone(),
             ty: IdlTypeStruct {
                 kind: "struct".to_string(),
                 fields,
@@ -396,14 +512,12 @@ pub fn generate_idl(
                 docs: f.docs.clone(),
             });
         }
-        // Compute the 8-byte discriminator: sha256("event:<Name>")[0..8]
-        let discriminator = compute_discriminator("event", &evt.name);
         if evt.alloc {
             alloc_event_names.push(evt.name.clone());
         }
         events.push(IdlEvent {
             name: evt.name.clone(),
-            discriminator,
+            discriminator: evt.discriminator.clone(),
             fields,
             docs: evt.docs.clone(),
         });
@@ -445,24 +559,25 @@ pub fn generate_idl(
                         docs: f.docs.clone(),
                     });
                 }
-                IdlTypeDef::Struct { fields: idl_fields }
+                IdlTypeDef::Struct {
+                    fields: idl_fields,
+                    docs: t.docs.clone(),
+                }
             }
             naclac_syn::types::NaclacTypeDefTy::Enum { variants, repr } => {
                 let mut idl_variants = Vec::new();
                 for v in variants {
                     let fields = v.fields.as_ref().map(|f| match f {
-                        naclac_syn::types::NaclacEnumFields::Named(fields) => {
-                            IdlEnumFields::Named(
-                                fields
-                                    .iter()
-                                    .map(|f| IdlField {
-                                        name: f.name.clone(),
-                                        ty: f.ty.clone(),
-                                        docs: f.docs.clone(),
-                                    })
-                                    .collect(),
-                            )
-                        }
+                        naclac_syn::types::NaclacEnumFields::Named(fields) => IdlEnumFields::Named(
+                            fields
+                                .iter()
+                                .map(|f| IdlField {
+                                    name: f.name.clone(),
+                                    ty: f.ty.clone(),
+                                    docs: f.docs.clone(),
+                                })
+                                .collect(),
+                        ),
                         naclac_syn::types::NaclacEnumFields::Tuple(tys) => {
                             IdlEnumFields::Tuple(tys.clone())
                         }
@@ -476,6 +591,7 @@ pub fn generate_idl(
                 }
                 IdlTypeDef::Enum {
                     variants: idl_variants,
+                    docs: t.docs.clone(),
                     repr: repr.clone(),
                 }
             }
@@ -510,8 +626,16 @@ pub fn generate_idl(
         .collect();
     pdas.sort_by(|a, b| a.name.cmp(&b.name));
 
+    let event_cpi_tag = ast.event_cpi.then(|| {
+        let width = instructions.first().map_or(
+            naclac_syn::discriminator::DEFAULT_DISCRIMINATOR_LEN,
+            |ix: &IdlInstruction| ix.discriminator.len(),
+        );
+        naclac_syn::discriminator::event_dispatch_tag(width)
+    });
+
     // ── Assemble and serialize ────────────────────────────────────────────────
-    let idl = Idl {
+    let mut idl = Idl {
         address: address.to_string(),
         metadata,
         instructions,
@@ -521,7 +645,9 @@ pub fn generate_idl(
         constants,
         defined_types,
         pdas,
+        event_cpi_tag,
     };
+    idl.canonicalize();
 
     Ok((to_compact_pretty_json(&idl)?, alloc_event_names))
 }

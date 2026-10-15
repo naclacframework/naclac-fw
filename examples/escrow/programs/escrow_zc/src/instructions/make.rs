@@ -1,10 +1,11 @@
 use naclac_lang::prelude::*;
 use crate::components::escrow_state::EscrowState;
 use crate::constants::SEED_ESCROW;
+use crate::errors::EscrowError;
 use crate::events::EscrowCreated;
 
 #[derive(Accounts)]
-#[instruction(seed: u64, escrow_bump: u8)]
+#[instruction(seed: u64)]
 pub struct Make {
     #[account(mut)]
     pub maker: Signer,
@@ -14,7 +15,7 @@ pub struct Make {
         init,
         payer = maker,
         seeds = [SEED_ESCROW, maker.address().as_ref(), &seed.to_le_bytes()],
-        bump = escrow_bump
+        bump
     )]
     pub escrow_state: Account<EscrowState>,
     #[account(
@@ -23,14 +24,18 @@ pub struct Make {
         token::authority = escrow_state,
     )]
     pub vault_token_account: Account<TokenAccount>,
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = mint_a,
+        token::authority = maker,
+    )]
     pub maker_token_account_a: Account<TokenAccount>,
     pub token_program: Program<Token>,
     pub system_program: Program<System>,
 }
-pub fn make(ctx: Context<Make>, _seed: u64, escrow_bump: u8, amount_a: u64, amount_b: u64) -> Result {
-    require!(amount_a > 0 && amount_b > 0, crate::errors::EscrowError::ZeroAmount);
-    require!(ctx.accounts.mint_a.address() != ctx.accounts.mint_b.address(), crate::errors::EscrowError::InvalidMint);
+pub fn make(ctx: Context<Make>, _seed: u64, amount_a: u64, amount_b: u64) -> Result {
+    require!(amount_a > 0 && amount_b > 0, EscrowError::ZeroAmount);
+    require!(ctx.accounts.mint_a.address() != ctx.accounts.mint_b.address(), EscrowError::InvalidMint);
 
     let escrow = &mut ctx.accounts.escrow_state;
     escrow.maker = ctx.accounts.maker.address();
@@ -38,7 +43,7 @@ pub fn make(ctx: Context<Make>, _seed: u64, escrow_bump: u8, amount_a: u64, amou
     escrow.mint_b = ctx.accounts.mint_b.address();
     escrow.amount_a = amount_a;
     escrow.amount_b = amount_b;
-    escrow.bump = escrow_bump;
+    escrow.bump = ctx.bumps.escrow_state;
     // Transfer Token A from maker's token account to the vault token account
     let decimals = ctx.accounts.mint_a.decimals();
     ctx.accounts.token_program.transfer_checked(

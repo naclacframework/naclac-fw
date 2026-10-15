@@ -1,6 +1,6 @@
 //! Fee math for bonding-curve and AMM quotes (basis points as `u64`).
 
-use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang::solana_address::Address;
 
 use crate::pda;
 use crate::pump::types::{FeeTier, Fees};
@@ -19,11 +19,11 @@ pub fn fee_amount(amount: u128, basis_points: u64) -> u128 {
     ceil_div(amount * basis_points as u128, 10_000)
 }
 
-/// `fee_amount(amount, basis_points)`, or `0` when `creator` is `Pubkey::default()`
+/// `fee_amount(amount, basis_points)`, or `0` when `creator` is `Address::default()`
 /// (the convention for "no creator fee on this trade").
 #[inline]
-pub fn creator_fee_amount(creator: &Pubkey, amount: u128, basis_points: u64) -> u128 {
-    if *creator == Pubkey::default() {
+pub fn creator_fee_amount(creator: &Address, amount: u128, basis_points: u64) -> u128 {
+    if *creator == Address::default() {
         0
     } else {
         fee_amount(amount, basis_points)
@@ -53,7 +53,7 @@ pub fn pool_market_cap(base_mint_supply: u64, base_reserve: u64, quote_reserve: 
 /// `true` iff `pool_creator` matches the canonical pump-program-derived pool
 /// authority for `base_mint`. Used to decide whether a pool gets tiered fees
 /// (pump pools) or flat fees (third-party pools).
-pub fn is_pump_pool(base_mint: &Pubkey, pool_creator: &Pubkey) -> bool {
+pub fn is_pump_pool(base_mint: &Address, pool_creator: &Address) -> bool {
     &pda::pump::pool_authority(base_mint).0 == pool_creator
 }
 
@@ -130,8 +130,8 @@ pub fn compute_bonding_curve_fee_bps(
 pub fn compute_amm_fee_bps(
     global_config: &GlobalConfig,
     fee_config: Option<&FeeConfig>,
-    base_mint: &Pubkey,
-    pool_creator: &Pubkey,
+    base_mint: &Address,
+    pool_creator: &Address,
     base_mint_supply: u64,
     base_reserve: u64,
     quote_reserve: u64,

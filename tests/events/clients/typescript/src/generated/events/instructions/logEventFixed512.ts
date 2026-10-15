@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `log_event_fixed_512` instruction. */
+/** Discriminator for the `log_event_fixed_512` instruction. */
 export const LOG_EVENT_FIXED_512_DISCRIMINATOR = new Uint8Array([134, 104, 190, 181, 234, 155, 142, 191]);
 
 /** Instruction arguments for `logEventFixed512`. */

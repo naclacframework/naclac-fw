@@ -9,7 +9,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -29,12 +29,12 @@ const DEBOUNCER_V1_SEED: &[u8] = b"debouncer_v1";
 const MINT_WHITELIST_V1_SEED: &[u8] = b"mint_whitelist_v1";
 const MINT_WHITELIST_V1_DISCRIMINATOR: [u8; 8] = [73, 115, 177, 235, 234, 1, 95, 67];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(
         &[owner.as_ref(), token_program.as_ref(), mint.as_ref()],
         &pk(ASSOCIATED_TOKEN_PROGRAM_ID),
     )
@@ -49,7 +49,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -94,7 +94,7 @@ fn message_length_succeeds(len: usize) -> bool {
     .unwrap();
 
     let (mint_whitelist, mint_whitelist_bump) =
-        Pubkey::find_program_address(&[MINT_WHITELIST_V1_SEED], &program_id);
+        Address::find_program_address(&[MINT_WHITELIST_V1_SEED], &program_id);
     svm.set_account(
         mint_whitelist,
         Account {
@@ -126,19 +126,19 @@ fn message_length_succeeds(len: usize) -> bool {
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
 
-    let config_id = Pubkey::new_unique();
-    let credited_to = Pubkey::new_unique();
+    let config_id = Address::new_unique();
+    let credited_to = Address::new_unique();
 
-    let (epoch_tracker, _) = Pubkey::find_program_address(
+    let (epoch_tracker, _) = Address::find_program_address(
         &[EPOCH_TRACKER_V1_SEED, config_id.as_ref(), mint.as_ref()],
         &program_id,
     );
-    let (debouncer, _) = Pubkey::find_program_address(
+    let (debouncer, _) = Address::find_program_address(
         &[DEBOUNCER_V1_SEED, config_id.as_ref(), mint.as_ref()],
         &program_id,
     );
     let debouncer_token_account = ata_address(&debouncer, &mint, &token_program);
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &program_id).0;
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &program_id).0;
 
     let message = "a".repeat(len);
     let mut data = DONATE_PUBKEY_CONFIG_ID_WITH_PAYER_V1_DISCRIMINATOR.to_vec();

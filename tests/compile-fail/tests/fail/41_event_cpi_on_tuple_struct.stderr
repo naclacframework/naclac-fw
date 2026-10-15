@@ -1,0 +1,6 @@
+error: Naclac Error: #[event_cpi] must be applied to a struct with named fields.
+ --> tests/fail/41_event_cpi_on_tuple_struct.rs:8:1
+  |
+8 | / #[derive(Accounts)]
+9 | | pub struct Foo(u8);
+  | |___________________^

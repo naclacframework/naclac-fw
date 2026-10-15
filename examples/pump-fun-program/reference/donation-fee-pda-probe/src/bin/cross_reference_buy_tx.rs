@@ -6,7 +6,7 @@
 //!
 //! Usage: cargo run --bin cross_reference_buy_tx [-- <rpc-url>]
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use std::str::FromStr;
 use std::time::Duration;
@@ -45,19 +45,19 @@ const REAL_ACCOUNTS: [&str; 23] = [
     "GXPFM2caqTtQYC2cJ5yJRi9VDkpsYZXzYdwYpGnLmtDL",
 ];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(
         &[owner.as_ref(), token_program.as_ref(), mint.as_ref()],
         &pk(ASSOCIATED_TOKEN_PROGRAM_ID),
     )
     .0
 }
 
-fn find_and_report(label: &str, candidate: &Pubkey) {
+fn find_and_report(label: &str, candidate: &Address) {
     let candidate_str = candidate.to_string();
     match REAL_ACCOUNTS.iter().position(|&a| a == candidate_str) {
         Some(i) => println!("  [{i}] {label} = {candidate} <- MATCH"),
@@ -87,19 +87,19 @@ fn main() {
     println!("  [3]  mint (vanity suffix) = {mint}");
 
     println!("\n=== Computed PDAs ===");
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     find_and_report("global", &global);
 
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
     find_and_report("bonding_curve", &bonding_curve);
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
     find_and_report("event_authority", &event_authority);
 
-    let (global_volume_accumulator, _) = Pubkey::find_program_address(&[b"global_volume_accumulator"], &pump_program);
+    let (global_volume_accumulator, _) = Address::find_program_address(&[b"global_volume_accumulator"], &pump_program);
     find_and_report("global_volume_accumulator", &global_volume_accumulator);
 
-    let (fee_config, _) = Pubkey::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
+    let (fee_config, _) = Address::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
     find_and_report("fee_config", &fee_config);
 
     // associated_bonding_curve: try both classic Token and Token-2022 as the
@@ -117,9 +117,9 @@ fn main() {
             println!("bonding_curve exists, {} bytes, owner={}", account.data.len(), account.owner);
             // discriminator(8) + 5*u64(40) + complete(1) = 49, creator starts at 49
             if account.data.len() >= 49 + 32 {
-                let creator = Pubkey::try_from(&account.data[49..81]).unwrap();
+                let creator = Address::try_from(&account.data[49..81]).unwrap();
                 println!("bonding_curve.creator = {creator}");
-                let (creator_vault, _) = Pubkey::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
+                let (creator_vault, _) = Address::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
                 find_and_report("creator_vault", &creator_vault);
                 let assoc_cv_classic = ata_address(&creator_vault, &mint, &token_program);
                 find_and_report("associated_creator_vault (classic, wrong mint on purpose skip)", &assoc_cv_classic);
@@ -148,7 +148,7 @@ fn main() {
         let candidate = pk(addr_str);
         let assoc_2022 = ata_address(&candidate, &mint, &token_2022_program);
         let assoc_classic = ata_address(&candidate, &mint, &token_program);
-        let (uva, _) = Pubkey::find_program_address(&[b"user_volume_accumulator", candidate.as_ref()], &pump_program);
+        let (uva, _) = Address::find_program_address(&[b"user_volume_accumulator", candidate.as_ref()], &pump_program);
         let assoc_2022_str = assoc_2022.to_string();
         let assoc_classic_str = assoc_classic.to_string();
         let uva_str = uva.to_string();
@@ -170,7 +170,7 @@ fn main() {
         Ok(account) => {
             // discriminator(8) + initialized(1) + authority(32) = 41, fee_recipient starts at 41
             if account.data.len() >= 41 + 32 {
-                let fee_recipient = Pubkey::try_from(&account.data[41..73]).unwrap();
+                let fee_recipient = Address::try_from(&account.data[41..73]).unwrap();
                 println!("global.fee_recipient = {fee_recipient}");
                 find_and_report("fee_recipient", &fee_recipient);
             }
@@ -188,8 +188,8 @@ fn main() {
             if account.data.len() >= start + 256 {
                 for i in 0..8 {
                     let off = start + i * 32;
-                    let recipient = Pubkey::try_from(&account.data[off..off + 32]).unwrap();
-                    if recipient != Pubkey::default() {
+                    let recipient = Address::try_from(&account.data[off..off + 32]).unwrap();
+                    if recipient != Address::default() {
                         find_and_report(&format!("buyback_fee_recipients[{i}]"), &recipient);
                         let assoc = ata_address(&recipient, &pk("So11111111111111111111111111111111111111112"), &token_program);
                         find_and_report(&format!("associated_buyback_fee_recipients[{i}] (WSOL)"), &assoc);
@@ -217,7 +217,7 @@ fn main() {
 
     println!("\n=== Testing candidate bonding_curve_v2 seed variants ===");
     for seed in [&b"bonding-curve-v2"[..], &b"bonding_curve_v2"[..], &b"bonding-curve_v2"[..]] {
-        let (candidate, _) = Pubkey::find_program_address(&[seed, mint.as_ref()], &pump_program);
+        let (candidate, _) = Address::find_program_address(&[seed, mint.as_ref()], &pump_program);
         find_and_report(&format!("bonding_curve_v2 (seed={:?})", String::from_utf8_lossy(seed)), &candidate);
     }
 
@@ -229,8 +229,8 @@ fn main() {
             if account.data.len() >= start + 224 {
                 for i in 0..7 {
                     let off = start + i * 32;
-                    let candidate = Pubkey::try_from(&account.data[off..off + 32]).unwrap();
-                    if candidate != Pubkey::default() {
+                    let candidate = Address::try_from(&account.data[off..off + 32]).unwrap();
+                    if candidate != Address::default() {
                         find_and_report(&format!("{label}[{i}]"), &candidate);
                     }
                 }

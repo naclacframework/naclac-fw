@@ -5,31 +5,31 @@ import * as naclac from "@naclac-fw/client";
 
 /** Auto-generated from the program IDL. */
 export interface CheckAccountFieldsArgs {
-  expected_vault_delegate: naclac.Address | string | null;
-  expected_vault_delegated_amount: bigint | number;
-  expected_vault_state: number;
-  expected_vault_is_native: bigint | number | null;
-  expected_vault_close_authority: naclac.Address | string | null;
-  expected_mint_authority: naclac.Address | string | null;
-  expected_mint_freeze_authority: naclac.Address | string | null;
-  expected_mint_is_initialized: number;
+  expectedVaultDelegate: naclac.Address | string | null;
+  expectedVaultDelegatedAmount: bigint | number;
+  expectedVaultState: number;
+  expectedVaultIsNative: bigint | number | null;
+  expectedVaultCloseAuthority: naclac.Address | string | null;
+  expectedMintAuthority: naclac.Address | string | null;
+  expectedMintFreezeAuthority: naclac.Address | string | null;
+  expectedMintIsInitialized: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface CheckInterestBearingMintArgs {
-  expected_rate_authority: naclac.Address | string | null;
-  expected_current_rate: number;
+  expectedRateAuthority: naclac.Address | string | null;
+  expectedCurrentRate: number;
 }
 
 /** Auto-generated from the program IDL. */
 export interface CheckTransferFeeConfigArgs {
-  expected_withheld_amount: bigint | number;
-  expected_newer_basis_points: number;
-  expected_newer_maximum_fee: bigint | number;
-  current_epoch: bigint | number;
-  transfer_amount: bigint | number;
-  expected_fee: bigint | number;
-  expected_post_fee_amount: bigint | number;
+  expectedWithheldAmount: bigint | number;
+  expectedNewerBasisPoints: number;
+  expectedNewerMaximumFee: bigint | number;
+  currentEpoch: bigint | number;
+  transferAmount: bigint | number;
+  expectedFee: bigint | number;
+  expectedPostFeeAmount: bigint | number;
 }
 
 /**
@@ -43,9 +43,9 @@ export interface CheckTransferFeeConfigArgs {
  */
 export interface CreateMint2022WithDefaultAccountStateArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  initial_state: number;
+  initialState: number;
 }
 
 /**
@@ -56,9 +56,9 @@ export interface CreateMint2022WithDefaultAccountStateArgs {
  */
 export interface CreateMint2022WithGroupMemberPointerArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  member_address: naclac.Address | string;
+  memberAddress: naclac.Address | string;
 }
 
 /**
@@ -71,8 +71,8 @@ export interface CreateMint2022WithGroupMemberPointerArgs {
  * own PDA update authority.
  */
 export interface CreateMint2022WithGroupMemberPointerAndMemberArgs {
-  member_seed: bigint | number;
-  member_mint_bump: number;
+  memberSeed: bigint | number;
+  memberMintBump: number;
   decimals: number;
 }
 
@@ -84,9 +84,9 @@ export interface CreateMint2022WithGroupMemberPointerAndMemberArgs {
  */
 export interface CreateMint2022WithGroupPointerArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  group_address: naclac.Address | string;
+  groupAddress: naclac.Address | string;
 }
 
 /**
@@ -108,9 +108,9 @@ export interface CreateMint2022WithGroupPointerArgs {
  */
 export interface CreateMint2022WithGroupPointerAndGroupArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  max_size: bigint | number;
+  maxSize: bigint | number;
 }
 
 /**
@@ -122,7 +122,7 @@ export interface CreateMint2022WithGroupPointerAndGroupArgs {
  */
 export interface CreateMint2022WithInterestBearingMintArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
   rate: number;
 }
@@ -135,9 +135,9 @@ export interface CreateMint2022WithInterestBearingMintArgs {
  */
 export interface CreateMint2022WithMetadataPointerArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  metadata_address: naclac.Address | string;
+  metadataAddress: naclac.Address | string;
 }
 
 /**
@@ -154,7 +154,7 @@ export interface CreateMint2022WithMetadataPointerArgs {
  */
 export interface CreateMint2022WithMetadataPointerAndMetadataArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
   name: string;
   symbol: string;
@@ -172,7 +172,7 @@ export interface CreateMint2022WithMetadataPointerAndMetadataArgs {
  */
 export interface CreateMint2022WithNonTransferableArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
 }
 
@@ -187,7 +187,7 @@ export interface CreateMint2022WithNonTransferableArgs {
  */
 export interface CreateMint2022WithPermanentDelegateArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
 }
 
@@ -204,10 +204,10 @@ export interface CreateMint2022WithPermanentDelegateArgs {
  */
 export interface CreateMint2022WithTransferFeeArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  transfer_fee_basis_points: number;
-  maximum_fee: bigint | number;
+  transferFeeBasisPoints: number;
+  maximumFee: bigint | number;
 }
 
 /**
@@ -220,9 +220,9 @@ export interface CreateMint2022WithTransferFeeArgs {
  */
 export interface CreateMint2022WithTransferHookArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  hook_program_id: naclac.Address | string;
+  hookProgramId: naclac.Address | string;
 }
 
 /**
@@ -240,7 +240,7 @@ export interface ExerciseTransferFeeCpisArgs {
   fee1: bigint | number;
   amount2: bigint | number;
   fee2: bigint | number;
-  new_basis_points: number;
-  new_maximum_fee: bigint | number;
+  newBasisPoints: number;
+  newMaximumFee: bigint | number;
 }
 

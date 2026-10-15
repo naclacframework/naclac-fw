@@ -5,7 +5,7 @@ description = "Created with Naclac Framework"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []
@@ -23,8 +23,5 @@ naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = 
 naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
 escrow-borsh-client = { version = "0.1.0", path = "../../clients/rust/escrow_borsh" }
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("pinocchio", "solana", "borsh"))'
-] }
+[lints]
+workspace = true

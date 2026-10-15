@@ -1,4 +1,5 @@
-use solana_program::instruction::InstructionError;
+use naclac_core::error::FRAMEWORK_ERROR_BASE;
+use solana_instruction_error::InstructionError;
 use thiserror::Error;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -31,35 +32,46 @@ pub enum NaclacError {
     ConstraintClose = 26,
     TooManyCpiSigners = 27,
     TooManyCpiSeeds = 28,
+    TooManyExtraAccounts = 29,
+    TooManyCpiAccounts = 30,
+    TooManyAccountEntries = 31,
 }
 
 impl NaclacError {
     pub fn description(&self) -> &'static str {
         match self {
-            NaclacError::ConstraintMut => "Account must be mutable",
-            NaclacError::ConstraintSigner => "Account must be a signer",
-            NaclacError::ConstraintAddress => "Account address constraint mismatch",
-            NaclacError::ConstraintOwner => "Account owner constraint mismatch",
+            NaclacError::ConstraintMut => "Mutability mismatch",
+            NaclacError::ConstraintSigner => "Missing required signature",
+            NaclacError::ConstraintAddress => "Address mismatch",
+            NaclacError::ConstraintOwner => "Owner mismatch",
             NaclacError::ConstraintRentExempt => "Account is not rent exempt",
-            NaclacError::ConstraintSeeds => "Account seeds derivation constraint mismatch",
-            NaclacError::ConstraintExecutable => "Account must be executable (program)",
-            NaclacError::ConstraintAccountIsNone => "Account is required but was not provided",
-            NaclacError::ProgramIdMismatch => "Program ID mismatch",
-            NaclacError::AccountDataTooSmall => "Account data size is too small",
-            NaclacError::AccountBorrowFailed => "Account borrow failed (concurrent borrow overlap)",
-            NaclacError::InvalidInstructionData => "Invalid instruction data layout",
-            NaclacError::InsufficientFunds => "Insufficient funds in signer account",
-            NaclacError::AccountAlreadyInitialized => "Account is already initialized",
-            NaclacError::AccountNotInitialized => "Account has not been initialized",
-            NaclacError::NotEnoughAccountKeys => "Not enough account keys provided for instruction",
-            NaclacError::MaxSeedLengthExceeded => "PDA seed length exceeded maximum",
-            NaclacError::UnsupportedSysvar => "Unsupported sysvar account type",
-            NaclacError::InvalidRealloc => "Invalid account data reallocation",
-            NaclacError::ArithmeticOverflow => "Safe math arithmetic overflow occurred",
-            NaclacError::Unauthorized => "User is unauthorized to perform this operation",
-            NaclacError::InvalidAccountDiscriminator => "Invalid account discriminator prefix",
-            NaclacError::DeserializationFailed => "Borsh/Zero-Copy deserialization failed",
-            NaclacError::SerializationFailed => "Borsh/Zero-Copy serialization failed",
+            NaclacError::ConstraintSeeds => "PDA derivation failed (Seeds mismatch)",
+            NaclacError::ConstraintExecutable => "Account is not executable",
+            NaclacError::ConstraintAccountIsNone => {
+                "Account is None (Expected initialized account)"
+            }
+            NaclacError::ProgramIdMismatch => {
+                "Program ID mismatch (Missing required program in accounts array)"
+            }
+            NaclacError::AccountDataTooSmall => {
+                "Account data too small (Missing discriminator or insufficient size)"
+            }
+            NaclacError::AccountBorrowFailed => "Account borrow failed (Already borrowed)",
+            NaclacError::InvalidInstructionData => "Invalid instruction data",
+            NaclacError::InsufficientFunds => "Insufficient funds for transaction",
+            NaclacError::AccountAlreadyInitialized => "Account already initialized",
+            NaclacError::AccountNotInitialized => "Account not initialized",
+            NaclacError::NotEnoughAccountKeys => "Not enough account keys provided",
+            NaclacError::MaxSeedLengthExceeded => "Max seed length exceeded",
+            NaclacError::UnsupportedSysvar => "Unsupported sysvar",
+            NaclacError::InvalidRealloc => "Invalid reallocation",
+            NaclacError::ArithmeticOverflow => "Arithmetic overflow",
+            NaclacError::Unauthorized => "Unauthorized access (Authority mismatch)",
+            NaclacError::InvalidAccountDiscriminator => {
+                "Account type mismatch (Invalid discriminator)"
+            }
+            NaclacError::DeserializationFailed => "Account deserialization failed",
+            NaclacError::SerializationFailed => "Account serialization failed",
             NaclacError::ConstraintDuplicateMutableAccount => {
                 "Duplicate mutable account detected in instruction"
             }
@@ -70,15 +82,26 @@ impl NaclacError {
             NaclacError::TooManyCpiSeeds => {
                 "Too many seeds for one PDA signer in a CPI call (exceeds MAX_CPI_SEEDS_PER_SIGNER)"
             }
+            NaclacError::TooManyExtraAccounts => {
+                "Too many extra accounts appended to a CPI (exceeds its fixed maximum)"
+            }
+            NaclacError::TooManyCpiAccounts => "Too many accounts in one CPI call",
+            NaclacError::TooManyAccountEntries => {
+                "Instruction carries more than 64 account entries"
+            }
         }
     }
 }
 
+/// One past the highest framework error code: account index 255, the largest
+/// index a transaction's account list can address.
+const FRAMEWORK_ERROR_END: u32 = FRAMEWORK_ERROR_BASE + 256 * 100;
+
 pub fn decode_custom_error(code: u32) -> Option<(NaclacError, usize)> {
-    if !(3000..6000).contains(&code) {
+    if !(FRAMEWORK_ERROR_BASE..FRAMEWORK_ERROR_END).contains(&code) {
         return None;
     }
-    let offset_code = code - 3000;
+    let offset_code = code - FRAMEWORK_ERROR_BASE;
     let index = (offset_code / 100) as usize;
     let error_val = offset_code % 100;
 
@@ -111,6 +134,9 @@ pub fn decode_custom_error(code: u32) -> Option<(NaclacError, usize)> {
         26 => NaclacError::ConstraintClose,
         27 => NaclacError::TooManyCpiSigners,
         28 => NaclacError::TooManyCpiSeeds,
+        29 => NaclacError::TooManyExtraAccounts,
+        30 => NaclacError::TooManyCpiAccounts,
+        31 => NaclacError::TooManyAccountEntries,
         _ => return None,
     };
     Some((error, index))
@@ -149,7 +175,7 @@ mod kani_proofs {
     use super::*;
 
     /// Proves `decode_custom_error` never panics for any `u32` — the one
-    /// subtraction (`code - 3000`) is guarded by the range check
+    /// subtraction (`code - FRAMEWORK_ERROR_BASE`) is guarded by the range check
     /// immediately before it, so this also confirms that guard is actually
     /// sufficient rather than just assumed to be.
     #[kani::proof]
@@ -168,8 +194,11 @@ mod kani_proofs {
     fn prove_decode_custom_error_is_correct_inverse() {
         let code: u32 = kani::any();
         if let Some((error, index)) = decode_custom_error(code) {
-            let reconstructed = 3000 + (index as u32) * 100 + (error as u32);
-            assert_eq!(reconstructed, code, "decode must be a true inverse of the encoder");
+            let reconstructed = 10_000 + (index as u32) * 100 + (error as u32);
+            assert_eq!(
+                reconstructed, code,
+                "decode must be a true inverse of the encoder"
+            );
         }
     }
 }

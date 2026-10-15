@@ -41,7 +41,7 @@ pub struct AnchorInstruction {
     pub name: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub docs: Vec<String>,
-    pub discriminator: [u8; 8],
+    pub discriminator: Vec<u8>,
     pub accounts: Vec<AnchorAccount>,
     pub args: Vec<AnchorField>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -97,13 +97,13 @@ pub struct AnchorField {
 #[derive(Serialize)]
 pub struct AnchorAccountRef {
     pub name: String,
-    pub discriminator: [u8; 8],
+    pub discriminator: Vec<u8>,
 }
 
 #[derive(Serialize)]
 pub struct AnchorEventRef {
     pub name: String,
-    pub discriminator: [u8; 8],
+    pub discriminator: Vec<u8>,
 }
 
 #[derive(Serialize)]
@@ -226,7 +226,7 @@ fn convert_instruction(ix: &IdlInstruction) -> AnchorInstruction {
     AnchorInstruction {
         name: ix.name.clone(),
         docs: ix.docs.clone(),
-        discriminator: ix.discriminator,
+        discriminator: ix.discriminator.clone(),
         accounts: ix.accounts.iter().map(convert_account).collect(),
         args: ix.args.iter().map(convert_field).collect(),
         returns: ix.returns.as_ref().map(convert_type),
@@ -260,7 +260,7 @@ fn convert_variant(v: &IdlEnumVariant) -> AnchorEnumVariant {
 
 fn convert_type_def(t: &IdlType) -> AnchorTypeDef {
     let ty = match &t.ty {
-        IdlTypeDef::Struct { fields } => AnchorTypeDefKind::Struct {
+        IdlTypeDef::Struct { fields, .. } => AnchorTypeDefKind::Struct {
             fields: fields.iter().map(convert_field).collect(),
         },
         // `repr` deliberately not carried through — same as `discriminant`
@@ -298,7 +298,7 @@ pub fn to_anchor_idl(idl: &Idl) -> AnchorIdl {
             });
             AnchorAccountRef {
                 name: acc.name.clone(),
-                discriminator: acc.discriminator,
+                discriminator: acc.discriminator.clone(),
             }
         })
         .collect();
@@ -324,7 +324,7 @@ pub fn to_anchor_idl(idl: &Idl) -> AnchorIdl {
             });
             AnchorEventRef {
                 name: ev.name.clone(),
-                discriminator: ev.discriminator,
+                discriminator: ev.discriminator.clone(),
             }
         })
         .collect();

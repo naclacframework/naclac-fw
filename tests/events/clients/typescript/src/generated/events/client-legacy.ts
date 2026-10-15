@@ -30,21 +30,16 @@ export class EventsClient {
   }
 
   constructor(
-    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | string,
+    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | "litesvm" | string,
     payer?: naclac.Keypair
   ) {
     let provider: naclac.LegacyProvider;
     if (typeof providerOrCluster === "string") {
-      let url = providerOrCluster;
-      if (providerOrCluster === "devnet") url = "https://api.devnet.solana.com";
-      else if (providerOrCluster === "mainnet") url = "https://api.mainnet-beta.solana.com";
-      else if (providerOrCluster === "localnet") url = "http://127.0.0.1:8899";
-      const connection = new naclac.Connection(url, "confirmed");
-      provider = { connection, payer, publicKey: payer ? payer.publicKey : undefined };
+      provider = naclac.createProvider(providerOrCluster, payer);
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider);
+    this.program = new naclac.LegacyProgram(IDL, provider, true, ["NestedPadded","SizedPayload"]);
   }
 
   /**
@@ -231,6 +226,62 @@ export class EventsClient {
     return instructions.emitViaSelfCpiSignedBaseline(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `eventCpiSmoke` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiSmoke(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiSmokeAccounts>) {
+    return instructions.eventCpiSmoke(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiEmit` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiEmit(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiEmitAccounts>) {
+    return instructions.eventCpiEmit(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `emitViaSelfCpiNoProgram` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public emitViaSelfCpiNoProgram(args?: Record<string, never>, accounts?: Partial<instructions.EmitViaSelfCpiNoProgramAccounts>) {
+    return instructions.emitViaSelfCpiNoProgram(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiEmitNested` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiEmitNested(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiEmitNestedAccounts>) {
+    return instructions.eventCpiEmitNested(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiNoop` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiNoop(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiNoopAccounts>) {
+    return instructions.eventCpiNoop(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiLogOne` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiLogOne(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiLogOneAccounts>) {
+    return instructions.eventCpiLogOne(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiEmitOne` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiEmitOne(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiEmitOneAccounts>) {
+    return instructions.eventCpiEmitOne(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `counter` account. Returns `[PublicKey, bumpSeed]`. */
   public getCounterPda(seeds: {
   }): [naclac.PublicKey, number] {
@@ -286,39 +337,9 @@ export class EventsClient {
     return this.program.waitForEvent<types.CounterIncremented>("CounterIncremented", options);
   }
 
-  /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. */
-  public parseCounterIncrementedEvents(logs: readonly string[]) {
-    return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs);
-  }
-
-  /** Subscribes to `SizedPayload` events. Returns a listener ID. */
-  public onSizedPayload(callback: (event: types.SizedPayload, slot: number, signature: string) => void) {
-    return types.addSizedPayloadListener(this.program, callback);
-  }
-
-  /** Awaits the next `SizedPayload` event. Resolves `null` on timeout. */
-  public waitForSizedPayload(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.SizedPayload>("SizedPayload", options);
-  }
-
-  /** Decodes every `SizedPayload` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSizedPayload` — prefer this when you already know which transaction you're checking. */
-  public parseSizedPayloadEvents(logs: readonly string[]) {
-    return this.program.parseEvents<types.SizedPayload>("SizedPayload", logs);
-  }
-
-  /** Subscribes to `FixedPayload8` events. Returns a listener ID. */
-  public onFixedPayload8(callback: (event: types.FixedPayload8, slot: number, signature: string) => void) {
-    return types.addFixedPayload8Listener(this.program, callback);
-  }
-
-  /** Awaits the next `FixedPayload8` event. Resolves `null` on timeout. */
-  public waitForFixedPayload8(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.FixedPayload8>("FixedPayload8", options);
-  }
-
-  /** Decodes every `FixedPayload8` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload8` — prefer this when you already know which transaction you're checking. */
-  public parseFixedPayload8Events(logs: readonly string[]) {
-    return this.program.parseEvents<types.FixedPayload8>("FixedPayload8", logs);
+  /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseCounterIncrementedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs, innerInstructions);
   }
 
   /** Subscribes to `FixedPayload128` events. Returns a listener ID. */
@@ -331,24 +352,9 @@ export class EventsClient {
     return this.program.waitForEvent<types.FixedPayload128>("FixedPayload128", options);
   }
 
-  /** Decodes every `FixedPayload128` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload128` — prefer this when you already know which transaction you're checking. */
-  public parseFixedPayload128Events(logs: readonly string[]) {
-    return this.program.parseEvents<types.FixedPayload128>("FixedPayload128", logs);
-  }
-
-  /** Subscribes to `FixedPayload512` events. Returns a listener ID. */
-  public onFixedPayload512(callback: (event: types.FixedPayload512, slot: number, signature: string) => void) {
-    return types.addFixedPayload512Listener(this.program, callback);
-  }
-
-  /** Awaits the next `FixedPayload512` event. Resolves `null` on timeout. */
-  public waitForFixedPayload512(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.FixedPayload512>("FixedPayload512", options);
-  }
-
-  /** Decodes every `FixedPayload512` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload512` — prefer this when you already know which transaction you're checking. */
-  public parseFixedPayload512Events(logs: readonly string[]) {
-    return this.program.parseEvents<types.FixedPayload512>("FixedPayload512", logs);
+  /** Decodes every `FixedPayload128` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload128` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseFixedPayload128Events(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.FixedPayload128>("FixedPayload128", logs, innerInstructions);
   }
 
   /** Subscribes to `FixedPayload2048` events. Returns a listener ID. */
@@ -361,9 +367,69 @@ export class EventsClient {
     return this.program.waitForEvent<types.FixedPayload2048>("FixedPayload2048", options);
   }
 
-  /** Decodes every `FixedPayload2048` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload2048` — prefer this when you already know which transaction you're checking. */
-  public parseFixedPayload2048Events(logs: readonly string[]) {
-    return this.program.parseEvents<types.FixedPayload2048>("FixedPayload2048", logs);
+  /** Decodes every `FixedPayload2048` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload2048` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseFixedPayload2048Events(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.FixedPayload2048>("FixedPayload2048", logs, innerInstructions);
+  }
+
+  /** Subscribes to `FixedPayload512` events. Returns a listener ID. */
+  public onFixedPayload512(callback: (event: types.FixedPayload512, slot: number, signature: string) => void) {
+    return types.addFixedPayload512Listener(this.program, callback);
+  }
+
+  /** Awaits the next `FixedPayload512` event. Resolves `null` on timeout. */
+  public waitForFixedPayload512(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.FixedPayload512>("FixedPayload512", options);
+  }
+
+  /** Decodes every `FixedPayload512` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload512` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseFixedPayload512Events(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.FixedPayload512>("FixedPayload512", logs, innerInstructions);
+  }
+
+  /** Subscribes to `FixedPayload8` events. Returns a listener ID. */
+  public onFixedPayload8(callback: (event: types.FixedPayload8, slot: number, signature: string) => void) {
+    return types.addFixedPayload8Listener(this.program, callback);
+  }
+
+  /** Awaits the next `FixedPayload8` event. Resolves `null` on timeout. */
+  public waitForFixedPayload8(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.FixedPayload8>("FixedPayload8", options);
+  }
+
+  /** Decodes every `FixedPayload8` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForFixedPayload8` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseFixedPayload8Events(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.FixedPayload8>("FixedPayload8", logs, innerInstructions);
+  }
+
+  /** Subscribes to `NestedPadded` events. Returns a listener ID. */
+  public onNestedPadded(callback: (event: types.NestedPadded, slot: number, signature: string) => void) {
+    return types.addNestedPaddedListener(this.program, callback);
+  }
+
+  /** Awaits the next `NestedPadded` event. Resolves `null` on timeout. */
+  public waitForNestedPadded(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.NestedPadded>("NestedPadded", options);
+  }
+
+  /** Decodes every `NestedPadded` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForNestedPadded` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseNestedPaddedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.NestedPadded>("NestedPadded", logs, innerInstructions);
+  }
+
+  /** Subscribes to `SizedPayload` events. Returns a listener ID. */
+  public onSizedPayload(callback: (event: types.SizedPayload, slot: number, signature: string) => void) {
+    return types.addSizedPayloadListener(this.program, callback);
+  }
+
+  /** Awaits the next `SizedPayload` event. Resolves `null` on timeout. */
+  public waitForSizedPayload(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.SizedPayload>("SizedPayload", options);
+  }
+
+  /** Decodes every `SizedPayload` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSizedPayload` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseSizedPayloadEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.SizedPayload>("SizedPayload", logs, innerInstructions);
   }
 
   /** Removes a registered event listener by its ID. */

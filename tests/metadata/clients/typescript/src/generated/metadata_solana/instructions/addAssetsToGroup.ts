@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `add_assets_to_group` instruction. */
+/** Discriminator for the `add_assets_to_group` instruction. */
 export const ADD_ASSETS_TO_GROUP_DISCRIMINATOR = new Uint8Array([83, 187, 113, 48, 20, 247, 48, 34]);
 
 /** Accounts for the `addAssetsToGroup` instruction. */
 export interface AddAssetsToGroupAccounts {
   group: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

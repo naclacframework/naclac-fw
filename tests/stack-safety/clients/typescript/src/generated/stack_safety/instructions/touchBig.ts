@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_big` instruction. */
+/** Discriminator for the `touch_big` instruction. */
 export const TOUCH_BIG_DISCRIMINATOR = new Uint8Array([66, 178, 192, 160, 63, 148, 8, 37]);
 
 /** Accounts for the `touchBig` instruction. */

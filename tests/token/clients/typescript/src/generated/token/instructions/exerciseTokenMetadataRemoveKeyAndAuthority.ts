@@ -3,18 +3,18 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_token_metadata_remove_key_and_authority` instruction. */
+/** Discriminator for the `exercise_token_metadata_remove_key_and_authority` instruction. */
 export const EXERCISE_TOKEN_METADATA_REMOVE_KEY_AND_AUTHORITY_DISCRIMINATOR = new Uint8Array([55, 100, 74, 102, 201, 101, 188, 82]);
 
 /** Instruction arguments for `exerciseTokenMetadataRemoveKeyAndAuthority`. */
 export interface ExerciseTokenMetadataRemoveKeyAndAuthorityArgs {
-  key_to_remove: string;
-  new_authority: naclac.Address | string;
+  keyToRemove: string;
+  newAuthority: naclac.Address | string;
 }
 
 /** Accounts for the `exerciseTokenMetadataRemoveKeyAndAuthority` instruction. */
 export interface ExerciseTokenMetadataRemoveKeyAndAuthorityAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   /**
    * SAFETY: this account is the same mint validated/created by
    * `create_mint2022_with_metadata_pointer_and_metadata` in the test that
@@ -23,7 +23,7 @@ export interface ExerciseTokenMetadataRemoveKeyAndAuthorityAccounts {
    * naclac component.
    */
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

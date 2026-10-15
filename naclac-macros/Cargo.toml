@@ -32,6 +32,7 @@ serde_json = { workspace = true, optional = true }
 debug-mode = []
 pinocchio = []
 borsh = []
+wincode = []
 # See docs/plan/idl-build-compilation-migration.md — this feature is being
 # migrated from a macro-expansion-time diagnostic into the real
 # compilation-based IDL generation path (a `#[test]`-emission mechanism

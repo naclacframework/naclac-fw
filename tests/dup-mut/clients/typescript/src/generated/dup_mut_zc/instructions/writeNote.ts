@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `write_note` instruction. */
+/** Discriminator for the `write_note` instruction. */
 export const WRITE_NOTE_DISCRIMINATOR = new Uint8Array([14, 21, 145, 112, 180, 89, 37, 76]);
 
 /** Instruction arguments for `writeNote`. */

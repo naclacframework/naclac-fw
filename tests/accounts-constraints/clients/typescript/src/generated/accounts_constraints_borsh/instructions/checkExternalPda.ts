@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_external_pda` instruction. */
+/** Discriminator for the `check_external_pda` instruction. */
 export const CHECK_EXTERNAL_PDA_DISCRIMINATOR = new Uint8Array([77, 75, 166, 158, 13, 14, 11, 209]);
 
 /** Instruction arguments for `checkExternalPda`. */

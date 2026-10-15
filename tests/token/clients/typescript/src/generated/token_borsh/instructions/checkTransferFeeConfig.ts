@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `check_transfer_fee_config` instruction. */
+/** Discriminator for the `check_transfer_fee_config` instruction. */
 export const CHECK_TRANSFER_FEE_CONFIG_DISCRIMINATOR = new Uint8Array([224, 216, 89, 55, 108, 102, 182, 97]);
 
 /** Instruction arguments for `checkTransferFeeConfig`. */

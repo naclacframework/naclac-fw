@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_mut_vault` instruction. */
+/** Discriminator for the `touch_mut_vault` instruction. */
 export const TOUCH_MUT_VAULT_DISCRIMINATOR = new Uint8Array([70, 22, 63, 237, 108, 82, 188, 171]);
 
 /** Accounts for the `touchMutVault` instruction. */

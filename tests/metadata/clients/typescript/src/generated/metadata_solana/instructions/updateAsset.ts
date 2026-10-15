@@ -3,22 +3,22 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `update_asset` instruction. */
+/** Discriminator for the `update_asset` instruction. */
 export const UPDATE_ASSET_DISCRIMINATOR = new Uint8Array([56, 126, 238, 138, 192, 118, 228, 172]);
 
 /** Instruction arguments for `updateAsset`. */
 export interface UpdateAssetArgs {
-  new_name: string;
-  new_uri: string;
+  newName: string;
+  newUri: string;
 }
 
 /** Accounts for the `updateAsset` instruction. */
 export interface UpdateAssetAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

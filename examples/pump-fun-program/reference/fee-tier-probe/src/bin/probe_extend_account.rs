@@ -22,7 +22,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -35,8 +35,8 @@ const EXTEND_ACCOUNT_DISCRIMINATOR: [u8; 8] = [234, 102, 194, 203, 150, 72, 62, 
 const GLOBAL_DISCRIMINATOR: [u8; 8] = [167, 232, 232, 177, 200, 108, 114, 127];
 const USER_VOLUME_ACCUMULATOR_DISCRIMINATOR: [u8; 8] = [86, 255, 112, 14, 102, 53, 154, 250];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -48,7 +48,7 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
 /// One `Address` short of the real, currently-live two-slot
 /// `whitelisted_quote_mints` layout -- same undersized shape used to prove
 /// naclac's own `extend_account` grows a real pre-extend `Global`.
-fn old_one_slot_global_account_data(authority: &Pubkey) -> Vec<u8> {
+fn old_one_slot_global_account_data(authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1); // initialized
@@ -78,7 +78,7 @@ fn old_one_slot_global_account_data(authority: &Pubkey) -> Vec<u8> {
 /// discriminator plus a handful of zeroed bytes, well short of any real
 /// compiled size. Content doesn't need to match a real historical layout;
 /// this only tests the resize mechanism and its authority (or lack of it).
-fn undersized_user_volume_accumulator_data(user: &Pubkey) -> Vec<u8> {
+fn undersized_user_volume_accumulator_data(user: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&USER_VOLUME_ACCUMULATOR_DISCRIMINATOR);
     data.extend_from_slice(user.as_ref()); // user
@@ -107,8 +107,8 @@ fn run_extend(svm: &mut LiteSVM, signer: &Keypair, ix: &Instruction, label: &str
     }
 }
 
-fn extend_account_ix(pump_program: Pubkey, account: Pubkey, signer: Pubkey) -> Instruction {
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &pump_program).0;
+fn extend_account_ix(pump_program: Address, account: Address, signer: Address) -> Instruction {
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &pump_program).0;
     Instruction {
         program_id: pump_program,
         accounts: vec![
@@ -132,7 +132,7 @@ fn main() {
 
     // --- Probe 1: Global, extended by a stranger with no relation to it ---
     let global_authority = Keypair::new(); // whoever "owns" Global, per the fixture
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let old_global_data = old_one_slot_global_account_data(&global_authority.pubkey());
     let old_global_len = old_global_data.len();
     svm.set_account(
@@ -157,7 +157,7 @@ fn main() {
     // --- Probe 2: victim's UserVolumeAccumulator, extended by an attacker ---
     let victim = Keypair::new();
     let (user_volume_accumulator, _) =
-        Pubkey::find_program_address(&[b"user_volume_accumulator", victim.pubkey().as_ref()], &pump_program);
+        Address::find_program_address(&[b"user_volume_accumulator", victim.pubkey().as_ref()], &pump_program);
     let old_uva_data = undersized_user_volume_accumulator_data(&victim.pubkey());
     let old_uva_len = old_uva_data.len();
     // Generously over-funded on purpose -- probe 2 already proved (previous

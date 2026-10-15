@@ -51,6 +51,16 @@ export const IDL = {
         { "name": "vault" }
       ],
       "args": []
+    },
+    {
+      "name": "touch_config",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [98,242,149,222,251,182,159,92],
+      "accounts": [
+        { "name": "caller", "signer": true },
+        { "name": "config", "writable": true }
+      ],
+      "args": []
     }
   ],
   "accounts": [

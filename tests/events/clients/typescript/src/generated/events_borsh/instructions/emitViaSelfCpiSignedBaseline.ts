@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `emit_via_self_cpi_signed_baseline` instruction. */
+/** Discriminator for the `emit_via_self_cpi_signed_baseline` instruction. */
 export const EMIT_VIA_SELF_CPI_SIGNED_BASELINE_DISCRIMINATOR = new Uint8Array([189, 43, 89, 129, 100, 10, 118, 18]);
 
 /** Accounts for the `emitViaSelfCpiSignedBaseline` instruction. */
@@ -16,7 +16,7 @@ export interface EmitViaSelfCpiSignedBaselineAccounts {
    */
   eventAuthority?: naclac.Address | string;
   /** SAFETY: only its address is checked; its data is never read. */
-  program: naclac.Address | string;
+  program?: naclac.Address | string;
 }
 
 /**

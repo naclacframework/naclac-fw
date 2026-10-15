@@ -73,9 +73,9 @@ pub fn initialize_permissioned_burn_signed(
         let mut data = vec![46u8, 0u8];
         data.extend_from_slice(authority.as_ref());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -91,7 +91,7 @@ pub fn initialize_permissioned_burn_signed(
         let ix = ::pinocchio_token_2022::instructions::permissioned_burn::Initialize {
             mint: &mint.info.view,
             authority: authority.as_address(),
-            token_program: &program.info.view.address(),
+            token_program: program.info.view.address(),
         };
         ix.invoke()
     }
@@ -145,16 +145,16 @@ pub fn permissioned_burn_signed(
         let mut data = vec![46u8, 1u8];
         data.extend_from_slice(&amount.to_le_bytes());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(source.info.address(), false),
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(source.info.address(), false),
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     permissioned_burn_authority.info.address(),
                     true,
                 ),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),
@@ -257,16 +257,16 @@ pub fn permissioned_burn_checked_signed(
         data.extend_from_slice(&amount.to_le_bytes());
         data.push(decimals);
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(source.info.address(), false),
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(source.info.address(), false),
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     permissioned_burn_authority.info.address(),
                     true,
                 ),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),

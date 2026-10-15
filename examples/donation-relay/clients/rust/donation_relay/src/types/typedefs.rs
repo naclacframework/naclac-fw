@@ -10,7 +10,7 @@ use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
 #[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
-pub struct DonatePubkeyConfigIdWithPayerV1Args {
+pub struct DonateAddressConfigIdWithPayerV1Args {
     pub amount: u64,
     pub config_id: crate::sdk_core_offchain::Address,
     pub tip_bps: u16,
@@ -25,7 +25,7 @@ pub struct DonatePubkeyConfigIdWithPayerV1Args {
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
 #[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
-pub struct DonatePubkeyConfigIdWithPayerV1ArgsCpi {
+pub struct DonateAddressConfigIdWithPayerV1ArgsCpi {
     pub amount: u64,
     pub config_id: crate::sdk_core_cpi::Address,
     pub tip_bps: u16,

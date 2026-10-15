@@ -1,4 +1,4 @@
-﻿mod helper;
+mod helper;
 
 use token_vault_zc_client::{
     components::{
@@ -24,7 +24,7 @@ fn test_fetcher_demo() {
     // 1. Setup the provider pointing to localnet
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
     let provider = NaclacProvider::new("localnet", payer).expect("Failed to construct NaclacProvider");
-    println!("ðŸ”‘ Loaded Payer Wallet: {}", provider.payer.address());
+    println!("🔑 Loaded Payer Wallet: {}", provider.payer.address());
 
     // Generate random vault IDs using system time to avoid collisions on localnet
     let now = SystemTime::now()
@@ -39,7 +39,7 @@ fn test_fetcher_demo() {
     // 2. Setup secondary signer/payer: user2
     let user2_signer = Keypair::new();
     let user2 = user2_signer.address();
-    println!("ðŸ‘¤ User 2: {}", user2);
+    println!("👤 User 2: {}", user2);
 
     // Fund user2 with SOL
     transfer_sol(&provider, &user2, 100_000_000).expect("Failed to fund user2");
@@ -48,7 +48,7 @@ fn test_fetcher_demo() {
     let token_program_id = naclac_client::utils::TOKEN_PROGRAM_ID;
     let mint_signer = Keypair::new();
     let mint = mint_signer.address();
-    println!("ðŸª™ Creating Mint: {}", mint);
+    println!("🪙 Creating Mint: {}", mint);
     create_mint_with_program(&provider, &mint_signer, &provider.payer.address(), 9, &token_program_id)
         .expect("Failed to create mint");
 

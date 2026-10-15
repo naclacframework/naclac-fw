@@ -22,7 +22,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -51,19 +51,19 @@ const SHARING_CONFIG_DISCRIMINATOR: [u8; 8] = [216, 74, 9, 0, 56, 140, 93, 75];
 const BONDING_CURVE_DISCRIMINATOR: [u8; 8] = [23, 183, 248, 55, 96, 216, 172, 96];
 const GLOBAL_DISCRIMINATOR: [u8; 8] = [167, 232, 232, 177, 200, 108, 114, 127];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(
         &[owner.as_ref(), token_program.as_ref(), mint.as_ref()],
         &pk(ASSOCIATED_TOKEN_PROGRAM_ID),
     )
     .0
 }
 
-fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
+fn mint_account_data(mint_authority: Option<&Address>, decimals: u8) -> Vec<u8> {
     let mut data = vec![0u8; 82];
     if let Some(auth) = mint_authority {
         data[0..4].copy_from_slice(&1u32.to_le_bytes());
@@ -75,7 +75,7 @@ fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64, is_native: Option<u64>) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64, is_native: Option<u64>) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -88,7 +88,7 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64, is_native: Opt
     data
 }
 
-fn global_account_data(authority: &Pubkey, admin_set_creator_authority: &Pubkey) -> Vec<u8> {
+fn global_account_data(authority: &Address, admin_set_creator_authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1);
@@ -119,7 +119,7 @@ fn global_account_data(authority: &Pubkey, admin_set_creator_authority: &Pubkey)
     data
 }
 
-fn bonding_curve_account_data(creator: &Pubkey, quote_mint: &Pubkey) -> Vec<u8> {
+fn bonding_curve_account_data(creator: &Address, quote_mint: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BONDING_CURVE_DISCRIMINATOR);
     data.extend_from_slice(&[0u8; 8]);
@@ -138,10 +138,10 @@ fn bonding_curve_account_data(creator: &Pubkey, quote_mint: &Pubkey) -> Vec<u8> 
 fn sharing_config_account_data(
     bump: u8,
     version: u8,
-    mint: &Pubkey,
-    admin: &Pubkey,
+    mint: &Address,
+    admin: &Address,
     admin_revoked: bool,
-    shareholders: &[(Pubkey, u16)],
+    shareholders: &[(Address, u16)],
 ) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&SHARING_CONFIG_DISCRIMINATOR);
@@ -167,8 +167,8 @@ fn sharing_config_account_data(
 fn run_scenario(
     scenario_name: &str,
     signer: &Keypair,
-    sc_admin_pubkey: Pubkey,
-    global_admin_authority_pubkey: Pubkey,
+    sc_admin_pubkey: Address,
+    global_admin_authority_pubkey: Address,
 ) -> Result<Vec<String>, String> {
     let fees_program = pk(PUMP_FEES_PROGRAM_ID);
     let pump_program = pk(PUMP_PROGRAM_ID);
@@ -205,8 +205,8 @@ fn run_scenario(
     )
     .unwrap();
 
-    let mint_authority = Pubkey::new_unique();
-    let mint = Pubkey::new_unique();
+    let mint_authority = Address::new_unique();
+    let mint = Address::new_unique();
     svm.set_account(
         mint,
         Account {
@@ -219,12 +219,12 @@ fn run_scenario(
     )
     .unwrap();
 
-    let (global, _global_bump) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _global_bump) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account {
             lamports: 10_000_000,
-            data: global_account_data(&Pubkey::new_unique(), &global_admin_authority_pubkey),
+            data: global_account_data(&Address::new_unique(), &global_admin_authority_pubkey),
             owner: pump_program,
             executable: false,
             rent_epoch: 0,
@@ -234,7 +234,7 @@ fn run_scenario(
 
     // version must be != 1 for update_fee_shares_v2 per fees-03-instructions.md
     let (sharing_config, sc_bump) =
-        Pubkey::find_program_address(&[b"sharing-config", mint.as_ref()], &fees_program);
+        Address::find_program_address(&[b"sharing-config", mint.as_ref()], &fees_program);
     svm.set_account(
         sharing_config,
         Account {
@@ -255,7 +255,7 @@ fn run_scenario(
     .unwrap();
 
     let (bonding_curve, _bc_bump) =
-        Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+        Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
     svm.set_account(
         bonding_curve,
         Account {
@@ -269,7 +269,7 @@ fn run_scenario(
     .unwrap();
 
     let (pump_creator_vault, _pcv_bump) =
-        Pubkey::find_program_address(&[b"creator-vault", sharing_config.as_ref()], &pump_program);
+        Address::find_program_address(&[b"creator-vault", sharing_config.as_ref()], &pump_program);
     const PUMP_CREATOR_VAULT_STARTING_LAMPORTS: u64 = 3_000_000_000;
     svm.set_account(
         pump_creator_vault,
@@ -297,7 +297,7 @@ fn run_scenario(
     )
     .unwrap();
 
-    let (coin_creator_vault_authority, _ccva_bump) = Pubkey::find_program_address(
+    let (coin_creator_vault_authority, _ccva_bump) = Address::find_program_address(
         &[b"creator_vault", sharing_config.as_ref()],
         &pump_amm_program,
     );
@@ -321,16 +321,16 @@ fn run_scenario(
     )
     .unwrap();
 
-    let pump_event_authority = Pubkey::find_program_address(&[b"__event_authority"], &pump_program).0;
-    let fees_event_authority = Pubkey::find_program_address(&[b"__event_authority"], &fees_program).0;
+    let pump_event_authority = Address::find_program_address(&[b"__event_authority"], &pump_program).0;
+    let fees_event_authority = Address::find_program_address(&[b"__event_authority"], &fees_program).0;
     let amm_event_authority =
-        Pubkey::find_program_address(&[b"__event_authority"], &pump_amm_program).0;
+        Address::find_program_address(&[b"__event_authority"], &pump_amm_program).0;
 
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 100_000_000_000).unwrap();
 
     // args: shareholders: Vec<Shareholder> — one new shareholder, sum == 10_000
-    let new_shareholder = Pubkey::new_unique();
+    let new_shareholder = Address::new_unique();
     let mut data = UPDATE_FEE_SHARES_V2_DISCRIMINATOR.to_vec();
     data.extend_from_slice(&1u32.to_le_bytes());
     data.extend_from_slice(new_shareholder.as_ref());

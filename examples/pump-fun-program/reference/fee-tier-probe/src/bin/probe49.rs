@@ -20,7 +20,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -38,8 +38,8 @@ const RENT_SYSVAR_ID: &str = "SysvarRent111111111111111111111111111111111";
 const MIGRATE_V2_DISCRIMINATOR: [u8; 8] = [187, 203, 18, 31, 206, 237, 254, 41];
 const BONDING_CURVE_DISCRIMINATOR: [u8; 8] = [23, 183, 248, 55, 96, 216, 172, 96];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -48,8 +48,8 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
 fn mint_account_data(decimals: u8) -> Vec<u8> {
@@ -59,7 +59,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -75,8 +75,8 @@ fn bonding_curve_account_data(
     real_quote_reserves: u64,
     token_total_supply: u64,
     complete: bool,
-    creator: &Pubkey,
-    quote_mint: &Pubkey,
+    creator: &Address,
+    quote_mint: &Address,
 ) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BONDING_CURVE_DISCRIMINATOR);
@@ -93,18 +93,18 @@ fn bonding_curve_account_data(
     data
 }
 
-fn fetch_account(client: &RpcClient, pubkey: &Pubkey) -> Result<Account, String> {
+fn fetch_account(client: &RpcClient, pubkey: &Address) -> Result<Account, String> {
     let remote = client.get_account(pubkey).map_err(|e| format!("{e:?}"))?;
     Ok(Account {
         lamports: remote.lamports,
         data: remote.data.clone(),
-        owner: Pubkey::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
+        owner: Address::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
         executable: remote.executable,
         rent_epoch: remote.rent_epoch,
     })
 }
 
-fn token_balance(svm: &LiteSVM, addr: &Pubkey) -> Option<u64> {
+fn token_balance(svm: &LiteSVM, addr: &Address) -> Option<u64> {
     svm.get_account(addr).map(|acc| u64::from_le_bytes(acc.data[64..72].try_into().unwrap()))
 }
 
@@ -127,7 +127,7 @@ fn main() {
     // exactly, and isn't needed here -- what's actually being tested is
     // whether quote-mint DECIMALS affect the boost formula, not WSOL
     // specifically).
-    let quote_mint = Pubkey::new_unique();
+    let quote_mint = Address::new_unique();
 
     let mut svm = LiteSVM::new();
     for (program_id, so_name) in [(pump_program, "pump.so"), (pump_amm_program, "pump_amm.so")] {
@@ -136,22 +136,22 @@ fn main() {
     }
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let global_account = fetch_account(&client, &global).expect("fetch global failed");
-    let withdraw_authority = Pubkey::try_from(&global_account.data[113..145]).expect("withdraw_authority pubkey");
+    let withdraw_authority = Address::try_from(&global_account.data[113..145]).expect("withdraw_authority pubkey");
     svm.set_account(global, global_account.clone()).unwrap();
 
-    let (amm_global_config, _) = Pubkey::find_program_address(&[b"global_config"], &pump_amm_program);
+    let (amm_global_config, _) = Address::find_program_address(&[b"global_config"], &pump_amm_program);
     let amm_global_config_account = fetch_account(&client, &amm_global_config).expect("fetch amm global_config failed");
     svm.set_account(amm_global_config, amm_global_config_account).unwrap();
 
     svm.set_account(quote_mint, Account { lamports: 10_000_000, data: mint_account_data(9), owner: quote_token_program, executable: false, rent_epoch: 0 }).unwrap();
 
-    let creator = Pubkey::new_unique();
-    let base_mint = Pubkey::new_unique();
+    let creator = Address::new_unique();
+    let base_mint = Address::new_unique();
     svm.set_account(base_mint, Account { lamports: 10_000_000, data: mint_account_data(6), owner: base_token_program, executable: false, rent_epoch: 0 }).unwrap();
 
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", base_mint.as_ref()], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", base_mint.as_ref()], &pump_program);
     // Fresh, previously-untested numbers -- not reused from any earlier probe.
     let base_funding: u64 = 350_000_000_000_000;
     let real_quote_reserves: u64 = 9_876_543_210;
@@ -177,21 +177,21 @@ fn main() {
     let user = Keypair::new();
     svm.airdrop(&user.pubkey(), 100_000_000_000).unwrap();
 
-    let (pool_authority, _) = Pubkey::find_program_address(&[b"pool-authority", base_mint.as_ref()], &pump_program);
-    let (pool, _) = Pubkey::find_program_address(
+    let (pool_authority, _) = Address::find_program_address(&[b"pool-authority", base_mint.as_ref()], &pump_program);
+    let (pool, _) = Address::find_program_address(
         &[b"pool", &0u16.to_le_bytes(), pool_authority.as_ref(), base_mint.as_ref(), quote_mint.as_ref()],
         &pump_amm_program,
     );
     let pool_authority_mint_account = ata_address(&pool_authority, &base_mint, &base_token_program);
     let pool_authority_quote_account = ata_address(&pool_authority, &quote_mint, &quote_token_program);
-    let (lp_mint, _) = Pubkey::find_program_address(&[b"pool_lp_mint", pool.as_ref()], &pump_amm_program);
+    let (lp_mint, _) = Address::find_program_address(&[b"pool_lp_mint", pool.as_ref()], &pump_amm_program);
     let user_pool_token_account = ata_address(&pool_authority, &lp_mint, &token_2022_program);
     let pool_base_token_account = ata_address(&pool, &base_mint, &base_token_program);
     let pool_quote_token_account = ata_address(&pool, &quote_mint, &quote_token_program);
-    let (pump_amm_event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_amm_program);
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (pump_amm_event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_amm_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
-    let (boost_vault_authority, _) = Pubkey::find_program_address(&[b"boost_vault", pool.as_ref()], &pump_amm_program);
+    let (boost_vault_authority, _) = Address::find_program_address(&[b"boost_vault", pool.as_ref()], &pump_amm_program);
     let boost_vault = ata_address(&boost_vault_authority, &quote_mint, &quote_token_program);
 
     let ix = Instruction {
@@ -233,7 +233,7 @@ fn main() {
     let budget_ix = set_compute_unit_limit_ix(400_000);
     let blockhash = svm.latest_blockhash();
     let msg = Message::new(&[budget_ix, ix], Some(&user.pubkey()));
-    let account_keys: Vec<Pubkey> = msg.account_keys.clone();
+    let account_keys: Vec<Address> = msg.account_keys.clone();
     let tx = Transaction::new(&[&user], msg, blockhash);
 
     println!("\nSubmitting migrate_v2 (WSOL-paired, fresh numbers)...");

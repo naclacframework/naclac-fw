@@ -22,7 +22,7 @@ pub fn emit_via_self_cpi_sized(ctx: Context<EmitViaSelfCpiSized>, size: u32) -> 
     data.extend_from_slice(&(payload.len() as u32).to_le_bytes());
     data.extend_from_slice(&payload);
 
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: *ctx.program_id,
         accounts: vec![],
         data,

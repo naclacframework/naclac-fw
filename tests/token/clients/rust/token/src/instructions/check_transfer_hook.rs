@@ -7,20 +7,14 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckTransferHookIxArgs {
     pub expected_authority: Option<crate::sdk_core_offchain::Address>,
     pub expected_program_id: Option<crate::sdk_core_offchain::Address>,
     pub expected_transferring: u8,
 }
-
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CheckTransferHookIxArgs {}
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CheckTransferHookIxArgs {}
 
 #[cfg(feature = "cpi")]
 #[cfg(feature = "borsh")]
@@ -28,20 +22,14 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckTransferHookCpiIxArgs {
     pub expected_authority: Option<crate::sdk_core_cpi::Address>,
     pub expected_program_id: Option<crate::sdk_core_cpi::Address>,
     pub expected_transferring: u8,
 }
-
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CheckTransferHookCpiIxArgs {}
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CheckTransferHookCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
 pub struct CheckTransferHookAccounts {
@@ -64,13 +52,37 @@ pub fn build_check_transfer_hook<'a>(
         expected_program_id,
         expected_transferring,
     };
-    #[cfg(not(feature = "borsh"))]
+    #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
-        ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(&args));
+        match &args.expected_authority {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_offchain::Address>()]);
+            }
+        }
+        match &args.expected_program_id {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_offchain::Address>()]);
+            }
+        }
+        ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(&args.expected_transferring));
     }
     #[cfg(feature = "borsh")]
     {
         crate::sdk_core_offchain::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+    }
+    #[cfg(feature = "wincode")]
+    {
+        crate::sdk_core_offchain::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_offchain::wincode_config::CONFIG).unwrap();
     }
     naclac_client::InstructionBuilder::new(provider, program_id, ix_data)
         .account(naclac_client::AccountMeta { address: accounts.mint, is_signer: false, is_writable: false }, "mint")
@@ -151,13 +163,37 @@ impl<'info> CheckTransferHookCpi<'info> for crate::sdk_core_cpi::Program<crate::
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[215, 39, 110, 212, 151, 21, 84, 111]);
-        #[cfg(not(feature = "borsh"))]
+        #[cfg(not(any(feature = "borsh", feature = "wincode")))]
         {
-        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args));
+        match &args.expected_authority {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_cpi::Address>()]);
+            }
+        }
+        match &args.expected_program_id {
+            Some(__inner) => {
+                ix_data.push(1u8);
+                ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(__inner));
+            }
+            None => {
+                ix_data.push(0u8);
+                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<crate::sdk_core_cpi::Address>()]);
+            }
+        }
+        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args.expected_transferring));
         }
         #[cfg(feature = "borsh")]
         {
             crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+        }
+        #[cfg(feature = "wincode")]
+        {
+            crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();
         }
         #[cfg(feature = "pinocchio")]
         {
@@ -210,18 +246,18 @@ impl<'info> CheckTransferHookCpi<'info> for crate::sdk_core_cpi::Program<crate::
         {
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.mint.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.token_account.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.mint.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_account.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new(acc.address(), *is_signer)
                 } else {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
                 };
                 account_metas.push(meta);
             }
-            let instruction = ::naclac_lang::solana_program::instruction::Instruction {
+            let instruction = ::naclac_lang::solana_instruction::Instruction {
                 program_id: self.address(),
                 accounts: account_metas,
                 data: ix_data,

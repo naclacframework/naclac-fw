@@ -1,14 +1,14 @@
 import type { IdlInstruction } from "../idl";
-import { getIdlCodec, getStructFieldsCodec } from "./types";
+import { getIdlCodec, getStructFieldsCodec, getZeroCopyArgCodec, type StructLayout } from "./types";
 import { toCamelCase } from "../utils/case";
 
 /**
  * Serializes the arguments for a single instruction into a Uint8Array.
  *
- * Layout: [ discriminator (8 bytes) | arg0 | arg1 | ... ]
+ * Layout: [ discriminator | arg0 | arg1 | ... ]
  *
- * The 8-byte discriminator is read directly from the IDL (pre-computed by
- * build.rs using sha256("global:<name>")[..8]) — no runtime hashing needed.
+ * The discriminator is read directly from the IDL (the name-derived default
+ * or the program's custom override) — no runtime hashing needed.
  *
  * @param instruction - The full IDL instruction object.
  * @param args        - A key-value map of argument names to their values.
@@ -35,7 +35,9 @@ export function encodeInstructionData(
         `Expected arguments: [${instruction.args.map((a) => toCamelCase(a.name)).join(", ")}].`
       );
     }
-    const codec = getIdlCodec(argDef.type, definedTypes, isZeroCopy);
+    const codec = isZeroCopy
+      ? getZeroCopyArgCodec(argDef.type, definedTypes)
+      : getIdlCodec(argDef.type, definedTypes, false);
     return codec.encode(value);
   });
 
@@ -59,7 +61,8 @@ export function encodeInstructionData(
 
 /**
  * Decodes raw on-chain account bytes for a named account type.
- * Skips the leading 8-byte discriminator and deserializes field by field.
+ * Skips the leading `dataOffset` bytes (the discriminator; 8 unless the
+ * program declares a custom one) and deserializes field by field.
  *
  * Uses `getStructFieldsCodec` rather than a naive sequential per-field walk
  * — a zero-copy account's own top-level fields can have real internal
@@ -69,17 +72,45 @@ export function encodeInstructionData(
  * know about. Borsh mode never has this concern, so it stays sequential
  * either way.
  *
- * @param fields - The IDL field definitions for the account type.
- * @param data   - Raw bytes from the RPC (the full account data, excluding length prefix).
- * @returns      A plain object with decoded field values.
+ * @param fields     - The IDL field definitions for the account type.
+ * @param data       - Raw bytes from the RPC (the full account data, excluding length prefix).
+ * @param dataOffset - Where the fields start: the discriminator's byte length.
+ * @returns          A plain object with decoded field values.
  */
 export function decodeAccountData(
   fields: readonly { name: string; type: string | Record<string, unknown> }[],
   data: Uint8Array,
   definedTypes?: readonly any[],
-  isZeroCopy = false
+  isZeroCopy: StructLayout = false,
+  dataOffset = 8
 ): Record<string, unknown> {
   const codec = getStructFieldsCodec(fields as any[], definedTypes, isZeroCopy);
-  const [value] = codec.read(data, 8);
+  const [value] = codec.read(data, dataOffset);
   return value as Record<string, unknown>;
+}
+
+/**
+ * Like `decodeAccountData`, but first requires `data` to start with
+ * `discriminator`, so an account of a different type (or an uninitialized
+ * one) is rejected instead of being decoded as garbage.
+ *
+ * @throws If `data` does not start with `discriminator`.
+ */
+export function decodeDiscriminatedAccountData(
+  fields: readonly { name: string; type: string | Record<string, unknown> }[],
+  data: Uint8Array,
+  discriminator: Uint8Array,
+  accountName: string,
+  definedTypes?: readonly any[],
+  isZeroCopy: StructLayout = false
+): Record<string, unknown> {
+  if (
+    data.length < discriminator.length ||
+    !discriminator.every((byte, i) => data[i] === byte)
+  ) {
+    throw new Error(
+      `[Naclac] Account data does not start with the "${accountName}" discriminator (wrong account type, or not initialized).`
+    );
+  }
+  return decodeAccountData(fields, data, definedTypes, isZeroCopy, discriminator.length);
 }

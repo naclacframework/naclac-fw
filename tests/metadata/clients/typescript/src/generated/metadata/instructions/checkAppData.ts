@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_app_data` instruction. */
+/** Discriminator for the `check_app_data` instruction. */
 export const CHECK_APP_DATA_DISCRIMINATOR = new Uint8Array([107, 58, 191, 149, 192, 140, 20, 99]);
 
 /** Accounts for the `checkAppData` instruction. */

@@ -3,13 +3,12 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `make` instruction. */
+/** Discriminator for the `make` instruction. */
 export const MAKE_DISCRIMINATOR = new Uint8Array([138, 227, 232, 77, 223, 166, 96, 197]);
 
 /** Instruction arguments for `make`. */
 export interface MakeArgs {
   seed: bigint | number;
-  escrowBump: number;
   amountA: bigint | number;
   amountB: bigint | number;
 }

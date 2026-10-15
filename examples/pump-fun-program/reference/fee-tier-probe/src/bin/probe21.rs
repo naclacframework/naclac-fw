@@ -17,7 +17,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -28,8 +28,8 @@ const SET_PARAMS_DISCRIMINATOR: [u8; 8] = [27, 234, 178, 52, 147, 2, 187, 141];
 const GLOBAL_DISCRIMINATOR: [u8; 8] = [167, 232, 232, 177, 200, 108, 114, 127];
 const SET_PARAMS_EVENT_DISCRIMINATOR_SEARCH_LEN: usize = 8;
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -41,7 +41,7 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
 // Full real 24-field Global, with three DISTINCT recognizable pubkeys
 // planted in fee_recipients[7] (marker_a), reserved_fee_recipients[7]
 // (marker_b), and buyback_fee_recipients[8] (marker_c).
-fn global_account_data(authority: &Pubkey, marker_a: &Pubkey, marker_b: &Pubkey, marker_c: &Pubkey) -> Vec<u8> {
+fn global_account_data(authority: &Address, marker_a: &Address, marker_b: &Address, marker_c: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1); // initialized
@@ -83,14 +83,14 @@ fn main() {
     let authority = Keypair::new();
     svm.airdrop(&authority.pubkey(), 10_000_000_000).unwrap();
 
-    let marker_a = Pubkey::new_unique(); // fee_recipients[7]
-    let marker_b = Pubkey::new_unique(); // reserved_fee_recipients[7]
-    let marker_c = Pubkey::new_unique(); // buyback_fee_recipients[8]
+    let marker_a = Address::new_unique(); // fee_recipients[7]
+    let marker_b = Address::new_unique(); // reserved_fee_recipients[7]
+    let marker_c = Address::new_unique(); // buyback_fee_recipients[8]
     println!("marker_a (fee_recipients[7])          = {marker_a}");
     println!("marker_b (reserved_fee_recipients[7])  = {marker_b}");
     println!("marker_c (buyback_fee_recipients[8])   = {marker_c}\n");
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account {
@@ -103,7 +103,7 @@ fn main() {
     )
     .unwrap();
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
     let mut data = SET_PARAMS_DISCRIMINATOR.to_vec();
     data.extend_from_slice(&1_073_000_000_000_000u64.to_le_bytes()); // initial_virtual_token_reserves
@@ -125,7 +125,7 @@ fn main() {
     // Testing 16 now (8 more than confirmed needed) to see whether
     // buyback_fee_recipients[8] is ALSO settable via a second block of 8
     // remaining accounts that the stale IDL doesn't show either.
-    let marker_d: Vec<Pubkey> = (0..16).map(|_| Pubkey::new_unique()).collect();
+    let marker_d: Vec<Address> = (0..16).map(|_| Address::new_unique()).collect();
     println!("marker_d (16 remaining_accounts passed to set_params, testing beyond the confirmed 8):");
     for (i, m) in marker_d.iter().enumerate() {
         println!("  [{i}] {m}");
@@ -187,7 +187,7 @@ fn main() {
             println!("Global.fee_recipients[7] after the call matches marker_d[1..8]? {fee_recipients7_matches_marker_d_rest}");
             println!(
                 "Global.fee_recipient raw bytes: {:?}",
-                Pubkey::try_from(stored_fee_recipient).map(|p| p.to_string())
+                Address::try_from(stored_fee_recipient).map(|p| p.to_string())
             );
 
             // Did EITHER block of 8 remaining accounts get WRITTEN into

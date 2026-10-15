@@ -40,7 +40,7 @@ export class DiscriminatorZcClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider, true);
+    this.program = new naclac.Program(IDL, provider, true, []);
   }
 
   /**
@@ -65,6 +65,14 @@ export class DiscriminatorZcClient {
    */
   public readVault(args?: Record<string, never>, accounts?: Partial<instructions.ReadVaultAccounts>) {
     return instructions.readVault(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `touchConfig` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public touchConfig(args?: Record<string, never>, accounts?: Partial<instructions.TouchConfigAccounts>) {
+    return instructions.touchConfig(this.program, args ?? {}, accounts);
   }
 
   /** Derives the PDA for a `config` account. */

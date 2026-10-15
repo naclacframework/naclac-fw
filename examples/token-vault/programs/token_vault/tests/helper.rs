@@ -1,4 +1,4 @@
-﻿use token_vault_client::{
+use token_vault_client::{
     components::{Vault, UserAccount, fetch_vault, fetch_user_account},
     instructions::{
         build_initialize, build_deposit, build_withdraw,
@@ -26,12 +26,12 @@ pub fn run_lifecycle_test(token_program_id: Address) {
 
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
     let provider = NaclacProvider::new(cluster, payer).expect("Failed to construct NaclacProvider");
-    println!("\nðŸ”‘ [{}] Loaded Payer Wallet: {}", name, provider.payer.address());
+    println!("\n🔑 [{}] Loaded Payer Wallet: {}", name, provider.payer.address());
 
     // 2. Setup Mint
     let mint_signer = Keypair::new();
     let mint = mint_signer.address();
-    println!("ðŸª™ [{}] Creating Mint: {}", name, mint);
+    println!("🪙 [{}] Creating Mint: {}", name, mint);
     create_mint_with_program(&provider, &mint_signer, &provider.payer.address(), 9, &token_program_id)
         .expect("Failed to create mint");
 
@@ -66,12 +66,12 @@ pub fn run_lifecycle_test(token_program_id: Address) {
     if let Ok(account) = provider.get_account(&vault_pda) {
         if account.data.len() >= 8 {
             already_initialized = true;
-            println!("   â„¹ï¸ [{}] Vault account already exists. Skipping initialization.", name);
+            println!("   ℹ️ [{}] Vault account already exists. Skipping initialization.", name);
         }
     }
 
     if !already_initialized {
-        println!("ðŸš€ [{}] Sending Initialize transaction...", name);
+        println!("🚀 [{}] Sending Initialize transaction...", name);
 
         let tx_meta = build_initialize(
             &provider,
@@ -88,12 +88,12 @@ pub fn run_lifecycle_test(token_program_id: Address) {
         .unwrap();
 
         println!(
-            "   ðŸ“Š [{}] Initialize Compute Units (CUs): {}",
+            "   📊 [{}] Initialize Compute Units (CUs): {}",
             name,
             tx_meta.compute_units_consumed
         );
         if !tx_meta.logs.is_empty() {
-            println!("   ðŸ“œ Program Logs:");
+            println!("   📜 Program Logs:");
             for log in &tx_meta.logs {
                 println!("      {}", log);
             }
@@ -105,7 +105,7 @@ pub fn run_lifecycle_test(token_program_id: Address) {
         assert_eq!(vault_state.authority, provider.payer.address());
         assert_eq!(vault_state.vault_id, vault_id);
         assert_eq!(vault_state.bump, vault_bump);
-        println!("   âœ… [{}] Initialized state verified: authority matches payer.", name);
+        println!("   ✅ [{}] Initialized state verified: authority matches payer.", name);
     }
 
     // Get starting balance of user account PDA
@@ -116,7 +116,7 @@ pub fn run_lifecycle_test(token_program_id: Address) {
 
     // 6. Deposit Tokens
     let deposit_amount = 500_000_000u64; // 500,000,000 tokens
-    println!("ðŸ’° [{}] Sending FIRST Deposit transaction of {} tokens...", name, deposit_amount);
+    println!("💰 [{}] Sending FIRST Deposit transaction of {} tokens...", name, deposit_amount);
 
     let tx_meta = build_deposit(
         &provider,
@@ -139,12 +139,12 @@ pub fn run_lifecycle_test(token_program_id: Address) {
     .unwrap();
 
     println!(
-        "   ðŸ“Š [{}] First Deposit Compute Units (CUs): {}",
+        "   📊 [{}] First Deposit Compute Units (CUs): {}",
         name,
         tx_meta.compute_units_consumed
     );
     if !tx_meta.logs.is_empty() {
-        println!("   ðŸ“œ Program Logs:");
+        println!("   📜 Program Logs:");
         for log in &tx_meta.logs {
             println!("      {}", log);
         }
@@ -152,7 +152,7 @@ pub fn run_lifecycle_test(token_program_id: Address) {
 
     // 6.5. Deposit Tokens Again (to confirm init_if_needed behavior / CU drop)
     let second_deposit_amount = 100_000_000u64; // 100,000,000 tokens
-    println!("ðŸ’° [{}] Sending SECOND Deposit transaction of {} tokens...", name, second_deposit_amount);
+    println!("💰 [{}] Sending SECOND Deposit transaction of {} tokens...", name, second_deposit_amount);
 
     let tx_meta_second = build_deposit(
         &provider,
@@ -175,12 +175,12 @@ pub fn run_lifecycle_test(token_program_id: Address) {
     .unwrap();
 
     println!(
-        "   ðŸ“Š [{}] Second Deposit Compute Units (CUs): {}",
+        "   📊 [{}] Second Deposit Compute Units (CUs): {}",
         name,
         tx_meta_second.compute_units_consumed
     );
     if !tx_meta_second.logs.is_empty() {
-        println!("   ðŸ“œ Second Program Logs:");
+        println!("   📜 Second Program Logs:");
         for log in &tx_meta_second.logs {
             println!("      {}", log);
         }
@@ -203,7 +203,7 @@ pub fn run_lifecycle_test(token_program_id: Address) {
     assert_eq!(vault_token_data.amount(), deposit_amount + second_deposit_amount);
 
     println!(
-        "   âœ… [{}] State verified: user_account = {}, User ATA = {}, Vault ATA = {}.",
+        "   ✅ [{}] State verified: user_account = {}, User ATA = {}, Vault ATA = {}.",
         name,
         user_state.balance,
         user_token_data.amount(),
@@ -214,12 +214,12 @@ pub fn run_lifecycle_test(token_program_id: Address) {
     let captured_deposit_events: Vec<TokenDeposited> = tx_meta
         .parse_events_zero_copy()
         .expect("Failed to parse deposit events");
-    assert!(!captured_deposit_events.is_empty(), "âŒ Deposit event was not captured!");
+    assert!(!captured_deposit_events.is_empty(), "❌ Deposit event was not captured!");
     let captured_dep_event = &captured_deposit_events[0];
     assert_eq!(captured_dep_event.amount, deposit_amount);
     assert_eq!(captured_dep_event.user, provider.payer.address());
     println!(
-        "      ðŸ”” [{}] Event Fired! Deposited: {}, Vault Balance: {}",
+        "      🔔 [{}] Event Fired! Deposited: {}, Vault Balance: {}",
         name,
         captured_dep_event.amount,
         captured_dep_event.total_vault_balance
@@ -227,7 +227,7 @@ pub fn run_lifecycle_test(token_program_id: Address) {
 
     // 9. Withdraw Tokens
     let withdraw_amount = 250_000_000u64; // 250,000,000 tokens
-    println!("ðŸ’¸ [{}] Sending Withdraw transaction of {} tokens...", name, withdraw_amount);
+    println!("💸 [{}] Sending Withdraw transaction of {} tokens...", name, withdraw_amount);
 
     let tx_meta_withdraw = build_withdraw(
         &provider,
@@ -248,12 +248,12 @@ pub fn run_lifecycle_test(token_program_id: Address) {
     .unwrap();
 
     println!(
-        "   ðŸ“Š [{}] Withdraw Compute Units (CUs): {}",
+        "   📊 [{}] Withdraw Compute Units (CUs): {}",
         name,
         tx_meta_withdraw.compute_units_consumed
     );
     if !tx_meta_withdraw.logs.is_empty() {
-        println!("   ðŸ“œ Program Logs:");
+        println!("   📜 Program Logs:");
         for log in &tx_meta_withdraw.logs {
             println!("      {}", log);
         }
@@ -284,7 +284,7 @@ pub fn run_lifecycle_test(token_program_id: Address) {
     );
 
     println!(
-        "   âœ… [{}] State verified: user_account = {}, User ATA = {}, Vault ATA = {}.",
+        "   ✅ [{}] State verified: user_account = {}, User ATA = {}, Vault ATA = {}.",
         name,
         user_state_after.balance,
         user_token_data_after.amount(),
@@ -295,12 +295,12 @@ pub fn run_lifecycle_test(token_program_id: Address) {
     let captured_withdraw_events: Vec<TokenWithdrawn> = tx_meta_withdraw
         .parse_events_zero_copy()
         .expect("Failed to parse withdraw events");
-    assert!(!captured_withdraw_events.is_empty(), "âŒ Withdraw event was not captured!");
+    assert!(!captured_withdraw_events.is_empty(), "❌ Withdraw event was not captured!");
     let captured_with_event = &captured_withdraw_events[0];
     assert_eq!(captured_with_event.amount, withdraw_amount);
     assert_eq!(captured_with_event.user, provider.payer.address());
     println!(
-        "      ðŸ”” [{}] Event Fired! Withdrawn: {}, Vault Balance: {}",
+        "      🔔 [{}] Event Fired! Withdrawn: {}, Vault Balance: {}",
         name,
         captured_with_event.amount,
         captured_with_event.total_vault_balance
@@ -308,7 +308,7 @@ pub fn run_lifecycle_test(token_program_id: Address) {
 
     // 11. Excessive Withdraw (should fail)
     let excessive_amount = 1_000_000_000u64; // 1,000,000,000 tokens
-    println!("âš ï¸ [{}] Attempting excessive withdrawal of {} tokens...", name, excessive_amount);
+    println!("⚠️ [{}] Attempting excessive withdrawal of {} tokens...", name, excessive_amount);
     let res = build_withdraw(
         &provider,
         program_id,
@@ -331,10 +331,10 @@ pub fn run_lifecycle_test(token_program_id: Address) {
     match err {
         NaclacClientError::TransactionFailed { instruction_err, .. } => {
             assert_eq!(instruction_err, InstructionError::Custom(6001));
-            println!("   âœ… [{}] Correctly failed to withdraw excessive amount with custom error 6001.", name);
+            println!("   ✅ [{}] Correctly failed to withdraw excessive amount with custom error 6001.", name);
         }
         _ => panic!("Expected TransactionFailed error, got {:?}", err),
     }
 
-    println!("\nâœ¨ [{}] Token Vault integration test completed successfully!\n", name);
+    println!("\n✨ [{}] Token Vault integration test completed successfully!\n", name);
 }

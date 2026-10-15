@@ -13,14 +13,19 @@ pub mod cpi_handle;
 pub mod interface;
 pub mod program;
 pub mod signer;
-pub mod span;
+pub mod zc_enum;
+pub mod zc_vec;
 
 pub use accounts::*;
 pub use cpi_handle::*;
 pub use interface::*;
 pub use program::*;
 pub use signer::*;
-pub use span::*;
+pub use zc_enum::{
+    event_bytes_of, event_field_default, event_slice_bytes, Align, AlignTo, ZcEnum, ZcEnumKind,
+    ZcEventDefault, ZcEventField, ZcField, ZcFieldWrite, ZcStorage, ZcWrite,
+};
+pub use zc_vec::*;
 
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::AccountInfo;
@@ -42,13 +47,12 @@ pub trait Owner {
     fn program_owner(&self) -> Address;
 }
 
-/// Trait to define the discriminator length for an account.
-/// Default is 8 bytes (Anchor/Naclac standard).
+/// The bytes that prefix an account's data to identify its type: 1 to 8 bytes
+/// for a `#[component]`, empty for a foreign type that carries none (e.g. an
+/// SPL token account). There is deliberately no default, so an implementor
+/// can never silently inherit an all-zero discriminator.
 pub trait Discriminator {
-    const DISCRIMINATOR: [u8; 8] = [0u8; 8];
-    fn discriminator_len() -> usize {
-        8
-    }
+    const DISCRIMINATOR: &'static [u8];
 
     /// Extra per-type validation run once at account-wrapper construction
     /// beyond what the discriminator/size check alone can verify from
@@ -108,16 +112,13 @@ pub trait NaclacAccount: Sized {
     /// Whether this account type is writable by default.
     const IS_WRITABLE: bool = false;
 
-    /// Hydrate and validate the account wrapper from an `AccountType`.
-    fn try_from(info: &crate::prelude::AccountType, index: usize) -> crate::prelude::Result<Self>;
+    /// Hydrate and validate the account wrapper from an `AccountInfo`.
+    fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self>;
 
     /// Fast-path hydration for mutable non-init accounts.
     /// By default, falls back to standard `try_from`.
     #[inline(always)]
-    fn try_from_mut(
-        info: &crate::prelude::AccountType,
-        index: usize,
-    ) -> crate::prelude::Result<Self> {
+    fn try_from_mut(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         Self::try_from(info, index)
     }
 
@@ -140,30 +141,21 @@ pub trait Ids {
 
 impl NaclacAccount for AccountInfo {
     #[inline(always)]
-    fn try_from(info: &crate::prelude::AccountType, _index: usize) -> crate::prelude::Result<Self> {
-        #[cfg(feature = "pinocchio")]
-        {
-            Ok(*info)
-        }
-        #[cfg(not(feature = "pinocchio"))]
-        {
-            Ok(info.clone())
-        }
+    fn try_from(info: &AccountInfo, _index: usize) -> crate::prelude::Result<Self> {
+        Ok(*info)
     }
 }
 
 #[cfg(feature = "pinocchio")]
 impl NaclacAccount for AccountView {
     #[inline(always)]
-    fn try_from(info: &crate::prelude::AccountType, _index: usize) -> crate::prelude::Result<Self> {
+    fn try_from(info: &AccountInfo, _index: usize) -> crate::prelude::Result<Self> {
         Ok(info.view)
     }
 }
 
-#[cfg(all(feature = "no-std", not(feature = "pinocchio")))]
+#[cfg(not(feature = "pinocchio"))]
 use alloc::boxed::Box;
-#[cfg(all(not(feature = "no-std"), not(feature = "pinocchio")))]
-use std::boxed::Box;
 
 #[cfg(not(feature = "pinocchio"))]
 impl<T: NaclacAccount> NaclacAccount for Box<T> {
@@ -171,15 +163,12 @@ impl<T: NaclacAccount> NaclacAccount for Box<T> {
     const IS_WRITABLE: bool = T::IS_WRITABLE;
 
     #[inline(always)]
-    fn try_from(info: &crate::prelude::AccountType, index: usize) -> crate::prelude::Result<Self> {
+    fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         Ok(Box::new(T::try_from(info, index)?))
     }
 
     #[inline(always)]
-    fn try_from_mut(
-        info: &crate::prelude::AccountType,
-        index: usize,
-    ) -> crate::prelude::Result<Self> {
+    fn try_from_mut(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         Ok(Box::new(T::try_from_mut(info, index)?))
     }
 
@@ -265,14 +254,14 @@ impl<T: ToAddress + ?Sized> ToAddress for &T {
 #[cfg(not(feature = "pinocchio"))]
 impl ToAccountInfo for AccountInfo {
     fn to_account_info(&self) -> AccountInfo {
-        self.clone()
+        *self
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
 impl ToAccountInfos for AccountInfo {
     fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
-        crate::prelude::vec![self.clone()]
+        crate::prelude::vec![*self]
     }
 }
 

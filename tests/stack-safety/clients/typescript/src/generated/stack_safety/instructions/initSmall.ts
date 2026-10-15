@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_small` instruction. */
+/** Discriminator for the `init_small` instruction. */
 export const INIT_SMALL_DISCRIMINATOR = new Uint8Array([83, 231, 209, 225, 237, 234, 83, 100]);
 
 /** Accounts for the `initSmall` instruction. */

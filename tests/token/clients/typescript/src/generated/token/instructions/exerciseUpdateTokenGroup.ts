@@ -3,20 +3,20 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_update_token_group` instruction. */
+/** Discriminator for the `exercise_update_token_group` instruction. */
 export const EXERCISE_UPDATE_TOKEN_GROUP_DISCRIMINATOR = new Uint8Array([235, 96, 84, 119, 8, 142, 109, 148]);
 
 /** Instruction arguments for `exerciseUpdateTokenGroup`. */
 export interface ExerciseUpdateTokenGroupArgs {
-  new_max_size: bigint | number;
-  new_authority: naclac.Address | string;
+  newMaxSize: bigint | number;
+  newAuthority: naclac.Address | string;
 }
 
 /** Accounts for the `exerciseUpdateTokenGroup` instruction. */
 export interface ExerciseUpdateTokenGroupAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

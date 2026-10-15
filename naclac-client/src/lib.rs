@@ -10,16 +10,17 @@ pub use token::{Mint, TokenAccount};
 pub use builder::InstructionBuilder;
 pub use error::{decode_custom_error, translate_error_code, NaclacClientError, NaclacError};
 pub use fetcher::{
-    decode_borsh_checked, decode_pod_checked, decode_pod_unchecked, AccountFetcher, NaclacDecode,
+    decode_borsh_checked, decode_pod_checked, decode_pod_unchecked, decode_wincode_checked,
+    AccountFetcher, NaclacDecode,
 };
 pub use provider::{
-    ClientBackend, NaclacAllocEvent, NaclacProvider, NaclacTransactionMetadata, RpcCluster,
+    ClientBackend, NaclacAllocEvent, NaclacEvent, NaclacInnerInstruction, NaclacProvider,
+    NaclacTransactionMetadata, RpcCluster, TransactionVersion,
 };
 pub use utils::{
-    create_ata, create_ata_with_program, create_mint, create_token_account, get_discriminator,
-    load_node_wallet, mint_to, resolve_cargo_target_dir, transfer_sol, SignerAddressExt,
-    ASSOCIATED_TOKEN_PROGRAM_ID, RENT_SYSVAR_ID, SYSTEM_PROGRAM_ID, TOKEN_2022_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
+    create_ata, create_ata_with_program, create_mint, create_token_account, load_node_wallet,
+    mint_to, resolve_cargo_target_dir, transfer_sol, SignerAddressExt, ASSOCIATED_TOKEN_PROGRAM_ID,
+    RENT_SYSVAR_ID, SYSTEM_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
 };
 
 // Custom AccountMeta and Address
@@ -49,11 +50,12 @@ impl AccountMeta {
     }
 }
 
-// `Span`/`ZcString` are pure `core`/`bytemuck` types with no `no_std`-only
+// `ZcVec`/`ZcString` are pure `core`/`bytemuck` types with no `no_std`-only
 // dependency, so they're safe to re-export offchain too, for code that needs
 // to inspect a zero-copy program's CPI-mode types directly.
-pub use naclac_core::wrappers::{Span, ZcString};
-pub type ZcVec<T> = Span<T>;
+pub use naclac_core::wrappers::{
+    ZcEnum, ZcEnumKind, ZcFieldWrite, ZcStorage, ZcString, ZcVec, ZcWrite,
+};
 
 /// A binary-stable wrapper for `bool` — mirrors `naclac-core`'s own
 /// `Bool(pub u8)` exactly (independent definition, not re-exported, to avoid
@@ -93,6 +95,12 @@ impl From<Bool> for bool {
     }
 }
 
+impl ZcWrite for Bool {
+    fn write_into(&self, out: &mut [u8]) {
+        out[0] = self.0;
+    }
+}
+
 /// Reads a value's own in-memory bytes without requiring `bytemuck::Pod`.
 ///
 /// `Pod` (and `bytemuck::bytes_of`) is required for the *reverse* direction
@@ -109,7 +117,9 @@ impl From<Bool> for bool {
 pub fn bytes_of_checked_bit_pattern<T: Copy>(value: &T) -> &[u8] {
     // SAFETY: see the doc comment above — `value` is already a valid `T`,
     // so reading its own bytes never constructs a `T` from unchecked bytes.
-    unsafe { core::slice::from_raw_parts((value as *const T).cast::<u8>(), core::mem::size_of::<T>()) }
+    unsafe {
+        core::slice::from_raw_parts((value as *const T).cast::<u8>(), core::mem::size_of::<T>())
+    }
 }
 
 #[cfg(kani)]
@@ -141,8 +151,39 @@ mod kani_proofs {
 // Standard Solana SDK Re-exports
 pub use borsh;
 pub use bytemuck;
+pub use wincode;
+
+/// Off-chain mirror of `naclac_core::wincode_config` — deliberately a
+/// separate definition, not a re-export. `naclac-client` is a shared
+/// dev-dependency of every example program's test suite, including
+/// pinocchio-mode ones, whose own on-chain `naclac-core` edge enables the
+/// `pinocchio` feature. `naclac-core`'s `wincode_config` module is gated
+/// `not(feature = "pinocchio")` (wincode and pinocchio are mutually
+/// exclusive on-chain by design), so under Cargo's feature unification a
+/// re-export here would silently disappear whenever `naclac-client` is
+/// built alongside a pinocchio-mode sibling program in the same build.
+/// `naclac-client` itself is never pinocchio-mode and always depends on
+/// `wincode` directly, so defining this locally sidesteps that collision
+/// entirely. Must stay byte-identical to `naclac_core::wincode_config`, or
+/// on-chain and off-chain wire formats will silently disagree.
+pub mod wincode_config {
+    pub type Config = wincode::config::Configuration<
+        true,
+        { wincode::config::DEFAULT_PREALLOCATION_SIZE_LIMIT },
+        wincode::len::FixIntLen<u32>,
+        wincode::int_encoding::LittleEndian,
+        wincode::int_encoding::FixInt,
+        u8,
+    >;
+
+    pub const CONFIG: Config = wincode::config::Configuration::default()
+        .with_length_encoding::<wincode::len::FixIntLen<u32>>()
+        .with_tag_encoding::<u8>();
+}
+
+pub use solana_instruction::Instruction;
+pub use solana_instruction_error::InstructionError;
 pub use solana_keypair::Keypair;
-pub use solana_program::instruction::{Instruction, InstructionError};
 pub use solana_signature::Signature;
 pub use solana_signer::Signer;
 pub use solana_transaction::versioned::VersionedTransaction;

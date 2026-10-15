@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_pause_mint` instruction. */
+/** Discriminator for the `exercise_pause_mint` instruction. */
 export const EXERCISE_PAUSE_MINT_DISCRIMINATOR = new Uint8Array([111, 185, 188, 250, 73, 183, 123, 49]);
 
 /** Accounts for the `exercisePauseMint` instruction. */

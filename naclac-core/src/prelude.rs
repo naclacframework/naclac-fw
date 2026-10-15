@@ -2,7 +2,7 @@
 // prelude.rs — Naclac unified prelude
 //
 // Feature routing:
-//   default ("solana")       → solana_program backend (std, lifetimes) — NO borsh by default
+//   default ("solana")       → solana_program backend — NO borsh by default
 //   "solana" + "borsh"       → solana_program + borsh serialization (Account<T>, #[component])
 //   "zero-copy"              → Account<T> zero-copy branch, zero-copy events via bytemuck::Pod
 //   "pinocchio"              → pinocchio backend (no_std, no lifetimes, zero-copy)
@@ -11,10 +11,13 @@
 // solana_program symbol and replaces it with the pinocchio equivalents.
 // ===========================================================================
 
-pub use crate::context::{Bumps, Context, LoadableAccounts, ValidationResult};
+pub use crate::context::{
+    Bumps, Context, EventCpiAccounts, EventCpiAuthority, EventCpiTag, LoadableAccounts,
+    ValidationResult,
+};
+pub use crate::cpi::{self, AccountMeta, ToAccountMetas};
 #[cfg(feature = "pinocchio")]
 pub use crate::cpi::{invoke_signed_pinocchio, invoke_signed_pinocchio_unchecked};
-pub use crate::cpi::{self, AccountMeta, ToAccountMetas};
 pub use naclac_macros::*;
 
 // --- Wrappers: common types (shared by both backends) ---
@@ -22,18 +25,24 @@ pub use crate::error::NaclacError;
 
 // These traits/types exist in wrappers for BOTH Solana and Pinocchio backends
 pub use crate::wrappers::{
-    Account, AsRefByteSlice, AssociatedToken, CpiHandle, CpiHandleMut, Discriminator, Id, Ids,
-    Interface, InterfaceAccount, NaclacAccount, NaclacZeroCopy, Owner, Program, Signer, Span,
-    System, ToAccountInfo, ToAddress, ToCpiHandle, ToCpiHandleMut, Token, Token2022,
-    TokenInterface, ValidateInterfaceLayout, ZcString,
+    AsRefByteSlice, AssociatedToken, CpiHandle, CpiHandleMut, Discriminator, Id, Ids, Interface,
+    NaclacAccount, NaclacZeroCopy, Owner, Program, Signer, System, ToAccountInfo, ToAddress,
+    ToCpiHandle, ToCpiHandleMut, Token, Token2022, TokenInterface, ValidateInterfaceLayout, ZcEnum,
+    ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcFieldWrite, ZcStorage, ZcString, ZcVec,
+    ZcVecIter, ZcWrite, event_bytes_of, event_field_default, event_slice_bytes,
 };
 
-pub type ZcVec<T> = Span<T>;
+// `Account<T>`/`InterfaceAccount<T>` don't exist at all when `borsh` and
+// `wincode` are both active (see `wrappers/accounts/mod.rs`) — split out so
+// that invalid combination surfaces only the one `compile_error!` in
+// `lib.rs`, not a secondary "unresolved import" error here too.
+#[cfg(not(all(feature = "borsh", feature = "wincode")))]
+pub use crate::wrappers::{Account, InterfaceAccount};
 
 pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};
 
-pub use crate::realloc::resize_with_rent;
 pub use crate::realloc::const_rent_lamports;
+pub use crate::realloc::resize_with_rent;
 
 // ---------------------------------------------------------------------------
 // CPI Stack-Allocation Limits
@@ -99,7 +108,10 @@ mod cpi_account_count_kani_proofs {
         let result = cpi_account_count_fits(fixed, extra, max);
         match fixed.checked_add(extra) {
             Some(total) => assert_eq!(result, total <= max),
-            None => assert!(!result, "an overflowing sum must never be reported as fitting"),
+            None => assert!(
+                !result,
+                "an overflowing sum must never be reported as fitting"
+            ),
         }
     }
 }
@@ -113,31 +125,16 @@ pub use crate::wrappers::ToAccountInfos;
 // Pinocchio-only: AccountView is already exported from the pinocchio block below (line ~159)
 // Do NOT re-export it from wrappers here — that creates a circular private import
 
-// --- Module Routing (core vs std) ---
-#[cfg(any(feature = "pinocchio", feature = "no-std"))]
 pub use core::fmt;
 
-#[cfg(not(any(feature = "pinocchio", feature = "no-std")))]
-pub use std::fmt;
-
-// --- Alloc Routing (Vec, String, etc.) ---
-// In no_std environments (Pinocchio), alloc must be linked explicitly.
-// The full entrypoint path calls pinocchio::default_allocator!() which registers one.
-#[cfg(any(feature = "no-std", feature = "pinocchio"))]
-extern crate alloc;
-
-#[cfg(any(feature = "no-std", feature = "pinocchio"))]
 pub use alloc::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
 
-#[cfg(not(any(feature = "no-std", feature = "pinocchio")))]
-pub use std::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
-
-// --- IO Routing ---
-#[cfg(all(feature = "no-std", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 pub use borsh::io;
-
-#[cfg(not(any(feature = "pinocchio", feature = "no-std")))]
-pub use std::io;
 
 // --- Bytemuck (both backends need this for zero-copy) ---
 pub use crate::bytemuck;
@@ -147,27 +144,47 @@ pub use crate::bytemuck::{Pod, Zeroable};
 // SOLANA-PROGRAM BACKEND  (feature = "solana")
 // ===========================================================================
 #[cfg(not(feature = "pinocchio"))]
-pub use solana_program;
+pub use crate::cpi::sdk::{invoke, invoke_signed};
 #[cfg(not(feature = "pinocchio"))]
-pub use solana_program::{
-    clock::Clock,
-    entrypoint::ProgramResult,
-    log::sol_log_data,
-    program::{invoke, invoke_signed},
-    program_error::ProgramError,
-    sysvar::rent::Rent,
-    sysvar::Sysvar,
-};
+pub use solana_clock::Clock;
+#[cfg(not(feature = "pinocchio"))]
+pub use solana_program_error::{ProgramError, ProgramResult};
 
+#[cfg(not(feature = "pinocchio"))]
+pub fn sol_log_data(data: &[&[u8]]) {
+    #[cfg(target_os = "solana")]
+    unsafe {
+        solana_define_syscall::definitions::sol_log_data(
+            data as *const _ as *const u8,
+            data.len() as u64,
+        );
+    }
+    #[cfg(not(target_os = "solana"))]
+    {
+        let _ = data;
+        // No-op for off-chain tests in solana backend
+    }
+}
+#[cfg(not(feature = "pinocchio"))]
+pub use solana_get_sysvar::GetSysvar as Sysvar;
+#[cfg(not(feature = "pinocchio"))]
+pub use solana_rent::Rent;
+#[macro_export]
+macro_rules! solana_declare_id {
+    ($id:expr) => {
+        pub const ID: $crate::solana_address::Address = $crate::solana_address::address!($id);
+    };
+}
 #[cfg(not(feature = "pinocchio"))]
 pub use solana_system_interface::program::ID as SYSTEM_PROGRAM_ID;
 
 #[cfg(not(feature = "pinocchio"))]
-pub use solana_program::msg;
+pub use solana_instruction;
+#[cfg(not(feature = "pinocchio"))]
+pub use solana_msg;
 
 #[cfg(not(feature = "pinocchio"))]
-pub type NaclacResult<T = (), E = solana_program::program_error::ProgramError> =
-    core::result::Result<T, E>;
+pub type NaclacResult<T = (), E = solana_program_error::ProgramError> = core::result::Result<T, E>;
 #[cfg(not(feature = "pinocchio"))]
 pub use NaclacResult as Result;
 
@@ -190,8 +207,25 @@ pub const TOKEN_2022_PROGRAM_ID: Address =
 pub const RENT_SYSVAR_ID: Address =
     solana_address::address!("SysvarRent111111111111111111111111111111111");
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 pub use crate::borsh;
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+pub use crate::wincode;
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+pub use crate::wincode_config;
 
 #[cfg(not(feature = "pinocchio"))]
 pub use crate::base58;
@@ -201,13 +235,17 @@ pub use crate::system_program;
 #[cfg(not(feature = "pinocchio"))]
 pub use solana_system_interface;
 
+/// One input account in the SDK's `solana_account_info::AccountInfo` layout,
+/// which CPI and SDK interop read directly, so the field order must stay
+/// identical to it. The entrypoint's account list is made of these; programs
+/// reach them through the [`AccountInfo`] handle.
 #[cfg(not(feature = "pinocchio"))]
 #[derive(Clone)]
 #[repr(C)]
-pub struct AccountInfo {
+pub struct AccountInfoData {
     pub key: &'static Address,
-    pub lamports: std::rc::Rc<core::cell::RefCell<&'static mut u64>>,
-    pub data: std::rc::Rc<core::cell::RefCell<&'static mut [u8]>>,
+    pub lamports: alloc::rc::Rc<core::cell::RefCell<&'static mut u64>>,
+    pub data: alloc::rc::Rc<core::cell::RefCell<&'static mut [u8]>>,
     pub owner: &'static Address,
     pub _unused: u64,
     pub is_signer: bool,
@@ -215,15 +253,66 @@ pub struct AccountInfo {
     pub executable: bool,
 }
 
+/// A `Copy` handle to one of the program's input accounts, the standard
+/// Solana backend's counterpart of pinocchio's `AccountView`. Copying it never
+/// touches the `Rc`s inside [`AccountInfoData`], which it dereferences to. The
+/// `'static` reference is only sound because the entrypoint's account list is
+/// never freed while the program runs.
+#[cfg(not(feature = "pinocchio"))]
+#[derive(Clone, Copy)]
+#[repr(transparent)]
+pub struct AccountInfo(pub(crate) &'static AccountInfoData);
+
+#[cfg(not(feature = "pinocchio"))]
+impl core::ops::Deref for AccountInfo {
+    type Target = AccountInfoData;
+    #[inline(always)]
+    fn deref(&self) -> &AccountInfoData {
+        self.0
+    }
+}
+
 #[cfg(not(feature = "pinocchio"))]
 impl AccountInfo {
+    #[inline(always)]
+    pub fn from_data(data: &'static AccountInfoData) -> Self {
+        Self(data)
+    }
+
+    /// The account in the SDK's own `AccountInfo` layout.
+    #[inline(always)]
+    pub fn data_ref(&self) -> &'static AccountInfoData {
+        self.0
+    }
+}
+
+/// Handles for `accounts`, in order, in a buffer that is never freed.
+/// Allocates only when `accounts` is non-empty.
+#[cfg(not(feature = "pinocchio"))]
+#[doc(hidden)]
+#[inline(never)]
+pub fn account_handles(accounts: &'static [AccountInfoData]) -> &'static [AccountInfo] {
+    accounts
+        .iter()
+        .map(AccountInfo::from_data)
+        .collect::<crate::prelude::Vec<AccountInfo>>()
+        .leak()
+}
+
+#[cfg(not(feature = "pinocchio"))]
+impl AccountInfo {
+    /// Whether the account's data is empty. Returns `false` while the data is
+    /// mutably borrowed elsewhere, instead of panicking.
     pub fn data_is_empty(&self) -> bool {
-        self.data.borrow().is_empty()
+        self.data
+            .try_borrow()
+            .map(|data| data.is_empty())
+            .unwrap_or(false)
     }
 
     pub fn try_borrow_data(
         &self,
-    ) -> Result<core::cell::Ref<'_, [u8]>, solana_program::program_error::ProgramError> {
+    ) -> Result<core::cell::Ref<'_, [u8]>, solana_program_error::ProgramError> {
         self.data
             .try_borrow()
             .map(|r| core::cell::Ref::map(r, |d| &**d))
@@ -232,7 +321,7 @@ impl AccountInfo {
 
     pub fn try_borrow_mut_data(
         &self,
-    ) -> Result<core::cell::RefMut<'_, [u8]>, solana_program::program_error::ProgramError> {
+    ) -> Result<core::cell::RefMut<'_, [u8]>, solana_program_error::ProgramError> {
         self.data
             .try_borrow_mut()
             .map(|r| core::cell::RefMut::map(r, |d| &mut **d))
@@ -241,22 +330,13 @@ impl AccountInfo {
 
     /// # Safety
     ///
-    /// This function transmutes an `AccountInfo` with a specific lifetime into a lifetime-erased representation.
-    /// The caller must ensure that the source lifetime is valid for the duration of the erased type's usage.
-    #[inline(always)]
-    pub unsafe fn from_lifetime<'info>(
-        info: solana_program::account_info::AccountInfo<'info>,
-    ) -> Self {
-        core::mem::transmute(info)
-    }
-
-    /// # Safety
-    ///
     /// This function transmutes the lifetime-erased `AccountInfo` back to a specific lifetime `'info`.
     /// The caller must ensure that the lifetime `'info` is valid for the lifetime-erased representation.
     #[inline(always)]
-    pub unsafe fn to_lifetime<'info>(&self) -> solana_program::account_info::AccountInfo<'info> {
-        core::mem::transmute(self.clone())
+    pub unsafe fn to_lifetime<'info>(&self) -> solana_account_info::AccountInfo<'info> {
+        core::mem::transmute::<AccountInfoData, solana_account_info::AccountInfo<'info>>(
+            self.0.clone(),
+        )
     }
 
     pub fn sub_lamports(&self, amount: u64) -> Result<()> {
@@ -288,10 +368,9 @@ impl AccountInfo {
     pub fn assign(&self, new_owner: &Address) {
         unsafe {
             let solana_info = self.to_lifetime();
-            solana_info.assign(core::mem::transmute::<
-                &Address,
-                &solana_program::pubkey::Pubkey,
-            >(new_owner));
+            solana_info.assign(core::mem::transmute::<&Address, &solana_address::Address>(
+                new_owner,
+            ));
         }
     }
 
@@ -300,7 +379,7 @@ impl AccountInfo {
     }
 
     /// Resize the account's data, delegating to the real
-    /// `solana_program::account_info::AccountInfo::resize` (an inherent
+    /// `solana_account_info::AccountInfo::resize` (an inherent
     /// `&self` method backed by unsafe raw-pointer manipulation into
     /// runtime memory) via the same `to_lifetime()` cast already used by
     /// `assign()` above.
@@ -310,14 +389,25 @@ impl AccountInfo {
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 pub use crate::borsh::{BorshDeserialize, BorshSerialize};
+
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
+pub use crate::wincode::{SchemaRead, SchemaWrite};
 
 /// Helper: get unix timestamp from the Clock sysvar (solana_program only)
 #[inline(always)]
 #[cfg(not(feature = "pinocchio"))]
 pub fn unix_timestamp() -> Result<i64> {
-    Clock::get().map(|c| c.unix_timestamp)
+    <Clock as Sysvar>::get().map(|c| c.unix_timestamp)
 }
 
 /// Helper: get unix timestamp from the Clock sysvar (pinocchio only)
@@ -341,9 +431,29 @@ pub use pinocchio::{
     AccountView, Address as PinocchioAddress, ProgramResult,
 };
 
-pub use crate::cursor::{mut_mask_set_bit, AccountBitvec};
 #[cfg(feature = "pinocchio")]
-pub use crate::cursor::{parse_ix_context, AccountCursor};
+pub use crate::cursor::{account_count_error, parse_ix_context, AccountCursor};
+pub use crate::cursor::{account_header_check, mut_mask_set_bit, AccountBitvec};
+
+/// Converts an instruction's result into the value the entrypoint returns to
+/// the runtime. Inlined into each dispatch arm so a successful arm returns
+/// `SUCCESS` directly; every error shares one out-of-line conversion.
+#[cfg(feature = "pinocchio")]
+#[doc(hidden)]
+#[inline(always)]
+pub fn program_result_to_u64(result: ProgramResult) -> u64 {
+    match result {
+        Ok(()) => pinocchio::SUCCESS,
+        Err(error) => program_error_to_u64(error),
+    }
+}
+
+#[cfg(feature = "pinocchio")]
+#[cold]
+#[inline(never)]
+fn program_error_to_u64(error: ProgramError) -> u64 {
+    error.into()
+}
 
 #[cfg(feature = "pinocchio")]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -371,54 +481,53 @@ unsafe impl bytemuck::ZeroableInOption for Address {}
 unsafe impl bytemuck::PodInOption for Address {}
 
 /// Real Solana protocol limit on the number of seeds a PDA derivation may
-/// use (`solana_program::pubkey::MAX_SEEDS`) — mirrored here, not invented,
+/// use (`solana_address::MAX_SEEDS`) — mirrored here, not invented,
 /// since `derive_program_address` below needs a fixed-size scratch buffer
 /// (no heap allocation, so it works under pinocchio's `no_std`).
 pub const MAX_PDA_SEEDS: usize = 16;
 
-/// Derives a PDA address for arbitrary `seeds` under `program_id` at the
-/// given `bump`, via a single hash-and-compare (`create_program_address`-
-/// equivalent) rather than an on-chain `find_program_address` bump search —
-/// naclac never runs the search loop on-chain, so `bump` must already be
-/// known by the caller. The one shared implementation every PDA-verifying
-/// code path in naclac uses: the `#[account(seeds = [...], bump = ...)]`
-/// constraint naclac-macros generates and `associated_token::derive_ata_address`
-/// both call this internally rather than each hashing independently. It's
-/// also the function hand-written instruction code needs to verify an
-/// arbitrary `AccountInfo` — e.g. one of `ctx.remaining_accounts` — against
-/// an expected PDA, something no declarative `#[account(...)]` constraint
-/// can reach (those only attach to a named struct field).
-///
-/// Panics if `seeds.len() > MAX_PDA_SEEDS` — the same real protocol limit
-/// `find_program_address`/`create_program_address` themselves enforce, not
-/// an invented restriction.
-/// Fills a `[&[u8]; MAX_PDA_SEEDS + 3]` scratch buffer with `seeds` followed
-/// by `bump_slice`, `program_id`'s bytes, and the `"ProgramDerivedAddress"`
-/// domain tag, returning `(scratch, n)` where `scratch[..n]` is the real
-/// hash input — shared by `derive_program_address` and
-/// `find_program_address`, which otherwise duplicated this exact
-/// index-tracking loop independently. Caller must ensure `seeds.len() <=
-/// MAX_PDA_SEEDS` (both callers `assert!` this immediately before calling).
-fn build_pda_hash_inputs<'a>(
+/// Writes `seeds` followed by `bump_slice`, `program_id`'s bytes, and the
+/// `"ProgramDerivedAddress"` domain tag into the front of `scratch`, and
+/// returns exactly that written prefix: the hash input for one PDA
+/// derivation. Shared by every PDA-hashing function in this module. Slots past
+/// the returned prefix are never written, so `scratch` may start
+/// uninitialized. Caller must ensure `seeds.len() <= MAX_PDA_SEEDS` (every
+/// caller `assert!`s this immediately before calling).
+fn build_pda_hash_inputs<'a, 's>(
+    scratch: &'s mut [core::mem::MaybeUninit<&'a [u8]>; MAX_PDA_SEEDS + 3],
     seeds: &[&'a [u8]],
     bump_slice: &'a [u8],
     program_id: &'a Address,
-) -> ([&'a [u8]; MAX_PDA_SEEDS + 3], usize) {
-    let mut scratch: [&[u8]; MAX_PDA_SEEDS + 3] = [&[]; MAX_PDA_SEEDS + 3];
+) -> &'s [&'a [u8]] {
     let mut n = 0;
     for seed in seeds {
-        scratch[n] = seed;
+        scratch[n].write(*seed);
         n += 1;
     }
-    scratch[n] = bump_slice;
+    scratch[n].write(bump_slice);
     n += 1;
-    scratch[n] = program_id.as_ref();
+    scratch[n].write(program_id.as_ref());
     n += 1;
-    scratch[n] = b"ProgramDerivedAddress";
+    scratch[n].write(b"ProgramDerivedAddress");
     n += 1;
-    (scratch, n)
+    // SAFETY: slots `0..n` were each written above, and `MaybeUninit<T>` has
+    // the same layout as `T`.
+    unsafe { core::slice::from_raw_parts(scratch.as_ptr() as *const &'a [u8], n) }
 }
 
+/// Derives a PDA address for arbitrary `seeds` under `program_id` at the
+/// given `bump`, via a single hash with no curve check
+/// (`create_program_address`-equivalent minus the on-curve rejection), so the
+/// caller must already know `bump` and must not rely on this alone to prove
+/// the result is off-curve. The one shared implementation behind the
+/// `#[account(seeds = [...], bump = ...)]` constraint naclac-macros generates
+/// and `associated_token::derive_ata_address`. Also what hand-written
+/// instruction code uses to verify an arbitrary `AccountInfo` (e.g. one of
+/// `ctx.remaining_accounts`) against an expected PDA, which no declarative
+/// `#[account(...)]` constraint can reach.
+///
+/// Panics if `seeds.len() > MAX_PDA_SEEDS`, the same protocol limit
+/// `find_program_address`/`create_program_address` enforce.
 pub fn derive_program_address(seeds: &[&[u8]], bump: u8, program_id: &Address) -> Address {
     assert!(
         seeds.len() <= MAX_PDA_SEEDS,
@@ -426,29 +535,95 @@ pub fn derive_program_address(seeds: &[&[u8]], bump: u8, program_id: &Address) -
     );
 
     let bump_arr = [bump];
-    let (scratch, n) = build_pda_hash_inputs(seeds, &bump_arr[..], program_id);
-    let inputs = &scratch[..n];
+    let mut scratch = [core::mem::MaybeUninit::<&[u8]>::uninit(); MAX_PDA_SEEDS + 3];
+    let inputs = build_pda_hash_inputs(&mut scratch, seeds, &bump_arr[..], program_id);
+    Address::new_from_array(pda_hash(inputs))
+}
 
+/// SHA-256 over the concatenation of `inputs`: the raw PDA hash, before any
+/// curve check. Shared by every PDA-hashing function in this module.
+#[inline(always)]
+fn pda_hash(inputs: &[&[u8]]) -> [u8; 32] {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let hash_result = solana_program::hash::hashv(inputs);
-        Address::new_from_array(hash_result.to_bytes())
+        solana_sha256_hasher::hashv(inputs).to_bytes()
     }
 
     #[cfg(feature = "pinocchio")]
     {
-        let mut hash_result = [0u8; 32];
-        // SAFETY: `sol_sha256` is a native Solana SBF syscall; `inputs`
-        // outlives the call and each slice element is a valid (ptr, len)
-        // pair, matching the syscall's expected array-of-`SolBytes` layout.
+        let mut out = core::mem::MaybeUninit::<[u8; 32]>::uninit();
+        // SAFETY: `sol_sha256` reads `inputs` as an array of `(ptr, len)`
+        // pairs, which is `&[u8]`'s layout on SBF, and every element outlives
+        // the call. On return it has written all 32 bytes of `out`; on failure
+        // the runtime aborts the program rather than returning.
         unsafe {
             solana_define_syscall::definitions::sol_sha256(
                 inputs.as_ptr() as *const u8,
                 inputs.len() as u64,
-                hash_result.as_mut_ptr(),
+                out.as_mut_ptr().cast::<u8>(),
             );
+            out.assume_init()
         }
-        Address::new_from_array(hash_result)
+    }
+}
+
+/// Whether the PDA hash of `inputs` equals `expected`, where `expected` is
+/// the 32-byte address reinterpreted as four native-endian words. Compares
+/// word by word, stopping at the first mismatch; not constant-time, so only
+/// for public data such as addresses.
+#[inline(always)]
+fn pda_hash_matches(inputs: &[&[u8]], expected: &[u64; 4]) -> bool {
+    #[cfg(not(feature = "pinocchio"))]
+    {
+        let hash: [u64; 4] = bytemuck::cast(pda_hash(inputs));
+        hash == *expected
+    }
+
+    #[cfg(feature = "pinocchio")]
+    {
+        let mut out = core::mem::MaybeUninit::<[u64; 4]>::uninit();
+        let words = out.as_mut_ptr().cast::<u64>();
+        // SAFETY: as in `pda_hash`; `out` is 32 bytes and 8-byte aligned, and
+        // `sol_sha256` initializes all of it before the reads below. The
+        // volatile reads keep each word compare a separate branch instead of
+        // letting LLVM merge the four compares into branch-free boolean code.
+        unsafe {
+            solana_define_syscall::definitions::sol_sha256(
+                inputs.as_ptr() as *const u8,
+                inputs.len() as u64,
+                words.cast::<u8>(),
+            );
+            core::ptr::read_volatile(words) == expected[0]
+                && core::ptr::read_volatile(words.add(1)) == expected[1]
+                && core::ptr::read_volatile(words.add(2)) == expected[2]
+                && core::ptr::read_volatile(words.add(3)) == expected[3]
+        }
+    }
+}
+
+#[cfg(all(test, not(feature = "pinocchio")))]
+mod pda_hash_matches_tests {
+    use super::{pda_hash, pda_hash_matches};
+
+    fn words(bytes: [u8; 32]) -> [u64; 4] {
+        bytemuck::cast(bytes)
+    }
+
+    #[test]
+    fn matches_its_own_hash() {
+        let inputs: [&[u8]; 2] = [b"seed", &[7]];
+        assert!(pda_hash_matches(&inputs, &words(pda_hash(&inputs))));
+    }
+
+    #[test]
+    fn a_difference_in_any_byte_is_detected() {
+        let inputs: [&[u8]; 2] = [b"seed", &[7]];
+        let hash = pda_hash(&inputs);
+        for i in 0..32 {
+            let mut other = hash;
+            other[i] ^= 1;
+            assert!(!pda_hash_matches(&inputs, &words(other)));
+        }
     }
 }
 
@@ -494,8 +669,8 @@ pub fn find_program_address(seeds: &[&[u8]], program_id: &Address) -> Result<(Ad
     let bump_ptr = bump_arr.as_mut_ptr();
     let bump_slice: &[u8] = unsafe { core::slice::from_raw_parts(bump_ptr, 1) };
 
-    let (scratch, total) = build_pda_hash_inputs(seeds, bump_slice, program_id);
-    let inputs = &scratch[..total];
+    let mut scratch = [core::mem::MaybeUninit::<&[u8]>::uninit(); MAX_PDA_SEEDS + 3];
+    let inputs = build_pda_hash_inputs(&mut scratch, seeds, bump_slice, program_id);
 
     const CURVE25519_EDWARDS: u64 = 0;
     let mut bump: i16 = 255;
@@ -506,22 +681,7 @@ pub fn find_program_address(seeds: &[&[u8]], program_id: &Address) -> Result<(Ad
         // without needing to re-borrow or re-store the slice.
         unsafe { bump_ptr.write(bump as u8) };
 
-        #[cfg(not(feature = "pinocchio"))]
-        let hash_bytes: [u8; 32] = solana_program::hash::hashv(inputs).to_bytes();
-
-        #[cfg(feature = "pinocchio")]
-        let hash_bytes: [u8; 32] = {
-            let mut out = [0u8; 32];
-            // SAFETY: same syscall, same argument shape as `derive_program_address` above.
-            unsafe {
-                solana_define_syscall::definitions::sol_sha256(
-                    inputs.as_ptr() as *const u8,
-                    inputs.len() as u64,
-                    out.as_mut_ptr(),
-                );
-            }
-            out
-        };
+        let hash_bytes = pda_hash(inputs);
 
         #[cfg(not(feature = "pinocchio"))]
         // SAFETY: `sol_curve_validate_point` is a native Solana SBF syscall;
@@ -556,30 +716,65 @@ pub fn find_program_address(seeds: &[&[u8]], program_id: &Address) -> Result<(Ad
     Err(NaclacError::ConstraintSeeds.into())
 }
 
+/// Returns the first bump, searching 255 down to 0, for which `seeds` plus
+/// that bump derive `expected` under `program_id`, or `None` if no bump does.
+/// One hash per candidate and no curve check, so it is only sound when
+/// `expected` is the address of an account that already exists and is owned
+/// by a program other than the System Program: such an account can only have
+/// been created by a program signing for that address, which the runtime only
+/// permits at a valid off-curve PDA. Never call it for an account that may not
+/// exist yet, or whose owner has not been validated.
+///
+/// Panics if `seeds.len() > MAX_PDA_SEEDS`, matching `derive_program_address`.
+#[inline]
+pub fn find_bump_for_address(
+    seeds: &[&[u8]],
+    program_id: &Address,
+    expected: &Address,
+) -> Option<u8> {
+    assert!(
+        seeds.len() <= MAX_PDA_SEEDS,
+        "find_bump_for_address: too many seeds (max {MAX_PDA_SEEDS})"
+    );
+
+    let expected_words: [u64; 4] = bytemuck::cast(expected.to_bytes());
+
+    let mut bump_arr = [255u8];
+    // SAFETY: same invariant as `find_program_address`'s `bump_slice`: the
+    // slice is only read by the hash syscall as a raw `(ptr, len)` pair, so
+    // rewriting the byte behind it between iterations aliases no live reference.
+    let bump_ptr = bump_arr.as_mut_ptr();
+    let bump_slice: &[u8] = unsafe { core::slice::from_raw_parts(bump_ptr, 1) };
+
+    let mut scratch = [core::mem::MaybeUninit::<&[u8]>::uninit(); MAX_PDA_SEEDS + 3];
+    let inputs = build_pda_hash_inputs(&mut scratch, seeds, bump_slice, program_id);
+
+    let mut bump: i16 = 255;
+    while bump >= 0 {
+        // SAFETY: see `bump_slice` above.
+        unsafe { bump_ptr.write(bump as u8) };
+
+        if pda_hash_matches(inputs, &expected_words) {
+            return Some(bump as u8);
+        }
+        bump -= 1;
+    }
+
+    None
+}
+
 #[cfg(kani)]
 mod pda_kani_proofs {
     use super::*;
 
     /// Proves `build_pda_hash_inputs` never panics for any `seeds.len() <=
-    /// MAX_PDA_SEEDS` — the real, naclac-authored logic behind both
-    /// `derive_program_address` and `find_program_address`'s scratch-buffer
-    /// construction, extracted from both so it's provable once instead of
-    /// duplicated and unprovable in each (see docs/plan/kani-audit.md).
-    /// Correctness, not just panic-freedom: `n` must equal exactly
-    /// `seeds.len() + 3` (every seed, plus bump/program_id/domain-tag), and
-    /// `scratch[..n]` must contain those inputs in the documented order —
-    /// a wrong index or dropped element here would silently derive the
-    /// wrong PDA for every account in the framework.
-    // Every `scratch[i]` slot is a direct reference passthrough
-    // (`scratch[n] = seed`, never a copy or transform) — so the only
-    // genuinely meaningful property is that the *same reference* landed in
-    // the *right slot*, which `core::ptr::eq` proves directly and cheaply
-    // for any element size, no `memcmp`/unwind-bound tuning needed. An
-    // earlier version used byte-content `assert_eq!` instead, which pulls
-    // in `memcmp` (and its own loop, needing its own unwind budget) for no
-    // real gain: content equality is structurally guaranteed by the source
-    // being a plain reference copy, so it wasn't proving anything
-    // `core::ptr::eq` doesn't already prove more directly.
+    /// MAX_PDA_SEEDS` and returns exactly `seeds.len() + 3` slots (every
+    /// seed, plus bump/program_id/domain-tag) in the documented order — a
+    /// wrong index or dropped element would silently derive the wrong PDA for
+    /// every account in the framework. Every returned slot is a direct
+    /// reference passthrough, so `core::ptr::eq` on each slot proves the same
+    /// reference landed in the right place. Reading any returned slot also
+    /// proves it was initialized, since the buffer starts uninitialized.
     #[kani::proof]
     fn prove_build_pda_hash_inputs_within_limit_is_correct() {
         let s0: [u8; 4] = kani::any();
@@ -589,32 +784,32 @@ mod pda_kani_proofs {
         let program_id_bytes: [u8; 32] = kani::any();
         let program_id = Address::new_from_array(program_id_bytes);
 
-        let (scratch, n) = build_pda_hash_inputs(&seeds, &bump_arr[..], &program_id);
+        let mut scratch = [core::mem::MaybeUninit::<&[u8]>::uninit(); MAX_PDA_SEEDS + 3];
+        let inputs = build_pda_hash_inputs(&mut scratch, &seeds, &bump_arr[..], &program_id);
 
-        assert_eq!(n, seeds.len() + 3, "n must count every seed plus bump/program_id/domain-tag");
-        assert!(core::ptr::eq(scratch[0].as_ptr(), s0.as_ptr()) && scratch[0].len() == s0.len());
-        assert!(core::ptr::eq(scratch[1].as_ptr(), s1.as_ptr()) && scratch[1].len() == s1.len());
+        assert_eq!(
+            inputs.len(),
+            seeds.len() + 3,
+            "must hold every seed plus bump/program_id/domain-tag"
+        );
+        assert!(core::ptr::eq(inputs[0].as_ptr(), s0.as_ptr()) && inputs[0].len() == s0.len());
+        assert!(core::ptr::eq(inputs[1].as_ptr(), s1.as_ptr()) && inputs[1].len() == s1.len());
         assert!(
-            core::ptr::eq(scratch[2].as_ptr(), bump_arr.as_ptr())
-                && scratch[2].len() == bump_arr.len()
+            core::ptr::eq(inputs[2].as_ptr(), bump_arr.as_ptr())
+                && inputs[2].len() == bump_arr.len()
         );
         let program_id_ref = program_id.as_ref();
         assert!(
-            core::ptr::eq(scratch[3].as_ptr(), program_id_ref.as_ptr())
-                && scratch[3].len() == program_id_ref.len()
+            core::ptr::eq(inputs[3].as_ptr(), program_id_ref.as_ptr())
+                && inputs[3].len() == program_id_ref.len()
         );
-        // scratch[4] (the domain-tag slot) has no caller-owned variable to
-        // compare pointer identity against — unlike the slots above, it's
-        // never derived from symbolic input at all (unconditionally
-        // `scratch[n] = b"ProgramDerivedAddress"` in the source), so there's
-        // nothing here for a proof to meaningfully distinguish "right" from
-        // "wrong" on. Not asserted.
+        assert!(inputs[4].len() == b"ProgramDerivedAddress".len());
     }
 
-    /// Proves the `n` index this function builds up (seeds + 3 fixed
-    /// entries) never exceeds the `MAX_PDA_SEEDS + 3`-sized `scratch`
-    /// array, for the full real range of `seeds.len()` (0..=16), not just
-    /// the 2-seed case the correctness proof above uses for tractability.
+    /// Proves the slot index this function builds up (seeds + 3 fixed
+    /// entries) never exceeds the `MAX_PDA_SEEDS + 3`-sized scratch buffer,
+    /// for the full real range of `seeds.len()` (0..=16), not just the 2-seed
+    /// case the correctness proof above uses for tractability.
     #[kani::proof]
     #[kani::unwind(20)]
     fn prove_build_pda_hash_inputs_never_overflows_scratch_at_max_seeds() {
@@ -627,14 +822,15 @@ mod pda_kani_proofs {
 
         let bump_arr = [0u8];
         let program_id = Address::new_from_array([0u8; 32]);
-        let (_scratch, n) = build_pda_hash_inputs(seeds, &bump_arr[..], &program_id);
-        assert!(n <= MAX_PDA_SEEDS + 3);
+        let mut scratch = [core::mem::MaybeUninit::<&[u8]>::uninit(); MAX_PDA_SEEDS + 3];
+        let inputs = build_pda_hash_inputs(&mut scratch, seeds, &bump_arr[..], &program_id);
+        assert!(inputs.len() == num_seeds + 3);
     }
 
     /// **Cannot pass as written — kept as documented evidence of a genuine
     /// Kani tooling limitation, not a bug to fix or a slow proof to wait
     /// out.** Attempting to exercise `derive_program_address`'s real
-    /// `solana_program::hash::hashv` call hits `TerminatorKind::InlineAsm is
+    /// `solana_hash::hashv` call hits `TerminatorKind::InlineAsm is
     /// not currently supported by Kani` inside
     /// `std::arch::x86_64::__cpuid_count` — the `sha2` crate this depends on
     /// does runtime CPU-feature detection via literal `cpuid` inline
@@ -677,6 +873,15 @@ mod pda_kani_proofs {
 pub trait NaclacPod: Sized {
     fn naclac_from_bytes(data: &[u8]) -> Self;
     fn naclac_size() -> usize;
+
+    /// Like [`Self::naclac_from_bytes`], but `None` for bytes that are not a
+    /// valid value (an unknown enum tag, an `Option` tag other than 0/1)
+    /// instead of panicking. Every instruction-argument reader uses this one.
+    /// Types whose every byte pattern is valid keep the default.
+    #[inline(always)]
+    fn naclac_try_from_bytes(data: &[u8]) -> Option<Self> {
+        Some(Self::naclac_from_bytes(data))
+    }
 }
 
 /// Reads a value's own in-memory bytes without requiring `bytemuck::Pod`.
@@ -698,7 +903,9 @@ pub fn bytes_of_checked_bit_pattern<T: Copy>(value: &T) -> &[u8] {
     // initialized — it doesn't construct a `T` from these bytes, only the
     // reverse (an established `T` yielding its own bytes), so `T: Pod` is
     // not required.
-    unsafe { core::slice::from_raw_parts((value as *const T).cast::<u8>(), core::mem::size_of::<T>()) }
+    unsafe {
+        core::slice::from_raw_parts((value as *const T).cast::<u8>(), core::mem::size_of::<T>())
+    }
 }
 
 /// The padding gap needed after `offset` bytes to reach the next
@@ -741,7 +948,11 @@ mod padding_kani_proofs {
         let gap = compute_padding_gap(offset, align);
         assert!(gap < align, "gap must always be smaller than align");
         if let Some(padded) = offset.checked_add(gap) {
-            assert_eq!(padded % align, 0, "offset + gap must land on an aligned boundary");
+            assert_eq!(
+                padded % align,
+                0,
+                "offset + gap must land on an aligned boundary"
+            );
         }
     }
 }
@@ -770,10 +981,18 @@ pub use impl_naclac_pod;
 impl<T: NaclacPod> NaclacPod for Option<T> {
     #[inline(always)]
     fn naclac_from_bytes(data: &[u8]) -> Self {
-        if data[0] == 0 {
-            None
-        } else {
-            Some(T::naclac_from_bytes(&data[1..1 + T::naclac_size()]))
+        match data[0] {
+            0 => None,
+            1 => Some(T::naclac_from_bytes(&data[1..1 + T::naclac_size()])),
+            _ => panic!("Option tag must be 0 or 1"),
+        }
+    }
+    #[inline(always)]
+    fn naclac_try_from_bytes(data: &[u8]) -> Option<Self> {
+        match data[0] {
+            0 => Some(None),
+            1 => T::naclac_try_from_bytes(&data[1..1 + T::naclac_size()]).map(Some),
+            _ => None,
         }
     }
     #[inline(always)]
@@ -823,10 +1042,64 @@ impl<T: NaclacPod> NaclacArgs for T {
         if data.len() < *offset + sz {
             return Err(NaclacError::InvalidInstructionData.err(0));
         }
-        let val = T::naclac_from_bytes(&data[*offset..*offset + sz]);
+        let val = T::naclac_try_from_bytes(&data[*offset..*offset + sz])
+            .ok_or_else(|| NaclacError::InvalidInstructionData.err(0))?;
         *offset += sz;
         Ok(val)
     }
+}
+
+/// An element of a heap `Vec<Vec<u8>>` or `Vec<String>` instruction argument:
+/// built from the bytes that follow its own u32 length.
+pub trait LengthPrefixedItem: Sized {
+    fn from_prefixed_bytes(bytes: &[u8]) -> NaclacResult<Self>;
+}
+
+impl LengthPrefixedItem for Vec<u8> {
+    fn from_prefixed_bytes(bytes: &[u8]) -> NaclacResult<Self> {
+        Ok(bytes.to_vec())
+    }
+}
+
+impl LengthPrefixedItem for String {
+    fn from_prefixed_bytes(bytes: &[u8]) -> NaclacResult<Self> {
+        String::from_utf8(bytes.to_vec()).map_err(|_| NaclacError::InvalidInstructionData.err(0))
+    }
+}
+
+/// Reads `count` items of a heap `Vec<Vec<u8>>` or `Vec<String>` argument from
+/// `data` at `*offset`, each as a u32 LE byte length followed by that many
+/// bytes, advancing `*offset` past all of them. The argument's own prefix is
+/// the element count, since the elements have no fixed size.
+pub fn read_length_prefixed_items<T: LengthPrefixedItem>(
+    data: &[u8],
+    offset: &mut usize,
+    count: usize,
+) -> NaclacResult<Vec<T>> {
+    // Every item takes at least its 4-byte length, so a larger count cannot be
+    // satisfied by the remaining bytes; this also bounds the allocation below.
+    if count > data.len().saturating_sub(*offset) / 4 {
+        return Err(NaclacError::InvalidInstructionData.err(0));
+    }
+    let mut items = Vec::with_capacity(count);
+    for _ in 0..count {
+        let len_end = *offset + 4;
+        if data.len() < len_end {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        let mut len_bytes = [0u8; 4];
+        len_bytes.copy_from_slice(&data[*offset..len_end]);
+        let len = u32::from_le_bytes(len_bytes) as usize;
+        let item_end = len_end
+            .checked_add(len)
+            .ok_or_else(|| NaclacError::InvalidInstructionData.err(0))?;
+        if data.len() < item_end {
+            return Err(NaclacError::InvalidInstructionData.err(0));
+        }
+        items.push(T::from_prefixed_bytes(&data[len_end..item_end])?);
+        *offset = item_end;
+    }
+    Ok(items)
 }
 
 #[cfg(feature = "pinocchio")]
@@ -866,6 +1139,14 @@ impl Address {
         // SAFETY: Address is #[repr(transparent)] over [u8; 32].
         // We use a pointer read here to ensure no alignment issues during the cast.
         Self(unsafe { *(addr as *const PinocchioAddress as *const [u8; 32]) })
+    }
+
+    /// Borrow a pinocchio `Address` as this `Address`, without copying it.
+    #[inline(always)]
+    pub fn from_address_ref(addr: &PinocchioAddress) -> &Self {
+        // SAFETY: both types are `#[repr(transparent)]` over `[u8; 32]`
+        // (alignment 1), so the reference cast preserves layout and validity.
+        unsafe { &*(addr as *const PinocchioAddress as *const Self) }
     }
 
     /// Borrow as a pinocchio `Address` reference.
@@ -1034,16 +1315,24 @@ impl<T: crate::bytemuck::Pod> NaclacReturnData for T {
     }
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 pub trait NaclacReturnData {
     fn to_return_data(&self) -> Vec<u8>;
 }
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 impl<T: crate::borsh::BorshSerialize> NaclacReturnData for T {
     fn to_return_data(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        T::serialize(self, &mut buf).expect("return data serialization failed");
+        T::serialize(self, &mut buf).unwrap_or_else(|_| panic!("return data serialization failed"));
         buf
     }
 }
@@ -1059,7 +1348,7 @@ pub fn next_account_info<'a, I: Iterator<Item = &'a AccountInfo>>(
 #[cfg(not(feature = "pinocchio"))]
 pub fn next_account_info<'a, I: Iterator<Item = &'a AccountInfo>>(
     iter: &mut I,
-) -> core::result::Result<&'a AccountInfo, solana_program::program_error::ProgramError> {
+) -> core::result::Result<&'a AccountInfo, solana_program_error::ProgramError> {
     iter.next()
         .ok_or(crate::error::NaclacError::NotEnoughAccountKeys.err(0))
 }
@@ -1070,11 +1359,18 @@ pub fn sol_log_data(data: &[&[u8]]) {
     #[cfg(any(target_os = "solana", target_arch = "bpf"))]
     // SAFETY: sol_log_data is a native Solana SBF syscall. The runtime guarantees it handles pointer boundaries securely.
     unsafe {
-        solana_define_syscall::definitions::sol_log_data(data.as_ptr() as *const u8, data.len() as u64);
+        solana_define_syscall::definitions::sol_log_data(
+            data.as_ptr() as *const u8,
+            data.len() as u64,
+        );
     }
 }
 
-#[cfg(feature = "pinocchio")]
+/// Logs `Program consumption: N units remaining`. Calling it before and after
+/// an operation and subtracting the two logged values gives that operation's
+/// cost plus the cost of the second call; an empty pair of calls measures that
+/// extra cost so it can be subtracted.
+#[cfg(any(feature = "solana", feature = "pinocchio"))]
 pub fn sol_log_compute_units() {
     #[cfg(any(target_os = "solana", target_arch = "bpf"))]
     unsafe {
@@ -1118,10 +1414,13 @@ pub type AccountType = AccountInfo;
 #[cfg(feature = "pinocchio")]
 pub type AccountType = AccountInfo;
 
-/// Re-export the pinocchio msg! macro into the prelude namespace
-/// so `use naclac_lang::prelude::*` makes `msg!` available.
-#[cfg(feature = "pinocchio")]
+/// Makes `msg!` available through `use naclac_lang::prelude::*` on every
+/// backend: the pinocchio logger, the no-op macro below, or (Solana backend
+/// with `debug-mode`) the real `solana_msg::msg!`.
+#[cfg(any(feature = "pinocchio", not(feature = "debug-mode")))]
 pub use crate::msg;
+#[cfg(all(not(feature = "pinocchio"), feature = "debug-mode"))]
+pub use solana_msg::msg;
 
 /// Pinocchio logging — bridges Naclac's `msg!` API to pinocchio_log's Logger.
 /// Uses a 128-byte stack-allocated buffer. For longer messages use Logger directly.
@@ -1152,36 +1451,6 @@ pub use crate::base58;
 // Shared macros (both backends)
 // ===========================================================================
 
-/// Anchor-style event emission macro.
-/// Handles both `field: value` and shorthand `field` syntax.
-/// Uses mutation pattern so internal padding fields are invisible to users.
-#[macro_export]
-macro_rules! emit {
-    // Main arm: handles mixed shorthand + explicit fields
-    ($ty:path { $($field:ident $(: $val:expr)?),* $(,)? }) => {{
-        let mut __event = <$ty as core::default::Default>::default();
-        $(
-            emit!(@__set __event, $field $(, $val)?);
-        )*
-        __event.emit();
-        __event
-    }};
-    // Internal helper: explicit field: value
-    (@__set $ev:ident, $field:ident, $val:expr) => {
-        $ev.$field = ($val).into();
-    };
-    // Internal helper: shorthand field (uses local variable of same name)
-    (@__set $ev:ident, $field:ident) => {
-        $ev.$field = ($field).into();
-    };
-    // Pass-through: emit!(my_event_instance)
-    ($event:expr) => {{
-        let __event = $event;
-        __event.emit();
-        __event
-    }};
-}
-
 /// Concise condition checking that returns a ProgramError.
 /// Usage: `require!(condition, MyError::SomeVariant)`
 #[macro_export]
@@ -1193,18 +1462,19 @@ macro_rules! require {
     };
 }
 
-pub use crate::{address, declare_id, emit, require};
+pub use crate::event::EventCpiPayload;
+pub use crate::{address, declare_id, emit, emit_cpi, require};
 
 /// Declares the program's static ID constant.
 ///
-/// - Solana backend: delegates to `solana_program::declare_id!`
+/// - Solana backend: delegates to `solana_declare_id!`
 /// - Pinocchio backend: creates a `pub const ID: Address` using pinocchio's
 ///   compile-time address parsing.
 #[macro_export]
 macro_rules! declare_id {
     ($id:expr) => {
         #[cfg(not(feature = "pinocchio"))]
-        $crate::solana_program::declare_id!($id);
+        $crate::solana_declare_id!($id);
 
         #[cfg(feature = "pinocchio")]
         pub const ID: $crate::prelude::Address =

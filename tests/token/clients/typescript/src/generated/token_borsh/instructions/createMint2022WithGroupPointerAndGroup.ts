@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_group_pointer_and_group` instruction. */
+/** Discriminator for the `create_mint2022_with_group_pointer_and_group` instruction. */
 export const CREATE_MINT2022_WITH_GROUP_POINTER_AND_GROUP_DISCRIMINATOR = new Uint8Array([176, 2, 161, 114, 18, 2, 3, 100]);
 
 /** Instruction arguments for `createMint2022WithGroupPointerAndGroup`. */

@@ -25,7 +25,7 @@ impl Signer {
         if !info.is_signer {
             return Err(NaclacError::ConstraintSigner.err(index));
         }
-        Ok(Self { info: info.clone() })
+        Ok(Self { info: *info })
     }
 }
 
@@ -47,14 +47,14 @@ impl Deref for Signer {
 #[cfg(not(feature = "pinocchio"))]
 impl ToAccountInfo for Signer {
     fn to_account_info(&self) -> AccountInfo {
-        self.info.clone()
+        self.info
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
 impl crate::wrappers::ToAccountInfos for Signer {
     fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
-        crate::prelude::vec![self.info.clone()]
+        crate::prelude::vec![self.info]
     }
 }
 
@@ -111,6 +111,19 @@ impl Signer {
             return Err(NaclacError::ConstraintSigner.err(index));
         }
         Ok(Self { view: info.view })
+    }
+
+    /// Wraps `info` without re-checking `is_signer`. Used by generated
+    /// account loaders for a slot whose signer flag the declared-account walk
+    /// has already enforced.
+    ///
+    /// # Safety
+    ///
+    /// `info` must be a signer of the current instruction.
+    #[doc(hidden)]
+    #[inline(always)]
+    pub unsafe fn from_verified_signer(info: &AccountInfo) -> Self {
+        Self { view: info.view }
     }
 }
 
@@ -210,7 +223,7 @@ impl crate::wrappers::NaclacAccount for Signer {
     const IS_SIGNER: bool = true;
 
     #[inline(always)]
-    fn try_from(info: &crate::prelude::AccountType, index: usize) -> Result<Self> {
+    fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from(info, index)
     }
 }

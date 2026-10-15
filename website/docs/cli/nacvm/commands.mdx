@@ -1,0 +1,171 @@
+---
+title: "nacvm Command Reference: Install, Use, Uninstall, List"
+sidebarTitle: "Commands"
+description: "Full reference for every nacvm command — install, use, uninstall, and list — with argument details, examples, and platform-specific notes."
+---
+
+`nacvm` provides four commands for managing Naclac versions. Each command targets the nacvm store at `$HOME/.nacvm/` — versions live under `$HOME/.nacvm/versions/` and the active binary is exposed through `$HOME/.nacvm/bin/naclac`.
+
+---
+
+## nacvm install
+
+```bash
+nacvm install <version>
+```
+
+Downloads and installs the specified version of the `naclac` CLI into the nacvm store. The binary is fetched from the official [naclac-fw GitHub Releases](https://github.com/naclacframework/naclac-fw/releases) page and extracted to `$HOME/.nacvm/versions/<version>/bin/naclac`.
+
+If the requested version is already present in the store, `nacvm install` skips the download and exits cleanly.
+
+**Arguments**
+
+| Argument | Description |
+|---|---|
+| `<version>` | The release tag to install (e.g. `v0.1.0`) or the special value `latest` to resolve and install the newest stable release. |
+
+**Examples**
+
+```bash
+# Install the latest stable release
+nacvm install latest
+
+# Install a specific stable release
+nacvm install v0.1.0
+```
+
+**Pre-release versions**
+
+Pre-release versions can be installed by specifying the exact tag as published on GitHub Releases:
+
+```bash
+nacvm install v0.1.0-beta
+```
+
+`nacvm` detects the pre-release flag in the GitHub API response and prints a warning before downloading so you always know you are installing an unstable build.
+
+<Note>
+  Installing a version does **not** automatically activate it. Run `nacvm use <version>` after installation to switch the active binary.
+</Note>
+
+---
+
+## nacvm use
+
+```bash
+nacvm use <version>
+```
+
+Switches the active `naclac` binary to the specified installed version. On Unix-like systems, `nacvm use` updates the symlink at `$HOME/.nacvm/bin/naclac` to point at the requested version's binary. On Windows, it writes `naclac.cmd` and `naclac.ps1` shim files in `$HOME/.nacvm/bin\` that forward all arguments to the correct versioned executable.
+
+**Arguments**
+
+| Argument | Description |
+|---|---|
+| `<version>` | The version tag to activate (e.g. `v0.1.0`). Must already be installed via `nacvm install`. |
+
+**Examples**
+
+```bash
+# Activate a previously installed version
+nacvm use v0.1.0
+```
+
+After switching, confirm the change took effect:
+
+```bash
+naclac --version
+# v0.1.0
+```
+
+If you request a version that is not yet installed, `nacvm use` prints an error and tells you the exact install command to run:
+
+```
+Error: Version 0.1.0 is not installed. Run `nacvm install v0.1.0` first.
+```
+
+If the requested version is already active, `nacvm use` exits immediately with an informational message so it is safe to call idempotently in scripts.
+
+---
+
+## nacvm uninstall
+
+```bash
+nacvm uninstall <version>
+```
+
+Removes the specified version's directory from the nacvm store (`$HOME/.nacvm/versions/<version>/`). The removal is permanent — you must re-run `nacvm install <version>` to restore it.
+
+**Arguments**
+
+| Argument | Description |
+|---|---|
+| `<version>` | The exact version to remove, **without** the leading `v` (e.g. `0.1.0-beta`). Must match the directory name in the nacvm store as written by `nacvm install`. |
+
+**Examples**
+
+```bash
+# Remove a pre-release you no longer need
+nacvm uninstall 0.1.0-beta
+```
+
+<Warning>
+  Pass the version number **without** a leading `v` — nacvm stores versions under `$HOME/.nacvm/versions/0.1.0/` (no `v`), so `nacvm uninstall v0.1.0` would report the version as not found.
+</Warning>
+
+<Warning>
+  If you uninstall the **currently active** version, `nacvm` removes the active symlink (or shim files on Windows) as well, leaving no `naclac` binary on your PATH. Switch to another installed version first to avoid an interrupted workflow:
+
+  ```bash
+  nacvm use 0.1.0
+  nacvm uninstall 0.1.0-beta
+  ```
+
+  If you do uninstall the active version by mistake, run `nacvm use <any-installed-version>` to restore the symlink.
+</Warning>
+
+---
+
+## nacvm list
+
+```bash
+nacvm list
+```
+
+Scans `$HOME/.nacvm/versions/` and prints every version whose `bin/naclac` binary exists on disk. The currently active version is marked with an asterisk and highlighted in green.
+
+**Examples**
+
+```bash
+nacvm list
+```
+
+Example output:
+
+```
+* 0.1.0  (active)
+  0.1.0-beta
+```
+
+Versions are sorted alphanumerically. If no versions are installed yet, `nacvm list` prints:
+
+```
+No versions installed.
+```
+
+---
+
+## Supported Platforms
+
+`nacvm` ships pre-compiled binaries for the following targets:
+
+| Platform | Architecture | Target triple |
+|---|---|---|
+| Linux | x86\_64 | `x86_64-unknown-linux-gnu` |
+| macOS | x86\_64 (Intel) | `x86_64-apple-darwin` |
+| macOS | arm64 (Apple Silicon) | `aarch64-apple-darwin` |
+| Windows | x86\_64 | `x86_64-pc-windows-msvc` |
+
+<Note>
+  Windows users should use the PowerShell installer (`install-nacvm.ps1`) available in the [naclac-fw GitHub repository](https://github.com/naclacframework/naclac-fw/tree/main/.github/scripts) instead of the shell script shown in the overview. Once installed, all four `nacvm` commands work identically on Windows — `nacvm use` creates `.cmd` and `.ps1` shim files instead of a symlink so the active `naclac` binary is accessible from both `cmd.exe` and PowerShell.
+</Note>

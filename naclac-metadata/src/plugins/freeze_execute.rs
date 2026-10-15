@@ -73,7 +73,11 @@ pub fn fetch_asset_freeze_execute(info: &AccountInfo) -> Result<Option<bool>> {
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
     };
-    match find_plugin_offset(info.data(), plugin_header_offset, plugin_type::FREEZE_EXECUTE)? {
+    match find_plugin_offset(
+        info.data(),
+        plugin_header_offset,
+        plugin_type::FREEZE_EXECUTE,
+    )? {
         Some(offset) => {
             let offset = offset as usize;
             if info.data().len() <= offset {

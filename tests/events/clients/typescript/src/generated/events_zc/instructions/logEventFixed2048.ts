@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `log_event_fixed_2048` instruction. */
+/** Discriminator for the `log_event_fixed_2048` instruction. */
 export const LOG_EVENT_FIXED_2048_DISCRIMINATOR = new Uint8Array([18, 221, 231, 102, 205, 46, 191, 231]);
 
 /** Instruction arguments for `logEventFixed2048`. */

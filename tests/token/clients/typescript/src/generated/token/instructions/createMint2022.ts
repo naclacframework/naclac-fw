@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022` instruction. */
+/** Discriminator for the `create_mint2022` instruction. */
 export const CREATE_MINT2022_DISCRIMINATOR = new Uint8Array([188, 181, 9, 68, 12, 33, 187, 18]);
 
 /** Instruction arguments for `createMint2022`. */
 export interface CreateMint2022Args {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
 }
 
@@ -24,9 +24,9 @@ export interface CreateMint2022Accounts {
    * here, not a gap in coverage.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

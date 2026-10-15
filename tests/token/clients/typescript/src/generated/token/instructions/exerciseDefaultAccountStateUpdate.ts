@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_default_account_state_update` instruction. */
+/** Discriminator for the `exercise_default_account_state_update` instruction. */
 export const EXERCISE_DEFAULT_ACCOUNT_STATE_UPDATE_DISCRIMINATOR = new Uint8Array([15, 229, 212, 108, 125, 60, 65, 127]);
 
 /** Instruction arguments for `exerciseDefaultAccountStateUpdate`. */
 export interface ExerciseDefaultAccountStateUpdateArgs {
-  new_state: number;
+  newState: number;
 }
 
 /** Accounts for the `exerciseDefaultAccountStateUpdate` instruction. */
 export interface ExerciseDefaultAccountStateUpdateAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

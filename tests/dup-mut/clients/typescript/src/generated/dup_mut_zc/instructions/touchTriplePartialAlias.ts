@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_triple_partial_alias` instruction. */
+/** Discriminator for the `touch_triple_partial_alias` instruction. */
 export const TOUCH_TRIPLE_PARTIAL_ALIAS_DISCRIMINATOR = new Uint8Array([199, 187, 142, 135, 160, 156, 113, 105]);
 
 /** Accounts for the `touchTriplePartialAlias` instruction. */

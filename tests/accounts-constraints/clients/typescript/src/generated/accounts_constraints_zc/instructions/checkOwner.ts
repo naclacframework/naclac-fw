@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_owner` instruction. */
+/** Discriminator for the `check_owner` instruction. */
 export const CHECK_OWNER_DISCRIMINATOR = new Uint8Array([215, 161, 49, 182, 161, 8, 67, 193]);
 
 /** Accounts for the `checkOwner` instruction. */

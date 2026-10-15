@@ -49,7 +49,7 @@ const UPDATE_LINKED_APP_DATA_IX_LEN: usize = 1 + LINKED_APP_DATA_KEY_ENCODED_LEN
 /// data bytes, fetched from its linked `DataSection`. `data` is empty if
 /// the adapter is attached but nothing has been written to it yet (no
 /// `DataSection` exists). On `solana`, `data` is a heap-copied `Vec<u8>`.
-/// On `pinocchio`, `data` is a zero-copy `Span<u8>` view into the
+/// On `pinocchio`, `data` is a zero-copy `ZcVec<u8>` view into the
 /// account's own live bytes — see `AppDataInfo`'s doc comment for why.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LinkedAppDataInfo {
@@ -58,7 +58,7 @@ pub struct LinkedAppDataInfo {
     #[cfg(not(feature = "pinocchio"))]
     pub data: crate::prelude::Vec<u8>,
     #[cfg(feature = "pinocchio")]
-    pub data: Span<u8>,
+    pub data: ZcVec<u8>,
 }
 
 /// Attaches `LinkedAppData` to a `Collection` via
@@ -204,10 +204,8 @@ pub fn fetch_collection_linked_app_data(
         else {
             return Ok(None);
         };
-        let (_, authority_width) = crate::external_plugins::app_data::read_plugin_authority(
-            &raw,
-            m.header_offset,
-        )?;
+        let (_, authority_width) =
+            crate::external_plugins::app_data::read_plugin_authority(&raw, m.header_offset)?;
         let schema_offset = m.header_offset + authority_width;
         if raw.len() <= schema_offset {
             return Err(NaclacError::AccountDataTooSmall.err(0));
@@ -264,10 +262,8 @@ pub fn fetch_collection_linked_app_data(
         return Ok(None);
     };
 
-    let (_, authority_width) = crate::external_plugins::app_data::read_plugin_authority(
-        data,
-        m.header_offset,
-    )?;
+    let (_, authority_width) =
+        crate::external_plugins::app_data::read_plugin_authority(data, m.header_offset)?;
     let schema_offset = m.header_offset + authority_width;
     if data.len() <= schema_offset {
         return Err(NaclacError::AccountDataTooSmall.err(0));
@@ -284,7 +280,7 @@ pub fn fetch_collection_linked_app_data(
         info, parent_key,
     )? {
         Some(section) => section.data,
-        None => Span::new(&[]),
+        None => ZcVec::new(&[]),
     };
     Ok(Some(LinkedAppDataInfo {
         data_authority,

@@ -49,18 +49,18 @@ pub fn generate(
     let mut extra_items = Vec::new();
     let mut union_fields = Vec::new();
     let mut match_arms = Vec::new();
+    let mut unit_lits = Vec::new();
 
     for (variant, discriminant) in variants.iter().zip(discriminants.iter()) {
         let variant_ident = &variant.ident;
-        let discriminant_lit =
-            syn::LitInt::new(&discriminant.to_string(), variant_ident.span());
+        let discriminant_lit = syn::LitInt::new(&discriminant.to_string(), variant_ident.span());
 
         if matches!(&variant.fields, Fields::Unit) {
             // A unit variant's entire representation is the tag — nothing
             // else to validate once the tag itself matches. Genuinely no
             // union member needed (matches bytemuck_derive's own fieldless
             // handling), not a corner cut: there are no other bytes.
-            match_arms.push(quote! { #discriminant_lit => true, });
+            unit_lits.push(discriminant_lit);
             continue;
         }
 
@@ -110,8 +110,7 @@ pub fn generate(
             unsafe impl naclac_lang::prelude::bytemuck::Zeroable for #bits_ident {}
         });
 
-        let field_indices: Vec<syn::Index> =
-            (1..=field_tys.len()).map(syn::Index::from).collect();
+        let field_indices: Vec<syn::Index> = (1..=field_tys.len()).map(syn::Index::from).collect();
         extra_items.push(quote! {
             #cfg
             unsafe impl naclac_lang::prelude::bytemuck::CheckedBitPattern for #payload_ident {
@@ -153,22 +152,119 @@ pub fn generate(
         unsafe impl naclac_lang::prelude::bytemuck::Zeroable for #bits_ident {}
     });
 
+    let validity_expr = if match_arms.is_empty() {
+        if unit_lits.is_empty() {
+            quote! { false }
+        } else {
+            quote! { matches!(unsafe { bits.__tag }, #(#unit_lits)|*) }
+        }
+    } else {
+        let unit_arm = if unit_lits.is_empty() {
+            quote! {}
+        } else {
+            quote! { #(#unit_lits)|* => true, }
+        };
+        quote! {
+            match unsafe { bits.__tag } {
+                #unit_arm
+                #(#match_arms)*
+                _ => false,
+            }
+        }
+    };
+
     let checked_bit_pattern_impl = quote! {
         #cfg
         unsafe impl naclac_lang::prelude::bytemuck::CheckedBitPattern for #ident {
             type Bits = #bits_ident;
             #[inline]
             fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-                match unsafe { bits.__tag } {
-                    #(#match_arms)*
-                    _ => false,
-                }
+                #validity_expr
             }
         }
     };
 
-    (
-        quote! { #(#extra_items)* },
-        checked_bit_pattern_impl,
-    )
+    (quote! { #(#extra_items)* }, checked_bit_pattern_impl)
+}
+
+/// Generates `ZcWrite` and `ZcEnumKind` for the enum, so it can be stored as
+/// `ZcEnum<#ident>` in a zero-copy struct. `write_into` writes the tag, then
+/// each field of the active variant at its offset in the per-variant payload
+/// struct `generate` declares (`#[repr(C)]`, tag first, fields in order);
+/// bytes it does not write stay zero.
+pub fn zc_storage_items(
+    ident: &Ident,
+    variants: &syn::punctuated::Punctuated<Variant, syn::Token![,]>,
+    tag_ty: &syn::Type,
+    cfg: &TokenStream,
+) -> TokenStream {
+    let discriminants = naclac_syn::discriminator::variant_discriminants(variants.iter());
+
+    let arms = variants
+        .iter()
+        .zip(discriminants.iter())
+        .map(|(variant, discriminant)| {
+            let variant_ident = &variant.ident;
+            let discriminant_lit =
+                syn::LitInt::new(&discriminant.to_string(), variant_ident.span());
+            let write_tag = quote! {
+                let __tag: #tag_ty = #discriminant_lit;
+                naclac_lang::prelude::ZcWrite::write_into(
+                    &__tag,
+                    &mut out[..core::mem::size_of::<#tag_ty>()],
+                );
+            };
+
+            if matches!(&variant.fields, Fields::Unit) {
+                return quote! { Self::#variant_ident => { #write_tag } };
+            }
+
+            let payload_ident = format_ident!("{}Variant{}", ident, variant_ident);
+            let field_tys: Vec<&syn::Type> = variant.fields.iter().map(|f| &f.ty).collect();
+            let bindings: Vec<Ident> = (0..field_tys.len())
+                .map(|i| format_ident!("__f{}", i))
+                .collect();
+            let field_indices: Vec<syn::Index> =
+                (1..=field_tys.len()).map(syn::Index::from).collect();
+            let pattern = match &variant.fields {
+                Fields::Named(named) => {
+                    let names = named.named.iter().filter_map(|f| f.ident.as_ref());
+                    quote! { Self::#variant_ident { #(#names: #bindings),* } }
+                }
+                _ => quote! { Self::#variant_ident ( #(#bindings),* ) },
+            };
+
+            quote! {
+                #pattern => {
+                    #write_tag
+                    #({
+                        let __at = core::mem::offset_of!(#payload_ident, #field_indices);
+                        naclac_lang::prelude::ZcWrite::write_into(
+                            #bindings,
+                            &mut out[__at..__at + core::mem::size_of::<#field_tys>()],
+                        );
+                    })*
+                }
+            }
+        });
+
+    quote! {
+        #cfg
+        impl naclac_lang::prelude::ZcWrite for #ident {
+            fn write_into(&self, out: &mut [u8]) {
+                match self {
+                    #(#arms)*
+                }
+            }
+        }
+
+        #cfg
+        unsafe impl naclac_lang::prelude::ZcEnumKind for #ident {
+            type Stored = naclac_lang::prelude::ZcStorage<
+                #ident,
+                { core::mem::align_of::<#ident>() },
+                { core::mem::size_of::<#ident>() },
+            >;
+        }
+    }
 }

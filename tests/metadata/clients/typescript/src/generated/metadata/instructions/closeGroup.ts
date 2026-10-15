@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `close_group` instruction. */
+/** Discriminator for the `close_group` instruction. */
 export const CLOSE_GROUP_DISCRIMINATOR = new Uint8Array([40, 187, 201, 187, 18, 194, 122, 232]);
 
 /** Accounts for the `closeGroup` instruction. */
@@ -11,7 +11,7 @@ export interface CloseGroupAccounts {
   group: naclac.Address | string;
   payer: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

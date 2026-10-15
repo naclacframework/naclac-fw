@@ -44,16 +44,32 @@ impl InterestBearingConfig {
         read_optional_address(&self.0, 0)
     }
     pub fn initialization_timestamp(&self) -> i64 {
-        i64::from_le_bytes(self.0[32..40].try_into().unwrap())
+        i64::from_le_bytes(
+            self.0[32..40]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        )
     }
     pub fn pre_update_average_rate(&self) -> i16 {
-        i16::from_le_bytes(self.0[40..42].try_into().unwrap())
+        i16::from_le_bytes(
+            self.0[40..42]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        )
     }
     pub fn last_update_timestamp(&self) -> i64 {
-        i64::from_le_bytes(self.0[42..50].try_into().unwrap())
+        i64::from_le_bytes(
+            self.0[42..50]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        )
     }
     pub fn current_rate(&self) -> i16 {
-        i16::from_le_bytes(self.0[50..52].try_into().unwrap())
+        i16::from_le_bytes(
+            self.0[50..52]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        )
     }
 }
 
@@ -90,9 +106,9 @@ pub fn initialize_interest_bearing_mint_signed(
         data.extend_from_slice(rate_authority.map(|a| a.as_ref()).unwrap_or(&[0u8; 32]));
         data.extend_from_slice(&rate.to_le_bytes());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -109,7 +125,7 @@ pub fn initialize_interest_bearing_mint_signed(
             mint: &mint.info.view,
             rate_authority: rate_authority.map(|a| a.as_address()),
             rate,
-            token_program: &program.info.view.address(),
+            token_program: program.info.view.address(),
         };
         ix.invoke()
     }
@@ -150,11 +166,11 @@ pub fn update_interest_bearing_mint_rate_signed(
         let mut data = vec![33u8, 1u8];
         data.extend_from_slice(&rate.to_le_bytes());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     rate_authority.info.address(),
                     true,
                 ),

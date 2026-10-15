@@ -1,6 +1,6 @@
 //! Bonding-curve buy/sell quotes.
 
-use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang::solana_address::Address;
 
 use crate::math::fees::{
     compute_bonding_curve_fee_bps, creator_fee_amount, fee_amount, BondingCurveFeeBps,
@@ -43,7 +43,7 @@ pub fn buy_token_amount_from_sol_amount(
     );
 
     let total_fee_bps = protocol_fee_bps
-        + if bonding_curve.creator != Pubkey::default() {
+        + if bonding_curve.creator != Address::default() {
             creator_fee_bps
         } else {
             0

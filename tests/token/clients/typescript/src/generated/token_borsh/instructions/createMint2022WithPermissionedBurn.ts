@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022_with_permissioned_burn` instruction. */
+/** Discriminator for the `create_mint2022_with_permissioned_burn` instruction. */
 export const CREATE_MINT2022_WITH_PERMISSIONED_BURN_DISCRIMINATOR = new Uint8Array([141, 126, 93, 19, 247, 89, 233, 108]);
 
 /** Instruction arguments for `createMint2022WithPermissionedBurn`. */

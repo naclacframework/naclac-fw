@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_bubblegum_v2` instruction. */
+/** Discriminator for the `attach_bubblegum_v2` instruction. */
 export const ATTACH_BUBBLEGUM_V2_DISCRIMINATOR = new Uint8Array([33, 23, 62, 116, 130, 30, 29, 200]);
 
 /** Accounts for the `attachBubblegumV2` instruction. */
 export interface AttachBubblegumV2Accounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

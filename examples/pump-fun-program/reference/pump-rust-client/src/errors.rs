@@ -1,6 +1,6 @@
 //! Error type for the offline `PumpSdk` and the async `AsyncPumpClient`.
 
-use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang::solana_address::Address;
 
 #[derive(Debug)]
 pub enum PumpClientError {
@@ -11,7 +11,7 @@ pub enum PumpClientError {
     #[cfg(feature = "client")]
     Rpc(Box<solana_client::client_error::ClientError>),
     /// Required account did not exist on chain.
-    AccountNotFound { name: &'static str, address: Pubkey },
+    AccountNotFound { name: &'static str, address: Address },
 }
 
 impl std::fmt::Display for PumpClientError {

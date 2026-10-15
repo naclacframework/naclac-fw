@@ -94,7 +94,7 @@ describe("Naclac EscrowZc Test Suite (Legacy)", () => {
 
       await client
         .make(
-          { seed: seedCancel, escrowBump: escrowBumpCancel, amountA: amountACancel, amountB: amountBCancel },
+          { seed: seedCancel, amountA: amountACancel, amountB: amountBCancel },
           {
             maker: makerAddress,
             mintA,
@@ -213,7 +213,7 @@ describe("Naclac EscrowZc Test Suite (Legacy)", () => {
 
       await client
         .make(
-          { seed: seedTake, escrowBump: escrowBumpTake, amountA: amountATake, amountB: amountBTake },
+          { seed: seedTake, amountA: amountATake, amountB: amountBTake },
           {
             maker: makerAddress,
             mintA: effectiveMintA,

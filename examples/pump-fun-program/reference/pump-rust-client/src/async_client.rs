@@ -8,7 +8,7 @@ use solana_client::{
 };
 use solana_sdk::{
     account::Account, compute_budget::ComputeBudgetInstruction, hash::Hash,
-    instruction::Instruction, pubkey::Pubkey, signature::Signature, signer::Signer,
+    instruction::Instruction, pubkey::Address, signature::Signature, signer::Signer,
     transaction::Transaction,
 };
 
@@ -94,7 +94,7 @@ impl AsyncPumpClient {
         decode_fee_config(&account.data)
     }
 
-    pub async fn fetch_bonding_curve(&self, mint: &Pubkey) -> Result<BondingCurve> {
+    pub async fn fetch_bonding_curve(&self, mint: &Address) -> Result<BondingCurve> {
         let address = pda::pump::bonding_curve(mint).0;
         let account = self.get_account(&address, "bonding_curve").await?;
         decode_bonding_curve(&account.data)
@@ -110,7 +110,7 @@ impl AsyncPumpClient {
 
     pub async fn fetch_user_volume_accumulator(
         &self,
-        user: &Pubkey,
+        user: &Address,
     ) -> Result<Option<UserVolumeAccumulator>> {
         let address = pda::pump::user_volume_accumulator(user).0;
         match self
@@ -128,9 +128,9 @@ impl AsyncPumpClient {
 
     pub async fn fetch_buy_state(
         &self,
-        mint: &Pubkey,
-        user: &Pubkey,
-        token_program: &Pubkey,
+        mint: &Address,
+        user: &Address,
+        token_program: &Address,
     ) -> Result<BuyState> {
         let (bonding_curve_account, bonding_curve, associated_user_account) = self
             .fetch_bonding_curve_with_user_token_account(mint, user, token_program)
@@ -144,9 +144,9 @@ impl AsyncPumpClient {
 
     pub async fn fetch_sell_state(
         &self,
-        mint: &Pubkey,
-        user: &Pubkey,
-        token_program: &Pubkey,
+        mint: &Address,
+        user: &Address,
+        token_program: &Address,
     ) -> Result<SellState> {
         let (bonding_curve_account, bonding_curve, associated_user_account) = self
             .fetch_bonding_curve_with_user_token_account(mint, user, token_program)
@@ -165,9 +165,9 @@ impl AsyncPumpClient {
 
     async fn fetch_bonding_curve_with_user_token_account(
         &self,
-        mint: &Pubkey,
-        user: &Pubkey,
-        token_program: &Pubkey,
+        mint: &Address,
+        user: &Address,
+        token_program: &Address,
     ) -> Result<(Account, BondingCurve, Option<Account>)> {
         let bonding_curve_address = pda::pump::bonding_curve(mint).0;
         let associated_user = pda::associated_token(user, token_program, mint).0;
@@ -197,7 +197,7 @@ impl AsyncPumpClient {
     }
 
     /// Spendable lamports in the creator vault (above rent); 0 if missing or rent-only.
-    pub async fn get_creator_vault_balance(&self, creator: &Pubkey) -> Result<u64> {
+    pub async fn get_creator_vault_balance(&self, creator: &Address) -> Result<u64> {
         let creator_vault = pda::pump::creator_vault(creator).0;
 
         let account = match self
@@ -235,7 +235,7 @@ impl AsyncPumpClient {
     pub async fn build_transaction(
         &self,
         ixs: &[Instruction],
-        payer: &Pubkey,
+        payer: &Address,
         signers: &[&dyn Signer],
         compute_budget: Option<ComputeBudget>,
     ) -> Result<Transaction> {
@@ -253,7 +253,7 @@ impl AsyncPumpClient {
     pub fn build_transaction_with_blockhash(
         &self,
         ixs: &[Instruction],
-        payer: &Pubkey,
+        payer: &Address,
         signers: &[&dyn Signer],
         recent_blockhash: Hash,
         compute_budget: Option<ComputeBudget>,
@@ -297,7 +297,7 @@ impl AsyncPumpClient {
             .map_err(PumpClientError::from)
     }
 
-    async fn get_account(&self, address: &Pubkey, name: &'static str) -> Result<Account> {
+    async fn get_account(&self, address: &Address, name: &'static str) -> Result<Account> {
         let value = self
             .rpc
             .get_account_with_commitment(address, self.rpc.commitment())
@@ -343,7 +343,7 @@ mod tests {
     fn build_transaction_with_blockhash_prepends_compute_budget_ixs() {
         let client = local_client();
         let payer = Keypair::new();
-        let recipient = Pubkey::new_unique();
+        let recipient = Address::new_unique();
         let transfer = system_instruction::transfer(&payer.pubkey(), &recipient, 1);
         let blockhash = Hash::new_unique();
 
@@ -376,7 +376,7 @@ mod tests {
     fn build_transaction_with_blockhash_emits_only_requested_compute_budget_ixs() {
         let client = local_client();
         let payer = Keypair::new();
-        let recipient = Pubkey::new_unique();
+        let recipient = Address::new_unique();
         let transfer = system_instruction::transfer(&payer.pubkey(), &recipient, 1);
 
         let tx = client.build_transaction_with_blockhash(
@@ -406,7 +406,7 @@ mod tests {
     fn build_transaction_with_blockhash_signs_with_payer() {
         let client = local_client();
         let payer = Keypair::new();
-        let recipient = Pubkey::new_unique();
+        let recipient = Address::new_unique();
         let transfer = system_instruction::transfer(&payer.pubkey(), &recipient, 1);
         let blockhash = Hash::new_unique();
 

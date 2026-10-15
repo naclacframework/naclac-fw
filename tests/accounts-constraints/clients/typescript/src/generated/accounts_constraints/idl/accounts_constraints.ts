@@ -117,8 +117,7 @@ export const IDL = {
           "docs": [
             "SAFETY: only the account's own address is inspected via the",
             "`address` constraint below; its data is never read or deserialized."
-          ],
-          "address": "expected_address"
+          ]
         },
         {
           "name": "expected_address",

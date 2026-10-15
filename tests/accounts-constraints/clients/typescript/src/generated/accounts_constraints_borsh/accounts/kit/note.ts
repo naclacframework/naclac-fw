@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { Note } from "../../types";
 
-/** 8-byte on-chain discriminator for `Note` accounts. */
+/** On-chain discriminator for `Note` accounts. */
 export const NOTE_DISCRIMINATOR = new Uint8Array([203, 75, 252, 196, 81, 210, 122, 126]);
+
+function stripNoteDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = NOTE_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `Note` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link Note} account data. */
 export function getNoteEncoder(): naclac.FixedSizeEncoder<Note> {
@@ -39,7 +47,7 @@ export function decodeNote<TAddress extends string = string>(
 ): naclac.Account<Note, TAddress> | naclac.MaybeAccount<Note, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripNoteDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getNoteDecoder(),
   );
@@ -88,7 +96,7 @@ export async function fetchAllMaybeNote(
 }
 
 /** Fetches ALL `Note` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllNoteByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

@@ -116,28 +116,59 @@ fn truncate_le_bytes(value: u128, width: usize, big_endian: bool) -> Vec<u8> {
     bytes
 }
 
+/// A base58 address written as a string literal or as an `address!("..")` /
+/// `pubkey!("..")` call.
+pub fn address_literal(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) => Some(s.value()),
+        Expr::Macro(expr_macro)
+            if expr_macro
+                .mac
+                .path
+                .segments
+                .last()
+                .is_some_and(|segment| segment.ident == "address" || segment.ident == "pubkey") =>
+        {
+            expr_macro
+                .mac
+                .parse_body::<syn::LitStr>()
+                .ok()
+                .map(|literal| literal.value())
+        }
+        _ => None,
+    }
+}
+
 /// Resolves a `seeds::program = X` expression to the `NaclacSeed::Const` the
-/// real IDL's `pda.program` field expects — `X` is either a plain string/
-/// `address!`/`pubkey!` literal, or a bare identifier naming a `const _: Address`
-/// declared elsewhere in `src/` (mirrors `resolve_constant_address_str`'s own
-/// literal-forms handling for `address =` constraints).
+/// real IDL's `pda.program` field expects. `X` is an address literal (see
+/// [`address_literal`]), a bare identifier naming a `const _: Address`
+/// declared in the crate (reported with that constant's name), or a path
+/// naming one of the framework's well-known program ids (reported without a
+/// name, since it is not a constant of this crate).
 fn resolve_pda_program(
     expr: &syn::Expr,
     constants: &[crate::types::NaclacConstant],
 ) -> Option<NaclacSeed> {
     let mut resolved_name = None;
-    let addr_str = match expr {
-        syn::Expr::Lit(syn::ExprLit {
-            lit: syn::Lit::Str(s),
-            ..
-        }) => s.value(),
-        syn::Expr::Path(expr_path) => {
-            let ident = expr_path.path.segments.last()?.ident.to_string();
-            let cnst = constants.iter().find(|c| c.name == ident)?;
-            resolved_name = Some(cnst.name.clone());
-            crate::instruction::resolve_constant_address_str(&cnst.value)
+    let addr_str = if let Some(literal) = address_literal(expr) {
+        literal
+    } else if let syn::Expr::Path(expr_path) = expr {
+        let ident = expr_path.path.segments.last()?.ident.to_string();
+        match constants.iter().find(|c| c.name == ident) {
+            Some(cnst) => {
+                resolved_name = Some(cnst.name.clone());
+                crate::instruction::resolve_constant_address_str(&cnst.value)
+            }
+            None => match crate::instruction::resolve_address_path(&expr_path.path, constants) {
+                crate::instruction::AddressPath::Known(known) => known,
+                _ => return None,
+            },
         }
-        _ => return None,
+    } else {
+        return None;
     };
     let value = bs58::decode(&addr_str).into_vec().ok()?;
     if value.len() != 32 {

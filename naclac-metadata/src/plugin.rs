@@ -74,30 +74,23 @@ pub fn add_asset_plugin_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     let accounts_meta = vec![
-        solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+        solana_instruction::AccountMeta::new(accounts.asset.address(), false),
         match &accounts.collection {
-            Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(c) => solana_instruction::AccountMeta::new(c.address(), false),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        solana_instruction::AccountMeta::new(accounts.payer.address(), true),
         match &accounts.authority {
-            Some(a) => {
-                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new_readonly(
-            accounts.system_program.address(),
-            false,
-        ),
+        solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
         match &accounts.log_wrapper {
-            Some(l) => {
-                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(l) => solana_instruction::AccountMeta::new_readonly(l.address(), false),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
     ];
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: crate::ID,
         accounts: accounts_meta,
         data: ix_data.to_vec(),
@@ -105,14 +98,11 @@ pub fn add_asset_plugin_signed(
 
     let cpi_accounts = [
         CpiHandle::from(accounts.asset),
-        accounts
-            .collection
-            .map(CpiHandle::from)
-            .unwrap_or_else(|| program.clone()),
+        accounts.collection.map(CpiHandle::from).unwrap_or(program),
         CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
+        accounts.authority.unwrap_or(program),
         accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
+        accounts.log_wrapper.unwrap_or(program),
         program,
     ];
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
@@ -133,26 +123,19 @@ pub fn add_collection_plugin_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     let accounts_meta = vec![
-        solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
-        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        solana_instruction::AccountMeta::new(accounts.collection.address(), false),
+        solana_instruction::AccountMeta::new(accounts.payer.address(), true),
         match &accounts.authority {
-            Some(a) => {
-                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new_readonly(
-            accounts.system_program.address(),
-            false,
-        ),
+        solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
         match &accounts.log_wrapper {
-            Some(l) => {
-                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(l) => solana_instruction::AccountMeta::new_readonly(l.address(), false),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
     ];
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: crate::ID,
         accounts: accounts_meta,
         data: ix_data.to_vec(),
@@ -161,9 +144,9 @@ pub fn add_collection_plugin_signed(
     let cpi_accounts = [
         CpiHandle::from(accounts.collection),
         CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
+        accounts.authority.unwrap_or(program),
         accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
+        accounts.log_wrapper.unwrap_or(program),
         program,
     ];
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
@@ -310,30 +293,23 @@ pub fn remove_asset_plugin_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     let accounts_meta = vec![
-        solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+        solana_instruction::AccountMeta::new(accounts.asset.address(), false),
         match &accounts.collection {
-            Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(c) => solana_instruction::AccountMeta::new(c.address(), false),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        solana_instruction::AccountMeta::new(accounts.payer.address(), true),
         match &accounts.authority {
-            Some(a) => {
-                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new_readonly(
-            accounts.system_program.address(),
-            false,
-        ),
+        solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
         match &accounts.log_wrapper {
-            Some(l) => {
-                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(l) => solana_instruction::AccountMeta::new_readonly(l.address(), false),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
     ];
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: crate::ID,
         accounts: accounts_meta,
         data: vec![4u8, plugin_type], // RemovePluginV1 discriminator + PluginType tag
@@ -341,14 +317,11 @@ pub fn remove_asset_plugin_signed(
 
     let cpi_accounts = [
         CpiHandle::from(accounts.asset),
-        accounts
-            .collection
-            .map(CpiHandle::from)
-            .unwrap_or_else(|| program.clone()),
+        accounts.collection.map(CpiHandle::from).unwrap_or(program),
         CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
+        accounts.authority.unwrap_or(program),
         accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
+        accounts.log_wrapper.unwrap_or(program),
         program,
     ];
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
@@ -431,26 +404,19 @@ pub fn remove_collection_plugin_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     let accounts_meta = vec![
-        solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
-        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        solana_instruction::AccountMeta::new(accounts.collection.address(), false),
+        solana_instruction::AccountMeta::new(accounts.payer.address(), true),
         match &accounts.authority {
-            Some(a) => {
-                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new_readonly(
-            accounts.system_program.address(),
-            false,
-        ),
+        solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
         match &accounts.log_wrapper {
-            Some(l) => {
-                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(l) => solana_instruction::AccountMeta::new_readonly(l.address(), false),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
     ];
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: crate::ID,
         accounts: accounts_meta,
         data: vec![5u8, plugin_type], // RemoveCollectionPluginV1 discriminator + PluginType tag
@@ -459,9 +425,9 @@ pub fn remove_collection_plugin_signed(
     let cpi_accounts = [
         CpiHandle::from(accounts.collection),
         CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
+        accounts.authority.unwrap_or(program),
         accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
+        accounts.log_wrapper.unwrap_or(program),
         program,
     ];
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
@@ -540,30 +506,23 @@ pub fn update_asset_plugin_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     let accounts_meta = vec![
-        solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+        solana_instruction::AccountMeta::new(accounts.asset.address(), false),
         match &accounts.collection {
-            Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(c) => solana_instruction::AccountMeta::new(c.address(), false),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        solana_instruction::AccountMeta::new(accounts.payer.address(), true),
         match &accounts.authority {
-            Some(a) => {
-                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new_readonly(
-            accounts.system_program.address(),
-            false,
-        ),
+        solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
         match &accounts.log_wrapper {
-            Some(l) => {
-                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(l) => solana_instruction::AccountMeta::new_readonly(l.address(), false),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
     ];
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: crate::ID,
         accounts: accounts_meta,
         data: ix_data.to_vec(),
@@ -571,14 +530,11 @@ pub fn update_asset_plugin_signed(
 
     let cpi_accounts = [
         CpiHandle::from(accounts.asset),
-        accounts
-            .collection
-            .map(CpiHandle::from)
-            .unwrap_or_else(|| program.clone()),
+        accounts.collection.map(CpiHandle::from).unwrap_or(program),
         CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
+        accounts.authority.unwrap_or(program),
         accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
+        accounts.log_wrapper.unwrap_or(program),
         program,
     ];
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
@@ -661,26 +617,19 @@ pub fn update_collection_plugin_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     let accounts_meta = vec![
-        solana_program::instruction::AccountMeta::new(accounts.collection.address(), false),
-        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        solana_instruction::AccountMeta::new(accounts.collection.address(), false),
+        solana_instruction::AccountMeta::new(accounts.payer.address(), true),
         match &accounts.authority {
-            Some(a) => {
-                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new_readonly(
-            accounts.system_program.address(),
-            false,
-        ),
+        solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
         match &accounts.log_wrapper {
-            Some(l) => {
-                solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(l) => solana_instruction::AccountMeta::new_readonly(l.address(), false),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
     ];
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: crate::ID,
         accounts: accounts_meta,
         data: ix_data.to_vec(),
@@ -689,9 +638,9 @@ pub fn update_collection_plugin_signed(
     let cpi_accounts = [
         CpiHandle::from(accounts.collection),
         CpiHandle::from(accounts.payer),
-        accounts.authority.unwrap_or_else(|| program.clone()),
+        accounts.authority.unwrap_or(program),
         accounts.system_program,
-        accounts.log_wrapper.unwrap_or_else(|| program.clone()),
+        accounts.log_wrapper.unwrap_or(program),
         program,
     ];
     crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)

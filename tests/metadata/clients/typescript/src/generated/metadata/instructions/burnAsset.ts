@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `burn_asset` instruction. */
+/** Discriminator for the `burn_asset` instruction. */
 export const BURN_ASSET_DISCRIMINATOR = new Uint8Array([136, 86, 28, 181, 100, 202, 225, 221]);
 
 /** Accounts for the `burnAsset` instruction. */
 export interface BurnAssetAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

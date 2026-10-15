@@ -30,7 +30,6 @@ impl<'a> From<CpiHandleMut<'a>> for CpiHandle<'a> {
     }
 }
 
-#[cfg(feature = "pinocchio")]
 impl<'a> Clone for CpiHandle<'a> {
     #[inline(always)]
     fn clone(&self) -> Self {
@@ -38,18 +37,6 @@ impl<'a> Clone for CpiHandle<'a> {
     }
 }
 
-#[cfg(not(feature = "pinocchio"))]
-impl<'a> Clone for CpiHandle<'a> {
-    #[inline(always)]
-    fn clone(&self) -> Self {
-        Self {
-            info: self.info.clone(),
-            _phantom: PhantomData,
-        }
-    }
-}
-
-#[cfg(feature = "pinocchio")]
 impl<'a> Copy for CpiHandle<'a> {}
 
 /// Trait implemented by wrappers that can be converted into an immutable CPI handle.
@@ -62,7 +49,6 @@ pub trait ToCpiHandleMut<'a> {
     fn to_cpi_handle_mut(&'a mut self) -> CpiHandleMut<'a>;
 }
 
-#[cfg(feature = "pinocchio")]
 impl<'a> ToCpiHandle<'a> for AccountInfo {
     #[inline(always)]
     fn to_cpi_handle(&'a self) -> CpiHandle<'a> {
@@ -73,34 +59,11 @@ impl<'a> ToCpiHandle<'a> for AccountInfo {
     }
 }
 
-#[cfg(not(feature = "pinocchio"))]
-impl<'a> ToCpiHandle<'a> for AccountInfo {
-    #[inline(always)]
-    fn to_cpi_handle(&'a self) -> CpiHandle<'a> {
-        CpiHandle {
-            info: self.clone(),
-            _phantom: PhantomData,
-        }
-    }
-}
-
-#[cfg(feature = "pinocchio")]
 impl<'a> ToCpiHandleMut<'a> for AccountInfo {
     #[inline(always)]
     fn to_cpi_handle_mut(&'a mut self) -> CpiHandleMut<'a> {
         CpiHandleMut {
             info: *self,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-#[cfg(not(feature = "pinocchio"))]
-impl<'a> ToCpiHandleMut<'a> for AccountInfo {
-    #[inline(always)]
-    fn to_cpi_handle_mut(&'a mut self) -> CpiHandleMut<'a> {
-        CpiHandleMut {
-            info: self.clone(),
             _phantom: PhantomData,
         }
     }
@@ -123,10 +86,8 @@ impl<'a> ToAddress for CpiHandleMut<'a> {
     }
 }
 
-#[cfg(all(feature = "no-std", not(feature = "pinocchio")))]
+#[cfg(not(feature = "pinocchio"))]
 use alloc::boxed::Box;
-#[cfg(all(not(feature = "no-std"), not(feature = "pinocchio")))]
-use std::boxed::Box;
 
 #[cfg(not(feature = "pinocchio"))]
 impl<'a, T: ToCpiHandle<'a>> ToCpiHandle<'a> for Box<T> {

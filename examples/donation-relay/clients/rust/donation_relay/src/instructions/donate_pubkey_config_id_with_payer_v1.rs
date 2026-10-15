@@ -8,8 +8,8 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
 #[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
-pub struct DonatePubkeyConfigIdWithPayerV1IxArgs {
-    pub args: crate::types::DonatePubkeyConfigIdWithPayerV1Args,
+pub struct DonateAddressConfigIdWithPayerV1IxArgs {
+    pub args: crate::types::DonateAddressConfigIdWithPayerV1Args,
 }
 
 #[cfg(feature = "cpi")]
@@ -19,12 +19,12 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
 #[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
-pub struct DonatePubkeyConfigIdWithPayerV1CpiIxArgs {
-    pub args: crate::types::DonatePubkeyConfigIdWithPayerV1ArgsCpi,
+pub struct DonateAddressConfigIdWithPayerV1CpiIxArgs {
+    pub args: crate::types::DonateAddressConfigIdWithPayerV1ArgsCpi,
 }
 
 #[cfg(feature = "offchain")]
-pub struct DonatePubkeyConfigIdWithPayerV1Accounts {
+pub struct DonateAddressConfigIdWithPayerV1Accounts {
     pub payer: naclac_client::Address,
     pub from: naclac_client::Address,
     pub mint: naclac_client::Address,
@@ -51,11 +51,11 @@ pub struct DonatePubkeyConfigIdWithPayerV1Accounts {
 pub fn build_donate_pubkey_config_id_with_payer_v1<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
-    args: crate::types::DonatePubkeyConfigIdWithPayerV1Args,
-    accounts: DonatePubkeyConfigIdWithPayerV1Accounts,
+    args: crate::types::DonateAddressConfigIdWithPayerV1Args,
+    accounts: DonateAddressConfigIdWithPayerV1Accounts,
 ) -> naclac_client::InstructionBuilder<'a> {
     let mut ix_data = crate::sdk_core_offchain::vec![120, 217, 57, 241, 135, 104, 139, 184];
-    let args = DonatePubkeyConfigIdWithPayerV1IxArgs {
+    let args = DonateAddressConfigIdWithPayerV1IxArgs {
         args,
     };
     #[cfg(not(feature = "borsh"))]
@@ -89,7 +89,7 @@ pub fn build_donate_pubkey_config_id_with_payer_v1<'a>(
 }
 
 #[cfg(feature = "cpi")]
-pub struct DonatePubkeyConfigIdWithPayerV1CpiAccounts<'a> {
+pub struct DonateAddressConfigIdWithPayerV1CpiAccounts<'a> {
     pub payer: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub from: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub mint: crate::sdk_core_cpi::CpiHandleMut<'a>,
@@ -113,21 +113,21 @@ pub struct DonatePubkeyConfigIdWithPayerV1CpiAccounts<'a> {
 }
 
 #[cfg(feature = "cpi")]
-pub struct DonatePubkeyConfigIdWithPayerV1CpiCall<'a> {
-    pub accounts: DonatePubkeyConfigIdWithPayerV1CpiAccounts<'a>,
-    pub args: crate::types::DonatePubkeyConfigIdWithPayerV1ArgsCpi,
+pub struct DonateAddressConfigIdWithPayerV1CpiCall<'a> {
+    pub accounts: DonateAddressConfigIdWithPayerV1CpiAccounts<'a>,
+    pub args: crate::types::DonateAddressConfigIdWithPayerV1ArgsCpi,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]
-pub trait DonatePubkeyConfigIdWithPayerV1Cpi<'info> {
+pub trait DonateAddressConfigIdWithPayerV1Cpi<'info> {
     fn donate_pubkey_config_id_with_payer_v1<'a>(
         &self,
-        accounts: DonatePubkeyConfigIdWithPayerV1CpiAccounts<'a>,
-        args: crate::types::DonatePubkeyConfigIdWithPayerV1ArgsCpi
+        accounts: DonateAddressConfigIdWithPayerV1CpiAccounts<'a>,
+        args: crate::types::DonateAddressConfigIdWithPayerV1ArgsCpi
     ) -> crate::sdk_core_cpi::Result<()> {
-        self.donate_pubkey_config_id_with_payer_v1_with_remaining_accounts(DonatePubkeyConfigIdWithPayerV1CpiCall {
+        self.donate_pubkey_config_id_with_payer_v1_with_remaining_accounts(DonateAddressConfigIdWithPayerV1CpiCall {
         accounts,
         args,
         signer_seeds: &[],
@@ -137,11 +137,11 @@ pub trait DonatePubkeyConfigIdWithPayerV1Cpi<'info> {
 
     fn donate_pubkey_config_id_with_payer_v1_signed<'a>(
         &self,
-        accounts: DonatePubkeyConfigIdWithPayerV1CpiAccounts<'a>,
-        args: crate::types::DonatePubkeyConfigIdWithPayerV1ArgsCpi,
+        accounts: DonateAddressConfigIdWithPayerV1CpiAccounts<'a>,
+        args: crate::types::DonateAddressConfigIdWithPayerV1ArgsCpi,
         signer_seeds: &[&[&[u8]]]
     ) -> crate::sdk_core_cpi::Result<()> {
-        self.donate_pubkey_config_id_with_payer_v1_with_remaining_accounts(DonatePubkeyConfigIdWithPayerV1CpiCall {
+        self.donate_pubkey_config_id_with_payer_v1_with_remaining_accounts(DonateAddressConfigIdWithPayerV1CpiCall {
         accounts,
         args,
         signer_seeds,
@@ -151,19 +151,19 @@ pub trait DonatePubkeyConfigIdWithPayerV1Cpi<'info> {
 
     fn donate_pubkey_config_id_with_payer_v1_with_remaining_accounts<'a>(
         &self,
-        call: DonatePubkeyConfigIdWithPayerV1CpiCall<'a>
+        call: DonateAddressConfigIdWithPayerV1CpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()>;
 
 }
 
 #[cfg(feature = "cpi")]
-impl<'info> DonatePubkeyConfigIdWithPayerV1Cpi<'info> for crate::sdk_core_cpi::Program<crate::DonationRelay> {
+impl<'info> DonateAddressConfigIdWithPayerV1Cpi<'info> for crate::sdk_core_cpi::Program<crate::DonationRelay> {
     fn donate_pubkey_config_id_with_payer_v1_with_remaining_accounts<'a>(
         &self,
-        call: DonatePubkeyConfigIdWithPayerV1CpiCall<'a>
+        call: DonateAddressConfigIdWithPayerV1CpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        let DonatePubkeyConfigIdWithPayerV1CpiCall { accounts, args, signer_seeds, remaining_accounts } = call;
-        let args = DonatePubkeyConfigIdWithPayerV1CpiIxArgs {
+        let DonateAddressConfigIdWithPayerV1CpiCall { accounts, args, signer_seeds, remaining_accounts } = call;
+        let args = DonateAddressConfigIdWithPayerV1CpiIxArgs {
             args,
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
@@ -271,27 +271,27 @@ impl<'info> DonatePubkeyConfigIdWithPayerV1Cpi<'info> for crate::sdk_core_cpi::P
         {
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.from.address(), true),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.mint.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.epoch_tracker.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.debouncer.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.debouncer_token_account.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.from_token_account.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.mint_whitelist.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.associated_token_program.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.payer.address(), true),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.from.address(), true),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.mint.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.epoch_tracker.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.debouncer.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.debouncer_token_account.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.from_token_account.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.mint_whitelist.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.associated_token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new(acc.address(), *is_signer)
                 } else {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
                 };
                 account_metas.push(meta);
             }
-            let instruction = ::naclac_lang::solana_program::instruction::Instruction {
+            let instruction = ::naclac_lang::solana_instruction::Instruction {
                 program_id: self.address(),
                 accounts: account_metas,
                 data: ix_data,

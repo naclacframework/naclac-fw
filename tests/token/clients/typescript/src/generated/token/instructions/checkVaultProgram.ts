@@ -3,12 +3,12 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_vault_program` instruction. */
+/** Discriminator for the `check_vault_program` instruction. */
 export const CHECK_VAULT_PROGRAM_DISCRIMINATOR = new Uint8Array([11, 24, 214, 180, 243, 235, 169, 238]);
 
 /** Accounts for the `checkVaultProgram` instruction. */
 export interface CheckVaultProgramAccounts {
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
   /**
    * SAFETY: only the account's owning-program metadata is inspected via
    * the `token::program` constraint below; its data is never read or

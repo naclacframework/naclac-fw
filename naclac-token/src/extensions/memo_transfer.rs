@@ -74,11 +74,11 @@ pub fn enable_required_memo_transfers_signed(
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(account.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(owner.info.address(), true),
+                solana_instruction::AccountMeta::new(account.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(owner.info.address(), true),
             ],
             data: vec![30u8, 0u8],
         };
@@ -132,11 +132,11 @@ pub fn disable_required_memo_transfers_signed(
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(account.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(owner.info.address(), true),
+                solana_instruction::AccountMeta::new(account.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(owner.info.address(), true),
             ],
             data: vec![30u8, 1u8],
         };

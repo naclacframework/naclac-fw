@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_executable` instruction. */
+/** Discriminator for the `check_executable` instruction. */
 export const CHECK_EXECUTABLE_DISCRIMINATOR = new Uint8Array([27, 192, 107, 127, 85, 227, 212, 55]);
 
 /** Accounts for the `checkExecutable` instruction. */

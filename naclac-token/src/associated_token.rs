@@ -7,7 +7,10 @@
 //! Provides dual-backend wrappers for invoking the SPL Associated Token Program.
 //! Enforces borrow-checking via CPI handles.
 
-use crate::prelude::{derive_program_address, Address, CpiHandle, CpiHandleMut, NaclacError, Result};
+use crate::prelude::{
+    derive_program_address, find_bump_for_address, Address, CpiHandle, CpiHandleMut, NaclacError,
+    Result,
+};
 use crate::wrappers::{ToAddress, ToCpiHandle, ToCpiHandleMut};
 
 /// Validates the three CPI-target program accounts for a `Create`/
@@ -39,12 +42,9 @@ fn validate_ata_cpi_programs(
     Ok(())
 }
 
-/// Derives the canonical Associated Token Account address for
+/// Derives the Associated Token Account address for
 /// `(authority, token_program, mint)` at the given `bump`. Backs the
-/// `associated_token::bump =` constraint, which requires the app to supply
-/// this precomputed value — naclac never runs an on-chain
-/// `find_program_address` bump search (see `derive_program_address`, which
-/// this delegates to).
+/// `associated_token::bump =` constraint when the app supplies the bump.
 pub fn derive_ata_address(
     authority: &Address,
     token_program: &Address,
@@ -74,6 +74,25 @@ pub fn check_associated_token_address(
         return Err(NaclacError::ConstraintSeeds);
     }
     Ok(())
+}
+
+/// Returns the bump at which `actual` is the Associated Token Account address
+/// for `(authority, token_program, mint)`, or `None` if no bump derives it.
+/// Backs the `associated_token::mint =`/`associated_token::authority =`
+/// constraint on existing accounts when no `associated_token::bump =` is
+/// given. Same soundness requirement as `find_bump_for_address`: `actual`'s
+/// owner must already be verified as the token program.
+pub fn find_associated_token_bump(
+    actual: &Address,
+    authority: &Address,
+    token_program: &Address,
+    mint: &Address,
+) -> Option<u8> {
+    find_bump_for_address(
+        &[authority.as_ref(), token_program.as_ref(), mint.as_ref()],
+        &crate::prelude::ASSOCIATED_TOKEN_PROGRAM_ID,
+        actual,
+    )
 }
 
 /// Resolved CPI account handles for an Associated Token Program `Create`/
@@ -265,20 +284,20 @@ pub fn create_idempotent_with_extra_accounts_signed(
         ix.accounts.extend(
             extra_accounts
                 .iter()
-                .map(|extra| solana_program::instruction::AccountMeta::new(extra.address(), false)),
+                .map(|extra| solana_instruction::AccountMeta::new(extra.address(), false)),
         );
 
         let extra_len = extra_accounts.len();
         let payer_handle: CpiHandle<'_> = CpiHandle::from(payer);
         let mut accounts_array: [CpiHandle<'_>; MAX_ATA_CREATE_EXTRA_ACCOUNTS + 7] =
-            core::array::from_fn(|_| payer_handle.clone());
+            [payer_handle; MAX_ATA_CREATE_EXTRA_ACCOUNTS + 7];
         accounts_array[1] = CpiHandle::from(associated_token);
         accounts_array[2] = authority;
         accounts_array[3] = mint;
         accounts_array[4] = system_program;
         accounts_array[5] = token_program;
         accounts_array[6] = program;
-        accounts_array[7..7 + extra_len].clone_from_slice(extra_accounts);
+        accounts_array[7..7 + extra_len].copy_from_slice(extra_accounts);
 
         crate::cpi::invoke_signed(&ix, &accounts_array[..7 + extra_len], signer_seeds)
     }
@@ -313,7 +332,7 @@ pub fn create_idempotent_with_extra_accounts_signed(
 
         let payer_handle: CpiHandle<'_> = CpiHandle::from(payer);
         let mut cpi_handles: [CpiHandle<'_>; MAX_ATA_CREATE_EXTRA_ACCOUNTS + 6] =
-            core::array::from_fn(|_| payer_handle.clone());
+            core::array::from_fn(|_| payer_handle);
         cpi_handles[1] = CpiHandle::from(associated_token);
         cpi_handles[2] = authority;
         cpi_handles[3] = mint;

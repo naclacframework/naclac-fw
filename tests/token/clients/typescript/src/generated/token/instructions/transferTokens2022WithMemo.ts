@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `transfer_tokens2022_with_memo` instruction. */
+/** Discriminator for the `transfer_tokens2022_with_memo` instruction. */
 export const TRANSFER_TOKENS2022_WITH_MEMO_DISCRIMINATOR = new Uint8Array([62, 196, 162, 124, 124, 33, 183, 127]);
 
 /** Instruction arguments for `transferTokens2022WithMemo`. */
@@ -13,18 +13,18 @@ export interface TransferTokens2022WithMemoArgs {
 
 /** Accounts for the `transferTokens2022WithMemo` instruction. */
 export interface TransferTokens2022WithMemoAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
   from: naclac.Address | string;
   to: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
   /**
    * SAFETY: never read or deserialized — present only so the real
    * spl-memo program (v1 or v3) is part of this instruction's own
    * account list. Not SPL-token-shaped, no naclac `Discriminator`
    * applies.
    */
-  memo_program: naclac.Address | string;
+  memoProgram: naclac.Address | string;
 }
 
 /**

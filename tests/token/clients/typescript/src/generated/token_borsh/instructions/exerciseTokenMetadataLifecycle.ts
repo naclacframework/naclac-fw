@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_token_metadata_lifecycle` instruction. */
+/** Discriminator for the `exercise_token_metadata_lifecycle` instruction. */
 export const EXERCISE_TOKEN_METADATA_LIFECYCLE_DISCRIMINATOR = new Uint8Array([176, 177, 57, 217, 140, 170, 202, 7]);
 
 /** Instruction arguments for `exerciseTokenMetadataLifecycle`. */

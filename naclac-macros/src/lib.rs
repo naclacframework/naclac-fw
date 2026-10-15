@@ -14,8 +14,10 @@ extern crate proc_macro;
 mod accounts;
 mod checked_enum;
 mod component;
+mod emit;
 mod error_code;
 mod event;
+mod event_cpi;
 mod instruction;
 mod pod_struct_checks;
 mod program;
@@ -23,6 +25,31 @@ mod system;
 mod type_classify;
 
 use proc_macro::TokenStream;
+
+/// The calling crate's constants, collected by the same function the AST IDL
+/// generator uses, for resolving `[T; N]` lengths when building `idl-build`
+/// field types.
+#[cfg(feature = "idl-build")]
+pub(crate) fn crate_constants() -> Vec<naclac_syn::types::NaclacConstant> {
+    std::env::var("CARGO_MANIFEST_DIR")
+        .map(|dir| naclac_syn::crate_constants(std::path::Path::new(&dir)))
+        .unwrap_or_default()
+}
+
+/// Tokens evaluating to the IDL `value` string of a constant of type `ty`
+/// whose value is `expr`: an `Address` as base58 on every backend, anything
+/// else as its `Debug` text.
+#[cfg(feature = "idl-build")]
+pub(crate) fn constant_value_tokens(
+    ty: &syn::Type,
+    expr: &proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
+    if type_classify::is_exactly(ty, "Address") {
+        quote::quote! { naclac_lang::prelude::base58::encode_address_to_string(&#expr) }
+    } else {
+        quote::quote! { format!("{:?}", #expr) }
+    }
+}
 
 /// For attribute macros that take no argument at all — returns a
 /// `compile_error!` if `attr` is non-empty, `None` otherwise.
@@ -82,11 +109,11 @@ pub(crate) fn heap_collection_warning(
 /// In zero-copy mode (Solana zero-copy or Pinocchio), generates a `#[repr(C)]`
 /// struct with `Pod`/`Zeroable`/`NaclacPod` impls for raw byte-cast access. In
 /// Borsh mode, generates standard `BorshSerialize`/`BorshDeserialize` impls instead.
+///
+/// Takes an optional `discriminator = <int | [ints]>` argument (1 to 8 bytes)
+/// replacing the default name-derived 8-byte discriminator.
 #[proc_macro_attribute]
 pub fn component(attr: TokenStream, item: TokenStream) -> TokenStream {
-    if let Some(err) = reject_nonempty_attr(&attr, "component") {
-        return err;
-    }
     component::expand(attr, item)
 }
 
@@ -114,12 +141,12 @@ pub fn program(attr: TokenStream, item: TokenStream) -> TokenStream {
     program::expand(attr, item)
 }
 
-/// Generates standardized custom error codes for the program.
+/// Generates standardized custom error codes for the program: each variant's
+/// code is `offset + discriminant`, where `offset` is 6000 unless set with
+/// `#[error_code(offset = N)]`. Every code in the crate must be unique
+/// (`#[program]` rejects overlaps).
 #[proc_macro_attribute]
 pub fn error_code(attr: TokenStream, item: TokenStream) -> TokenStream {
-    if let Some(err) = reject_nonempty_attr(&attr, "error_code") {
-        return err;
-    }
     error_code::expand(attr, item)
 }
 
@@ -133,6 +160,35 @@ pub fn event(
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     event::expand(attr, item)
+}
+
+/// Auto-injects the `event_authority`/`program` accounts a self-CPI event
+/// emission (`emit_cpi!()`) needs. Must be applied *above*
+/// `#[derive(Accounts)]`, not below it — as a real attribute macro it
+/// rewrites the struct's own field list before the derive macro ever sees
+/// it, which a derive macro alone cannot do.
+#[proc_macro_attribute]
+pub fn event_cpi(attr: TokenStream, item: TokenStream) -> TokenStream {
+    event_cpi::expand(attr, item)
+}
+
+/// Logs an event with `sol_log_data`: `emit!(MyEvent { a, b: 2 });` or
+/// `emit!(event_value);`. A struct literal starts from `Default` and assigns
+/// each written field through `.into()`. Evaluates to the event.
+#[proc_macro]
+pub fn emit(input: TokenStream) -> TokenStream {
+    emit::expand_emit(input)
+}
+
+/// Emits an event as a signed self-CPI: `emit_cpi!(MyEvent { a, b: 2 });`.
+/// Takes exactly the event syntax `emit!` takes and evaluates to the event.
+/// The handler's context is the variable named `ctx`; a function holding its
+/// context under another name calls
+/// `naclac_lang::event::emit_cpi(&context, &event)` directly. The handler's
+/// accounts struct must carry `#[event_cpi]`.
+#[proc_macro]
+pub fn emit_cpi(input: TokenStream) -> TokenStream {
+    emit::expand_emit_cpi(input)
 }
 
 /// Builds a plain (never `#[test]`-tagged — a `[[bin]]` target's `main()`
@@ -153,7 +209,7 @@ fn constant_idl_build_impl(item: &syn::ItemConst) -> proc_macro2::TokenStream {
     let name = item.ident.to_string();
     let expr = &item.expr;
     let docs = naclac_syn::parser::extract_docs(&item.attrs);
-    let ty_value = naclac_syn::parser::rust_type_to_idl(&item.ty, &[]);
+    let ty_value = naclac_syn::parser::rust_type_to_idl(&item.ty, &crate_constants());
     let Ok(ty_json) = serde_json::to_string(&ty_value) else {
         return quote::quote! {};
     };
@@ -165,6 +221,7 @@ fn constant_idl_build_impl(item: &syn::ItemConst) -> proc_macro2::TokenStream {
         "__naclac_idl_print_const_{}",
         item.ident.to_string().to_lowercase()
     );
+    let value = constant_value_tokens(&item.ty, &quote::quote! { #expr });
     quote::quote! {
         #[cfg(feature = "idl-build")]
         #[doc(hidden)]
@@ -174,7 +231,7 @@ fn constant_idl_build_impl(item: &syn::ItemConst) -> proc_macro2::TokenStream {
                 docs: vec![#(#docs.into()),*],
                 ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
                     .expect("naclac idl-build: generated constant type JSON must parse"),
-                value: format!("{:?}", #expr),
+                value: #value,
             }
         }
     }
@@ -209,7 +266,7 @@ pub fn constant(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// Derives the necessary validation, deserialization, and constraints for an Accounts struct.
 ///
 /// Generates zero-copy fixed array CPI properties (`[AccountMeta; N]`) regardless of the execution mode.
-#[proc_macro_derive(Accounts, attributes(account, instruction))]
+#[proc_macro_derive(Accounts, attributes(account, instruction, __naclac_event_cpi))]
 pub fn derive_accounts(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     accounts::expand_derive_accounts(item)
 }
@@ -227,9 +284,10 @@ pub fn derive_accounts(item: proc_macro::TokenStream) -> proc_macro::TokenStream
 /// variants — reinterpreting an out-of-range discriminant byte as the enum is
 /// undefined behavior. Enums therefore get bytemuck's own `CheckedBitPattern`
 /// (validated on read) instead of `Pod`/`Zeroable` (unconditional), and their
-/// `NaclacPod::naclac_from_bytes` validates the discriminant and panics on an
-/// invalid one rather than blindly transmuting it — a panic is safe, defined
-/// behavior, unlike constructing an enum value with no corresponding variant.
+/// `NaclacPod::naclac_try_from_bytes` validates the discriminant and returns
+/// `None` for an invalid one (instruction-argument readers turn that into
+/// `InvalidInstructionData`); `naclac_from_bytes` panics instead. Neither
+/// blindly transmutes bytes into an enum value with no corresponding variant.
 /// Borsh mode needs no such split — real Borsh's own derive already validates
 /// enum tags during deserialization, for structs and enums alike.
 #[proc_macro_attribute]
@@ -249,13 +307,75 @@ pub fn defined_type(
     // zero-copy layout's auto-added padding field.
     let original_data = input.data.clone();
 
+    // Checked here, before anything below mutates `input.attrs` (an earlier
+    // version of this check ran deep inside the struct branch below, after
+    // `#[repr(...)]`/`#[derive(Copy)]` had already been spliced in for the
+    // zero-copy representation — its error path then echoed back that
+    // already-mutated `input`, producing a cascade of unrelated `Copy`/
+    // `Pod` errors instead of just this one). A user-written
+    // `#[derive(Default)]` is only rejected when the macro's own
+    // `Zeroable::zeroed()`-based `Default` (zero-copy mode only, further
+    // below) could actually exist to conflict with it: a struct with any
+    // heap-allocated field (`Vec`/`String`) can never be `Zeroable`
+    // regardless of which backend is active, so the macro provides no
+    // `Default` for it under any representation — rejecting the user's own
+    // in that case would leave the type with none at all, even though it
+    // may genuinely be needed (e.g. by a containing `#[event]`/
+    // `#[instruction_args]` struct, which auto-derives `Default` on
+    // itself).
+    let mut zero_copy_default_conflict = proc_macro2::TokenStream::new();
+    if !is_enum {
+        let syn::Data::Struct(data_struct) = &original_data else {
+            unreachable!("is_enum was false, so input.data must be Data::Struct");
+        };
+        let has_heap_field = data_struct.fields.iter().any(|f| {
+            matches!(
+                crate::type_classify::base_ident(&f.ty)
+                    .as_ref()
+                    .map(syn::Ident::to_string)
+                    .as_deref(),
+                Some("Vec") | Some("String")
+            )
+        });
+        if !has_heap_field {
+            for attr in &input.attrs {
+                if !attr.path().is_ident("derive") {
+                    continue;
+                }
+                let Ok(paths) = attr.parse_args_with(
+                    syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
+                ) else {
+                    continue;
+                };
+                if paths
+                    .iter()
+                    .any(|p| p.segments.last().is_some_and(|s| s.ident == "Default"))
+                {
+                    zero_copy_default_conflict = syn::Error::new_spanned(
+                        attr,
+                        "Naclac Error: in the zero-copy representation `#[defined_type]` already \
+                         generates `Default` (via `Zeroable::zeroed()`) for every struct whose \
+                         fields are all Pod-eligible — remove this `#[derive(Default)]`, it's \
+                         redundant and, once an auto-padding field is added, incorrect (`std`'s \
+                         derive is evaluated before that field exists). It is only needed under \
+                         Borsh/Wincode, where no `Default` is generated.",
+                    )
+                    .to_compile_error();
+                    break;
+                }
+            }
+        }
+    }
+
     // Cargo gives a proc-macro no reliable way to see the invoking crate's
     // activated features (see `component.rs`'s doc comment for the full
     // story), so both representations are always emitted below, each gated
     // by a real `#[cfg(...)]` in the output that the calling crate's own
     // compiler resolves — same as `#[component]`/`#[event]`/`#[derive(Accounts)]`.
-    let zero_copy_cfg = quote::quote! { #[cfg(any(feature = "pinocchio", not(feature = "borsh")))] };
+    let zero_copy_cfg = quote::quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
     let borsh_cfg = quote::quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
+    let wincode_cfg =
+        quote::quote! { #[cfg(all(not(feature = "pinocchio"), feature = "wincode"))] };
 
     // --- Borsh variant ---
     // No repr/Copy forcing, no Pod-family traits at all — real Borsh's own
@@ -280,10 +400,67 @@ pub fn defined_type(
         if !has_clone {
             input.attrs.push(syn::parse_quote!(#[derive(Clone)]));
         }
+        // Every enum gets `use_discriminant = true` unconditionally: per
+        // `borsh-derive`'s own `Discriminants::new`, this reconstructs
+        // Rust's real compiler-assigned value (explicit `= N` if written,
+        // else previous + 1) — identical to the current, always-positional
+        // behavior for an enum that never writes an explicit discriminant,
+        // and only changes behavior (correctly) for one that does. A
+        // struct has no discriminant at all, so this is enum-only.
+        if is_enum {
+            input
+                .attrs
+                .push(syn::parse_quote!(#[borsh(use_discriminant = true)]));
+        }
         quote::quote! {
             #borsh_cfg
             #[derive(naclac_lang::prelude::BorshSerialize, naclac_lang::prelude::BorshDeserialize)]
             #[borsh(crate = "naclac_lang::prelude::borsh")]
+            #input
+        }
+    };
+
+    // --- Wincode variant ---
+    // Each variant gets an explicit `#[wincode(tag = N)]` using the same
+    // real, fully-resolved discriminant `naclac_syn::discriminator::
+    // variant_discriminants` computes for the IDL and for the zero-copy
+    // branch below — wincode-derive's own fallback (plain declaration
+    // index) only applies when no such attribute is present, so this makes
+    // Wincode respect an explicit `= N` the same way Borsh (via
+    // `use_discriminant`, above) and zero-copy (native repr, below) do.
+    let wincode_variant = {
+        let mut input = input.clone();
+        let mut has_clone = false;
+        for attr in &input.attrs {
+            if !attr.path().is_ident("derive") {
+                continue;
+            }
+            let Ok(paths) = attr.parse_args_with(
+                syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
+            ) else {
+                continue;
+            };
+            has_clone |= paths
+                .iter()
+                .any(|p| p.segments.last().is_some_and(|s| s.ident == "Clone"));
+        }
+        if !has_clone {
+            input.attrs.push(syn::parse_quote!(#[derive(Clone)]));
+        }
+        if let syn::Data::Enum(data_enum) = &mut input.data {
+            let discriminants =
+                naclac_syn::discriminator::variant_discriminants(data_enum.variants.iter());
+            for (variant, discriminant) in data_enum.variants.iter_mut().zip(discriminants.iter()) {
+                let tag_lit = syn::LitInt::new(&discriminant.to_string(), variant.ident.span());
+                variant
+                    .attrs
+                    .push(syn::parse_quote!(#[wincode(tag = #tag_lit)]));
+            }
+        }
+        quote::quote! {
+            #wincode_cfg
+            #[derive(naclac_lang::prelude::SchemaWrite, naclac_lang::prelude::SchemaRead)]
+            #[wincode(crate = "naclac_lang::prelude::wincode")]
             #input
         }
     };
@@ -364,14 +541,22 @@ pub fn defined_type(
             let named = naclac_syn::discriminator::detect_enum_repr(&input.attrs);
             syn::parse_str(named.as_deref().unwrap_or("u8")).unwrap()
         };
-        let (extra_items, checked_bit_pattern_impl) =
-            checked_enum::generate(&ident, &input.vis, &data_enum.variants, &tag_ty, &zero_copy_cfg);
+        let (extra_items, checked_bit_pattern_impl) = checked_enum::generate(
+            &ident,
+            &input.vis,
+            &data_enum.variants,
+            &tag_ty,
+            &zero_copy_cfg,
+        );
+        let zc_storage_items =
+            checked_enum::zc_storage_items(&ident, &data_enum.variants, &tag_ty, &zero_copy_cfg);
         quote::quote! {
             #zero_copy_cfg
             #input
 
             #extra_items
             #checked_bit_pattern_impl
+            #zc_storage_items
 
             #zero_copy_cfg
             impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
@@ -383,12 +568,19 @@ pub fn defined_type(
                     // `try_from_bytes`) validates the discriminant without
                     // requiring proper alignment, which real Solana
                     // account/instruction byte buffers don't guarantee.
-                    // `expect` turns an invalid discriminant into a safe
-                    // panic instead of undefined behavior.
+                    // An invalid discriminant panics instead of being
+                    // undefined behavior.
                     naclac_lang::prelude::bytemuck::checked::try_pod_read_unaligned::<Self>(
                         &data[..core::mem::size_of::<Self>()],
                     )
-                    .expect("defined_type: invalid enum discriminant in account/instruction bytes")
+                    .unwrap_or_else(|_| panic!("defined_type: invalid enum discriminant in account/instruction bytes"))
+                }
+                #[inline(always)]
+                fn naclac_try_from_bytes(data: &[u8]) -> Option<Self> {
+                    naclac_lang::prelude::bytemuck::checked::try_pod_read_unaligned::<Self>(
+                        &data[..core::mem::size_of::<Self>()],
+                    )
+                    .ok()
                 }
                 #[inline(always)]
                 fn naclac_size() -> usize {
@@ -401,44 +593,6 @@ pub fn defined_type(
             unreachable!("is_enum was false, so input.data must be Data::Struct")
         };
         let is_tuple = matches!(&data_struct.fields, syn::Fields::Unnamed(_));
-        // A user-written `#[derive(Default)]` is evaluated against the
-        // struct's *original* field list — by the time the auto-padding
-        // field is spliced in below, the derived code would construct a
-        // value missing it, a real E0063 hit on `pump-fees`'s own `Fees`
-        // struct. `event.rs` already solves this correctly (hand-written
-        // `impl Default` via `Zeroable::zeroed()`, not `#[derive(Default)]`
-        // — `std`'s derive doesn't even support arrays past length 32
-        // anyway); `defined_type` does the same, so a user-written
-        // `#[derive(Default)]` is now always redundant and must be removed
-        // rather than silently working around it.
-        for attr in &input.attrs {
-            if !attr.path().is_ident("derive") {
-                continue;
-            }
-            let Ok(paths) = attr.parse_args_with(
-                syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
-            ) else {
-                continue;
-            };
-            if paths
-                .iter()
-                .any(|p| p.segments.last().is_some_and(|s| s.ident == "Default"))
-            {
-                let err = syn::Error::new_spanned(
-                    attr,
-                    "Naclac Error: `#[defined_type]` already generates `Default` (via \
-                     `Zeroable::zeroed()`) for every struct — remove this `#[derive(Default)]`, \
-                     it's redundant and, once an auto-padding field is added, incorrect (`std`'s \
-                     derive is evaluated before that field exists).",
-                )
-                .to_compile_error();
-                return quote::quote! {
-                    #input
-                    #err
-                }
-                .into();
-            }
-        }
 
         let (padded_fields, pod_checks) =
             pod_struct_checks::generate(&ident, &data_struct.fields, &zero_copy_cfg);
@@ -498,6 +652,13 @@ pub fn defined_type(
             }
 
             #zero_copy_cfg
+            impl #impl_generics naclac_lang::prelude::ZcWrite for #ident #ty_generics #where_clause {
+                fn write_into(&self, out: &mut [u8]) {
+                    out.copy_from_slice(naclac_lang::prelude::bytemuck::bytes_of(self));
+                }
+            }
+
+            #zero_copy_cfg
             impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
                 #[inline(always)]
                 fn naclac_from_bytes(data: &[u8]) -> Self {
@@ -519,13 +680,47 @@ pub fn defined_type(
     // default above, matching the enum's real compiled discriminant width,
     // not just whatever the developer happened to write (or omit).
     let idl_build_variant = match &original_data {
-        syn::Data::Struct(s) => crate::component::idl_build_impl(&ident, &s.fields),
+        syn::Data::Struct(s) => {
+            crate::component::idl_build_impl(&ident, &input.attrs, &s.fields, None)
+        }
         syn::Data::Enum(e) => idl_build_impl_enum(&ident, &e.variants, &input.attrs),
         syn::Data::Union(_) => quote::quote! {},
     };
 
+    let zero_copy_default_conflict = if zero_copy_default_conflict.is_empty() {
+        quote::quote! {}
+    } else {
+        quote::quote! { #zero_copy_cfg #zero_copy_default_conflict }
+    };
+
+    let discriminant_range_conflict = match &original_data {
+        syn::Data::Enum(data_enum) => {
+            let discriminants =
+                naclac_syn::discriminator::variant_discriminants(data_enum.variants.iter());
+            if discriminants.iter().all(|d| (0..=255).contains(d)) {
+                quote::quote! {}
+            } else {
+                let message = format!(
+                    "Naclac Error: `#[defined_type]` enum `{ident}` has a discriminant outside \
+                     0..=255. Borsh and Wincode encode an enum tag as a single unsigned byte; \
+                     use discriminants in that range, or the zero-copy representation."
+                );
+                quote::quote! {
+                    #borsh_cfg
+                    ::core::compile_error!(#message);
+                    #wincode_cfg
+                    ::core::compile_error!(#message);
+                }
+            }
+        }
+        _ => quote::quote! {},
+    };
+
     quote::quote! {
+        #discriminant_range_conflict
+        #zero_copy_default_conflict
         #borsh_variant
+        #wincode_variant
         #zero_copy_variant
         #idl_build_variant
     }
@@ -545,13 +740,13 @@ fn idl_build_impl_enum(
     variants: &syn::punctuated::Punctuated<syn::Variant, syn::Token![,]>,
     attrs: &[syn::Attribute],
 ) -> proc_macro2::TokenStream {
-    let repr = naclac_syn::discriminator::detect_enum_repr(attrs);
-    let repr_tokens = match &repr {
-        Some(r) => quote::quote! { Some(#r.to_string()) },
-        None => quote::quote! { None },
-    };
+    let enum_docs = naclac_syn::parser::extract_docs(attrs);
+    let repr =
+        naclac_syn::discriminator::detect_enum_repr(attrs).unwrap_or_else(|| "u8".to_string());
+    let repr_tokens = quote::quote! { Some(#repr.to_string()) };
 
     let discriminants = naclac_syn::discriminator::variant_discriminants(variants.iter());
+    let constants = crate_constants();
     let mut idl_variants = Vec::new();
     let mut defined_refs: Vec<syn::Type> = Vec::new();
 
@@ -565,9 +760,10 @@ fn idl_build_impl_enum(
             syn::Fields::Named(named) => {
                 let mut field_ts_list = Vec::new();
                 for f in &named.named {
-                    let fname = f.ident.as_ref().unwrap().to_string();
+                    let fname =
+                        naclac_syn::parser::idl_name(&f.ident.as_ref().unwrap().to_string());
                     let field_docs = naclac_syn::parser::extract_docs(&f.attrs);
-                    let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &[]);
+                    let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &constants);
                     let Ok(ty_json) = serde_json::to_string(&ty_value) else {
                         continue;
                     };
@@ -590,7 +786,7 @@ fn idl_build_impl_enum(
             syn::Fields::Unnamed(unnamed) => {
                 let mut ty_ts_list = Vec::new();
                 for f in &unnamed.unnamed {
-                    let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &[]);
+                    let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &constants);
                     let Ok(ty_json) = serde_json::to_string(&ty_value) else {
                         continue;
                     };
@@ -626,6 +822,7 @@ fn idl_build_impl_enum(
             fn create_type() -> Option<naclac_lang::naclac_idl::IdlTypeDef> {
                 Some(naclac_lang::naclac_idl::IdlTypeDef::Enum {
                     variants: vec![#(#idl_variants),*],
+                    docs: vec![#(#enum_docs.into()),*],
                     repr: #repr_tokens,
                 })
             }
@@ -667,7 +864,7 @@ fn idl_build_impl_enum(
 /// starting at `*offset`, advancing `*offset` past the consumed bytes.
 /// Mirrors `program.rs`'s own per-argument dispatch (the same wire format:
 /// a fixed field is read via `NaclacPod` at its known size; a dynamic
-/// (`ZcString`/`Span<T>`/`Vec<T>`/`String`) field is prefixed with a
+/// (`ZcString`/`ZcVec<T>`/`Vec<T>`/`String`) field is prefixed with a
 /// little-endian `u32` *byte* length, matching `naclac-client-gen`'s
 /// `generate_zero_copy_arg_bytes` on the write side) — required because a
 /// dynamic field can never be read via a single raw `size_of`-based cast the
@@ -678,15 +875,18 @@ fn field_deserialize_stmt(
 ) -> proc_macro2::TokenStream {
     use type_classify::DynamicKind;
     match type_classify::classify_dynamic(field_ty) {
-        DynamicKind::Fixed => quote::quote! {
+        // `Option<T>` decodes correctly through the same `NaclacPod` call as
+        // a true `Fixed` field — see `DynamicKind::OptionPod`'s doc comment.
+        DynamicKind::Fixed | DynamicKind::OptionPod => quote::quote! {
             let #field_name = {
                 let __sz = <#field_ty as naclac_lang::prelude::NaclacPod>::naclac_size();
                 if data.len() < *offset + __sz {
                     return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
                 }
-                let __val = <#field_ty as naclac_lang::prelude::NaclacPod>::naclac_from_bytes(
+                let __val = <#field_ty as naclac_lang::prelude::NaclacPod>::naclac_try_from_bytes(
                     &data[*offset..*offset + __sz]
-                );
+                )
+                .ok_or_else(|| naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0))?;
                 *offset += __sz;
                 __val
             };
@@ -722,7 +922,7 @@ fn field_deserialize_stmt(
                     if data.len() < *offset + __len {
                         return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
                     }
-                    let __val = <naclac_lang::prelude::Span<#inner>>::from_bytes(&data[*offset..*offset + __len])?;
+                    let __val = <naclac_lang::prelude::ZcVec<#inner>>::from_bytes(&data[*offset..*offset + __len])?;
                     *offset += __len;
                     __val
                 };
@@ -746,29 +946,77 @@ fn field_deserialize_stmt(
                 __val
             };
         },
-        DynamicKind::HeapVec => quote::quote! {
-            let #field_name = {
-                if data.len() < *offset + 4 {
-                    return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
-                }
-                let mut __len_bytes = [0u8; 4];
-                __len_bytes.copy_from_slice(&data[*offset..*offset + 4]);
-                let __len = u32::from_le_bytes(__len_bytes) as usize;
-                *offset += 4;
-                if data.len() < *offset + __len {
-                    return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
-                }
-                let mut __val = naclac_lang::prelude::Vec::with_capacity(__len);
-                __val.extend_from_slice(&data[*offset..*offset + __len]);
-                *offset += __len;
-                __val
+        DynamicKind::HeapVec => {
+            // `Vec<Vec<u8>>`/`Vec<String>`: the prefix is an element count and each element
+            // carries its own length, so the shared reader advances the offset itself.
+            if type_classify::first_generic_type(field_ty).is_some_and(|inner| {
+                type_classify::is_exactly(inner, "Vec") || type_classify::is_exactly(inner, "String")
+            }) {
+                return quote::quote! {
+                    let #field_name = {
+                        if data.len() < *offset + 4 {
+                            return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
+                        }
+                        let mut __count_bytes = [0u8; 4];
+                        __count_bytes.copy_from_slice(&data[*offset..*offset + 4]);
+                        let __count = u32::from_le_bytes(__count_bytes) as usize;
+                        *offset += 4;
+                        naclac_lang::prelude::read_length_prefixed_items(data, offset, __count)?
+                    };
+                };
+            }
+            let elements = match type_classify::first_generic_type(field_ty) {
+                Some(inner) if type_classify::is_exactly(inner, "u8") => quote::quote! {
+                    data[*offset..*offset + __len].to_vec()
+                },
+                Some(inner) => quote::quote! {{
+                    let __sz = <#inner as naclac_lang::prelude::NaclacPod>::naclac_size();
+                    if __sz == 0 || __len % __sz != 0 {
+                        return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
+                    }
+                    let mut __items = naclac_lang::prelude::Vec::with_capacity(__len / __sz);
+                    let mut __at = *offset;
+                    while __at < *offset + __len {
+                        __items.push(
+                            <#inner as naclac_lang::prelude::NaclacPod>::naclac_try_from_bytes(
+                                &data[__at..__at + __sz],
+                            )
+                            .ok_or_else(|| naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0))?,
+                        );
+                        __at += __sz;
+                    }
+                    __items
+                }},
+                None => quote::quote! {
+                    return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0))
+                },
             };
-        },
+            quote::quote! {
+                let #field_name = {
+                    if data.len() < *offset + 4 {
+                        return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
+                    }
+                    let mut __len_bytes = [0u8; 4];
+                    __len_bytes.copy_from_slice(&data[*offset..*offset + 4]);
+                    let __len = u32::from_le_bytes(__len_bytes) as usize;
+                    *offset += 4;
+                    if data.len() < *offset + __len {
+                        return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
+                    }
+                    let __val = #elements;
+                    *offset += __len;
+                    __val
+                };
+            }
+        }
     }
 }
 
 /// Proc macro attribute for grouping instruction arguments.
-/// Implements repr(C), Clone, Copy, Pod, Zeroable, NaclacPod, and optionally Borsh serialize/deserialize.
+/// Zero-copy and Pinocchio, fixed-size struct: `repr(C)` with explicit hidden padding fields, `Clone`, `Copy`,
+/// `Pod`, `Zeroable`, `Default` and `NaclacPod`. Borsh and Wincode, fixed-size struct: `Clone` plus the Borsh or
+/// Wincode derives only. A struct with a `String`/`Vec`/`Option`/`ZcVec`/`ZcString` field is read field by field
+/// through `NaclacArgs` in zero-copy mode.
 #[proc_macro_attribute]
 pub fn instruction_args(
     attr: proc_macro::TokenStream,
@@ -777,7 +1025,23 @@ pub fn instruction_args(
     if let Some(err) = reject_nonempty_attr(&attr, "instruction_args") {
         return err;
     }
-    let input = syn::parse_macro_input!(item as syn::DeriveInput);
+    let mut input = syn::parse_macro_input!(item as syn::DeriveInput);
+
+    // `#[allow_heap]` on a field silences the heap-collection warning below;
+    // it is not a real attribute, so it is removed from the emitted struct.
+    let mut allow_heap_fields = std::collections::HashSet::<String>::new();
+    if let syn::Data::Struct(data_struct) = &mut input.data {
+        if let syn::Fields::Named(fields_named) = &mut data_struct.fields {
+            for field in fields_named.named.iter_mut() {
+                let had_allow_heap = field.attrs.iter().any(|a| a.path().is_ident("allow_heap"));
+                field.attrs.retain(|a| !a.path().is_ident("allow_heap"));
+                if let (true, Some(name)) = (had_allow_heap, &field.ident) {
+                    allow_heap_fields.insert(name.to_string());
+                }
+            }
+        }
+    }
+
     let ident = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
@@ -793,7 +1057,42 @@ pub fn instruction_args(
             type_classify::DynamicKind::Fixed
         )
     });
-    // `ZcVec<T>`/`Span<T>`/`ZcString` are zero-copy *views* (pointer +
+    let zero_copy_cfg = quote::quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
+    let not_zero_copy_cfg = quote::quote! { #[cfg(not(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode")))))] };
+
+    // In zero-copy mode a fixed-field struct gets a generated `Default` impl
+    // (below, via `Zeroable::zeroed()`) — a user-written `#[derive(Default)]`
+    // would conflict with it, so reject it the same way `defined_type` does.
+    // Borsh and Wincode modes generate no `Default`, so the derive stays valid
+    // there and the error is gated to the zero-copy cfg.
+    let mut default_derive_error = quote::quote! {};
+    if !has_dynamic_field {
+        for attr in &input.attrs {
+            if !attr.path().is_ident("derive") {
+                continue;
+            }
+            let Ok(paths) = attr.parse_args_with(
+                syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
+            ) else {
+                continue;
+            };
+            if paths
+                .iter()
+                .any(|p| p.segments.last().is_some_and(|s| s.ident == "Default"))
+            {
+                let error = syn::Error::new_spanned(
+                    attr,
+                    "Naclac Error: `#[instruction_args]` already generates `Default` (via \
+                     `Zeroable::zeroed()`) for a fixed-field struct in zero-copy mode — remove \
+                     this `#[derive(Default)]`, it's redundant.",
+                )
+                .to_compile_error();
+                default_derive_error = quote::quote! { #zero_copy_cfg #error };
+                break;
+            }
+        }
+    }
+    // `ZcVec<T>`/`ZcString` are zero-copy *views* (pointer +
     // length) into the current instruction's byte buffer — they have no
     // bytes of their own to serialize, so deriving Borsh on a struct that
     // contains one is unsound-by-construction, not just unsupported. Real
@@ -823,7 +1122,7 @@ pub fn instruction_args(
     let (borsh_derive_attr, borsh_error) = if let Some(field) = zc_field {
         let field_name = field.ident.as_ref().expect("named field");
         let msg = format!(
-            "Naclac Error: field '{}' uses a zero-copy-only type ('ZcVec'/'Span<T>'/'ZcString') \
+            "Naclac Error: field '{}' uses a zero-copy-only type ('ZcVec<T>'/'ZcString') \
              in a Borsh-mode #[instruction_args]. These are views (pointer + length) into the \
              current instruction's byte buffer with no bytes of their own to serialize — real \
              Borsh already decodes 'Vec<T>'/'String' natively, so use one of those instead.",
@@ -851,8 +1150,29 @@ pub fn instruction_args(
             quote::quote! {},
         )
     };
-    let zero_copy_cfg = quote::quote! { #[cfg(any(feature = "pinocchio", not(feature = "borsh")))] };
 
+    let (wincode_derive_attr, wincode_error) = if let Some(field) = zc_field {
+        let field_name = field.ident.as_ref().expect("named field");
+        let msg = format!(
+            "Naclac Error: field '{}' uses a zero-copy-only type ('ZcVec<T>'/'ZcString') \
+             in a Wincode-mode #[instruction_args]. These are views (pointer + length) into the \
+             current instruction's byte buffer with no bytes of their own to serialize — use \
+             'Vec<T>'/'String' instead.",
+            field_name
+        );
+        (
+            quote::quote! {},
+            quote::quote! { #[cfg(feature = "wincode")] compile_error!(#msg); },
+        )
+    } else {
+        (
+            quote::quote! {
+                #[cfg_attr(feature = "wincode", derive(naclac_lang::prelude::SchemaWrite, naclac_lang::prelude::SchemaRead))]
+                #[cfg_attr(feature = "wincode", wincode(crate = "naclac_lang::prelude::wincode"))]
+            },
+            quote::quote! {},
+        )
+    };
     // `#[instruction_args]` structs are directly usable as an instruction
     // arg's own type, so `#[program]`'s idl-build assembler chases them the
     // same way it chases any other non-primitive arg type
@@ -862,21 +1182,59 @@ pub fn instruction_args(
     // real program used `#[instruction_args]` under `idl-build`. Reuses
     // `component.rs`'s own `idl_build_impl` directly rather than
     // duplicating it — same named-fields shape, same per-field type mapping.
-    let idl_build_impl_tokens = component::idl_build_impl(ident, &data_struct.fields);
+    let idl_build_impl_tokens =
+        component::idl_build_impl(ident, &input.attrs, &data_struct.fields, None);
 
     if !has_dynamic_field {
+        // Zero-copy mode reads this struct as one `repr(C)` block, so its
+        // alignment gaps become explicit hidden fields (same machinery as
+        // `#[component]`), which is what makes the `Pod` impl below true. The
+        // IDL above was built from the declared fields only. Borsh and Wincode
+        // modes encode field by field and keep the struct as written.
+        let (padded_fields, pod_checks) =
+            pod_struct_checks::generate(ident, &data_struct.fields, &zero_copy_cfg);
+        let mut zero_copy_input = input.clone();
+        let syn::Data::Struct(zero_copy_struct) = &mut zero_copy_input.data else {
+            unreachable!("checked above: input is a struct")
+        };
+        zero_copy_struct.fields = syn::Fields::Named(
+            syn::parse2(padded_fields)
+                .expect("instruction_args: generated padded field list must parse"),
+        );
+
         let expanded = quote::quote! {
+            #default_derive_error
+
+            #zero_copy_cfg
             #[repr(C)]
             #[derive(Clone, Copy)]
-            #borsh_derive_attr
-            #input
+            #zero_copy_input
 
+            #pod_checks
+
+            #zero_copy_cfg
             unsafe impl naclac_lang::prelude::Pod for #ident #ty_generics #where_clause {}
+            #zero_copy_cfg
             unsafe impl naclac_lang::prelude::Zeroable for #ident #ty_generics #where_clause {}
 
+            // `Zeroable` rather than `#[derive(Default)]` — consistent with
+            // `defined_type`'s own `Default` impl, and it keeps every
+            // `Struct { field: v, ..Default::default() }` call site working
+            // without knowing about the hidden padding fields.
+            #zero_copy_cfg
+            impl #impl_generics core::default::Default for #ident #ty_generics #where_clause {
+                fn default() -> Self {
+                    naclac_lang::prelude::bytemuck::Zeroable::zeroed()
+                }
+            }
+
+            #zero_copy_cfg
             impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
                 #[inline(always)]
                 fn naclac_from_bytes(data: &[u8]) -> Self {
+                    // SAFETY: `read_unaligned` copies out of the instruction
+                    // data without requiring the struct's alignment, and
+                    // every byte pattern is a valid value (`Pod`).
                     unsafe { core::ptr::read_unaligned(data.as_ptr() as *const Self) }
                 }
                 #[inline(always)]
@@ -884,6 +1242,12 @@ pub fn instruction_args(
                     core::mem::size_of::<Self>()
                 }
             }
+
+            #not_zero_copy_cfg
+            #[derive(Clone)]
+            #borsh_derive_attr
+            #wincode_derive_attr
+            #input
 
             #idl_build_impl_tokens
         };
@@ -901,10 +1265,28 @@ pub fn instruction_args(
             .iter()
             .map(|f| f.ident.as_ref().expect("named field"))
             .collect();
+        // A heap `Vec<T>`/`String` field is valid but allocates and copies on
+        // every deserialize, so it gets the same silenceable warning a plain
+        // `Vec<T>`/`String` instruction argument gets.
         let field_reads: Vec<proc_macro2::TokenStream> = fields_named
             .named
             .iter()
-            .map(|f| field_deserialize_stmt(f.ident.as_ref().expect("named field"), &f.ty))
+            .map(|f| {
+                let name = f.ident.as_ref().expect("named field");
+                let read = field_deserialize_stmt(name, &f.ty);
+                let heap_shape = match type_classify::classify_dynamic(&f.ty) {
+                    type_classify::DynamicKind::HeapVec => Some(("Vec<T>", "ZcVec<T>")),
+                    type_classify::DynamicKind::HeapString => Some(("String", "ZcString")),
+                    _ => None,
+                };
+                match heap_shape {
+                    Some((found, suggested)) if !allow_heap_fields.contains(&name.to_string()) => {
+                        let warning = heap_collection_warning(&name.to_string(), found, suggested);
+                        quote::quote! { #warning #read }
+                    }
+                    _ => read,
+                }
+            })
             .collect();
 
         quote::quote! {
@@ -923,9 +1305,11 @@ pub fn instruction_args(
 
     let expanded = quote::quote! {
         #borsh_error
+        #wincode_error
 
         #[derive(Clone)]
         #borsh_derive_attr
+        #wincode_derive_attr
         #input
 
         #naclac_args_impl

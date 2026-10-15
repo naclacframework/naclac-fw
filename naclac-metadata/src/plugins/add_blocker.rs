@@ -100,10 +100,7 @@ pub fn asset_has_add_blocker(info: &AccountInfo) -> Result<bool> {
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(false);
     };
-    Ok(
-        find_plugin_offset(info.data(), plugin_header_offset, plugin_type::ADD_BLOCKER)?
-            .is_some(),
-    )
+    Ok(find_plugin_offset(info.data(), plugin_header_offset, plugin_type::ADD_BLOCKER)?.is_some())
 }
 
 /// `true` if a `Collection` has an `AddBlocker` plugin attached. Callable
@@ -114,8 +111,5 @@ pub fn collection_has_add_blocker(info: &AccountInfo) -> Result<bool> {
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(false);
     };
-    Ok(
-        find_plugin_offset(info.data(), plugin_header_offset, plugin_type::ADD_BLOCKER)?
-            .is_some(),
-    )
+    Ok(find_plugin_offset(info.data(), plugin_header_offset, plugin_type::ADD_BLOCKER)?.is_some())
 }

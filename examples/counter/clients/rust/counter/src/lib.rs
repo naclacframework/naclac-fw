@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("C4gz1yWQvjVbFA3nxGRTGGzyMHaz6uMHqyemC78LqZJT");
+declare_id!("3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM");
 
 #[cfg(feature = "offchain")]
 pub fn get_counter_account_pda(
@@ -31,7 +31,7 @@ pub fn get_counter_account_pda(
 ) -> (naclac_client::Address, u8) {
     naclac_client::Address::find_program_address(
         &[
-            &[99, 111, 117, 110, 116, 101, 114, 95, 118, 50],
+            &[99, 111, 117, 110, 116, 101, 114],
         ],
         program_id,
     )
@@ -44,7 +44,7 @@ pub struct Counter;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for Counter {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([164, 98, 129, 241, 171, 248, 201, 226, 208, 174, 154, 151, 189, 165, 15, 164, 110, 188, 79, 8, 102, 225, 164, 151, 217, 74, 133, 235, 166, 250, 198, 132])
+        sdk_core_cpi::Address::new_from_array([42, 191, 69, 227, 130, 146, 146, 171, 139, 2, 42, 31, 39, 217, 225, 97, 245, 174, 229, 42, 214, 52, 126, 61, 132, 201, 53, 24, 150, 14, 28, 192])
     }
 }
 

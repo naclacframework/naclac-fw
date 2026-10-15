@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `no_cpi_baseline` instruction. */
+/** Discriminator for the `no_cpi_baseline` instruction. */
 export const NO_CPI_BASELINE_DISCRIMINATOR = new Uint8Array([4, 133, 150, 205, 53, 226, 164, 73]);
 
 /** Accounts for the `noCpiBaseline` instruction. */
 export interface NoCpiBaselineAccounts {
   /** SAFETY: only its address is checked; its data is never read. */
-  program: naclac.Address | string;
+  program?: naclac.Address | string;
 }
 
 /**

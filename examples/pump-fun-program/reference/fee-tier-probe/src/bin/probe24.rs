@@ -14,7 +14,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -24,8 +24,8 @@ const PUMP_PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
 const UPDATE_BUYBACK_CONFIG_DISCRIMINATOR: [u8; 8] = [251, 224, 171, 146, 160, 26, 113, 233];
 const GLOBAL_DISCRIMINATOR: [u8; 8] = [167, 232, 232, 177, 200, 108, 114, 127];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -34,7 +34,7 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn global_account_data(authority: &Pubkey) -> Vec<u8> {
+fn global_account_data(authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1); // initialized
@@ -70,14 +70,14 @@ fn main() {
     let authority = Keypair::new();
     svm.airdrop(&authority.pubkey(), 10_000_000_000).unwrap();
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account { lamports: 10_000_000, data: global_account_data(&authority.pubkey()), owner: pump_program, executable: false, rent_epoch: 0 },
     )
     .unwrap();
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
     let mut data = UPDATE_BUYBACK_CONFIG_DISCRIMINATOR.to_vec();
     data.push(1); // Option<u64>::Some

@@ -28,7 +28,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -48,8 +48,8 @@ const WHITELIST_PDA_OFFSET: usize = 451;
 const RESERVED_FEE_RECIPIENT_OFFSET: usize = 483;
 const RESERVED_FEE_RECIPIENTS_OFFSET: usize = 516;
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -58,7 +58,7 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn global_account_data(authority: &Pubkey) -> Vec<u8> {
+fn global_account_data(authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1); // initialized
@@ -85,7 +85,7 @@ fn global_account_data(authority: &Pubkey) -> Vec<u8> {
     data
 }
 
-fn ix_data(whitelist_pda: &Pubkey) -> Vec<u8> {
+fn ix_data(whitelist_pda: &Address) -> Vec<u8> {
     let mut data = SET_RESERVED_FEE_RECIPIENTS_DISCRIMINATOR.to_vec();
     data.extend_from_slice(whitelist_pda.as_ref());
     data
@@ -94,12 +94,12 @@ fn ix_data(whitelist_pda: &Pubkey) -> Vec<u8> {
 fn run_call(
     svm: &mut LiteSVM,
     label: &str,
-    pump_program: Pubkey,
-    global: Pubkey,
-    event_authority: Pubkey,
+    pump_program: Address,
+    global: Address,
+    event_authority: Address,
     authority: &Keypair,
-    whitelist_pda: &Pubkey,
-    remaining_accounts: &[Pubkey],
+    whitelist_pda: &Address,
+    remaining_accounts: &[Address],
 ) {
     println!("=== {label} ===");
     println!("  whitelist_pda arg = {whitelist_pda}");
@@ -145,13 +145,13 @@ fn run_call(
 
     let global_after = svm.get_account(&global).unwrap();
     let stored_whitelist_pda =
-        Pubkey::try_from(&global_after.data[WHITELIST_PDA_OFFSET..WHITELIST_PDA_OFFSET + 32]).unwrap();
+        Address::try_from(&global_after.data[WHITELIST_PDA_OFFSET..WHITELIST_PDA_OFFSET + 32]).unwrap();
     let stored_reserved_fee_recipient =
-        Pubkey::try_from(&global_after.data[RESERVED_FEE_RECIPIENT_OFFSET..RESERVED_FEE_RECIPIENT_OFFSET + 32])
+        Address::try_from(&global_after.data[RESERVED_FEE_RECIPIENT_OFFSET..RESERVED_FEE_RECIPIENT_OFFSET + 32])
             .unwrap();
-    let stored_reserved_fee_recipients: Vec<Pubkey> = (0..7)
+    let stored_reserved_fee_recipients: Vec<Address> = (0..7)
         .map(|i| {
-            Pubkey::try_from(
+            Address::try_from(
                 &global_after.data
                     [RESERVED_FEE_RECIPIENTS_OFFSET + i * 32..RESERVED_FEE_RECIPIENTS_OFFSET + i * 32 + 32],
             )
@@ -174,7 +174,7 @@ fn main() {
     let authority = Keypair::new();
     svm.airdrop(&authority.pubkey(), 10_000_000_000).unwrap();
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account {
@@ -187,12 +187,12 @@ fn main() {
     )
     .unwrap();
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
     // Call 1: whitelist_pda arg only, 0 remaining_accounts -- does
     // whitelist_pda get stored literally? Do reserved_fee_recipient(s) move
     // at all with zero extra accounts?
-    let whitelist_1 = Pubkey::new_unique();
+    let whitelist_1 = Address::new_unique();
     println!("whitelist_1 = {whitelist_1}\n");
     run_call(&mut svm, "Call 1: whitelist_pda arg, 0 accounts", pump_program, global, event_authority, &authority, &whitelist_1, &[]);
 
@@ -205,8 +205,8 @@ fn main() {
     // `reserved_fee_recipient` and remaining_accounts[1..8] ->
     // `reserved_fee_recipients[7]`, the same 1+7 split `probe21.rs` confirmed
     // for `set_params`.
-    let whitelist_2 = Pubkey::new_unique();
-    let marker_8: Vec<Pubkey> = (0..8).map(|_| Pubkey::new_unique()).collect();
+    let whitelist_2 = Address::new_unique();
+    let marker_8: Vec<Address> = (0..8).map(|_| Address::new_unique()).collect();
     println!("whitelist_2 = {whitelist_2}");
     println!("marker_8 (8 accounts for call 2):");
     for (i, m) in marker_8.iter().enumerate() {

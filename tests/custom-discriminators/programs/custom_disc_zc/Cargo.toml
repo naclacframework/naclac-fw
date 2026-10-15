@@ -1,0 +1,25 @@
+[package]
+name = "custom_disc_zc"
+version = "0.1.0"
+description = "Regression test: custom discriminator overrides (solana-zerocopy backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+custom-disc-zc-client = { version = "0.1.0", path = "../../clients/rust/custom_disc_zc" }
+
+[lints]
+workspace = true

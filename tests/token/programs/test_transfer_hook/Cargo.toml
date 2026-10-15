@@ -5,14 +5,20 @@ edition = "2021"
 description = "Minimal real spl-transfer-hook-interface program, used only to prove naclac-token's transfer_checked_with_hook actually resolves extra accounts and invokes a hook program during a real Token-2022 transfer."
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 custom-heap = []
 custom-panic = []
 
 [dependencies]
-solana-program = "3.0.0"
+solana-account-info = "3"
+solana-address = "2"
+solana-cpi = "3"
+solana-msg = "3"
+solana-program-entrypoint = "3"
+solana-program-error = "3"
+solana-sysvar = "4"
 solana-system-interface = { version = "3.2.0", features = ["wincode"] }
 spl-transfer-hook-interface = "2.1.0"
 spl-tlv-account-resolution = "0.11.1"

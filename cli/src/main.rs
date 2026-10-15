@@ -18,16 +18,31 @@ enum Commands {
     /// Initializes a new Naclac Workspace
     Init {
         name: String,
-        /// Program mode: pinocchio, standard, or optimized
+        /// Program mode: pinocchio, zero-copy, wincode, or borsh
         #[arg(short, long)]
         mode: Option<String>,
+        /// TypeScript SDK framework: kit or legacy
+        #[arg(long)]
+        ts: Option<String>,
+        /// Node package manager: npm, yarn, pnpm, or bun
+        #[arg(short = 'p', long = "pm", visible_alias = "package-manager")]
+        pm: Option<String>,
+        /// Skip installing Node dependencies
+        #[arg(long = "no-install")]
+        no_install: bool,
+        /// Skip initializing a git repository
+        #[arg(long = "no-git")]
+        no_git: bool,
     },
     /// Adds a new program to an existing Naclac workspace
     Add {
         name: String,
-        /// Program mode: pinocchio, standard, or optimized
+        /// Program mode: pinocchio, zero-copy, wincode, or borsh
         #[arg(short, long)]
         mode: Option<String>,
+        /// TypeScript SDK framework: kit or legacy
+        #[arg(long)]
+        ts: Option<String>,
     },
     /// Builds the SBF binary and generates the IDL JSON
     Build {
@@ -38,6 +53,12 @@ enum Commands {
         /// lines) instead of naclac's summarized spinner.
         #[arg(long)]
         show_output: bool,
+        /// Extra arguments forwarded as-is to the underlying `cargo
+        /// build-sbf` invocation, after everything else naclac passes it —
+        /// e.g. `naclac build counter_borsh -- --dump` for a disassembly/size
+        /// report. Not validated by naclac; any `cargo build-sbf` flag works.
+        #[arg(last = true)]
+        extra_args: Vec<String>,
     },
     /// Regenerates the IDL and/or client SDK(s) from source. Bare `naclac
     /// generate` does both (IDL, then Rust + TypeScript clients) without
@@ -267,13 +288,35 @@ fn get_target_programs(cli_arg: Option<&String>) -> Vec<String> {
 fn main() {
     let cli = Cli::parse();
     match &cli.command {
-        Commands::Init { name, mode } => crate::commands::init::execute(name, mode.as_deref()),
-        Commands::Add { name, mode } => commands::add::execute(name, mode.as_deref()),
+        Commands::Init {
+            name,
+            mode,
+            ts,
+            pm,
+            no_install,
+            no_git,
+        } => crate::commands::init::execute(
+            name,
+            mode.as_deref(),
+            ts.as_deref(),
+            pm.as_deref(),
+            *no_install,
+            *no_git,
+        ),
+        Commands::Add { name, mode, ts } => {
+            commands::add::execute(name, mode.as_deref(), ts.as_deref())
+        }
         Commands::Build {
             program_id,
             features,
             show_output,
-        } => commands::build::execute(program_id.as_deref(), features.clone(), *show_output),
+            extra_args,
+        } => commands::build::execute(
+            program_id.as_deref(),
+            features.clone(),
+            *show_output,
+            extra_args.clone(),
+        ),
         Commands::Generate {
             program_id,
             action,

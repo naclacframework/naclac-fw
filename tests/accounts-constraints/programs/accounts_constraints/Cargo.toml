@@ -5,7 +5,7 @@ description = "Regression test: one instruction per #[account(...)] constraint k
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []

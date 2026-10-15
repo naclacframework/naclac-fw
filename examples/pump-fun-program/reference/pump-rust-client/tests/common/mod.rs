@@ -26,7 +26,7 @@ use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::{v0, VersionedMessage};
 use solana_sdk::native_token::LAMPORTS_PER_SOL;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{Keypair, Signature, Signer};
 use solana_sdk::system_instruction;
 use solana_sdk::transaction::{Transaction, VersionedTransaction};
@@ -54,18 +54,18 @@ pub fn make_client() -> AsyncPumpClient {
     AsyncPumpClient::new(make_rpc())
 }
 
-/// First non-zero `Pubkey` in `xs`, or `None` if every entry is the
+/// First non-zero `Address` in `xs`, or `None` if every entry is the
 /// zero pubkey. Lets tests pull the live `fee_recipient` /
 /// `buyback_fee_recipient` from `Global` without caring whether the
 /// admin used the singular or list field on a given cluster.
-pub fn pick_first_nonzero(xs: &[Pubkey]) -> Option<Pubkey> {
-    xs.iter().copied().find(|p| *p != Pubkey::default())
+pub fn pick_first_nonzero(xs: &[Address]) -> Option<Address> {
+    xs.iter().copied().find(|p| *p != Address::default())
 }
 
 /// `(fee_recipient, buyback_fee_recipient)` pulled from the cloned
 /// `Global`. Both are required: tests panic with an actionable message
 /// if the snapshot's admin state has them unset.
-pub async fn fee_recipients(client: &AsyncPumpClient) -> (Pubkey, Pubkey) {
+pub async fn fee_recipients(client: &AsyncPumpClient) -> (Address, Address) {
     let global = client.fetch_global().await.expect(
         "fetch_global on local validator — did you run clone_devnet_accounts and start the validator?",
     );
@@ -80,7 +80,7 @@ pub async fn fee_recipients(client: &AsyncPumpClient) -> (Pubkey, Pubkey) {
 /// Airdrop `lamports` to `to` and block until the local validator
 /// confirms. Times out after 30s with a clear panic — the local faucet
 /// is fast in practice (sub-second), anything slower is a setup bug.
-pub async fn airdrop_blocking(rpc: &RpcClient, to: &Pubkey, lamports: u64) {
+pub async fn airdrop_blocking(rpc: &RpcClient, to: &Address, lamports: u64) {
     let sig = rpc
         .request_airdrop(to, lamports)
         .await
@@ -112,7 +112,7 @@ pub async fn funded_user(rpc: &RpcClient, lamports: u64) -> Keypair {
 /// validator. The cloning script rewrites the meta so it's active from
 /// slot 0; if that step is missing the validator will reject any v0 tx
 /// referencing the ALT.
-pub async fn load_alt(rpc: &RpcClient, key: Pubkey) -> AddressLookupTableAccount {
+pub async fn load_alt(rpc: &RpcClient, key: Address) -> AddressLookupTableAccount {
     let acct = rpc
         .get_account(&key)
         .await
@@ -150,7 +150,7 @@ pub async fn send_v0_tx(
 /// Convenience wrapper around `pda::associated_token` for the user's
 /// wSOL ATA, which every wSOL-quoted trade needs both before and after
 /// the swap.
-pub fn user_wsol_ata(user: &Pubkey) -> Pubkey {
+pub fn user_wsol_ata(user: &Address) -> Address {
     pda::associated_token(
         user,
         &constants::SPL_TOKEN_PROGRAM_ID,
@@ -162,7 +162,7 @@ pub fn user_wsol_ata(user: &Pubkey) -> Pubkey {
 /// `close_account(user_wsol_ata)` with destination + owner = user.
 /// Returns any wSOL balance to the user as native SOL. Always safe to
 /// append after a trade.
-pub fn unwrap_sol_ix(user: &Pubkey) -> Instruction {
+pub fn unwrap_sol_ix(user: &Address) -> Instruction {
     close_account(
         &constants::SPL_TOKEN_PROGRAM_ID,
         &user_wsol_ata(user),
@@ -184,8 +184,8 @@ pub fn unwrap_sol_ix(user: &Pubkey) -> Instruction {
 pub async fn build_wsol_setup_tx(
     rpc: &RpcClient,
     user: &Keypair,
-    bonding_curve: Pubkey,
-    buyback_fee_recipient: Pubkey,
+    bonding_curve: Address,
+    buyback_fee_recipient: Address,
     wrap_lamports: u64,
 ) -> Transaction {
     let quote_mint = constants::NATIVE_MINT;
@@ -225,7 +225,7 @@ pub const DEFAULT_USER_LAMPORTS: u64 = 50 * LAMPORTS_PER_SOL;
 
 /// Read the parsed token amount on `ata`, defaulting to 0 if the
 /// account does not exist yet (handy before the first buy creates it).
-pub async fn token_balance(rpc: &RpcClient, ata: &Pubkey) -> u64 {
+pub async fn token_balance(rpc: &RpcClient, ata: &Address) -> u64 {
     match rpc.get_token_account_balance(ata).await {
         Ok(amount) => amount.amount.parse().expect("token balance is u64"),
         // Account-not-found → no ATA → balance 0.

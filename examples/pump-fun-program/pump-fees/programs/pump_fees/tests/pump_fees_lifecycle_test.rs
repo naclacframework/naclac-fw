@@ -1,4 +1,4 @@
-﻿//! Sequential, idempotent, cross-cluster lifecycle test for the pump_fees
+//! Sequential, idempotent, cross-cluster lifecycle test for the pump_fees
 //! program -- the pump_fees counterpart to `pump-bonding-curve`'s own
 //! `pump_lifecycle_test.rs`. Creates the real on-chain state
 //! (`FeeProgramGlobal`, `FeeConfig`, the 8 buyback vaults) that

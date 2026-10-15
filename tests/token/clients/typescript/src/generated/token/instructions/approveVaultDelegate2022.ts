@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `approve_vault_delegate2022` instruction. */
+/** Discriminator for the `approve_vault_delegate2022` instruction. */
 export const APPROVE_VAULT_DELEGATE2022_DISCRIMINATOR = new Uint8Array([153, 175, 229, 6, 234, 170, 232, 122]);
 
 /** Instruction arguments for `approveVaultDelegate2022`. */
@@ -20,7 +20,7 @@ export interface ApproveVaultDelegate2022Accounts {
    */
   delegate: naclac.Address | string;
   owner: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -12,8 +12,8 @@ pub mod rust;
 pub mod typescript;
 
 pub use paths::{
-    find_naclac_framework_root, naclac_dep_path_fragments, naclac_dep_paths, relative_path,
-    resolve_target_dir,
+    find_naclac_framework_root, naclac_dep_path_fragments, naclac_dep_paths, naclac_ts_dep_specs,
+    relative_path, resolve_target_dir,
 };
 pub use typescript::generate_ts;
 
@@ -22,6 +22,12 @@ pub struct Idl {
     pub address: String,
     #[serde(default)]
     pub is_zero_copy: bool,
+    /// True when the program uses the `wincode` backend — like
+    /// `is_zero_copy`, not part of the IDL JSON itself, populated from the
+    /// wincode marker file's presence by the caller (see `is_zero_copy`'s
+    /// own doc comment for why this can't just be a normal IDL field).
+    #[serde(skip)]
+    pub is_wincode: bool,
     pub metadata: IdlMetadata,
     pub instructions: Vec<IdlInstruction>,
     pub accounts: Vec<IdlAccountDef>,
@@ -34,6 +40,10 @@ pub struct Idl {
     /// Top-level PDA definitions — present in IDL but not used by generators.
     #[serde(default)]
     pub pdas: Vec<serde_json::Value>,
+    /// The program's reserved self-CPI event tag; present only when some
+    /// instruction uses `#[event_cpi]`.
+    #[serde(rename = "eventCpiTag", default)]
+    pub event_cpi_tag: Option<Vec<u8>>,
     /// Names of every `#[event(alloc)]` event — not part of the IDL JSON
     /// itself (see `naclac_idl::generate_idl`'s doc comment); populated from
     /// the zero-copy marker file's contents by the caller after
@@ -59,11 +69,10 @@ pub enum IdlTypeDefVariants {
     #[serde(rename = "enum")]
     Enum {
         variants: Vec<IdlEnumVariant>,
-        /// The enum's `#[repr(uN)]` discriminant type, or `None` if it was
-        /// never written explicitly — `#[defined_type]`'s zero-copy branch
-        /// defaults an absent repr to `u8`, so zero-copy codegen reading
-        /// this field must apply that same default rather than treating
-        /// `None` as "no discriminant at all".
+        /// The width of the enum's tag on the wire. The IDL generators always
+        /// populate it: the declared `repr` (`u8` when none) for zero-copy
+        /// programs, `u8` for Borsh and Wincode programs. An IDL file without
+        /// it is read as `u8`.
         #[serde(default)]
         repr: Option<String>,
     },
@@ -104,7 +113,7 @@ pub struct IdlMetadata {
 #[derive(Serialize, Deserialize)]
 pub struct IdlInstruction {
     pub name: String,
-    pub discriminator: [u8; 8],
+    pub discriminator: Vec<u8>,
     /// Standard Solana convention for filling optional account slots.
     #[serde(rename = "optionalAccountStrategy", default)]
     pub optional_account_strategy: String,

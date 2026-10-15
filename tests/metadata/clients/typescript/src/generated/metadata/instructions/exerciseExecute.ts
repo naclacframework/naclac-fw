@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_execute` instruction. */
+/** Discriminator for the `exercise_execute` instruction. */
 export const EXERCISE_EXECUTE_DISCRIMINATOR = new Uint8Array([136, 66, 139, 56, 187, 43, 162, 112]);
 
 /** Accounts for the `exerciseExecute` instruction. */
@@ -22,16 +22,16 @@ export interface ExerciseExecuteAccounts {
    * transfer — a CPI cannot mark an account writable that the outer
    * transaction itself didn't already include as writable.
    */
-  asset_signer: naclac.Address | string;
+  assetSigner: naclac.Address | string;
   payer: naclac.Address | string;
   /**
    * The destination of the inner (zero-lamport) System transfer.
    * SAFETY: only its pubkey is read — it need not exist beforehand.
    */
   destination: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

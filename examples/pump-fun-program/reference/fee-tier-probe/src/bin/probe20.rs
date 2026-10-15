@@ -21,7 +21,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -38,8 +38,8 @@ const GLOBAL_DISCRIMINATOR: [u8; 8] = [167, 232, 232, 177, 200, 108, 114, 127];
 const BONDING_CURVE_DISCRIMINATOR: [u8; 8] = [23, 183, 248, 55, 96, 216, 172, 96];
 const BUYBACK_VAULT_DISCRIMINATOR: [u8; 8] = [153, 166, 71, 144, 179, 189, 137, 251];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -48,8 +48,8 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
 fn mint_account_data(decimals: u8) -> Vec<u8> {
@@ -59,7 +59,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -68,7 +68,7 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
     data
 }
 
-fn global_account_data(fee_recipient: &Pubkey, buyback_fee_recipient: &Pubkey) -> Vec<u8> {
+fn global_account_data(fee_recipient: &Address, buyback_fee_recipient: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1);
@@ -101,7 +101,7 @@ fn bonding_curve_account_data(
     real_token_reserves: u64,
     real_sol_reserves: u64,
     token_total_supply: u64,
-    creator: &Pubkey,
+    creator: &Address,
 ) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BONDING_CURVE_DISCRIMINATOR);
@@ -130,7 +130,7 @@ fn fee_config_account_data(bump: u8) -> Vec<u8> {
     data
 }
 
-fn buyback_vault_account_data(authority: &Pubkey) -> Vec<u8> {
+fn buyback_vault_account_data(authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BUYBACK_VAULT_DISCRIMINATOR);
     data.extend_from_slice(authority.as_ref());
@@ -151,28 +151,28 @@ fn main() {
     }
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
-    let creator = Pubkey::new_unique();
-    let mint = Pubkey::new_unique();
+    let creator = Address::new_unique();
+    let mint = Address::new_unique();
     svm.set_account(mint, Account { lamports: 10_000_000, data: mint_account_data(6), owner: token_program, executable: false, rent_epoch: 0 }).unwrap();
 
     let fee_recipient = Keypair::new();
     svm.airdrop(&fee_recipient.pubkey(), 10_000_000_000).unwrap();
 
-    let (buyback_fee_recipient, _) = Pubkey::find_program_address(&[b"buyback-vault", &[0u8]], &pump_fees_program);
+    let (buyback_fee_recipient, _) = Address::find_program_address(&[b"buyback-vault", &[0u8]], &pump_fees_program);
     svm.set_account(
         buyback_fee_recipient,
-        Account { lamports: 10_000_000, data: buyback_vault_account_data(&Pubkey::new_unique()), owner: pump_fees_program, executable: false, rent_epoch: 0 },
+        Account { lamports: 10_000_000, data: buyback_vault_account_data(&Address::new_unique()), owner: pump_fees_program, executable: false, rent_epoch: 0 },
     )
     .unwrap();
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account { lamports: 10_000_000, data: global_account_data(&fee_recipient.pubkey(), &buyback_fee_recipient), owner: pump_program, executable: false, rent_epoch: 0 },
     )
     .unwrap();
 
-    let (fee_config, fc_bump) = Pubkey::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
+    let (fee_config, fc_bump) = Address::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
     svm.set_account(
         fee_config,
         Account { lamports: 10_000_000, data: fee_config_account_data(fc_bump), owner: pump_fees_program, executable: false, rent_epoch: 0 },
@@ -187,7 +187,7 @@ fn main() {
     const REAL_SOL_RESERVES: u64 = 5_000_000_000;
     const TOKEN_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;
 
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
     svm.set_account(
         bonding_curve,
         Account {
@@ -223,9 +223,9 @@ fn main() {
     )
     .unwrap();
 
-    let (creator_vault, _) = Pubkey::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
+    let (creator_vault, _) = Address::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
     svm.set_account(creator_vault, Account { lamports: 10_000_000, data: vec![], owner: system_program, executable: false, rent_epoch: 0 }).unwrap();
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
     let mut data = SELL_DISCRIMINATOR.to_vec();
     data.extend_from_slice(&SELL_AMOUNT.to_le_bytes());
@@ -248,7 +248,7 @@ fn main() {
             AccountMeta::new_readonly(pump_program, false),
             AccountMeta::new_readonly(fee_config, false),
             AccountMeta::new_readonly(pump_fees_program, false),
-            AccountMeta::new_readonly(Pubkey::find_program_address(&[b"bonding-curve-v2", mint.as_ref()], &pump_program).0, false),
+            AccountMeta::new_readonly(Address::find_program_address(&[b"bonding-curve-v2", mint.as_ref()], &pump_program).0, false),
             AccountMeta::new(buyback_fee_recipient, false),
         ],
         data,

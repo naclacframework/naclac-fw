@@ -1,4 +1,4 @@
-use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang::solana_address::Address;
 
 use crate::math::amm::{
     self as amm_math, AmmContext, BuyBaseInputResult, BuyQuoteInputResult, SellBaseInputResult,
@@ -33,7 +33,7 @@ pub enum TradeVenue<'a> {
         bonding_curve: &'a BondingCurve,
     },
     Amm {
-        pool: Pubkey,
+        pool: Address,
         amm_global: &'a GlobalConfig,
         pool_state: &'a Pool,
     },
@@ -51,7 +51,7 @@ pub enum AmmQuoteSource<'a> {
     BondingCurveComplete {
         global: &'a Global,
         bonding_curve: &'a BondingCurve,
-        base_mint: &'a Pubkey,
+        base_mint: &'a Address,
         base_mint_supply: u64,
     },
 }
@@ -60,10 +60,10 @@ pub enum AmmQuoteSource<'a> {
 /// amounts come from the `*_quote_*` helpers.
 #[derive(Clone, Copy, Debug)]
 pub struct TradeTxWithVenueParams<'a> {
-    pub mint: Pubkey,
-    pub base_token_program: Pubkey,
-    pub quote_token_program: Pubkey,
-    pub user: Pubkey,
+    pub mint: Address,
+    pub base_token_program: Address,
+    pub quote_token_program: Address,
+    pub user: Address,
     pub is_buy: bool,
     pub venue: TradeVenue<'a>,
     pub base_amount: u64,
@@ -73,7 +73,7 @@ pub struct TradeTxWithVenueParams<'a> {
 /// `pump_amm` pool after migration (`BondingCurve::complete`).
 #[derive(Clone, Copy, Debug)]
 pub struct PumpPoolCtx<'a> {
-    pub pool: Pubkey,
+    pub pool: Address,
     pub amm_global: &'a GlobalConfig,
     pub pool_state: &'a Pool,
 }
@@ -82,10 +82,10 @@ pub struct PumpPoolCtx<'a> {
 /// `pump_pool` is required when the curve is complete.
 #[derive(Clone, Copy, Debug)]
 pub struct TradeTxParams<'a> {
-    pub mint: Pubkey,
-    pub base_token_program: Pubkey,
-    pub quote_token_program: Pubkey,
-    pub user: Pubkey,
+    pub mint: Address,
+    pub base_token_program: Address,
+    pub quote_token_program: Address,
+    pub user: Address,
     pub is_buy: bool,
     pub base_amount: u64,
     pub sol_amount_threshold: u64,
@@ -120,7 +120,7 @@ pub struct TradeQuoteParams<'a> {
 }
 
 /// [`PumpSdk::create_coin_instructions`]. New mint keypair must co-sign. The
-/// initial buy is in the chosen `quote_mint` (`Pubkey::default()` → wSOL).
+/// initial buy is in the chosen `quote_mint` (`Address::default()` → wSOL).
 ///
 /// `tokenized_agent_buyback_bps`: when `Some(bps)`, an `agent_initialize`
 /// instruction (pump_agent_payments) is appended that registers `creator` as
@@ -128,15 +128,15 @@ pub struct TradeQuoteParams<'a> {
 /// must be ≤ 10000). `None` skips it.
 #[derive(Clone, Debug)]
 pub struct CreateCoinParams<'a> {
-    pub mint: Pubkey,
-    pub user: Pubkey,
-    pub creator: Pubkey,
+    pub mint: Address,
+    pub user: Address,
+    pub creator: Address,
     pub name: String,
     pub symbol: String,
     pub uri: String,
     pub mayhem_mode: bool,
     pub cashback: bool,
-    pub quote_mint: Pubkey,
+    pub quote_mint: Address,
     pub global: &'a Global,
     pub token_amount: u64,
     pub max_quote_tokens: u64,
@@ -153,7 +153,7 @@ impl PumpSdk {
     }
 
     /// Random protocol fee recipient from `Global` (deduped).
-    pub fn fee_recipient_from_pump_global(global: &Global, is_mayhem: bool) -> Option<Pubkey> {
+    pub fn fee_recipient_from_pump_global(global: &Global, is_mayhem: bool) -> Option<Address> {
         let mut candidates = Vec::new();
         let (primary, pool) = if is_mayhem {
             (
@@ -163,52 +163,52 @@ impl PumpSdk {
         } else {
             (global.fee_recipient, global.fee_recipients.as_slice())
         };
-        if primary != Pubkey::default() {
+        if primary != Address::default() {
             candidates.push(primary);
         }
-        candidates.extend(pool.iter().copied().filter(|p| *p != Pubkey::default()));
+        candidates.extend(pool.iter().copied().filter(|p| *p != Address::default()));
         Self::dedupe_sorted(&mut candidates);
         Self::pick_random_pubkey(&candidates)
     }
 
     /// Random buyback fee recipient from `Global`.
-    pub fn buyback_fee_recipient_from_pump_global(global: &Global) -> Option<Pubkey> {
-        let mut candidates: Vec<Pubkey> = global
+    pub fn buyback_fee_recipient_from_pump_global(global: &Global) -> Option<Address> {
+        let mut candidates: Vec<Address> = global
             .buyback_fee_recipients
             .iter()
             .copied()
-            .filter(|p| *p != Pubkey::default())
+            .filter(|p| *p != Address::default())
             .collect();
         Self::dedupe_sorted(&mut candidates);
         Self::pick_random_pubkey(&candidates)
     }
 
     /// Random protocol fee recipient from AMM `GlobalConfig`.
-    pub fn protocol_fee_recipient_from_amm_global(global_config: &GlobalConfig) -> Option<Pubkey> {
-        let mut candidates: Vec<Pubkey> = global_config
+    pub fn protocol_fee_recipient_from_amm_global(global_config: &GlobalConfig) -> Option<Address> {
+        let mut candidates: Vec<Address> = global_config
             .protocol_fee_recipients
             .iter()
             .copied()
-            .filter(|p| *p != Pubkey::default())
+            .filter(|p| *p != Address::default())
             .collect();
         Self::dedupe_sorted(&mut candidates);
         Self::pick_random_pubkey(&candidates)
     }
 
     /// Random buyback fee recipient from AMM `GlobalConfig`.
-    pub fn buyback_fee_recipient_from_amm_global(global_config: &GlobalConfig) -> Option<Pubkey> {
-        let mut candidates: Vec<Pubkey> = global_config
+    pub fn buyback_fee_recipient_from_amm_global(global_config: &GlobalConfig) -> Option<Address> {
+        let mut candidates: Vec<Address> = global_config
             .buyback_fee_recipients
             .iter()
             .copied()
-            .filter(|p| *p != Pubkey::default())
+            .filter(|p| *p != Address::default())
             .collect();
         Self::dedupe_sorted(&mut candidates);
         Self::pick_random_pubkey(&candidates)
     }
 
     /// `(fee_recipient, buyback_fee_recipient)` from `Global`. `None` when either pool is empty.
-    pub fn pump_fee_recipients_pair(global: &Global, is_mayhem: bool) -> Option<(Pubkey, Pubkey)> {
+    pub fn pump_fee_recipients_pair(global: &Global, is_mayhem: bool) -> Option<(Address, Address)> {
         Some((
             Self::fee_recipient_from_pump_global(global, is_mayhem)?,
             Self::buyback_fee_recipient_from_pump_global(global)?,
@@ -216,19 +216,19 @@ impl PumpSdk {
     }
 
     /// `(protocol_fee_recipient, buyback_fee_recipient)` from AMM `GlobalConfig`. `None` when either pool is empty.
-    pub fn amm_fee_recipients_pair(global_config: &GlobalConfig) -> Option<(Pubkey, Pubkey)> {
+    pub fn amm_fee_recipients_pair(global_config: &GlobalConfig) -> Option<(Address, Address)> {
         Some((
             Self::protocol_fee_recipient_from_amm_global(global_config)?,
             Self::buyback_fee_recipient_from_amm_global(global_config)?,
         ))
     }
 
-    fn dedupe_sorted(keys: &mut Vec<Pubkey>) {
+    fn dedupe_sorted(keys: &mut Vec<Address>) {
         keys.sort();
         keys.dedup();
     }
 
-    fn pick_random_pubkey(candidates: &[Pubkey]) -> Option<Pubkey> {
+    fn pick_random_pubkey(candidates: &[Address]) -> Option<Address> {
         if candidates.is_empty() {
             return None;
         }
@@ -443,7 +443,7 @@ fn estimated_reserves(global: &Global, bonding_curve: &BondingCurve) -> QuoteRes
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anchor_lang::solana_program::{pubkey::Pubkey, system_program};
+    use anchor_lang::solana_{pubkey::Address, system_program};
     use anchor_lang::Discriminator;
 
     use crate::constants;
@@ -455,19 +455,19 @@ mod tests {
     use crate::state::pump_amm::{GlobalConfig, GlobalConfigFromIdl, Pool, PoolFromIdl};
     use crate::state::{BondingCurve, BondingCurveFromIdl, Global, GlobalFromIdl};
 
-    fn fake_pubkey(seed: u8) -> Pubkey {
-        Pubkey::new_from_array([seed; 32])
+    fn fake_pubkey(seed: u8) -> Address {
+        Address::new_from_array([seed; 32])
     }
 
     #[allow(clippy::field_reassign_with_default)]
-    fn pump_global_with_fees(fee_recipient: Pubkey, buyback_fee_recipient: Pubkey) -> Global {
+    fn pump_global_with_fees(fee_recipient: Address, buyback_fee_recipient: Address) -> Global {
         let mut g = Global::default();
         g.fee_recipient = fee_recipient;
         g.buyback_fee_recipients[0] = buyback_fee_recipient;
         g
     }
 
-    fn amm_global_with_fees(protocol: Pubkey, buyback: Pubkey) -> GlobalConfig {
+    fn amm_global_with_fees(protocol: Address, buyback: Address) -> GlobalConfig {
         let mut g = GlobalConfig::default();
         g.protocol_fee_recipients[0] = protocol;
         g.buyback_fee_recipients[0] = buyback;
@@ -496,13 +496,13 @@ mod tests {
             &ix.data[..8],
             <client::args::Create as Discriminator>::DISCRIMINATOR,
         );
-        let metas: Vec<Pubkey> = ix.accounts.iter().map(|m| m.pubkey).collect();
+        let metas: Vec<Address> = ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(metas.contains(&pda::pump::metadata(&mint).0));
         assert!(metas.contains(&constants::MPL_TOKEN_METADATA_PROGRAM_ID));
         assert!(metas.contains(&constants::SPL_TOKEN_PROGRAM_ID));
         assert!(metas.contains(&pda::pump::bonding_curve(&mint).0));
         // Rent sysvar id (path differs across anchor/solana majors, so use the literal).
-        assert!(metas.contains(&Pubkey::from_str_const(
+        assert!(metas.contains(&Address::from_str_const(
             "SysvarRent111111111111111111111111111111111"
         )));
     }
@@ -521,7 +521,7 @@ mod tests {
             "TST",
             "https://example.com/metadata.json",
             creator,
-            Pubkey::default(),
+            Address::default(),
             false,
             false,
         );
@@ -531,7 +531,7 @@ mod tests {
             &ix.data[..8],
             <client::args::CreateV2 as Discriminator>::DISCRIMINATOR,
         );
-        let metas: Vec<Pubkey> = ix.accounts.iter().map(|m| m.pubkey).collect();
+        let metas: Vec<Address> = ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(metas.contains(&pda::mayhem::global_params().0));
         assert!(metas.contains(&pda::mayhem::sol_vault().0));
         assert!(metas.contains(&pda::mayhem::mayhem_state(&mint).0));
@@ -555,7 +555,7 @@ mod tests {
             "TST",
             "https://example.com/metadata.json",
             creator,
-            Pubkey::default(),
+            Address::default(),
             false,
             false,
         );
@@ -612,7 +612,7 @@ mod tests {
             "TST",
             "https://example.com/metadata.json",
             creator,
-            Pubkey::default(),
+            Address::default(),
             false,
             false,
         );
@@ -672,7 +672,7 @@ mod tests {
             <client::args::Buy as Discriminator>::DISCRIMINATOR,
         );
 
-        let metas: Vec<Pubkey> = ix.accounts.iter().map(|m| m.pubkey).collect();
+        let metas: Vec<Address> = ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(metas.contains(&pda::pump::global().0));
         assert!(metas.contains(&pda::pump::bonding_curve(&mint).0));
         assert!(metas.contains(&pda::pump::creator_vault(&creator).0));
@@ -710,7 +710,7 @@ mod tests {
                 "TST",
                 "https://example.com/metadata.json",
                 creator,
-                Pubkey::default(),
+                Address::default(),
                 false,
                 false,
                 None,
@@ -733,7 +733,7 @@ mod tests {
             <client::args::BuyV2 as Discriminator>::DISCRIMINATOR,
         );
 
-        let buy_metas: Vec<Pubkey> = ixs[2].accounts.iter().map(|m| m.pubkey).collect();
+        let buy_metas: Vec<Address> = ixs[2].accounts.iter().map(|m| m.pubkey).collect();
         assert!(buy_metas.contains(&constants::SPL_TOKEN_2022_PROGRAM_ID));
         assert!(buy_metas.contains(&constants::SPL_TOKEN_PROGRAM_ID));
         assert!(buy_metas.contains(&constants::NATIVE_MINT));
@@ -775,7 +775,7 @@ mod tests {
             <client::args::BuyV2 as Discriminator>::DISCRIMINATOR,
         );
 
-        let metas: Vec<Pubkey> = ix.accounts.iter().map(|m| m.pubkey).collect();
+        let metas: Vec<Address> = ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(metas.contains(&pda::pump::global().0));
         assert!(metas.contains(&base_mint));
         assert!(metas.contains(&quote_mint));
@@ -794,7 +794,7 @@ mod tests {
             &pda::associated_token(&buyback_fee_recipient, &quote_token_program, &quote_mint).0
         ));
 
-        let signers: Vec<Pubkey> = ix
+        let signers: Vec<Address> = ix
             .accounts
             .iter()
             .filter(|m| m.is_signer)
@@ -844,14 +844,14 @@ mod tests {
         );
 
         let bonding_curve = pda::pump::bonding_curve(&base_mint).0;
-        let expected_atas: [Pubkey; 4] = [
+        let expected_atas: [Address; 4] = [
             pda::associated_token(&user, &base_token_program, &base_mint).0,
             pda::associated_token(&user, &quote_token_program, &quote_mint).0,
             pda::associated_token(&creator, &quote_token_program, &quote_mint).0,
             pda::associated_token(&bonding_curve, &quote_token_program, &quote_mint).0,
         ];
         for (i, expected) in expected_atas.iter().enumerate() {
-            let metas: Vec<Pubkey> = ixs[i].accounts.iter().map(|m| m.pubkey).collect();
+            let metas: Vec<Address> = ixs[i].accounts.iter().map(|m| m.pubkey).collect();
             assert!(metas.contains(expected), "ix {i} missing expected ATA");
         }
     }
@@ -885,7 +885,7 @@ mod tests {
             <client::args::Sell as Discriminator>::DISCRIMINATOR,
         );
 
-        let metas: Vec<Pubkey> = ix.accounts.iter().map(|m| m.pubkey).collect();
+        let metas: Vec<Address> = ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(metas.contains(&pda::pump::global().0));
         assert!(metas.contains(&pda::pump::bonding_curve(&mint).0));
         assert!(metas.contains(&pda::pump::creator_vault(&creator).0));
@@ -932,7 +932,7 @@ mod tests {
             false,
         );
 
-        let metas: Vec<Pubkey> = ix.accounts.iter().map(|m| m.pubkey).collect();
+        let metas: Vec<Address> = ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(!metas.contains(&pda::pump::user_volume_accumulator(&user).0));
 
         let n = ix.accounts.len();
@@ -981,7 +981,7 @@ mod tests {
             <client::args::SellV2 as Discriminator>::DISCRIMINATOR,
         );
 
-        let metas: Vec<Pubkey> = ix.accounts.iter().map(|m| m.pubkey).collect();
+        let metas: Vec<Address> = ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(metas.contains(&pda::pump::global().0));
         assert!(metas.contains(&base_mint));
         assert!(metas.contains(&quote_mint));
@@ -1002,7 +1002,7 @@ mod tests {
             &pda::associated_token(&buyback_fee_recipient, &quote_token_program, &quote_mint).0
         ));
 
-        let signers: Vec<Pubkey> = ix
+        let signers: Vec<Address> = ix
             .accounts
             .iter()
             .filter(|m| m.is_signer)
@@ -1051,26 +1051,26 @@ mod tests {
         );
 
         let bonding_curve = pda::pump::bonding_curve(&base_mint).0;
-        let expected_atas: [Pubkey; 3] = [
+        let expected_atas: [Address; 3] = [
             pda::associated_token(&user, &quote_token_program, &quote_mint).0,
             pda::associated_token(&creator, &quote_token_program, &quote_mint).0,
             pda::associated_token(&bonding_curve, &quote_token_program, &quote_mint).0,
         ];
         for (i, expected) in expected_atas.iter().enumerate() {
-            let metas: Vec<Pubkey> = ixs[i].accounts.iter().map(|m| m.pubkey).collect();
+            let metas: Vec<Address> = ixs[i].accounts.iter().map(|m| m.pubkey).collect();
             assert!(metas.contains(expected), "ix {i} missing expected ATA");
         }
     }
 
     fn fake_amm_inputs() -> (
-        Pubkey,
-        Pubkey,
-        Pubkey,
-        Pubkey,
-        Pubkey,
-        Pubkey,
-        Pubkey,
-        Pubkey,
+        Address,
+        Address,
+        Address,
+        Address,
+        Address,
+        Address,
+        Address,
+        Address,
     ) {
         (
             fake_pubkey(0xA1),
@@ -1120,7 +1120,7 @@ mod tests {
         );
         assert_eq!(ix.accounts.len(), 27);
 
-        let pubkeys: Vec<Pubkey> = ix.accounts.iter().map(|m| m.pubkey).collect();
+        let pubkeys: Vec<Address> = ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(pubkeys.contains(&pda::pump_amm::global_config().0));
         assert!(pubkeys.contains(&pda::pump_amm::event_authority().0));
         assert!(pubkeys.contains(&pda::pump_amm::global_volume_accumulator().0));
@@ -1173,7 +1173,7 @@ mod tests {
         let pool_state = Pool::new(PoolFromIdl {
             base_mint,
             quote_mint,
-            coin_creator: Pubkey::default(),
+            coin_creator: Address::default(),
             is_cashback_coin: false,
             ..Default::default()
         });
@@ -1233,7 +1233,7 @@ mod tests {
         );
         assert_eq!(ix.accounts.len(), 26);
 
-        let pubkeys: Vec<Pubkey> = ix.accounts.iter().map(|m| m.pubkey).collect();
+        let pubkeys: Vec<Address> = ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(!pubkeys.contains(&pda::pump_amm::global_volume_accumulator().0));
 
         let user_vol_accum = pda::pump_amm::user_volume_accumulator(&user).0;
@@ -1274,7 +1274,7 @@ mod tests {
         let pool_state = Pool::new(PoolFromIdl {
             base_mint,
             quote_mint,
-            coin_creator: Pubkey::default(),
+            coin_creator: Address::default(),
             is_cashback_coin: false,
             ..Default::default()
         });
@@ -1372,7 +1372,7 @@ mod tests {
         );
     }
 
-    fn user_wsol_ata(user: &Pubkey) -> Pubkey {
+    fn user_wsol_ata(user: &Address) -> Address {
         pda::associated_token(
             user,
             &constants::SPL_TOKEN_PROGRAM_ID,
@@ -1383,7 +1383,7 @@ mod tests {
 
     /// Parses lamports from a system `transfer` instruction (tests).
     fn parse_system_transfer_lamports(
-        ix: &anchor_lang::solana_program::instruction::Instruction,
+        ix: &anchor_lang::solana_instruction::Instruction,
     ) -> u64 {
         assert_eq!(ix.program_id, system_program::ID);
         assert_eq!(ix.data.len(), 12);
@@ -1434,10 +1434,10 @@ mod tests {
             <client::args::BuyV2 as Discriminator>::DISCRIMINATOR,
         );
 
-        let expected_atas: [Pubkey; 1] =
+        let expected_atas: [Address; 1] =
             [pda::associated_token(&user, &constants::SPL_TOKEN_2022_PROGRAM_ID, &mint).0];
         for (i, expected) in expected_atas.iter().enumerate() {
-            let metas: Vec<Pubkey> = ixs[i].accounts.iter().map(|m| m.pubkey).collect();
+            let metas: Vec<Address> = ixs[i].accounts.iter().map(|m| m.pubkey).collect();
             assert!(metas.contains(expected), "ata ix {i} missing expected ATA");
         }
     }
@@ -1479,7 +1479,7 @@ mod tests {
             &ixs[0].data[..8],
             <client::args::SellV2 as Discriminator>::DISCRIMINATOR,
         );
-        let metas: Vec<Pubkey> = ixs[0].accounts.iter().map(|m| m.pubkey).collect();
+        let metas: Vec<Address> = ixs[0].accounts.iter().map(|m| m.pubkey).collect();
         assert!(metas.contains(&pda::pump::bonding_curve(&mint).0));
     }
 
@@ -1832,7 +1832,7 @@ mod tests {
         );
         assert_eq!(ixs[5].program_id, constants::SPL_TOKEN_PROGRAM_ID);
 
-        let pubkeys: Vec<Pubkey> = ixs[4].accounts.iter().map(|m| m.pubkey).collect();
+        let pubkeys: Vec<Address> = ixs[4].accounts.iter().map(|m| m.pubkey).collect();
         let user_vol_accum = pda::pump_amm::user_volume_accumulator(&user).0;
         assert!(pubkeys.contains(
             &pda::associated_token(
@@ -1914,7 +1914,7 @@ mod tests {
                 uri: "https://example.com/metadata.json".into(),
                 mayhem_mode: false,
                 cashback: false,
-                quote_mint: Pubkey::default(),
+                quote_mint: Address::default(),
                 global: &global,
                 token_amount: 1_000,
                 max_quote_tokens: max_sol,
@@ -1936,7 +1936,7 @@ mod tests {
             &ixs[2].data[..8],
             <client::args::BuyV2 as Discriminator>::DISCRIMINATOR,
         );
-        let buy_metas: Vec<Pubkey> = ixs[2].accounts.iter().map(|m| m.pubkey).collect();
+        let buy_metas: Vec<Address> = ixs[2].accounts.iter().map(|m| m.pubkey).collect();
         assert!(buy_metas.contains(&constants::SPL_TOKEN_2022_PROGRAM_ID));
         assert!(buy_metas.contains(&constants::NATIVE_MINT));
         assert!(buy_metas.contains(&pda::pump::sharing_config(&mint).0));
@@ -1963,7 +1963,7 @@ mod tests {
                 uri: "https://example.com/metadata.json".into(),
                 mayhem_mode: false,
                 cashback: false,
-                quote_mint: Pubkey::default(),
+                quote_mint: Address::default(),
                 global: &global,
                 token_amount: 1_000,
                 max_quote_tokens: 500_000,
@@ -1980,7 +1980,7 @@ mod tests {
                 uri: "https://example.com/metadata.json".into(),
                 mayhem_mode: false,
                 cashback: false,
-                quote_mint: Pubkey::default(),
+                quote_mint: Address::default(),
                 global: &global,
                 token_amount: 1_000,
                 max_quote_tokens: 500_000,
@@ -2005,7 +2005,7 @@ mod tests {
             u16::from_le_bytes([agent_ix.data[40], agent_ix.data[41]]),
             buyback_bps,
         );
-        let agent_metas: Vec<Pubkey> = agent_ix.accounts.iter().map(|m| m.pubkey).collect();
+        let agent_metas: Vec<Address> = agent_ix.accounts.iter().map(|m| m.pubkey).collect();
         assert!(agent_metas.contains(&user), "user is the signer");
         assert!(agent_metas.contains(&pda::pump::bonding_curve(&mint).0));
         assert!(agent_metas.contains(&pda::pump_agent_payments::global_config().0));
@@ -2020,11 +2020,11 @@ mod tests {
     fn program_ids_match_idl() {
         assert_eq!(
             crate::pump::ID,
-            Pubkey::from_str_const("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
+            Address::from_str_const("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
         );
         assert_eq!(
             crate::pump_amm::ID,
-            Pubkey::from_str_const("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA")
+            Address::from_str_const("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA")
         );
     }
 
@@ -2039,7 +2039,7 @@ mod tests {
         })
     }
 
-    fn fixture_bonding_curve(creator: Pubkey) -> BondingCurve {
+    fn fixture_bonding_curve(creator: Address) -> BondingCurve {
         BondingCurve::new(BondingCurveFromIdl {
             virtual_token_reserves: 1_073_000_000_000_000,
             virtual_quote_reserves: 30_000_000_000,
@@ -2063,7 +2063,7 @@ mod tests {
         })
     }
 
-    fn fixture_pool(coin_creator: Pubkey) -> Pool {
+    fn fixture_pool(coin_creator: Address) -> Pool {
         Pool::new(PoolFromIdl {
             base_mint: fake_pubkey(0xAA),
             creator: fake_pubkey(0xBB),
@@ -2138,7 +2138,7 @@ mod tests {
     fn bc_sell_default_creator_skips_creator_fee() {
         let sdk = PumpSdk::new();
         let g = fixture_global();
-        let bc = fixture_bonding_curve(Pubkey::default());
+        let bc = fixture_bonding_curve(Address::default());
         let q = sdk
             .sell_quote_bonding_curve(&g, None, &bc, g.token_total_supply, 50_000_000_000_000, 0)
             .unwrap();
@@ -2219,7 +2219,7 @@ mod tests {
     fn amm_sell_default_coin_creator_skips_creator_fee() {
         let sdk = PumpSdk::new();
         let gc = fixture_amm_global_config();
-        let pool = fixture_pool(Pubkey::default());
+        let pool = fixture_pool(Address::default());
         let q = sdk
             .sell_quote_amm(
                 &gc,

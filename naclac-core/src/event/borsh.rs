@@ -5,10 +5,17 @@
 
 use crate::prelude::borsh::{self, BorshSerialize};
 
-pub fn emit<T: BorshSerialize>(event: &T, discriminator: [u8; 8]) {
-    let mut data = discriminator.to_vec();
-    let serialized_payload = borsh::to_vec(event)
-        .expect("event serialization is infallible for all currently-supported field types");
-    data.extend(serialized_payload);
+/// Logs `discriminator` followed by the Borsh encoding of `event` as a single
+/// data field, using one allocation of exactly that size.
+pub fn emit<T: BorshSerialize>(event: &T, discriminator: &[u8]) {
+    let payload_len = borsh::object_length(event).unwrap_or_else(|_| {
+        panic!("event serialization is infallible for all currently-supported field types")
+    });
+    let mut data =
+        crate::prelude::Vec::with_capacity(discriminator.len().saturating_add(payload_len));
+    data.extend_from_slice(discriminator);
+    borsh::to_writer(&mut data, event).unwrap_or_else(|_| {
+        panic!("event serialization is infallible for all currently-supported field types")
+    });
     crate::prelude::sol_log_data(&[&data]);
 }

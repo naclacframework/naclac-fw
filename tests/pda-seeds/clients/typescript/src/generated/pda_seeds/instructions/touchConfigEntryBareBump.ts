@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_config_entry_bare_bump` instruction. */
+/** Discriminator for the `touch_config_entry_bare_bump` instruction. */
 export const TOUCH_CONFIG_ENTRY_BARE_BUMP_DISCRIMINATOR = new Uint8Array([138, 240, 56, 162, 1, 92, 68, 26]);
 
 /** Accounts for the `touchConfigEntryBareBump` instruction. */

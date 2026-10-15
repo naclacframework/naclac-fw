@@ -1,103 +1,217 @@
 use super::utils::{ensure_dir, write_file};
+use dialoguer::theme::ColorfulTheme;
+use dialoguer::Select;
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use std::path::Path;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProgramMode {
     Pinocchio,
-    Standard,  // Borsh
-    Optimized, // Zero-Copy
+    ZeroCopy,
+    Wincode,
+    Borsh,
 }
 
-impl ProgramMode {}
+pub fn prompt_mode_selection() -> ProgramMode {
+    let backend_selections = &[
+        "Solana Backend (Standard Solana runtime)",
+        "Pinocchio Backend (no-std, zero-copy, hyper-optimized compute units)",
+    ];
+
+    let backend = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Choose execution backend")
+        .default(0)
+        .items(&backend_selections[..])
+        .interact()
+        .unwrap_or(0);
+
+    if backend == 1 {
+        return ProgramMode::Pinocchio;
+    }
+
+    let serialization_selections = &[
+        "Zero-Copy (bytemuck / raw C-layout memory mapping, lowest compute units)",
+        "Wincode (hyper-fast zero-allocation binary serialization)",
+        "Borsh (standard Solana ecosystem binary serialization)",
+    ];
+
+    let serialization = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Choose account data layout & serialization")
+        .default(0)
+        .items(&serialization_selections[..])
+        .interact()
+        .unwrap_or(0);
+
+    match serialization {
+        0 => ProgramMode::ZeroCopy,
+        1 => ProgramMode::Wincode,
+        2 => ProgramMode::Borsh,
+        _ => ProgramMode::ZeroCopy,
+    }
+}
+
+pub fn parse_mode(flag: &str) -> Option<ProgramMode> {
+    match flag.to_lowercase().as_str() {
+        "pinocchio" => Some(ProgramMode::Pinocchio),
+        "zero-copy" | "zerocopy" | "zc" | "optimized" => Some(ProgramMode::ZeroCopy),
+        "wincode" => Some(ProgramMode::Wincode),
+        "borsh" | "standard" => Some(ProgramMode::Borsh),
+        _ => None,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TsFramework {
+    Kit,
+    Legacy,
+}
+
+pub fn parse_ts_framework(flag: &str) -> Option<TsFramework> {
+    match flag.to_ascii_lowercase().as_str() {
+        "kit" => Some(TsFramework::Kit),
+        "legacy" | "web3" | "web3js" | "web3.js" => Some(TsFramework::Legacy),
+        _ => None,
+    }
+}
+
+pub fn prompt_ts_framework() -> TsFramework {
+    let selections = &[
+        "Solana Kit (Recommended — modern @solana/kit client)",
+        "Legacy Web3.js (Classic @solana/web3.js v1 client)",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Choose TypeScript client framework")
+        .default(0)
+        .items(&selections[..])
+        .interact()
+        .unwrap_or(0);
+
+    match choice {
+        1 => TsFramework::Legacy,
+        _ => TsFramework::Kit,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PackageManager {
+    Yarn,
+    Npm,
+    Pnpm,
+    Bun,
+}
+
+impl PackageManager {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Yarn => "yarn",
+            Self::Npm => "npm",
+            Self::Pnpm => "pnpm",
+            Self::Bun => "bun",
+        }
+    }
+
+    pub fn test_node_script(&self) -> &'static str {
+        match self {
+            Self::Yarn => r#"yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""#,
+            Self::Npm => r#"npx ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""#,
+            Self::Pnpm => r#"pnpm exec ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""#,
+            Self::Bun => r#"bun x ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""#,
+        }
+    }
+}
+
+pub fn parse_package_manager(flag: &str) -> Option<PackageManager> {
+    match flag.to_ascii_lowercase().as_str() {
+        "yarn" => Some(PackageManager::Yarn),
+        "npm" => Some(PackageManager::Npm),
+        "pnpm" => Some(PackageManager::Pnpm),
+        "bun" => Some(PackageManager::Bun),
+        _ => None,
+    }
+}
 
 pub fn generate_program(
     root_path: &Path,
     name: &str,
     program_id: &str,
     mode: ProgramMode,
+    ts_framework: TsFramework,
     _is_new_workspace: bool,
 ) {
     let snake_name = name.to_snake_case();
     let type_name = snake_name.to_upper_camel_case();
+    let pname_kebab = snake_name.replace('_', "-");
     let program_dir = root_path.join("programs").join(&snake_name);
 
     ensure_dir(&program_dir.join("src/instructions"));
     ensure_dir(&program_dir.join("src/components"));
     ensure_dir(&program_dir.join("src/systems"));
 
-    let (naclac_lang_path, _) =
+    let (naclac_lang_path, naclac_client_path) =
         naclac_client_gen::naclac_dep_path_fragments(root_path, &program_dir);
 
-    // --- Cargo.toml ---
-    let cargo_toml = match mode {
-        ProgramMode::Pinocchio => format!(
-            r#"[package]
-name = "{}"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-crate-type = ["cdylib", "lib"]
-
-[features]
-no-entrypoint = []
-cpi = ["no-entrypoint"]
-custom-heap = []
-custom-panic = []
-debug-mode = []
-default = ["pinocchio"]
-pinocchio = ["naclac-lang/pinocchio"]
-
-[dependencies]
-naclac-lang = {{ version = "0.1.0", default-features = false{naclac_lang_path} }}
-
-[lints.rust]
-unexpected_cfgs = {{ level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))',
-    'cfg(feature, values("pinocchio", "solana", "borsh"))'
-] }}
-"#,
-            snake_name
+    let (features_snippet, deps_snippet) = match mode {
+        ProgramMode::Pinocchio => (
+            "default = [\"pinocchio\"]\npinocchio = [\"naclac-lang/pinocchio\"]",
+            format!("naclac-lang = {{ version = \"0.1.0\", default-features = false{naclac_lang_path} }}"),
         ),
-        _ => format!(
-            r#"[package]
-name = "{}"
-version = "0.1.0"
-description = "Created with Naclac Framework"
-edition = "2021"
-
-[lib]
-crate-type = ["cdylib", "lib"]
-
-[features]
-no-entrypoint = []
-cpi = ["no-entrypoint"]
-custom-heap = []
-custom-panic = []
-debug-mode = []
-
-[dependencies]
-naclac-lang = {{ version = "0.1.0"{naclac_lang_path} }}
-
-[lints.rust]
-unexpected_cfgs = {{ level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))',
-    'cfg(feature, values("pinocchio", "solana", "borsh"))'
-] }}
-"#,
-            snake_name
+        ProgramMode::ZeroCopy => (
+            "",
+            format!("naclac-lang = {{ version = \"0.1.0\"{naclac_lang_path} }}"),
+        ),
+        ProgramMode::Wincode => (
+            "default = [\"wincode\"]\nwincode = [\"naclac-lang/wincode\"]",
+            format!("naclac-lang = {{ version = \"0.1.0\"{naclac_lang_path} }}"),
+        ),
+        ProgramMode::Borsh => (
+            "default = [\"borsh\"]\nborsh = [\"naclac-lang/borsh\"]",
+            format!("naclac-lang = {{ version = \"0.1.0\"{naclac_lang_path} }}"),
         ),
     };
+
+    let features_block = if features_snippet.is_empty() {
+        String::new()
+    } else {
+        format!("{}\n", features_snippet)
+    };
+
+    let cargo_toml = format!(
+        r#"[package]
+name = "{snake_name}"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+# Enable to build IDL via real cargo compilation instead of AST parsing:
+# idl-build = ["naclac-lang/idl-build"]
+{features_block}
+[dependencies]
+{deps_snippet}
+
+[dev-dependencies]
+naclac-client = {{ version = "0.1.0"{naclac_client_path} }}
+{pname_kebab}-client = {{ version = "0.1.0", path = "../../clients/rust/{snake_name}" }}
+
+[lints]
+workspace = true
+"#
+    );
     write_file(&program_dir.join("Cargo.toml"), &cargo_toml);
 
-    // --- lib.rs ---
     let lib_header = if mode == ProgramMode::Pinocchio {
         "#![no_std]\n"
     } else {
         ""
     };
-    let program_attr = "#[program]";
 
     let lib_rs = format!(
         r#"{header}use naclac_lang::prelude::*;
@@ -113,7 +227,7 @@ pub mod constants;
 
 use instructions::*;
 
-{program_attr}
+#[program]
 pub mod {snake_name} {{
     pub fn initialize(ctx: Context<Initialize>) -> Result {{
         initialize::initialize(ctx)
@@ -126,38 +240,29 @@ pub mod {snake_name} {{
 "#,
         header = lib_header,
         program_id = program_id,
-        program_attr = program_attr,
         snake_name = snake_name
     );
     write_file(&program_dir.join("src/lib.rs"), &lib_rs);
 
-    // --- constants.rs ---
     write_file(
         &program_dir.join("src/constants.rs"),
         "pub const SEED_COUNTER: &[u8] = b\"counter_v2\";\n",
     );
 
-    // --- components/mod.rs & counter.rs ---
     write_file(
         &program_dir.join("src/components/mod.rs"),
         "pub mod counter;\npub use counter::*;\n",
     );
-    let component_attr = "#[component]";
-    let counter_rs = format!(
-        r#"use naclac_lang::prelude::*;
+    let counter_rs = r#"use naclac_lang::prelude::*;
 
-{}
-pub struct Counter {{
+#[component]
+pub struct Counter {
     pub count: u64,
     pub authority: Address,
-    pub bump: u8,
-}}
-"#,
-        component_attr
-    );
-    write_file(&program_dir.join("src/components/counter.rs"), &counter_rs);
+}
+"#;
+    write_file(&program_dir.join("src/components/counter.rs"), counter_rs);
 
-    // --- systems/mod.rs & math.rs ---
     write_file(
         &program_dir.join("src/systems/mod.rs"),
         "pub mod math;\npub use math::*;\n",
@@ -173,24 +278,18 @@ pub fn process_increment(counter: &mut Counter) -> Result<u64> {
 "#;
     write_file(&program_dir.join("src/systems/math.rs"), math_rs);
 
-    // --- events.rs ---
-    let event_attr = "#[event]";
     write_file(
         &program_dir.join("src/events.rs"),
-        &format!(
-            r#"use naclac_lang::prelude::*;
+        r#"use naclac_lang::prelude::*;
 
-{}
-pub struct CounterIncremented {{
+#[event]
+pub struct CounterIncremented {
     pub new_count: u64,
     pub timestamp: i64,
-}}
+}
 "#,
-            event_attr
-        ),
     );
 
-    // --- errors.rs ---
     write_file(
         &program_dir.join("src/errors.rs"),
         r#"use naclac_lang::prelude::*;
@@ -203,112 +302,197 @@ pub enum CounterError {
 "#,
     );
 
-    // --- instructions/mod.rs ---
     write_file(
         &program_dir.join("src/instructions/mod.rs"),
         "pub mod initialize;\npub mod increment;\n\npub use initialize::*;\npub use increment::*;\n",
     );
 
-    // --- instructions/initialize.rs ---
-    let accounts_derive = "#[derive(Accounts)]";
-    let account_type = "Account";
-
-    let initialize_rs = format!(
-        r#"use naclac_lang::prelude::*;
+    let initialize_rs = r#"use naclac_lang::prelude::*;
 use crate::components::counter::Counter;
 use crate::constants::SEED_COUNTER;
 
-{accounts_derive}
-pub struct Initialize {{
+#[derive(Accounts)]
+pub struct Initialize {
     #[account(mut)]
     pub payer: Signer,
 
     #[account(
         init,
         payer = payer,
-        seeds = [SEED_COUNTER], 
-        bump
+        seeds = [SEED_COUNTER]
     )]
-    pub counter_account: {account_type}<Counter>,
+    pub counter_account: Account<Counter>,
 
     pub system_program: Program<System>,
-}}
+}
 
-pub fn initialize(ctx: Context<Initialize>) -> Result {{
+pub fn initialize(ctx: Context<Initialize>) -> Result {
     let counter = &mut ctx.accounts.counter_account;
 
-    counter.authority = ctx.accounts.payer.key();
+    counter.authority = ctx.accounts.payer.address();
     counter.count = 0;
-    counter.bump = ctx.bumps.counter_account;
 
     Ok(())
-}}
-"#,
-        accounts_derive = accounts_derive,
-        account_type = account_type
-    );
+}
+"#;
     write_file(
         &program_dir.join("src/instructions/initialize.rs"),
-        &initialize_rs,
+        initialize_rs,
     );
 
-    // --- instructions/increment.rs ---
-    let increment_rs = format!(
-        r#"use naclac_lang::prelude::*;
+    let increment_rs = r#"use naclac_lang::prelude::*;
 use crate::components::counter::Counter;
 use crate::systems::math::process_increment;
 use crate::events::CounterIncremented;
 use crate::constants::SEED_COUNTER;
 
-{accounts_derive}
-pub struct Increment {{
+#[derive(Accounts)]
+pub struct Increment {
     #[account(mut)]
     pub authority: Signer,
 
     #[account(
         mut,
-        seeds = [SEED_COUNTER], 
-        bump,
+        seeds = [SEED_COUNTER],
         authority = authority
     )]
-    pub counter_account: {account_type}<Counter>,
-}}
+    pub counter_account: Account<Counter>,
+}
 
-pub fn increment(ctx: Context<Increment>) -> Result {{
+pub fn increment(ctx: Context<Increment>) -> Result {
     let counter_account = &mut ctx.accounts.counter_account;
 
     let new_count = process_increment(counter_account)?;
 
-    emit!(CounterIncremented {{
+    emit!(CounterIncremented {
         new_count,
         timestamp: unix_timestamp()?,
-    }});
+    });
 
     Ok(())
-}}
-"#,
-        accounts_derive = accounts_derive,
-        account_type = account_type
-    );
+}
+"#;
     write_file(
         &program_dir.join("src/instructions/increment.rs"),
-        &increment_rs,
+        increment_rs,
     );
 
-    // --- Test Template ---
-    let test_ts = format!(
-        r#"import * as naclac from "@naclac-fw/client";
-import {{ {type_name}Client }} from "../clients/src/generated/{snake_name}";
+    let parse_events_call = match mode {
+        ProgramMode::Wincode => "tx_meta.parse_events_wincode()",
+        ProgramMode::Borsh => "tx_meta.parse_events_borsh()",
+        ProgramMode::Pinocchio | ProgramMode::ZeroCopy => "tx_meta.parse_events_zero_copy()",
+    };
 
-describe("Naclac {type_name} Test Suite", () => {{
+    let client_crate = format!("{snake_name}_client");
+    let rust_test = format!(
+        r#"use naclac_client::*;
+use {client_crate}::{{
+    instructions::{{
+        build_initialize, build_increment,
+        InitializeAccounts, IncrementAccounts,
+    }},
+    components::{{Counter, fetch_counter}},
+    types::{{PROGRAM_ID, CounterIncremented}},
+    get_counter_account_pda,
+}};
+
+#[test]
+fn test_{snake_name}_integration() {{
+    let cluster = "litesvm";
+
+    let payer = load_node_wallet().expect("Failed to load local Solana keypair");
+    let provider = NaclacProvider::new(cluster, payer).expect("Failed to construct NaclacProvider");
+    println!("\n🔑 Loaded Payer Wallet: {{}}", provider.payer.address());
+
+    let program_id = PROGRAM_ID;
+    let (counter_pda, _bump) = get_counter_account_pda(&program_id);
+    println!("   Derived PDA: {{}}", counter_pda);
+
+    let mut already_initialized = false;
+    let mut start_count = 0u64;
+
+    if let Ok(account) = provider.get_account(&counter_pda) {{
+        if account.data.len() >= 16 {{
+            let data = &account.data[8..];
+            start_count = u64::from_le_bytes(data[0..8].try_into().unwrap());
+            already_initialized = true;
+            println!("   ℹ️ Counter account already exists on chain (Current Count: {{}}). Skipping initialization.", start_count);
+        }}
+    }}
+
+    if !already_initialized {{
+        println!("🚀 Sending Initialize transaction...");
+
+        build_initialize(
+            &provider,
+            program_id,
+            InitializeAccounts {{
+                payer: provider.payer.address(),
+                counter_account: counter_pda,
+                system_program: Address::default(),
+            }},
+        )
+        .log()
+        .send_and_confirm()
+        .unwrap();
+
+        let counter_state: Counter = fetch_counter(&provider, &counter_pda)
+            .expect("Failed to fetch initialized counter account");
+        assert_eq!(counter_state.count, 0);
+        assert_eq!(counter_state.authority, provider.payer.address());
+        println!("   ✅ Initialized state verified: count = 0, authority matches payer.");
+    }}
+
+    println!("📈 Sending Increment transaction...");
+
+    let tx_meta = build_increment(
+        &provider,
+        program_id,
+        IncrementAccounts {{
+            authority: provider.payer.address(),
+            counter_account: counter_pda,
+        }},
+    )
+    .log()
+    .send_and_confirm()
+    .unwrap();
+
+    let counter_state_after: Counter = fetch_counter(&provider, &counter_pda)
+        .expect("Failed to fetch incremented counter account");
+    assert_eq!(counter_state_after.count, start_count + 1);
+    println!("   ✅ State verified: count = {{}}.", counter_state_after.count);
+
+    let captured_events: Vec<CounterIncremented> = {parse_events_call}
+        .expect("Failed to parse events");
+    assert!(!captured_events.is_empty(), "❌ Event was not captured!");
+    let captured_event = &captured_events[0];
+    assert_eq!(captured_event.new_count, start_count + 1);
+    println!("      🔔 Event Fired! New Count: {{}}", captured_event.new_count);
+
+    println!("\n✨ Integration test completed successfully!\n");
+}}
+"#
+    );
+    ensure_dir(&program_dir.join("tests"));
+    write_file(
+        &program_dir.join(format!("tests/{snake_name}_test.rs")),
+        &rust_test,
+    );
+
+    let test_ts = match ts_framework {
+        TsFramework::Kit => format!(
+            r#"import * as naclac from "@naclac-fw/client/kit";
+import {{ {type_name}Client }} from "../clients/typescript/src/generated/{snake_name}/client-kit";
+
+describe("Naclac {type_name} Test Suite (Kit)", () => {{
   let client: {type_name}Client;
   let payer: naclac.KeyPairSigner;
   let counterPda: naclac.Address;
 
   before(async () => {{
     payer = await naclac.loadNodeWallet();
-    client = new {type_name}Client("localnet", payer);
-    counterPda = await client.getCounterAccountPda({{}});
+    client = new {type_name}Client("litesvm", payer);
+    [counterPda] = await client.getCounterAccountPda({{}});
   }});
 
   it("1. Setup & Initialize Counter", async () => {{
@@ -328,16 +512,73 @@ describe("Naclac {type_name} Test Suite", () => {{
 
   it("2. Increment and Verify Event", async () => {{
     const stateBefore = await client.fetchCounter(counterPda);
+    const startCount = Number(stateBefore.data.count);
+
+    console.log(`      📈 Incrementing Counter (Current: ${{startCount}})...`);
+
+    const txResult = await client
+      .increment({{}})
+      .accounts({{ authority: payer.address, counterAccount: counterPda }})
+      .rpc()
+      .catch(naclac.logError);
+
+    const stateAfter = await client.fetchCounter(counterPda);
+    console.log(`      ✅ New Count: ${{stateAfter.data.count}}`);
+
+    if (Number(stateAfter.data.count) !== startCount + 1) {{
+      throw new Error("Count did not increment correctly");
+    }}
+
+    const capturedEvents = await client.parseCounterIncrementedEventsFromTransaction(txResult!);
+    if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
+
+    console.log(`      🔔 Event Fired! New Count: ${{capturedEvents[0].newCount}}`);
+    console.log("      ✨ Test Suite Passed!");
+  }});
+}});
+"#,
+            type_name = type_name,
+            snake_name = snake_name
+        ),
+        TsFramework::Legacy => format!(
+            r#"import * as naclac from "@naclac-fw/client/legacy";
+import {{ {type_name}Client }} from "../clients/typescript/src/generated/{snake_name}/client-legacy";
+
+describe("Naclac {type_name} Test Suite (Legacy)", () => {{
+  let client: {type_name}Client;
+  let payer: naclac.Keypair;
+  let counterPda: naclac.PublicKey;
+
+  before(async () => {{
+    payer = await naclac.loadNodeWallet();
+    client = new {type_name}Client("litesvm", payer);
+    [counterPda] = await client.getCounterAccountPda({{}});
+  }});
+
+  it("1. Setup & Initialize Counter", async () => {{
+    console.log("      🔍 Checking if Counter exists...");
+    try {{
+      await client.fetchCounter(counterPda);
+      console.log("      ℹ️  Counter already exists — skipping initialization.");
+    }} catch (e) {{
+      console.log("      🚀 Initializing New Counter...");
+      await client
+        .initialize({{}})
+        .accounts({{ payer: payer.publicKey, counterAccount: counterPda }})
+        .rpc()
+        .catch(naclac.logError);
+    }}
+  }});
+
+  it("2. Increment and Verify Event", async () => {{
+    const stateBefore = await client.fetchCounter(counterPda);
     const startCount = Number(stateBefore.count);
 
     console.log(`      📈 Incrementing Counter (Current: ${{startCount}})...`);
 
-    // Start listening BEFORE the transaction
-    const eventPromise = client.waitForCounterIncremented({{ timeoutMs: 10000 }});
-
-    await client
+    const txResult = await client
       .increment({{}})
-      .accounts({{ authority: payer.address, counterAccount: counterPda }})
+      .accounts({{ authority: payer.publicKey, counterAccount: counterPda }})
       .rpc()
       .catch(naclac.logError);
 
@@ -348,17 +589,21 @@ describe("Naclac {type_name} Test Suite", () => {{
       throw new Error("Count did not increment correctly");
     }}
 
-    const capturedEvent = await eventPromise;
-    if (!capturedEvent) throw new Error("❌ Event was not captured!"); 
+    const capturedEvents = client.parseCounterIncrementedEvents(
+      txResult!.logs,
+      txResult!.innerInstructions,
+    );
+    if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
 
-    console.log(`      🔔 Event Fired! New Count: ${{capturedEvent.newCount}}`);
+    console.log(`      🔔 Event Fired! New Count: ${{capturedEvents[0].newCount}}`);
     console.log("      ✨ Test Suite Passed!");
   }});
 }});
 "#,
-        type_name = type_name,
-        snake_name = snake_name
-    );
+            type_name = type_name,
+            snake_name = snake_name
+        ),
+    };
     ensure_dir(&root_path.join("tests"));
     let test_path = root_path.join(format!("tests/{}.test.ts", snake_name));
     write_file(&test_path, &test_ts);

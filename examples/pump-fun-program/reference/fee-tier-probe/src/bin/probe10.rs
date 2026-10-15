@@ -11,7 +11,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -19,8 +19,8 @@ use std::str::FromStr;
 
 const PUMP_FEES_PROGRAM_ID: &str = "8M7BZp7T9odBTQZewQHgKBS6t2sqCQUUfiKtu41GgR34";
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn borsh_string(s: &str) -> Vec<u8> {
@@ -45,11 +45,11 @@ fn run_case(label: &str, claim_rate_limit: u64, last_claimed: u64, now: i64) {
 
     let social_claim_authority = Keypair::new();
     let (fee_program_global, fpg_bump) =
-        Pubkey::find_program_address(&[b"fee-program-global"], &fees_program);
+        Address::find_program_address(&[b"fee-program-global"], &fees_program);
     let mut fpg_data = Vec::with_capacity(8 + 1 + 32 + 1 + 32 + 8 + 256);
     fpg_data.extend_from_slice(&[162, 165, 245, 49, 29, 37, 55, 242]);
     fpg_data.push(fpg_bump);
-    fpg_data.extend_from_slice(Pubkey::new_unique().as_ref());
+    fpg_data.extend_from_slice(Address::new_unique().as_ref());
     fpg_data.push(0);
     fpg_data.extend_from_slice(social_claim_authority.pubkey().as_ref());
     fpg_data.extend_from_slice(&claim_rate_limit.to_le_bytes());
@@ -68,7 +68,7 @@ fn run_case(label: &str, claim_rate_limit: u64, last_claimed: u64, now: i64) {
 
     let user_id = "probe10user";
     let platform = 0u8;
-    let (social_fee_pda, sfp_bump) = Pubkey::find_program_address(
+    let (social_fee_pda, sfp_bump) = Address::find_program_address(
         &[b"social-fee-pda", user_id.as_bytes(), std::slice::from_ref(&platform)],
         &fees_program,
     );

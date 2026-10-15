@@ -1,6 +1,6 @@
 {
   "name": "@naclac-fw/client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The official TypeScript SDK for the Naclac framework",
   "license": "Apache-2.0",
   "author": "Naclac Team",
@@ -47,17 +47,17 @@
     "test": "ts-mocha -p ./tsconfig.mocha.json -t 60000 \"tests/**/*.ts\""
   },
   "dependencies": {
-    "@noble/hashes": "^2.0.1",
-    "@solana/codecs": "^6.5.0",
-    "@solana/fixed-points": "^6.10.0"
+    "@noble/hashes": "^2",
+    "@solana/codecs": "^8",
+    "@solana/fixed-points": "^8"
   },
   "peerDependencies": {
     "@naclac-fw/litesvm": "^0.1.0",
-    "@solana-program/system": "^0.12.1",
-    "@solana-program/token-2022": "^0.9.0",
-    "@solana/kit": "^6.9.0",
-    "@solana/spl-token": "^0.4.14",
-    "@solana/web3.js": "^1.98.4"
+    "@solana-program/system": "^0.15",
+    "@solana-program/token-2022": "^0.15.0",
+    "@solana/kit": "^8",
+    "@solana/spl-token": "^0.4",
+    "@solana/web3.js": "^1.99"
   },
   "peerDependenciesMeta": {
     "@naclac-fw/litesvm": {
@@ -81,15 +81,16 @@
   },
   "devDependencies": {
     "@naclac-fw/litesvm": "link:../naclac-litesvm-node",
-    "@solana/codecs-core": "6.9.0",
-    "@solana/codecs-data-structures": "6.9.0",
-    "@solana/codecs-numbers": "6.9.0",
-    "@solana/codecs-strings": "6.9.0",
+    "@solana/codecs-core": "^8",
+    "@solana/codecs-data-structures": "^8",
+    "@solana/codecs-numbers": "^8",
+    "@solana/codecs-strings": "^8",
     "@types/mocha": "^9.0.0",
     "@types/node": "^22.0.0",
     "mocha": "^9.0.3",
     "ts-mocha": "^11.1.0",
     "tsup": "^8.0.0",
     "typescript": "^5.7.3"
-  }
+  },
+  "packageManager": "pnpm@12.6.0+sha512.3ef68f951cb111ac204b4a5a16f0b2ddf0da56a96e0413e81d855d9f0b55ef926714709028e1cd00c405c2c5fb7b9e8ec4dc46777c805d0373c2f2ff00fd20ec"
 }

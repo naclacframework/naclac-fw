@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_oracle` instruction. */
+/** Discriminator for the `attach_oracle` instruction. */
 export const ATTACH_ORACLE_DISCRIMINATOR = new Uint8Array([2, 137, 190, 161, 13, 69, 72, 153]);
 
 /** Accounts for the `attachOracle` instruction. */
 export interface AttachOracleAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The external Metaplex Core program to CPI into.
    * SAFETY: the real Metaplex Core program — external to this workspace.
    */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

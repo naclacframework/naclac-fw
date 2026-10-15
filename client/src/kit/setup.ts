@@ -7,6 +7,8 @@ import {
   createTransactionMessage,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
+  setTransactionMessageComputeUnitLimit,
+  setTransactionMessageLoadedAccountsDataSizeLimit,
   appendTransactionMessageInstruction,
   signTransactionMessageWithSigners,
   getBase64EncodedWireTransaction,
@@ -14,7 +16,7 @@ import {
   pipe,
   type Address,
 } from "@solana/kit";
-import type { NaclacProvider } from "./provider";
+import { type NaclacProvider, type TxVersion, normalizeTxVersion } from "./provider";
 import { createLiteSvmProvider } from "./provider-litesvm";
 import { SYSTEM_PROGRAM_ID } from "../constants";
 
@@ -35,9 +37,12 @@ export function createProvider(
   cluster: Cluster,
   signer: any,
   clusterSubscriptions?: Cluster,
+  defaultTxVersion?: TxVersion,
 ): NaclacProvider {
   if (cluster === "litesvm") {
-    return createLiteSvmProvider(signer);
+    const prov = createLiteSvmProvider(signer);
+    prov.defaultTxVersion = defaultTxVersion ?? "v1";
+    return prov;
   }
 
   let httpUrl: string;
@@ -88,6 +93,7 @@ export function createProvider(
     rpcSubscriptions: rpcSubscriptions as any,
     signer,
     commitment: "confirmed",
+    defaultTxVersion: defaultTxVersion ?? "v1",
     _sendAndConfirm: (tx: any) => sendAndConfirm(tx, { commitment: "confirmed" }),
     getBalance: async (addr: string | Address) => {
       const res = await rpc.getAccountInfo(address(addr as string), { commitment: "confirmed" }).send();
@@ -146,14 +152,29 @@ export async function transferSol(
     .getLatestBlockhash({ commitment: provider.commitment ?? "confirmed" })
     .send();
 
+  const targetVersion = normalizeTxVersion(provider.defaultTxVersion);
+
+  let baseMsg: any;
+  if (targetVersion === 1) {
+    baseMsg = pipe(
+      createTransactionMessage({ version: 1 }),
+      (msg) => setTransactionMessageComputeUnitLimit(1_400_000, msg),
+      (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(64 * 1024 * 1024, msg),
+    );
+  } else if (targetVersion === 0) {
+    baseMsg = createTransactionMessage({ version: 0 });
+  } else {
+    baseMsg = createTransactionMessage({ version: "legacy" });
+  }
+
   const txMessage = pipe(
-    createTransactionMessage({ version: 0 }),
-    (msg) => setTransactionMessageFeePayerSigner(provider.signer, msg),
-    (msg) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, msg),
-    (msg) => appendTransactionMessageInstruction(instruction, msg)
+    baseMsg,
+    (msg: any) => setTransactionMessageFeePayerSigner(provider.signer, msg),
+    (msg: any) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, msg),
+    (msg: any) => appendTransactionMessageInstruction(instruction, msg),
   );
 
-  const signedTx = await signTransactionMessageWithSigners(txMessage);
+  const signedTx = await signTransactionMessageWithSigners(txMessage as any);
 
   if (provider.litesvm) {
     // litesvm executes and finalizes `sendTransaction` synchronously —

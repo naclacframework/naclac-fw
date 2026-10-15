@@ -7,70 +7,256 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CounterIncremented {
     pub new_count: u64,
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CounterIncremented {
+    pub new_count: u64,
+    pub __naclac_padding_0: [u8; __CounterIncremented_GAP_0],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CounterIncremented_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CounterIncremented > () == (::core::mem::size_of:: < u64
+        > () + __CounterIncremented_GAP_0),
+        "defined_type/#[component]: `CounterIncremented`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CounterIncremented {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CounterIncremented {}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CounterIncrementedCpi {
     pub new_count: u64,
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CounterIncrementedCpi {
+    pub new_count: u64,
+    pub __naclac_padding_0: [u8; __CounterIncrementedCpi_GAP_0],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CounterIncrementedCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CounterIncrementedCpi > () == (::core::mem::size_of:: <
+        u64 > () + __CounterIncrementedCpi_GAP_0),
+        "defined_type/#[component]: `CounterIncrementedCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CounterIncrementedCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CounterIncrementedCpi {}
 
 #[cfg(feature = "offchain")]
+impl crate::sdk_core_offchain::NaclacEvent for CounterIncremented {
+    const DISCRIMINATOR: &'static [u8] = &[219, 181, 183, 220, 88, 58, 114, 198];
+    const PROGRAM_ID: crate::sdk_core_offchain::Address = crate::types::PROGRAM_ID;
+    const CPI_TAG: &'static [u8] = &[34, 131, 189, 8, 189, 141, 224, 48];
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Variable-length payload for the self-CPI vs. `sol_log_data` CU sweep —
 /// `data`'s length is the swept variable.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct SizedPayload {
     pub data: crate::sdk_core_offchain::Vec<u8>,
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Variable-length payload for the self-CPI vs. `sol_log_data` CU sweep —
+/// `data`'s length is the swept variable.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SizedPayload {
+    pub data: crate::sdk_core_offchain::Vec<u8>,
+    pub __naclac_padding_0: [u8; __SizedPayload_GAP_0],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __SizedPayload_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Vec<u8>>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Vec<u8>>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SizedPayload > () == (::core::mem::size_of:: < crate
+        ::sdk_core_offchain::Vec < u8 > > () + __SizedPayload_GAP_0),
+        "defined_type/#[component]: `SizedPayload`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<crate::sdk_core_offchain::Vec<u8>>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for SizedPayload {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for SizedPayload {}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Variable-length payload for the self-CPI vs. `sol_log_data` CU sweep —
 /// `data`'s length is the swept variable.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct SizedPayloadCpi {
     pub data: crate::sdk_core_cpi::Vec<u8>,
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Variable-length payload for the self-CPI vs. `sol_log_data` CU sweep —
+/// `data`'s length is the swept variable.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct SizedPayloadCpi {
+    pub data: crate::sdk_core_cpi::ZcVec<u8>,
+    pub __naclac_padding_0: [u8; __SizedPayloadCpi_GAP_0],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __SizedPayloadCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::ZcVec<u8>>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::ZcVec<u8>>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < SizedPayloadCpi > () == (::core::mem::size_of:: < crate
+        ::sdk_core_cpi::ZcVec < u8 > > () + __SizedPayloadCpi_GAP_0),
+        "defined_type/#[component]: `SizedPayloadCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<crate::sdk_core_cpi::ZcVec<u8>>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for SizedPayloadCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for SizedPayloadCpi {}
+
+#[cfg(feature = "offchain")]
+impl crate::sdk_core_offchain::NaclacEvent for SizedPayload {
+    const DISCRIMINATOR: &'static [u8] = &[91, 244, 46, 223, 146, 67, 182, 142];
+    const PROGRAM_ID: crate::sdk_core_offchain::Address = crate::types::PROGRAM_ID;
+    const CPI_TAG: &'static [u8] = &[34, 131, 189, 8, 189, 141, 224, 48];
+}
 

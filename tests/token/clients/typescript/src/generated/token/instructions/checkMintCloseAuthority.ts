@@ -3,12 +3,12 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_mint_close_authority` instruction. */
+/** Discriminator for the `check_mint_close_authority` instruction. */
 export const CHECK_MINT_CLOSE_AUTHORITY_DISCRIMINATOR = new Uint8Array([202, 75, 99, 238, 200, 177, 4, 8]);
 
 /** Instruction arguments for `checkMintCloseAuthority`. */
 export interface CheckMintCloseAuthorityArgs {
-  expected_close_authority: naclac.Address | string | null;
+  expectedCloseAuthority: naclac.Address | string | null;
 }
 
 /** Accounts for the `checkMintCloseAuthority` instruction. */

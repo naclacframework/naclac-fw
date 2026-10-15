@@ -38,7 +38,7 @@ export class ErrorCodesClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider, false);
+    this.program = new naclac.Program(IDL, provider, false, []);
   }
 
   /**

@@ -26,3 +26,7 @@ export * from "./emitViaSelfCpiFixed512";
 export * from "./emitViaSelfCpiFixed2048";
 export * from "./logEventSigned";
 export * from "./emitViaSelfCpiSignedBaseline";
+export * from "./eventCpiEmit";
+export * from "./eventCpiNoop";
+export * from "./eventCpiLogOne";
+export * from "./eventCpiEmitOne";

@@ -1,4 +1,4 @@
-﻿//! Sequential, idempotent, cross-cluster lifecycle test for `pump_amm` --
+//! Sequential, idempotent, cross-cluster lifecycle test for `pump_amm` --
 //! the `pump_amm` counterpart to `pump-bonding-curve`'s own
 //! `pump_lifecycle_test.rs` and `pump-fees`'s own `pump_fees_lifecycle_test.rs`.
 //!

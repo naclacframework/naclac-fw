@@ -65,15 +65,19 @@ pub fn generate_instructions(
                     file_content.push_str(&format!(
                         "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize))]\n\
                          #[cfg_attr(feature = \"borsh\", borsh(crate = \"{sdk_core}::borsh\"))]\n\
-                         #[cfg_attr(not(feature = \"borsh\"), derive(Copy, Clone, Debug))]\n\
-                         #[cfg_attr(not(feature = \"borsh\"), repr(C, packed))]\n\
+                         #[cfg_attr(feature = \"wincode\", derive(Clone, Debug, {sdk_core}::wincode::SchemaWrite))]\n\
+                         #[cfg_attr(feature = \"wincode\", wincode(crate = \"{sdk_core}::wincode\"))]\n\
+                         #[cfg_attr(not(any(feature = \"borsh\", feature = \"wincode\")), derive(Copy, Clone, Debug))]\n\
+                         #[cfg_attr(not(any(feature = \"borsh\", feature = \"wincode\")), repr(C, packed))]\n\
                          pub struct {struct_name} {{\n"
                     ));
                 } else {
                     file_content.push_str(&format!(
                         "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize))]\n\
                          #[cfg_attr(feature = \"borsh\", borsh(crate = \"{sdk_core}::borsh\"))]\n\
-                         #[cfg_attr(not(feature = \"borsh\"), derive(Clone, Debug))]\n\
+                         #[cfg_attr(feature = \"wincode\", derive(Clone, Debug, {sdk_core}::wincode::SchemaWrite))]\n\
+                         #[cfg_attr(feature = \"wincode\", wincode(crate = \"{sdk_core}::wincode\"))]\n\
+                         #[cfg_attr(not(any(feature = \"borsh\", feature = \"wincode\")), derive(Clone, Debug))]\n\
                          pub struct {struct_name} {{\n"
                     ));
                 }
@@ -95,12 +99,14 @@ pub fn generate_instructions(
 
                 if pod_only {
                     file_content.push_str(cfg_gate);
-                    file_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+                    file_content
+                        .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
                     file_content.push_str(&format!(
                         "unsafe impl {sdk_core}::bytemuck::Zeroable for {struct_name} {{}}\n"
                     ));
                     file_content.push_str(cfg_gate);
-                    file_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+                    file_content
+                        .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
                     file_content.push_str(&format!(
                         "unsafe impl {sdk_core}::bytemuck::Pod for {struct_name} {{}}\n\n"
                     ));

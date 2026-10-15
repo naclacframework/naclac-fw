@@ -74,12 +74,54 @@ pub fn generate(
         if idl.alloc_event_names.contains(&event.name) {
             generate_alloc_event(&mut events_content, event, &event_camel, idl.is_zero_copy);
         } else {
-            generate_fixed_event(&mut events_content, event, &event_camel, idl.is_zero_copy);
+            generate_fixed_event(
+                &mut events_content,
+                event,
+                &event_camel,
+                idl.is_zero_copy,
+                &idl.defined_types,
+            );
         }
+        generate_event_discriminator_impl(
+            &mut events_content,
+            event,
+            &event_camel,
+            idl.event_cpi_tag.as_deref(),
+        );
     }
 
     fs::write(clients_dir.join("src/types/events.rs"), events_content).unwrap();
     Ok(())
+}
+
+/// Emits `impl NaclacEvent for <Event>` carrying the event's IDL discriminator,
+/// the emitting program's ID, and its self-CPI tag (empty when the program
+/// never uses `#[event_cpi]`). Only the off-chain struct gets it:
+/// `NaclacEvent` is how `parse_events_*` finds an event in a transaction's
+/// logs and inner instructions, which only the off-chain client does.
+fn generate_event_discriminator_impl(
+    events_content: &mut String,
+    event: &IdlEventDef,
+    event_camel: &str,
+    event_cpi_tag: Option<&[u8]>,
+) {
+    let Some(discriminator) = &event.discriminator else {
+        return;
+    };
+    let join = |bytes: &[u8]| {
+        bytes
+            .iter()
+            .map(|b| b.to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    events_content.push_str("#[cfg(feature = \"offchain\")]\n");
+    events_content.push_str(&format!(
+        "impl crate::sdk_core_offchain::NaclacEvent for {} {{\n    const DISCRIMINATOR: &'static [u8] = &[{}];\n    const PROGRAM_ID: crate::sdk_core_offchain::Address = crate::types::PROGRAM_ID;\n    const CPI_TAG: &'static [u8] = &[{}];\n}}\n\n",
+        event_camel,
+        join(discriminator),
+        join(event_cpi_tag.unwrap_or(&[]))
+    ));
 }
 
 /// Plain `#[event]` — fixed-size, `bytemuck`-cast wire format.
@@ -88,6 +130,7 @@ fn generate_fixed_event(
     event: &IdlEventDef,
     event_camel: &str,
     is_zero_copy: bool,
+    defined_types: &[crate::IdlType],
 ) {
     // Field types (e.g. `Address`/`Bool`) genuinely differ between
     // `sdk_core_offchain` and `sdk_core_cpi` — not interchangeable, just
@@ -110,38 +153,114 @@ fn generate_fixed_event(
             event_camel.to_string()
         };
 
+        let mapped_field_tys: Vec<String> = event
+            .fields
+            .iter()
+            .map(|field| {
+                if for_cpi {
+                    map_type_to_rust_cpi(&field.ty, is_zero_copy, "")
+                } else {
+                    map_type_to_rust_with_prefix(&field.ty, is_zero_copy, "")
+                }
+            })
+            .collect();
+
+        // Borsh / Wincode: the fields as written, tightly packed.
         events_content.push_str(cfg);
+        events_content.push_str("#[cfg(any(feature = \"borsh\", feature = \"wincode\"))]\n");
         events_content.push_str(&render_docs(&event.docs, ""));
         events_content.push_str(&format!(
             "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]\n\
              #[cfg_attr(feature = \"borsh\", borsh(crate = \"{sdk_core}::borsh\"))]\n\
-             #[cfg_attr(not(feature = \"borsh\"), derive(Copy, Clone, Debug))]\n\
-             #[cfg_attr(not(feature = \"borsh\"), repr(C))]\n\
+             #[cfg_attr(feature = \"wincode\", derive(Clone, Debug, {sdk_core}::wincode::SchemaWrite, {sdk_core}::wincode::SchemaRead))]\n\
+             #[cfg_attr(feature = \"wincode\", wincode(crate = \"{sdk_core}::wincode\"))]\n\
              pub struct {name} {{\n",
             sdk_core = sdk_core,
             name = struct_name
         ));
-
-        for field in &event.fields {
+        for (field, f_ty) in event.fields.iter().zip(&mapped_field_tys) {
             let f_snake = AsSnakeCase(&field.name).to_string();
-            let f_ty = if for_cpi {
-                map_type_to_rust_cpi(&field.ty, is_zero_copy, "")
-            } else {
-                map_type_to_rust_with_prefix(&field.ty, is_zero_copy, "")
-            };
             events_content.push_str(&render_docs(&field.docs, "    "));
             events_content.push_str(&format!("    pub {}: {},\n", f_snake, f_ty));
         }
         events_content.push_str("}\n\n");
 
+        // Zero-copy: the on-chain `repr(C)` wire layout. Padding fields come
+        // from `pod_struct_checks`, computed by the compiler from the real
+        // field types, exactly as for components; the IDL carries none.
+        let zero_copy_field_tys: Vec<String> = event
+            .fields
+            .iter()
+            .map(|field| {
+                crate::rust::map_zero_copy_field_type(&field.ty, "", for_cpi, defined_types)
+            })
+            .collect();
+        let mut scratch_fields_src = String::new();
+        for (field, f_ty) in event.fields.iter().zip(&zero_copy_field_tys) {
+            let f_snake = AsSnakeCase(&field.name).to_string();
+            scratch_fields_src.push_str(&format!("pub {}: {},\n", f_snake, f_ty));
+        }
+        let scratch_src = format!("struct {} {{ {} }}", struct_name, scratch_fields_src);
+        let parsed_struct: syn::ItemStruct = syn::parse_str(&scratch_src).unwrap_or_else(|e| {
+            panic!(
+                "event: generated struct `{}` failed to parse as a syn::ItemStruct (bug in \
+                 naclac-client-gen's type-string generation, not in the source IDL): {e}",
+                struct_name
+            )
+        });
+        let struct_ident: syn::Ident =
+            syn::parse_str(&struct_name).expect("event: struct name must be a valid identifier");
+        let (padded_fields, extra_items) = crate::rust::pod_codegen::pod_struct_checks::generate(
+            &struct_ident,
+            &parsed_struct.fields,
+            sdk_core,
+        );
+        let struct_file: syn::File = syn::parse2(quote::quote! {
+            #[derive(Copy, Clone, Debug)]
+            #[repr(C)]
+            pub struct #struct_ident #padded_fields
+        })
+        .expect("event: generated struct item must parse as a syn::File");
         events_content.push_str(cfg);
-        events_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+        events_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
+        events_content.push_str(&render_docs(&event.docs, ""));
+        events_content.push_str(&prettyplease::unparse(&struct_file));
+        events_content.push('\n');
+
+        // `#[cfg]` gates only the item directly below it, so each of the
+        // check items needs both gates attached individually.
+        let mut extra_file: syn::File = syn::parse2(extra_items)
+            .expect("event: pod_struct_checks::generate output must parse as a syn::File");
+        let feature_cfg: syn::Attribute = if for_cpi {
+            syn::parse_quote!(#[cfg(feature = "cpi")])
+        } else {
+            syn::parse_quote!(#[cfg(feature = "offchain")])
+        };
+        let not_serde_cfg: syn::Attribute =
+            syn::parse_quote!(#[cfg(not(any(feature = "borsh", feature = "wincode")))]);
+        for item in &mut extra_file.items {
+            let attrs = match item {
+                syn::Item::Const(c) => &mut c.attrs,
+                syn::Item::Fn(f) => &mut f.attrs,
+                other => panic!(
+                    "event: pod_struct_checks::generate produced an unexpected item kind: {:?}",
+                    other
+                ),
+            };
+            attrs.insert(0, not_serde_cfg.clone());
+            attrs.insert(0, feature_cfg.clone());
+        }
+        events_content.push_str(&prettyplease::unparse(&extra_file));
+        events_content.push('\n');
+
+        events_content.push_str(cfg);
+        events_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
         events_content.push_str(&format!(
             "unsafe impl {}::bytemuck::Zeroable for {} {{}}\n",
             sdk_core, struct_name
         ));
         events_content.push_str(cfg);
-        events_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+        events_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
         events_content.push_str(&format!(
             "unsafe impl {}::bytemuck::Pod for {} {{}}\n\n",
             sdk_core, struct_name
@@ -155,7 +274,8 @@ fn generate_fixed_event(
 /// buffer field-by-field in exactly the order `expand_alloc`'s `emit()`
 /// wrote them: u32 LE length prefix + bytes for `Vec`/`String`, 1-byte tag
 /// (+ bytes when present) for `Option`, a raw read otherwise. Every fixed
-/// read uses `pod_read_unaligned`, not `try_from_bytes`: this is a tight
+/// read uses `checked::try_pod_read_unaligned` (so a zero-copy enum with an
+/// invalid tag decodes to `None`), not `try_from_bytes`: this is a tight
 /// byte-packed concat, so most field offsets aren't multiples of the
 /// field's own alignment (e.g. a `u64` sitting right after a 4-byte length
 /// prefix) — `try_from_bytes`'s alignment-checked cast would fail there.
@@ -191,7 +311,9 @@ fn generate_alloc_event(
         events_content.push_str(&format!(
             "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]\n\
              #[cfg_attr(feature = \"borsh\", borsh(crate = \"{sdk_core}::borsh\"))]\n\
-             #[cfg_attr(not(feature = \"borsh\"), derive(Clone, Debug))]\n\
+             #[cfg_attr(feature = \"wincode\", derive(Clone, Debug, {sdk_core}::wincode::SchemaWrite, {sdk_core}::wincode::SchemaRead))]\n\
+             #[cfg_attr(feature = \"wincode\", wincode(crate = \"{sdk_core}::wincode\"))]\n\
+             #[cfg_attr(not(any(feature = \"borsh\", feature = \"wincode\")), derive(Clone, Debug))]\n\
              pub struct {name} {{\n",
             sdk_core = sdk_core,
             name = struct_name
@@ -214,7 +336,7 @@ fn generate_alloc_event(
     // field parsing) is only ever needed off-chain, reading logs back from
     // an RPC provider — never by an on-chain CPI caller.
     events_content.push_str("#[cfg(feature = \"offchain\")]\n");
-    events_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+    events_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
     events_content.push_str(&format!(
         "impl crate::sdk_core_offchain::NaclacAllocEvent for {} {{\n",
         event_camel
@@ -257,7 +379,7 @@ fn generate_alloc_event(
                 events_content
                     .push_str("            if bytes.len() < __offset + __sz { return None; }\n");
                 events_content.push_str(&format!(
-                    "            {}.push(crate::sdk_core_offchain::bytemuck::pod_read_unaligned::<{}>(&bytes[__offset..__offset + __sz]));\n",
+                    "            {}.push(crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<{}>(&bytes[__offset..__offset + __sz]).ok()?);\n",
                     f_snake, inner_ty
                 ));
                 events_content.push_str("            __offset += __sz;\n");
@@ -276,7 +398,7 @@ fn generate_alloc_event(
                 events_content
                     .push_str("            if bytes.len() < __offset + __sz { return None; }\n");
                 events_content.push_str(&format!(
-                    "            let __v = crate::sdk_core_offchain::bytemuck::pod_read_unaligned::<{}>(&bytes[__offset..__offset + __sz]);\n",
+                    "            let __v = crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<{}>(&bytes[__offset..__offset + __sz]).ok()?;\n",
                     inner_ty
                 ));
                 events_content.push_str("            __offset += __sz;\n");
@@ -294,7 +416,7 @@ fn generate_alloc_event(
                 events_content
                     .push_str("        if bytes.len() < __offset + __sz { return None; }\n");
                 events_content.push_str(&format!(
-                    "        let {} = crate::sdk_core_offchain::bytemuck::pod_read_unaligned::<{}>(&bytes[__offset..__offset + __sz]);\n",
+                    "        let {} = crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<{}>(&bytes[__offset..__offset + __sz]).ok()?;\n",
                     f_snake, f_ty
                 ));
                 events_content.push_str("        __offset += __sz;\n");

@@ -58,9 +58,9 @@ pub fn initialize_immutable_owner_signed(
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 account.info.address(),
                 false,
             )],
@@ -75,7 +75,7 @@ pub fn initialize_immutable_owner_signed(
         let _ = signer_seeds;
         let ix = ::pinocchio_token_2022::instructions::InitializeImmutableOwner {
             account: &account.info.view,
-            token_program: &program.info.view.address(),
+            token_program: program.info.view.address(),
         };
         ix.invoke()
     }

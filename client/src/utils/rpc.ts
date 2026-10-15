@@ -5,8 +5,6 @@ const NATIVE_SOLANA_ERRORS: Record<string, string> = {
   "0x3": "Missing Required Signature",
   "0x4": "Account Data Too Small",
   "0x5": "Insufficient Funds For Rent",
-  "0xbb8": "Account Already Initialized",
-  "0xbbf": "Account Not Initialized",
 };
 
 const NACLAC_FRAMEWORK_ERROR_TYPES: Record<number, string> = {
@@ -38,6 +36,9 @@ const NACLAC_FRAMEWORK_ERROR_TYPES: Record<number, string> = {
   26: "Cannot close account to itself",
   27: "Too many PDA signers in one CPI call (exceeds MAX_CPI_SIGNERS)",
   28: "Too many seeds for one PDA signer in a CPI call (exceeds MAX_CPI_SEEDS_PER_SIGNER)",
+  29: "Too many extra accounts appended to a CPI (exceeds its fixed maximum)",
+  30: "Too many accounts in one CPI call",
+  31: "Instruction carries more than 64 account entries",
 };
 
 /** A decoded program error from the IDL. */
@@ -131,9 +132,10 @@ export function translateRpcError(
       throw enriched;
     }
 
-    // 3. Try to resolve from Naclac Framework Errors (Range 3000 - 3999)
-    if (errorCode >= 3000 && errorCode < 4000) {
-      const offset = errorCode - 3000;
+    // Naclac framework errors: 10000 + accountIndex * 100 + type, for account
+    // indices 0..=255. User-defined error codes (6000+) always stay below 10000.
+    if (errorCode >= 10000 && errorCode < 10000 + 256 * 100) {
+      const offset = errorCode - 10000;
       const errorType = offset % 100;
       const accountIndex = Math.floor(offset / 100);
 

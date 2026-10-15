@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `close_optional_thing` instruction. */
+/** Discriminator for the `close_optional_thing` instruction. */
 export const CLOSE_OPTIONAL_THING_DISCRIMINATOR = new Uint8Array([211, 189, 56, 195, 39, 18, 164, 246]);
 
 /** Accounts for the `closeOptionalThing` instruction. */

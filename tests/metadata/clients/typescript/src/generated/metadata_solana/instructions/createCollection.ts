@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_collection` instruction. */
+/** Discriminator for the `create_collection` instruction. */
 export const CREATE_COLLECTION_DISCRIMINATOR = new Uint8Array([156, 251, 92, 54, 233, 2, 16, 82]);
 
 /** Instruction arguments for `createCollection`. */
@@ -16,12 +16,12 @@ export interface CreateCollectionArgs {
 export interface CreateCollectionAccounts {
   collection: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * SAFETY: the real Metaplex Core program — see `create_asset.rs`'s
    * `mpl_core_program` field for why this is a bare `AccountInfo`.
    */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

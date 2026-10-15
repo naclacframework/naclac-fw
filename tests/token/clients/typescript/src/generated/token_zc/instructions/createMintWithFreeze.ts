@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint_with_freeze` instruction. */
+/** Discriminator for the `create_mint_with_freeze` instruction. */
 export const CREATE_MINT_WITH_FREEZE_DISCRIMINATOR = new Uint8Array([196, 21, 137, 205, 211, 246, 135, 220]);
 
 /** Instruction arguments for `createMintWithFreeze`. */

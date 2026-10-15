@@ -1,0 +1,27 @@
+[package]
+name = "event_cpi_widths_borsh"
+version = "0.1.0"
+description = "Regression test: #[event_cpi] with non-default instruction/event discriminator widths (solana-borsh backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["borsh"]
+borsh = ["naclac-lang/borsh"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+event-cpi-widths-borsh-client = { version = "0.1.0", path = "../../clients/rust/event_cpi_widths_borsh" }
+
+[lints]
+workspace = true

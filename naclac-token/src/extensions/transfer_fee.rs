@@ -292,9 +292,9 @@ pub fn initialize_transfer_fee_config_signed(
         data.extend_from_slice(&transfer_fee_basis_points.to_le_bytes());
         data.extend_from_slice(&maximum_fee.to_le_bytes());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -374,11 +374,11 @@ pub fn set_transfer_fee_signed(
         data.extend_from_slice(&transfer_fee_basis_points.to_le_bytes());
         data.extend_from_slice(&maximum_fee.to_le_bytes());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),
@@ -465,13 +465,13 @@ pub fn transfer_checked_with_fee_signed(
         data.push(decimals);
         data.extend_from_slice(&fee.to_le_bytes());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(source.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new(destination.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(source.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(mint.info.address(), false),
+                solana_instruction::AccountMeta::new(destination.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),
@@ -549,16 +549,16 @@ pub fn harvest_withheld_tokens_to_mint_signed(
 
     #[cfg(not(feature = "pinocchio"))]
     {
-        let mut accounts = vec![solana_program::instruction::AccountMeta::new(
+        let mut accounts = vec![solana_instruction::AccountMeta::new(
             mint.info.address(),
             false,
         )];
         accounts.extend(
             sources.iter().map(|source| {
-                solana_program::instruction::AccountMeta::new(source.address(), false)
+                solana_instruction::AccountMeta::new(source.address(), false)
             }),
         );
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts,
             data: data.to_vec(),
@@ -623,12 +623,12 @@ pub fn withdraw_withheld_tokens_from_mint_signed(
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new(destination.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new(destination.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),
@@ -710,16 +710,16 @@ pub fn withdraw_withheld_tokens_from_accounts_signed(
     #[cfg(not(feature = "pinocchio"))]
     {
         let mut accounts = vec![
-            solana_program::instruction::AccountMeta::new_readonly(mint.info.address(), false),
-            solana_program::instruction::AccountMeta::new(destination.info.address(), false),
-            solana_program::instruction::AccountMeta::new_readonly(authority.info.address(), true),
+            solana_instruction::AccountMeta::new_readonly(mint.info.address(), false),
+            solana_instruction::AccountMeta::new(destination.info.address(), false),
+            solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
         ];
         accounts.extend(
             sources.iter().map(|source| {
-                solana_program::instruction::AccountMeta::new(source.address(), false)
+                solana_instruction::AccountMeta::new(source.address(), false)
             }),
         );
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts,
             data: vec![26u8, 3u8, num_token_accounts],
@@ -760,7 +760,7 @@ pub fn withdraw_withheld_tokens_from_accounts_signed(
             data: &data,
         };
         let mut cpi_handles: [CpiHandle<'_>; MAX_TRANSFER_FEE_SOURCE_ACCOUNTS + 3] =
-            core::array::from_fn(|_| mint.clone());
+            core::array::from_fn(|_| mint);
         cpi_handles[1] = destination_handle;
         cpi_handles[2] = authority;
         cpi_handles[3..3 + sources.len()].clone_from_slice(sources);

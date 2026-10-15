@@ -7,17 +7,19 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct InitChildIxArgs {
     pub bump: u8,
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for InitChildIxArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for InitChildIxArgs {}
 
 #[cfg(feature = "cpi")]
@@ -26,17 +28,19 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct InitChildCpiIxArgs {
     pub bump: u8,
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for InitChildCpiIxArgs {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for InitChildCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
@@ -58,13 +62,17 @@ pub fn build_init_child<'a>(
     let args = InitChildIxArgs {
         bump,
     };
-    #[cfg(not(feature = "borsh"))]
+    #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
         ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(&args));
     }
     #[cfg(feature = "borsh")]
     {
         crate::sdk_core_offchain::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+    }
+    #[cfg(feature = "wincode")]
+    {
+        crate::sdk_core_offchain::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_offchain::wincode_config::CONFIG).unwrap();
     }
     naclac_client::InstructionBuilder::new(provider, program_id, ix_data)
         .account(naclac_client::AccountMeta { address: accounts.payer, is_signer: true, is_writable: true }, "payer")
@@ -137,13 +145,17 @@ impl<'info> InitChildCpi<'info> for crate::sdk_core_cpi::Program<crate::PdaSeeds
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[132, 124, 156, 240, 193, 211, 5, 207]);
-        #[cfg(not(feature = "borsh"))]
+        #[cfg(not(any(feature = "borsh", feature = "wincode")))]
         {
         ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args));
         }
         #[cfg(feature = "borsh")]
         {
             crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+        }
+        #[cfg(feature = "wincode")]
+        {
+            crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();
         }
         #[cfg(feature = "pinocchio")]
         {
@@ -204,20 +216,20 @@ impl<'info> InitChildCpi<'info> for crate::sdk_core_cpi::Program<crate::PdaSeeds
         {
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.registry.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.child.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.payer.address(), true),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.registry.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.child.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new(acc.address(), *is_signer)
                 } else {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
                 };
                 account_metas.push(meta);
             }
-            let instruction = ::naclac_lang::solana_program::instruction::Instruction {
+            let instruction = ::naclac_lang::solana_instruction::Instruction {
                 program_id: self.address(),
                 accounts: account_metas,
                 data: ix_data,

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022_with_pausable` instruction. */
+/** Discriminator for the `create_mint2022_with_pausable` instruction. */
 export const CREATE_MINT2022_WITH_PAUSABLE_DISCRIMINATOR = new Uint8Array([5, 234, 25, 249, 211, 112, 86, 17]);
 
 /** Instruction arguments for `createMint2022WithPausable`. */

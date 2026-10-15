@@ -8,23 +8,13 @@
 
 use crate::prelude::{Result, ToAccountInfo, ToCpiHandleMut};
 
-#[cfg(not(feature = "pinocchio"))]
-use crate::prelude::{Rent, Sysvar};
-
-/// The constant-rent formula (`ACCOUNT_STORAGE_OVERHEAD` = 128 bytes,
-/// `DEFAULT_LAMPORTS_PER_BYTE_YEAR`-derived rate = 6960) — used
-/// unconditionally under pinocchio (no `Rent` sysvar exists there at all)
-/// and *also* deliberately by `naclac-macros`' non-pinocchio `init`/
-/// `init_if_needed` codegen as a CU optimization over a real
-/// `Rent::get()?.minimum_balance()` sysvar call (~101 CU here vs. ~668 CU
-/// measured for the real fetch) — so this function is backend-neutral, not
-/// pinocchio-only, despite `resize_with_rent` below only reaching for it on
-/// the pinocchio branch (its non-pinocchio branch already has the real
-/// sysvar available and uses it instead, for correctness over the CU
-/// saving). Previously duplicated as literal generated tokens in 6 separate
-/// places across `naclac-macros/src/instruction/{security,init_cpi}.rs`;
-/// extracted here so it's provable once instead of trusted identical six
-/// times over (see docs/plan/kani-audit.md).
+/// Rent-exempt minimum balance for an account of `space` bytes:
+/// `(ACCOUNT_STORAGE_OVERHEAD + space) * DEFAULT_LAMPORTS_PER_BYTE` with the
+/// default rent parameters (128 bytes, 6960 lamports/byte), the same value
+/// the `Rent` sysvar's `minimum_balance` returns under them. Every rent
+/// computation on both backends goes through this function instead of the
+/// sysvar, so a change to the cluster's rent parameters must be applied
+/// here.
 pub fn const_rent_lamports(space: usize) -> u64 {
     const STORAGE_OVERHEAD: u64 = 128;
     const LAMPORTS_PER_BYTE: u64 = 6960;
@@ -56,11 +46,6 @@ where
     }
 
     let current_lamports = target_info.lamports();
-
-    #[cfg(not(feature = "pinocchio"))]
-    let required_lamports = Rent::get()?.minimum_balance(new_space);
-
-    #[cfg(feature = "pinocchio")]
     let required_lamports = const_rent_lamports(new_space);
 
     if required_lamports > current_lamports {

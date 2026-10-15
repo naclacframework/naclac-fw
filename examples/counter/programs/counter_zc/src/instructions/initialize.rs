@@ -11,6 +11,7 @@ pub struct Initialize {
         init,
         payer = payer,
         seeds = [SEED_COUNTER],
+        bump
     )]
     pub counter_account: Account<Counter>,
 
@@ -18,7 +19,6 @@ pub struct Initialize {
 }
 
 pub fn initialize(ctx: Context<Initialize>) -> Result {
-
     let counter = &mut ctx.accounts.counter_account;
 
     counter.authority = ctx.accounts.payer.address();

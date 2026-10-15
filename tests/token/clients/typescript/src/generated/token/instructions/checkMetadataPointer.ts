@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_metadata_pointer` instruction. */
+/** Discriminator for the `check_metadata_pointer` instruction. */
 export const CHECK_METADATA_POINTER_DISCRIMINATOR = new Uint8Array([34, 63, 86, 85, 52, 173, 248, 248]);
 
 /** Instruction arguments for `checkMetadataPointer`. */
 export interface CheckMetadataPointerArgs {
-  expected_authority: naclac.Address | string | null;
-  expected_metadata_address: naclac.Address | string | null;
+  expectedAuthority: naclac.Address | string | null;
+  expectedMetadataAddress: naclac.Address | string | null;
 }
 
 /** Accounts for the `checkMetadataPointer` instruction. */

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_pair_no_alias` instruction. */
+/** Discriminator for the `touch_pair_no_alias` instruction. */
 export const TOUCH_PAIR_NO_ALIAS_DISCRIMINATOR = new Uint8Array([190, 215, 73, 163, 169, 6, 238, 225]);
 
 /** Accounts for the `touchPairNoAlias` instruction. */

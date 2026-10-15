@@ -60,8 +60,9 @@ pub fn generate_legacy_client(
     // See `kit.rs`'s equivalent line: `idl.is_zero_copy` is codegen-time-only
     // and never written into the IDL data itself — baked in here as a literal.
     client_content.push_str(&format!(
-        "    this.program = new naclac.LegacyProgram(IDL, provider, {});\n",
-        idl.is_zero_copy
+        "    this.program = new naclac.LegacyProgram(IDL, provider, {}, {});\n",
+        idl.is_zero_copy,
+        super::shared::alloc_events_literal(idl)?
     ));
     client_content.push_str("  }\n\n");
 
@@ -203,7 +204,8 @@ pub fn generate_legacy_client(
                     if idl.defined_types.iter().any(|t| t.name == arg_ty) {
                         arg_ty = format!("types.{}", arg_ty);
                     }
-                    client_content.push_str(&format!("    {}: {arg_ty};\n", root.to_lower_camel_case()));
+                    client_content
+                        .push_str(&format!("    {}: {arg_ty};\n", root.to_lower_camel_case()));
                 }
                 IdlSeed::Account { path, field_type } => {
                     if seen_seeds.contains(path) {
@@ -221,8 +223,10 @@ pub fn generate_legacy_client(
                         client_content.push_str(&format!("    {key}: {ts_ty};\n"));
                     } else {
                         // PublicKey | string — no direct web3.js import, naclac re-exports PublicKey
-                        client_content
-                            .push_str(&format!("    {}: naclac.PublicKey | string;\n", path.to_lower_camel_case()));
+                        client_content.push_str(&format!(
+                            "    {}: naclac.PublicKey | string;\n",
+                            path.to_lower_camel_case()
+                        ));
                     }
                 }
                 _ => {}
@@ -276,7 +280,9 @@ pub fn generate_legacy_client(
                     } else {
                         // toBuffer() is a web3.js v1 PublicKey method — safe via naclac.PublicKey
                         let camel_path = path.to_lower_camel_case();
-                        seeds_exprs.push(format!("new naclac.PublicKey(seeds.{camel_path}).toBuffer()"));
+                        seeds_exprs.push(format!(
+                            "new naclac.PublicKey(seeds.{camel_path}).toBuffer()"
+                        ));
                     }
                 }
             }
@@ -340,11 +346,11 @@ pub fn generate_legacy_client(
         client_content.push_str("  }\n\n");
 
         client_content.push_str(&format!(
-            "  /** Decodes every `{}` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitFor{}` — prefer this when you already know which transaction you're checking. */\n  public parse{}Events(logs: readonly string[]) {{\n",
+            "  /** Decodes every `{}` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitFor{}` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */\n  public parse{}Events(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {{\n",
             event.name, event.name, event.name
         ));
         client_content.push_str(&format!(
-            "    return this.program.parseEvents<types.{}>(\"{}\", logs);\n",
+            "    return this.program.parseEvents<types.{}>(\"{}\", logs, innerInstructions);\n",
             event.name, event.name
         ));
         client_content.push_str("  }\n\n");
@@ -380,7 +386,7 @@ pub fn generate_legacy_client(
                 .collect::<Vec<_>>()
                 .join(", ");
             f.push_str(&format!(
-                "/** 8-byte on-chain discriminator for `{acct_name}` accounts. */\nexport const {}_DISCRIMINATOR = new Uint8Array([{arr}]);\n\n",
+                "/** On-chain discriminator for `{acct_name}` accounts. */\nexport const {}_DISCRIMINATOR = new Uint8Array([{arr}]);\n\n",
                 acct_name.to_uppercase()
             ));
         }

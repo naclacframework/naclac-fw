@@ -12,6 +12,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 heck = { workspace = true }
 bs58 = { workspace = true }
+toml = { workspace = true }
 # Only needed to generate the zero-copy `CheckedBitPattern` machinery for a
 # data-carrying enum client-side (see `rust/pod_codegen/checked_enum.rs`) —
 # this crate otherwise generates client code as plain template strings, not

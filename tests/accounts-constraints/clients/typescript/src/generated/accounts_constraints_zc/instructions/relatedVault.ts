@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `related_vault` instruction. */
+/** Discriminator for the `related_vault` instruction. */
 export const RELATED_VAULT_DISCRIMINATOR = new Uint8Array([211, 244, 86, 173, 76, 192, 89, 93]);
 
 /** Accounts for the `relatedVault` instruction. */

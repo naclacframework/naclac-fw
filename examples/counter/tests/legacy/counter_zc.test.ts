@@ -8,7 +8,7 @@ describe("Naclac CounterZc Test Suite (Legacy)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterZcClient("litesvm", payer);
+    client = new CounterZcClient("devnet", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 
@@ -46,9 +46,12 @@ describe("Naclac CounterZc Test Suite (Legacy)", () => {
       throw new Error("Count did not increment correctly");
     }
 
-    // Race-free: reads events straight out of the already-confirmed
-    // transaction's own logs, instead of racing a live subscription.
-    const capturedEvents = client.parseCounterIncrementedEvents(txResult!.logs);
+    // The event is a self-CPI (`emit_cpi!`), so it is in the transaction's
+    // inner instructions, not its logs.
+    const capturedEvents = client.parseCounterIncrementedEvents(
+      txResult!.logs,
+      txResult!.innerInstructions,
+    );
     if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
 
     console.log(`      🔔 Event Fired! New Count: ${capturedEvents[0].newCount}`);

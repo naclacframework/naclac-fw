@@ -110,4 +110,20 @@ pub mod events_prog {
     pub fn emit_via_self_cpi_signed_baseline(ctx: Context<EmitViaSelfCpiSignedBaseline>) -> Result {
         emit_via_self_cpi_signed_baseline::emit_via_self_cpi_signed_baseline(ctx)
     }
+
+    pub fn event_cpi_emit(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_emit(ctx)
+    }
+
+    pub fn event_cpi_noop(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_noop(ctx)
+    }
+
+    pub fn event_cpi_log_one(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_log_one(ctx)
+    }
+
+    pub fn event_cpi_emit_one(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_emit_one(ctx)
+    }
 }

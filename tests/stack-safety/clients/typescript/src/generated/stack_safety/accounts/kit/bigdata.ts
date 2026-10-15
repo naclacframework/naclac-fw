@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { BigData } from "../../types";
 
-/** 8-byte on-chain discriminator for `BigData` accounts. */
+/** On-chain discriminator for `BigData` accounts. */
 export const BIGDATA_DISCRIMINATOR = new Uint8Array([159, 10, 131, 31, 30, 194, 163, 175]);
+
+function stripBigDataDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = BIGDATA_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `BigData` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link BigData} account data. */
 export function getBigDataEncoder(): naclac.FixedSizeEncoder<BigData> {
@@ -39,7 +47,7 @@ export function decodeBigData<TAddress extends string = string>(
 ): naclac.Account<BigData, TAddress> | naclac.MaybeAccount<BigData, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripBigDataDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getBigDataDecoder(),
   );
@@ -88,7 +96,7 @@ export async function fetchAllMaybeBigData(
 }
 
 /** Fetches ALL `BigData` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllBigDataByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

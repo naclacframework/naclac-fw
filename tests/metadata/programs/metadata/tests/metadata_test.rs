@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use metadata_client::{
     instructions::{
         build_create_asset, build_create_collection, build_attach_royalties,

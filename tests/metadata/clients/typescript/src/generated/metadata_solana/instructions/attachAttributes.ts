@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_attributes` instruction. */
+/** Discriminator for the `attach_attributes` instruction. */
 export const ATTACH_ATTRIBUTES_DISCRIMINATOR = new Uint8Array([116, 30, 160, 233, 83, 45, 245, 53]);
 
 /** Instruction arguments for `attachAttributes`. */
@@ -16,14 +16,14 @@ export interface AttachAttributesArgs {
 export interface AttachAttributesAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The external Metaplex Core program to CPI into.
    * SAFETY: the real Metaplex Core program — external to this workspace,
    * so there's no naclac `Program<T>` marker type to constrain it with;
    * callers are expected to pass the real deployed program ID.
    */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

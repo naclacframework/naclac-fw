@@ -3,12 +3,12 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_master_edition` instruction. */
+/** Discriminator for the `check_master_edition` instruction. */
 export const CHECK_MASTER_EDITION_DISCRIMINATOR = new Uint8Array([8, 180, 253, 245, 59, 123, 110, 106]);
 
 /** Instruction arguments for `checkMasterEdition`. */
 export interface CheckMasterEditionArgs {
-  expected_max_supply: number;
+  expectedMaxSupply: number;
 }
 
 /** Accounts for the `checkMasterEdition` instruction. */

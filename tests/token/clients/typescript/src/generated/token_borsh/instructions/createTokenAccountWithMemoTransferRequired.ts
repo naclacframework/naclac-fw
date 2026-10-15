@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_token_account_with_memo_transfer_required` instruction. */
+/** Discriminator for the `create_token_account_with_memo_transfer_required` instruction. */
 export const CREATE_TOKEN_ACCOUNT_WITH_MEMO_TRANSFER_REQUIRED_DISCRIMINATOR = new Uint8Array([192, 22, 7, 50, 82, 109, 157, 73]);
 
 /** Accounts for the `createTokenAccountWithMemoTransferRequired` instruction. */

@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { Ledger } from "../../types";
 
-/** 8-byte on-chain discriminator for `Ledger` accounts. */
+/** On-chain discriminator for `Ledger` accounts. */
 export const LEDGER_DISCRIMINATOR = new Uint8Array([43, 41, 21, 213, 180, 176, 95, 32]);
+
+function stripLedgerDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = LEDGER_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `Ledger` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link Ledger} account data. */
 export function getLedgerEncoder(): naclac.FixedSizeEncoder<Ledger> {
@@ -39,7 +47,7 @@ export function decodeLedger<TAddress extends string = string>(
 ): naclac.Account<Ledger, TAddress> | naclac.MaybeAccount<Ledger, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripLedgerDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getLedgerDecoder(),
   );
@@ -88,7 +96,7 @@ export async function fetchAllMaybeLedger(
 }
 
 /** Fetches ALL `Ledger` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllLedgerByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

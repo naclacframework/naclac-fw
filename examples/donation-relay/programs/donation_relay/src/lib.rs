@@ -15,8 +15,8 @@ use instructions::*;
 #[program]
 pub mod donation_relay {
     pub fn donate_pubkey_config_id_with_payer_v1(
-        ctx: Context<DonatePubkeyConfigIdWithPayerV1>,
-        args: DonatePubkeyConfigIdWithPayerV1Args,
+        ctx: Context<DonateAddressConfigIdWithPayerV1>,
+        args: DonateAddressConfigIdWithPayerV1Args,
     ) -> Result {
         donate_pubkey_config_id_with_payer_v1::donate_pubkey_config_id_with_payer_v1(ctx, args)
     }

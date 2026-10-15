@@ -66,9 +66,9 @@ pub fn initialize_default_account_state_signed(
     {
         let data = vec![28u8, 0u8, state];
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -130,11 +130,11 @@ pub fn update_default_account_state_signed(
     {
         let data = vec![28u8, 1u8, state];
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     freeze_authority.info.address(),
                     true,
                 ),

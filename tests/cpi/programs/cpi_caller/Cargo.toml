@@ -5,7 +5,7 @@ description = "Regression test: cross-program invocation — system-program CPI,
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []

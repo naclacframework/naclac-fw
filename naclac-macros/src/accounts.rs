@@ -21,7 +21,9 @@ use crate::instruction::security;
 #[cfg(feature = "idl-build")]
 fn const_seed_tokens(seed: &naclac_syn::types::NaclacSeed) -> proc_macro2::TokenStream {
     let naclac_syn::types::NaclacSeed::Const { value, name } = seed else {
-        unreachable!("naclac_syn::pda's int-literal seed helpers only ever return NaclacSeed::Const");
+        unreachable!(
+            "naclac_syn::pda's int-literal seed helpers only ever return NaclacSeed::Const"
+        );
     };
     let name_tokens = match name {
         Some(n) => quote! { Some(#n.into()) },
@@ -42,10 +44,18 @@ fn const_seed_tokens(seed: &naclac_syn::types::NaclacSeed) -> proc_macro2::Token
 /// code actually compiles and runs (inside the `idl-build` print binary),
 /// the real compiler resolves the identifier through ordinary name
 /// resolution and its real value lands in the JSON — no AST-based constant
-/// lookup needed, and no `#[constant]`-tagging requirement either.
+/// lookup needed, and no `#[constant]`-tagging requirement either. The seed
+/// carries the identifier as its constant name only when it names a constant
+/// of this crate; a framework constant such as `TOKEN_PROGRAM_ID` has no
+/// entry in the program's `constants`, so it is reported unnamed.
 #[cfg(feature = "idl-build")]
 fn splice_const_fallback(expr: &syn::Expr, name: Option<&str>) -> proc_macro2::TokenStream {
-    let name_tokens = match name {
+    let is_crate_constant = |candidate: &str| {
+        crate::crate_constants()
+            .iter()
+            .any(|constant| constant.name == candidate)
+    };
+    let name_tokens = match name.filter(|candidate| is_crate_constant(candidate)) {
         Some(n) => quote! { Some(#n.into()) },
         None => quote! { None },
     };
@@ -135,42 +145,114 @@ fn build_idl_seed_expr(
         },
         syn::Expr::Path(expr_path) => {
             let ident = expr_path.path.segments.last().unwrap().ident.to_string();
-            classify_named_seed(&ident, &ident, expr, account_names, instr_names, parsed_fields)
+            classify_named_seed(
+                &ident,
+                &ident,
+                expr,
+                account_names,
+                instr_names,
+                parsed_fields,
+            )
         }
         syn::Expr::MethodCall(expr_method) => {
-            if let syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Int(int_lit), .. }) = &*expr_method.receiver {
+            if let syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Int(int_lit),
+                ..
+            }) = &*expr_method.receiver
+            {
                 let method = expr_method.method.to_string();
                 if method == "to_le_bytes" || method == "to_be_bytes" {
-                    let seed = naclac_syn::pda::int_literal_seed_bytes(int_lit, method == "to_be_bytes");
+                    let seed =
+                        naclac_syn::pda::int_literal_seed_bytes(int_lit, method == "to_be_bytes");
                     return const_seed_tokens(&seed);
                 }
             }
             if let Some(path) = naclac_syn::pda::extract_field_path(&expr_method.receiver) {
                 let root = path.split('.').next().unwrap().to_string();
-                classify_named_seed(&path, &root, expr, account_names, instr_names, parsed_fields)
+                classify_named_seed(
+                    &path,
+                    &root,
+                    expr,
+                    account_names,
+                    instr_names,
+                    parsed_fields,
+                )
             } else {
                 let root = naclac_syn::pda::extract_root_ident(&expr_method.receiver);
-                classify_named_seed(&root, &root, expr, account_names, instr_names, parsed_fields)
+                classify_named_seed(
+                    &root,
+                    &root,
+                    expr,
+                    account_names,
+                    instr_names,
+                    parsed_fields,
+                )
             }
         }
         syn::Expr::Field(expr_field) => {
             if let Some(path) = naclac_syn::pda::extract_field_path(expr) {
                 let root = path.split('.').next().unwrap().to_string();
-                classify_named_seed(&path, &root, expr, account_names, instr_names, parsed_fields)
+                classify_named_seed(
+                    &path,
+                    &root,
+                    expr,
+                    account_names,
+                    instr_names,
+                    parsed_fields,
+                )
             } else {
                 let field_name = quote::ToTokens::to_token_stream(&expr_field.member).to_string();
                 let root = naclac_syn::pda::extract_root_ident(&expr_field.base);
-                classify_named_seed(&field_name, &root, expr, account_names, instr_names, parsed_fields)
+                classify_named_seed(
+                    &field_name,
+                    &root,
+                    expr,
+                    account_names,
+                    instr_names,
+                    parsed_fields,
+                )
             }
         }
         syn::Expr::Reference(expr_ref) => {
             build_idl_seed_expr(&expr_ref.expr, account_names, instr_names, parsed_fields)
         }
-        syn::Expr::Array(expr_array) if expr_array.elems.len() == 1 => {
-            build_idl_seed_expr(&expr_array.elems[0], account_names, instr_names, parsed_fields)
-        }
+        syn::Expr::Array(expr_array) if expr_array.elems.len() == 1 => build_idl_seed_expr(
+            &expr_array.elems[0],
+            account_names,
+            instr_names,
+            parsed_fields,
+        ),
         _ => splice_const_fallback(expr, None),
     }
+}
+
+/// True if `expr` names any of `names` as a bare identifier. An account field
+/// or an instruction argument has no value when the IDL is built, so an
+/// expression that refers to one cannot be evaluated into a fixed address.
+#[cfg(feature = "idl-build")]
+fn mentions_any_name(expr: &syn::Expr, names: &[String]) -> bool {
+    struct Finder<'a> {
+        names: &'a [String],
+        found: bool,
+    }
+    impl<'ast> syn::visit::Visit<'ast> for Finder<'_> {
+        fn visit_expr_path(&mut self, node: &'ast syn::ExprPath) {
+            if node
+                .path
+                .get_ident()
+                .is_some_and(|ident| self.names.iter().any(|name| ident == name))
+            {
+                self.found = true;
+            }
+            syn::visit::visit_expr_path(self, node);
+        }
+    }
+    let mut finder = Finder {
+        names,
+        found: false,
+    };
+    syn::visit::Visit::visit_expr(&mut finder, expr);
+    finder.found
 }
 
 /// Builds `impl #struct_name { pub fn __naclac_idl_accounts() -> Vec<IdlAccountBuild> }` —
@@ -189,13 +271,18 @@ fn idl_build_accounts_impl(
     instr_names: &[syn::Ident],
 ) -> proc_macro2::TokenStream {
     let account_names: Vec<String> = parsed_fields.iter().map(|f| f.ident.to_string()).collect();
+    let valueless_names: Vec<String> = account_names
+        .iter()
+        .cloned()
+        .chain(instr_names.iter().map(ToString::to_string))
+        .collect();
 
     let mut account_entries = Vec::new();
     for (field, syn_field) in parsed_fields.iter().zip(fields_named.named.iter()) {
-        let name = field.ident.to_string();
+        let name = naclac_syn::parser::idl_name(&field.ident.to_string());
         let docs = naclac_syn::parser::extract_docs(&syn_field.attrs);
         let is_writable = field.is_mut;
-        let is_signer = crate::type_classify::is_exactly(&field.ty, "Signer");
+        let is_signer = field.is_signer || crate::type_classify::is_exactly(&field.ty, "Signer");
         let is_optional = field.is_optional;
 
         let pda_tokens = if let Some(seed_array) = &field.pda_seed {
@@ -206,7 +293,8 @@ fn idl_build_accounts_impl(
                 .collect();
             let program_tokens = match &field.pda_program {
                 Some(prog_expr) => {
-                    let t = build_idl_seed_expr(prog_expr, &account_names, instr_names, parsed_fields);
+                    let t =
+                        build_idl_seed_expr(prog_expr, &account_names, instr_names, parsed_fields);
                     quote! { Some(#t) }
                 }
                 None => quote! { None },
@@ -221,14 +309,13 @@ fn idl_build_accounts_impl(
             quote! { None }
         };
 
-        let address_tokens = if let Some(addr_expr) = &field.address {
-            quote! {
+        let address_tokens = match &field.address {
+            Some(addr_expr) if !mentions_any_name(addr_expr, &valueless_names) => quote! {
                 Some(naclac_lang::prelude::base58::encode_address_to_string(
                     &naclac_lang::prelude::ToAddress::address(&(#addr_expr)),
                 ))
-            }
-        } else {
-            quote! { None }
+            },
+            _ => quote! { None },
         };
 
         account_entries.push(quote! {
@@ -273,18 +360,22 @@ fn idl_build_accounts_impl(
 /// own to chase into the IDL's type list.
 #[cfg(feature = "idl-build")]
 fn account_wrapper_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
-    let base = crate::type_classify::base_ident(ty)?.to_string();
-    if base == "Box" {
-        return account_wrapper_inner_type(crate::type_classify::first_generic_type(ty)?);
+    let mut ty = ty;
+    while let syn::Type::Path(type_path) = ty {
+        if type_path.path.segments.last()?.ident != "Box" {
+            break;
+        }
+        ty = crate::type_classify::first_generic_type(ty)?;
     }
+    let base = crate::type_classify::base_ident(ty)?.to_string();
     if base == "Account" || base == "InterfaceAccount" {
         return crate::type_classify::first_generic_type(ty);
     }
     None
 }
 
-/// Builds `impl #struct_name { pub fn __naclac_insert_account_types(types: &mut BTreeMap<...>) }` —
-/// mirrors `component.rs`'s own `insert_types` exactly (same chase-every-
+/// Builds `impl #struct_name { pub fn __naclac_insert_account_types(types, discriminators, defined_types) }` —
+/// mirrors `component.rs`'s own `insert_types` (same chase-every-
 /// reachable-type-via-`NaclacIdlBuild` pattern), scoped to this `Accounts`
 /// struct's own fields instead of a component's. This is how `#[program]`'s
 /// assembler discovers which component types (needing their own
@@ -292,7 +383,8 @@ fn account_wrapper_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
 /// references — `__naclac_idl_accounts()` alone only carries per-field
 /// metadata (writable/signer/pda/...), never the field's own Rust type,
 /// since that's meaningless to a client reading the IDL but essential here
-/// for the chase.
+/// for the chase. The components land in `types`; the defined types they
+/// reference land in `defined_types`, because only a component is an account.
 #[cfg(feature = "idl-build")]
 fn idl_insert_account_types_impl(
     struct_name: &syn::Ident,
@@ -311,6 +403,14 @@ fn idl_insert_account_types_impl(
                     naclac_lang::naclac_idl::__private::String,
                     naclac_lang::naclac_idl::IdlTypeDef,
                 >,
+                discriminators: &mut naclac_lang::naclac_idl::__private::BTreeMap<
+                    naclac_lang::naclac_idl::__private::String,
+                    naclac_lang::prelude::Vec<u8>,
+                >,
+                defined_types: &mut naclac_lang::naclac_idl::__private::BTreeMap<
+                    naclac_lang::naclac_idl::__private::String,
+                    naclac_lang::naclac_idl::IdlTypeDef,
+                >,
             ) {
                 #(
                     if let Some(ty) = <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::create_type() {
@@ -318,7 +418,13 @@ fn idl_insert_account_types_impl(
                             <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
                             ty,
                         );
-                        <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::insert_types(types);
+                        if let Some(disc) = <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::account_discriminator() {
+                            discriminators.insert(
+                                <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
+                                disc,
+                            );
+                        }
+                        <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::insert_types(defined_types);
                     }
                 )*
             }
@@ -454,14 +560,14 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         }
     }
 
-    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(feature = "borsh")))] };
+    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
     let borsh_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
+    let wincode_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "wincode"))] };
     // The non-pinocchio `LoadableAccounts` impl needs its own two-way split
     // (pinocchio's `load_and_validate` fn is separately, reliably gated by
     // the pre-existing `#[cfg(feature = "pinocchio")]` and always uses the
     // zero-copy variant, since `pinocchio` implies zero-copy unconditionally).
-    let non_pinocchio_zero_copy_cfg =
-        quote! { #[cfg(all(not(feature = "pinocchio"), not(feature = "borsh")))] };
+    let non_pinocchio_zero_copy_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), not(any(feature = "borsh", feature = "wincode"))))] };
 
     // Field names only — identical regardless of representation (only *how*
     // each field is loaded differs, not which fields exist), so this is
@@ -482,8 +588,15 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         mut_bump_writeback: Vec<proc_macro2::TokenStream>,
     }
 
-    let build_variant = |is_zero_copy: bool| -> Variant {
-        let cfg = if is_zero_copy { &zero_copy_cfg } else { &borsh_cfg };
+    let build_variant = |variant_type: u8| -> Variant {
+        let is_zero_copy = variant_type == 0;
+        let cfg = if variant_type == 0 {
+            &zero_copy_cfg
+        } else if variant_type == 1 {
+            &borsh_cfg
+        } else {
+            &wincode_cfg
+        };
 
         let ix_deserializer = if let Some(err) = &instruction_attr_error {
             err.to_compile_error()
@@ -501,11 +614,12 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                     use crate::type_classify::DynamicKind;
                     let kind = crate::type_classify::classify_dynamic(ty);
 
-                    if matches!(kind, DynamicKind::Fixed) {
+                    if matches!(kind, DynamicKind::Fixed | DynamicKind::OptionPod) {
                         // `NaclacArgs`, not `NaclacPod` directly — covers a plain
                         // fixed-size arg (via `NaclacPod`'s blanket `NaclacArgs`
-                        // impl) and an `#[instruction_args]`-grouped struct
-                        // containing a `ZcString`/`ZcVec` field alike; see
+                        // impl), a bare `Option<T>` arg, and an
+                        // `#[instruction_args]`-grouped struct containing a
+                        // `ZcString`/`ZcVec`/`Option` field alike; see
                         // `program.rs`'s identical dispatch for why a raw
                         // `NaclacPod` cast can't do this for the latter.
                         return quote! {
@@ -516,8 +630,8 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                     }
 
                     // Classification mirrors program.rs's #[program]-function-arg handling:
-                    // `ZcVec<T>`/`Span<T>`/`ZcString` are explicit zero-copy opt-ins parsed
-                    // via Span/ZcString (no allocation); a bare `Vec<T>`/`String` heap-allocates
+                    // `ZcVec<T>`/`ZcString` are explicit zero-copy opt-ins parsed
+                    // via ZcVec/ZcString (no allocation); a bare `Vec<T>`/`String` heap-allocates
                     // (valid, e.g. for interop with an existing Vec/String-shaped API) and gets
                     // a silenceable warning nudging toward the zero-copy types instead. Kept
                     // consistent with program.rs deliberately, so the same source syntax can't
@@ -529,11 +643,44 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
 
                     let inner_ty = crate::type_classify::first_generic_type(ty);
 
+                    // `Vec<Vec<u8>>`/`Vec<String>`: the prefix is an element count and the
+                    // reader advances the offset itself, so it cannot share the byte-length
+                    // block below.
+                    let is_list_of_variable_items = is_heap_vec
+                        && inner_ty.is_some_and(|inner| {
+                            crate::type_classify::is_exactly(inner, "Vec")
+                                || crate::type_classify::is_exactly(inner, "String")
+                        });
+                    if is_list_of_variable_items {
+                        let warning_tokens = if heap_allowed_names.contains(name) {
+                            quote! {}
+                        } else {
+                            crate::heap_collection_warning(&name.to_string(), "Vec<T>", "ZcVec<T>")
+                        };
+                        return quote! {
+                            #warning_tokens
+                            let #name = {
+                                if instruction_data.len() < __ix_offset + 4 {
+                                    return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
+                                }
+                                let mut __count_bytes = [0u8; 4];
+                                __count_bytes.copy_from_slice(&instruction_data[__ix_offset..__ix_offset+4]);
+                                let __count = u32::from_le_bytes(__count_bytes) as usize;
+                                __ix_offset += 4;
+                                naclac_lang::prelude::read_length_prefixed_items(
+                                    instruction_data,
+                                    &mut __ix_offset,
+                                    __count,
+                                )?
+                            };
+                        };
+                    }
+
                     let __v_logic = if is_zc_vec {
                         if let Some(inner) = inner_ty {
-                            quote! { <naclac_lang::prelude::Span<#inner>>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])? }
+                            quote! { <naclac_lang::prelude::ZcVec<#inner>>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])? }
                         } else {
-                            quote! { <naclac_lang::prelude::Span<u8>>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])? }
+                            quote! { <naclac_lang::prelude::ZcVec<u8>>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])? }
                         }
                     } else if is_zc_string {
                         quote! { <naclac_lang::prelude::ZcString>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])? }
@@ -549,12 +696,18 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                             quote! {
                                 {
                                     let __sz = <#inner as naclac_lang::prelude::NaclacPod>::naclac_size();
-                                    let mut __v = naclac_lang::prelude::Vec::with_capacity(__len / __sz.max(1));
+                                    if __sz == 0 || __len % __sz != 0 {
+                                        return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
+                                    }
+                                    let mut __v = naclac_lang::prelude::Vec::with_capacity(__len / __sz);
                                     let mut __p = __ix_offset;
                                     while __p < __ix_offset + __len {
-                                        __v.push(<#inner as naclac_lang::prelude::NaclacPod>::naclac_from_bytes(
-                                            &instruction_data[__p..__p + __sz]
-                                        ));
+                                        __v.push(
+                                            <#inner as naclac_lang::prelude::NaclacPod>::naclac_try_from_bytes(
+                                                &instruction_data[__p..__p + __sz]
+                                            )
+                                            .ok_or_else(|| naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0))?,
+                                        );
                                         __p += __sz;
                                     }
                                     __v
@@ -594,7 +747,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                 });
 
                 quote! {
-                    let mut __ix_offset: usize = 8;
+                    let mut __ix_offset: usize = __NACLAC_IX_DISC_LEN;
                     #(#reads)*
                     // Instruction args are parsed here regardless of whether any
                     // field's seeds/constraints actually reference them below —
@@ -603,12 +756,22 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                     // unused-variable warning elsewhere in this function.
                     #(let _ = &#instr_names;)*
                 }
-            } else {
+            } else if variant_type == 1 {
                 // Standard Borsh Path: Heap-allocates instruction arguments dynamically.
                 quote! {
-                    let mut __r: &[u8] = &instruction_data[8..];
+                    let mut __r: &[u8] = &instruction_data[__NACLAC_IX_DISC_LEN..];
                     #(
                         let #instr_names = <#instr_types as naclac_lang::prelude::BorshDeserialize>::deserialize(&mut __r)
+                            .map_err(|_| naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0))?;
+                    )*
+                    #(let _ = &#instr_names;)*
+                }
+            } else {
+                // Wincode Path: Heap-allocates instruction arguments dynamically.
+                quote! {
+                    let mut __r: &[u8] = &instruction_data[__NACLAC_IX_DISC_LEN..];
+                    #(
+                        let #instr_names : #instr_types = naclac_lang::prelude::wincode::config::deserialize_from(&mut __r, naclac_lang::prelude::wincode_config::CONFIG)
                             .map_err(|_| naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0))?;
                     )*
                     #(let _ = &#instr_names;)*
@@ -643,10 +806,35 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                 init_cpi::generate_init_cpi(field, &parsed_fields, is_zero_copy)
             };
 
-            let loader_fn = if field.is_mut && field.init_config.is_none() && !field.is_init_if_needed {
-                quote! { <#ty as naclac_lang::prelude::NaclacAccount>::try_from_mut }
+            let loader_fn =
+                if field.is_mut && field.init_config.is_none() && !field.is_init_if_needed {
+                    quote! { <#ty as naclac_lang::prelude::NaclacAccount>::try_from_mut }
+                } else {
+                    quote! { <#ty as naclac_lang::prelude::NaclacAccount>::try_from }
+                };
+            // A plain `Signer` slot's signer flag is enforced by the pinocchio
+            // declared-account walk (`declared_checks`, same predicate), so the
+            // wrapper is built there without repeating the check.
+            let is_plain_signer = matches!(
+                ty,
+                syn::Type::Path(type_path)
+                    if type_path.qself.is_none()
+                        && type_path.path.segments.last().is_some_and(|segment| {
+                            segment.ident == "Signer" && segment.arguments.is_empty()
+                        })
+            );
+            let load_expr = if is_plain_signer {
+                quote! {{
+                    #[cfg(feature = "pinocchio")]
+                    // SAFETY: the declared-account walk rejected this slot
+                    // unless its account is a signer.
+                    let __loaded = unsafe { <#ty>::from_verified_signer(info) };
+                    #[cfg(not(feature = "pinocchio"))]
+                    let __loaded = #loader_fn(info, #idx)?;
+                    __loaded
+                }}
             } else {
-                quote! { <#ty as naclac_lang::prelude::NaclacAccount>::try_from }
+                quote! { #loader_fn(info, #idx)? }
             };
             // An `Option<T>` field always occupies its declared slot (fixed
             // indexing is unchanged), but the slot's content is sentinel-gated:
@@ -683,7 +871,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                     } else {
                         #metadata_checks
                         #init_logic
-                        let #field_name = #loader_fn(info, #idx)?;
+                        let #field_name = #load_expr;
                         #constraint_checks
                         (Some(#field_name), Some(#bump_var))
                     };
@@ -696,7 +884,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                     } else {
                         #metadata_checks
                         #init_logic
-                        let #field_name = #loader_fn(info, #idx)?;
+                        let #field_name = #load_expr;
                         #constraint_checks
                         Some(#field_name)
                     };
@@ -706,7 +894,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                     let info = &__views[#idx];
                     #metadata_checks
                     #init_logic
-                    let mut #field_name = #loader_fn(info, #idx)?;
+                    let mut #field_name = #load_expr;
                     #constraint_checks
                 }
             };
@@ -721,8 +909,8 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         // size_of::<Box<_>>() is just a pointer (8 bytes) — so there is no need to
         // special-case "skip fields that are already boxed": boxing a field just
         // makes its own real size tiny, which naturally satisfies both checks below.
-        // Only meaningful in Borsh mode — zero-copy accounts don't heap-allocate.
-        let size_guard_consts = if is_zero_copy {
+        // Only meaningful in Borsh/Wincode mode — zero-copy accounts don't heap-allocate.
+        let size_guard_consts = if variant_type == 0 {
             quote! {}
         } else {
             let data_carrying_fields: Vec<(&syn::Ident, &syn::Type)> = parsed_fields
@@ -770,9 +958,9 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
             }
         };
 
-        // Only meaningful in Borsh mode — a zero-copy `Account<T>` derefs
+        // Only meaningful in Borsh/Wincode mode — a zero-copy `Account<T>` derefs
         // straight into the account's live data, so there is nothing to save.
-        let save_logic: Vec<proc_macro2::TokenStream> = if is_zero_copy {
+        let save_logic: Vec<proc_macro2::TokenStream> = if variant_type == 0 {
             Vec::new()
         } else {
             let mut v = Vec::new();
@@ -827,12 +1015,14 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                 || crate::type_classify::inner_is(&field.ty, "Mint");
             let is_zero_copy_field = security::is_zero_copy_account_field(&field.ty, is_zero_copy);
             let is_borsh_field =
-                !is_zero_copy && crate::type_classify::is_exactly(&field.ty, "Account");
+                variant_type == 1 && crate::type_classify::is_exactly(&field.ty, "Account");
+            let is_wincode_field =
+                variant_type == 2 && crate::type_classify::is_exactly(&field.ty, "Account");
             let has_bump_field = crate::type_classify::first_generic_type(&field.ty)
                 .and_then(crate::type_classify::base_ident)
                 .is_some_and(|ident| security::component_declares_bump_field(&ident.to_string()));
 
-            if (is_zero_copy_field || is_borsh_field)
+            if (is_zero_copy_field || is_borsh_field || is_wincode_field)
                 && !is_spl_type
                 && field.is_mut
                 && field.pda_seed.is_some()
@@ -873,8 +1063,9 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         }
     };
 
-    let zero_copy_variant = build_variant(true);
-    let borsh_variant = build_variant(false);
+    let zero_copy_variant = build_variant(0);
+    let borsh_variant = build_variant(1);
+    let wincode_variant = build_variant(2);
 
     // --- Security Check Generation ---
     // `close_logic`/`realloc_logic`/`relational_checks_me` don't depend on
@@ -918,14 +1109,12 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
             let space_var = quote::format_ident!("__realloc_space_{}", field_name);
             let space_expr = match &realloc_config.space {
                 parser::ReallocSpace::Expr(expr) => quote! { (#expr) as usize },
-                parser::ReallocSpace::AnyOf(types) => {
-                    realloc::generate_any_of_space_expr(
-                        field_name,
-                        types,
-                        field.index,
-                        realloc_config.grow_only,
-                    )
-                }
+                parser::ReallocSpace::AnyOf(types) => realloc::generate_any_of_space_expr(
+                    field_name,
+                    types,
+                    field.index,
+                    realloc_config.grow_only,
+                ),
             };
             bumps_fields.push(quote! { pub #space_var: usize });
             bumps_instantiations.push(quote! { #space_var: #space_expr });
@@ -950,32 +1139,9 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
     let n_fields = parsed_fields.len();
     let is_signers: Vec<_> = parsed_fields
         .iter()
-        .map(|f| crate::type_classify::is_exactly(&f.ty, "Signer"))
+        .map(|f| f.is_signer || crate::type_classify::is_exactly(&f.ty, "Signer"))
         .collect();
     let is_writables: Vec<_> = parsed_fields.iter().map(|f| f.is_mut).collect();
-
-    // A runtime `!is_optional` guard is not enough for the remaining-accounts
-    // duplicate check below: Rust still type-checks the body of an `if`
-    // branch even when its condition is a literal `false`, so
-    // `ToAddress::address(&__me.#field_name)` would still need
-    // `Option<T>: ToAddress` to exist even inside a branch that never runs
-    // for an optional field. Optional fields must be excluded from the
-    // repetition itself, not merely gated at runtime.
-    let dup_check_field_names: Vec<_> = parsed_fields
-        .iter()
-        .filter(|f| !f.is_optional)
-        .map(|f| &f.ident)
-        .collect();
-    let dup_check_is_writables: Vec<_> = parsed_fields
-        .iter()
-        .filter(|f| !f.is_optional)
-        .map(|f| f.is_mut)
-        .collect();
-    let dup_check_is_aliases: Vec<_> = parsed_fields
-        .iter()
-        .filter(|f| !f.is_optional)
-        .map(|f| f.is_alias)
-        .collect();
 
     let n_declared_accounts = parsed_fields.len();
 
@@ -983,7 +1149,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         .iter()
         .enumerate()
         .filter_map(|(i, field)| {
-            if field.is_mut && !field.is_alias && !field.is_optional {
+            if field.is_mut && !field.is_alias {
                 Some(quote! {
                     __mask = naclac_lang::prelude::mut_mask_set_bit(__mask, #i);
                 })
@@ -1007,19 +1173,54 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
     let as_mut_payload_body = quote! { payload };
     let inst_me = quote! { let mut __me = Self { #(#struct_instantiation),* }; };
 
-    // Remaining-accounts duplicate check body is identical across variants —
-    // shared as its own fragment rather than duplicated per call site.
-    let remaining_dup_check = quote! {
-        #(
-            if #dup_check_is_writables && !#dup_check_is_aliases {
-                let __decl_addr = naclac_lang::prelude::ToAddress::address(&__me.#dup_check_field_names);
+    // Remaining-accounts duplicate check for the non-pinocchio loaders. An
+    // optional field is only compared when present. Pinocchio needs no such
+    // address compare: the runtime serializes any address repeated within an
+    // instruction as a duplicate marker, which the cursor records and the
+    // `MUT_MASK` check rejects.
+    let remaining_dup_check_items: Vec<proc_macro2::TokenStream> = parsed_fields
+        .iter()
+        .filter(|f| f.is_mut && !f.is_alias)
+        .map(|f| {
+            let name = &f.ident;
+            let compare = quote! {
                 let __rem_addr = naclac_lang::prelude::ToAddress::address(__rem_acc);
-                if __decl_addr == __rem_addr {
+                if naclac_lang::prelude::ToAddress::address(__decl) == __rem_addr {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintDuplicateMutableAccount.err(__rem_check_idx));
                 }
+            };
+            if f.is_optional {
+                quote! {
+                    if let Some(__decl) = &__me.#name {
+                        #compare
+                    }
+                }
+            } else {
+                quote! {
+                    {
+                        let __decl = &__me.#name;
+                        #compare
+                    }
+                }
             }
-        )*
+        })
+        .collect();
+    let remaining_dup_check = |remaining: proc_macro2::TokenStream| {
+        if remaining_dup_check_items.is_empty() {
+            quote! {}
+        } else {
+            quote! {
+                {
+                    let mut __rem_check_idx = #n_declared_accounts;
+                    for __rem_acc in #remaining {
+                        #(#remaining_dup_check_items)*
+                        __rem_check_idx += 1;
+                    }
+                }
+            }
+        }
     };
+    let remaining_dup_check_std = remaining_dup_check(quote! { remaining_accounts });
 
     let make_loadable_accounts_impl = |cfg: &proc_macro2::TokenStream, variant: &Variant| {
         let ix_deserializer = &variant.ix_deserializer;
@@ -1029,7 +1230,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
             impl<'a> naclac_lang::prelude::LoadableAccounts<'a> for #struct_name #ty_generics #where_clause {
                 type Payload = #payload_type;
 
-                fn load_and_validate(
+                fn load_and_validate<const __NACLAC_IX_DISC_LEN: usize>(
                     program_id: &naclac_lang::prelude::Address,
                     accounts: &'a [naclac_lang::prelude::AccountType],
                     instruction_data: &[u8],
@@ -1049,14 +1250,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                     #(#field_loaders)*
                     let remaining_accounts = &accounts[#n_declared_accounts..];
                     #inst_me
-                    // Remaining accounts duplicate check
-                    {
-                        let mut __rem_check_idx = #n_declared_accounts;
-                        for __rem_acc in remaining_accounts {
-                            #remaining_dup_check
-                            __rem_check_idx += 1;
-                        }
-                    }
+                    #remaining_dup_check_std
                     #(#relational_checks_me)*
                     Ok((__me, remaining_accounts, #bumps_instantiation_logic))
                 }
@@ -1077,6 +1271,8 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
     let loadable_accounts_impl_zero_copy =
         make_loadable_accounts_impl(&non_pinocchio_zero_copy_cfg, &zero_copy_variant);
     let loadable_accounts_impl_borsh = make_loadable_accounts_impl(&borsh_cfg, &borsh_variant);
+    let loadable_accounts_impl_wincode =
+        make_loadable_accounts_impl(&wincode_cfg, &wincode_variant);
 
     // `pinocchio` always implies zero-copy, so this path unconditionally uses
     // `zero_copy_variant` — no further representation cfg needed beyond the
@@ -1086,56 +1282,162 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
 
     // `teardown` is shared across every representation (no `#[cfg(feature =
     // "pinocchio")]` of its own) — `mut_bump_writeback`/`save_logic` from
-    // both variants are spliced in together, each statement individually
+    // variants are spliced in together, each statement individually
     // `#[cfg(...)]`-gated (set inside `build_variant` above), so exactly one
     // side is ever actually compiled for the calling crate.
     let zc_mut_bump_writeback = &zero_copy_variant.mut_bump_writeback;
     let borsh_mut_bump_writeback = &borsh_variant.mut_bump_writeback;
     let borsh_save_logic = &borsh_variant.save_logic;
+    let wincode_mut_bump_writeback = &wincode_variant.mut_bump_writeback;
+    let wincode_save_logic = &wincode_variant.save_logic;
+
+    let declared_checks: Vec<proc_macro2::TokenStream> = parsed_fields
+        .iter()
+        .map(|f| {
+            let signer = f.is_signer || crate::type_classify::is_exactly(&f.ty, "Signer");
+            let writable = f.is_mut;
+            let executable = f.is_executable;
+            let optional = f.is_optional;
+            quote! {
+                {
+                    let (__expected, __mask) =
+                        naclac_lang::prelude::account_header_check(#signer, #writable, #executable);
+                    (__expected, __mask, #optional)
+                }
+            }
+        })
+        .collect();
+    let mut declared_fast_checks = (0..parsed_fields.len()).map(|i| {
+        let i = proc_macro2::Literal::usize_unsuffixed(i);
+        quote! {
+            __cursor
+                .try_declared_fast(__DECLARED_CHECKS[#i].0, __DECLARED_CHECKS[#i].1)
+                .is_some_and(|__view| {
+                    __declared[#i].write(__view);
+                    true
+                })
+        }
+    });
+    let declared_from_lookup: Vec<proc_macro2::TokenStream> = (0..parsed_fields.len())
+        .map(|i| {
+            let i = proc_macro2::Literal::usize_unsuffixed(i);
+            quote! { __declared[#i].write(*__lookup_ptr.add(#i)); }
+        })
+        .collect();
+    let copy_declared_from_lookup = if declared_from_lookup.is_empty() {
+        quote! {}
+    } else {
+        quote! { unsafe { #(#declared_from_lookup)* } }
+    };
+    let (cursor_binding, declared_binding, needs_slow_walk) =
+        if let Some(first_fast_check) = declared_fast_checks.next() {
+            let rest_fast_checks: Vec<proc_macro2::TokenStream> = declared_fast_checks.collect();
+            (
+                quote! { let mut __cursor },
+                quote! { let mut __declared },
+                quote! {
+                    !unsafe { #first_fast_check #(&& #rest_fast_checks)* }
+                        || __num_accounts > #n_declared_accounts
+                },
+            )
+        } else {
+            (
+                quote! { let __cursor },
+                quote! { let __declared },
+                quote! { __num_accounts > 0 },
+            )
+        };
+    // One unsigned compare covers both bounds: `num - N` wraps past `64 - N`
+    // exactly when `num < N` or `num > 64`.
+    let account_count_check = if n_declared_accounts <= 64 {
+        let max_trailing = 64 - n_declared_accounts;
+        quote! {
+            if __num_accounts.wrapping_sub(#n_declared_accounts) > #max_trailing {
+                return Err(naclac_lang::prelude::account_count_error(__num_accounts));
+            }
+        }
+    } else {
+        quote! {
+            if __num_accounts > 64 {
+                return Err(naclac_lang::prelude::NaclacError::TooManyAccountEntries.err(0));
+            }
+            if __num_accounts < #n_declared_accounts {
+                return Err(naclac_lang::prelude::NaclacError::NotEnoughAccountKeys.err(0));
+            }
+        }
+    };
+    let account_walk = quote! {
+        const __DECLARED_CHECKS: [(u32, u32, bool); #n_declared_accounts] =
+            [#(#declared_checks),*];
+        #declared_binding =
+            [core::mem::MaybeUninit::<naclac_lang::prelude::AccountView>::uninit(); #n_declared_accounts];
+        // SAFETY: `__num_accounts >= N` was checked before the walk, so every
+        // declared slot exists in the input buffer; the fast checks stop at
+        // the first miss, leaving `consumed` at the first slot the slow walk
+        // has not yet seen; `__num_accounts <= 64` is the lookup capacity.
+        // On `Ok`, `finish_walk_slow` has filled `__lookup[..__num_accounts]`.
+        if #needs_slow_walk {
+            unsafe {
+                __cursor.finish_walk_slow(__input, &__DECLARED_CHECKS, __num_accounts, &Self::MUT_MASK)
+            }?;
+            #copy_declared_from_lookup
+        }
+        // SAFETY: every slot was written, either by its fast check or from
+        // the lookup after the slow walk, and `AccountInfo` is
+        // `#[repr(transparent)]` over `AccountView`.
+        let __declared_infos = unsafe {
+            core::mem::transmute::<
+                [core::mem::MaybeUninit<naclac_lang::prelude::AccountView>; #n_declared_accounts],
+                [naclac_lang::prelude::AccountType; #n_declared_accounts],
+            >(__declared)
+        };
+    };
 
     let load_and_validate_def = quote! {
         /// Loads and validates the accounts provided to the instruction.
         ///
-        /// ## Pinocchio path (pre-walked slice)
-        /// Takes a pre-walked `&[AccountType]` slice provided by the entrypoint.
-        /// Accounts were walked once globally before dispatch — O(1) slice indexing,
-        /// no cursor creation, no lookup array allocation per instruction.
+        /// Walks the serialized accounts at `__input` itself: each declared
+        /// field's signer/writable/executable requirement is checked as the
+        /// account is walked, then any trailing accounts are walked into the
+        /// remaining-accounts slice. Rejects more than 64 account entries
+        /// (the capacity of `__lookup`) and fewer than this struct declares.
         ///
-        /// ## Standard path (Borsh/solana-program)
-        /// Takes the pre-built `&[AccountType]` slice (unchanged).
+        /// # Safety
+        ///
+        /// `__input` must be the runtime-provided entrypoint input buffer and
+        /// `__num_accounts` the account count stored at its start.
         #[cfg(feature = "pinocchio")]
-        pub fn load_and_validate(
-            program_id: &naclac_lang::prelude::Address,
-            __views: &[naclac_lang::prelude::AccountType],
+        pub unsafe fn load_and_validate<const __NACLAC_IX_DISC_LEN: usize>(
+            program_id: &'static naclac_lang::prelude::Address,
+            __input: *mut u8,
+            __num_accounts: usize,
+            __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::prelude::AccountView>; 64],
             instruction_data: &[u8],
-            __duplicates: Option<&naclac_lang::prelude::AccountBitvec>,
         ) -> Result<(Self, &'static [naclac_lang::prelude::AccountType], #bumps_struct_name), naclac_lang::prelude::ProgramError> {
-            // Single upfront bounds check — replaces per-account iterator.
-            if __views.len() < #n_declared_accounts {
-                return Err(naclac_lang::prelude::NaclacError::NotEnoughAccountKeys.err(0));
-            }
-            if let Some(__dups) = __duplicates {
-                if __dups.intersects(&Self::MUT_MASK) {
-                    return Err(naclac_lang::prelude::NaclacError::ConstraintDuplicateMutableAccount.err(0));
-                }
-            }
+            #account_count_check
+            let __lookup_ptr = __lookup.as_mut_ptr() as *mut naclac_lang::prelude::AccountView;
+            // SAFETY: `__input` is the entrypoint buffer (caller contract) and
+            // `__lookup` holds 64 slots, at least `__num_accounts` (checked above).
+            #cursor_binding = unsafe {
+                naclac_lang::prelude::AccountCursor::new(__input, __lookup_ptr, program_id)
+            };
+            #account_walk
+            let __views = &__declared_infos;
             // Alias for compatibility with init_cpi generated code.
             let accounts = __views;
             #zc_ix_deserializer
             #(#zc_field_loaders)*
-            // Remaining accounts are the tail of the pre-walked slice.
+            // SAFETY: trailing accounts exist only when `__num_accounts > N`,
+            // in which case the slow walk filled `__lookup[N..__num_accounts]`;
+            // otherwise the slice is empty. `AccountInfo` is
+            // `#[repr(transparent)]` over `AccountView`.
             let __remaining: &'static [naclac_lang::prelude::AccountType] = unsafe {
-                core::mem::transmute(&__views[#n_declared_accounts..])
+                core::slice::from_raw_parts(
+                    (__lookup_ptr as *const naclac_lang::prelude::AccountType).add(#n_declared_accounts),
+                    __num_accounts.wrapping_sub(#n_declared_accounts),
+                )
             };
             let mut __me = Self { #(#struct_instantiation),* };
-            // Remaining accounts duplicate check
-            {
-                let mut __rem_check_idx = #n_declared_accounts;
-                for __rem_acc in __remaining {
-                    #remaining_dup_check
-                    __rem_check_idx += 1;
-                }
-            }
             #(#relational_checks_me)*
             Ok((__me, __remaining, #bumps_instantiation_logic))
         }
@@ -1152,6 +1454,8 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
             #(#zc_mut_bump_writeback)*
             #(#borsh_mut_bump_writeback)*
             #(#borsh_save_logic)*
+            #(#wincode_mut_bump_writeback)*
+            #(#wincode_save_logic)*
             #(#close_logic)*
             Ok(())
         }
@@ -1199,16 +1503,26 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
 
     let zc_size_guard_consts = &zero_copy_variant.size_guard_consts;
     let borsh_size_guard_consts = &borsh_variant.size_guard_consts;
+    let wincode_size_guard_consts = &wincode_variant.size_guard_consts;
 
     let idl_build_accounts_tokens =
         idl_build_accounts_impl(struct_name, &parsed_fields, fields_named, &instr_names);
     let idl_insert_account_types_tokens =
         idl_insert_account_types_impl(struct_name, &parsed_fields);
 
+    let needs_event_cpi = ast
+        .attrs
+        .iter()
+        .any(|attr| attr.path().is_ident("__naclac_event_cpi"));
+
     let expanded = quote! {
         #bumps_struct_def
         #hydrated_struct_def
         #hydration_impl
+
+        impl #impl_generics naclac_lang::prelude::EventCpiAccounts for #struct_name #ty_generics #where_clause {
+            const NEEDS_EVENT_CPI: bool = #needs_event_cpi;
+        }
 
         // to_account_metas is an off-chain helper for building transactions from client code.
         // It is dead code inside the on-chain SBF binary, so we gate it to reduce .so size.
@@ -1254,9 +1568,11 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
 
         #zc_size_guard_consts
         #borsh_size_guard_consts
+        #wincode_size_guard_consts
 
         #loadable_accounts_impl_zero_copy
         #loadable_accounts_impl_borsh
+        #loadable_accounts_impl_wincode
 
         #idl_build_accounts_tokens
         #idl_insert_account_types_tokens

@@ -4,18 +4,26 @@ import {
   Transaction,
   TransactionInstruction,
   Keypair,
+  AddressLookupTableAccount,
+  TransactionMessage,
+  VersionedTransaction,
 } from "@solana/web3.js";
+import { compileToV1Message } from "./v1";
 import { getBase58Codec } from "@solana/codecs";
 import type { NaclacIdl, IdlInstruction, IdlAccountDef } from "../idl";
-import type { LegacyProvider } from "./provider";
-import { encodeInstructionData, decodeAccountData } from "../coder/instruction";
+import { type LegacyProvider, type TxVersion, normalizeTxVersion } from "./provider";
+import { encodeInstructionData, decodeDiscriminatedAccountData } from "../coder/instruction";
 import { resolvePdas } from "../utils/pda";
 import { translateRpcError } from "../utils/rpc";
-import { getDiscriminator } from "../utils/hash";
+import { resolveDiscriminator } from "../utils/hash";
 import { toCamelCase } from "../utils/case";
 import {
   tryDecodeEventLog,
   parseEventsFromLogs,
+  parseEventsFromTransaction,
+  resolveRpcInnerInstructions,
+  eventFieldLayout,
+  type NaclacInnerInstruction,
   type NaclacRpcResult,
 } from "../events";
 import {
@@ -32,6 +40,33 @@ export type IdlInstructionName<T extends NaclacIdl> =
 export type IdlAccountName<T extends NaclacIdl> = T["accounts"][number]["name"];
 
 /**
+ * Inner instructions of a web3.js `getTransaction` result (fetched with
+ * `maxSupportedTransactionVersion: 1`), with every account index resolved to
+ * a base58 address — including accounts loaded through address lookup
+ * tables, so it also serves a v0 transaction the caller sent themselves.
+ * `undefined` when the node omitted them or the transaction failed (a failed
+ * transaction's inner instructions were never committed, so none of them may
+ * vouch for an event). Feed the result to a generated client's
+ * `parseXxxEvents(logs, innerInstructions)`.
+ */
+export function innerInstructionsFromLegacyTransaction(
+  txResult: { transaction: { message: any }; meta?: any } | null | undefined,
+): NaclacInnerInstruction[] | undefined {
+  if (!txResult?.meta || txResult.meta.err) return undefined;
+  const meta = txResult.meta;
+  if (meta.naclacInnerInstructions) {
+    // litesvm mode: the native binding already resolved account keys.
+    return meta.naclacInnerInstructions;
+  }
+  const keys: string[] = txResult.transaction.message
+    .getAccountKeys({ accountKeysFromLookups: meta.loadedAddresses })
+    .keySegments()
+    .flat()
+    .map((key: PublicKey) => key.toBase58());
+  return resolveRpcInnerInstructions(keys, meta.innerInstructions);
+}
+
+/**
  * LegacyAccountFetcher — fetches and deserializes on-chain accounts.
  */
 export class LegacyAccountFetcher {
@@ -43,6 +78,25 @@ export class LegacyAccountFetcher {
     private readonly isZeroCopy: boolean = false,
   ) {}
 
+  private discriminator(): Uint8Array {
+    return resolveDiscriminator(
+      this.accountDef.discriminator,
+      "account",
+      this.accountDef.name,
+    );
+  }
+
+  private decode(rawBytes: Uint8Array): Record<string, unknown> {
+    return decodeDiscriminatedAccountData(
+      this.accountDef.type.fields as any,
+      rawBytes,
+      this.discriminator(),
+      this.accountDef.name,
+      this.definedTypes,
+      this.isZeroCopy,
+    );
+  }
+
   async fetch(pubkey: PublicKey | string): Promise<Record<string, unknown>> {
     const addr = typeof pubkey === "string" ? new PublicKey(pubkey) : pubkey;
     const commitment = (this.provider.commitment ?? "confirmed") as any;
@@ -52,12 +106,7 @@ export class LegacyAccountFetcher {
       throw new Error(`[Naclac] Account "${pubkey.toString()}" does not exist on-chain.`);
     }
 
-    return decodeAccountData(
-      this.accountDef.type.fields as any,
-      new Uint8Array(accountInfo.data),
-      this.definedTypes,
-      this.isZeroCopy,
-    );
+    return this.decode(new Uint8Array(accountInfo.data));
   }
 
   async fetchMultiple(
@@ -71,12 +120,7 @@ export class LegacyAccountFetcher {
     return accounts.map((acctInfo) => {
       if (!acctInfo) return null;
       try {
-        return decodeAccountData(
-          this.accountDef.type.fields as any,
-          new Uint8Array(acctInfo.data),
-          this.definedTypes,
-          this.isZeroCopy,
-        );
+        return this.decode(new Uint8Array(acctInfo.data));
       } catch (err) {
         if (opts.dropCorrupted) {
           console.warn(`[Naclac] Dropping corrupted account:`, err);
@@ -110,7 +154,7 @@ export class LegacyAccountFetcher {
   async all(opts: { filters?: any[]; dropCorrupted?: boolean } = {}): Promise<
     Array<{ publicKey: PublicKey; account: Record<string, unknown> }>
   > {
-    const discriminator = getDiscriminator("account", this.accountDef.name);
+    const discriminator = this.discriminator();
     const base58Discriminator = getBase58Codec().decode(discriminator);
     const commitment = (this.provider.commitment ?? "confirmed") as any;
 
@@ -126,12 +170,7 @@ export class LegacyAccountFetcher {
 
     const decoded = raw.map((acctInfo) => {
       try {
-        const accountData = decodeAccountData(
-          this.accountDef.type.fields as any,
-          new Uint8Array(acctInfo.account.data),
-          this.definedTypes,
-          this.isZeroCopy,
-        );
+        const accountData = this.decode(new Uint8Array(acctInfo.account.data));
         return {
           publicKey: acctInfo.pubkey,
           account: accountData,
@@ -218,6 +257,7 @@ export class LegacyMethodsBuilder {
   private readonly args: Record<string, unknown>;
   private readonly provider: LegacyProvider;
   private readonly isZeroCopy: boolean;
+  private readonly allocEvents: readonly string[];
   private programId: PublicKey;
 
   private _userAccounts: Record<string, PublicKey> = {};
@@ -225,6 +265,11 @@ export class LegacyMethodsBuilder {
   private _remainingAccounts: PublicKey[] = [];
   private _preInstructions: TransactionInstruction[] = [];
   private _postInstructions: TransactionInstruction[] = [];
+  private _txVersion?: TxVersion;
+  private _addressLookupTableAccounts?: AddressLookupTableAccount[];
+  private _computeUnitLimit?: number;
+  private _loadedAccountsDataSizeLimit?: number;
+  private _priorityFee?: number | bigint;
 
   constructor(
     idl: NaclacIdl,
@@ -232,12 +277,14 @@ export class LegacyMethodsBuilder {
     args: Record<string, unknown>,
     provider: LegacyProvider,
     isZeroCopy = false,
+    allocEvents: readonly string[] = [],
   ) {
     this.idl = idl;
     this.ixDef = ixDef;
     this.args = args;
     this.provider = provider;
     this.isZeroCopy = isZeroCopy;
+    this.allocEvents = allocEvents;
     this.programId = new PublicKey(idl.address);
   }
 
@@ -271,6 +318,45 @@ export class LegacyMethodsBuilder {
 
   postInstructions(ixs: TransactionInstruction[]): this {
     this._postInstructions.push(...ixs);
+    return this;
+  }
+
+  v1(): this {
+    this._txVersion = "v1";
+    return this;
+  }
+
+  v0(addressLookupTableAccounts?: AddressLookupTableAccount[]): this {
+    this._txVersion = "v0";
+    this._addressLookupTableAccounts = addressLookupTableAccounts;
+    return this;
+  }
+
+  legacy(): this {
+    this._txVersion = "legacy";
+    return this;
+  }
+
+  version(version: TxVersion, addressLookupTableAccounts?: AddressLookupTableAccount[]): this {
+    this._txVersion = version;
+    if (addressLookupTableAccounts) {
+      this._addressLookupTableAccounts = addressLookupTableAccounts;
+    }
+    return this;
+  }
+
+  computeUnitLimit(units: number): this {
+    this._computeUnitLimit = units;
+    return this;
+  }
+
+  loadedAccountsDataSizeLimit(bytes: number): this {
+    this._loadedAccountsDataSizeLimit = bytes;
+    return this;
+  }
+
+  priorityFee(lamports: number | bigint): this {
+    this._priorityFee = lamports;
     return this;
   }
 
@@ -356,19 +442,53 @@ export class LegacyMethodsBuilder {
     return this.buildInstruction();
   }
 
-  async transaction(): Promise<Transaction> {
+  async transaction(): Promise<Transaction | VersionedTransaction> {
     const mainInstruction = await this.buildInstruction();
-    const tx = new Transaction();
-    
-    for (const ix of this._preInstructions) {
-      tx.add(ix);
-    }
-    tx.add(mainInstruction);
-    for (const ix of this._postInstructions) {
-      tx.add(ix);
+    const allInstructions = [
+      ...this._preInstructions,
+      mainInstruction,
+      ...this._postInstructions,
+    ];
+
+    const targetVersion = normalizeTxVersion(this._txVersion ?? this.provider.defaultTxVersion);
+
+    if (targetVersion === "legacy") {
+      const tx = new Transaction();
+      for (const ix of allInstructions) {
+        tx.add(ix);
+      }
+      return tx;
     }
 
-    return tx;
+    const connection = this.provider.connection;
+    const commitment = (this.provider.commitment ?? "confirmed") as any;
+    const latestBlockhash = await connection.getLatestBlockhash(commitment);
+    const feePayer = this.provider.payer ? this.provider.payer.publicKey : this.provider.publicKey;
+    if (!feePayer) {
+      throw new Error("[Naclac] No fee payer available in the legacy provider.");
+    }
+
+    if (targetVersion === 1) {
+      const v1Msg = compileToV1Message({
+        payerKey: feePayer,
+        recentBlockhash: latestBlockhash.blockhash,
+        instructions: allInstructions,
+        transactionConfig: {
+          computeUnitLimit: this._computeUnitLimit ?? 1_400_000,
+          heapSize: null,
+          loadedAccountsDataSizeLimit: this._loadedAccountsDataSizeLimit ?? 64 * 1024 * 1024,
+          priorityFee: this._priorityFee !== undefined ? Number(this._priorityFee) : null,
+        },
+      });
+      return new VersionedTransaction(v1Msg);
+    }
+
+    const v0Msg = new TransactionMessage({
+      payerKey: feePayer,
+      recentBlockhash: latestBlockhash.blockhash,
+      instructions: allInstructions,
+    }).compileToV0Message(this._addressLookupTableAccounts);
+    return new VersionedTransaction(v0Msg);
   }
 
   /**
@@ -379,15 +499,33 @@ export class LegacyMethodsBuilder {
    * signer abstraction) isn't duplicated four times over.
    */
   private async _signedTransaction(): Promise<{
-    signedTx: Transaction;
+    signedTx: Transaction | VersionedTransaction;
     commitment: any;
     latestBlockhash: { blockhash: string; lastValidBlockHeight: number };
   }> {
     const connection = this.provider.connection;
-    const tx = await this.transaction();
     const commitment = (this.provider.commitment ?? "confirmed") as any;
-
     const latestBlockhash = await connection.getLatestBlockhash(commitment);
+
+    const tx = await this.transaction();
+
+    if (tx instanceof VersionedTransaction) {
+      const signers: Keypair[] = [];
+      if (this.provider.payer) {
+        signers.push(this.provider.payer);
+      }
+      signers.push(...this._extraSigners);
+      if (signers.length > 0) {
+        tx.sign(signers);
+      }
+
+      let signedTx: VersionedTransaction = tx;
+      if (this.provider.signTransaction) {
+        signedTx = await this.provider.signTransaction(tx);
+      }
+      return { signedTx, commitment, latestBlockhash };
+    }
+
     tx.recentBlockhash = latestBlockhash.blockhash;
     const feePayer = this.provider.payer ? this.provider.payer.publicKey : this.provider.publicKey;
     if (!feePayer) {
@@ -402,7 +540,7 @@ export class LegacyMethodsBuilder {
       tx.partialSign(signer);
     }
 
-    let signedTx = tx;
+    let signedTx: Transaction = tx;
     if (this.provider.signTransaction) {
       signedTx = await this.provider.signTransaction(tx);
     }
@@ -416,7 +554,9 @@ export class LegacyMethodsBuilder {
     const { signedTx } = await this._signedTransaction();
 
     try {
-      const res = await connection.simulateTransaction(signedTx);
+      const res = signedTx instanceof VersionedTransaction
+        ? await connection.simulateTransaction(signedTx)
+        : await connection.simulateTransaction(signedTx);
       if (res.value.err) {
         const simError = new Error("Transaction simulation failed");
         (simError as any).context = { logs: res.value.logs };
@@ -536,6 +676,14 @@ export class LegacyMethodsBuilder {
     return result;
   }
 
+  /** The program's `event_authority` PDA (base58) that signs `emit_cpi!` self-CPIs. */
+  private eventAuthority(): string {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("__event_authority")],
+      this.programId,
+    )[0].toBase58();
+  }
+
   async rpc(): Promise<NaclacRpcResult> {
     const connection = this.provider.connection;
     const { signedTx, commitment, latestBlockhash } = await this._signedTransaction();
@@ -564,22 +712,31 @@ export class LegacyMethodsBuilder {
     // `connection.onLogs(...)`, which can miss events broadcast before the
     // subscription handshake finishes connecting).
     let logs: string[] = [];
+    let innerInstructions: NaclacInnerInstruction[] | undefined;
     try {
       const txResult = await connection.getTransaction(signature, {
         commitment: commitment === "finalized" ? "finalized" : "confirmed",
-        maxSupportedTransactionVersion: 0,
+        maxSupportedTransactionVersion: 1,
       });
       logs = txResult?.meta?.logMessages ?? [];
+      innerInstructions = innerInstructionsFromLegacyTransaction(txResult);
     } catch {
       // Logs are a best-effort convenience; a failure fetching them shouldn't
       // fail an already-confirmed transaction.
     }
 
+    const eventAuthority = this.eventAuthority();
     return {
       signature,
       logs,
+      innerInstructions,
       parseEvents: <T = any>(eventName: string) =>
-        parseEventsFromLogs<T>(this.idl, eventName, logs, this.isZeroCopy),
+        parseEventsFromTransaction<T>(
+          this.idl,
+          eventName,
+          { logs, innerInstructions, eventAuthority },
+          eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+        ),
     };
   }
 }
@@ -593,6 +750,8 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
   readonly programId: PublicKey;
   /** See the constructor's own doc comment — a codegen-time-only fact, never part of `idl`. */
   readonly isZeroCopy: boolean;
+  /** Names of this program's `#[event(alloc)]` events — also a codegen-time-only fact. */
+  readonly allocEvents: readonly string[];
 
   readonly methods: {
     [Name in IdlInstructionName<TIdl>]: (
@@ -683,12 +842,20 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
    * `isZeroCopy` is a generation-time fact, never part of the IDL itself —
    * see `Program`'s (the @solana/kit equivalent) constructor doc comment
    * for the full rationale. The generated `client_legacy.ts` passes it as
-   * a literal here.
+   * a literal here. `allocEvents` is the same kind of fact: which events are
+   * `#[event(alloc)]` (sequentially encoded, not a fixed struct) in a
+   * zero-copy program.
    */
-  constructor(idl: TIdl, provider: LegacyProvider, isZeroCopy = false) {
+  constructor(
+    idl: TIdl,
+    provider: LegacyProvider,
+    isZeroCopy = false,
+    allocEvents: readonly string[] = [],
+  ) {
     this.idl = idl;
     this.provider = provider;
     this.isZeroCopy = isZeroCopy;
+    this.allocEvents = allocEvents;
     this.programId = new PublicKey(idl.address);
 
     this.methods = {} as any;
@@ -696,7 +863,7 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
       (this.methods as any)[ixDef.name] = (
         args: Record<string, unknown> = {},
       ) => {
-        return new LegacyMethodsBuilder(idl, ixDef, args, provider, isZeroCopy);
+        return new LegacyMethodsBuilder(idl, ixDef, args, provider, isZeroCopy, allocEvents);
       };
     }
 
@@ -712,6 +879,12 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
     }
   }
 
+  /**
+   * Calls `callback` for every `eventName` event a live log subscription sees.
+   * Only events emitted with `emit!` reach it: an `emit_cpi!` event is in the
+   * transaction's inner instructions, not its logs — read that one from
+   * `.rpc()`'s `parseEvents()` instead.
+   */
   addEventListener(
     eventName: string,
     callback: (event: any, slot: number, signature: string) => void,
@@ -721,7 +894,7 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
       throw new Error(`[Naclac] Event "${eventName}" not found in IDL.`);
     }
 
-    const discriminator = getDiscriminator("event", eventName);
+    const discriminator = resolveDiscriminator(eventDef.discriminator, "event", eventName);
     const connection = this.provider.connection;
     const commitment = (this.provider.commitment ?? "confirmed") as any;
 
@@ -730,7 +903,13 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
       (logs, ctx) => {
         if (logs.err) return;
         for (const log of logs.logs) {
-          const decoded = tryDecodeEventLog(eventDef as any, discriminator, log, this.idl.definedTypes, this.isZeroCopy);
+          const decoded = tryDecodeEventLog(
+            eventDef as any,
+            discriminator,
+            log,
+            this.idl.definedTypes,
+            eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+          );
           if (decoded === null) continue;
           callback(decoded, ctx.slot, logs.signature);
         }
@@ -752,8 +931,28 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
    * Reserve `waitForEvent`/`addEventListener` for reacting to events across
    * future transactions whose signatures you don't know yet (an indexer, a bot, ...).
    */
-  parseEvents<T = any>(eventName: string, logs: readonly string[]): T[] {
-    return parseEventsFromLogs<T>(this.idl, eventName, logs, this.isZeroCopy);
+  parseEvents<T = any>(
+    eventName: string,
+    logs: readonly string[],
+    innerInstructions?: readonly NaclacInnerInstruction[],
+  ): T[] {
+    const zeroCopyLayout = eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName);
+    if (!innerInstructions) {
+      return parseEventsFromLogs<T>(this.idl, eventName, logs, zeroCopyLayout);
+    }
+    return parseEventsFromTransaction<T>(
+      this.idl,
+      eventName,
+      {
+        logs,
+        innerInstructions,
+        eventAuthority: PublicKey.findProgramAddressSync(
+          [Buffer.from("__event_authority")],
+          this.programId,
+        )[0].toBase58(),
+      },
+      zeroCopyLayout,
+    );
   }
 
   removeEventListener(listenerId: number): void {

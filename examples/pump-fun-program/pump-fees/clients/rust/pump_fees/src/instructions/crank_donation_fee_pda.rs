@@ -316,32 +316,32 @@ impl<'info> CrankDonationFeePdaCpi<'info> for crate::sdk_core_cpi::Program<crate
         {
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.associated_token_program.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.rent.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.fee_program_global.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.base_mint.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.config_id.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.donation_fee_pda.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.quote_mint.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.donation_fee_pda_ata.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.donation_relay_program.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.mint_whitelist.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.epoch_tracker.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.debouncer.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.debouncer_ata.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.payer.address(), true),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.associated_token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.rent.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.fee_program_global.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.base_mint.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.config_id.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.donation_fee_pda.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.quote_mint.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.donation_fee_pda_ata.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.donation_relay_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.mint_whitelist.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.epoch_tracker.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.debouncer.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.debouncer_ata.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new(acc.address(), *is_signer)
                 } else {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
                 };
                 account_metas.push(meta);
             }
-            let instruction = ::naclac_lang::solana_program::instruction::Instruction {
+            let instruction = ::naclac_lang::solana_instruction::Instruction {
                 program_id: self.address(),
                 accounts: account_metas,
                 data: ix_data,

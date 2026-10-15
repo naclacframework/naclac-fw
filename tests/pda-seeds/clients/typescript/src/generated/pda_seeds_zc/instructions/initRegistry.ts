@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_registry` instruction. */
+/** Discriminator for the `init_registry` instruction. */
 export const INIT_REGISTRY_DISCRIMINATOR = new Uint8Array([131, 22, 4, 103, 24, 94, 163, 239]);
 
 /** Accounts for the `initRegistry` instruction. */

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_ata_constraints` instruction. */
+/** Discriminator for the `check_ata_constraints` instruction. */
 export const CHECK_ATA_CONSTRAINTS_DISCRIMINATOR = new Uint8Array([229, 12, 96, 195, 59, 27, 231, 131]);
 
 /** Instruction arguments for `checkAtaConstraints`. */

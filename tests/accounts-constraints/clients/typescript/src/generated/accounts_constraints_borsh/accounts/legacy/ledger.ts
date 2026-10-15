@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { Ledger } from "../../types";
 
-/** 8-byte on-chain discriminator for `Ledger` accounts. */
+/** On-chain discriminator for `Ledger` accounts. */
 export const LEDGER_DISCRIMINATOR = new Uint8Array([43, 41, 21, 213, 180, 176, 95, 32]);
 
 /** Fetches a `Ledger` account. Throws if it does not exist. */

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator prefix for `MintAuthority` accounts on-chain. */
+/** Discriminator prefix for `MintAuthority` accounts on-chain. */
 export const MINTAUTHORITY_DISCRIMINATOR = new Uint8Array([148, 0, 219, 228, 254, 237, 76, 128]);
 
 /** Auto-generated account interface from the program IDL. */

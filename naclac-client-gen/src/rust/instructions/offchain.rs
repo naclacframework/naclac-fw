@@ -89,7 +89,8 @@ pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         }
         offchain_content.push_str("    };\n");
 
-        offchain_content.push_str("    #[cfg(not(feature = \"borsh\"))]\n    {\n");
+        offchain_content
+            .push_str("    #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n    {\n");
         offchain_content.push_str(&super::super::generate_zero_copy_arg_bytes(
             ix,
             false,
@@ -101,6 +102,10 @@ pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
             "    #[cfg(feature = \"borsh\")]\n\
              \x20   {\n\
              \x20       crate::sdk_core_offchain::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();\n\
+             \x20   }\n\
+             \x20   #[cfg(feature = \"wincode\")]\n\
+             \x20   {\n\
+             \x20       crate::sdk_core_offchain::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_offchain::wincode_config::CONFIG).unwrap();\n\
              \x20   }\n"
         );
     }

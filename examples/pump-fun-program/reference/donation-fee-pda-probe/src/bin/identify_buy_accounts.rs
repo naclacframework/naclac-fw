@@ -9,7 +9,7 @@
 //!
 //! Usage: cargo run --bin identify_buy_accounts [-- <rpc-url>]
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_rpc_client_api::config::RpcTransactionConfig;
 use solana_transaction_status_client_types::{EncodedTransaction, UiMessage, UiTransactionEncoding};
@@ -31,12 +31,12 @@ const GLOBAL_VOLUME_ACCUMULATOR_DISCRIMINATOR: [u8; 8] = [202, 42, 246, 43, 142,
 const USER_VOLUME_ACCUMULATOR_DISCRIMINATOR: [u8; 8] = [86, 255, 112, 14, 102, 53, 154, 250];
 const BUYBACK_VAULT_DISCRIMINATOR: [u8; 8] = [153, 166, 71, 144, 179, 189, 137, 251];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
-fn identify(client: &RpcClient, key_str: &str, buyback_recipients: &[Pubkey]) -> String {
-    let Ok(key) = Pubkey::from_str(key_str) else { return "(invalid key)".to_string() };
+fn identify(client: &RpcClient, key_str: &str, buyback_recipients: &[Address]) -> String {
+    let Ok(key) = Address::from_str(key_str) else { return "(invalid key)".to_string() };
 
     if key == pk(SYSTEM_PROGRAM_ID) {
         return "= System Program".to_string();
@@ -97,13 +97,13 @@ fn main() {
     let client = RpcClient::new_with_timeout(rpc_url, Duration::from_secs(60));
     let pump_program = pk(PUMP_PROGRAM_ID);
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let global_account = client.get_account(&global).expect("failed to fetch global");
     let start = 8 + 733;
     let mut buyback_recipients = Vec::new();
     for i in 0..8 {
         let off = start + i * 32;
-        buyback_recipients.push(Pubkey::try_from(&global_account.data[off..off + 32]).unwrap());
+        buyback_recipients.push(Address::try_from(&global_account.data[off..off + 32]).unwrap());
     }
     println!("global = {global}");
     println!("global.buyback_fee_recipients:");

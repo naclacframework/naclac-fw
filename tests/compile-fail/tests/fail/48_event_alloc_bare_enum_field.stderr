@@ -1,0 +1,80 @@
+error[E0277]: `Mode` cannot be a field of a zero-copy event
+  --> tests/fail/48_event_alloc_bare_enum_field.rs:12:15
+   |
+12 |     pub mode: Mode,
+   |               ^^^^ this type has no default value
+   |
+   = help: the trait `Default` is not implemented for `Mode`
+   = note: a `#[defined_type]` enum field must be written `ZcEnum<EnumName>`
+   = note: required for `Mode` to implement `ZcEventDefault`
+note: required by a bound in `event_field_default`
+  --> /mnt/c/Users/hp/Documents/naclac-fw/naclac-core/src/wrappers/zc_enum.rs:51:31
+   |
+51 | pub fn event_field_default<T: ZcEventDefault>() -> T {
+   |                               ^^^^^^^^^^^^^^ required by this bound in `event_field_default`
+help: consider annotating `Mode` with `#[derive(Default)]`
+   |
+ 4 + #[derive(Default)]
+ 5 | pub enum Mode {
+   |
+
+error[E0277]: `Mode` cannot be a field of a zero-copy event
+  --> tests/fail/48_event_alloc_bare_enum_field.rs:9:1
+   |
+ 9 | #[event(alloc)]
+   | ^^^^^^^^^^^^^^^ this type's bytes cannot be written as they are
+   |
+help: the trait `Pod` is not implemented for `Mode`
+  --> tests/fail/48_event_alloc_bare_enum_field.rs:4:1
+   |
+ 4 | pub enum Mode {
+   | ^^^^^^^^^^^^^
+   = note: a `#[defined_type]` enum field must be written `ZcEnum<EnumName>`
+   = help: the following other types implement trait `Pod`:
+             ()
+             Address
+             ApplyPendingBalanceData
+             BatchedGroupedCiphertext2HandlesValidityProofContext
+             BatchedGroupedCiphertext2HandlesValidityProofData
+             BatchedGroupedCiphertext3HandlesValidityProofContext
+             BatchedGroupedCiphertext3HandlesValidityProofData
+             BatchedRangeProofContext
+           and $N others
+   = note: required for `Mode` to implement `NoUninit`
+   = note: required for `Mode` to implement `ZcEventField`
+note: required by a bound in `event_bytes_of`
+  --> /mnt/c/Users/hp/Documents/naclac-fw/naclac-core/src/wrappers/zc_enum.rs:58:26
+   |
+58 | pub fn event_bytes_of<T: ZcEventField>(value: &T) -> &[u8] {
+   |                          ^^^^^^^^^^^^ required by this bound in `event_bytes_of`
+   = note: this error originates in the attribute macro `event` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `Mode` cannot be a field of a zero-copy event
+  --> tests/fail/48_event_alloc_bare_enum_field.rs:13:20
+   |
+13 |     pub modes: Vec<Mode>,
+   |                    ^^^^ this type's bytes cannot be written as they are
+   |
+help: the trait `Pod` is not implemented for `Mode`
+  --> tests/fail/48_event_alloc_bare_enum_field.rs:4:1
+   |
+ 4 | pub enum Mode {
+   | ^^^^^^^^^^^^^
+   = note: a `#[defined_type]` enum field must be written `ZcEnum<EnumName>`
+   = help: the following other types implement trait `Pod`:
+             ()
+             Address
+             ApplyPendingBalanceData
+             BatchedGroupedCiphertext2HandlesValidityProofContext
+             BatchedGroupedCiphertext2HandlesValidityProofData
+             BatchedGroupedCiphertext3HandlesValidityProofContext
+             BatchedGroupedCiphertext3HandlesValidityProofData
+             BatchedRangeProofContext
+           and $N others
+   = note: required for `Mode` to implement `NoUninit`
+   = note: required for `Mode` to implement `ZcEventField`
+note: required by a bound in `event_slice_bytes`
+  --> /mnt/c/Users/hp/Documents/naclac-fw/naclac-core/src/wrappers/zc_enum.rs:63:29
+   |
+63 | pub fn event_slice_bytes<T: ZcEventField>(values: &[T]) -> &[u8] {
+   |                             ^^^^^^^^^^^^ required by this bound in `event_slice_bytes`

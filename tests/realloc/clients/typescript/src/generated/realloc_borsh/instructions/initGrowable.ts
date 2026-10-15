@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_growable` instruction. */
+/** Discriminator for the `init_growable` instruction. */
 export const INIT_GROWABLE_DISCRIMINATOR = new Uint8Array([171, 24, 231, 25, 60, 46, 156, 148]);
 
 /** Accounts for the `initGrowable` instruction. */

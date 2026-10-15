@@ -208,9 +208,7 @@ impl<'a> MasterEditionView<'a> {
         let start = self.name_offset + 1 + 4;
         // SAFETY: bounds validated in `from_bytes`; Core's own write path
         // always encodes `name` as a valid Borsh (UTF-8) `String`.
-        Some(unsafe {
-            core::str::from_utf8_unchecked(&self.data[start..start + self.name_len])
-        })
+        Some(unsafe { core::str::from_utf8_unchecked(&self.data[start..start + self.name_len]) })
     }
 
     pub fn uri(&self) -> Option<&str> {
@@ -219,9 +217,7 @@ impl<'a> MasterEditionView<'a> {
         }
         let start = self.uri_offset + 1 + 4;
         // SAFETY: same as `name`.
-        Some(unsafe {
-            core::str::from_utf8_unchecked(&self.data[start..start + self.uri_len])
-        })
+        Some(unsafe { core::str::from_utf8_unchecked(&self.data[start..start + self.uri_len]) })
     }
 }
 

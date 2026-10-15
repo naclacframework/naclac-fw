@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_transfer_hook` instruction. */
+/** Discriminator for the `create_mint2022_with_transfer_hook` instruction. */
 export const CREATE_MINT2022_WITH_TRANSFER_HOOK_DISCRIMINATOR = new Uint8Array([40, 196, 26, 207, 77, 145, 63, 110]);
 
 /** Instruction arguments for `createMint2022WithTransferHook`. */

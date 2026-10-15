@@ -1,6 +1,6 @@
-use anchor_lang::solana_program::{
+use anchor_lang::solana_{
     instruction::{AccountMeta, Instruction},
-    pubkey::Pubkey,
+    pubkey::Address,
     system_program,
 };
 use anchor_lang::{InstructionData, ToAccountMetas};
@@ -14,35 +14,35 @@ use crate::{constants, pda};
 
 use super::PumpSdk;
 
-/// Pubkeys derived once and threaded into both `Buy` and `Sell` AMM
+/// Addresss derived once and threaded into both `Buy` and `Sell` AMM
 /// instructions (which share the same account set apart from buy's extra
 /// volume-accumulator slots).
 struct AmmTradeAccounts {
-    coin_creator_vault_authority: Pubkey,
-    user_volume_accumulator: Pubkey,
-    user_base_token_account: Pubkey,
-    user_quote_token_account: Pubkey,
-    pool_base_token_account: Pubkey,
-    pool_quote_token_account: Pubkey,
-    protocol_fee_recipient_token_account: Pubkey,
-    coin_creator_vault_ata: Pubkey,
+    coin_creator_vault_authority: Address,
+    user_volume_accumulator: Address,
+    user_base_token_account: Address,
+    user_quote_token_account: Address,
+    pool_base_token_account: Address,
+    pool_quote_token_account: Address,
+    protocol_fee_recipient_token_account: Address,
+    coin_creator_vault_ata: Address,
 }
 
 impl AmmTradeAccounts {
     fn derive(
-        pool: Pubkey,
-        base_mint: Pubkey,
-        quote_mint: Pubkey,
-        base_token_program: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
-        coin_creator: Pubkey,
-        protocol_fee_recipient: Pubkey,
+        pool: Address,
+        base_mint: Address,
+        quote_mint: Address,
+        base_token_program: Address,
+        quote_token_program: Address,
+        user: Address,
+        coin_creator: Address,
+        protocol_fee_recipient: Address,
     ) -> Self {
         let coin_creator_vault_authority =
             pda::pump_amm::coin_creator_vault_authority(&coin_creator).0;
         let user_volume_accumulator = pda::pump_amm::user_volume_accumulator(&user).0;
-        let ata = |owner: &Pubkey, token_program: &Pubkey, mint: &Pubkey| {
+        let ata = |owner: &Address, token_program: &Address, mint: &Address| {
             pda::associated_token(owner, token_program, mint).0
         };
         Self {
@@ -70,12 +70,12 @@ impl PumpSdk {
     /// `pump_amm` buy. Fees from [`GlobalConfig`], pool layout from [`Pool`]. Use default `coin_creator` to omit `pool_v2`.
     pub fn buy_amm_instruction(
         &self,
-        pool: Pubkey,
+        pool: Address,
         amm_global: &GlobalConfig,
         pool_state: &Pool,
-        base_token_program: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_token_program: Address,
+        quote_token_program: Address,
+        user: Address,
         base_amount_out: u64,
         max_quote_amount_in: u64,
     ) -> Option<Instruction> {
@@ -99,15 +99,15 @@ impl PumpSdk {
 
     pub(crate) fn buy_amm_instruction_with_recipients(
         &self,
-        pool: Pubkey,
-        base_mint: Pubkey,
-        quote_mint: Pubkey,
-        base_token_program: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
-        coin_creator: Pubkey,
-        protocol_fee_recipient: Pubkey,
-        buyback_fee_recipient: Pubkey,
+        pool: Address,
+        base_mint: Address,
+        quote_mint: Address,
+        base_token_program: Address,
+        quote_token_program: Address,
+        user: Address,
+        coin_creator: Address,
+        protocol_fee_recipient: Address,
+        buyback_fee_recipient: Address,
         is_cashback_coin: bool,
         base_amount_out: u64,
         max_quote_amount_in: u64,
@@ -164,7 +164,7 @@ impl PumpSdk {
                 false,
             ));
         }
-        if coin_creator != Pubkey::default() {
+        if coin_creator != Address::default() {
             metas.push(AccountMeta::new_readonly(
                 pda::pump_amm::pool_v2(&base_mint).0,
                 false,
@@ -185,12 +185,12 @@ impl PumpSdk {
     /// [`Self::buy_amm_instruction`] plus idempotent user base ATA create.
     pub fn buy_amm_instructions(
         &self,
-        pool: Pubkey,
+        pool: Address,
         amm_global: &GlobalConfig,
         pool_state: &Pool,
-        base_token_program: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_token_program: Address,
+        quote_token_program: Address,
+        user: Address,
         base_amount_out: u64,
         max_quote_amount_in: u64,
     ) -> Option<Vec<Instruction>> {
@@ -218,12 +218,12 @@ impl PumpSdk {
     /// `pump_amm` sell (remaining accounts differ from buy for cashback / buyback).
     pub fn sell_amm_instruction(
         &self,
-        pool: Pubkey,
+        pool: Address,
         amm_global: &GlobalConfig,
         pool_state: &Pool,
-        base_token_program: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_token_program: Address,
+        quote_token_program: Address,
+        user: Address,
         base_amount_in: u64,
         min_quote_amount_out: u64,
     ) -> Option<Instruction> {
@@ -247,15 +247,15 @@ impl PumpSdk {
 
     pub(crate) fn sell_amm_instruction_with_recipients(
         &self,
-        pool: Pubkey,
-        base_mint: Pubkey,
-        quote_mint: Pubkey,
-        base_token_program: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
-        coin_creator: Pubkey,
-        protocol_fee_recipient: Pubkey,
-        buyback_fee_recipient: Pubkey,
+        pool: Address,
+        base_mint: Address,
+        quote_mint: Address,
+        base_token_program: Address,
+        quote_token_program: Address,
+        user: Address,
+        coin_creator: Address,
+        protocol_fee_recipient: Address,
+        buyback_fee_recipient: Address,
         is_cashback_coin: bool,
         base_amount_in: u64,
         min_quote_amount_out: u64,
@@ -310,7 +310,7 @@ impl PumpSdk {
             ));
             metas.push(AccountMeta::new(a.user_volume_accumulator, false));
         }
-        if coin_creator != Pubkey::default() {
+        if coin_creator != Address::default() {
             metas.push(AccountMeta::new_readonly(
                 pda::pump_amm::pool_v2(&base_mint).0,
                 false,
@@ -331,12 +331,12 @@ impl PumpSdk {
     /// [`Self::sell_amm_instruction`] plus idempotent user quote ATA create.
     pub fn sell_amm_instructions(
         &self,
-        pool: Pubkey,
+        pool: Address,
         amm_global: &GlobalConfig,
         pool_state: &Pool,
-        base_token_program: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_token_program: Address,
+        quote_token_program: Address,
+        user: Address,
         base_amount_in: u64,
         min_quote_amount_out: u64,
     ) -> Option<Vec<Instruction>> {
@@ -366,9 +366,9 @@ impl PumpSdk {
     /// Works for any supported quote mint (wSOL or non-SOL).
     pub fn collect_coin_creator_fee_instruction(
         &self,
-        coin_creator: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
+        coin_creator: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
     ) -> Instruction {
         let coin_creator_vault_authority =
             pda::pump_amm::coin_creator_vault_authority(&coin_creator).0;
@@ -402,10 +402,10 @@ impl PumpSdk {
     /// `payer` only matters when the ATA create runs.
     pub fn collect_coin_creator_fee_instructions(
         &self,
-        payer: Pubkey,
-        coin_creator: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
+        payer: Address,
+        coin_creator: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
         create_coin_creator_ata: bool,
     ) -> Vec<Instruction> {
         let mut ixs = Vec::with_capacity(2);
@@ -427,10 +427,10 @@ impl PumpSdk {
 
     pub fn transfer_creator_fees_to_pump_v2_instruction(
         &self,
-        payer: Pubkey,
-        coin_creator: Pubkey,
-        quote_mint: Pubkey,
-        token_program: Pubkey,
+        payer: Address,
+        coin_creator: Address,
+        quote_mint: Address,
+        token_program: Address,
     ) -> Instruction {
         let coin_creator_vault_authority =
             pda::pump_amm::coin_creator_vault_authority(&coin_creator).0;

@@ -1,10 +1,10 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use interface_client::{
     instructions::{build_check_token_interface, CheckTokenInterfaceAccounts},
     types::PROGRAM_ID,
 };
 
-/// Asserts a transaction failed with exactly the given `Custom` error code â€”
+/// Asserts a transaction failed with exactly the given `Custom` error code —
 /// mirrors `tests/error-codes/programs/error_codes/tests/error_codes_test.rs`'s
 /// helper of the same name and shape.
 fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientError>, expected: u32) {
@@ -26,7 +26,7 @@ fn setup() -> NaclacProvider {
 
 /// `Interface<TokenInterface>`'s `NaclacAccount::try_from` (interface.rs) is
 /// supposed to accept *either* well-known token program in the same field
-/// with no per-mint branching required in the instruction body â€” that's the
+/// with no per-mint branching required in the instruction body — that's the
 /// entire point of the wrapper (`examples/token-vault`'s `deposit.rs`/
 /// `withdraw.rs` both declare `token_program: Interface<TokenInterface>`
 /// for exactly this reason). litesvm preloads the real SPL Token program
@@ -74,13 +74,13 @@ fn real_token_2022_program_is_accepted() {
 }
 
 /// A genuinely different, genuinely executable program (the real System
-/// Program â€” confirmed executable in `tests/accounts-constraints`'s
+/// Program — confirmed executable in `tests/accounts-constraints`'s
 /// `check_executable` test) must still be rejected: it passes the
 /// `ConstraintExecutable` gate but fails the allowed-ids membership check,
 /// which `interface.rs`'s `try_from` (both backends) reports as
-/// `NaclacError::ProgramIdMismatch`, not `ConstraintAddress` â€” confirmed by
+/// `NaclacError::ProgramIdMismatch`, not `ConstraintAddress` — confirmed by
 /// reading the wrapper directly rather than assumed. `token_program` is
-/// field index 0 -> 3000 + 0*100 + ProgramIdMismatch(9) = 3009.
+/// field index 0 -> 10000 + 0*100 + ProgramIdMismatch(9) = 10009.
 #[test]
 fn non_token_executable_program_is_rejected_with_program_id_mismatch() {
     let provider = setup();
@@ -94,5 +94,5 @@ fn non_token_executable_program_is_rejected_with_program_id_mismatch() {
     )
     .send_and_confirm();
 
-    assert_custom_code(result, 3009);
+    assert_custom_code(result, 10009);
 }

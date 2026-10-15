@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { SmallData } from "../../types";
 
-/** 8-byte on-chain discriminator for `SmallData` accounts. */
+/** On-chain discriminator for `SmallData` accounts. */
 export const SMALLDATA_DISCRIMINATOR = new Uint8Array([244, 1, 200, 102, 86, 69, 45, 4]);
 
 /** Fetches a `SmallData` account. Throws if it does not exist. */

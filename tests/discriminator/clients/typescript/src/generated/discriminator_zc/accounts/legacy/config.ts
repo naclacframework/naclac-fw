@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { Config } from "../../types";
 
-/** 8-byte on-chain discriminator for `Config` accounts. */
+/** On-chain discriminator for `Config` accounts. */
 export const CONFIG_DISCRIMINATOR = new Uint8Array([155, 12, 170, 224, 30, 250, 204, 130]);
 
 /** Fetches a `Config` account. Throws if it does not exist. */

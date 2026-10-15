@@ -21,7 +21,7 @@
 //! `is_mutable` is left `None` (single `0u8` each) in every probe account
 //! here -- `set_creator`/`set_metaplex_creator` only plausibly care about
 //! `creators`, and `None` needs no further struct knowledge to encode
-//! correctly. `Creator { address: Pubkey(32), verified: bool(1), share: u8(1) }`.
+//! correctly. `Creator { address: Address(32), verified: bool(1), share: u8(1) }`.
 //!
 //! Open questions this probe answers:
 //! 1. Does `set_metaplex_creator` (permissionless) sync `bonding_curve.creator`
@@ -40,7 +40,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -57,8 +57,8 @@ const SET_METAPLEX_CREATOR_DISCRIMINATOR: [u8; 8] = [138, 96, 174, 217, 48, 85, 
 
 const BONDING_CURVE_CREATOR_OFFSET: usize = 49;
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -76,7 +76,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
 
 // Full, real 24-field `Global`, `authority`/`set_creator_authority` set,
 // everything else zeroed -- offsets confirmed via `probe21.rs`.
-fn global_account_data(authority: &Pubkey, set_creator_authority: &Pubkey) -> Vec<u8> {
+fn global_account_data(authority: &Address, set_creator_authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1); // initialized
@@ -106,7 +106,7 @@ fn global_account_data(authority: &Pubkey, set_creator_authority: &Pubkey) -> Ve
 // Full, real `BondingCurve`, `creator` set to whatever's passed in --
 // offsets/field order confirmed via `probe23.rs`'s own working
 // `bonding_curve_account_data`.
-fn bonding_curve_account_data(creator: &Pubkey) -> Vec<u8> {
+fn bonding_curve_account_data(creator: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BONDING_CURVE_DISCRIMINATOR);
     data.extend_from_slice(&0u64.to_le_bytes()); // virtual_token_reserves
@@ -130,14 +130,14 @@ fn borsh_string(s: &str) -> Vec<u8> {
 }
 
 struct CreatorSpec {
-    address: Pubkey,
+    address: Address,
     verified: bool,
     share: u8,
 }
 
 // Real `Metadata` account bytes, per the real `mpl-token-metadata` v5.1.2-alpha.2
 // crate source (see module doc). `creators: None` when `creators` is empty.
-fn metadata_account_data(mint: &Pubkey, creators: &[CreatorSpec]) -> Vec<u8> {
+fn metadata_account_data(mint: &Address, creators: &[CreatorSpec]) -> Vec<u8> {
     let mut data = Vec::new();
     data.push(4); // Key::MetadataV1
     data.extend_from_slice(&[0u8; 32]); // update_authority
@@ -169,12 +169,12 @@ fn metadata_account_data(mint: &Pubkey, creators: &[CreatorSpec]) -> Vec<u8> {
 }
 
 struct Scenario<'a> {
-    pump_program: Pubkey,
-    global: Pubkey,
-    bonding_curve: Pubkey,
-    metadata: Pubkey,
-    event_authority: Pubkey,
-    mint: Pubkey,
+    pump_program: Address,
+    global: Address,
+    bonding_curve: Address,
+    metadata: Address,
+    event_authority: Address,
+    mint: Address,
     authority: &'a Keypair,
 }
 
@@ -191,7 +191,7 @@ fn run_set_metaplex_creator(svm: &mut LiteSVM, s: &Scenario, label: &str) {
     run_and_report(svm, s, ix);
 }
 
-fn run_set_creator(svm: &mut LiteSVM, s: &Scenario, label: &str, creator_arg: Pubkey) {
+fn run_set_creator(svm: &mut LiteSVM, s: &Scenario, label: &str, creator_arg: Address) {
     println!("=== set_creator: {label} (arg={creator_arg}) ===");
     let mut data = SET_CREATOR_DISCRIMINATOR.to_vec();
     data.extend_from_slice(creator_arg.as_ref());
@@ -234,7 +234,7 @@ fn run_and_report(svm: &mut LiteSVM, s: &Scenario, ix: Instruction) {
     }
 
     let bc = svm.get_account(&s.bonding_curve).unwrap();
-    let creator = Pubkey::try_from(&bc.data[BONDING_CURVE_CREATOR_OFFSET..BONDING_CURVE_CREATOR_OFFSET + 32]).unwrap();
+    let creator = Address::try_from(&bc.data[BONDING_CURVE_CREATOR_OFFSET..BONDING_CURVE_CREATOR_OFFSET + 32]).unwrap();
     println!("  bonding_curve.creator after call = {creator}\n");
 }
 
@@ -251,53 +251,53 @@ fn main() {
     let authority = Keypair::new();
     svm.airdrop(&authority.pubkey(), 10_000_000_000).unwrap();
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account { lamports: 10_000_000, data: global_account_data(&authority.pubkey(), &authority.pubkey()), owner: pump_program, executable: false, rent_epoch: 0 },
     ).unwrap();
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
-    let already_set_creator = Pubkey::new_unique();
-    let metadata_creator_verified = Pubkey::new_unique();
-    let metadata_creator_unverified = Pubkey::new_unique();
+    let already_set_creator = Address::new_unique();
+    let metadata_creator_verified = Address::new_unique();
+    let metadata_creator_unverified = Address::new_unique();
     println!("already_set_creator (seeded on bonding_curve for the already-set scenarios) = {already_set_creator}");
     println!("metadata_creator_verified (creators[1], verified)  = {metadata_creator_verified}");
     println!("metadata_creator_unverified (creators[0], unverified) = {metadata_creator_unverified}\n");
 
     // `creator` seeds `bonding_curve.creator` BEFORE the call --
-    // `Pubkey::default()` simulates a bonding curve that has never had a
+    // `Address::default()` simulates a bonding curve that has never had a
     // creator set; a real pubkey simulates one that already has (real
     // pump.so, per direct user observation, no-ops with "Bonding curve has
     // creator already set" when called against one of these -- scenarios H1/H2
     // confirm that directly here rather than assume it applies to both
     // instructions identically).
-    let make_scenario = |svm: &mut LiteSVM, mint: Pubkey, creator: &Pubkey| -> Scenario {
+    let make_scenario = |svm: &mut LiteSVM, mint: Address, creator: &Address| -> Scenario {
         svm.set_account(mint, Account { lamports: 10_000_000, data: mint_account_data(6), owner: token_program, executable: false, rent_epoch: 0 }).unwrap();
-        let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+        let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
         svm.set_account(bonding_curve, Account { lamports: 10_000_000, data: bonding_curve_account_data(creator), owner: pump_program, executable: false, rent_epoch: 0 }).unwrap();
-        let (metadata, _) = Pubkey::find_program_address(&[b"metadata", mpl_program.as_ref(), mint.as_ref()], &mpl_program);
+        let (metadata, _) = Address::find_program_address(&[b"metadata", mpl_program.as_ref(), mint.as_ref()], &mpl_program);
         Scenario { pump_program, global, bonding_curve, metadata, event_authority, mint, authority: &authority }
     };
 
     // Scenario A: bonding_curve.creator unset (default), metadata does not
     // exist at all (never funded/created).
-    let mint_a = Pubkey::new_unique();
-    let s = make_scenario(&mut svm, mint_a, &Pubkey::default());
+    let mint_a = Address::new_unique();
+    let s = make_scenario(&mut svm, mint_a, &Address::default());
     run_set_metaplex_creator(&mut svm, &s, "creator unset, metadata account does not exist");
 
     // Scenario B: bonding_curve.creator unset, metadata exists, creators = None.
-    let mint_b = Pubkey::new_unique();
-    let s = make_scenario(&mut svm, mint_b, &Pubkey::default());
+    let mint_b = Address::new_unique();
+    let s = make_scenario(&mut svm, mint_b, &Address::default());
     svm.set_account(s.metadata, Account { lamports: 10_000_000, data: metadata_account_data(&mint_b, &[]), owner: mpl_program, executable: false, rent_epoch: 0 }).unwrap();
     run_set_metaplex_creator(&mut svm, &s, "creator unset, metadata exists, creators = None");
 
     // Scenario C: bonding_curve.creator unset, metadata exists, creators =
     // Some([unverified, verified]) -- does it pick creators[0] (first), or
     // specifically the verified one?
-    let mint_c = Pubkey::new_unique();
-    let s = make_scenario(&mut svm, mint_c, &Pubkey::default());
+    let mint_c = Address::new_unique();
+    let s = make_scenario(&mut svm, mint_c, &Address::default());
     svm.set_account(
         s.metadata,
         Account {
@@ -321,11 +321,11 @@ fn main() {
     // seeded), or does it only check the account's owner and blindly trust
     // whatever address is supplied (mirroring the `buyback_fee_recipients`
     // no-independent-verification finding from `probe66.rs`)?
-    let mint_j = Pubkey::new_unique(); // the real subject mint
-    let mint_k = Pubkey::new_unique(); // a different mint, whose metadata we'll substitute in
-    let s = make_scenario(&mut svm, mint_j, &Pubkey::default());
-    let (wrong_metadata, _) = Pubkey::find_program_address(&[b"metadata", mpl_program.as_ref(), mint_k.as_ref()], &mpl_program);
-    let metadata_creator_wrong_mint = Pubkey::new_unique();
+    let mint_j = Address::new_unique(); // the real subject mint
+    let mint_k = Address::new_unique(); // a different mint, whose metadata we'll substitute in
+    let s = make_scenario(&mut svm, mint_j, &Address::default());
+    let (wrong_metadata, _) = Address::find_program_address(&[b"metadata", mpl_program.as_ref(), mint_k.as_ref()], &mpl_program);
+    let metadata_creator_wrong_mint = Address::new_unique();
     println!("mint_j (subject) = {mint_j}, mint_k (different mint whose metadata we substitute) = {mint_k}");
     println!("metadata_creator_wrong_mint (creators[0] on mint_k's metadata) = {metadata_creator_wrong_mint}\n");
     svm.set_account(
@@ -338,7 +338,7 @@ fn main() {
     // Scenario H1: bonding_curve.creator ALREADY set (non-default), metadata
     // exists with a different creator -- direct confirmation of the
     // already-set no-op the user observed live for one of these instructions.
-    let mint_h1 = Pubkey::new_unique();
+    let mint_h1 = Address::new_unique();
     let s = make_scenario(&mut svm, mint_h1, &already_set_creator);
     svm.set_account(
         s.metadata,
@@ -347,15 +347,15 @@ fn main() {
     run_set_metaplex_creator(&mut svm, &s, "creator ALREADY set, metadata has a different creator (expect no-op)");
 
     // Scenario D: set_creator, bonding_curve.creator unset, creator arg =
-    // Pubkey::default() (all zeros), metadata exists with a verified creator
+    // Address::default() (all zeros), metadata exists with a verified creator
     // -- does the zero arg act as a "read from metadata" sentinel?
-    let mint_d = Pubkey::new_unique();
-    let s = make_scenario(&mut svm, mint_d, &Pubkey::default());
+    let mint_d = Address::new_unique();
+    let s = make_scenario(&mut svm, mint_d, &Address::default());
     svm.set_account(
         s.metadata,
         Account { lamports: 10_000_000, data: metadata_account_data(&mint_d, &[CreatorSpec { address: metadata_creator_verified, verified: true, share: 100 }]), owner: mpl_program, executable: false, rent_epoch: 0 },
     ).unwrap();
-    run_set_creator(&mut svm, &s, "creator unset, arg = default/zero, metadata has a verified creator", Pubkey::default());
+    run_set_creator(&mut svm, &s, "creator unset, arg = default/zero, metadata has a verified creator", Address::default());
 
     // Scenario E: set_creator, bonding_curve.creator unset, explicit non-zero
     // creator arg, metadata ALSO exists with a DIFFERENT creator -- does the
@@ -363,10 +363,10 @@ fn main() {
     // mainnet txs `63bj2x...`/`3uff6J...` already show the arg landing
     // directly in the emitted event's `creator` field, but neither of those
     // had metadata to compete with -- this isolates that.)
-    let mint_e = Pubkey::new_unique();
-    let explicit_arg_creator = Pubkey::new_unique();
+    let mint_e = Address::new_unique();
+    let explicit_arg_creator = Address::new_unique();
     println!("explicit_arg_creator (scenario E's set_creator arg) = {explicit_arg_creator}\n");
-    let s = make_scenario(&mut svm, mint_e, &Pubkey::default());
+    let s = make_scenario(&mut svm, mint_e, &Address::default());
     svm.set_account(
         s.metadata,
         Account { lamports: 10_000_000, data: metadata_account_data(&mint_e, &[CreatorSpec { address: metadata_creator_verified, verified: true, share: 100 }]), owner: mpl_program, executable: false, rent_epoch: 0 },
@@ -375,8 +375,8 @@ fn main() {
 
     // Scenario F: set_creator, bonding_curve.creator unset, explicit non-zero
     // creator arg, metadata does NOT exist at all.
-    let mint_f = Pubkey::new_unique();
-    let s = make_scenario(&mut svm, mint_f, &Pubkey::default());
+    let mint_f = Address::new_unique();
+    let s = make_scenario(&mut svm, mint_f, &Address::default());
     run_set_creator(&mut svm, &s, "creator unset, arg = explicit non-zero, metadata does not exist", explicit_arg_creator);
 
     // Scenario I: set_creator, bonding_curve.creator unset, metadata EXISTS
@@ -384,18 +384,18 @@ fn main() {
     // IDL's own doc comment ("set the bonding curve creator from Metaplex
     // metadata OR input argument") as a literal fallback: does the arg get
     // used when metadata has nothing usable?
-    let mint_i = Pubkey::new_unique();
-    let s = make_scenario(&mut svm, mint_i, &Pubkey::default());
+    let mint_i = Address::new_unique();
+    let s = make_scenario(&mut svm, mint_i, &Address::default());
     svm.set_account(s.metadata, Account { lamports: 10_000_000, data: metadata_account_data(&mint_i, &[]), owner: mpl_program, executable: false, rent_epoch: 0 }).unwrap();
     run_set_creator(&mut svm, &s, "creator unset, metadata exists with creators = None, arg = explicit non-zero", explicit_arg_creator);
 
     // Scenario I2: same as I but arg is ALSO default/zero -- nothing usable
     // anywhere. Does it no-op like set_metaplex_creator's scenario B, or
     // fail, or write the zero arg literally?
-    let mint_i2 = Pubkey::new_unique();
-    let s = make_scenario(&mut svm, mint_i2, &Pubkey::default());
+    let mint_i2 = Address::new_unique();
+    let s = make_scenario(&mut svm, mint_i2, &Address::default());
     svm.set_account(s.metadata, Account { lamports: 10_000_000, data: metadata_account_data(&mint_i2, &[]), owner: mpl_program, executable: false, rent_epoch: 0 }).unwrap();
-    run_set_creator(&mut svm, &s, "creator unset, metadata exists with creators = None, arg = default/zero (nothing usable anywhere)", Pubkey::default());
+    run_set_creator(&mut svm, &s, "creator unset, metadata exists with creators = None, arg = default/zero (nothing usable anywhere)", Address::default());
 
     // Scenario H2: set_creator, bonding_curve.creator ALREADY set, metadata
     // exists with a creator -- does set_creator ALSO no-op the same way
@@ -404,7 +404,7 @@ fn main() {
     // from the first run: originally had no metadata account at all, so it
     // only proved metadata is unconditionally required, same as A/F -- not
     // what this scenario was meant to isolate.)
-    let mint_h2 = Pubkey::new_unique();
+    let mint_h2 = Address::new_unique();
     let s = make_scenario(&mut svm, mint_h2, &already_set_creator);
     svm.set_account(
         s.metadata,
@@ -417,10 +417,10 @@ fn main() {
     // (Fixed from the first run: also needs a real metadata account so the
     // failure is attributable to the signer check, not to metadata being
     // missing -- same issue as H2 above.)
-    let mint_g = Pubkey::new_unique();
+    let mint_g = Address::new_unique();
     let not_authority = Keypair::new();
     svm.airdrop(&not_authority.pubkey(), 10_000_000_000).unwrap();
-    let s_orig = make_scenario(&mut svm, mint_g, &Pubkey::default());
+    let s_orig = make_scenario(&mut svm, mint_g, &Address::default());
     svm.set_account(
         s_orig.metadata,
         Account { lamports: 10_000_000, data: metadata_account_data(&mint_g, &[CreatorSpec { address: metadata_creator_verified, verified: true, share: 100 }]), owner: mpl_program, executable: false, rent_epoch: 0 },

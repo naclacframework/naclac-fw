@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { Growable } from "../../types";
 
-/** 8-byte on-chain discriminator for `Growable` accounts. */
+/** On-chain discriminator for `Growable` accounts. */
 export const GROWABLE_DISCRIMINATOR = new Uint8Array([2, 210, 153, 187, 63, 113, 200, 133]);
 
 /** Fetches a `Growable` account. Throws if it does not exist. */

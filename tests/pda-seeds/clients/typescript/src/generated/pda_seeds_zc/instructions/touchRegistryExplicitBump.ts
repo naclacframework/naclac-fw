@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_registry_explicit_bump` instruction. */
+/** Discriminator for the `touch_registry_explicit_bump` instruction. */
 export const TOUCH_REGISTRY_EXPLICIT_BUMP_DISCRIMINATOR = new Uint8Array([198, 121, 5, 107, 43, 16, 230, 90]);
 
 /** Instruction arguments for `touchRegistryExplicitBump`. */

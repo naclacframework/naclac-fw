@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `transfer_tokens2022_with_memo` instruction. */
+/** Discriminator for the `transfer_tokens2022_with_memo` instruction. */
 export const TRANSFER_TOKENS2022_WITH_MEMO_DISCRIMINATOR = new Uint8Array([62, 196, 162, 124, 124, 33, 183, 127]);
 
 /** Instruction arguments for `transferTokens2022WithMemo`. */

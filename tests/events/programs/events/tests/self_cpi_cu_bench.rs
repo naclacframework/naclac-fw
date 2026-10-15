@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use events_client::{
     instructions::{
         build_emit_via_self_cpi_baseline, build_emit_via_sol_log_data_baseline,
@@ -15,7 +15,7 @@ fn setup() -> NaclacProvider {
 
 /// Real, measured CU cost of a bare self-CPI (program invoking itself with
 /// zero accounts and a zero-length payload) under the pinocchio (no_std,
-/// always zero-copy) backend, via litesvm's actual SVM execution â€” not an
+/// always zero-copy) backend, via litesvm's actual SVM execution — not an
 /// estimate. Also runs a same-shaped no-CPI baseline (identical single
 /// `address`-constrained account, no invoke) so the fixed CPI overhead can
 /// be isolated from the surrounding instruction's own dispatch/validation

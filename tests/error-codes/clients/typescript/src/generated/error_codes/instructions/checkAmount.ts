@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_amount` instruction. */
+/** Discriminator for the `check_amount` instruction. */
 export const CHECK_AMOUNT_DISCRIMINATOR = new Uint8Array([64, 134, 148, 88, 151, 6, 135, 30]);
 
 /** Instruction arguments for `checkAmount`. */

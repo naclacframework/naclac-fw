@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { SmallData } from "../../types";
 
-/** 8-byte on-chain discriminator for `SmallData` accounts. */
+/** On-chain discriminator for `SmallData` accounts. */
 export const SMALLDATA_DISCRIMINATOR = new Uint8Array([244, 1, 200, 102, 86, 69, 45, 4]);
+
+function stripSmallDataDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = SMALLDATA_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `SmallData` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link SmallData} account data. */
 export function getSmallDataEncoder(): naclac.FixedSizeEncoder<SmallData> {
@@ -39,7 +47,7 @@ export function decodeSmallData<TAddress extends string = string>(
 ): naclac.Account<SmallData, TAddress> | naclac.MaybeAccount<SmallData, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripSmallDataDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getSmallDataDecoder(),
   );
@@ -88,7 +96,7 @@ export async function fetchAllMaybeSmallData(
 }
 
 /** Fetches ALL `SmallData` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllSmallDataByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

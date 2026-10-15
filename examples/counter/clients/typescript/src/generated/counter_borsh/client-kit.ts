@@ -40,7 +40,7 @@ export class CounterBorshClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider, false);
+    this.program = new naclac.Program(IDL, provider, false, []);
   }
 
   /**
@@ -65,7 +65,7 @@ export class CounterBorshClient {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
       seeds: [
-                new Uint8Array([99, 111, 117, 110, 116, 101, 114, 95, 118, 50])
+                new Uint8Array([99, 111, 117, 110, 116, 101, 114])
       ]
     });
   }
@@ -103,6 +103,11 @@ export class CounterBorshClient {
   /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. */
   public parseCounterIncrementedEvents(logs: readonly string[]) {
     return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs);
+  }
+
+  /** Like `parseCounterIncrementedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseCounterIncrementedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.CounterIncremented[]> {
+    return this.program.parseEventsFromTransaction<types.CounterIncremented>("CounterIncremented", tx);
   }
 
   /** Removes a registered event listener by its ID. */

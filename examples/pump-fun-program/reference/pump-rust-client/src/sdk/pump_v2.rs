@@ -1,6 +1,6 @@
-use anchor_lang::solana_program::{
+use anchor_lang::solana_{
     instruction::{AccountMeta, Instruction},
-    pubkey::Pubkey,
+    pubkey::Address,
     system_program,
 };
 use anchor_lang::{InstructionData, ToAccountMetas};
@@ -14,38 +14,38 @@ use crate::{
 
 use super::{CreateCoinParams, PumpSdk};
 
-/// Pubkeys derived once and threaded into both `BuyV2` and `SellV2` (the two
+/// Addresss derived once and threaded into both `BuyV2` and `SellV2` (the two
 /// instructions share the same account set apart from `BuyV2`'s extra
 /// `global_volume_accumulator`). `quote_mint` is the resolved value
 /// (default → wSOL); `base_token_program` is fixed for v2 (Token-2022).
 struct V2TradeAccounts {
-    quote_mint: Pubkey,
-    base_token_program: Pubkey,
-    bonding_curve: Pubkey,
-    creator_vault: Pubkey,
-    user_volume_accumulator: Pubkey,
-    associated_quote_fee_recipient: Pubkey,
-    associated_quote_buyback_fee_recipient: Pubkey,
-    associated_base_bonding_curve: Pubkey,
-    associated_quote_bonding_curve: Pubkey,
-    associated_base_user: Pubkey,
-    associated_quote_user: Pubkey,
-    associated_creator_vault: Pubkey,
-    associated_user_volume_accumulator: Pubkey,
+    quote_mint: Address,
+    base_token_program: Address,
+    bonding_curve: Address,
+    creator_vault: Address,
+    user_volume_accumulator: Address,
+    associated_quote_fee_recipient: Address,
+    associated_quote_buyback_fee_recipient: Address,
+    associated_base_bonding_curve: Address,
+    associated_quote_bonding_curve: Address,
+    associated_base_user: Address,
+    associated_quote_user: Address,
+    associated_creator_vault: Address,
+    associated_user_volume_accumulator: Address,
 }
 
 impl V2TradeAccounts {
     fn derive(
-        base_mint: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
-        creator: Pubkey,
-        fee_recipient: Pubkey,
-        buyback_fee_recipient: Pubkey,
+        base_mint: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
+        user: Address,
+        creator: Address,
+        fee_recipient: Address,
+        buyback_fee_recipient: Address,
     ) -> Self {
         let base_token_program = constants::SPL_TOKEN_2022_PROGRAM_ID;
-        let quote_mint = if quote_mint == Pubkey::default() {
+        let quote_mint = if quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             quote_mint
@@ -53,7 +53,7 @@ impl V2TradeAccounts {
         let bonding_curve = pda::pump::bonding_curve(&base_mint).0;
         let creator_vault = pda::pump::creator_vault(&creator).0;
         let user_volume_accumulator = pda::pump::user_volume_accumulator(&user).0;
-        let ata = |owner: &Pubkey, token_program: &Pubkey, mint: &Pubkey| {
+        let ata = |owner: &Address, token_program: &Address, mint: &Address| {
             pda::associated_token(owner, token_program, mint).0
         };
         Self {
@@ -85,20 +85,20 @@ impl V2TradeAccounts {
 impl PumpSdk {
     /// `create_v2` (Token-2022, Mayhem PDAs).
     ///
-    /// `quote_mint` selects the curve's quote asset. Pass `Pubkey::default()`
+    /// `quote_mint` selects the curve's quote asset. Pass `Address::default()`
     /// or [`constants::NATIVE_MINT`] for the standard wSOL curve. Any other
     /// mint (e.g. USDC) is treated as a non-SOL quote and three remaining
     /// accounts are appended (quote mint, the legacy-SPL ATA owned by the
     /// bonding curve, and the legacy SPL Token program).
     pub fn create_v2_instruction(
         &self,
-        mint: Pubkey,
-        user: Pubkey,
+        mint: Address,
+        user: Address,
         name: impl Into<String>,
         symbol: impl Into<String>,
         uri: impl Into<String>,
-        creator: Pubkey,
-        quote_mint: Pubkey,
+        creator: Address,
+        quote_mint: Address,
         mayhem_mode: bool,
         cashback: bool,
     ) -> Instruction {
@@ -132,7 +132,7 @@ impl PumpSdk {
             is_cashback_enabled: OptionBool(cashback),
         };
         let mut metas = accounts.to_account_metas(None);
-        let resolved_quote_mint = if quote_mint == Pubkey::default() {
+        let resolved_quote_mint = if quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             quote_mint
@@ -157,9 +157,9 @@ impl PumpSdk {
         &self,
         global: &Global,
         bonding_curve: &BondingCurve,
-        base_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_mint: Address,
+        quote_token_program: Address,
+        user: Address,
         amount: u64,
         max_quote_tokens: u64,
     ) -> Option<Instruction> {
@@ -180,13 +180,13 @@ impl PumpSdk {
 
     pub(crate) fn buy_v2_instruction_with_recipients(
         &self,
-        base_mint: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
-        creator: Pubkey,
-        fee_recipient: Pubkey,
-        buyback_fee_recipient: Pubkey,
+        base_mint: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
+        user: Address,
+        creator: Address,
+        fee_recipient: Address,
+        buyback_fee_recipient: Address,
         amount: u64,
         max_sol_cost: u64,
     ) -> Instruction {
@@ -244,9 +244,9 @@ impl PumpSdk {
         &self,
         global: &Global,
         bonding_curve: &BondingCurve,
-        base_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_mint: Address,
+        quote_token_program: Address,
+        user: Address,
         amount: u64,
         max_quote_tokens: u64,
     ) -> Option<Vec<Instruction>> {
@@ -282,9 +282,9 @@ impl PumpSdk {
         &self,
         global: &Global,
         bonding_curve: &BondingCurve,
-        base_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_mint: Address,
+        quote_token_program: Address,
+        user: Address,
         spendable_quote_in: u64,
         min_tokens_out: u64,
     ) -> Option<Instruction> {
@@ -305,13 +305,13 @@ impl PumpSdk {
 
     pub(crate) fn buy_exact_quote_in_v2_instruction_with_recipients(
         &self,
-        base_mint: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
-        creator: Pubkey,
-        fee_recipient: Pubkey,
-        buyback_fee_recipient: Pubkey,
+        base_mint: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
+        user: Address,
+        creator: Address,
+        fee_recipient: Address,
+        buyback_fee_recipient: Address,
         spendable_quote_in: u64,
         min_tokens_out: u64,
     ) -> Instruction {
@@ -369,9 +369,9 @@ impl PumpSdk {
         &self,
         global: &Global,
         bonding_curve: &BondingCurve,
-        base_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_mint: Address,
+        quote_token_program: Address,
+        user: Address,
         spendable_quote_in: u64,
         min_tokens_out: u64,
     ) -> Option<Vec<Instruction>> {
@@ -407,9 +407,9 @@ impl PumpSdk {
         &self,
         global: &Global,
         bonding_curve: &BondingCurve,
-        base_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_mint: Address,
+        quote_token_program: Address,
+        user: Address,
         amount: u64,
         min_sol_output: u64,
     ) -> Option<Instruction> {
@@ -430,13 +430,13 @@ impl PumpSdk {
 
     pub(crate) fn sell_v2_instruction_with_recipients(
         &self,
-        base_mint: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
-        creator: Pubkey,
-        fee_recipient: Pubkey,
-        buyback_fee_recipient: Pubkey,
+        base_mint: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
+        user: Address,
+        creator: Address,
+        fee_recipient: Address,
+        buyback_fee_recipient: Address,
         amount: u64,
         min_sol_output: u64,
     ) -> Instruction {
@@ -493,9 +493,9 @@ impl PumpSdk {
         &self,
         global: &Global,
         bonding_curve: &BondingCurve,
-        base_mint: Pubkey,
-        quote_token_program: Pubkey,
-        user: Pubkey,
+        base_mint: Address,
+        quote_token_program: Address,
+        user: Address,
         amount: u64,
         min_sol_output: u64,
     ) -> Option<Vec<Instruction>> {
@@ -526,20 +526,20 @@ impl PumpSdk {
     }
 
     /// `create_v2` then [`Self::buy_v2_instructions`]. Pass
-    /// `quote_mint = Pubkey::default()` for a wSOL-quoted coin, or a
+    /// `quote_mint = Address::default()` for a wSOL-quoted coin, or a
     /// supported quote mint (e.g. USDC) for a non-native quote.
     /// Pass `tokenized_agent_buyback_bps = Some(bps)` to also append
     /// [`Self::agent_initialize_instruction`] in the same tx (mirrors the
     /// frontend's tokenized-agent flow).
     pub fn create_v2_and_buy_instruction(
         &self,
-        mint: Pubkey,
-        user: Pubkey,
+        mint: Address,
+        user: Address,
         name: impl Into<String>,
         symbol: impl Into<String>,
         uri: impl Into<String>,
-        creator: Pubkey,
-        quote_mint: Pubkey,
+        creator: Address,
+        quote_mint: Address,
         mayhem_mode: bool,
         cashback: bool,
         tokenized_agent_buyback_bps: Option<u16>,
@@ -548,7 +548,7 @@ impl PumpSdk {
         max_quote_tokens: u64,
     ) -> Option<Vec<Instruction>> {
         let quote_token_program = constants::SPL_TOKEN_PROGRAM_ID;
-        let resolved_quote_mint = if quote_mint == Pubkey::default() {
+        let resolved_quote_mint = if quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             quote_mint
@@ -595,9 +595,9 @@ impl PumpSdk {
     /// payment authority. `user` signs and pays for the new account.
     pub fn agent_initialize_instruction(
         &self,
-        mint: Pubkey,
-        user: Pubkey,
-        creator: Pubkey,
+        mint: Address,
+        user: Address,
+        creator: Address,
         buyback_bps: u16,
     ) -> Instruction {
         let accounts = agent_client::accounts::AgentInitialize {
@@ -626,7 +626,7 @@ impl PumpSdk {
         }
     }
 
-    pub fn extend_account_ix(&self, mint: Pubkey, user: Pubkey) -> Instruction {
+    pub fn extend_account_ix(&self, mint: Address, user: Address) -> Instruction {
         let accounts = client::accounts::ExtendAccount {
             account: pda::pump::bonding_curve(&mint).0,
             user,
@@ -648,12 +648,12 @@ impl PumpSdk {
     /// The two boost PDAs are mandatory to be passed as remaining accounts.
     pub fn migrate_v2_instruction(
         &self,
-        base_mint: Pubkey,
-        quote_mint: Pubkey,
-        user: Pubkey,
-        withdraw_authority: Pubkey,
-        base_token_program: Pubkey,
-        quote_token_program: Pubkey,
+        base_mint: Address,
+        quote_mint: Address,
+        user: Address,
+        withdraw_authority: Address,
+        base_token_program: Address,
+        quote_token_program: Address,
     ) -> Instruction {
         let token_2022_program = constants::SPL_TOKEN_2022_PROGRAM_ID;
         let bonding_curve = pda::pump::bonding_curve(&base_mint).0;
@@ -743,11 +743,11 @@ impl PumpSdk {
 
     pub fn claim_cashback_v2_instruction(
         &self,
-        user: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
+        user: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
     ) -> Instruction {
-        let resolved_quote_mint = if quote_mint == Pubkey::default() {
+        let resolved_quote_mint = if quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             quote_mint
@@ -782,13 +782,13 @@ impl PumpSdk {
 
     pub fn collect_creator_fee_v2_instructions(
         &self,
-        payer: Pubkey,
-        creator: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
+        payer: Address,
+        creator: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
         create_creator_ata: bool,
     ) -> Vec<Instruction> {
-        let resolved_quote_mint = if quote_mint == Pubkey::default() {
+        let resolved_quote_mint = if quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             quote_mint
@@ -812,11 +812,11 @@ impl PumpSdk {
 
     pub fn collect_creator_fee_v2_instruction(
         &self,
-        creator: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
+        creator: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
     ) -> Instruction {
-        let resolved_quote_mint = if quote_mint == Pubkey::default() {
+        let resolved_quote_mint = if quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             quote_mint
@@ -847,16 +847,16 @@ impl PumpSdk {
 
     pub fn distribute_creator_fees_v2_instructions(
         &self,
-        payer: Pubkey,
-        mint: Pubkey,
-        creator: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
+        payer: Address,
+        mint: Address,
+        creator: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
         initialize_ata: bool,
         create_creator_vault_ata: bool,
-        shareholders: &[Pubkey],
+        shareholders: &[Address],
     ) -> Vec<Instruction> {
-        let resolved_quote_mint = if quote_mint == Pubkey::default() {
+        let resolved_quote_mint = if quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             quote_mint
@@ -893,15 +893,15 @@ impl PumpSdk {
 
     pub fn distribute_creator_fees_v2_instruction(
         &self,
-        payer: Pubkey,
-        mint: Pubkey,
-        creator: Pubkey,
-        quote_mint: Pubkey,
-        quote_token_program: Pubkey,
+        payer: Address,
+        mint: Address,
+        creator: Address,
+        quote_mint: Address,
+        quote_token_program: Address,
         initialize_ata: bool,
-        shareholders: &[Pubkey],
+        shareholders: &[Address],
     ) -> Instruction {
-        let resolved_quote_mint = if quote_mint == Pubkey::default() {
+        let resolved_quote_mint = if quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             quote_mint
@@ -944,7 +944,7 @@ impl PumpSdk {
     }
 
     /// `create_v2` then [`Self::buy_v2_instructions`]. Set
-    /// `params.quote_mint = Pubkey::default()` for a wSOL-quoted coin, or a
+    /// `params.quote_mint = Address::default()` for a wSOL-quoted coin, or a
     /// supported quote mint (e.g. USDC) for a non-native quote.
     /// Setting `params.tokenized_agent_buyback_bps = Some(bps)` also appends
     /// [`Self::agent_initialize_instruction`].
@@ -968,7 +968,7 @@ impl PumpSdk {
             tokenized_agent_buyback_bps,
         } = params;
         let quote_token_program = constants::SPL_TOKEN_PROGRAM_ID;
-        let resolved_quote_mint = if quote_mint == Pubkey::default() {
+        let resolved_quote_mint = if quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             quote_mint
@@ -1015,11 +1015,11 @@ impl PumpSdk {
     /// `bonding_curve.quote_mint` resolves to wSOL to match
     /// [`V2TradeAccounts::derive`].
     fn user_trade_atas(
-        user: Pubkey,
-        base_mint: Pubkey,
+        user: Address,
+        base_mint: Address,
         bonding_curve: &BondingCurve,
-        base_token_program: Pubkey,
-        quote_token_program: Pubkey,
+        base_token_program: Address,
+        quote_token_program: Address,
         include_base: bool,
     ) -> Vec<Instruction> {
         let mut ixs = vec![];
@@ -1031,7 +1031,7 @@ impl PumpSdk {
                 &base_token_program,
             ));
         }
-        let bonding_curve_has_non_sol_quote = bonding_curve.quote_mint != Pubkey::default()
+        let bonding_curve_has_non_sol_quote = bonding_curve.quote_mint != Address::default()
             && bonding_curve.quote_mint != constants::NATIVE_MINT;
         // associated_quote_fee_recipient: Has alraedy been initialized, we will initalize this during initial testing.
         // associated_quote_buyback_fee_recipient: Has alraedy been initialized, we will initalize this during initial testing.

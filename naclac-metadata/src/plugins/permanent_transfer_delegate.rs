@@ -77,8 +77,12 @@ pub fn asset_has_permanent_transfer_delegate(info: &AccountInfo) -> Result<bool>
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(false);
     };
-    Ok(find_plugin_offset(&data, plugin_header_offset, plugin_type::PERMANENT_TRANSFER_DELEGATE)?
-        .is_some())
+    Ok(find_plugin_offset(
+        &data,
+        plugin_header_offset,
+        plugin_type::PERMANENT_TRANSFER_DELEGATE,
+    )?
+    .is_some())
 }
 
 /// `true` if a `Collection` has a `PermanentTransferDelegate` plugin
@@ -96,8 +100,12 @@ pub fn collection_has_permanent_transfer_delegate(info: &AccountInfo) -> Result<
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(false);
     };
-    Ok(find_plugin_offset(&data, plugin_header_offset, plugin_type::PERMANENT_TRANSFER_DELEGATE)?
-        .is_some())
+    Ok(find_plugin_offset(
+        &data,
+        plugin_header_offset,
+        plugin_type::PERMANENT_TRANSFER_DELEGATE,
+    )?
+    .is_some())
 }
 
 /// `true` if an `Asset` has a `PermanentTransferDelegate` plugin attached.

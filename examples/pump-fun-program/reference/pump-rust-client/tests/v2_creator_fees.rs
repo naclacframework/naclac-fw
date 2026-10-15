@@ -538,7 +538,7 @@ async fn v2_distribute_creator_fees_graduated() {
         .await
         .expect("fetch bonding_curve — did clone_devnet_accounts run?");
     let creator = bc.creator;
-    let quote_mint = if bc.quote_mint == solana_sdk::pubkey::Pubkey::default() {
+    let quote_mint = if bc.quote_mint == solana_sdk::pubkey::Address::default() {
         constants::NATIVE_MINT
     } else {
         bc.quote_mint

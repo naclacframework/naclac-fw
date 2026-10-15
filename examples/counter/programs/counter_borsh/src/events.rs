@@ -5,3 +5,4 @@ pub struct CounterIncremented {
     pub new_count: u64,
     pub timestamp: i64,
 }
+

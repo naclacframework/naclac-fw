@@ -7,18 +7,20 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg(feature = "borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Well under both the 300-byte per-field and 1700-byte aggregate stack
 /// budgets — used unboxed, to confirm the ordinary path needs no boxing.
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct SmallData {
     pub bump: u8,
     pub value: u64,
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Well under both the 300-byte per-field and 1700-byte aggregate stack
 /// budgets — used unboxed, to confirm the ordinary path needs no boxing.
 #[derive(Copy, Clone, Debug)]
@@ -31,7 +33,7 @@ pub struct SmallData {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __SmallData_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>();
@@ -40,7 +42,7 @@ const __SmallData_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __SmallData_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __SmallData_GAP_0
@@ -61,7 +63,7 @@ const __SmallData_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < SmallData > () == (::core::mem::size_of:: < u8 > () +
@@ -70,7 +72,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
     assert_impl::<u8>();
@@ -78,13 +80,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for SmallData {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for SmallData {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for SmallData {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -92,18 +94,20 @@ impl core::default::Default for SmallData {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(feature = "borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Well under both the 300-byte per-field and 1700-byte aggregate stack
 /// budgets — used unboxed, to confirm the ordinary path needs no boxing.
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct SmallDataCpi {
     pub bump: u8,
     pub value: u64,
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Well under both the 300-byte per-field and 1700-byte aggregate stack
 /// budgets — used unboxed, to confirm the ordinary path needs no boxing.
 #[derive(Copy, Clone, Debug)]
@@ -116,7 +120,7 @@ pub struct SmallDataCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __SmallDataCpi_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>();
@@ -125,7 +129,7 @@ const __SmallDataCpi_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __SmallDataCpi_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __SmallDataCpi_GAP_0
@@ -146,7 +150,7 @@ const __SmallDataCpi_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < SmallDataCpi > () == (::core::mem::size_of:: < u8 > () +
@@ -155,7 +159,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
     assert_impl::<u8>();
@@ -163,13 +167,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for SmallDataCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for SmallDataCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for SmallDataCpi {
     fn default() -> Self {
         crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
@@ -177,12 +181,12 @@ impl core::default::Default for SmallDataCpi {
 }
 
 
-/// 8-byte on-chain discriminator for `SmallData` accounts.
-pub const SMALLDATA_DISCRIMINATOR: [u8; 8] = [244, 1, 200, 102, 86, 69, 45, 4];
+/// On-chain discriminator for `SmallData` accounts.
+pub const SMALLDATA_DISCRIMINATOR: &[u8] = &[244, 1, 200, 102, 86, 69, 45, 4];
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl naclac_client::NaclacDecode for SmallData {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(SMALLDATA_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(SMALLDATA_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_pod_checked::<Self>(data, SMALLDATA_DISCRIMINATOR)
     }
@@ -191,9 +195,18 @@ impl naclac_client::NaclacDecode for SmallData {
 #[cfg(feature = "offchain")]
 #[cfg(feature = "borsh")]
 impl naclac_client::NaclacDecode for SmallData {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(SMALLDATA_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(SMALLDATA_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_borsh_checked::<Self>(data, SMALLDATA_DISCRIMINATOR)
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "wincode")]
+impl naclac_client::NaclacDecode for SmallData {
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(SMALLDATA_DISCRIMINATOR);
+    fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
+        naclac_client::decode_wincode_checked::<Self>(data, SMALLDATA_DISCRIMINATOR)
     }
 }
 #[cfg(feature = "offchain")]
@@ -225,7 +238,7 @@ pub fn fetch_all_small_data(
     provider: &naclac_client::NaclacProvider,
     program_id: &naclac_client::Address,
 ) -> Result<crate::sdk_core_offchain::Vec<(naclac_client::Address, SmallData)>, naclac_client::NaclacClientError> {
-    let raw_accounts = provider.get_program_accounts(program_id, Some(&SMALLDATA_DISCRIMINATOR))?;
+    let raw_accounts = provider.get_program_accounts(program_id, Some(SMALLDATA_DISCRIMINATOR))?;
     let mut results = crate::sdk_core_offchain::Vec::new();
     for (address, data) in raw_accounts {
         if let Ok(value) = <SmallData as naclac_client::NaclacDecode>::naclac_decode(&data) {

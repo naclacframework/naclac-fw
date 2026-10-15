@@ -1,8 +1,8 @@
 export * from "../index";
 export { Program } from "./program";
-export { MethodsBuilder } from "./methods";
+export { MethodsBuilder, innerInstructionsFromKitTransaction } from "./methods";
 export { AccountFetcher, fetchAllAccountsByProgram } from "./account";
-export type { NaclacProvider } from "./provider";
+export { type NaclacProvider, type TxVersion, normalizeTxVersion } from "./provider";
 export { createProvider, loadNodeWallet, transferSol } from "./setup";
 export { createLiteSvmProvider, type LiteSvmProvider } from "./provider-litesvm";
 export * from "./token";
@@ -22,6 +22,10 @@ export {
   getAddressDecoder,
   // Transaction pipeline helpers
   pipe,
+  createTransactionMessage,
+  setTransactionMessageComputeUnitLimit,
+  setTransactionMessageLoadedAccountsDataSizeLimit,
+  setTransactionMessagePriorityFeeLamports,
   // Enums and constants
   AccountRole,
   // Account fetch helpers — used by generated fetchXxx() functions

@@ -14,7 +14,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -33,8 +33,8 @@ const FEE_CONFIG_DISCRIMINATOR: [u8; 8] = [143, 52, 146, 187, 219, 123, 76, 155]
 const GLOBAL_VOLUME_ACCUMULATOR_DISCRIMINATOR: [u8; 8] = [202, 42, 246, 43, 142, 190, 30, 255];
 const USER_VOLUME_ACCUMULATOR_DISCRIMINATOR: [u8; 8] = [86, 255, 112, 14, 102, 53, 154, 250];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -47,15 +47,15 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(
         &[owner.as_ref(), token_program.as_ref(), mint.as_ref()],
         &pk(ASSOCIATED_TOKEN_PROGRAM_ID),
     )
     .0
 }
 
-fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
+fn mint_account_data(mint_authority: Option<&Address>, decimals: u8) -> Vec<u8> {
     let mut data = vec![0u8; 82];
     if let Some(auth) = mint_authority {
         data[0..4].copy_from_slice(&1u32.to_le_bytes());
@@ -67,7 +67,7 @@ fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -86,7 +86,7 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
 // buyback_basis_points, initial_virtual_quote_reserves,
 // whitelisted_quote_mints[1] — confirmed field order from
 // pump-public-docs/idl/pump.json.
-fn global_account_data(fee_recipient: &Pubkey, buyback_fee_recipient: &Pubkey) -> Vec<u8> {
+fn global_account_data(fee_recipient: &Address, buyback_fee_recipient: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1); // initialized
@@ -133,8 +133,8 @@ struct BondingCurveFixture {
     real_sol_reserves: u64,
     token_total_supply: u64,
     complete: bool,
-    creator: Pubkey,
-    quote_mint: Pubkey,
+    creator: Address,
+    quote_mint: Address,
 }
 
 fn bonding_curve_account_data(f: &BondingCurveFixture) -> Vec<u8> {
@@ -153,7 +153,7 @@ fn bonding_curve_account_data(f: &BondingCurveFixture) -> Vec<u8> {
     data
 }
 
-fn fee_config_account_data(bump: u8, admin: &Pubkey) -> Vec<u8> {
+fn fee_config_account_data(bump: u8, admin: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&FEE_CONFIG_DISCRIMINATOR);
     data.push(bump);
@@ -185,7 +185,7 @@ fn global_volume_accumulator_account_data() -> Vec<u8> {
 // cashback_earned, total_cashback_claimed, stable_cashback_earned,
 // total_stable_cashback_claimed — confirmed field order from
 // pump-public-docs/idl/pump.json.
-fn user_volume_accumulator_account_data(user: &Pubkey) -> Vec<u8> {
+fn user_volume_accumulator_account_data(user: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&USER_VOLUME_ACCUMULATOR_DISCRIMINATOR);
     data.extend_from_slice(user.as_ref());
@@ -220,8 +220,8 @@ fn main() {
             .unwrap_or_else(|e| panic!("load {so_name}: {e:?}"));
     }
 
-    let creator = Pubkey::new_unique();
-    let mint = Pubkey::new_unique();
+    let creator = Address::new_unique();
+    let mint = Address::new_unique();
     svm.set_account(
         mint,
         Account {
@@ -235,8 +235,8 @@ fn main() {
     .unwrap();
 
     let fee_recipient = Keypair::new();
-    let buyback_fee_recipient = Pubkey::new_unique();
-    let (global, _global_bump) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let buyback_fee_recipient = Address::new_unique();
+    let (global, _global_bump) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account {
@@ -249,12 +249,12 @@ fn main() {
     )
     .unwrap();
 
-    let (fee_config, fc_bump) = Pubkey::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
+    let (fee_config, fc_bump) = Address::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
     svm.set_account(
         fee_config,
         Account {
             lamports: 10_000_000,
-            data: fee_config_account_data(fc_bump, &Pubkey::new_unique()),
+            data: fee_config_account_data(fc_bump, &Address::new_unique()),
             owner: pump_fees_program,
             executable: false,
             rent_epoch: 0,
@@ -270,7 +270,7 @@ fn main() {
     const REAL_SOL_RESERVES: u64 = 0;
     const TOKEN_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;
 
-    let (bonding_curve, _bc_bump) = Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+    let (bonding_curve, _bc_bump) = Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
     svm.set_account(
         bonding_curve,
         Account {
@@ -283,7 +283,7 @@ fn main() {
                 token_total_supply: TOKEN_TOTAL_SUPPLY,
                 complete: false,
                 creator,
-                quote_mint: Pubkey::default(),
+                quote_mint: Address::default(),
             }),
             owner: pump_program,
             executable: false,
@@ -321,10 +321,10 @@ fn main() {
     )
     .unwrap();
 
-    let (creator_vault, _cv_bump) = Pubkey::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (creator_vault, _cv_bump) = Address::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
-    let (global_volume_accumulator, _) = Pubkey::find_program_address(&[b"global_volume_accumulator"], &pump_program);
+    let (global_volume_accumulator, _) = Address::find_program_address(&[b"global_volume_accumulator"], &pump_program);
     svm.set_account(
         global_volume_accumulator,
         Account {
@@ -337,7 +337,7 @@ fn main() {
     )
     .unwrap();
 
-    let (user_volume_accumulator, _) = Pubkey::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
+    let (user_volume_accumulator, _) = Address::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
     svm.set_account(
         user_volume_accumulator,
         Account {

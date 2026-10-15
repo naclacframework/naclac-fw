@@ -72,24 +72,18 @@ Always test one package at a time: `cargo test -p <name>`. Use
 correctly — it's the automation layer for this, not something to redo by
 hand per case.
 
-**Native-fs target dir: handled by `scripts/test-all.sh` itself, don't add
-a per-case `.cargo/config.toml` for this.** `cargo test` on a Windows-mounted
-drive under WSL intermittently fails with `Permission denied` writing
-`.rmeta` files (NTFS-via-9p locking, not a naclac bug) unless build output
-goes to a native Linux path. The fix is a `CARGO_TARGET_DIR` env var set
-*only* around the script's own `cargo test` calls — **not** a
-`.cargo/config.toml` in the case directory. A `.cargo/config.toml` there
-applies to *every* cargo invocation in that tree, including `naclac
-build`'s internal `cargo build-sbf` — which silently relocates
-`target/deploy/*.so` off the relative path every test file's
-`load_program()` helper expects, breaking `provider.add_program(...)` with
-a confusing `NotFound` at test time (this actually happened once, on
-`tests/pda-seeds/` — cost a full rebuild cycle to track down). Keep `naclac
-build`/`naclac generate` using the plain default target dir; only
-`scripts/test-all.sh`'s `cargo test` invocations get redirected. (`naclac-core/.cargo/config.toml`
-predates this lesson and is a different situation — that's a workspace
-member of the *root* build, not a `tests/*` case — leave it as-is, just
-don't copy its pattern into `tests/*/`.)
+**Native-fs target dir: every `tests/*/` case gets its own `.cargo/config.toml`
+redirecting `target-dir` to a native Linux path.** `cargo build`/`cargo test`
+on a Windows-mounted drive under WSL intermittently fails with `Permission
+denied` writing `.rmeta` files (NTFS-via-9p locking, not a naclac bug) unless
+build output goes to a native path — and leaving every case's build output on
+the Windows-mounted drive also burns far more disk space than one shared
+native-fs location. A per-case `.cargo/config.toml` (see
+`tests/discriminator/.cargo/config.toml` for the pattern) is the deliberate,
+correct fix, and applies uniformly to every cargo invocation in that tree —
+`naclac build`, `naclac generate`, and `scripts/test-all.sh`'s `cargo test`
+all target the same native path without issue. Add one to every new
+`tests/*/` case.
 
 ---
 

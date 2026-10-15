@@ -101,7 +101,7 @@ pub fn create_mint2022_with_group_pointer_and_group(
     // `.info` rather than re-borrowing `ctx.accounts.mint`, same reasoning
     // as `create_mint2022_with_metadata_pointer_and_metadata.rs`.
     let group_handle = ctx.accounts.mint.to_cpi_handle_mut();
-    let mint_info = group_handle.info.clone();
+    let mint_info = group_handle.info;
     let mint_handle = mint_info.to_cpi_handle();
     let bump = ctx.accounts.mint_authority.bump;
     let authority_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

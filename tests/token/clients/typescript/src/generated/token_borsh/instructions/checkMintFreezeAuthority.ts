@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_mint_freeze_authority` instruction. */
+/** Discriminator for the `check_mint_freeze_authority` instruction. */
 export const CHECK_MINT_FREEZE_AUTHORITY_DISCRIMINATOR = new Uint8Array([254, 61, 30, 240, 226, 124, 124, 101]);
 
 /** Accounts for the `checkMintFreezeAuthority` instruction. */

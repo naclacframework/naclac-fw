@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_seeded` instruction. */
+/** Discriminator for the `touch_seeded` instruction. */
 export const TOUCH_SEEDED_DISCRIMINATOR = new Uint8Array([113, 221, 0, 65, 190, 116, 9, 205]);
 
 /** Instruction arguments for `touchSeeded`. */

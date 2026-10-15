@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_scaled_ui_amount_config` instruction. */
+/** Discriminator for the `check_scaled_ui_amount_config` instruction. */
 export const CHECK_SCALED_UI_AMOUNT_CONFIG_DISCRIMINATOR = new Uint8Array([202, 110, 5, 227, 53, 32, 96, 126]);
 
 /** Instruction arguments for `checkScaledUiAmountConfig`. */
 export interface CheckScaledUiAmountConfigArgs {
-  expected_authority: naclac.Address | string | null;
-  expected_multiplier_bits: bigint | number;
+  expectedAuthority: naclac.Address | string | null;
+  expectedMultiplierBits: bigint | number;
 }
 
 /** Accounts for the `checkScaledUiAmountConfig` instruction. */

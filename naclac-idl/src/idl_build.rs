@@ -25,4 +25,10 @@ pub trait NaclacIdlBuild {
     /// its own expansion site — never derived from `core::any::type_name`,
     /// whose exact format Rust does not guarantee.
     fn get_full_path() -> String;
+
+    /// The on-chain discriminator bytes when this type is a `#[component]`
+    /// account; `None` for any other type.
+    fn account_discriminator() -> Option<Vec<u8>> {
+        None
+    }
 }

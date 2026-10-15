@@ -15,7 +15,7 @@
 //! getProgramAccounts scan).
 
 use solana_account_decoder::{UiAccountEncoding, UiDataSliceConfig};
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_rpc_client_api::config::{
     RpcAccountInfoConfig, RpcProgramAccountsConfig, RpcTransactionConfig,
@@ -43,7 +43,7 @@ const PUMP_FEES_PROGRAM_ID: &str = "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"
 const SHARING_CONFIG_DISCRIMINATOR: [u8; 8] = [216, 74, 9, 0, 56, 140, 93, 75];
 
 struct Shareholder {
-    address: Pubkey,
+    address: Address,
     #[allow(dead_code)]
     share_bps: u16,
 }
@@ -52,8 +52,8 @@ struct SharingConfig {
     bump: u8,
     version: u8,
     status: u8,
-    mint: Pubkey,
-    admin: Pubkey,
+    mint: Address,
+    admin: Address,
     admin_revoked: bool,
     shareholders_len: u32,
     /// Only the first entry — this probe never reads any other shareholder,
@@ -73,9 +73,9 @@ fn decode_sharing_config(data: &[u8]) -> Option<SharingConfig> {
     o += 1;
     let status = *data.get(o)?;
     o += 1;
-    let mint = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let mint = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32;
-    let admin = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let admin = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32;
     let admin_revoked = *data.get(o)? != 0;
     o += 1;
@@ -84,7 +84,7 @@ fn decode_sharing_config(data: &[u8]) -> Option<SharingConfig> {
     o += 4;
 
     let first_shareholder = if shareholders_len > 0 {
-        let address = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+        let address = Address::try_from(data.get(o..o + 32)?).ok()?;
         o += 32;
         let share_bps = u16::from_le_bytes(data.get(o..o + 2)?.try_into().ok()?);
         Some(Shareholder { address, share_bps })
@@ -105,7 +105,7 @@ fn decode_sharing_config(data: &[u8]) -> Option<SharingConfig> {
 }
 
 struct HistoryFinding {
-    creation_payer: Option<Pubkey>,
+    creation_payer: Option<Address>,
     saw_reset: bool,
     signature_count: usize,
     truncated: bool,
@@ -116,7 +116,7 @@ struct HistoryFinding {
 /// `create_fee_sharing_config` call, and (b) whether `reset_fee_sharing_config`
 /// or `_v2` ever appears — the two candidate explanations for why some
 /// un-revoked `SharingConfig` accounts have `admin != shareholders[0]`.
-fn investigate(client: &RpcClient, program_id: &Pubkey, address: &Pubkey) -> HistoryFinding {
+fn investigate(client: &RpcClient, program_id: &Address, address: &Address) -> HistoryFinding {
     let sigs = client.get_signatures_for_address(address).unwrap_or_default();
     let truncated = sigs.len() >= 1000;
     let signature_count = sigs.len();
@@ -166,7 +166,7 @@ fn investigate(client: &RpcClient, program_id: &Pubkey, address: &Pubkey) -> His
                     ix.accounts.get(CREATE_FEE_SHARING_CONFIG_PAYER_ACCOUNT_INDEX)
                 {
                     if let Some(payer_key_str) = msg.account_keys.get(*payer_key_idx as usize) {
-                        creation_payer = Pubkey::from_str(payer_key_str).ok();
+                        creation_payer = Address::from_str(payer_key_str).ok();
                     }
                 }
             }
@@ -190,7 +190,7 @@ fn main() {
     // with dataSlice trimming the payload down.
     let client = RpcClient::new_with_timeout(rpc_url, Duration::from_secs(300));
 
-    let program_id = Pubkey::from_str(PUMP_FEES_PROGRAM_ID).unwrap();
+    let program_id = Address::from_str(PUMP_FEES_PROGRAM_ID).unwrap();
 
     println!("Fetching SharingConfig accounts owned by {PUMP_FEES_PROGRAM_ID} (server-side discriminator filter, sliced to {DATA_SLICE_LEN} bytes/account)...");
     let config = RpcProgramAccountsConfig {
@@ -223,7 +223,7 @@ fn main() {
     let mut total_unrevoked = 0;
     let mut matches = 0;
     let mut sharing_config_count = 0;
-    let mut mismatched: Vec<(String, Pubkey)> = Vec::new();
+    let mut mismatched: Vec<(String, Address)> = Vec::new();
     const MAX_PRINTED: usize = 30;
 
     for (address, account) in accounts {
@@ -275,7 +275,7 @@ fn main() {
         mismatched.len()
     );
     for (address, admin) in &mismatched {
-        let Ok(pubkey) = Pubkey::from_str(address) else {
+        let Ok(pubkey) = Address::from_str(address) else {
             continue;
         };
         let finding = investigate(&client, &program_id, &pubkey);

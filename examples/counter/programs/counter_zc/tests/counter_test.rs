@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use counter_zc_client::{
     instructions::{
         build_initialize, build_increment,
@@ -40,7 +40,7 @@ fn test_counter_integration() {
     if !already_initialized {
         println!("🚀 Sending Initialize transaction...");
 
-        let tx_meta = build_initialize(
+        build_initialize(
             &provider,
             program_id,
             InitializeAccounts {
@@ -49,16 +49,9 @@ fn test_counter_integration() {
                 system_program: Address::default(),
             },
         )
+        .log()
         .send_and_confirm()
         .unwrap();
-
-        println!("   📊 Initialize Compute Units (CUs): {}", tx_meta.compute_units_consumed);
-        if !tx_meta.logs.is_empty() {
-            println!("   📜 Program Logs:");
-            for log in &tx_meta.logs {
-                println!("      {}", log);
-            }
-        }
 
         // Verify account initialized using the generated Counter component
         let counter_state: Counter = fetch_counter(&provider, &counter_pda)
@@ -79,16 +72,9 @@ fn test_counter_integration() {
             counter_account: counter_pda,
         },
     )
+    .log()
     .send_and_confirm()
     .unwrap();
-
-    println!("   📊 Increment Compute Units (CUs): {}", tx_meta.compute_units_consumed);
-    if !tx_meta.logs.is_empty() {
-        println!("   📜 Program Logs:");
-        for log in &tx_meta.logs {
-            println!("      {}", log);
-        }
-    }
 
     // 5. Verify Increment using the generated Counter component
     let counter_state_after: Counter = fetch_counter(&provider, &counter_pda)

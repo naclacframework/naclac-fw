@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `require_signer` instruction. */
+/** Discriminator for the `require_signer` instruction. */
 export const REQUIRE_SIGNER_DISCRIMINATOR = new Uint8Array([5, 1, 181, 83, 233, 60, 65, 184]);
 
 /** Accounts for the `requireSigner` instruction. */

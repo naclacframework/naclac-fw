@@ -3,21 +3,21 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_transfer_delegate` instruction. */
+/** Discriminator for the `attach_transfer_delegate` instruction. */
 export const ATTACH_TRANSFER_DELEGATE_DISCRIMINATOR = new Uint8Array([206, 47, 37, 248, 74, 212, 214, 157]);
 
 /** Accounts for the `attachTransferDelegate` instruction. */
 export interface AttachTransferDelegateAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The external Metaplex Core program to CPI into.
    * SAFETY: the real Metaplex Core program — external to this workspace,
    * so there's no naclac `Program<T>` marker type to constrain it with;
    * callers are expected to pass the real deployed program ID.
    */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

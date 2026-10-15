@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator prefix for `Thing` accounts on-chain. */
+/** Discriminator prefix for `Thing` accounts on-chain. */
 export const THING_DISCRIMINATOR = new Uint8Array([18, 244, 46, 203, 15, 193, 123, 123]);
 
 /** Auto-generated account interface from the program IDL. */

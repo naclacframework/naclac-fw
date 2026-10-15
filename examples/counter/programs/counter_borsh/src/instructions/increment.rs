@@ -11,7 +11,7 @@ pub struct Increment {
 
     #[account(
         mut,
-        seeds = [SEED_COUNTER], 
+        seeds = [SEED_COUNTER],
         authority = authority
     )]
     pub counter_account: Account<Counter>,

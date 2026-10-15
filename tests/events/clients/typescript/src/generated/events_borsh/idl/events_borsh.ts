@@ -25,6 +25,24 @@ export const IDL = {
       "args": []
     },
     {
+      "name": "init_counter_unchecked",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [218,187,192,211,73,165,109,23],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        {
+          "name": "counter", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [99,111,117,110,116,101,114], "name": "SEED_COUNTER" }
+            ]
+          }
+        },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": []
+    },
+    {
       "name": "increment_counter",
       "optionalAccountStrategy": "programId",
       "discriminator": [16,125,2,171,73,24,207,229],
@@ -83,7 +101,8 @@ export const IDL = {
             "`invoke`'s arguments — so this program must appear here, the same",
             "reason Anchor's `emit_cpi!` requires a `Program<'info, Self>` account.",
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
         }
       ],
       "args": []
@@ -97,7 +116,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
         }
       ],
       "args": []
@@ -155,7 +175,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
         }
       ],
       "args": []
@@ -169,7 +190,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
         }
       ],
       "args": []
@@ -186,7 +208,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
         }
       ],
       "args": [
@@ -206,12 +229,180 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
         }
       ],
       "args": [
         { "name": "size", "type": "u32" }
       ]
+    },
+    {
+      "name": "event_cpi_smoke",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [215,139,157,28,58,47,180,141],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_emit",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [115,58,67,15,26,157,167,201],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "emit_via_self_cpi_no_program",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [244,109,153,50,200,38,32,90],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`SEED_EVENT_AUTHORITY`) is checked here; it's the CPI target",
+            "(`log_event_signed`) that checks `is_signer`, once `invoke_signed`",
+            "below has actually marked it as one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121], "name": "SEED_EVENT_AUTHORITY" }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_noop",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [110,69,3,215,140,104,136,176],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_log_one",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [115,112,134,57,230,62,112,111],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_emit_one",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [129,189,117,118,42,101,201,201],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "bJtrMCwipxKU8DJRuiQrsgg8GHZBNfhbTdGH1rM5mUd"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -274,7 +465,8 @@ export const IDL = {
         { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121], "name": "SEED_EVENT_AUTHORITY" }
       ]
     }
-  ]
+  ],
+  "eventCpiTag": [34,131,189,8,189,141,224,48]
 } as const;
 
 export type EventsBorsh = typeof IDL;

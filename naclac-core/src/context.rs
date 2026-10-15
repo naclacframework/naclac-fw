@@ -5,6 +5,36 @@ pub trait Bumps {
     type BumpsStruct: Clone + Copy;
 }
 
+/// Implemented by every `#[derive(Accounts)]` struct. `NEEDS_EVENT_CPI` is
+/// `true` only for a struct annotated with `#[event_cpi]`; `#[program]` ORs
+/// this across its handlers' account structs in a const context to decide
+/// whether the reserved event-CPI dispatch arm is live.
+pub trait EventCpiAccounts {
+    const NEEDS_EVENT_CPI: bool;
+}
+
+/// Implemented by `#[program]` for every accounts struct one of its handlers
+/// uses: the program's reserved self-CPI dispatch tag, at the program's own
+/// instruction-discriminator width. `emit_cpi!` reads it through the handler's
+/// `Context`, so it needs no path into the caller's crate.
+pub trait EventCpiTag {
+    const EVENT_DISPATCH_TAG: &'static [u8];
+}
+
+/// Implemented by `#[event_cpi]` for the accounts struct it annotates: access
+/// to the `event_authority` account and bump it injected, so `emit_cpi!` never
+/// names those fields itself. A struct without `#[event_cpi]` has no impl,
+/// which is what produces `emit_cpi!`'s "needs `#[event_cpi]`" error.
+#[diagnostic::on_unimplemented(
+    message = "`emit_cpi!` needs the handler's accounts struct to carry `#[event_cpi]`",
+    label = "`{Self}` is not annotated with `#[event_cpi]`",
+    note = "put `#[event_cpi]` directly above `#[derive(Accounts)]` on `{Self}`; it injects the `event_authority` and `program` accounts the self-CPI needs"
+)]
+pub trait EventCpiAuthority: Bumps + 'static {
+    fn event_authority(&self) -> &crate::prelude::AccountInfo;
+    fn event_authority_bump(bumps: &Self::BumpsStruct) -> u8;
+}
+
 /// Type alias to simplify load_and_validate return type and satisfy type complexity rules.
 pub type ValidationResult<'a, P, B> =
     core::result::Result<(P, &'a [AccountType], B), crate::prelude::ProgramError>;
@@ -14,7 +44,10 @@ pub type ValidationResult<'a, P, B> =
 pub trait LoadableAccounts<'a>: Bumps {
     type Payload;
 
-    fn load_and_validate(
+    /// `__NACLAC_IX_DISC_LEN` is the byte width of the program's instruction
+    /// discriminator: instruction arguments start at that offset in
+    /// `instruction_data`.
+    fn load_and_validate<const __NACLAC_IX_DISC_LEN: usize>(
         program_id: &Address,
         accounts: &'a [AccountType],
         instruction_data: &[u8],

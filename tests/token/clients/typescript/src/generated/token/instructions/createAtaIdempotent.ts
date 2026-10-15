@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_ata_idempotent` instruction. */
+/** Discriminator for the `create_ata_idempotent` instruction. */
 export const CREATE_ATA_IDEMPOTENT_DISCRIMINATOR = new Uint8Array([81, 88, 202, 92, 134, 69, 133, 143]);
 
 /** Accounts for the `createAtaIdempotent` instruction. */
@@ -19,10 +19,10 @@ export interface CreateAtaIdempotentAccounts {
    * SAFETY: may not exist yet — created idempotently by the CPI below
    * (a no-op if it already exists).
    */
-  associated_token: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  associatedToken: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use amm_client::{
     types::PROGRAM_ID as AMM_PROGRAM_ID,
     get_pool_state_pda,
@@ -19,18 +19,18 @@ fn test_amm_full_lifecycle() {
     let cluster = "litesvm";
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
     let provider = NaclacProvider::new(cluster, payer).expect("Failed to construct NaclacProvider");
-    println!("\nðŸ”‘ Loaded Payer Wallet: {}", provider.payer.address());
+    println!("\n🔑 Loaded Payer Wallet: {}", provider.payer.address());
 
     // 1. Setup Token A Mint and Token B Mint
     let token_a_mint_signer = Keypair::new();
     let token_a_mint = token_a_mint_signer.address();
     create_mint(&provider, &token_a_mint_signer, &provider.payer.address(), 6).expect("Failed to create Token A mint");
-    println!("   ðŸª™ Created Token A Mint: {}", token_a_mint);
+    println!("   🪙 Created Token A Mint: {}", token_a_mint);
 
     let token_b_mint_signer = Keypair::new();
     let token_b_mint = token_b_mint_signer.address();
     create_mint(&provider, &token_b_mint_signer, &provider.payer.address(), 6).expect("Failed to create Token B mint");
-    println!("   ðŸª™ Created Token B Mint: {}", token_b_mint);
+    println!("   🪙 Created Token B Mint: {}", token_b_mint);
 
     // Create user token accounts and mint initial supply
     let user_token_a = create_ata(&provider, &token_a_mint, &provider.payer.address()).expect("Failed to create user Token A ATA");
@@ -38,12 +38,12 @@ fn test_amm_full_lifecycle() {
 
     mint_to(&provider, &token_a_mint, &user_token_a, &provider.payer, 10_000_000_000).expect("Failed to mint Token A to user");
     mint_to(&provider, &token_b_mint, &user_token_b, &provider.payer, 10_000_000_000).expect("Failed to mint Token B to user");
-    println!("   ðŸ’° Minted initial tokens to user.");
+    println!("   💰 Minted initial tokens to user.");
 
     // 2. Derive pool_state and setup vaults
     let id = 100u64;
     let (pool_state, pool_bump) = get_pool_state_pda(&AMM_PROGRAM_ID, &token_a_mint, &token_b_mint, id);
-    println!("   ðŸŒŠ Derived AMM Pool State PDA: {}", pool_state);
+    println!("   🌊 Derived AMM Pool State PDA: {}", pool_state);
 
     let pool_vault_a_signer = Keypair::new();
     let pool_vault_b_signer = Keypair::new();
@@ -52,13 +52,13 @@ fn test_amm_full_lifecycle() {
     create_token_account(&provider, &pool_vault_a_signer, &token_a_mint, &pool_state).expect("Failed to create pool vault A");
     create_token_account(&provider, &pool_vault_b_signer, &token_b_mint, &pool_state).expect("Failed to create pool vault B");
     create_mint(&provider, &pool_lp_mint_signer, &pool_state, 6).expect("Failed to create pool LP mint");
-    println!("   ðŸ¦ Created AMM vault and LP mint accounts.");
+    println!("   🏦 Created AMM vault and LP mint accounts.");
 
     let user_lp = create_ata(&provider, &pool_lp_mint_signer.address(), &provider.payer.address()).expect("Failed to create user LP ATA");
-    println!("   ðŸŽŸï¸ Created user LP ATA.");
+    println!("   🎟️ Created user LP ATA.");
 
     // 3. Initialize Pool
-    println!("ðŸ”¥ Sending initialize pool transaction...");
+    println!("🔥 Sending initialize pool transaction...");
     let amount_a = 2_000_000_000;
     let amount_b = 4_000_000_000;
     let tx_meta = build_initialize(
@@ -86,10 +86,10 @@ fn test_amm_full_lifecycle() {
     )
     .send_and_confirm()
     .expect("Failed to initialize pool");
-    println!("   âœ… Pool initialized!");
-    println!("   ðŸ“Š Compute Units (CUs) consumed: {}", tx_meta.compute_units_consumed);
+    println!("   ✅ Pool initialized!");
+    println!("   📊 Compute Units (CUs) consumed: {}", tx_meta.compute_units_consumed);
     if !tx_meta.logs.is_empty() {
-        println!("   ðŸ“œ Program Logs:");
+        println!("   📜 Program Logs:");
         for log in &tx_meta.logs {
             println!("      {}", log);
         }
@@ -106,10 +106,10 @@ fn test_amm_full_lifecycle() {
     // Initial LP tokens minted should match sqrt(amount_a * amount_b)
     let expected_lp = ((amount_a as f64) * (amount_b as f64)).sqrt() as u64;
     assert_eq!(user_lp_balance, expected_lp);
-    println!("   ðŸ“Š Initial balances verified. LP minted: {}", user_lp_balance);
+    println!("   📊 Initial balances verified. LP minted: {}", user_lp_balance);
 
     // 4. Add Liquidity
-    println!("ðŸ”¥ Adding liquidity...");
+    println!("🔥 Adding liquidity...");
     let add_amount_a = 500_000_000;
     let add_amount_b = 1_000_000_000;
     let tx_meta = build_add_liquidity(
@@ -133,10 +133,10 @@ fn test_amm_full_lifecycle() {
     )
     .send_and_confirm()
     .expect("Failed to add liquidity");
-    println!("   âœ… Liquidity added successfully!");
-    println!("   ðŸ“Š Compute Units (CUs) consumed: {}", tx_meta.compute_units_consumed);
+    println!("   ✅ Liquidity added successfully!");
+    println!("   📊 Compute Units (CUs) consumed: {}", tx_meta.compute_units_consumed);
     if !tx_meta.logs.is_empty() {
-        println!("   ðŸ“œ Program Logs:");
+        println!("   📜 Program Logs:");
         for log in &tx_meta.logs {
             println!("      {}", log);
         }
@@ -146,10 +146,10 @@ fn test_amm_full_lifecycle() {
     let user_lp_balance_post_add = fetcher.fetch::<TokenAccount>(&user_lp).unwrap().amount();
     assert_eq!(vault_a_balance_post_add, amount_a + add_amount_a);
     assert!(user_lp_balance_post_add > user_lp_balance);
-    println!("   ðŸ“Š Post-add balances verified. LP count: {}", user_lp_balance_post_add);
+    println!("   📊 Post-add balances verified. LP count: {}", user_lp_balance_post_add);
 
     // 5. Swap Token A for Token B
-    println!("ðŸ”¥ Executing swap...");
+    println!("🔥 Executing swap...");
     let swap_in = 100_000_000;
     let min_out = 150_000_000; // Expected output should be around 196M based on Constant Product
     let tx_meta = build_swap(
@@ -171,10 +171,10 @@ fn test_amm_full_lifecycle() {
     )
     .send_and_confirm()
     .expect("Failed to execute swap");
-    println!("   âœ… Swap executed successfully!");
-    println!("   ðŸ“Š Compute Units (CUs) consumed: {}", tx_meta.compute_units_consumed);
+    println!("   ✅ Swap executed successfully!");
+    println!("   📊 Compute Units (CUs) consumed: {}", tx_meta.compute_units_consumed);
     if !tx_meta.logs.is_empty() {
-        println!("   ðŸ“œ Program Logs:");
+        println!("   📜 Program Logs:");
         for log in &tx_meta.logs {
             println!("      {}", log);
         }
@@ -182,10 +182,10 @@ fn test_amm_full_lifecycle() {
 
     let vault_a_balance_post_swap = fetcher.fetch::<TokenAccount>(&pool_vault_a_signer.address()).unwrap().amount();
     assert_eq!(vault_a_balance_post_swap, amount_a + add_amount_a + swap_in);
-    println!("   ðŸ“Š Post-swap vault A balance: {}", vault_a_balance_post_swap);
+    println!("   📊 Post-swap vault A balance: {}", vault_a_balance_post_swap);
 
     // 6. Remove Liquidity
-    println!("ðŸ”¥ Removing liquidity...");
+    println!("🔥 Removing liquidity...");
     let remove_lp_amount = 500_000_000;
     let tx_meta = build_remove_liquidity(
         &provider,
@@ -207,10 +207,10 @@ fn test_amm_full_lifecycle() {
     )
     .send_and_confirm()
     .expect("Failed to remove liquidity");
-    println!("   âœ… Liquidity removed successfully!");
-    println!("   ðŸ“Š Compute Units (CUs) consumed: {}", tx_meta.compute_units_consumed);
+    println!("   ✅ Liquidity removed successfully!");
+    println!("   📊 Compute Units (CUs) consumed: {}", tx_meta.compute_units_consumed);
     if !tx_meta.logs.is_empty() {
-        println!("   ðŸ“œ Program Logs:");
+        println!("   📜 Program Logs:");
         for log in &tx_meta.logs {
             println!("      {}", log);
         }
@@ -218,6 +218,6 @@ fn test_amm_full_lifecycle() {
 
     let user_lp_balance_final = fetcher.fetch::<TokenAccount>(&user_lp).unwrap().amount();
     assert_eq!(user_lp_balance_final, user_lp_balance_post_add - remove_lp_amount);
-    println!("   ðŸ“Š Final LP Balance: {}", user_lp_balance_final);
-    println!("\nâœ¨ AMM full lifecycle test completed successfully!\n");
+    println!("   📊 Final LP Balance: {}", user_lp_balance_final);
+    println!("\n✨ AMM full lifecycle test completed successfully!\n");
 }

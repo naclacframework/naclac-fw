@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_update_scaled_ui_amount_multiplier` instruction. */
+/** Discriminator for the `exercise_update_scaled_ui_amount_multiplier` instruction. */
 export const EXERCISE_UPDATE_SCALED_UI_AMOUNT_MULTIPLIER_DISCRIMINATOR = new Uint8Array([93, 46, 196, 71, 154, 204, 42, 163]);
 
 /** Instruction arguments for `exerciseUpdateScaledUiAmountMultiplier`. */

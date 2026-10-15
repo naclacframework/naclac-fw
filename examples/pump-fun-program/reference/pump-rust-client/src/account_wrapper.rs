@@ -5,7 +5,7 @@
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
 
-use anchor_lang::prelude::Pubkey;
+use anchor_lang::prelude::Address;
 use anchor_lang::{
     AccountDeserialize, AccountSerialize, AnchorDeserialize, AnchorSerialize, Discriminator, Owner,
     Result,
@@ -49,7 +49,7 @@ impl<T: Discriminator> Discriminator for AccountWrapper<T> {
 }
 
 impl<T: Owner> Owner for AccountWrapper<T> {
-    fn owner() -> Pubkey {
+    fn owner() -> Address {
         T::owner()
     }
 }
@@ -115,14 +115,14 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anchor_lang::solana_program::pubkey::Pubkey;
+    use anchor_lang::solana_address::Address;
     use anchor_lang::AccountSerialize;
 
     use crate::constants;
     use crate::state::{BondingCurve, BondingCurveFromIdl};
 
-    fn fake_pubkey(seed: u8) -> Pubkey {
-        Pubkey::new_from_array([seed; 32])
+    fn fake_pubkey(seed: u8) -> Address {
+        Address::new_from_array([seed; 32])
     }
 
     #[test]
@@ -157,9 +157,9 @@ mod tests {
         );
         assert_eq!(decoded.creator, original.creator);
         assert_eq!(decoded.is_mayhem_mode, original.is_mayhem_mode);
-        // Stripped fields land at their `Default` value (zero / Pubkey::default()).
+        // Stripped fields land at their `Default` value (zero / Address::default()).
         assert!(!decoded.is_cashback_coin);
-        assert_eq!(decoded.quote_mint, Pubkey::default());
+        assert_eq!(decoded.quote_mint, Address::default());
     }
 
     #[test]

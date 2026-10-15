@@ -22,4 +22,8 @@ pub mod discriminator {
     pub fn read_vault(ctx: Context<ReadVault>) -> Result {
         read_vault::read_vault(ctx)
     }
+
+    pub fn touch_config(ctx: Context<TouchConfig>) -> Result {
+        touch_config::touch_config(ctx)
+    }
 }

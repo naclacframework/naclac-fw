@@ -8,10 +8,10 @@
 //! collection's own group memberships), plus `CreateGroupV1`/
 //! `CloseGroupV1`/`UpdateGroupV1`. Real layout verified against `mpl-core`'s
 //! `state::GroupV1` and `generated::accounts::GroupV1` (identical shape):
-//! `key(1) + update_authority: Pubkey(32) + name: String(4+len) +
-//! uri: String(4+len) + collections: Vec<Pubkey>(4+32N) +
-//! groups: Vec<Pubkey>(4+32N) + parent_groups: Vec<Pubkey>(4+32N) +
-//! assets: Vec<Pubkey>(4+32N)` — every `Vec` here holds fixed-width
+//! `key(1) + update_authority: Address(32) + name: String(4+len) +
+//! uri: String(4+len) + collections: Vec<Address>(4+32N) +
+//! groups: Vec<Address>(4+32N) + parent_groups: Vec<Address>(4+32N) +
+//! assets: Vec<Address>(4+32N)` — every `Vec` here holds fixed-width
 //! 32-byte pubkeys, so (unlike `Asset`/`Collection`'s plugin data) no
 //! variable-per-element walk is needed, just four sequential length-prefixed
 //! lists. `Key::GroupV1 = 6`.
@@ -167,19 +167,19 @@ impl<'a> GroupView<'a> {
         }
     }
 
-    pub fn collections(&self) -> Span<Address> {
+    pub fn collections(&self) -> ZcVec<Address> {
         read_pubkey_span(self.data, self.collections_offset)
     }
 
-    pub fn groups(&self) -> Span<Address> {
+    pub fn groups(&self) -> ZcVec<Address> {
         read_pubkey_span(self.data, self.groups_offset)
     }
 
-    pub fn parent_groups(&self) -> Span<Address> {
+    pub fn parent_groups(&self) -> ZcVec<Address> {
         read_pubkey_span(self.data, self.parent_groups_offset)
     }
 
-    pub fn assets(&self) -> Span<Address> {
+    pub fn assets(&self) -> ZcVec<Address> {
         read_pubkey_span(self.data, self.assets_offset)
     }
 }
@@ -201,7 +201,7 @@ fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
     Ok(len)
 }
 
-/// Validates a `Vec<Pubkey>` at `offset` fits within `data` and returns the
+/// Validates a `Vec<Address>` at `offset` fits within `data` and returns the
 /// offset immediately after it (where the next field starts).
 fn skip_pubkey_vec(data: &[u8], offset: usize) -> Result<usize> {
     let prefix_end = offset
@@ -221,17 +221,17 @@ fn skip_pubkey_vec(data: &[u8], offset: usize) -> Result<usize> {
     Ok(end)
 }
 
-/// Zero-copy `Span<Address>` view of a `Vec<Pubkey>` field at `offset` —
+/// Zero-copy `ZcVec<Address>` view of a `Vec<Address>` field at `offset` —
 /// `Address` is `bytemuck::Pod` on both backends (naclac-core's own newtype
 /// on `pinocchio`; the real `solana_address::Address`'s own impl on
 /// `solana`), so no heap collection is needed here (bounds already
 /// validated by `skip_pubkey_vec` during `GroupView::from_bytes`).
-fn read_pubkey_span(data: &[u8], offset: usize) -> Span<Address> {
+fn read_pubkey_span(data: &[u8], offset: usize) -> ZcVec<Address> {
     let count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
     // `skip_pubkey_vec` already validated this exact byte range during
     // `GroupView::from_bytes` — its length is guaranteed a multiple of 32,
-    // so `Span::from_bytes` cannot fail here.
-    Span::from_bytes(&data[offset + 4..offset + 4 + count * 32])
+    // so `ZcVec::from_bytes` cannot fail here.
+    ZcVec::from_bytes(&data[offset + 4..offset + 4 + count * 32])
         .expect("range pre-validated by skip_pubkey_vec")
 }
 
@@ -299,20 +299,15 @@ pub fn create_group_signed(
         data.extend_from_slice(&0u32.to_le_bytes()); // relationships: empty Vec
 
         let accounts_meta = vec![
-            solana_program::instruction::AccountMeta::new(accounts.group.address(), true),
+            solana_instruction::AccountMeta::new(accounts.group.address(), true),
             match &accounts.update_authority {
-                Some(a) => {
-                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
-            solana_program::instruction::AccountMeta::new_readonly(
-                accounts.system_program.address(),
-                false,
-            ),
+            solana_instruction::AccountMeta::new(accounts.payer.address(), true),
+            solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
         ];
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: crate::ID,
             accounts: accounts_meta,
             data,
@@ -320,9 +315,7 @@ pub fn create_group_signed(
 
         let cpi_accounts = [
             CpiHandle::from(accounts.group),
-            accounts
-                .update_authority
-                .unwrap_or_else(|| program.clone()),
+            accounts.update_authority.unwrap_or(program),
             CpiHandle::from(accounts.payer),
             accounts.system_program,
             program,
@@ -396,16 +389,14 @@ pub fn close_group_signed(
     {
         let data = [40u8]; // CloseGroupV1 discriminator, no args
         let accounts_meta = vec![
-            solana_program::instruction::AccountMeta::new(accounts.group.address(), false),
-            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            solana_instruction::AccountMeta::new(accounts.group.address(), false),
+            solana_instruction::AccountMeta::new(accounts.payer.address(), true),
             match &accounts.authority {
-                Some(a) => {
-                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
         ];
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: crate::ID,
             accounts: accounts_meta,
             data: data.to_vec(),
@@ -414,7 +405,7 @@ pub fn close_group_signed(
         let cpi_accounts = [
             CpiHandle::from(accounts.group),
             CpiHandle::from(accounts.payer),
-            accounts.authority.unwrap_or_else(|| program.clone()),
+            accounts.authority.unwrap_or(program),
             program,
         ];
         crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
@@ -487,26 +478,19 @@ pub fn update_group_signed(
         }
 
         let accounts_meta = vec![
-            solana_program::instruction::AccountMeta::new(accounts.group.address(), false),
-            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            solana_instruction::AccountMeta::new(accounts.group.address(), false),
+            solana_instruction::AccountMeta::new(accounts.payer.address(), true),
             match &accounts.authority {
-                Some(a) => {
-                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
             match &accounts.new_update_authority {
-                Some(a) => {
-                    solana_program::instruction::AccountMeta::new_readonly(a.address(), false)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), false),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-            solana_program::instruction::AccountMeta::new_readonly(
-                accounts.system_program.address(),
-                false,
-            ),
+            solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
         ];
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: crate::ID,
             accounts: accounts_meta,
             data,
@@ -515,10 +499,8 @@ pub fn update_group_signed(
         let cpi_accounts = [
             CpiHandle::from(accounts.group),
             CpiHandle::from(accounts.payer),
-            accounts.authority.unwrap_or_else(|| program.clone()),
-            accounts
-                .new_update_authority
-                .unwrap_or_else(|| program.clone()),
+            accounts.authority.unwrap_or(program),
+            accounts.new_update_authority.unwrap_or(program),
             accounts.system_program,
             program,
         ];

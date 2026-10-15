@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_metadata_pointer` instruction. */
+/** Discriminator for the `create_mint2022_with_metadata_pointer` instruction. */
 export const CREATE_MINT2022_WITH_METADATA_POINTER_DISCRIMINATOR = new Uint8Array([80, 150, 114, 46, 177, 12, 82, 235]);
 
 /** Instruction arguments for `createMint2022WithMetadataPointer`. */
@@ -22,9 +22,9 @@ export interface CreateMint2022WithMetadataPointerAccounts {
    * `MetadataPointer` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

@@ -62,7 +62,7 @@ pub fn map_type_to_ts_with_prefix(
                 }
             }
             if let Some(defined) = o.get("defined").and_then(|d| d.as_str()) {
-                if is_zero_copy && (defined == "Bool" || defined.starts_with("Opt")) {
+                if is_zero_copy && defined == "Bool" {
                     return format!("naclac.{}", defined);
                 }
                 if !defined_prefix.is_empty() {
@@ -74,6 +74,16 @@ pub fn map_type_to_ts_with_prefix(
         }
         _ => "any".to_string(),
     }
+}
+
+/// The program's `#[event(alloc)]` event names as a sorted TypeScript array
+/// literal, baked into the generated client next to `isZeroCopy`: like
+/// `isZeroCopy`, it's a codegen-time fact the runtime needs to pick an
+/// event's wire layout but that never belongs in the IDL itself.
+pub fn alloc_events_literal(idl: &crate::Idl) -> Result<String, serde_json::Error> {
+    let mut names: Vec<&String> = idl.alloc_event_names.iter().collect();
+    names.sort();
+    serde_json::to_string(&names)
 }
 
 pub fn map_type_to_ts(idl_type: &serde_json::Value, is_zero_copy: bool) -> String {
@@ -303,7 +313,7 @@ pub fn generate_shared_files(
                 .collect::<Vec<String>>()
                 .join(", ");
             accounts_content.push_str(&format!(
-                "/** 8-byte discriminator prefix for `{}` accounts on-chain. */\nexport const {}_DISCRIMINATOR = new Uint8Array([{}]);\n\n",
+                "/** Discriminator prefix for `{}` accounts on-chain. */\nexport const {}_DISCRIMINATOR = new Uint8Array([{}]);\n\n",
                 type_def.name,
                 type_def.name.to_uppercase().replace(' ', "_"),
                 disc_bytes,
@@ -359,7 +369,7 @@ pub fn generate_shared_files(
                     .collect::<Vec<String>>()
                     .join(", ");
                 events_content.push_str(&format!(
-                    "/** 8-byte discriminator for `{}` events in transaction logs. */\nexport const {}_EVENT_DISCRIMINATOR = new Uint8Array([{}]);\n\n",
+                    "/** Discriminator for `{}` events in transaction logs. */\nexport const {}_EVENT_DISCRIMINATOR = new Uint8Array([{}]);\n\n",
                     event_def.name,
                     event_def.name.to_uppercase().replace(' ', "_"),
                     disc_bytes,
@@ -394,7 +404,7 @@ pub fn generate_shared_files(
             ));
 
             events_content.push_str(&format!(
-                "/** Decodes every `{}` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitFor{}`/`add{}Listener` — prefer this when you already know which transaction you're checking. */\nexport function parse{}Events(\n  program: any,\n  logs: readonly string[]\n): {}[] {{\n  return program.parseEvents(\"{}\", logs) as {}[];\n}}\n\n",
+                "/** Decodes every `{}` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitFor{}`/`add{}Listener` — prefer this when you already know which transaction you're checking. Logs only: events emitted via `emit_cpi!` never appear in logs, so use the client's own `parse...Events` method with the inner instructions for those. */\nexport function parse{}Events(\n  program: any,\n  logs: readonly string[]\n): {}[] {{\n  return program.parseEvents(\"{}\", logs) as {}[];\n}}\n\n",
                 event_def.name, event_def.name, event_def.name, event_def.name, event_def.name, event_def.name, event_def.name
             ));
         }
@@ -489,7 +499,7 @@ pub fn generate_shared_files(
             .collect::<Vec<String>>()
             .join(", ");
         ix_content.push_str(&format!(
-            "\n/** 8-byte discriminator for the `{ix_name}` instruction. */\nexport const {}_DISCRIMINATOR = new Uint8Array([{disc_bytes}]);\n",
+            "\n/** Discriminator for the `{ix_name}` instruction. */\nexport const {}_DISCRIMINATOR = new Uint8Array([{disc_bytes}]);\n",
             ix_name.to_uppercase().replace('-', "_")
         ));
 
@@ -534,7 +544,8 @@ pub fn generate_shared_files(
             ix_content.push_str(&render_docs_ts(&acc.docs, "  "));
             ix_content.push_str(&format!(
                 "  {}{}: naclac.Address | string;\n",
-                acc.name.to_lower_camel_case(), optional_marker
+                acc.name.to_lower_camel_case(),
+                optional_marker
             ));
         }
         ix_content.push_str("}\n");

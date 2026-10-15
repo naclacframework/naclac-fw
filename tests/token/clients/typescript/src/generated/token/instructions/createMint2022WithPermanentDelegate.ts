@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_permanent_delegate` instruction. */
+/** Discriminator for the `create_mint2022_with_permanent_delegate` instruction. */
 export const CREATE_MINT2022_WITH_PERMANENT_DELEGATE_DISCRIMINATOR = new Uint8Array([155, 11, 119, 238, 183, 167, 10, 13]);
 
 /** Instruction arguments for `createMint2022WithPermanentDelegate`. */
@@ -22,9 +22,9 @@ export interface CreateMint2022WithPermanentDelegateAccounts {
    * `PermanentDelegate` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

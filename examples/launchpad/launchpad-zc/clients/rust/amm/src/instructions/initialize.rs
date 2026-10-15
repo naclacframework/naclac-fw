@@ -256,29 +256,29 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core::Program<crate::Amm> {
         {
             use crate::sdk_core::ToAddress;
             let mut account_metas = crate::sdk_core::vec![
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.token_a_mint.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.token_b_mint.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.pool_state.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.vault_a.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.vault_b.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.lp_mint.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.depositor_token_a.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.depositor_token_b.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.depositor_lp.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.depositor_authority.address(), true),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.payer.address(), true),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_a_mint.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_b_mint.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.pool_state.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.vault_a.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.vault_b.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.lp_mint.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.depositor_token_a.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.depositor_token_b.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.depositor_lp.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.depositor_authority.address(), true),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new(acc.address(), *is_signer)
                 } else {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
                 };
                 account_metas.push(meta);
             }
-            let instruction = ::naclac_lang::solana_program::instruction::Instruction {
+            let instruction = ::naclac_lang::solana_instruction::Instruction {
                 program_id: self.address(),
                 accounts: account_metas,
                 data: ix_data,

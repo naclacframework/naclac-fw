@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `check_account_fields` instruction. */
+/** Discriminator for the `check_account_fields` instruction. */
 export const CHECK_ACCOUNT_FIELDS_DISCRIMINATOR = new Uint8Array([66, 34, 221, 25, 109, 78, 171, 121]);
 
 /** Instruction arguments for `checkAccountFields`. */

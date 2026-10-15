@@ -24,7 +24,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -43,8 +43,8 @@ const DONATION_FEE_PDA_DISCRIMINATOR: [u8; 8] = [246, 197, 96, 9, 193, 30, 93, 1
 const FEE_PROGRAM_GLOBAL_DISCRIMINATOR: [u8; 8] = [162, 165, 245, 49, 29, 37, 55, 242];
 const POOL_DISCRIMINATOR: [u8; 8] = [241, 154, 109, 4, 17, 177, 109, 188];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -57,7 +57,7 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     }
 }
 
-fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
+fn mint_account_data(mint_authority: Option<&Address>, decimals: u8) -> Vec<u8> {
     let mut data = vec![0u8; 82];
     if let Some(auth) = mint_authority {
         data[0..4].copy_from_slice(&1u32.to_le_bytes());
@@ -70,7 +70,7 @@ fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
 }
 
 // Same layout probe12.rs already validated against the real bytecode.
-fn bonding_curve_account_data(complete: bool, creator: &Pubkey, quote_mint: &Pubkey) -> Vec<u8> {
+fn bonding_curve_account_data(complete: bool, creator: &Address, quote_mint: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BONDING_CURVE_DISCRIMINATOR);
     data.extend_from_slice(&[0u8; 8]);
@@ -89,10 +89,10 @@ fn bonding_curve_account_data(complete: bool, creator: &Pubkey, quote_mint: &Pub
 fn sharing_config_account_data(
     bump: u8,
     version: u8,
-    mint: &Pubkey,
-    admin: &Pubkey,
+    mint: &Address,
+    admin: &Address,
     admin_revoked: bool,
-    shareholders: &[(Pubkey, u16)],
+    shareholders: &[(Address, u16)],
 ) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&SHARING_CONFIG_DISCRIMINATOR);
@@ -112,7 +112,7 @@ fn sharing_config_account_data(
 
 // bump, authority, disable_flags, social_claim_authority, claim_rate_limit,
 // _reserved[256] — confirmed field order from pump-public-docs/idl/pump_fees.json.
-fn fee_program_global_account_data(bump: u8, authority: &Pubkey) -> Vec<u8> {
+fn fee_program_global_account_data(bump: u8, authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&FEE_PROGRAM_GLOBAL_DISCRIMINATOR);
     data.push(bump);
@@ -128,7 +128,7 @@ fn fee_program_global_account_data(bump: u8, authority: &Pubkey) -> Vec<u8> {
 // pool_base_token_account, pool_quote_token_account, lp_supply, coin_creator,
 // is_mayhem_mode, is_cashback_coin, virtual_quote_reserves(i128) — confirmed
 // field order from pump-public-docs/idl/pump_amm.json.
-fn pool_account_data(creator: &Pubkey, base_mint: &Pubkey, quote_mint: &Pubkey, coin_creator: &Pubkey) -> Vec<u8> {
+fn pool_account_data(creator: &Address, base_mint: &Address, quote_mint: &Address, coin_creator: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&POOL_DISCRIMINATOR);
     data.push(0); // pool_bump
@@ -170,12 +170,12 @@ fn main() {
             .unwrap_or_else(|e| panic!("load {so_name}: {e:?}"));
     }
 
-    let mint = Pubkey::new_unique();
+    let mint = Address::new_unique();
     svm.set_account(
         mint,
         Account {
             lamports: 10_000_000,
-            data: mint_account_data(Some(&Pubkey::new_unique()), 6),
+            data: mint_account_data(Some(&Address::new_unique()), 6),
             owner: token_program,
             executable: false,
             rent_epoch: 0,
@@ -183,9 +183,9 @@ fn main() {
     )
     .unwrap();
 
-    let creator = Pubkey::new_unique();
+    let creator = Address::new_unique();
     let (bonding_curve, _bc_bump) =
-        Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+        Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
     svm.set_account(
         bonding_curve,
         Account {
@@ -200,9 +200,9 @@ fn main() {
     )
     .unwrap();
 
-    let sc_admin = Pubkey::new_unique();
+    let sc_admin = Address::new_unique();
     let (sharing_config, sc_bump) =
-        Pubkey::find_program_address(&[b"sharing-config", mint.as_ref()], &fees_program);
+        Address::find_program_address(&[b"sharing-config", mint.as_ref()], &fees_program);
     svm.set_account(
         sharing_config,
         Account {
@@ -216,12 +216,12 @@ fn main() {
     .unwrap();
 
     let (fee_program_global, fpg_bump) =
-        Pubkey::find_program_address(&[b"fee-program-global"], &fees_program);
+        Address::find_program_address(&[b"fee-program-global"], &fees_program);
     svm.set_account(
         fee_program_global,
         Account {
             lamports: 10_000_000,
-            data: fee_program_global_account_data(fpg_bump, &Pubkey::new_unique()),
+            data: fee_program_global_account_data(fpg_bump, &Address::new_unique()),
             owner: fees_program,
             executable: false,
             rent_epoch: 0,
@@ -239,8 +239,8 @@ fn main() {
     // account at the correct derived address is what the real program
     // actually expects for ungraduated bonding curves.
     let (pool_authority, _pool_authority_bump) =
-        Pubkey::find_program_address(&[b"pool-authority", mint.as_ref()], &pump_program);
-    let (pool, _pool_bump) = Pubkey::find_program_address(
+        Address::find_program_address(&[b"pool-authority", mint.as_ref()], &pump_program);
+    let (pool, _pool_bump) = Address::find_program_address(
         &[b"pool", &0u16.to_le_bytes(), pool_authority.as_ref(), mint.as_ref(), wsol_mint.as_ref()],
         &pump_amm_program,
     );
@@ -261,9 +261,9 @@ fn main() {
 
     // config_id: plain address material, NOT a signer — probing whether the
     // real program requires it to sign.
-    let config_id = Pubkey::new_unique();
+    let config_id = Address::new_unique();
 
-    let (donation_fee_pda, df_bump) = Pubkey::find_program_address(
+    let (donation_fee_pda, df_bump) = Address::find_program_address(
         &[b"donation-fee-pda", mint.as_ref(), config_id.as_ref()],
         &fees_program,
     );
@@ -283,7 +283,7 @@ fn main() {
     println!("donation_fee_pda = {donation_fee_pda}");
     println!("---------------------");
 
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &fees_program).0;
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &fees_program).0;
 
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 100_000_000_000).unwrap();
@@ -326,10 +326,10 @@ fn main() {
                 let mut off = 8;
                 let bump = account.data[off]; off += 1;
                 let version = account.data[off]; off += 1;
-                let got_config_id = Pubkey::try_from(&account.data[off..off + 32]).unwrap(); off += 32;
-                let got_base_mint = Pubkey::try_from(&account.data[off..off + 32]).unwrap(); off += 32;
-                let got_quote_mint = Pubkey::try_from(&account.data[off..off + 32]).unwrap(); off += 32;
-                let got_creator = Pubkey::try_from(&account.data[off..off + 32]).unwrap(); off += 32;
+                let got_config_id = Address::try_from(&account.data[off..off + 32]).unwrap(); off += 32;
+                let got_base_mint = Address::try_from(&account.data[off..off + 32]).unwrap(); off += 32;
+                let got_quote_mint = Address::try_from(&account.data[off..off + 32]).unwrap(); off += 32;
+                let got_creator = Address::try_from(&account.data[off..off + 32]).unwrap(); off += 32;
                 let total_donated = u64::from_le_bytes(account.data[off..off + 8].try_into().unwrap()); off += 8;
                 let last_crank_ts = i64::from_le_bytes(account.data[off..off + 8].try_into().unwrap());
                 println!("\nParsed:");

@@ -81,11 +81,16 @@ pub fn generate(ident: &Ident, fields: &Fields, cfg: &TokenStream) -> (TokenStre
 
     let field_idents: Vec<&syn::Ident> = fields
         .iter()
-        .map(|f| f.ident.as_ref().expect("named-field branch: checked by is_tuple"))
+        .map(|f| {
+            f.ident
+                .as_ref()
+                .expect("named-field branch: checked by is_tuple")
+        })
         .collect();
 
-    let gap_field_idents: Vec<Ident> =
-        (0..n).map(|i| format_ident!("__naclac_padding_{}", i)).collect();
+    let gap_field_idents: Vec<Ident> = (0..n)
+        .map(|i| format_ident!("__naclac_padding_{}", i))
+        .collect();
     if let Some(collision) = field_idents
         .iter()
         .find(|id| gap_field_idents.iter().any(|g| **id == g))
@@ -103,8 +108,9 @@ pub fn generate(ident: &Ident, fields: &Fields, cfg: &TokenStream) -> (TokenStre
     }
 
     let align_max = align_max_expr(&field_tys);
-    let gap_const_idents: Vec<Ident> =
-        (0..n).map(|i| format_ident!("__{}_GAP_{}", ident, i)).collect();
+    let gap_const_idents: Vec<Ident> = (0..n)
+        .map(|i| format_ident!("__{}_GAP_{}", ident, i))
+        .collect();
 
     let mut gap_consts = Vec::with_capacity(n);
     for i in 0..n {
@@ -180,7 +186,7 @@ pub fn generate(ident: &Ident, fields: &Fields, cfg: &TokenStream) -> (TokenStre
 
         #cfg
         const _: fn() = || {
-            fn assert_impl<T: naclac_lang::prelude::Pod>() {}
+            fn assert_impl<T: naclac_lang::prelude::ZcField>() {}
             #(assert_impl::<#field_tys>();)*
         };
     };
@@ -204,7 +210,7 @@ fn generate_trailing_only(
         let extra_items = quote! {
             #cfg
             const _: fn() = || {
-                fn assert_impl<T: naclac_lang::prelude::Pod>() {}
+                fn assert_impl<T: naclac_lang::prelude::ZcField>() {}
                 #(assert_impl::<#field_tys>();)*
             };
         };
@@ -249,7 +255,7 @@ fn generate_trailing_only(
 
         #cfg
         const _: fn() = || {
-            fn assert_impl<T: naclac_lang::prelude::Pod>() {}
+            fn assert_impl<T: naclac_lang::prelude::ZcField>() {}
             #(assert_impl::<#field_tys>();)*
         };
     };

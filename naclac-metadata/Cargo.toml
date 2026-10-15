@@ -8,13 +8,14 @@ description = "Metaplex Core (NFT/metadata) support for the Naclac Solana Framew
 
 [dependencies]
 naclac-core = { workspace = true }
-solana-program = { workspace = true, optional = true }
+
 pinocchio = { workspace = true, optional = true }
 bytemuck = { workspace = true, optional = true }
+solana-instruction = { workspace = true, optional = true }
 
 [features]
 default = ["solana"]
-solana = ["dep:solana-program", "naclac-core/solana"]
+solana = ["naclac-core/solana", "dep:solana-instruction"]
 pinocchio = ["dep:pinocchio", "naclac-core/pinocchio", "dep:bytemuck"]
 
 [lints]

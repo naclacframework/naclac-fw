@@ -28,21 +28,16 @@ export class MetadataSolanaClient {
   }
 
   constructor(
-    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | string,
+    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | "litesvm" | string,
     payer?: naclac.Keypair
   ) {
     let provider: naclac.LegacyProvider;
     if (typeof providerOrCluster === "string") {
-      let url = providerOrCluster;
-      if (providerOrCluster === "devnet") url = "https://api.devnet.solana.com";
-      else if (providerOrCluster === "mainnet") url = "https://api.mainnet-beta.solana.com";
-      else if (providerOrCluster === "localnet") url = "http://127.0.0.1:8899";
-      const connection = new naclac.Connection(url, "confirmed");
-      provider = { connection, payer, publicKey: payer ? payer.publicKey : undefined };
+      provider = naclac.createProvider(providerOrCluster, payer);
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider, true);
+    this.program = new naclac.LegacyProgram(IDL, provider, true, []);
   }
 
   /**
@@ -519,9 +514,9 @@ export class MetadataSolanaClient {
     return this.program.waitForEvent<types.CounterIncremented>("CounterIncremented", options);
   }
 
-  /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. */
-  public parseCounterIncrementedEvents(logs: readonly string[]) {
-    return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs);
+  /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseCounterIncrementedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs, innerInstructions);
   }
 
   /** Removes a registered event listener by its ID. */

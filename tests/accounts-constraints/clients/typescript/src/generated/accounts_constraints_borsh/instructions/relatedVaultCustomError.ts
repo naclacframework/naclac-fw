@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `related_vault_custom_error` instruction. */
+/** Discriminator for the `related_vault_custom_error` instruction. */
 export const RELATED_VAULT_CUSTOM_ERROR_DISCRIMINATOR = new Uint8Array([236, 194, 253, 54, 114, 172, 30, 101]);
 
 /** Accounts for the `relatedVaultCustomError` instruction. */

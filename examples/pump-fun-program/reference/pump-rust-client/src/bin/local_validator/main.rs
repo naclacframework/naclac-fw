@@ -9,7 +9,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use solana_rpc::rpc::JsonRpcConfig;
 use solana_sdk::account::{Account, AccountSharedData};
 use solana_sdk::address_lookup_table::state::{AddressLookupTable, LookupTableMeta};
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{read_keypair_file, Keypair};
 use solana_sdk::signer::Signer;
 use solana_streamer::socket::SocketAddrSpace;
@@ -26,7 +26,7 @@ use utils::{
 const DEFAULT_ACCOUNT_LAMPORTS: u64 = 10_000_000_000_000;
 const LEDGER_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/test-ledger");
 const PROGRAMS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/artifacts");
-/// Optional bincode+zstd dump of `HashMap<Pubkey, Account>` produced by the
+/// Optional bincode+zstd dump of `HashMap<Address, Account>` produced by the
 /// user's RPC-cloning script. If absent, the validator boots without it.
 const ACCOUNTS_TO_LOAD_FILE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -38,7 +38,7 @@ const MAX_GENESIS_ARCHIVE_UNPACKED_SIZE: u64 = 1024 * 1024 * 1024;
 /// metadata is `LookupTableMeta::default()` — i.e. active from slot 0.
 /// Without this, the test validator boots the ALT in a "deactivating /
 /// not-yet-active" window and any tx referencing it fails to compile.
-fn rewrite_lookup_tables_active_from_slot_zero(accounts: &mut HashMap<Pubkey, Account>) {
+fn rewrite_lookup_tables_active_from_slot_zero(accounts: &mut HashMap<Address, Account>) {
     let known = known_lookup_tables();
     for (key, account) in accounts.clone() {
         if !known.contains(&key) {
@@ -99,7 +99,7 @@ async fn setup_validator() -> Result<TestValidatorGenesis, Box<dyn std::error::E
         println!("📦 Loading cloned accounts from {ACCOUNTS_TO_LOAD_FILE}");
         let bytes = std::fs::read(ACCOUNTS_TO_LOAD_FILE)?;
         let decompressed = zstd::stream::decode_all(&bytes[..])?;
-        let mut accounts: HashMap<Pubkey, Account> = bincode::deserialize(&decompressed)?;
+        let mut accounts: HashMap<Address, Account> = bincode::deserialize(&decompressed)?;
         rewrite_lookup_tables_active_from_slot_zero(&mut accounts);
         for (key, account) in accounts {
             accounts_to_load.push((AccountConfigInfo::from_account(key, &account), None));
@@ -108,7 +108,7 @@ async fn setup_validator() -> Result<TestValidatorGenesis, Box<dyn std::error::E
 
     // ---- USER PLUG-IN POINT #2: seed ATAs for known wallets/mints. ----
     // Example:
-    //   let mints: Vec<Pubkey> = vec![/* mint pubkeys present in accounts_to_load */];
+    //   let mints: Vec<Address> = vec![/* mint pubkeys present in accounts_to_load */];
     //   create_wallet_associated_token_account(&mut accounts_to_load, &mints, &known_wallets());
     let _ = create_wallet_associated_token_account; // silence unused warning until wired up
 

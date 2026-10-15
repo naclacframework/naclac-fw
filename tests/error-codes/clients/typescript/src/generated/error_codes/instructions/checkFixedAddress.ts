@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_fixed_address` instruction. */
+/** Discriminator for the `check_fixed_address` instruction. */
 export const CHECK_FIXED_ADDRESS_DISCRIMINATOR = new Uint8Array([171, 46, 251, 206, 177, 201, 101, 156]);
 
 /** Accounts for the `checkFixedAddress` instruction. */

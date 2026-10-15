@@ -3,20 +3,20 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_transfer_hook` instruction. */
+/** Discriminator for the `check_transfer_hook` instruction. */
 export const CHECK_TRANSFER_HOOK_DISCRIMINATOR = new Uint8Array([215, 39, 110, 212, 151, 21, 84, 111]);
 
 /** Instruction arguments for `checkTransferHook`. */
 export interface CheckTransferHookArgs {
-  expected_authority: naclac.Address | string | null;
-  expected_program_id: naclac.Address | string | null;
-  expected_transferring: number;
+  expectedAuthority: naclac.Address | string | null;
+  expectedProgramId: naclac.Address | string | null;
+  expectedTransferring: number;
 }
 
 /** Accounts for the `checkTransferHook` instruction. */
 export interface CheckTransferHookAccounts {
   mint: naclac.Address | string;
-  token_account: naclac.Address | string;
+  tokenAccount: naclac.Address | string;
 }
 
 /**

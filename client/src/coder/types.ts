@@ -99,7 +99,7 @@ function getTypeLayout(type: any, definedTypes?: readonly any[]): { size: number
           return { size: totalSize, alignment: unionAlignment };
         }
       }
-      return { size: 1, alignment: 1 };
+      throw new Error(`[Naclac] The IDL references type "${typeName}" but does not define it.`);
     }
   }
   throw new Error(`Unsupported type for struct layout: ${JSON.stringify(type)}`);
@@ -221,6 +221,64 @@ function getBorshStructCodec(fields: any[], definedTypes?: readonly any[]): Nacl
 }
 
 /**
+ * Wire layout of a top-level field list: `true` = zero-copy C layout, `false`
+ * = Borsh, `"alloc"` = an `#[event(alloc)]` event (see `getAllocStructCodec`).
+ */
+export type StructLayout = boolean | "alloc";
+
+/**
+ * Codec for an `#[event(alloc)]` event's fields: the fields themselves are
+ * written back to back with no alignment gaps (`String`/`Vec` u32
+ * length-prefixed, `Option` u8-tagged), but every value inside them —
+ * a plain field, a `Vec` element, an `Option` payload — is a raw `Pod` value
+ * in its C layout, so a nested `defined` type keeps its internal padding.
+ */
+function getAllocStructCodec(fields: any[], definedTypes?: readonly any[]): NaclacCodec {
+  const fieldCodec = (type: any): NaclacCodec => {
+    if (typeof type === "object" && type !== null) {
+      if ("vec" in type) {
+        return getArrayCodec(getIdlCodec(type.vec, definedTypes, true) as any, {
+          size: getU32Codec(),
+        }) as unknown as NaclacCodec;
+      }
+      if ("option" in type) {
+        return getOptionCodec(getIdlCodec(type.option, definedTypes, true) as any, {
+          prefix: getU8Codec(),
+        }) as unknown as NaclacCodec;
+      }
+    }
+    return getIdlCodec(type, definedTypes, true);
+  };
+  return {
+    encode(value: any): Uint8Array {
+      const valObj = (value ?? {}) as Record<string, any>;
+      const parts = fields.map((f) => fieldCodec(f.type).encode(valObj[toCamelCase(f.name)]));
+      const buffer = new Uint8Array(parts.reduce((sum, p) => sum + p.length, 0));
+      let off = 0;
+      for (const part of parts) {
+        buffer.set(part, off);
+        off += part.length;
+      }
+      return buffer;
+    },
+    decode(bytes: Uint8Array): any {
+      const [val] = this.read(bytes, 0);
+      return val;
+    },
+    read(bytes: Uint8Array, offset: number): [any, number] {
+      const result: Record<string, any> = {};
+      let off = offset;
+      for (const f of fields) {
+        const [val, newOff] = fieldCodec(f.type).read(bytes, off);
+        result[toCamelCase(f.name)] = val;
+        off = newOff;
+      }
+      return [result, off];
+    },
+  };
+}
+
+/**
  * A named field list's own codec — for a *top-level* struct-shaped field
  * list (an account's own fields, an event's own fields), not a nested
  * `{"defined": X}` reference. Exported so callers like `decodeAccountData`
@@ -240,9 +298,10 @@ function getBorshStructCodec(fields: any[], definedTypes?: readonly any[]): Nacl
 export function getStructFieldsCodec(
   fields: any[],
   definedTypes: readonly any[] | undefined,
-  isZeroCopy: boolean
+  layout: StructLayout
 ): NaclacCodec {
-  return isZeroCopy ? getStructCodec(fields, definedTypes) : getBorshStructCodec(fields, definedTypes);
+  if (layout === "alloc") return getAllocStructCodec(fields, definedTypes);
+  return layout ? getStructCodec(fields, definedTypes) : getBorshStructCodec(fields, definedTypes);
 }
 
 /**
@@ -260,19 +319,17 @@ function isNamedEnumFields(fields: readonly any[]): boolean {
 }
 
 /**
- * Borsh-mode enum codec — a `u8` tag equal to the variant's *positional*
- * index (0, 1, 2, ... in declaration order), never its real Rust
- * discriminant. Confirmed against real `borsh-derive` source
- * (`enum_discriminant.rs`): its default `Discriminants::get` uses
- * `variant_idx`, only switching to the real discriminant when a crate opts
- * in via `#[borsh(use_discriminant = true)]` — `naclac-macros`'s Borsh
- * branch never does, so positional indexing is exactly what real on-chain
- * Borsh encoding for a `#[defined_type]` enum produces. This is also
- * exactly `getDiscriminatedUnionCodec`'s own default wire behavior (it
- * writes the variant's array position, using the discriminator value only
- * to look up that position) — variant array order below must therefore
- * match IDL declaration order, which it does (`enumDef.variants` is never
- * reordered).
+ * Borsh/Wincode-mode enum codec — a single `u8` tag equal to the variant's
+ * real Rust discriminant (explicit `= N` respected, else previous + 1),
+ * matching the on-chain `#[borsh(use_discriminant = true)]` /
+ * `#[wincode(tag = N)]` that `#[defined_type]` applies to every enum. The
+ * IDL guarantees each discriminant fits in 0..=255 for these backends.
+ *
+ * `getDiscriminatedUnionCodec` itself writes the variant's array position,
+ * so it is only used for the payload layout: the leading position byte is
+ * swapped for the discriminant on encode and mapped back on decode. Variant
+ * array order must therefore match IDL declaration order, which it does
+ * (`enumDef.variants` is never reordered).
  */
 function getBorshEnumCodec(enumDef: { variants: any[] }, definedTypes?: readonly any[]): NaclacCodec {
   const variantEntries = enumDef.variants.map((v: any) => {
@@ -288,8 +345,33 @@ function getBorshEnumCodec(enumDef: { variants: any[] }, definedTypes?: readonly
     }
     return [v.name, codec] as const;
   });
-  const discCodec = getDiscriminatedUnionCodec(variantEntries, { discriminator: "kind" });
-  return discCodec as unknown as NaclacCodec;
+  const discCodec = getDiscriminatedUnionCodec(variantEntries, { discriminator: "kind" }) as any;
+  const discriminantByIndex: number[] = enumDef.variants.map((v: any) => Number(v.discriminant));
+  const indexByDiscriminant = new Map<number, number>(discriminantByIndex.map((d, i) => [d, i]));
+
+  const read = (bytes: Uint8Array | Readonly<Uint8Array>, offset: number): [unknown, number] => {
+    const index = indexByDiscriminant.get(bytes[offset]);
+    if (index === undefined) {
+      throw new Error(
+        `[Naclac] Invalid enum discriminant ${bytes[offset]}. Expected one of: [${discriminantByIndex.join(", ")}].`
+      );
+    }
+    const positional = Uint8Array.from(bytes);
+    positional[offset] = index;
+    return discCodec.read(positional, offset) as [unknown, number];
+  };
+
+  return {
+    encode(value: unknown): Uint8Array {
+      const bytes = Uint8Array.from(discCodec.encode(value) as Uint8Array);
+      bytes[0] = discriminantByIndex[bytes[0]];
+      return bytes;
+    },
+    decode(bytes: Uint8Array | Readonly<Uint8Array>): unknown {
+      return read(bytes, 0)[0];
+    },
+    read,
+  };
 }
 
 /**
@@ -370,6 +452,207 @@ function computeEnumCLayout(
 }
 
 /**
+ * Fixed-length array of elements whose codec is one of this file's
+ * layout codecs (zero-copy struct/enum), which expose `encode`/`read` but not
+ * the `write`/size protocol `getArrayCodec` requires. Elements sit back to
+ * back; each element's encoded length is its own `size_of`.
+ */
+function getFixedArrayOfLayoutCodec(inner: NaclacCodec, count: number): NaclacCodec {
+  return {
+    encode(value: any): Uint8Array {
+      const items = value as unknown[];
+      if (!Array.isArray(items) || items.length !== count) {
+        throw new Error(`[Naclac] Expected an array of exactly ${count} elements.`);
+      }
+      const parts = items.map((item) => inner.encode(item) as Uint8Array);
+      const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+      let at = 0;
+      for (const part of parts) {
+        out.set(part, at);
+        at += part.length;
+      }
+      return out;
+    },
+    decode(bytes: Uint8Array): any {
+      const [val] = this.read(bytes, 0);
+      return val;
+    },
+    read(bytes: Uint8Array, offset: number): [any, number] {
+      const items: unknown[] = [];
+      let at = offset;
+      for (let i = 0; i < count; i++) {
+        const [item, next] = inner.read(bytes, at);
+        items.push(item);
+        at = next;
+      }
+      return [items, at];
+    },
+  };
+}
+
+function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+  let at = 0;
+  for (const part of parts) {
+    out.set(part, at);
+    at += part.length;
+  }
+  return out;
+}
+
+/** True for an IDL type the zero-copy program reads with a length prefix or a tag instead of a fixed layout. */
+function isVariableArgType(type: any): boolean {
+  return type === "string" || type === "bytes" || (typeof type === "object" && type !== null && ("vec" in type || "option" in type));
+}
+
+/**
+ * Wire format of one instruction argument in a zero-copy program, as the
+ * program reads it (`NaclacArgs` / `NaclacPod`): arguments and struct fields
+ * are packed back to back with no alignment padding between them.
+ *
+ * - `Vec<T>` / `ZcVec<T>`: a u32 LE *byte* length, then each element in its
+ *   zero-copy layout (not an element count, unlike an `#[event(alloc)]`).
+ * - `String` / `ZcString`: a u32 LE byte length, then UTF-8.
+ * - `Option<T>`: a one-byte tag, then `T`'s bytes — zeroes of `T`'s size when
+ *   `None`, so the argument always occupies `1 + size_of::<T>()` bytes.
+ * - A `#[instruction_args]` struct holding any of the above is read field by
+ *   field in declaration order; a struct of fixed fields only is one
+ *   `repr(C)` block with alignment padding, which `getIdlCodec` already writes.
+ */
+export function getZeroCopyArgCodec(type: any, definedTypes: readonly any[] | undefined): NaclacCodec {
+  if (typeof type === "object" && type !== null) {
+    if ("vec" in type) {
+      return getZeroCopyArgVecCodec(type.vec, definedTypes);
+    }
+    if ("option" in type) {
+      return getZeroCopyArgOptionCodec(type.option, definedTypes);
+    }
+    if ("defined" in type) {
+      const def = definedTypes?.find((d) => d.name === type.defined);
+      if (def?.type.kind === "struct" && def.type.fields.some((f: any) => isVariableArgType(f.type))) {
+        return getZeroCopyArgStructCodec(def.type.fields, definedTypes);
+      }
+    }
+  }
+  return getIdlCodec(type, definedTypes, true);
+}
+
+function getZeroCopyArgVecCodec(elementType: any, definedTypes: readonly any[] | undefined): NaclacCodec {
+  const element = getIdlCodec(elementType, definedTypes, true);
+
+  // `Vec<String>` / `Vec<Vec<u8>>`: items have no fixed size, so the prefix is an element
+  // count and each item carries its own u32 byte length (what the program's reader expects).
+  const hasVariableItems =
+    elementType === "string" ||
+    (typeof elementType === "object" && elementType !== null && elementType.vec === "u8");
+  if (hasVariableItems) {
+    return {
+      encode(value: unknown): Uint8Array {
+        const items = Array.from(value as ArrayLike<unknown>);
+        const prefix = new Uint8Array(4);
+        new DataView(prefix.buffer).setUint32(0, items.length, true);
+        return concatBytes([prefix, ...items.map((item) => element.encode(item) as Uint8Array)]);
+      },
+      decode(bytes: Uint8Array): any {
+        return this.read(bytes, 0)[0];
+      },
+      read(bytes: Uint8Array, offset: number): [any, number] {
+        const count = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(offset, true);
+        const items: unknown[] = [];
+        let at = offset + 4;
+        for (let i = 0; i < count; i++) {
+          const [item, next] = element.read(bytes, at);
+          items.push(item);
+          at = next;
+        }
+        return [items, at];
+      },
+    };
+  }
+
+  return {
+    encode(value: unknown): Uint8Array {
+      const items = Array.from(value as ArrayLike<unknown>);
+      const body = concatBytes(items.map((item) => element.encode(item) as Uint8Array));
+      const prefix = new Uint8Array(4);
+      new DataView(prefix.buffer).setUint32(0, body.length, true);
+      return concatBytes([prefix, body]);
+    },
+    decode(bytes: Uint8Array): any {
+      return this.read(bytes, 0)[0];
+    },
+    read(bytes: Uint8Array, offset: number): [any, number] {
+      const byteLength = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(offset, true);
+      const end = offset + 4 + byteLength;
+      const items: unknown[] = [];
+      let at = offset + 4;
+      while (at < end) {
+        const [item, next] = element.read(bytes, at);
+        items.push(item);
+        at = next;
+      }
+      return [items, end];
+    },
+  };
+}
+
+function getZeroCopyArgOptionCodec(innerType: any, definedTypes: readonly any[] | undefined): NaclacCodec {
+  const inner = getIdlCodec(innerType, definedTypes, true);
+  const innerSize = getTypeLayout(innerType, definedTypes).size;
+  return {
+    encode(value: any): Uint8Array {
+      const isOptionObject = typeof value === "object" && value !== null && "__option" in value;
+      const isNone = value === null || value === undefined || (isOptionObject && value.__option === "None");
+      if (isNone) {
+        return new Uint8Array(1 + innerSize);
+      }
+      const present = isOptionObject ? value.value : value;
+      return concatBytes([Uint8Array.of(1), inner.encode(present) as Uint8Array]);
+    },
+    decode(bytes: Uint8Array): any {
+      return this.read(bytes, 0)[0];
+    },
+    read(bytes: Uint8Array, offset: number): [any, number] {
+      const tag = bytes[offset];
+      const end = offset + 1 + innerSize;
+      if (tag === 0) {
+        return [{ __option: "None" }, end];
+      }
+      if (tag !== 1) {
+        throw new Error(`[Naclac] Invalid Option tag ${tag}; expected 0 or 1.`);
+      }
+      const [value] = inner.read(bytes, offset + 1);
+      return [{ __option: "Some", value }, end];
+    },
+  };
+}
+
+function getZeroCopyArgStructCodec(fields: any[], definedTypes: readonly any[] | undefined): NaclacCodec {
+  const members = fields.map((field) => ({
+    key: toCamelCase(field.name),
+    codec: getZeroCopyArgCodec(field.type, definedTypes),
+  }));
+  return {
+    encode(value: any): Uint8Array {
+      return concatBytes(members.map(({ key, codec }) => codec.encode(value?.[key]) as Uint8Array));
+    },
+    decode(bytes: Uint8Array): any {
+      return this.read(bytes, 0)[0];
+    },
+    read(bytes: Uint8Array, offset: number): [any, number] {
+      const result: Record<string, unknown> = {};
+      let at = offset;
+      for (const { key, codec } of members) {
+        const [value, next] = codec.read(bytes, at);
+        result[key] = value;
+        at = next;
+      }
+      return [result, at];
+    },
+  };
+}
+
+/**
  * Zero-copy-mode enum codec — real C-layout (tag + per-variant fields with
  * alignment padding, see `computeEnumCLayout`), and the tag byte(s) written/
  * matched are the variant's *real* discriminant (`variant.discriminant`),
@@ -379,7 +662,11 @@ function computeEnumCLayout(
  * Rust's own real compiler discriminant rule (explicit `= N` respected),
  * unlike Borsh's derive default.
  */
-function getZeroCopyEnumCodec(enumDef: { variants: any[]; repr?: string }, definedTypes?: readonly any[]): NaclacCodec {
+function getZeroCopyEnumCodec(
+  enumDef: { variants: any[]; repr?: string },
+  definedTypes?: readonly any[],
+  enumName?: string
+): NaclacCodec {
   const { tagType, totalSize, variantLayouts } = computeEnumCLayout(enumDef, definedTypes);
   const tagCodec = getIdlCodec(tagType, definedTypes, true);
 
@@ -416,9 +703,15 @@ function getZeroCopyEnumCodec(enumDef: { variants: any[]; repr?: string }, defin
       const [tagValue] = tagCodec.read(bytes, offset);
       const variant = enumDef.variants.find((v: any) => v.discriminant === String(tagValue));
       if (!variant) {
+        const unsetHint =
+          String(tagValue) === "0"
+            ? ` A tag of 0 usually means the field was never set (a zeroed slot) in an enum with no variant 0; ` +
+              `give the enum a variant 0 or set the field when the account is initialized.`
+            : "";
         throw new Error(
-          `[Naclac] Invalid enum discriminant ${String(tagValue)} while decoding — no variant of this ` +
-          `enum declares it. This indicates corrupted account/instruction data, not a client bug.`
+          `[Naclac] Invalid enum discriminant ${String(tagValue)} while decoding${enumName ? ` ${enumName}` : ""} — ` +
+          `no variant of this enum declares it. This indicates corrupted account/instruction data, not a client ` +
+          `bug.${unsetHint}`
         );
       }
       const layout = variantLayouts.get(variant.name)!;
@@ -530,11 +823,20 @@ export function getIdlCodec(type: any, definedTypes: readonly any[] | undefined,
         };
       }
 
-      return getArrayCodec(getIdlCodec(innerType, definedTypes, isZeroCopy) as any, { size }) as unknown as NaclacCodec;
+      const innerCodec = getIdlCodec(innerType, definedTypes, isZeroCopy) as any;
+      if (typeof size === "number" && typeof innerCodec.write !== "function") {
+        return getFixedArrayOfLayoutCodec(innerCodec, size);
+      }
+      return getArrayCodec(innerCodec, { size }) as unknown as NaclacCodec;
     }
     if ("vec" in type) {
       const innerType = type.vec;
-      return addCodecSizePrefix(getArrayCodec(getIdlCodec(innerType, definedTypes, isZeroCopy) as any), getU32Codec()) as unknown as NaclacCodec;
+      // Borsh `Vec<T>`: a u32 LE element count, then the elements. The array
+      // codec already writes that count, so it must not be wrapped in a
+      // second (byte-size) prefix.
+      return getArrayCodec(getIdlCodec(innerType, definedTypes, isZeroCopy) as any, {
+        size: getU32Codec(),
+      }) as unknown as NaclacCodec;
     }
     if ("option" in type) {
       const innerType = type.option;
@@ -550,11 +852,11 @@ export function getIdlCodec(type: any, definedTypes: readonly any[] | undefined,
             : getBorshStructCodec(def.type.fields, definedTypes);
         } else if (def.type.kind === "enum") {
           return isZeroCopy
-            ? getZeroCopyEnumCodec(def.type, definedTypes)
+            ? getZeroCopyEnumCodec(def.type, definedTypes, typeName)
             : getBorshEnumCodec(def.type, definedTypes);
         }
       }
-      return getU8Codec() as unknown as NaclacCodec;
+      throw new Error(`[Naclac] The IDL references type "${typeName}" but does not define it.`);
     }
   }
 

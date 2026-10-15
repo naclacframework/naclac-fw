@@ -10,18 +10,18 @@ pub struct TokenAccount(pub [u8; 165]);
 #[repr(transparent)]
 pub struct Mint(pub [u8; 82]);
 
-// Raw SPL types — no Naclac 8-byte discriminator prefix, and always the same
+// Raw SPL types — no Naclac discriminator prefix, and always the same
 // fixed byte layout regardless of any particular Naclac program's own Borsh
 // vs zero-copy mode (their layout is owned by the SPL Token program, not us).
 impl NaclacDecode for TokenAccount {
-    const DISCRIMINATOR: Option<[u8; 8]> = None;
+    const DISCRIMINATOR: Option<&'static [u8]> = None;
     fn naclac_decode(data: &[u8]) -> Result<Self, NaclacClientError> {
         decode_pod_unchecked::<Self>(data)
     }
 }
 
 impl NaclacDecode for Mint {
-    const DISCRIMINATOR: Option<[u8; 8]> = None;
+    const DISCRIMINATOR: Option<&'static [u8]> = None;
     fn naclac_decode(data: &[u8]) -> Result<Self, NaclacClientError> {
         decode_pod_unchecked::<Self>(data)
     }

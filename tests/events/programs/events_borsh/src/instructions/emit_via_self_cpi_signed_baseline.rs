@@ -26,9 +26,9 @@ pub fn emit_via_self_cpi_signed_baseline(ctx: Context<EmitViaSelfCpiSignedBaseli
     let mut data = [0u8; 8 + 8];
     data[..8].copy_from_slice(&LOG_EVENT_SIGNED_DISCRIMINATOR);
 
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: *ctx.program_id,
-        accounts: vec![solana_program::instruction::AccountMeta::new_readonly(
+        accounts: vec![solana_instruction::AccountMeta::new_readonly(
             ctx.accounts.event_authority.address(),
             true,
         )],

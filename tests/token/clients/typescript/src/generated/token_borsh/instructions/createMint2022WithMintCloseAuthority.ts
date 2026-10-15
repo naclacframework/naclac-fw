@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022_with_mint_close_authority` instruction. */
+/** Discriminator for the `create_mint2022_with_mint_close_authority` instruction. */
 export const CREATE_MINT2022_WITH_MINT_CLOSE_AUTHORITY_DISCRIMINATOR = new Uint8Array([68, 253, 112, 118, 23, 180, 92, 36]);
 
 /** Instruction arguments for `createMint2022WithMintCloseAuthority`. */

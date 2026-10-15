@@ -5,7 +5,7 @@ use crate::errors::DonationRelayError;
 use crate::events::DonationMadeV1Event;
 
 #[instruction_args]
-pub struct DonatePubkeyConfigIdWithPayerV1Args {
+pub struct DonateAddressConfigIdWithPayerV1Args {
     pub amount: u64,
     pub config_id: Address,
     pub tip_bps: u16,
@@ -22,8 +22,8 @@ pub struct DonatePubkeyConfigIdWithPayerV1Args {
 // `debouncer_token_account`: sibling-field seed references must come after
 // the field they reference.
 #[derive(Accounts)]
-#[instruction(args: DonatePubkeyConfigIdWithPayerV1Args)]
-pub struct DonatePubkeyConfigIdWithPayerV1 {
+#[instruction(args: DonateAddressConfigIdWithPayerV1Args)]
+pub struct DonateAddressConfigIdWithPayerV1 {
     #[account(mut)]
     pub payer: Signer,
 
@@ -83,8 +83,8 @@ pub struct DonatePubkeyConfigIdWithPayerV1 {
 }
 
 pub fn donate_pubkey_config_id_with_payer_v1(
-    ctx: Context<DonatePubkeyConfigIdWithPayerV1>,
-    args: DonatePubkeyConfigIdWithPayerV1Args,
+    ctx: Context<DonateAddressConfigIdWithPayerV1>,
+    args: DonateAddressConfigIdWithPayerV1Args,
 ) -> Result {
     // Real on-chain limit confirmed via
     // `reference/donation-relay-probe/src/bin/probe3.rs` (binary search).

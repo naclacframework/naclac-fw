@@ -1,0 +1,91 @@
+---
+title: Prediction & Reward Mechanics
+description: How Swiv calculates weights, accuracy scores, and reward distributions.
+---
+
+Swiv uses a **weight-based system** to determine how rewards are distributed across participants in a pool.
+
+## Payout Formula
+
+Each user's payout is proportional to their contribution to the total pool weight:
+
+$$
+\text{payout} = \frac{\text{your\_weight}}{\text{pool\_total\_weight}} \times \text{total\_pool\_volume}
+$$
+
+## Weight Calculation
+
+A user's weight is determined by four factors:
+
+$$
+\text{weight} = \text{stake} \times \text{AccuracyScore} \times \text{TimeBonus} \times \text{ConvictionBonus}
+$$
+
+---
+
+## 1. Accuracy Score
+
+The accuracy score measures how close your prediction is to the final outcome.
+
+$$
+\text{AccuracyScore} = \frac{1}{1 + 10 \times \text{error}}
+$$
+
+Where:
+
+$$
+\text{error} = \frac{|\text{prediction} - \text{result}|}{\text{result}}
+$$
+
+<Info>
+  - The closer your prediction to the final outcome, the higher the score.
+  - Maximum score is **1.0** (exact match).
+  - Predictions beyond the defined accuracy threshold receive a score of **0**.
+</Info>
+
+---
+
+## 2. Time Bonus
+
+The time bonus rewards **early participation**. It is calculated as:
+
+$$
+T = \frac{\text{cutoff\_time} - \text{entry\_time}}{\text{cutoff\_time} - \text{start\_time}}
+$$
+
+$$
+\text{TimeBonus} = 1 + 1.5 \times T^2
+$$
+
+| Entry Timing | T value | Time Bonus |
+|---|---|---|
+| At pool open | 1.0 | **2.5×** |
+| Midway | 0.5 | **1.375×** |
+| Near deadline | ~0 | **1.0×** |
+
+---
+
+## 3. Conviction Bonus
+
+The conviction bonus rewards **consistency** — not changing your prediction after the initial submission.
+
+| Behavior | Conviction Bonus |
+|---|---|
+| No updates after initial submission | **1.5×** |
+| Prediction updated at least once | **1.0×** |
+
+---
+
+## Key Principles
+
+<CardGroup cols={3}>
+  <Card title="Precision wins" icon="crosshair">
+    The more accurate your prediction, the higher your share of the pool.
+  </Card>
+  <Card title="Early = more weight" icon="timer">
+    Submitting early earns a higher time bonus, compounding your overall weight.
+  </Card>
+  <Card title="Consistency is rewarded" icon="shield-check">
+    You're not penalized for updating, but sticking with your original prediction earns a bonus.
+  </Card>
+</CardGroup>

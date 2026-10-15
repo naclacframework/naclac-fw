@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `revoke_vault_delegate` instruction. */
+/** Discriminator for the `revoke_vault_delegate` instruction. */
 export const REVOKE_VAULT_DELEGATE_DISCRIMINATOR = new Uint8Array([197, 236, 148, 146, 176, 246, 83, 227]);
 
 /** Accounts for the `revokeVaultDelegate` instruction. */

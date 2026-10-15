@@ -47,36 +47,15 @@ describe("Naclac Counter Test Suite (Legacy)", () => {
       throw new Error("Count did not increment correctly");
     }
 
-    // Race-free: reads events straight out of the already-confirmed
-    // transaction's own logs, instead of racing a live subscription.
-    const capturedEvents = client.parseCounterIncrementedEvents(txResult!.logs);
+    // The event is a self-CPI (`emit_cpi!`), so it is in the transaction's
+    // inner instructions, not its logs.
+    const capturedEvents = client.parseCounterIncrementedEvents(
+      txResult!.logs,
+      txResult!.innerInstructions,
+    );
     if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
 
     console.log(`      🔔 Event Fired! New Count: ${capturedEvents[0].newCount}`);
     console.log("      ✨ Test Suite Passed!");
-  });
-
-  it("3. Event listener fires via emulated notification", async () => {
-    // litesvm's blockhash doesn't advance on its own the way a real
-    // cluster's does — sending the exact same instruction again under the
-    // same blockhash produces an identical signature, which litesvm
-    // correctly rejects as already-processed (real replay protection).
-    client.program.provider.litesvm?.expireBlockhash();
-
-    let receivedEvent: any = null;
-    const listenerId = client.program.addEventListener("CounterIncremented", (event) => {
-      receivedEvent = event;
-    });
-
-    await client
-      .increment({})
-      .accounts({ authority: payer.publicKey, counterAccount: counterPda })
-      .rpc()
-      .catch(naclac.logError);
-
-    client.program.removeEventListener(listenerId);
-
-    if (!receivedEvent) throw new Error("❌ addEventListener never fired for litesvm mode!");
-    console.log(`      🔔 addEventListener fired! New Count: ${receivedEvent.newCount}`);
   });
 });

@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { EscrowState } from "../../types";
 
-/** 8-byte on-chain discriminator for `EscrowState` accounts. */
+/** On-chain discriminator for `EscrowState` accounts. */
 export const ESCROWSTATE_DISCRIMINATOR = new Uint8Array([19, 90, 148, 111, 55, 130, 229, 108]);
 
 /** Fetches a `EscrowState` account. Throws if it does not exist. */

@@ -17,7 +17,7 @@
 //! 0-indexed 2) is NOT the wrapped-SOL mint, and fully decodes/prints the
 //! first successful one found.
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::{GetConfirmedSignaturesForAddress2Config, RpcClient};
 use solana_rpc_client_api::config::RpcTransactionConfig;
 use solana_transaction_status_client_types::{EncodedTransaction, UiMessage, UiTransactionEncoding};
@@ -33,8 +33,8 @@ const PAGE_SIZE: usize = 1000;
 const MAX_PAGES: usize = 40;
 const NUM_WORKERS: usize = 16;
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 /// Returns `Some(quote_mint_string)` if this signature is a successful

@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { Counter } from "../../types";
 
-/** 8-byte on-chain discriminator for `Counter` accounts. */
+/** On-chain discriminator for `Counter` accounts. */
 export const COUNTER_DISCRIMINATOR = new Uint8Array([255, 176, 4, 245, 188, 253, 124, 25]);
+
+function stripCounterDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = COUNTER_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `Counter` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link Counter} account data. */
 export function getCounterEncoder(): naclac.FixedSizeEncoder<Counter> {
@@ -41,7 +49,7 @@ export function decodeCounter<TAddress extends string = string>(
 ): naclac.Account<Counter, TAddress> | naclac.MaybeAccount<Counter, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripCounterDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getCounterDecoder(),
   );
@@ -90,7 +98,7 @@ export async function fetchAllMaybeCounter(
 }
 
 /** Fetches ALL `Counter` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllCounterByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator prefix for `Counter` accounts on-chain. */
+/** Discriminator prefix for `Counter` accounts on-chain. */
 export const COUNTER_DISCRIMINATOR = new Uint8Array([255, 176, 4, 245, 188, 253, 124, 25]);
 
 /** Auto-generated account interface from the program IDL. */

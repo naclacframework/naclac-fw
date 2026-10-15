@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `burn_vault_tokens2022` instruction. */
+/** Discriminator for the `burn_vault_tokens2022` instruction. */
 export const BURN_VAULT_TOKENS2022_DISCRIMINATOR = new Uint8Array([243, 107, 2, 160, 248, 131, 124, 20]);
 
 /** Instruction arguments for `burnVaultTokens2022`. */

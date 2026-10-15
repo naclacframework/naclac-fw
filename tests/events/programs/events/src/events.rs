@@ -17,6 +17,24 @@ pub struct SizedPayload {
     pub data: Vec<u8>,
 }
 
+/// `kind` (1 byte) followed by an 8-aligned `amount` leaves 7 bytes of
+/// internal padding in this type's C layout.
+#[defined_type]
+pub struct PaddedInner {
+    pub kind: u8,
+    pub amount: u64,
+}
+
+/// An `alloc` event whose fields are a padded `defined_type` used directly
+/// and as a `Vec` element, so its wire bytes contain that internal padding.
+#[event(alloc)]
+pub struct NestedPadded {
+    pub head: u8,
+    pub inner: PaddedInner,
+    pub many: Vec<PaddedInner>,
+    pub note: String,
+}
+
 // Fixed-size counterparts to `SizedPayload`, for the plain-`#[event]`
 // (`bytemuck::bytes_of`, no allocation) CU sweep — a `[u8; N]`'s `N` is
 // fixed per type, so each size needs its own struct rather than one

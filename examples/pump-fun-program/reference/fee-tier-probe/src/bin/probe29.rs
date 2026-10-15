@@ -14,7 +14,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -30,8 +30,8 @@ const RENT_SYSVAR_ID: &str = "SysvarRent111111111111111111111111111111111";
 const CREATE_DISCRIMINATOR: [u8; 8] = [24, 30, 200, 40, 5, 28, 7, 119];
 const GLOBAL_DISCRIMINATOR: [u8; 8] = [167, 232, 232, 177, 200, 108, 114, 127];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -40,13 +40,13 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
 // Same shape as `probe20`/`probe22`'s `global_account_data`, just a plain
 // zeroed `Global` — `create` doesn't validate `fee_recipient`/buyback state.
-fn global_account_data(authority: &Pubkey) -> Vec<u8> {
+fn global_account_data(authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1); // initialized
@@ -93,7 +93,7 @@ fn main() {
     let user = Keypair::new();
     svm.airdrop(&user.pubkey(), 100_000_000_000).unwrap();
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account { lamports: 10_000_000, data: global_account_data(&user.pubkey()), owner: pump_program, executable: false, rent_epoch: 0 },
@@ -101,14 +101,14 @@ fn main() {
     .unwrap();
 
     let mint = Keypair::new();
-    let (mint_authority, _) = Pubkey::find_program_address(&[b"mint-authority"], &pump_program);
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.pubkey().as_ref()], &pump_program);
+    let (mint_authority, _) = Address::find_program_address(&[b"mint-authority"], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.pubkey().as_ref()], &pump_program);
     let associated_bonding_curve = ata_address(&bonding_curve, &mint.pubkey(), &token_program);
-    let (metadata, _) = Pubkey::find_program_address(
+    let (metadata, _) = Address::find_program_address(
         &[b"metadata", mpl_token_metadata_program.as_ref(), mint.pubkey().as_ref()],
         &mpl_token_metadata_program,
     );
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
     let name = "Test Coin";
     let symbol = "TEST";

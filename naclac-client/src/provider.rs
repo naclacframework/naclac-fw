@@ -1,10 +1,11 @@
 use crate::error::{translate_error_code, NaclacClientError};
 use litesvm::LiteSVM;
-use sha2::Digest;
 use solana_account::Account;
+use solana_address::Address;
 use solana_commitment_config::CommitmentConfig;
+use solana_hash::Hash;
+use solana_instruction_error::InstructionError;
 use solana_keypair::Keypair;
-use solana_program::{hash::Hash, instruction::InstructionError, pubkey::Pubkey};
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_signature::Signature;
 use solana_signer::Signer;
@@ -23,9 +24,125 @@ pub struct NaclacTransactionMetadata {
     /// alike), not just litesvm. Empty when the instruction never called
     /// `set_return_data`.
     pub return_data: Vec<u8>,
+    /// Every instruction invoked via CPI during the transaction, in
+    /// execution order, with account keys already resolved. `None` when the
+    /// backend could not supply them (as opposed to `Some(vec![])`, which
+    /// means the transaction genuinely made no CPIs). Accounts loaded through
+    /// an address lookup table cannot be resolved and yield `None` too.
+    pub inner_instructions: Option<Vec<NaclacInnerInstruction>>,
 }
 
-fn extract_event_bytes(parts: &[&str]) -> Option<(Vec<u8>, Vec<u8>)> {
+/// One CPI-invoked instruction from a transaction's inner-instruction trace.
+#[derive(Debug, Clone)]
+pub struct NaclacInnerInstruction {
+    /// Index of the top-level instruction this CPI was made under.
+    pub outer_index: usize,
+    /// 2 for a CPI made directly by a top-level instruction, 3 for a CPI
+    /// made by that CPI, and so on. 0 when an RPC node didn't report it.
+    pub stack_height: u8,
+    pub program_id: solana_address::Address,
+    pub accounts: Vec<solana_address::Address>,
+    pub data: Vec<u8>,
+}
+
+/// Resolves litesvm's compiled inner instructions against the transaction's
+/// static account keys. `None` if any index falls outside them (i.e. the
+/// transaction used an address lookup table).
+fn resolve_litesvm_inner_instructions(
+    keys: &[Address],
+    list: &solana_message::inner_instruction::InnerInstructionsList,
+) -> Option<Vec<NaclacInnerInstruction>> {
+    let key_at = |index: usize| {
+        keys.get(index)
+            .map(|key| solana_address::Address::new_from_array(key.to_bytes()))
+    };
+    let mut resolved = Vec::new();
+    for (outer_index, set) in list.iter().enumerate() {
+        for inner in set {
+            resolved.push(NaclacInnerInstruction {
+                outer_index,
+                stack_height: inner.stack_height,
+                program_id: key_at(inner.instruction.program_id_index as usize)?,
+                accounts: inner
+                    .instruction
+                    .accounts
+                    .iter()
+                    .map(|index| key_at(*index as usize))
+                    .collect::<Option<Vec<_>>>()?,
+                data: inner.instruction.data.clone(),
+            });
+        }
+    }
+    Some(resolved)
+}
+
+/// Resolves RPC-reported compiled inner instructions against the
+/// transaction's full account-key list (static keys, then ALT-loaded writable
+/// keys, then ALT-loaded readonly keys). `None` if an instruction isn't in
+/// compiled form or refers to a key outside `keys`. A node that doesn't
+/// report `stackHeight` yields `stack_height: 0`.
+fn resolve_ui_inner_instructions(
+    keys: &[solana_address::Address],
+    list: &[solana_transaction_status::UiInnerInstructions],
+) -> Option<Vec<NaclacInnerInstruction>> {
+    let mut resolved = Vec::new();
+    for set in list {
+        for ui in &set.instructions {
+            let solana_transaction_status::UiInstruction::Compiled(compiled) = ui else {
+                return None;
+            };
+            resolved.push(NaclacInnerInstruction {
+                outer_index: set.index as usize,
+                stack_height: compiled.stack_height.map_or(0, |height| height as u8),
+                program_id: *keys.get(compiled.program_id_index as usize)?,
+                accounts: compiled
+                    .accounts
+                    .iter()
+                    .map(|index| keys.get(*index as usize).copied())
+                    .collect::<Option<Vec<_>>>()?,
+                data: bs58::decode(&compiled.data).into_vec().ok()?,
+            });
+        }
+    }
+    Some(resolved)
+}
+
+/// Inner instructions of a `getTransaction` response fetched with binary
+/// encoding. `None` when the node omitted them, the transaction can't be
+/// decoded, or any key can't be resolved.
+fn inner_instructions_from_rpc(
+    encoded: &solana_transaction_status::EncodedTransactionWithStatusMeta,
+) -> Option<Vec<NaclacInnerInstruction>> {
+    use solana_transaction_status::option_serializer::OptionSerializer;
+    let meta = encoded.meta.as_ref()?;
+    // A failed transaction's recorded inner instructions were never
+    // committed, so none of them can vouch for an event.
+    if meta.err.is_some() {
+        return None;
+    }
+    let OptionSerializer::Some(list) = &meta.inner_instructions else {
+        return None;
+    };
+    let tx = encoded.transaction.decode()?;
+    let mut keys: Vec<solana_address::Address> = tx
+        .message
+        .static_account_keys()
+        .iter()
+        .map(|key| solana_address::Address::new_from_array(key.to_bytes()))
+        .collect();
+    if let OptionSerializer::Some(loaded) = &meta.loaded_addresses {
+        for encoded_key in loaded.writable.iter().chain(loaded.readonly.iter()) {
+            let bytes: [u8; 32] = bs58::decode(encoded_key).into_vec().ok()?.try_into().ok()?;
+            keys.push(solana_address::Address::new_from_array(bytes));
+        }
+    }
+    resolve_ui_inner_instructions(&keys, list)
+}
+
+/// Splits one `Program data:` log line into `(discriminator, payload)`. A
+/// single base64 chunk carries both concatenated, split at `disc_len`; two or
+/// more chunks are `[discriminator, payload]` as emitted by the zero-copy path.
+fn extract_event_bytes(parts: &[&str], disc_len: usize) -> Option<(Vec<u8>, Vec<u8>)> {
     use base64::Engine;
     if parts.is_empty() {
         return None;
@@ -34,9 +151,9 @@ fn extract_event_bytes(parts: &[&str]) -> Option<(Vec<u8>, Vec<u8>)> {
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(parts[0])
             .ok()?;
-        if bytes.len() >= 8 {
-            let disc = bytes[0..8].to_vec();
-            let payload = bytes[8..].to_vec();
+        if bytes.len() >= disc_len {
+            let disc = bytes[..disc_len].to_vec();
+            let payload = bytes[disc_len..].to_vec();
             Some((disc, payload))
         } else {
             None
@@ -53,70 +170,105 @@ fn extract_event_bytes(parts: &[&str]) -> Option<(Vec<u8>, Vec<u8>)> {
 }
 
 impl NaclacTransactionMetadata {
-    /// Parses Borsh-serialized events of type `T` from the transaction logs.
-    pub fn parse_events_borsh<T: borsh::BorshDeserialize>(
+    /// Every `(discriminator, payload)` pair in this transaction that could
+    /// be an event of `T`'s program: first those `emit()` wrote to the logs
+    /// (in log order), then those `emit_cpi!` sent as self-CPIs (in execution
+    /// order). A CPI-emitted event is accepted only from an invocation of
+    /// `T::PROGRAM_ID` whose first account is that program's own
+    /// `event_authority` PDA and whose data starts with `T::CPI_TAG` — the
+    /// program's receive arm rejects the call unless that PDA actually signed.
+    fn event_frames<T: NaclacEvent>(&self) -> Vec<(Vec<u8>, Vec<u8>)> {
+        let disc_len = T::DISCRIMINATOR.len();
+        let mut frames = Vec::new();
+
+        for log in &self.logs {
+            if let Some(data_str) = log.strip_prefix("Program data: ") {
+                let parts: Vec<&str> = data_str.split_whitespace().collect();
+                if let Some(frame) = extract_event_bytes(&parts, disc_len) {
+                    frames.push(frame);
+                }
+            }
+        }
+
+        let tag = T::CPI_TAG;
+        if let (false, Some(inner)) = (tag.is_empty(), &self.inner_instructions) {
+            let (event_authority, _bump) = solana_address::Address::find_program_address(
+                &[b"__event_authority"],
+                &T::PROGRAM_ID,
+            );
+            for call in inner {
+                if call.program_id == T::PROGRAM_ID
+                    && call.accounts.first() == Some(&event_authority)
+                    && call.data.starts_with(tag)
+                    && call.data.len() >= tag.len() + disc_len
+                {
+                    let body = &call.data[tag.len()..];
+                    frames.push((body[..disc_len].to_vec(), body[disc_len..].to_vec()));
+                }
+            }
+        }
+        frames
+    }
+
+    /// Parses Borsh-serialized events of type `T` from the transaction's
+    /// logs and, for a program using `#[event_cpi]`, its inner instructions.
+    pub fn parse_events_borsh<T: borsh::BorshDeserialize + NaclacEvent>(
         &self,
     ) -> Result<Vec<T>, NaclacClientError> {
-        let full_name = std::any::type_name::<T>();
-        let struct_name = full_name.split("::").last().unwrap();
-        let preimage = format!("event:{}", struct_name);
-
-        let mut hasher = <sha2::Sha256 as sha2::Digest>::new();
-        hasher.update(preimage.as_bytes());
-        let hash_result = hasher.finalize();
-        let mut expected_disc = [0u8; 8];
-        expected_disc.copy_from_slice(&hash_result[0..8]);
-
         let mut events = Vec::new();
-        for log in &self.logs {
-            if let Some(data_str) = log.strip_prefix("Program data: ") {
-                let parts: Vec<&str> = data_str.split_whitespace().collect();
-                if let Some((disc_bytes, payload_bytes)) = extract_event_bytes(&parts) {
-                    if disc_bytes == expected_disc {
-                        let mut reader = &payload_bytes[..];
-                        if let Ok(event) = T::deserialize(&mut reader) {
-                            events.push(event);
-                        }
-                    }
+        for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
+            if disc_bytes == T::DISCRIMINATOR {
+                let mut reader = &payload_bytes[..];
+                if let Ok(event) = T::deserialize(&mut reader) {
+                    events.push(event);
                 }
             }
         }
         Ok(events)
     }
 
-    /// Parses Zero-Copy (bytemuck Pod) events of type `T` from the transaction logs.
-    pub fn parse_events_zero_copy<T: bytemuck::Pod>(&self) -> Result<Vec<T>, NaclacClientError> {
-        let full_name = std::any::type_name::<T>();
-        let struct_name = full_name.split("::").last().unwrap();
-        let preimage = format!("event:{}", struct_name);
-
-        let mut hasher = <sha2::Sha256 as sha2::Digest>::new();
-        hasher.update(preimage.as_bytes());
-        let hash_result = hasher.finalize();
-        let mut expected_disc = [0u8; 8];
-        expected_disc.copy_from_slice(&hash_result[0..8]);
-
+    /// Parses Wincode-serialized events of type `T` from the transaction's
+    /// logs and, for a program using `#[event_cpi]`, its inner instructions.
+    pub fn parse_events_wincode<
+        T: wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T> + NaclacEvent,
+    >(
+        &self,
+    ) -> Result<Vec<T>, NaclacClientError> {
         let mut events = Vec::new();
-        for log in &self.logs {
-            if let Some(data_str) = log.strip_prefix("Program data: ") {
-                let parts: Vec<&str> = data_str.split_whitespace().collect();
-                if let Some((disc_bytes, payload_bytes)) = extract_event_bytes(&parts) {
-                    if disc_bytes == expected_disc
-                        && payload_bytes.len() >= std::mem::size_of::<T>()
-                    {
-                        if let Ok(casted) =
-                            bytemuck::try_from_bytes(&payload_bytes[0..std::mem::size_of::<T>()])
-                        {
-                            events.push(*casted);
-                        }
-                    }
+        for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
+            if disc_bytes == T::DISCRIMINATOR {
+                let mut reader = &payload_bytes[..];
+                if let Ok(event) =
+                    wincode::config::deserialize_from(&mut reader, crate::wincode_config::CONFIG)
+                {
+                    events.push(event);
                 }
             }
         }
         Ok(events)
     }
 
-    /// Parses `#[event(alloc)]` events of type `T` from the transaction logs.
+    /// Parses Zero-Copy (bytemuck Pod) events of type `T` from the
+    /// transaction's logs and, for a program using `#[event_cpi]`, its inner
+    /// instructions.
+    pub fn parse_events_zero_copy<T: bytemuck::Pod + NaclacEvent>(
+        &self,
+    ) -> Result<Vec<T>, NaclacClientError> {
+        let mut events = Vec::new();
+        for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
+            if disc_bytes == T::DISCRIMINATOR && payload_bytes.len() >= std::mem::size_of::<T>() {
+                if let Ok(casted) =
+                    bytemuck::try_from_bytes(&payload_bytes[0..std::mem::size_of::<T>()])
+                {
+                    events.push(*casted);
+                }
+            }
+        }
+        Ok(events)
+    }
+
+    /// Parses `#[event(alloc)]` events of type `T` from the transaction's
+    /// logs and, for a program using `#[event_cpi]`, its inner instructions.
     /// Unlike [`parse_events_zero_copy`](Self::parse_events_zero_copy), `T` isn't
     /// `bytemuck::Pod` (it may hold `Vec`/`String`/`Option` fields), so decoding
     /// is delegated to `T`'s generated [`NaclacAllocEvent::decode`], which mirrors
@@ -124,26 +276,11 @@ impl NaclacTransactionMetadata {
     pub fn parse_events_alloc<T: crate::NaclacAllocEvent>(
         &self,
     ) -> Result<Vec<T>, NaclacClientError> {
-        let full_name = std::any::type_name::<T>();
-        let struct_name = full_name.split("::").last().unwrap();
-        let preimage = format!("event:{}", struct_name);
-
-        let mut hasher = <sha2::Sha256 as sha2::Digest>::new();
-        hasher.update(preimage.as_bytes());
-        let hash_result = hasher.finalize();
-        let mut expected_disc = [0u8; 8];
-        expected_disc.copy_from_slice(&hash_result[0..8]);
-
         let mut events = Vec::new();
-        for log in &self.logs {
-            if let Some(data_str) = log.strip_prefix("Program data: ") {
-                let parts: Vec<&str> = data_str.split_whitespace().collect();
-                if let Some((disc_bytes, payload_bytes)) = extract_event_bytes(&parts) {
-                    if disc_bytes == expected_disc {
-                        if let Some(event) = T::decode(&payload_bytes) {
-                            events.push(event);
-                        }
-                    }
+        for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
+            if disc_bytes == T::DISCRIMINATOR {
+                if let Some(event) = T::decode(&payload_bytes) {
+                    events.push(event);
                 }
             }
         }
@@ -156,8 +293,22 @@ impl NaclacTransactionMetadata {
 /// on-chain: fields in declaration order, `Vec<T>`/`String` as a u32 LE
 /// length prefix followed by their bytes, `Option<T>` as a 1-byte tag plus
 /// `T`'s bytes when present, everything else as a raw `bytemuck` read.
-pub trait NaclacAllocEvent: Sized {
+pub trait NaclacAllocEvent: NaclacEvent + Sized {
     fn decode(bytes: &[u8]) -> Option<Self>;
+}
+
+/// Implemented by every client-generated event struct. `DISCRIMINATOR` is the
+/// value from the program's IDL (the name-derived default or the program's
+/// custom override): the bytes that prefix this event in a transaction log.
+pub trait NaclacEvent {
+    const DISCRIMINATOR: &'static [u8];
+    /// The program that emits this event. Only self-CPI invocations of this
+    /// program are decoded from a transaction's inner instructions.
+    const PROGRAM_ID: solana_address::Address;
+    /// The program's reserved self-CPI tag from its IDL (`eventCpiTag`);
+    /// empty when the program never uses `#[event_cpi]`, which turns
+    /// inner-instruction decoding off for this event.
+    const CPI_TAG: &'static [u8];
 }
 
 #[derive(Clone)]
@@ -205,7 +356,7 @@ fn find_workspace_root() -> Option<std::path::PathBuf> {
 /// deploy, a missing/unparsable keypair file here is a real error — there's
 /// no way to know what ID a caller's `declare_id!`/generated client expects
 /// otherwise, and inventing one would silently fail to match either.
-fn resolve_program_id_from_so(so_path: &std::path::Path) -> Result<Pubkey, NaclacClientError> {
+fn resolve_program_id_from_so(so_path: &std::path::Path) -> Result<Address, NaclacClientError> {
     let stem = so_path.file_stem().ok_or_else(|| {
         NaclacClientError::General(format!(
             "Cannot determine program name from '{}'",
@@ -272,7 +423,9 @@ fn resolve_target_dir(workspace_root: &std::path::Path) -> std::path::PathBuf {
 /// inside that same test run). A relative `target-dir` is resolved against
 /// `workspace_root`, matching this codebase's own convention of using
 /// absolute paths for cross-drive redirection.
-fn read_target_dir_from_cargo_config(workspace_root: &std::path::Path) -> Option<std::path::PathBuf> {
+fn read_target_dir_from_cargo_config(
+    workspace_root: &std::path::Path,
+) -> Option<std::path::PathBuf> {
     let config_path = workspace_root.join(".cargo").join("config.toml");
     let contents = std::fs::read_to_string(&config_path).ok()?;
     let parsed: toml::Value = toml::from_str(&contents).ok()?;
@@ -306,8 +459,8 @@ fn auto_load_workspace_programs(svm: &mut LiteSVM) -> Result<(), NaclacClientErr
     })?;
 
     for entry in entries {
-        let entry =
-            entry.map_err(|e| NaclacClientError::General(format!("Failed to read dir entry: {}", e)))?;
+        let entry = entry
+            .map_err(|e| NaclacClientError::General(format!("Failed to read dir entry: {}", e)))?;
         let path = entry.path();
         if path.extension().and_then(|e| e.to_str()) != Some("so") {
             continue;
@@ -373,28 +526,42 @@ fn cluster_from_url(url: &str) -> RpcCluster {
     }
 }
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub enum TransactionVersion {
+    #[default]
+    V1,
+    V0,
+    Legacy,
+}
+
 #[derive(Clone)]
 pub struct NaclacProvider {
     pub backend: ClientBackend,
     pub payer: Arc<Keypair>,
     pub commitment: CommitmentConfig,
     pub cluster: RpcCluster,
+    pub default_tx_version: TransactionVersion,
+    /// litesvm keeps only compiled inner instructions with no message keys,
+    /// so `get_transaction` couldn't resolve them after the fact; the
+    /// resolved form is remembered here at `send_transaction` time.
+    inner_instruction_cache: Arc<Mutex<HashMap<Signature, Option<Vec<NaclacInnerInstruction>>>>>,
 }
 
 impl NaclacProvider {
     pub fn new_litesvm(payer: Keypair) -> Result<Self, NaclacClientError> {
         let mut svm = LiteSVM::new();
         let payer_pubkey = payer.pubkey();
-        svm.airdrop(&payer_pubkey, 1_000_000_000_000)
-            .map_err(|e| {
-                NaclacClientError::LiteSvmError(format!("Initial payer airdrop failed: {:?}", e))
-            })?;
+        svm.airdrop(&payer_pubkey, 1_000_000_000_000).map_err(|e| {
+            NaclacClientError::LiteSvmError(format!("Initial payer airdrop failed: {:?}", e))
+        })?;
         auto_load_workspace_programs(&mut svm)?;
         Ok(Self {
             backend: ClientBackend::LiteSVM(Arc::new(Mutex::new(svm))),
             payer: Arc::new(payer),
             commitment: CommitmentConfig::confirmed(),
             cluster: RpcCluster::Litesvm,
+            default_tx_version: TransactionVersion::V1,
+            inner_instruction_cache: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
@@ -404,7 +571,14 @@ impl NaclacProvider {
             payer: Arc::new(payer),
             commitment: CommitmentConfig::confirmed(),
             cluster: cluster_from_url(url),
+            default_tx_version: TransactionVersion::V1,
+            inner_instruction_cache: Arc::new(Mutex::new(HashMap::new())),
         })
+    }
+
+    pub fn with_tx_version(mut self, version: TransactionVersion) -> Self {
+        self.default_tx_version = version;
+        self
     }
 
     pub fn new(cluster: &str, payer: Keypair) -> Result<Self, NaclacClientError> {
@@ -431,12 +605,22 @@ impl NaclacProvider {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
                 })?;
                 match svm.send_transaction(vtx.clone()) {
-                    Ok(meta) => Ok(NaclacTransactionMetadata {
-                        signature: meta.signature,
-                        logs: meta.logs,
-                        compute_units_consumed: meta.compute_units_consumed,
-                        return_data: meta.return_data.data,
-                    }),
+                    Ok(meta) => {
+                        let inner_instructions = resolve_litesvm_inner_instructions(
+                            vtx.message.static_account_keys(),
+                            &meta.inner_instructions,
+                        );
+                        if let Ok(mut cache) = self.inner_instruction_cache.lock() {
+                            cache.insert(meta.signature, inner_instructions.clone());
+                        }
+                        Ok(NaclacTransactionMetadata {
+                            signature: meta.signature,
+                            logs: meta.logs,
+                            compute_units_consumed: meta.compute_units_consumed,
+                            return_data: meta.return_data.data,
+                            inner_instructions,
+                        })
+                    }
                     Err(failed_meta) => Err(translate_transaction_failure(
                         &failed_meta.err,
                         failed_meta.meta.logs,
@@ -452,6 +636,7 @@ impl NaclacProvider {
                         let mut logs = Vec::new();
                         let mut compute_units_consumed = 0;
                         let mut return_data = Vec::new();
+                        let mut inner_instructions = None;
                         if let Ok(tx_response) = client.get_transaction_with_config(
                             &sig,
                             solana_rpc_client_api::config::RpcTransactionConfig {
@@ -459,9 +644,11 @@ impl NaclacProvider {
                                     solana_transaction_status::UiTransactionEncoding::Base64,
                                 ),
                                 commitment: Some(self.commitment),
-                                max_supported_transaction_version: Some(0),
+                                max_supported_transaction_version: Some(1),
                             },
                         ) {
+                            inner_instructions =
+                                inner_instructions_from_rpc(&tx_response.transaction);
                             if let Some(meta) = tx_response.transaction.meta {
                                 if let solana_transaction_status::option_serializer::OptionSerializer::Some(l) = meta.log_messages {
                                     logs = l;
@@ -480,6 +667,7 @@ impl NaclacProvider {
                             logs,
                             compute_units_consumed,
                             return_data,
+                            inner_instructions,
                         })
                     }
                     Err(client_err) => {
@@ -568,6 +756,10 @@ impl NaclacProvider {
                         logs: info.meta.logs,
                         compute_units_consumed: info.meta.compute_units_consumed,
                         return_data: info.meta.return_data.data,
+                        inner_instructions: resolve_litesvm_inner_instructions(
+                            vtx.message.static_account_keys(),
+                            &info.meta.inner_instructions,
+                        ),
                     }),
                     Err(failed_meta) => Err(translate_transaction_failure(
                         &failed_meta.err,
@@ -577,9 +769,20 @@ impl NaclacProvider {
                 }
             }
             ClientBackend::Rpc(client) => {
-                let response = client.simulate_transaction(vtx).map_err(|e| {
-                    NaclacClientError::RpcError(format!("Failed to simulate transaction: {}", e))
-                })?;
+                let response = client
+                    .simulate_transaction_with_config(
+                        vtx,
+                        solana_rpc_client_api::config::RpcSimulateTransactionConfig {
+                            inner_instructions: true,
+                            ..Default::default()
+                        },
+                    )
+                    .map_err(|e| {
+                        NaclacClientError::RpcError(format!(
+                            "Failed to simulate transaction: {}",
+                            e
+                        ))
+                    })?;
                 let sim = response.value;
                 let logs = sim.logs.unwrap_or_default();
                 if let Some(err) = sim.err {
@@ -596,11 +799,21 @@ impl NaclacProvider {
                             .unwrap_or_default()
                     })
                     .unwrap_or_default();
+                let inner_instructions = sim.inner_instructions.as_ref().and_then(|list| {
+                    let keys: Vec<solana_address::Address> = vtx
+                        .message
+                        .static_account_keys()
+                        .iter()
+                        .map(|key| solana_address::Address::new_from_array(key.to_bytes()))
+                        .collect();
+                    resolve_ui_inner_instructions(&keys, list)
+                });
                 Ok(NaclacTransactionMetadata {
                     signature: Signature::default(),
                     logs,
                     compute_units_consumed,
                     return_data,
+                    inner_instructions,
                 })
             }
         }
@@ -626,6 +839,12 @@ impl NaclacProvider {
                         logs: meta.logs.clone(),
                         compute_units_consumed: meta.compute_units_consumed,
                         return_data: meta.return_data.data.clone(),
+                        inner_instructions: self
+                            .inner_instruction_cache
+                            .lock()
+                            .ok()
+                            .and_then(|cache| cache.get(signature).cloned())
+                            .flatten(),
                     }),
                     Some(Err(failed_meta)) => Err(translate_transaction_failure(
                         &failed_meta.err,
@@ -643,9 +862,11 @@ impl NaclacProvider {
                     .get_transaction_with_config(
                         signature,
                         solana_rpc_client_api::config::RpcTransactionConfig {
-                            encoding: Some(solana_transaction_status::UiTransactionEncoding::Base64),
+                            encoding: Some(
+                                solana_transaction_status::UiTransactionEncoding::Base64,
+                            ),
                             commitment: Some(self.commitment),
-                            max_supported_transaction_version: Some(0),
+                            max_supported_transaction_version: Some(1),
                         },
                     )
                     .map_err(|e| {
@@ -657,6 +878,7 @@ impl NaclacProvider {
                 let mut logs = Vec::new();
                 let mut compute_units_consumed = 0;
                 let mut return_data = Vec::new();
+                let inner_instructions = inner_instructions_from_rpc(&tx_response.transaction);
                 if let Some(meta) = tx_response.transaction.meta {
                     if let solana_transaction_status::option_serializer::OptionSerializer::Some(l) =
                         meta.log_messages
@@ -664,8 +886,9 @@ impl NaclacProvider {
                         logs = l;
                     }
                     compute_units_consumed = meta.compute_units_consumed.unwrap_or(0);
-                    if let solana_transaction_status::option_serializer::OptionSerializer::Some(rd) =
-                        meta.return_data
+                    if let solana_transaction_status::option_serializer::OptionSerializer::Some(
+                        rd,
+                    ) = meta.return_data
                     {
                         use base64::Engine;
                         return_data = base64::engine::general_purpose::STANDARD
@@ -678,6 +901,7 @@ impl NaclacProvider {
                     logs,
                     compute_units_consumed,
                     return_data,
+                    inner_instructions,
                 })
             }
         }
@@ -687,7 +911,7 @@ impl NaclacProvider {
         &self,
         address: &solana_address::Address,
     ) -> Result<Account, NaclacClientError> {
-        let pubkey = Pubkey::new_from_array(address.to_bytes());
+        let pubkey = Address::new_from_array(address.to_bytes());
 
         match &self.backend {
             ClientBackend::LiteSVM(svm_lock) => {
@@ -715,14 +939,14 @@ impl NaclacProvider {
         self.get_account(address).map(|acc| acc.data)
     }
 
-    /// Fetches all accounts owned by `program_id`, optionally filtered by an 8-byte discriminator prefix.
+    /// Fetches all accounts owned by `program_id`, optionally filtered by a discriminator prefix.
     /// Returns `(address, raw_data)` pairs. Useful for indexing all accounts of a given type.
     pub fn get_program_accounts(
         &self,
         program_id: &solana_address::Address,
-        discriminator: Option<&[u8; 8]>,
+        discriminator: Option<&[u8]>,
     ) -> Result<Vec<(solana_address::Address, Vec<u8>)>, NaclacClientError> {
-        let pubkey = Pubkey::new_from_array(program_id.to_bytes());
+        let pubkey = Address::new_from_array(program_id.to_bytes());
         match &self.backend {
             ClientBackend::LiteSVM(svm_lock) => {
                 let svm = svm_lock.lock().map_err(|e| {
@@ -731,7 +955,7 @@ impl NaclacProvider {
                 let mut results = Vec::new();
                 for (addr, account) in svm.get_program_accounts(&pubkey) {
                     if let Some(disc) = discriminator {
-                        if account.data.len() < 8 || &account.data[0..8] != disc {
+                        if account.data.len() < disc.len() || &account.data[..disc.len()] != disc {
                             continue;
                         }
                     }
@@ -792,7 +1016,7 @@ impl NaclacProvider {
     }
 
     pub fn get_balance(&self, address: &solana_address::Address) -> Result<u64, NaclacClientError> {
-        let pubkey = Pubkey::new_from_array(address.to_bytes());
+        let pubkey = Address::new_from_array(address.to_bytes());
         match &self.backend {
             ClientBackend::LiteSVM(svm_lock) => {
                 let svm = svm_lock.lock().map_err(|e| {
@@ -823,7 +1047,7 @@ impl NaclacProvider {
         &self,
         address: &solana_address::Address,
     ) -> Result<(u64, u8), NaclacClientError> {
-        use solana_program::program_pack::Pack;
+        use solana_program_pack::Pack;
 
         let account = self.get_account(address)?;
         let owner_bytes = account.owner.to_bytes();
@@ -918,7 +1142,7 @@ impl NaclacProvider {
         address: &solana_address::Address,
         lamports: u64,
     ) -> Result<(), NaclacClientError> {
-        let pubkey = Pubkey::new_from_array(address.to_bytes());
+        let pubkey = Address::new_from_array(address.to_bytes());
         match &self.backend {
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
@@ -1003,7 +1227,7 @@ impl NaclacProvider {
         address: &solana_address::Address,
         lamports: u64,
     ) -> Result<(), NaclacClientError> {
-        let pubkey = Pubkey::new_from_array(address.to_bytes());
+        let pubkey = Address::new_from_array(address.to_bytes());
         match &self.backend {
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
@@ -1036,7 +1260,7 @@ impl NaclacProvider {
                 let mut svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
                 })?;
-                let mut clock: solana_program::clock::Clock = svm.get_sysvar();
+                let mut clock: solana_clock::Clock = svm.get_sysvar();
                 clock.unix_timestamp = unix_timestamp;
                 svm.set_sysvar(&clock);
                 Ok(())
@@ -1062,8 +1286,8 @@ impl NaclacProvider {
         owner: &solana_address::Address,
         lamports: u64,
     ) -> Result<(), NaclacClientError> {
-        let pubkey = Pubkey::new_from_array(address.to_bytes());
-        let owner_pubkey = Pubkey::new_from_array(owner.to_bytes());
+        let pubkey = Address::new_from_array(address.to_bytes());
+        let owner_pubkey = Address::new_from_array(owner.to_bytes());
         match &self.backend {
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
@@ -1097,7 +1321,7 @@ impl NaclacProvider {
                 let mut svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
                 })?;
-                let pubkey = Pubkey::new_from_array(program_id.to_bytes());
+                let pubkey = Address::new_from_array(program_id.to_bytes());
                 svm.add_program_from_file(pubkey, path).map_err(|e| {
                     NaclacClientError::LiteSvmError(format!(
                         "Failed to load program binary into LiteSVM: {:?}",
@@ -1138,16 +1362,16 @@ impl NaclacProvider {
         program_id: &solana_address::Address,
         cluster_url: &str,
     ) -> Result<(), NaclacClientError> {
-        use solana_account::state_traits::StateMut;
         use solana_loader_v3_interface::state::UpgradeableLoaderState;
         use solana_sdk_ids::{bpf_loader, bpf_loader_deprecated, bpf_loader_upgradeable};
+        use wincode::DeserializeOwned;
 
         const MAX_FETCH_ATTEMPTS: u32 = 5;
         const RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(1);
 
         fn fetch_account_with_retry(
             fetch_client: &RpcClient,
-            pubkey: &Pubkey,
+            pubkey: &Address,
             commitment: CommitmentConfig,
             what: &str,
         ) -> Result<Option<Account>, NaclacClientError> {
@@ -1180,7 +1404,7 @@ impl NaclacProvider {
 
         match &self.backend {
             ClientBackend::LiteSVM(svm_lock) => {
-                let pubkey = Pubkey::new_from_array(program_id.to_bytes());
+                let pubkey = Address::new_from_array(program_id.to_bytes());
 
                 let cached = cache
                     .lock()
@@ -1198,11 +1422,13 @@ impl NaclacProvider {
                 } else {
                     let fetch_client = RpcClient::new(cluster_url.to_string());
 
-                    let account =
-                        fetch_account_with_retry(&fetch_client, &pubkey, self.commitment, "program account")?
-                            .ok_or_else(|| {
-                                NaclacClientError::AccountNotFound(program_id.to_string())
-                            })?;
+                    let account = fetch_account_with_retry(
+                        &fetch_client,
+                        &pubkey,
+                        self.commitment,
+                        "program account",
+                    )?
+                    .ok_or_else(|| NaclacClientError::AccountNotFound(program_id.to_string()))?;
 
                     let elf_bytes = if account.owner == bpf_loader::id()
                         || account.owner == bpf_loader_deprecated::id()
@@ -1211,7 +1437,7 @@ impl NaclacProvider {
                     } else if account.owner == bpf_loader_upgradeable::id() {
                         let Ok(UpgradeableLoaderState::Program {
                             programdata_address,
-                        }) = account.state()
+                        }) = UpgradeableLoaderState::deserialize_from(&account.data[..])
                         else {
                             return Err(NaclacClientError::General(format!(
                                 "{} is not an upgradeable-loader program account",
@@ -1233,7 +1459,7 @@ impl NaclacProvider {
                         })?;
 
                         if !matches!(
-                            programdata_account.state(),
+                            UpgradeableLoaderState::deserialize_from(&programdata_account.data[..]),
                             Ok(UpgradeableLoaderState::ProgramData { .. })
                         ) {
                             return Err(NaclacClientError::General(format!(

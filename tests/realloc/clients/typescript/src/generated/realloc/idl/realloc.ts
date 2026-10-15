@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "61EMKahAphD6ceF3jHxPSGhtuhRZC3JuvqoEsuMYXwLD",
+  "address": "FSqCCvBJKjPaLAPcbehdb4oX9MunXidhspKpmGsJ41Nd",
   "metadata": {
     "name": "realloc",
     "version": "0.1.0",

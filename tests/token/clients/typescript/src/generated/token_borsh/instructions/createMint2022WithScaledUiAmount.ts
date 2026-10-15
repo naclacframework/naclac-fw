@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022_with_scaled_ui_amount` instruction. */
+/** Discriminator for the `create_mint2022_with_scaled_ui_amount` instruction. */
 export const CREATE_MINT2022_WITH_SCALED_UI_AMOUNT_DISCRIMINATOR = new Uint8Array([189, 215, 232, 227, 212, 144, 144, 24]);
 
 /** Instruction arguments for `createMint2022WithScaledUiAmount`. */

@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022_with_mint_close_authority` instruction. */
+/** Discriminator for the `create_mint2022_with_mint_close_authority` instruction. */
 export const CREATE_MINT2022_WITH_MINT_CLOSE_AUTHORITY_DISCRIMINATOR = new Uint8Array([68, 253, 112, 118, 23, 180, 92, 36]);
 
 /** Instruction arguments for `createMint2022WithMintCloseAuthority`. */
 export interface CreateMint2022WithMintCloseAuthorityArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
 }
 
@@ -23,9 +23,9 @@ export interface CreateMint2022WithMintCloseAuthorityAccounts {
    * `MintCloseAuthority` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

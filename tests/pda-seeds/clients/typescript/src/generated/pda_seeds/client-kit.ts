@@ -40,7 +40,7 @@ export class PdaSeedsClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider, true);
+    this.program = new naclac.Program(IDL, provider, true, []);
   }
 
   /**

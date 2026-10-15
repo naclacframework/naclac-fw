@@ -5,6 +5,12 @@ use quote::ToTokens;
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
 
+/// The name the IDL gives a field, account or argument written as `raw` in
+/// source: leading underscores (the "intentionally unused" marker) dropped.
+pub fn idl_name(raw: &str) -> String {
+    raw.trim_start_matches('_').to_string()
+}
+
 /// Extracts `///`/`#[doc = "..."]` doc-comment lines from an attribute list,
 /// trimmed of leading whitespace, in source order.
 pub fn extract_docs(attrs: &[syn::Attribute]) -> Vec<String> {
@@ -27,36 +33,6 @@ pub fn extract_docs(attrs: &[syn::Attribute]) -> Vec<String> {
             Some(s.value().trim().to_string())
         })
         .collect()
-}
-
-
-fn get_type_size(ty: &syn::Type, constants: &[crate::types::NaclacConstant]) -> usize {
-    match ty {
-        syn::Type::Path(type_path) => {
-            let last_segment = type_path.path.segments.last().unwrap();
-            let ident_str = last_segment.ident.to_string();
-            match ident_str.as_str() {
-                "u8" | "i8" | "bool" | "Bool" => 1,
-                "u16" | "i16" => 2,
-                "u32" | "i32" | "f32" => 4,
-                "u64" | "i64" | "f64" => 8,
-                "u128" | "i128" => 16,
-                "Pubkey" | "publicKey" | "Address" => 32,
-                "Opt" => 48, // Opt<T> always 48 for simplicity (32+1+7 or 8+1+7 padded to 8)
-                _ => 8,      // Default fallback
-            }
-        }
-        syn::Type::Array(type_array) => {
-            let inner_size = get_type_size(&type_array.elem, constants);
-            let len_str = type_array
-                .len
-                .to_token_stream()
-                .to_string()
-                .replace(" ", "");
-            inner_size * resolve_array_len(&len_str, constants)
-        }
-        _ => 0,
-    }
 }
 
 /// Renders a constant's initializer expression as a decimal byte-array
@@ -115,15 +91,18 @@ fn decimal_array_literal(expr: &syn::Expr) -> Option<String> {
 
 /// Resolves a `[T; N]` array's length to a concrete `usize` — `N` is either
 /// a literal integer, or a bare identifier naming a `pub const N: usize = ...;`
-/// declared anywhere in the crate's `src/` tree (`constants`, which by the
-/// time this runs has already been fully collected across every file — see
+/// declared in any module of the crate (`constants`, which by the time this
+/// runs has already been collected from every module — see
 /// `parse_workspace_program`'s two-pass split). Anything else is a hard
 /// error, not a fallback: a silently-wrong guess here (e.g. degrading to a
 /// generic `bytes` type) would discard both the real length and the real
 /// element type, corrupting every downstream IDL consumer (client codegen
 /// emits invalid/mistyped fields with no diagnostic pointing back at the
 /// real cause).
-fn resolve_array_len(len_str: &str, constants: &[crate::types::NaclacConstant]) -> usize {
+pub(crate) fn resolve_array_len(
+    len_str: &str,
+    constants: &[crate::types::NaclacConstant],
+) -> usize {
     if let Ok(n) = len_str.parse::<usize>() {
         return n;
     }
@@ -141,7 +120,7 @@ fn resolve_array_len(len_str: &str, constants: &[crate::types::NaclacConstant]) 
     panic!(
         "Naclac Error: array length `{len_str}` in a `[T; {len_str}]` field could not be \
          resolved. Declare it as a literal integer, or as `pub const {len_str}: usize = N;` \
-         somewhere in this crate's `src/` tree."
+         in any module of this crate."
     );
 }
 
@@ -159,11 +138,19 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
                 }
             }
 
-            // `ZcVec<T>` (naclac-core's `pub type ZcVec<T> = Span<T>;`) is a zero-copy
-            // instruction-arg-only alternative to `Vec<T>` — identical wire format, so
-            // it maps to the same IDL `"vec"` type. Proc-macros see the literal token
-            // `ZcVec` as written in source, never the resolved alias `Span`, so this
-            // must be matched by name here rather than relying on type resolution.
+            // `ZcEnum<E>` is how a zero-copy struct stores the enum `E`: the same
+            // bytes and layout, so it is `E` in the IDL.
+            if ident_str == "ZcEnum" {
+                if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
+                    if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
+                        return rust_type_to_idl(inner_ty, constants);
+                    }
+                }
+            }
+
+            // `ZcVec<T>` is a zero-copy instruction-arg-only alternative to `Vec<T>` —
+            // the IDL is identical in every mode, so it maps to the same `"vec"` type.
+            // It is matched by name because the IDL walker sees source tokens only.
             if ident_str == "Vec" || ident_str == "ZcVec" {
                 if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                     if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
@@ -173,25 +160,32 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
             }
 
             match ident_str.as_str() {
-                "Pubkey" | "Address" => json!("publicKey"),
+                "Address" => json!("publicKey"),
                 "u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32" | "i64" | "i128"
                 | "f32" | "f64" => json!(ident_str),
-                "bool" => json!("bool"),
-                "Bool" => json!({ "defined": "Bool" }),
+                // Solana programs are 64-bit, so `usize`/`isize` are 8 bytes on the wire.
+                "usize" => json!("u64"),
+                "isize" => json!("i64"),
+                // naclac's zero-copy `Bool` is one byte, 0 or 1: the IDL's `bool`.
+                "bool" | "Bool" => json!("bool"),
                 "Opt" => {
-                    if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
-                        if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                            let inner_ident =
-                                inner_ty.to_token_stream().to_string().replace(" ", "");
-                            let normalized_ident = match inner_ident.as_str() {
-                                "u64" => "U64",
-                                "Pubkey" | "publicKey" | "Address" => "Pubkey",
-                                _ => &inner_ident,
-                            };
-                            return json!({ "defined": format!("Opt{}", normalized_ident) });
-                        }
+                    let inner = match &last_segment.arguments {
+                        syn::PathArguments::AngleBracketed(args) => match args.args.first() {
+                            Some(syn::GenericArgument::Type(inner_ty)) => {
+                                Some(rust_type_to_idl(inner_ty, constants))
+                            }
+                            _ => None,
+                        },
+                        _ => None,
+                    };
+                    match inner.as_ref().and_then(crate::opt_type::opt_type_name) {
+                        Some(name) => json!({ "defined": name }),
+                        None => panic!(
+                            "Naclac Error: `{}` has no IDL representation: `Opt<T>` needs a \
+                             fixed-size `T` (a primitive, `Address`, an array or a defined type).",
+                            ty.to_token_stream()
+                        ),
                     }
-                    json!({ "defined": "Opt" })
                 }
                 "String" | "ZcString" => json!("string"),
                 _ => json!({ "defined": ident_str }),
@@ -233,12 +227,11 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
 /// user-defined type — anything the fallback arm above would tag
 /// `{"defined": ident_str}` for a struct/enum that actually has its own
 /// declaration somewhere — returns that leaf type, unwrapping
-/// `Option<T>`/`Vec<T>`/`ZcVec<T>`/`[T; N]`/`&T` the same way
+/// `Option<T>`/`Vec<T>`/`ZcVec<T>`/`Opt<T>`/`[T; N]`/`&T` the same way
 /// `rust_type_to_idl` does. Returns `None` for a type that resolves to a
-/// primitive/string/bytes/pubkey, and also for naclac-core's synthetic
-/// `Bool`/`Opt<T>` wrapper names — those get a `{"defined": ...}` tag from
-/// `rust_type_to_idl` too, but have no real backing type declaration
-/// anywhere to chase.
+/// primitive/string/bytes/pubkey (naclac-core's `Bool` included). `Opt<T>`
+/// itself is not a declaration to chase: `naclac_idl::Idl::canonicalize`
+/// defines it from `T`.
 ///
 /// Used by the `idl-build` compilation path to know which fields must be
 /// recursively chased via `NaclacIdlBuild::insert_types` — must walk exactly
@@ -250,7 +243,12 @@ pub fn defined_type_leaf(ty: &syn::Type) -> Option<syn::Type> {
             let last_segment = type_path.path.segments.last().unwrap();
             let ident_str = last_segment.ident.to_string();
 
-            if ident_str == "Option" || ident_str == "Vec" || ident_str == "ZcVec" {
+            if ident_str == "Option"
+                || ident_str == "Vec"
+                || ident_str == "ZcVec"
+                || ident_str == "Opt"
+                || ident_str == "ZcEnum"
+            {
                 if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                     if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
                         return defined_type_leaf(inner_ty);
@@ -260,9 +258,9 @@ pub fn defined_type_leaf(ty: &syn::Type) -> Option<syn::Type> {
             }
 
             match ident_str.as_str() {
-                "Pubkey" | "Address" | "u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16"
-                | "i32" | "i64" | "i128" | "f32" | "f64" | "bool" | "Bool" | "Opt" | "String"
-                | "ZcString" => None,
+                "Address" | "u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32"
+                | "i64" | "i128" | "f32" | "f64" | "usize" | "isize" | "bool" | "Bool"
+                | "String" | "ZcString" | "str" => None,
                 _ => Some(ty.clone()),
             }
         }
@@ -273,17 +271,19 @@ pub fn defined_type_leaf(ty: &syn::Type) -> Option<syn::Type> {
     }
 }
 
-/// Collects every top-level `const` declaration in `code` into `idl.constants`.
-/// Must run, across every file in the crate, before `parse_file` — array
-/// lengths and other constant references resolved during `parse_file`
-/// (`rust_type_to_idl`/`get_type_size`) need the complete, whole-crate
-/// constant set already available, not just whatever's been seen so far in
-/// this one file (see `parse_workspace_program`'s two-pass split).
-pub fn parse_constants_pass(idl: &mut NaclacProgram, code: &str) {
-    let Ok(syntax_tree) = syn::parse_file(code) else {
-        return;
-    };
-    for item in &syntax_tree.items {
+/// Collects every `pub` or `#[constant]` `const` among one module's `items`
+/// into `idl.constants`. Must run over every module of the crate before
+/// `parse_module_items`: array lengths and other constant references resolved
+/// there (`rust_type_to_idl`) need the complete, whole-crate constant set. `env` holds every constant of the crate, for
+/// constants defined in terms of each other. `warn` reports, on stderr, each
+/// constant whose value could not be evaluated.
+pub fn parse_constants_pass(
+    idl: &mut NaclacProgram,
+    items: &[Item],
+    env: &crate::const_eval::ConstEnv,
+    warn: bool,
+) {
+    for item in items {
         let Item::Const(item_const) = item else {
             continue;
         };
@@ -302,9 +302,8 @@ pub fn parse_constants_pass(idl: &mut NaclacProgram, code: &str) {
         // convention — not the raw Rust source text. Client
         // generators then only need to parse one standard array
         // format, not re-detect Rust literal syntax themselves.
-        let value = if let Some(decimal_array) = decimal_array_literal(&item_const.expr) {
-            decimal_array
-        } else {
+        let name = item_const.ident.to_string();
+        let rendered_source = || {
             let raw = item_const
                 .expr
                 .to_token_stream()
@@ -322,8 +321,28 @@ pub fn parse_constants_pass(idl: &mut NaclacProgram, code: &str) {
                 raw
             }
         };
+        let value = if let Some(decimal_array) = decimal_array_literal(&item_const.expr) {
+            decimal_array
+        } else {
+            match crate::const_eval::evaluate_constant(&item_const.ty, &item_const.expr, env) {
+                Ok(Some(evaluated)) => evaluated,
+                Ok(None) => rendered_source(),
+                Err(crate::const_eval::EvalError::Unsupported(why)) => {
+                    if warn {
+                        eprintln!(
+                            "warning: constant `{name}` cannot be evaluated without compiling ({why}); \
+                             its IDL value is the source text. Add the `idl-build` feature for the exact value."
+                        );
+                    }
+                    rendered_source()
+                }
+                Err(crate::const_eval::EvalError::Invalid(why)) => {
+                    panic!("Naclac Error: constant `{name}` is invalid: {why}")
+                }
+            }
+        };
         idl.constants.push(NaclacConstant {
-            name: item_const.ident.to_string(),
+            name,
             ty,
             value,
             is_exported,
@@ -332,243 +351,232 @@ pub fn parse_constants_pass(idl: &mut NaclacProgram, code: &str) {
     }
 }
 
-pub fn parse_file(idl: &mut NaclacProgram, code: &str) {
-    if let Ok(syntax_tree) = syn::parse_file(code) {
-        for item in &syntax_tree.items {
-            match item {
-                Item::Struct(item_struct) => {
-                    // Check #[component]
-                    let is_component = item_struct
-                        .attrs
-                        .iter()
-                        .any(|a| a.path().is_ident("component"));
-                    if is_component {
-                        let mut fields = Vec::new();
-                        for field in &item_struct.fields {
-                            let field_name = field
-                                .ident
-                                .as_ref()
-                                .unwrap()
-                                .to_string()
-                                .trim_start_matches('_')
-                                .to_string();
-                            fields.push(NaclacField {
-                                name: field_name,
-                                ty: rust_type_to_idl(&field.ty, &idl.constants),
-                                docs: extract_docs(&field.attrs),
-                            });
-                        }
-                        idl.accounts.push(NaclacAccountStruct {
-                            name: item_struct.ident.to_string(),
-                            fields,
-                            docs: extract_docs(&item_struct.attrs),
+/// Adds the components, events, errors and defined types declared in one
+/// module's `items` to `idl`. Runs after `parse_constants_pass` has seen
+/// every module.
+pub fn parse_module_items(idl: &mut NaclacProgram, items: &[Item]) {
+    for item in items {
+        match item {
+            Item::Struct(item_struct) => {
+                // Check #[component]
+                let component_attr = item_struct
+                    .attrs
+                    .iter()
+                    .find(|a| a.path().is_ident("component"));
+                if let Some(component_attr) = component_attr {
+                    let component_name = item_struct.ident.to_string();
+                    let discriminator = crate::discriminator::resolve_discriminator(
+                        crate::discriminator::DiscriminatorKind::Account,
+                        &component_name,
+                        crate::discriminator::macro_args_of(component_attr, false)
+                            .unwrap_or_else(|e| {
+                                panic!(
+                                    "naclac-syn: invalid #[component] on `{component_name}`: {e}"
+                                )
+                            })
+                            .discriminator
+                            .as_deref(),
+                    );
+                    let mut fields = Vec::new();
+                    for field in &item_struct.fields {
+                        let field_name = idl_name(&field.ident.as_ref().unwrap().to_string());
+                        fields.push(NaclacField {
+                            name: field_name,
+                            ty: rust_type_to_idl(&field.ty, &idl.constants),
+                            docs: extract_docs(&field.attrs),
                         });
-                        continue;
                     }
-
-                    // Check #[event] / #[event(alloc)]
-                    let event_attr = item_struct
-                        .attrs
-                        .iter()
-                        .find(|a| a.path().is_ident("event"));
-                    if let Some(attr) = event_attr {
-                        // Mirrors naclac-macros' own `event.rs` check — `#[event(alloc)]`
-                        // uses a sequential, length-prefixed wire format (Vec/String/
-                        // Option-capable) with no fixed-size struct padding, unlike plain
-                        // `#[event]`. The argument tokens must be exactly the bare `alloc`
-                        // identifier: `syn::parse2` requires the whole token stream to be
-                        // consumed, so anything other than a lone `alloc` fails to `false`.
-                        let is_alloc = match &attr.meta {
-                            syn::Meta::List(list) => syn::parse2::<syn::Ident>(list.tokens.clone())
-                                .map(|ident| ident == "alloc")
-                                .unwrap_or(false),
-                            _ => false,
-                        };
-
-                        let mut fields = Vec::new();
-                        let mut total_size = 0;
-                        for field in &item_struct.fields {
-                            let field_name = field
-                                .ident
-                                .as_ref()
-                                .unwrap()
-                                .to_string()
-                                .trim_start_matches('_')
-                                .to_string();
-                            let ty_val = rust_type_to_idl(&field.ty, &idl.constants);
-                            total_size += get_type_size(&field.ty, &idl.constants);
-
-                            fields.push(NaclacEventField {
-                                name: field_name,
-                                ty: ty_val,
-                                index: false,
-                                docs: extract_docs(&field.attrs),
-                            });
-                        }
-
-                        // Apply Zero-Copy Padding if needed — only meaningful for the
-                        // fixed-size bytemuck-cast wire format; alloc events are written
-                        // as a tight sequential concat with no struct alignment padding.
-                        if !is_alloc && idl.is_zero_copy && total_size % 8 != 0 {
-                            let padding_size = 8 - (total_size % 8);
-                            fields.push(NaclacEventField {
-                                name: "padding".to_string(),
-                                ty: json!({ "array": ["u8", padding_size] }),
-                                index: false,
-                                docs: Vec::new(),
-                            });
-                        }
-
-                        idl.events.push(NaclacEvent {
-                            name: item_struct.ident.to_string(),
-                            fields,
-                            alloc: is_alloc,
-                            docs: extract_docs(&item_struct.attrs),
-                        });
-                        continue;
-                    }
-
-                    // Check if it derives Accounts (this also matches the legacy,
-                    // now-removed `AccountsLoader` name, since "AccountsLoader"
-                    // itself contains "Accounts" as a substring).
-                    let is_accounts = item_struct.attrs.iter().any(|a| {
-                        if a.path().is_ident("derive") {
-                            let token_str = a.to_token_stream().to_string();
-                            token_str.contains("Accounts")
-                        } else {
-                            false
-                        }
+                    idl.accounts.push(NaclacAccountStruct {
+                        name: component_name,
+                        discriminator,
+                        fields,
+                        docs: extract_docs(&item_struct.attrs),
                     });
-                    if is_accounts {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    // Parse as a generic defined struct type — named fields
-                    // (`struct Foo { x: T }`) use the field's own name;
-                    // tuple fields (`struct Foo(T)`) have none, so the
-                    // positional index is used instead (matching how Rust
-                    // itself accesses them: `.0`, `.1`, ...), consistent
-                    // with naclac's own `NaclacField`/IDL schema always
-                    // requiring a name (unlike Anchor's own spec, which
-                    // represents tuple fields as a bare, nameless type list
-                    // — naclac deliberately doesn't mirror that here since
-                    // every other consumer of this IDL already assumes
-                    // every field has a name).
-                    if matches!(&item_struct.fields, syn::Fields::Named(_) | syn::Fields::Unnamed(_)) {
-                        let mut fields = Vec::new();
-                        for (i, field) in item_struct.fields.iter().enumerate() {
-                            let field_name = match &field.ident {
-                                Some(ident) => ident.to_string().trim_start_matches('_').to_string(),
-                                None => i.to_string(),
-                            };
-                            fields.push(NaclacField {
-                                name: field_name,
-                                ty: rust_type_to_idl(&field.ty, &idl.constants),
-                                docs: extract_docs(&field.attrs),
-                            });
-                        }
-                        idl.types.push(NaclacTypeDef {
-                            name: item_struct.ident.to_string(),
-                            ty: NaclacTypeDefTy::Struct { fields },
-                            docs: extract_docs(&item_struct.attrs),
+                // Check #[event] / #[event(alloc)]
+                let event_attr = item_struct
+                    .attrs
+                    .iter()
+                    .find(|a| a.path().is_ident("event"));
+                if let Some(attr) = event_attr {
+                    let event_name = item_struct.ident.to_string();
+                    let event_args = crate::discriminator::macro_args_of(attr, true)
+                        .unwrap_or_else(|e| {
+                            panic!("naclac-syn: invalid #[event] on `{event_name}`: {e}")
+                        });
+                    let is_alloc = event_args.alloc;
+                    let event_discriminator = crate::discriminator::resolve_discriminator(
+                        crate::discriminator::DiscriminatorKind::Event,
+                        &event_name,
+                        event_args.discriminator.as_deref(),
+                    );
+
+                    let mut fields = Vec::new();
+                    for field in &item_struct.fields {
+                        fields.push(NaclacEventField {
+                            name: idl_name(&field.ident.as_ref().unwrap().to_string()),
+                            ty: rust_type_to_idl(&field.ty, &idl.constants),
+                            index: false,
+                            docs: extract_docs(&field.attrs),
                         });
                     }
+
+                    idl.events.push(NaclacEvent {
+                        name: event_name,
+                        discriminator: event_discriminator,
+                        fields,
+                        alloc: is_alloc,
+                        docs: extract_docs(&item_struct.attrs),
+                    });
+                    continue;
                 }
-                Item::Enum(item_enum) => {
-                    let is_error = item_enum
-                        .attrs
-                        .iter()
-                        .any(|a| a.path().is_ident("error_code"));
-                    if is_error {
-                        let discriminants =
-                            crate::discriminator::variant_discriminants(&item_enum.variants);
-                        for (discriminant, variant) in
-                            discriminants.iter().zip(&item_enum.variants)
-                        {
-                            let code_offset = (*discriminant + 6000) as u32;
-                            let name = variant.ident.to_string();
-                            let mut msg = None;
-                            for attr in &variant.attrs {
-                                if attr.path().is_ident("doc") {
-                                    if let syn::Meta::NameValue(mnv) = &attr.meta {
-                                        if let syn::Expr::Lit(expr_lit) = &mnv.value {
-                                            if let syn::Lit::Str(lit_str) = &expr_lit.lit {
-                                                let doc_str = lit_str.value().trim().to_string();
-                                                msg = Some(if let Some(existing) = msg {
-                                                    format!("{} {}", existing, doc_str)
-                                                } else {
-                                                    doc_str
-                                                });
-                                            }
+
+                // Check if it derives Accounts (this also matches the legacy,
+                // now-removed `AccountsLoader` name, since "AccountsLoader"
+                // itself contains "Accounts" as a substring).
+                let is_accounts = item_struct.attrs.iter().any(|a| {
+                    if a.path().is_ident("derive") {
+                        let token_str = a.to_token_stream().to_string();
+                        token_str.contains("Accounts")
+                    } else {
+                        false
+                    }
+                });
+                if is_accounts {
+                    continue;
+                }
+
+                // Parse as a generic defined struct type — named fields
+                // (`struct Foo { x: T }`) use the field's own name;
+                // tuple fields (`struct Foo(T)`) have none, so the
+                // positional index is used instead (matching how Rust
+                // itself accesses them: `.0`, `.1`, ...), consistent
+                // with naclac's own `NaclacField`/IDL schema always
+                // requiring a name (unlike Anchor's own spec, which
+                // represents tuple fields as a bare, nameless type list
+                // — naclac deliberately doesn't mirror that here since
+                // every other consumer of this IDL already assumes
+                // every field has a name).
+                if matches!(
+                    &item_struct.fields,
+                    syn::Fields::Named(_) | syn::Fields::Unnamed(_)
+                ) {
+                    let mut fields = Vec::new();
+                    for (i, field) in item_struct.fields.iter().enumerate() {
+                        let field_name = match &field.ident {
+                            Some(ident) => idl_name(&ident.to_string()),
+                            None => i.to_string(),
+                        };
+                        fields.push(NaclacField {
+                            name: field_name,
+                            ty: rust_type_to_idl(&field.ty, &idl.constants),
+                            docs: extract_docs(&field.attrs),
+                        });
+                    }
+                    idl.types.push(NaclacTypeDef {
+                        name: item_struct.ident.to_string(),
+                        ty: NaclacTypeDefTy::Struct { fields },
+                        docs: extract_docs(&item_struct.attrs),
+                    });
+                }
+            }
+            Item::Enum(item_enum) => {
+                let error_attr = item_enum
+                    .attrs
+                    .iter()
+                    .find(|a| a.path().is_ident("error_code"));
+                if let Some(error_attr) = error_attr {
+                    let offset =
+                        crate::idl_items::error_code_offset(error_attr).unwrap_or_else(|e| {
+                            panic!("naclac-syn: invalid `#[error_code]` attribute: {e}")
+                        });
+                    let discriminants =
+                        crate::discriminator::variant_discriminants(&item_enum.variants);
+                    for (discriminant, variant) in discriminants.iter().zip(&item_enum.variants) {
+                        let code_offset = (i128::from(offset) + *discriminant) as u32;
+                        let name = variant.ident.to_string();
+                        let mut msg = None;
+                        for attr in &variant.attrs {
+                            if attr.path().is_ident("doc") {
+                                if let syn::Meta::NameValue(mnv) = &attr.meta {
+                                    if let syn::Expr::Lit(expr_lit) = &mnv.value {
+                                        if let syn::Lit::Str(lit_str) = &expr_lit.lit {
+                                            let doc_str = lit_str.value().trim().to_string();
+                                            msg = Some(if let Some(existing) = msg {
+                                                format!("{} {}", existing, doc_str)
+                                            } else {
+                                                doc_str
+                                            });
                                         }
                                     }
                                 }
                             }
-                            idl.errors.push(NaclacError {
-                                code: code_offset,
-                                name,
-                                msg,
-                            });
                         }
-                    } else {
-                        // Generic Data Enum
-                        let discriminants = crate::discriminator::variant_discriminants(&item_enum.variants);
-                        let mut variants = Vec::new();
-                        for (variant, discriminant) in item_enum.variants.iter().zip(&discriminants) {
-                            let fields = match &variant.fields {
-                                syn::Fields::Named(named) => {
-                                    let mut fs = Vec::new();
-                                    for field in &named.named {
-                                        let field_name = field
-                                            .ident
-                                            .as_ref()
-                                            .unwrap()
-                                            .to_string()
-                                            .trim_start_matches('_')
-                                            .to_string();
-                                        fs.push(NaclacField {
-                                            name: field_name,
-                                            ty: rust_type_to_idl(&field.ty, &idl.constants),
-                                            docs: extract_docs(&field.attrs),
-                                        });
-                                    }
-                                    Some(NaclacEnumFields::Named(fs))
-                                }
-                                syn::Fields::Unnamed(unnamed) => {
-                                    let tys = unnamed
-                                        .unnamed
-                                        .iter()
-                                        .map(|field| rust_type_to_idl(&field.ty, &idl.constants))
-                                        .collect();
-                                    Some(NaclacEnumFields::Tuple(tys))
-                                }
-                                syn::Fields::Unit => None,
-                            };
-                            variants.push(NaclacEnumVariant {
-                                name: variant.ident.to_string(),
-                                docs: extract_docs(&variant.attrs),
-                                fields,
-                                discriminant: discriminant.to_string(),
-                            });
-                        }
-                        idl.types.push(NaclacTypeDef {
-                            name: item_enum.ident.to_string(),
-                            ty: NaclacTypeDefTy::Enum {
-                                variants,
-                                repr: crate::discriminator::detect_enum_repr(&item_enum.attrs),
-                            },
-                            docs: extract_docs(&item_enum.attrs),
+                        idl.errors.push(NaclacError {
+                            code: code_offset,
+                            name,
+                            msg,
                         });
                     }
+                } else {
+                    // Generic Data Enum
+                    let discriminants =
+                        crate::discriminator::variant_discriminants(&item_enum.variants);
+                    let mut variants = Vec::new();
+                    for (variant, discriminant) in item_enum.variants.iter().zip(&discriminants) {
+                        let fields = match &variant.fields {
+                            syn::Fields::Named(named) => {
+                                let mut fs = Vec::new();
+                                for field in &named.named {
+                                    let field_name =
+                                        idl_name(&field.ident.as_ref().unwrap().to_string());
+                                    fs.push(NaclacField {
+                                        name: field_name,
+                                        ty: rust_type_to_idl(&field.ty, &idl.constants),
+                                        docs: extract_docs(&field.attrs),
+                                    });
+                                }
+                                Some(NaclacEnumFields::Named(fs))
+                            }
+                            syn::Fields::Unnamed(unnamed) => {
+                                let tys = unnamed
+                                    .unnamed
+                                    .iter()
+                                    .map(|field| rust_type_to_idl(&field.ty, &idl.constants))
+                                    .collect();
+                                Some(NaclacEnumFields::Tuple(tys))
+                            }
+                            syn::Fields::Unit => None,
+                        };
+                        variants.push(NaclacEnumVariant {
+                            name: variant.ident.to_string(),
+                            docs: extract_docs(&variant.attrs),
+                            fields,
+                            discriminant: discriminant.to_string(),
+                        });
+                    }
+                    idl.types.push(NaclacTypeDef {
+                        name: item_enum.ident.to_string(),
+                        ty: NaclacTypeDefTy::Enum {
+                            variants,
+                            repr: Some(
+                                crate::discriminator::detect_enum_repr(&item_enum.attrs)
+                                    .unwrap_or_else(|| "u8".to_string()),
+                            ),
+                        },
+                        docs: extract_docs(&item_enum.attrs),
+                    });
                 }
-                // Constants are collected in their own earlier pass
-                // (`parse_constants_pass`) — see that function's doc comment
-                // for why array-length resolution needs them collected
-                // whole-crate-first, before any field type here can consume
-                // them.
-                Item::Const(_) => {}
-                _ => {}
             }
+            // Constants are collected in their own earlier pass
+            // (`parse_constants_pass`) — see that function's doc comment
+            // for why array-length resolution needs them collected
+            // whole-crate-first, before any field type here can consume
+            // them.
+            Item::Const(_) => {}
+            _ => {}
         }
     }
 }
@@ -632,10 +640,19 @@ pub fn filter_unreachable_types(idl: &mut NaclacProgram) {
         idl.types.iter().map(|t| (t.name.as_str(), t)).collect();
     let mut frontier: Vec<String> = referenced.iter().cloned().collect();
     while let Some(name) = frontier.pop() {
+        let mut nested = HashSet::new();
         let Some(def) = by_name.get(name.as_str()) else {
+            if let Some(inner) = crate::opt_type::opt_inner_type(&name, |n| by_name.contains_key(n))
+            {
+                collect_type_refs(&inner, &mut nested);
+                for n in nested {
+                    if referenced.insert(n.clone()) {
+                        frontier.push(n);
+                    }
+                }
+            }
             continue;
         };
-        let mut nested = HashSet::new();
         match &def.ty {
             NaclacTypeDefTy::Struct { fields } => {
                 for field in fields {

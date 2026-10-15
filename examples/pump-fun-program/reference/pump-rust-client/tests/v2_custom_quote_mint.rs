@@ -19,7 +19,7 @@ mod common;
 use anchor_spl::associated_token::spl_associated_token_account::instruction::create_associated_token_account_idempotent;
 use anchor_spl::token::spl_token;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{read_keypair_file, Keypair, Signer};
 
 use pump_rust_client::{constants, pda, PumpSdk};
@@ -63,8 +63,8 @@ async fn v2_custom_quote_mint_create_buy_sell() {
     // `buyback_fee_recipient_from_pump_global`), so every entry here is a
     // possible target on a given buy_v2/sell_v2 — and the program does not
     // create the recipient ATAs, so we pre-create them all up-front.
-    let mut recipient_owners: Vec<Pubkey> = Vec::new();
-    if global.fee_recipient != Pubkey::default() {
+    let mut recipient_owners: Vec<Address> = Vec::new();
+    if global.fee_recipient != Address::default() {
         recipient_owners.push(global.fee_recipient);
     }
     recipient_owners.extend(
@@ -72,14 +72,14 @@ async fn v2_custom_quote_mint_create_buy_sell() {
             .fee_recipients
             .iter()
             .copied()
-            .filter(|p| *p != Pubkey::default()),
+            .filter(|p| *p != Address::default()),
     );
     recipient_owners.extend(
         global
             .buyback_fee_recipients
             .iter()
             .copied()
-            .filter(|p| *p != Pubkey::default()),
+            .filter(|p| *p != Address::default()),
     );
     recipient_owners.sort();
     recipient_owners.dedup();

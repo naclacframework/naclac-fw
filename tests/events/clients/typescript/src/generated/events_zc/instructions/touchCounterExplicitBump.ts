@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_counter_explicit_bump` instruction. */
+/** Discriminator for the `touch_counter_explicit_bump` instruction. */
 export const TOUCH_COUNTER_EXPLICIT_BUMP_DISCRIMINATOR = new Uint8Array([11, 37, 205, 179, 240, 86, 6, 13]);
 
 /** Accounts for the `touchCounterExplicitBump` instruction. */

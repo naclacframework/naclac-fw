@@ -30,21 +30,16 @@ export class EscrowClient {
   }
 
   constructor(
-    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | string,
+    providerOrCluster: naclac.LegacyProvider | "devnet" | "mainnet" | "localnet" | "litesvm" | string,
     payer?: naclac.Keypair
   ) {
     let provider: naclac.LegacyProvider;
     if (typeof providerOrCluster === "string") {
-      let url = providerOrCluster;
-      if (providerOrCluster === "devnet") url = "https://api.devnet.solana.com";
-      else if (providerOrCluster === "mainnet") url = "https://api.mainnet-beta.solana.com";
-      else if (providerOrCluster === "localnet") url = "http://127.0.0.1:8899";
-      const connection = new naclac.Connection(url, "confirmed");
-      provider = { connection, payer, publicKey: payer ? payer.publicKey : undefined };
+      provider = naclac.createProvider(providerOrCluster, payer);
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider);
+    this.program = new naclac.LegacyProgram(IDL, provider, true, []);
   }
 
   /**
@@ -71,7 +66,7 @@ export class EscrowClient {
     return instructions.cancel(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `escrowState` account. Returns `[PublicKey, bumpSeed]`. */
+  /** Derives the PDA for a `escrow_state` account. Returns `[PublicKey, bumpSeed]`. */
   public getEscrowStatePda(seeds: {
     maker: naclac.PublicKey | string;
     seed: bigint | number;
@@ -108,6 +103,21 @@ export class EscrowClient {
     return this.program.account['EscrowState'].all(options);
   }
 
+  /** Subscribes to `EscrowCancelled` events. Returns a listener ID. */
+  public onEscrowCancelled(callback: (event: types.EscrowCancelled, slot: number, signature: string) => void) {
+    return types.addEscrowCancelledListener(this.program, callback);
+  }
+
+  /** Awaits the next `EscrowCancelled` event. Resolves `null` on timeout. */
+  public waitForEscrowCancelled(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.EscrowCancelled>("EscrowCancelled", options);
+  }
+
+  /** Decodes every `EscrowCancelled` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowCancelled` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseEscrowCancelledEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.EscrowCancelled>("EscrowCancelled", logs, innerInstructions);
+  }
+
   /** Subscribes to `EscrowCreated` events. Returns a listener ID. */
   public onEscrowCreated(callback: (event: types.EscrowCreated, slot: number, signature: string) => void) {
     return types.addEscrowCreatedListener(this.program, callback);
@@ -116,6 +126,11 @@ export class EscrowClient {
   /** Awaits the next `EscrowCreated` event. Resolves `null` on timeout. */
   public waitForEscrowCreated(options?: { timeoutMs?: number }) {
     return this.program.waitForEvent<types.EscrowCreated>("EscrowCreated", options);
+  }
+
+  /** Decodes every `EscrowCreated` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowCreated` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseEscrowCreatedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.EscrowCreated>("EscrowCreated", logs, innerInstructions);
   }
 
   /** Subscribes to `EscrowExchanged` events. Returns a listener ID. */
@@ -128,14 +143,9 @@ export class EscrowClient {
     return this.program.waitForEvent<types.EscrowExchanged>("EscrowExchanged", options);
   }
 
-  /** Subscribes to `EscrowCancelled` events. Returns a listener ID. */
-  public onEscrowCancelled(callback: (event: types.EscrowCancelled, slot: number, signature: string) => void) {
-    return types.addEscrowCancelledListener(this.program, callback);
-  }
-
-  /** Awaits the next `EscrowCancelled` event. Resolves `null` on timeout. */
-  public waitForEscrowCancelled(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.EscrowCancelled>("EscrowCancelled", options);
+  /** Decodes every `EscrowExchanged` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowExchanged` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseEscrowExchangedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.EscrowExchanged>("EscrowExchanged", logs, innerInstructions);
   }
 
   /** Removes a registered event listener by its ID. */

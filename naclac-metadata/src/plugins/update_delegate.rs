@@ -5,7 +5,7 @@
 //! `UpdateDelegate` — attaches to an `Asset` or `Collection`, naming extra
 //! addresses (beyond the update authority itself) allowed to update it.
 //! Real layout verified against `mpl-core`'s
-//! `generated::types::UpdateDelegate`: `{ additional_delegates: Vec<Pubkey> }`
+//! `generated::types::UpdateDelegate`: `{ additional_delegates: Vec<Address> }`
 //! — a 4-byte little-endian count then that many 32-byte pubkeys, each
 //! fixed-width (unlike most other plugins' `Vec`s), so no per-element
 //! offset walking is needed here.
@@ -141,7 +141,7 @@ pub fn fetch_collection_update_delegate(
 /// Reads an `Asset`'s `UpdateDelegate` plugin's `additional_delegates`, if
 /// attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<Span<Address>>> {
+pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<Address>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -152,7 +152,7 @@ pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<Span<Add
 /// Reads a `Collection`'s `UpdateDelegate` plugin's `additional_delegates`,
 /// if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_collection_update_delegate(info: &AccountInfo) -> Result<Option<Span<Address>>> {
+pub fn fetch_collection_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<Address>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);
@@ -162,15 +162,16 @@ pub fn fetch_collection_update_delegate(info: &AccountInfo) -> Result<Option<Spa
 
 /// Lower-level variant of `fetch_asset_update_delegate`, shared by both
 /// backends: see `edition.rs`'s `read_edition` for why this exists alongside
-/// the uniform-signature wrapper above. Zero-copy — `Span<Address>` views
+/// the uniform-signature wrapper above. Zero-copy — `ZcVec<Address>` views
 /// directly into `data`, no heap allocation, no artificial cap (reflects
 /// however many delegates are actually stored on-chain); `solana`-side
 /// callers collect it into an owned `Vec` to keep their existing signature.
 pub fn read_additional_delegates(
     data: &[u8],
     plugin_header_offset: usize,
-) -> Result<Option<Span<Address>>> {
-    let Some(offset) = find_plugin_offset(data, plugin_header_offset, plugin_type::UPDATE_DELEGATE)?
+) -> Result<Option<ZcVec<Address>>> {
+    let Some(offset) =
+        find_plugin_offset(data, plugin_header_offset, plugin_type::UPDATE_DELEGATE)?
     else {
         return Ok(None);
     };
@@ -187,7 +188,7 @@ pub fn read_additional_delegates(
     if data.len() < list_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    Ok(Some(Span::from_bytes(&data[list_start..list_end])?))
+    Ok(Some(ZcVec::from_bytes(&data[list_start..list_end])?))
 }
 
 #[cfg(kani)]

@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(feature = "idl-build"), no_std)]
 use naclac_lang::prelude::*;
 
 declare_id!("7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL");
@@ -102,5 +102,33 @@ pub mod events_prog {
 
     pub fn emit_via_self_cpi_signed_baseline(ctx: Context<EmitViaSelfCpiSignedBaseline>) -> Result {
         emit_via_self_cpi_signed_baseline::emit_via_self_cpi_signed_baseline(ctx)
+    }
+
+    pub fn event_cpi_smoke(ctx: Context<EventCpiSmoke>) -> Result {
+        event_cpi_smoke::event_cpi_smoke(ctx)
+    }
+
+    pub fn event_cpi_emit(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_emit(ctx)
+    }
+
+    pub fn emit_via_self_cpi_no_program(ctx: Context<EmitViaSelfCpiNoProgram>) -> Result {
+        emit_via_self_cpi_no_program::emit_via_self_cpi_no_program(ctx)
+    }
+
+    pub fn event_cpi_emit_nested(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_emit_nested(ctx)
+    }
+
+    pub fn event_cpi_noop(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_noop(ctx)
+    }
+
+    pub fn event_cpi_log_one(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_log_one(ctx)
+    }
+
+    pub fn event_cpi_emit_one(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_emit_one(ctx)
     }
 }

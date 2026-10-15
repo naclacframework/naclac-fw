@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { SeededThing } from "../../types";
 
-/** 8-byte on-chain discriminator for `SeededThing` accounts. */
+/** On-chain discriminator for `SeededThing` accounts. */
 export const SEEDEDTHING_DISCRIMINATOR = new Uint8Array([108, 26, 3, 60, 128, 59, 161, 172]);
+
+function stripSeededThingDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = SEEDEDTHING_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `SeededThing` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link SeededThing} account data. */
 export function getSeededThingEncoder(): naclac.FixedSizeEncoder<SeededThing> {
@@ -39,7 +47,7 @@ export function decodeSeededThing<TAddress extends string = string>(
 ): naclac.Account<SeededThing, TAddress> | naclac.MaybeAccount<SeededThing, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripSeededThingDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getSeededThingDecoder(),
   );
@@ -88,7 +96,7 @@ export async function fetchAllMaybeSeededThing(
 }
 
 /** Fetches ALL `SeededThing` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllSeededThingByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

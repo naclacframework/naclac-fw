@@ -3,14 +3,14 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_group` instruction. */
+/** Discriminator for the `check_group` instruction. */
 export const CHECK_GROUP_DISCRIMINATOR = new Uint8Array([102, 70, 92, 243, 192, 208, 201, 5]);
 
 /** Instruction arguments for `checkGroup`. */
 export interface CheckGroupArgs {
-  expected_update_authority: naclac.Address | string;
-  expected_name: string;
-  expected_uri: string;
+  expectedUpdateAuthority: naclac.Address | string;
+  expectedName: string;
+  expectedUri: string;
 }
 
 /** Accounts for the `checkGroup` instruction. */

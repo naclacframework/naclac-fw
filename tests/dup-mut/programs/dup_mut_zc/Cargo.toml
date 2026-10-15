@@ -5,7 +5,7 @@ description = "Regression test: duplicate mutable account aliasing guard (solana
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []

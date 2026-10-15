@@ -10,7 +10,7 @@ use crossbeam_channel::unbounded;
 use solana_faucet::faucet::run_local_faucet_with_port;
 use solana_sdk::account::Account;
 use solana_sdk::program_pack::Pack;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{read_keypair_file, write_keypair_file, Keypair};
 use solana_sdk::signer::Signer;
 use solana_sdk::system_program;
@@ -25,13 +25,13 @@ use pump_rust_client::constants::{NATIVE_MINT, SPL_TOKEN_2022_PROGRAM_ID};
 
 #[derive(Debug, Clone)]
 pub struct AccountConfigInfo {
-    pub address: Pubkey,
+    pub address: Address,
     pub data: Vec<u8>,
-    pub owner: Pubkey,
+    pub owner: Address,
 }
 
 impl AccountConfigInfo {
-    pub fn system(address: Pubkey) -> Self {
+    pub fn system(address: Address) -> Self {
         Self {
             address,
             data: vec![],
@@ -39,7 +39,7 @@ impl AccountConfigInfo {
         }
     }
 
-    pub fn from_account(address: Pubkey, account: &Account) -> Self {
+    pub fn from_account(address: Address, account: &Account) -> Self {
         Self {
             address,
             data: account.data.clone(),
@@ -52,7 +52,7 @@ impl AccountConfigInfo {
 pub struct ProgramsToAdd {
     /// Filename of the `.so` artifact (relative to the programs directory).
     pub name: String,
-    pub program_id: Pubkey,
+    pub program_id: Address,
 }
 
 pub fn remove_directory_contents(ledger_path: &str) {
@@ -70,7 +70,7 @@ pub fn remove_directory_contents(ledger_path: &str) {
     }
 }
 
-pub fn start_faucet(faucet_addr: SocketAddr, ledger_path: &str) -> Pubkey {
+pub fn start_faucet(faucet_addr: SocketAddr, ledger_path: &str) -> Address {
     let ledger: PathBuf = ledger_path.into();
     fs::create_dir_all(&ledger).expect("create ledger dir");
     let faucet_keypair_file = ledger.join("faucet-keypair.json");
@@ -100,8 +100,8 @@ const DEFAULT_TOKEN_AMOUNT: u64 = 100_000_000_000;
 /// extensions.
 pub fn create_wallet_associated_token_account(
     accounts_to_load: &mut Vec<(AccountConfigInfo, Option<u64>)>,
-    mints: &[Pubkey],
-    wallets: &[Pubkey],
+    mints: &[Address],
+    wallets: &[Address],
 ) {
     for wallet in wallets {
         for mint in mints {
@@ -137,7 +137,7 @@ pub fn create_wallet_associated_token_account(
     }
 }
 
-fn build_spl_token_ata(mint: Pubkey, wallet: Pubkey) -> (Vec<u8>, Pubkey) {
+fn build_spl_token_ata(mint: Address, wallet: Address) -> (Vec<u8>, Address) {
     let acct = SplAccount {
         amount: DEFAULT_TOKEN_AMOUNT,
         mint,
@@ -159,9 +159,9 @@ fn build_spl_token_ata(mint: Pubkey, wallet: Pubkey) -> (Vec<u8>, Pubkey) {
 
 fn build_token_2022_ata(
     mint_account: &AccountConfigInfo,
-    mint: Pubkey,
-    wallet: Pubkey,
-) -> (Vec<u8>, Pubkey) {
+    mint: Address,
+    wallet: Address,
+) -> (Vec<u8>, Address) {
     let state = PodStateWithExtensions::<PodMint>::unpack(&mint_account.data)
         .expect("unpack token-2022 mint");
     let mint_extensions = state

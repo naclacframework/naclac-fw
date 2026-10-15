@@ -1,4 +1,38 @@
 import { Connection, PublicKey, Keypair, Transaction, VersionedTransaction } from "@solana/web3.js";
+
+/**
+ * Converts web3.js wire bytes to the format naclac-litesvm's native binding expects.
+ *
+ * web3.js `VersionedTransaction.serialize()` layout:
+ *   [compact-u16 sig count][sig_0 (64 bytes)]...[sig_N][message bytes]
+ *
+ * naclac-litesvm / @solana/kit layout (what wincode::deserialize_exact reads):
+ *   [message bytes][sig_0 (64 bytes)]...[sig_N]
+ *
+ * For a legacy `Transaction` the first byte is the number of required signatures
+ * in the header — always < 0x80 — so that format never clashes with versioned
+ * prefix detection.
+ */
+function toNaclacWireBytes(web3jsTxBytes: Uint8Array | Buffer): Buffer {
+  const buf = Buffer.isBuffer(web3jsTxBytes) ? web3jsTxBytes : Buffer.from(web3jsTxBytes);
+  // Versioned transactions from web3.js start with the sig-count byte.
+  // Legacy transactions are detected by their message header (first byte is
+  // numRequiredSignatures, which is a valid header for legacy messages and
+  // always < 0x80, while versioned message bytes start with 0x80|version).
+  // The sig-count byte for a typical transaction is 1 — if after stripping
+  // [count][sigs] the next byte is 0x80 or 0x81, it is a versioned tx in
+  // web3.js format and needs to be rearranged.
+  const sigCount = buf[0];
+  if (sigCount > 0 && sigCount <= 127) {
+    const afterSigs = 1 + sigCount * 64;
+    if (afterSigs < buf.length && buf[afterSigs] === 0x81) {
+      const msgBytes = buf.slice(afterSigs);
+      const allSigs = buf.slice(1, afterSigs);
+      return Buffer.concat([msgBytes, allSigs]);
+    }
+  }
+  return buf;
+}
 import type { LegacyProvider } from "./provider";
 
 /**
@@ -80,11 +114,12 @@ function wrapNativeConnection(svm: import("@naclac-fw/litesvm").LiteSvm): Connec
     },
 
     simulateTransaction: async (tx: VersionedTransaction | any) => {
-      const wireBytes = Buffer.from(
+      const raw = Buffer.from(
         "serialize" in tx && typeof tx.serialize === "function"
           ? tx.serialize()
           : VersionedTransaction.deserialize(tx).serialize(),
       );
+      const wireBytes = toNaclacWireBytes(raw);
       try {
         const result = svm.simulateTransaction(wireBytes);
         return { context: { slot: 0 }, value: { err: null, logs: result.logs, accounts: null, unitsConsumed: Number(result.computeUnitsConsumed), returnData: undefined } };
@@ -94,7 +129,8 @@ function wrapNativeConnection(svm: import("@naclac-fw/litesvm").LiteSvm): Connec
     },
 
     sendRawTransaction: async (rawTx: Buffer | Uint8Array | Array<number>, _opts?: any) => {
-      const result = svm.sendTransaction(Buffer.from(rawTx as any));
+      const wireBytes = toNaclacWireBytes(Buffer.from(rawTx as any));
+      const result = svm.sendTransaction(wireBytes);
       return result.signature;
     },
 
@@ -109,7 +145,8 @@ function wrapNativeConnection(svm: import("@naclac-fw/litesvm").LiteSvm): Connec
       _options?: any,
     ) => {
       if ("version" in transaction) {
-        const result = svm.sendTransaction(Buffer.from(transaction.serialize()));
+        const wireBytes = toNaclacWireBytes(Buffer.from(transaction.serialize()));
+        const result = svm.sendTransaction(wireBytes);
         return result.signature;
       }
       const signers: Keypair[] = Array.isArray(signersOrOptions) ? signersOrOptions : [];
@@ -129,8 +166,20 @@ function wrapNativeConnection(svm: import("@naclac-fw/litesvm").LiteSvm): Connec
       const result = svm.getTransaction(signature);
       return {
         meta: {
+          err: null,
           logMessages: result.logs,
           computeUnitsConsumed: Number(result.computeUnitsConsumed),
+          // The native binding resolves account keys itself (litesvm keeps
+          // only compiled instructions), so `.rpc()` reads this ready-made
+          // list instead of resolving `innerInstructions` against a message.
+          // Absent means the binding couldn't supply them.
+          naclacInnerInstructions: result.innerInstructions?.map((call) => ({
+            outerIndex: call.outerIndex,
+            stackHeight: call.stackHeight,
+            programId: call.programId,
+            accounts: call.accounts,
+            data: new Uint8Array(call.data),
+          })),
         },
       } as any;
     },
@@ -199,6 +248,7 @@ export function createLiteSvmProvider(payer?: Keypair, walletPath?: string): Lit
     publicKey: keypair.publicKey,
     payer: keypair,
     commitment: "confirmed",
+    defaultTxVersion: "v1",
     litesvm: svm,
     getBalance: async (addr) => svm.getBalance(addr.toString()),
     getTokenBalance: async (addr) => {

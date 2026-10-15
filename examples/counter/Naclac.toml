@@ -6,9 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-counter_borsh = "BYFM8wr8RjLM9RDjoAVaMw6YAqSZKxiTYHyggREpr4nS"
-counter_zc = "G2BmpsqrmJDX1QE8fKuaRYRZUmMCsF7gtZSAUzEFGCax"
-counter = "C4gz1yWQvjVbFA3nxGRTGGzyMHaz6uMHqyemC78LqZJT"
+counter_borsh = "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1"
+counter_wincode = "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ"
+counter_zc = "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM"
+counter = "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM"
 
 [provider]
 cluster = "devnet"

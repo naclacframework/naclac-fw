@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `call_setup_counter` instruction. */
+/** Discriminator for the `call_setup_counter` instruction. */
 export const CALL_SETUP_COUNTER_DISCRIMINATOR = new Uint8Array([236, 176, 98, 70, 9, 231, 21, 147]);
 
 /** Accounts for the `callSetupCounter` instruction. */

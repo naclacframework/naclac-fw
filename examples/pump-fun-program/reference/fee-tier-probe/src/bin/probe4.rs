@@ -8,7 +8,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -20,14 +20,14 @@ const TOKEN_PROGRAM_ID: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const ASSOCIATED_TOKEN_PROGRAM_ID: &str = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
 const SYSTEM_PROGRAM_ID: &str = "11111111111111111111111111111111";
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 struct Ctx {
     svm: LiteSVM,
-    fees_program: Pubkey,
-    pump_program: Pubkey,
+    fees_program: Address,
+    pump_program: Address,
     payer: Keypair,
 }
 
@@ -53,22 +53,22 @@ impl Ctx {
         }
     }
 
-    fn event_authority(&self) -> Pubkey {
-        Pubkey::find_program_address(&[b"__event_authority"], &self.fees_program).0
+    fn event_authority(&self) -> Address {
+        Address::find_program_address(&[b"__event_authority"], &self.fees_program).0
     }
 
-    fn fee_program_global_pda(&self) -> (Pubkey, u8) {
-        Pubkey::find_program_address(&[b"fee-program-global"], &self.fees_program)
+    fn fee_program_global_pda(&self) -> (Address, u8) {
+        Address::find_program_address(&[b"fee-program-global"], &self.fees_program)
     }
 
-    fn seed_fee_program_global(&mut self, disable_flags: u8) -> Pubkey {
+    fn seed_fee_program_global(&mut self, disable_flags: u8) -> Address {
         let (addr, bump) = self.fee_program_global_pda();
         let mut data = Vec::with_capacity(8 + 1 + 32 + 1 + 32 + 8 + 256);
         data.extend_from_slice(&[162, 165, 245, 49, 29, 37, 55, 242]);
         data.push(bump);
-        data.extend_from_slice(Pubkey::new_unique().as_ref()); // authority (unused here)
+        data.extend_from_slice(Address::new_unique().as_ref()); // authority (unused here)
         data.push(disable_flags);
-        data.extend_from_slice(Pubkey::new_unique().as_ref()); // social_claim_authority (unused)
+        data.extend_from_slice(Address::new_unique().as_ref()); // social_claim_authority (unused)
         data.extend_from_slice(&0u64.to_le_bytes());
         data.extend_from_slice(&[0u8; 256]);
         self.svm
@@ -86,9 +86,9 @@ impl Ctx {
         addr
     }
 
-    fn mint_and_atas(&mut self, index_byte: u8) -> (Pubkey, Pubkey, Pubkey) {
-        let mint = Pubkey::new_unique();
-        let mint_authority = Pubkey::new_unique();
+    fn mint_and_atas(&mut self, index_byte: u8) -> (Address, Address, Address) {
+        let mint = Address::new_unique();
+        let mint_authority = Address::new_unique();
         let mut mint_data = vec![0u8; 82];
         mint_data[0..4].copy_from_slice(&1u32.to_le_bytes());
         mint_data[4..36].copy_from_slice(mint_authority.as_ref());
@@ -109,11 +109,11 @@ impl Ctx {
             )
             .expect("seed mint");
 
-        let (vault_addr, _bump) = Pubkey::find_program_address(
+        let (vault_addr, _bump) = Address::find_program_address(
             &[b"buyback-vault", std::slice::from_ref(&index_byte)],
             &self.fees_program,
         );
-        let (vault_ata, _) = Pubkey::find_program_address(
+        let (vault_ata, _) = Address::find_program_address(
             &[
                 vault_addr.as_ref(),
                 pk(TOKEN_PROGRAM_ID).as_ref(),
@@ -125,9 +125,9 @@ impl Ctx {
     }
 
     /// SPL Token Account layout: mint(32) owner(32) amount(8) delegate
-    /// COption<Pubkey>(36) state(1) is_native COption<u64>(12) delegated_amount(8)
-    /// close_authority COption<Pubkey>(36) = 165 bytes.
-    fn seed_token_account(&mut self, addr: Pubkey, mint: Pubkey, owner: Pubkey, amount: u64) {
+    /// COption<Address>(36) state(1) is_native COption<u64>(12) delegated_amount(8)
+    /// close_authority COption<Address>(36) = 165 bytes.
+    fn seed_token_account(&mut self, addr: Address, mint: Address, owner: Address, amount: u64) {
         let mut data = vec![0u8; 165];
         data[0..32].copy_from_slice(mint.as_ref());
         data[32..64].copy_from_slice(owner.as_ref());
@@ -150,11 +150,11 @@ impl Ctx {
     fn seed_buyback_vault(
         &mut self,
         index_byte: u8,
-        authority: Pubkey,
+        authority: Address,
         claim_rate_limit: i64,
         last_claimed: i64,
-    ) -> Pubkey {
-        let (addr, _bump) = Pubkey::find_program_address(
+    ) -> Address {
+        let (addr, _bump) = Address::find_program_address(
             &[b"buyback-vault", std::slice::from_ref(&index_byte)],
             &self.fees_program,
         );
@@ -219,10 +219,10 @@ impl Ctx {
     fn initialize_buyback_ix(
         &self,
         index: u8,
-        vault_addr: Pubkey,
-        vault_ata: Pubkey,
-        mint: Pubkey,
-        fee_program_global_unused: Pubkey,
+        vault_addr: Address,
+        vault_ata: Address,
+        mint: Address,
+        fee_program_global_unused: Address,
     ) -> Instruction {
         let _ = fee_program_global_unused;
         let mut data = vec![250, 129, 236, 160, 227, 36, 103, 134];
@@ -247,12 +247,12 @@ impl Ctx {
     fn sweep_buyback_ix(
         &self,
         index: u8,
-        destination: Pubkey,
+        destination: Address,
         authority: &Keypair,
-        vault_addr: Pubkey,
-        vault_ata: Pubkey,
-        destination_ata: Pubkey,
-        mint: Pubkey,
+        vault_addr: Address,
+        vault_ata: Address,
+        destination_ata: Address,
+        mint: Address,
     ) -> Instruction {
         let mut data = vec![138, 33, 204, 38, 207, 161, 159, 226];
         data.push(index);
@@ -300,8 +300,8 @@ fn test_disable_flags_buyback(ctx: &mut Ctx) {
         let vault2 = ctx.seed_buyback_vault(index, authority.pubkey(), 0, 0);
         let (mint2, _vault_addr2, vault_ata2) = ctx.mint_and_atas(index);
         ctx.seed_token_account(vault_ata2, mint2, vault2, 1_000_000);
-        let destination = Pubkey::new_unique();
-        let (destination_ata, _) = Pubkey::find_program_address(
+        let destination = Address::new_unique();
+        let (destination_ata, _) = Address::find_program_address(
             &[
                 destination.as_ref(),
                 pk(TOKEN_PROGRAM_ID).as_ref(),
@@ -360,8 +360,8 @@ fn test_buyback_rate_limit(ctx: &mut Ctx) {
         let vault = ctx.seed_buyback_vault(index, authority.pubkey(), claim_rate_limit, last_claimed);
         let (mint, _vault_addr, vault_ata) = ctx.mint_and_atas(index);
         ctx.seed_token_account(vault_ata, mint, vault, 1_000_000);
-        let destination = Pubkey::new_unique();
-        let (destination_ata, _) = Pubkey::find_program_address(
+        let destination = Address::new_unique();
+        let (destination_ata, _) = Address::find_program_address(
             &[
                 destination.as_ref(),
                 pk(TOKEN_PROGRAM_ID).as_ref(),
@@ -391,8 +391,8 @@ fn test_buyback_rate_limit(ctx: &mut Ctx) {
     let vault = ctx.seed_buyback_vault(4, authority.pubkey(), -1, last_claimed);
     let (mint, _vault_addr, vault_ata) = ctx.mint_and_atas(4);
     ctx.seed_token_account(vault_ata, mint, vault, 1_000_000);
-    let destination = Pubkey::new_unique();
-    let (destination_ata, _) = Pubkey::find_program_address(
+    let destination = Address::new_unique();
+    let (destination_ata, _) = Address::find_program_address(
         &[
             destination.as_ref(),
             pk(TOKEN_PROGRAM_ID).as_ref(),

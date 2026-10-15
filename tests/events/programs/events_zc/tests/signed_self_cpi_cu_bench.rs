@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use events_zc_client::{
     instructions::{build_emit_via_self_cpi_signed_baseline, EmitViaSelfCpiSignedBaselineAccounts},
     types::PROGRAM_ID,
@@ -9,7 +9,7 @@ fn setup() -> NaclacProvider {
     NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
-/// Real, measured CU cost of a *security-correct* self-CPI â€” signs the
+/// Real, measured CU cost of a *security-correct* self-CPI — signs the
 /// `event_authority` PDA via `invoke_signed` (Anchor's `emit_cpi!` pattern),
 /// unlike `emit_via_self_cpi_baseline`'s plain unsigned `invoke`. This is
 /// the number a real `emit_cpi!` feature would actually pay, since the

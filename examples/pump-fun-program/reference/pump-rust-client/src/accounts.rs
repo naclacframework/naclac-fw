@@ -96,7 +96,7 @@ pub mod pump_agent_payments {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anchor_lang::solana_program::pubkey::Pubkey;
+    use anchor_lang::solana_address::Address;
     use anchor_lang::AccountSerialize;
 
     use crate::{
@@ -104,8 +104,8 @@ mod tests {
         state::{BondingCurve, BondingCurveFromIdl},
     };
 
-    fn fake_pubkey(seed: u8) -> Pubkey {
-        Pubkey::new_from_array([seed; 32])
+    fn fake_pubkey(seed: u8) -> Address {
+        Address::new_from_array([seed; 32])
     }
 
     #[test]

@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use token_zc_client::{
     fetch_mint_authority, get_mint_authority_pda,
     instructions::{
@@ -19,7 +19,7 @@ fn setup() -> NaclacProvider {
 }
 
 /// Asserts a transaction failed with exactly the given `Custom` error code
-/// â€” not just "any error", the specific numeric `NaclacError` (framework
+/// — not just "any error", the specific numeric `NaclacError` (framework
 /// errors, 3000s) the failure actually produces. Mirrors
 /// `tests/error-codes/programs/error_codes/tests/error_codes_test.rs`'s
 /// helper of the same name and shape.
@@ -42,7 +42,7 @@ fn read_token_account_amount(provider: &NaclacProvider, address: &Address) -> u6
 
 /// `mint::decimals` + `mint::authority` combined with `init` (real CPI mint
 /// creation via `init_cpi.rs`, mirroring `examples/launchpad`), then a real
-/// `mint_to`/`transfer` CPI signed by the `mint_authority` PDA â€” the whole
+/// `mint_to`/`transfer` CPI signed by the `mint_authority` PDA — the whole
 /// happy path exercising actual SPL Token program logic via litesvm, not a
 /// mocked CPI (per `TEST_PLAN.md`'s explicit requirement for this case).
 #[test]
@@ -138,7 +138,7 @@ fn mint_creation_and_token_cpis_work_end_to_end() {
 
 /// `token::mint`/`token::authority` on an existing (non-`init`) account:
 /// a vault backed by the wrong mint is rejected (`ConstraintAccountIsNone`),
-/// a vault owned by the wrong authority is rejected (`ConstraintAddress`) â€”
+/// a vault owned by the wrong authority is rejected (`ConstraintAddress`) —
 /// deliberately distinct error variants, confirmed from `security.rs`
 /// directly rather than assumed. A correctly-matching vault is accepted.
 #[test]
@@ -232,11 +232,11 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
         },
     )
     .send_and_confirm();
-    // `CheckVaultConstraints { mint, mint_authority, vault }` â€” `vault` is
+    // `CheckVaultConstraints { mint, mint_authority, vault }` — `vault` is
     // field index 2; `token::mint` mismatch emits `ConstraintAccountIsNone`
     // (8), not `ConstraintAddress` (confirmed in `security.rs`'s
-    // `token::mint` codegen branch) -> 3000 + 2*100 + 8 = 3208.
-    assert_custom_code(wrong_mint_result, 3208);
+    // `token::mint` codegen branch) -> 10000 + 2*100 + 8 = 10208.
+    assert_custom_code(wrong_mint_result, 10208);
 
     let wrong_authority_result = build_check_vault_constraints(
         &provider,
@@ -248,18 +248,18 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
         },
     )
     .send_and_confirm();
-    // `CheckVaultConstraints { mint, mint_authority, vault }` â€” `vault` is
+    // `CheckVaultConstraints { mint, mint_authority, vault }` — `vault` is
     // field index 2; `token::authority` mismatch emits `ConstraintAddress`
-    // (3) -> 3000 + 2*100 + 3 = 3203.
-    assert_custom_code(wrong_authority_result, 3203);
+    // (3) -> 10000 + 2*100 + 3 = 10203.
+    assert_custom_code(wrong_authority_result, 10203);
 
     // `TokenAccount`'s own baked-in owner check (`Discriminator::validate_account`,
-    // `naclac-token/src/token.rs`) â€” distinct from the `token::mint`/
+    // `naclac-token/src/token.rs`) — distinct from the `token::mint`/
     // `token::authority` byte-comparison checks above, and runs first: it
     // rejects an account not owned by the Token program at all, regardless
     // of what its bytes happen to contain. `provider.payer.address()` is
-    // owned by the System program, not the Token program, and â€” unlike
-    // `mint_authority_pda` â€” isn't already referenced by another field in
+    // owned by the System program, not the Token program, and — unlike
+    // `mint_authority_pda` — isn't already referenced by another field in
     // this same call, so it doesn't also trip
     // `ConstraintDuplicateMutableAccount`.
     let wrong_owner_result = build_check_vault_constraints(
@@ -272,16 +272,16 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
         },
     )
     .send_and_confirm();
-    // `vault` is field index 2; `ConstraintOwner` (4) -> 3000 + 2*100 + 4 = 3204.
-    assert_custom_code(wrong_owner_result, 3204);
+    // `vault` is field index 2; `ConstraintOwner` (4) -> 10000 + 2*100 + 4 = 10204.
+    assert_custom_code(wrong_owner_result, 10204);
 
     // `TokenAccount`'s raw-layout validation (`validate_token_account_layout`,
-    // `naclac-token/src/token.rs`) â€” distinct from both the owner check above
+    // `naclac-token/src/token.rs`) — distinct from both the owner check above
     // and the `token::mint`/`token::authority` byte-comparison checks: a
     // 165-byte, all-zero buffer genuinely owned by the Token program passes
     // the owner check (owner is correct) and has canonical `COption` tags
     // (all-zero == `None`, which is canonical), but its `state` byte (108)
-    // is `0` (`Uninitialized`) â€” a shape the real Token program's
+    // is `0` (`Uninitialized`) — a shape the real Token program's
     // `InitializeAccount` would never actually leave on-chain.
     // `provider.set_account` writes ledger state directly (litesvm-only),
     // which is the only way to construct this fixture without a real
@@ -300,8 +300,8 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
         },
     )
     .send_and_confirm();
-    // `vault` is field index 2; `AccountNotInitialized` (15) -> 3000 + 2*100 + 15 = 3215.
-    assert_custom_code(uninitialized_result, 3215);
+    // `vault` is field index 2; `AccountNotInitialized` (15) -> 10000 + 2*100 + 15 = 10215.
+    assert_custom_code(uninitialized_result, 10215);
 }
 
 /// `token::program`: validates an existing account's owning program against
@@ -309,7 +309,7 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
 /// (`generate_relational_checks`/`security.rs`, post account-load). A real
 /// SPL token account genuinely owned by the Token program is accepted; an
 /// account owned by our own program (the `mint_authority` PDA) is rejected
-/// with `NaclacError::ProgramIdMismatch` â€” a distinct error variant from
+/// with `NaclacError::ProgramIdMismatch` — a distinct error variant from
 /// `token::mint`'s `ConstraintAccountIsNone` and `token::authority`'s
 /// `ConstraintAddress`, confirmed by reading the codegen directly.
 #[test]
@@ -374,22 +374,22 @@ fn token_program_constraint_rejects_wrong_owning_program() {
         },
     )
     .send_and_confirm();
-    // `CheckVaultProgram { token_program, vault }` â€” `vault` is field index
+    // `CheckVaultProgram { token_program, vault }` — `vault` is field index
     // 1; `token::program` mismatch emits `ProgramIdMismatch` (9), checked
-    // post-load in `generate_relational_checks` -> 3000 + 1*100 + 9 = 3109.
-    assert_custom_code(wrong_program_result, 3109);
+    // post-load in `generate_relational_checks` -> 10000 + 1*100 + 9 = 10109.
+    assert_custom_code(wrong_program_result, 10109);
 }
 
 /// `mint::freeze_authority`, both code paths: (a) combined with `init`
 /// (`create_mint_with_freeze`, a real CPI-based mint creation setting the
-/// freeze authority â€” `init_cpi.rs`'s freeze-authority branch, previously
+/// freeze authority — `init_cpi.rs`'s freeze-authority branch, previously
 /// unexercised since `create_mint` only ever set
 /// `mint::decimals`/`mint::authority`), and (b) on an existing account
 /// (`check_mint_freeze_authority`, `security.rs`'s raw SPL `Mint` byte-layout
 /// read at `[46..50]`/`[50..82]`). A matching freeze authority is accepted;
 /// a mismatched one is rejected with `NaclacError::ConstraintAddress`; a
 /// mint that never had a freeze authority set at all (the original
-/// `create_mint`'s mint) is rejected with `NaclacError::Unauthorized` â€”
+/// `create_mint`'s mint) is rejected with `NaclacError::Unauthorized` —
 /// deliberately distinct error variants, confirmed by reading the codegen
 /// directly rather than assumed.
 #[test]
@@ -475,10 +475,10 @@ fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {
         },
     )
     .send_and_confirm();
-    // `CheckMintFreezeAuthority { freeze_authority, mint }` â€” `mint` is
+    // `CheckMintFreezeAuthority { freeze_authority, mint }` — `mint` is
     // field index 1; a mismatched (but present) freeze authority emits
-    // `ConstraintAddress` (3) -> 3000 + 1*100 + 3 = 3103.
-    assert_custom_code(wrong_authority_result, 3103);
+    // `ConstraintAddress` (3) -> 10000 + 1*100 + 3 = 10103.
+    assert_custom_code(wrong_authority_result, 10103);
 
     let missing_authority_result = build_check_mint_freeze_authority(
         &provider,
@@ -489,13 +489,13 @@ fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {
         },
     )
     .send_and_confirm();
-    // `CheckMintFreezeAuthority { freeze_authority, mint }` â€” `mint` is
+    // `CheckMintFreezeAuthority { freeze_authority, mint }` — `mint` is
     // field index 1; no freeze authority set at all (COption discriminant
-    // absent) emits `Unauthorized` (21) -> 3000 + 1*100 + 21 = 3121.
-    assert_custom_code(missing_authority_result, 3121);
+    // absent) emits `Unauthorized` (21) -> 10000 + 1*100 + 21 = 10121.
+    assert_custom_code(missing_authority_result, 10121);
 }
 
-/// `AssociatedTokenCpi::create` â€” a real CPI to the Associated Token
+/// `AssociatedTokenCpi::create` — a real CPI to the Associated Token
 /// Program (already preloaded by `LiteSVM::new()` by default, no
 /// `.add_program()` needed) via `create_ata`'s manual CPI call in its
 /// instruction body (same convention as `mint_to_vault`/`transfer_tokens`,
@@ -505,7 +505,7 @@ fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {
 /// ASSOCIATED_TOKEN_PROGRAM_ID)` derivation), calls `create_ata`, then
 /// fetches the resulting account's raw bytes and confirms it deserializes as
 /// a valid SPL token account with `mint` (bytes `[0..32]`) and `owner`
-/// (bytes `[32..64]`) set correctly â€” proving the CPI genuinely created a
+/// (bytes `[32..64]`) set correctly — proving the CPI genuinely created a
 /// real, correctly-owned token account, not just that the instruction
 /// didn't error.
 #[test]
@@ -548,11 +548,11 @@ fn create_ata_creates_a_real_associated_token_account() {
 
     // A distinct keypair, not `provider.payer` itself: Solana collapses a
     // pubkey repeated across multiple account slots in one transaction into
-    // a single writable meta if any occurrence requests `mut` â€” reusing the
+    // a single writable meta if any occurrence requests `mut` — reusing the
     // payer's own address as `owner` here would silently alias `owner` onto
     // the same writable slot as `payer` (`#[account(mut)]`), which naclac's
     // `ConstraintDuplicateMutableAccount` check correctly rejects (a
-    // runtime-only concern â€” which accounts share a pubkey depends on what's
+    // runtime-only concern — which accounts share a pubkey depends on what's
     // actually passed into a given invocation, not on the struct's shape, so
     // this can never be caught at compile time).
     let owner = Keypair::new().address();
@@ -599,7 +599,7 @@ fn create_ata_creates_a_real_associated_token_account() {
 }
 
 /// `create_ata_idempotent` (`init_if_needed` + `associated_token::mint`/
-/// `::authority`) â€” first call creates the ATA exactly like `create_ata`;
+/// `::authority`) — first call creates the ATA exactly like `create_ata`;
 /// the second call against the same already-existing ATA must succeed as a
 /// no-op (`CreateIdempotent`), unlike `create_ata`'s strict `init`, which
 /// reverts with `AccountAlreadyInitialized` on a repeat call.
@@ -669,7 +669,7 @@ fn create_ata_idempotent_is_a_noop_on_second_call() {
     // A harmless extra readonly account, distinct per call, so the two
     // transactions aren't byte-identical (an identical tx sent twice in the
     // same blockhash window is rejected as `AlreadyProcessed` regardless of
-    // program logic â€” this isn't a program-level concern).
+    // program logic — this isn't a program-level concern).
     build_create_ata_idempotent(&provider, PROGRAM_ID, ata_accounts())
         .remaining_accounts(vec![AccountMeta::new_readonly(
             Keypair::new().address(),
@@ -690,14 +690,14 @@ fn create_ata_idempotent_is_a_noop_on_second_call() {
 }
 
 /// `associated_token::mint`/`::authority`/`::bump` on an *existing*
-/// (non-`init`) account â€” the fix for the gap documented in
+/// (non-`init`) account — the fix for the gap documented in
 /// `naclac-token/docs/04-associated-token-existing-account-gap.md`, where
 /// this constraint used to compile to nothing at all. Covers: the real ATA
 /// with its correct bump succeeds; the real ATA with a wrong bump is
 /// rejected (`ConstraintSeeds`, the hash-and-compare address recomputes to
 /// something else); and a plain keypair-owned token account carrying the
-/// *same* mint/owner data as the real ATA â€” but not actually the canonical
-/// PDA â€” is also rejected (`ConstraintSeeds`), which is the exact spoofing
+/// *same* mint/owner data as the real ATA — but not actually the canonical
+/// PDA — is also rejected (`ConstraintSeeds`), which is the exact spoofing
 /// class the missing check used to let through silently.
 #[test]
 fn check_ata_constraints_validates_mint_authority_and_pda_bump() {
@@ -786,9 +786,9 @@ fn check_ata_constraints_validates_mint_authority_and_pda_bump() {
     )
     .send_and_confirm();
     // `CheckAtaConstraints { mint, owner, associated_token, token_program }`
-    // â€” `associated_token` is field index 2; a bump mismatch fails the PDA
-    // hash-and-compare with `ConstraintSeeds` (6) -> 3000 + 200 + 6 = 3206.
-    assert_custom_code(wrong_bump_result, 3206);
+    // — `associated_token` is field index 2; a bump mismatch fails the PDA
+    // hash-and-compare with `ConstraintSeeds` (6) -> 10000 + 200 + 6 = 10206.
+    assert_custom_code(wrong_bump_result, 10206);
 
     let spoofed_vault = Keypair::new();
     create_token_account(&provider, &spoofed_vault, &mint_pda, &owner)
@@ -807,7 +807,7 @@ fn check_ata_constraints_validates_mint_authority_and_pda_bump() {
     )
     .send_and_confirm();
     // Same mint/owner data as the real ATA, but not the canonical PDA for
-    // (owner, token_program, mint) â€” must still be rejected on the address
-    // recomputation, same `ConstraintSeeds` (6) -> 3206.
-    assert_custom_code(spoofed_result, 3206);
+    // (owner, token_program, mint) — must still be rejected on the address
+    // recomputation, same `ConstraintSeeds` (6) -> 10206.
+    assert_custom_code(spoofed_result, 10206);
 }

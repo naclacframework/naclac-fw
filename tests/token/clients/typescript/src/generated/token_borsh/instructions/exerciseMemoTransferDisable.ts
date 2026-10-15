@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_memo_transfer_disable` instruction. */
+/** Discriminator for the `exercise_memo_transfer_disable` instruction. */
 export const EXERCISE_MEMO_TRANSFER_DISABLE_DISCRIMINATOR = new Uint8Array([249, 61, 249, 188, 80, 91, 170, 77]);
 
 /** Accounts for the `exerciseMemoTransferDisable` instruction. */

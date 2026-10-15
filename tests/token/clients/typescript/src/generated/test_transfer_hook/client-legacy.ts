@@ -35,7 +35,7 @@ export class TestTransferHookClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider, true);
+    this.program = new naclac.LegacyProgram(IDL, provider, true, []);
   }
 
 }

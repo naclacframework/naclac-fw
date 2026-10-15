@@ -8,7 +8,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -17,8 +17,8 @@ use std::str::FromStr;
 const PUMP_FEES_PROGRAM_ID: &str = "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ";
 const SYSTEM_PROGRAM_ID: &str = "11111111111111111111111111111111";
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn borsh_string(s: &str) -> Vec<u8> {
@@ -30,7 +30,7 @@ fn borsh_string(s: &str) -> Vec<u8> {
 
 struct Ctx {
     svm: LiteSVM,
-    fees_program: Pubkey,
+    fees_program: Address,
     payer: Keypair,
 }
 
@@ -54,21 +54,21 @@ impl Ctx {
         }
     }
 
-    fn event_authority(&self) -> Pubkey {
-        Pubkey::find_program_address(&[b"__event_authority"], &self.fees_program).0
+    fn event_authority(&self) -> Address {
+        Address::find_program_address(&[b"__event_authority"], &self.fees_program).0
     }
 
-    fn fee_program_global_pda(&self) -> (Pubkey, u8) {
-        Pubkey::find_program_address(&[b"fee-program-global"], &self.fees_program)
+    fn fee_program_global_pda(&self) -> (Address, u8) {
+        Address::find_program_address(&[b"fee-program-global"], &self.fees_program)
     }
 
     fn seed_fee_program_global(
         &mut self,
-        authority: Pubkey,
+        authority: Address,
         disable_flags: u8,
-        social_claim_authority: Pubkey,
+        social_claim_authority: Address,
         claim_rate_limit: u64,
-    ) -> Pubkey {
+    ) -> Address {
         let (addr, bump) = self.fee_program_global_pda();
         let mut data = Vec::with_capacity(8 + 1 + 32 + 1 + 32 + 8 + 256);
         data.extend_from_slice(&[162, 165, 245, 49, 29, 37, 55, 242]);
@@ -95,8 +95,8 @@ impl Ctx {
 
     /// SocialFeePda with a caller-chosen `last_claimed`, seeded at the
     /// correctly-derived PDA per the #4-confirmed formula.
-    fn seed_social_fee_pda(&mut self, user_id: &str, platform: u8, last_claimed: u64) -> Pubkey {
-        let (addr, bump) = Pubkey::find_program_address(
+    fn seed_social_fee_pda(&mut self, user_id: &str, platform: u8, last_claimed: u64) -> Address {
+        let (addr, bump) = Address::find_program_address(
             &[
                 b"social-fee-pda",
                 user_id.as_bytes(),
@@ -142,10 +142,10 @@ impl Ctx {
 
     fn claim_social_fee_pda_ix(
         &self,
-        social_fee_pda: Pubkey,
-        fee_program_global: Pubkey,
+        social_fee_pda: Address,
+        fee_program_global: Address,
         social_claim_authority: &Keypair,
-        recipient: Pubkey,
+        recipient: Address,
         user_id: &str,
         platform: u8,
     ) -> Instruction {
@@ -202,7 +202,7 @@ fn test_disable_flags(ctx: &mut Ctx) {
         // claim_social_fee_pda under this flag
         let social_claim_authority = Keypair::new();
         let fee_program_global =
-            ctx.seed_fee_program_global(Pubkey::new_unique(), flag, social_claim_authority.pubkey(), 0);
+            ctx.seed_fee_program_global(Address::new_unique(), flag, social_claim_authority.pubkey(), 0);
         let user_id = format!("bit{bit_pos}");
         let social_fee_pda = ctx.seed_social_fee_pda(&user_id, 0, 0);
         let recipient = Keypair::new();
@@ -224,7 +224,7 @@ fn test_disable_flags(ctx: &mut Ctx) {
         // create_social_fee_pda under this flag
         let user_id2 = format!("bit{bit_pos}c");
         let platform = 0u8;
-        let (addr, _bump) = Pubkey::find_program_address(
+        let (addr, _bump) = Address::find_program_address(
             &[
                 b"social-fee-pda",
                 user_id2.as_bytes(),
@@ -261,7 +261,7 @@ fn test_claim_rate_limit(ctx: &mut Ctx) {
     let social_claim_authority = Keypair::new();
     let claim_rate_limit: u64 = 3600; // 1 hour, if unit is seconds
     let fee_program_global = ctx.seed_fee_program_global(
-        Pubkey::new_unique(),
+        Address::new_unique(),
         0,
         social_claim_authority.pubkey(),
         claim_rate_limit,

@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { Thing } from "../../types";
 
-/** 8-byte on-chain discriminator for `Thing` accounts. */
+/** On-chain discriminator for `Thing` accounts. */
 export const THING_DISCRIMINATOR = new Uint8Array([18, 244, 46, 203, 15, 193, 123, 123]);
+
+function stripThingDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = THING_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `Thing` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link Thing} account data. */
 export function getThingEncoder(): naclac.FixedSizeEncoder<Thing> {
@@ -37,7 +45,7 @@ export function decodeThing<TAddress extends string = string>(
 ): naclac.Account<Thing, TAddress> | naclac.MaybeAccount<Thing, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripThingDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getThingDecoder(),
   );
@@ -86,7 +94,7 @@ export async function fetchAllMaybeThing(
 }
 
 /** Fetches ALL `Thing` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllThingByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

@@ -19,7 +19,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("9JfQzaTTBoz5tUF3Zam7uodt74NYk5tD6asYuQpAWLFV");
+declare_id!("AzVPsPxCBJZsCMP2oTkUCDFCDDspXwW5qBRX3ymUyo2i");
 
 #[cfg(feature = "cpi")]
 #[derive(Clone, Copy)]
@@ -28,7 +28,7 @@ pub struct MetadataSolana;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for MetadataSolana {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([123, 99, 205, 187, 42, 196, 169, 225, 79, 161, 202, 227, 99, 30, 48, 128, 11, 170, 67, 174, 201, 66, 173, 99, 52, 21, 77, 139, 121, 110, 178, 44])
+        sdk_core_cpi::Address::new_from_array([148, 115, 100, 219, 255, 125, 39, 246, 82, 137, 30, 185, 175, 161, 232, 242, 57, 41, 79, 12, 49, 2, 36, 55, 105, 172, 65, 142, 13, 127, 86, 203])
     }
 }
 

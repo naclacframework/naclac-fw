@@ -25,7 +25,6 @@ naclac-idl = { workspace = true, optional = true }
 naclac-syn = { workspace = true, optional = true }
 
 [features]
-no-std = ["naclac-core/no-std"]
 default = ["solana"]
 
 # Backend selection — forwards to naclac-core, and (via weak `?/` features)
@@ -42,7 +41,8 @@ metadata = ["dep:naclac-metadata"]
 
 debug-mode = ["naclac-core/debug-mode", "naclac-macros/debug-mode"]
 borsh = ["naclac-core/borsh", "naclac-token?/borsh", "naclac-macros/borsh"]
-idl-build = ["naclac-macros/idl-build", "dep:naclac-idl", "dep:naclac-syn", "naclac-core/idl-build"]
+wincode = ["naclac-core/wincode", "naclac-token?/wincode", "naclac-macros/wincode"]
+idl-build = ["naclac-macros/idl-build", "dep:naclac-idl", "dep:naclac-syn", "naclac-core/idl-build", "naclac-token?/idl-build"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

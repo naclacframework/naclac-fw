@@ -25,7 +25,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -45,8 +45,8 @@ const REAL_GLOBAL_SIZE: usize = 1045;
 const REAL_UVA_SIZE: usize = 137;
 const OVERSIZE_PAD: usize = 64;
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -61,15 +61,15 @@ fn oversized_global_data() -> Vec<u8> {
     data
 }
 
-fn oversized_user_volume_accumulator_data(user: &Pubkey) -> Vec<u8> {
+fn oversized_user_volume_accumulator_data(user: &Address) -> Vec<u8> {
     let mut data = vec![0u8; REAL_UVA_SIZE + OVERSIZE_PAD];
     data[..8].copy_from_slice(&USER_VOLUME_ACCUMULATOR_DISCRIMINATOR);
     data[8..40].copy_from_slice(user.as_ref());
     data
 }
 
-fn extend_account_ix(pump_program: Pubkey, account: Pubkey, signer: Pubkey) -> Instruction {
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &pump_program).0;
+fn extend_account_ix(pump_program: Address, account: Address, signer: Address) -> Instruction {
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &pump_program).0;
     Instruction {
         program_id: pump_program,
         accounts: vec![
@@ -114,7 +114,7 @@ fn main() {
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
     // --- Probe A: oversized Global ---
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let oversized_global = oversized_global_data();
     let oversized_global_len = oversized_global.len();
     svm.set_account(
@@ -139,7 +139,7 @@ fn main() {
     // --- Probe B: oversized UserVolumeAccumulator ---
     let user = Keypair::new();
     let (user_volume_accumulator, _) =
-        Pubkey::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
+        Address::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
     let oversized_uva = oversized_user_volume_accumulator_data(&user.pubkey());
     let oversized_uva_len = oversized_uva.len();
     svm.set_account(

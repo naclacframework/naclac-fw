@@ -6,9 +6,9 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-escrow_zc = "Di894aop1JkErnkf5DKFHuHtFdLkYH8ZC5XDv4cdnZwm"
-escrow_borsh = "2nJawW5tL4ab5M7CW8ut8www49GPkkZs6oMqaoSM34rN"
-escrow = "CftDHdXFWzSiY7AbXsJcBWVhWGx1qpk2TYbRtEeDvrX1"
+escrow_zc = "GkuVhNtGAysmyUMYTgM4dJ64rEcBXo8tJrSXBej13h2X"
+escrow_borsh = "AiB6FvdLEkL7suh3Vuhyn8fdv49xeF6j3wjpDKhhGYPR"
+escrow = "BUnzdon444sj9eHgaCNgnNk3ckdKc5xSgyax946Uuvau"
 
 [provider]
 cluster = "localnet"

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator prefix for `EscrowState` accounts on-chain. */
+/** Discriminator prefix for `EscrowState` accounts on-chain. */
 export const ESCROWSTATE_DISCRIMINATOR = new Uint8Array([19, 90, 148, 111, 55, 130, 229, 108]);
 
 /** Auto-generated account interface from the program IDL. */

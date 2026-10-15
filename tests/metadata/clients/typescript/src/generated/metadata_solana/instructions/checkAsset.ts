@@ -3,15 +3,15 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_asset` instruction. */
+/** Discriminator for the `check_asset` instruction. */
 export const CHECK_ASSET_DISCRIMINATOR = new Uint8Array([141, 255, 118, 14, 99, 218, 24, 3]);
 
 /** Instruction arguments for `checkAsset`. */
 export interface CheckAssetArgs {
-  expected_owner: naclac.Address | string;
-  expected_update_authority: naclac.Address | string;
-  expected_name: string;
-  expected_uri: string;
+  expectedOwner: naclac.Address | string;
+  expectedUpdateAuthority: naclac.Address | string;
+  expectedName: string;
+  expectedUri: string;
 }
 
 /** Accounts for the `checkAsset` instruction. */

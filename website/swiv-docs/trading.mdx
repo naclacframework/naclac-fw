@@ -1,0 +1,55 @@
+---
+title: Trading
+description: How Swiv prediction pools work, their lifecycle, and how to participate.
+---
+
+Swiv operates through **time-based prediction pools**. Each pool is built around a defined question, a fixed timeframe, and a verifiable outcome source.
+
+## How a Pool Works
+
+<Steps>
+  <Step title="Pool is created">
+    A pool is created with a defined question, timeframe, and outcome source.
+  </Step>
+  <Step title="Enter the pool">
+    Submit a numerical prediction and stake to enter.
+  </Step>
+  <Step title="Update anytime before deadline">
+    You may update your prediction at any time before the pool closes.
+  </Step>
+  <Step title="Pool closes">
+    Once the deadline is reached, no further entries or updates are allowed.
+  </Step>
+  <Step title="Outcome is submitted">
+    The final outcome is sourced from a trusted oracle and submitted on-chain.
+  </Step>
+  <Step title="Rewards distributed">
+    Rewards are calculated based on prediction accuracy and behavior, then distributed to participants.
+  </Step>
+</Steps>
+
+## Pool States
+
+Each pool moves through the following states:
+
+<CardGroup cols={2}>
+  <Card title="Upcoming" icon="clock">
+    Pool is open for entry but has not started yet. Users can submit predictions.
+  </Card>
+  <Card title="Active" icon="play">
+    Pool is live and accepting predictions and updates.
+  </Card>
+  <Card title="Closed" icon="lock">
+    Deadline reached. No further interaction is allowed.
+  </Card>
+  <Card title="Resolved" icon="check">
+    Final outcome has been submitted and reward calculations are complete.
+  </Card>
+  <Card title="Settled" icon="coins">
+    Rewards have been distributed and are claimable by participants.
+  </Card>
+</CardGroup>
+
+<Note>
+  Once a pool moves to **Closed**, predictions are locked. Make sure to submit or update your prediction before the deadline.
+</Note>

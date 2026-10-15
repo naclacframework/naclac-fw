@@ -93,10 +93,10 @@ pub fn create_mint2022_with_metadata_pointer_and_metadata(
     // `metadata` and `mint` are the same account (self-referential
     // `MetadataPointer`) — naclac's CPI handles forbid a live mutable and
     // immutable handle to the same account at once, so `mint_handle` is
-    // built from a clone of the mutable handle's own `.info` rather than
+    // built from a copy of the mutable handle's own `.info` rather than
     // re-borrowing `ctx.accounts.mint`.
     let metadata_handle = ctx.accounts.mint.to_cpi_handle_mut();
-    let mint_info = metadata_handle.info.clone();
+    let mint_info = metadata_handle.info;
     let mint_handle = mint_info.to_cpi_handle();
     let bump = ctx.accounts.mint_authority.bump;
     let authority_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];

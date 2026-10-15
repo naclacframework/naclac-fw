@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `close_mint2022` instruction. */
+/** Discriminator for the `close_mint2022` instruction. */
 export const CLOSE_MINT2022_DISCRIMINATOR = new Uint8Array([34, 43, 136, 129, 144, 103, 224, 95]);
 
 /** Accounts for the `closeMint2022` instruction. */
@@ -14,8 +14,8 @@ export interface CloseMint2022Accounts {
    * `close_account_signed` below; its data is never read or deserialized.
    */
   destination: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

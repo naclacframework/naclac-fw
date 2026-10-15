@@ -3,6 +3,8 @@
 
 pub mod init_counter;
 pub use init_counter::*;
+pub mod init_counter_unchecked;
+pub use init_counter_unchecked::*;
 pub mod increment_counter;
 pub use increment_counter::*;
 pub mod touch_counter_explicit_bump;
@@ -23,3 +25,15 @@ pub mod emit_via_self_cpi_sized;
 pub use emit_via_self_cpi_sized::*;
 pub mod emit_via_sol_log_data_sized;
 pub use emit_via_sol_log_data_sized::*;
+pub mod event_cpi_smoke;
+pub use event_cpi_smoke::*;
+pub mod event_cpi_emit;
+pub use event_cpi_emit::*;
+pub mod emit_via_self_cpi_no_program;
+pub use emit_via_self_cpi_no_program::*;
+pub mod event_cpi_noop;
+pub use event_cpi_noop::*;
+pub mod event_cpi_log_one;
+pub use event_cpi_log_one::*;
+pub mod event_cpi_emit_one;
+pub use event_cpi_emit_one::*;

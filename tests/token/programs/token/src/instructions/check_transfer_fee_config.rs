@@ -41,3 +41,8 @@ pub fn check_transfer_fee_config(
 
     Ok(())
 }
+
+const _: fn() = || {
+    fn assert_default<T: Default>() {}
+    assert_default::<CheckTransferFeeConfigArgs>();
+};

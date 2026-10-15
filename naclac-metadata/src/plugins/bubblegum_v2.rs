@@ -62,8 +62,5 @@ pub fn asset_has_bubblegum_v2(info: &AccountInfo) -> Result<bool> {
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(false);
     };
-    Ok(
-        find_plugin_offset(info.data(), plugin_header_offset, plugin_type::BUBBLEGUM_V2)?
-            .is_some(),
-    )
+    Ok(find_plugin_offset(info.data(), plugin_header_offset, plugin_type::BUBBLEGUM_V2)?.is_some())
 }

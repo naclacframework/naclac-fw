@@ -107,7 +107,11 @@ mod kani_proofs {
         let s = core::str::from_utf8(&bytes[..len]).unwrap();
 
         let seed = seed_from_str(s);
-        assert_eq!(&seed[..len], &bytes[..len], "prefix must match the input exactly");
+        assert_eq!(
+            &seed[..len],
+            &bytes[..len],
+            "prefix must match the input exactly"
+        );
         for b in &seed[len..] {
             assert_eq!(*b, 0, "bytes past the input's length must be zero-padded");
         }

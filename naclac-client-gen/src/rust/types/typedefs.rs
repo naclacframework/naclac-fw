@@ -1,5 +1,6 @@
 use super::super::{
-    is_type_pod, map_type_to_rust_cpi, map_type_to_rust_with_prefix, render_docs, sdk_core_alias,
+    is_type_pod, is_zero_copy_struct_pod, map_type_to_rust_cpi, map_type_to_rust_with_prefix,
+    render_docs, sdk_core_alias,
 };
 use crate::{Idl, IdlEnumFields, IdlTypeDefVariants};
 use heck::{AsSnakeCase, ToUpperCamelCase};
@@ -94,37 +95,59 @@ pub fn generate(
                         // derive switching — two full, separately-built
                         // copies, matching the struct branch's own
                         // established per-branch-duplication pattern.
-                        let mut borsh_variants = String::new();
-                        // Attribute-free `variant_ident = N { field: Type, ... },`
-                        // lines — exactly what `syn::parse_str::<syn::ItemEnum>`
-                        // below needs to hand real `syn::Variant`s (with real
-                        // discriminants) to `checked_enum::generate`. Doc
-                        // comments are irrelevant to that call, so
-                        // intentionally omitted here even though
-                        // `typedefs_content`'s zero-copy copy does include them.
+                        // `= N` on every variant, using the IDL's real,
+                        // fully-resolved discriminant (`v.discriminant` —
+                        // explicit if the on-chain enum wrote one, else the
+                        // same positional fallback Rust itself would assign)
+                        // — used for both the Borsh and zero-copy bodies now
+                        // that naclac's on-chain `#[defined_type]` macro
+                        // emits `#[borsh(use_discriminant = true)]`
+                        // unconditionally: Borsh's own discriminant algorithm
+                        // reconstructs the identical value from this same
+                        // `= N` syntax, so writing it explicitly here for
+                        // every variant (not just ones the source explicitly
+                        // annotated) keeps client and on-chain byte-for-byte
+                        // identical regardless of which variants were
+                        // explicit on-chain.
                         let mut zc_variants = String::new();
+                        // Wincode's own discriminant, by contrast, is never
+                        // read from this native `= N` syntax at all — only
+                        // from a `#[wincode(tag = N)]` attribute per variant,
+                        // which naclac's on-chain macro emits unconditionally
+                        // for the same reason. No `#[repr(...)]` requirement
+                        // applies to attributes, unlike native `= N`.
+                        let mut wincode_variants = String::new();
 
                         for v in variants {
                             let variant_name = v.name.to_upper_camel_case();
                             let disc = &v.discriminant;
                             let docs = render_docs(&v.docs, "    ");
+                            let wincode_tag = format!("#[wincode(tag = {disc})]\n");
                             match &v.fields {
                                 None => {
-                                    borsh_variants
-                                        .push_str(&format!("{}    {},\n", docs, variant_name));
                                     zc_variants.push_str(&format!(
                                         "{}    {} = {},\n",
                                         docs, variant_name, disc
                                     ));
+                                    wincode_variants.push_str(&format!(
+                                        "{}    {}    {},\n",
+                                        docs, wincode_tag, variant_name
+                                    ));
                                 }
                                 Some(IdlEnumFields::Named(fields)) => {
-                                    borsh_variants
-                                        .push_str(&format!("{}    {} {{\n", docs, variant_name));
                                     zc_variants
                                         .push_str(&format!("{}    {} {{\n", docs, variant_name));
+                                    wincode_variants.push_str(&format!(
+                                        "{}    {}    {} {{\n",
+                                        docs, wincode_tag, variant_name
+                                    ));
                                     for f in fields {
                                         let f_ty = if for_cpi {
-                                            map_type_to_rust_cpi(&f.ty, idl.is_zero_copy, "crate::types::")
+                                            map_type_to_rust_cpi(
+                                                &f.ty,
+                                                idl.is_zero_copy,
+                                                "crate::types::",
+                                            )
                                         } else {
                                             map_type_to_rust_with_prefix(
                                                 &f.ty,
@@ -133,19 +156,24 @@ pub fn generate(
                                             )
                                         };
                                         let f_snake = AsSnakeCase(&f.name).to_string();
-                                        let field_line = format!("        {}: {},\n", f_snake, f_ty);
-                                        borsh_variants.push_str(&field_line);
+                                        let field_line =
+                                            format!("        {}: {},\n", f_snake, f_ty);
                                         zc_variants.push_str(&field_line);
+                                        wincode_variants.push_str(&field_line);
                                     }
-                                    borsh_variants.push_str("    },\n");
                                     zc_variants.push_str(&format!("    }} = {},\n", disc));
+                                    wincode_variants.push_str("    },\n");
                                 }
                                 Some(IdlEnumFields::Tuple(tys)) => {
                                     let field_tys: Vec<String> = tys
                                         .iter()
                                         .map(|ty| {
                                             if for_cpi {
-                                                map_type_to_rust_cpi(ty, idl.is_zero_copy, "crate::types::")
+                                                map_type_to_rust_cpi(
+                                                    ty,
+                                                    idl.is_zero_copy,
+                                                    "crate::types::",
+                                                )
                                             } else {
                                                 map_type_to_rust_with_prefix(
                                                     ty,
@@ -155,12 +183,6 @@ pub fn generate(
                                             }
                                         })
                                         .collect();
-                                    borsh_variants.push_str(&format!(
-                                        "{}    {}({}),\n",
-                                        docs,
-                                        variant_name,
-                                        field_tys.join(", ")
-                                    ));
                                     zc_variants.push_str(&format!(
                                         "{}    {}({}) = {},\n",
                                         docs,
@@ -168,25 +190,59 @@ pub fn generate(
                                         field_tys.join(", "),
                                         disc
                                     ));
+                                    wincode_variants.push_str(&format!(
+                                        "{}    {}    {}({}),\n",
+                                        docs,
+                                        wincode_tag,
+                                        variant_name,
+                                        field_tys.join(", ")
+                                    ));
                                 }
                             }
                         }
 
                         let type_docs = render_docs(&t.docs, "");
+                        // `#[repr({tag_repr})]` here is required by Rust
+                        // itself, not a Borsh concept: a data-carrying enum
+                        // variant may only have an explicit `= N`
+                        // discriminant when the enum has an explicit integer
+                        // repr. It has no effect on Borsh's own
+                        // serialization, which ignores repr entirely — it
+                        // only exists to make the `= N` syntax below legal.
+                        // `#[borsh(use_discriminant = true)]` makes Borsh's
+                        // own discriminant algorithm read that `= N` instead
+                        // of always renumbering positionally, matching
+                        // naclac's on-chain `#[defined_type]` macro.
                         typedefs_content.push_str(cfg);
                         typedefs_content.push_str("#[cfg(feature = \"borsh\")]\n");
                         typedefs_content.push_str(&type_docs);
                         typedefs_content.push_str(&format!(
                             "#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]\n\
-                             #[borsh(crate = \"{sdk_core}::borsh\")]\n\
+                             #[borsh(crate = \"{sdk_core}::borsh\", use_discriminant = true)]\n\
+                             #[repr({tag_repr})]\n\
                              pub enum {name} {{\n{variants}}}\n\n",
                             sdk_core = sdk_core,
+                            tag_repr = tag_repr,
                             name = enum_name,
-                            variants = borsh_variants,
+                            variants = zc_variants,
                         ));
 
                         typedefs_content.push_str(cfg);
-                        typedefs_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+                        typedefs_content.push_str("#[cfg(feature = \"wincode\")]\n");
+                        typedefs_content.push_str(&type_docs);
+                        typedefs_content.push_str(&format!(
+                            "#[derive(Clone, Debug, {sdk_core}::wincode::SchemaWrite, {sdk_core}::wincode::SchemaRead)]\n\
+                             #[wincode(crate = \"{sdk_core}::wincode\")]\n\
+                             pub enum {name} {{\n{variants}}}\n\n",
+                            sdk_core = sdk_core,
+                            name = enum_name,
+                            variants = wincode_variants,
+                        ));
+
+                        typedefs_content.push_str(cfg);
+                        typedefs_content.push_str(
+                            "#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n",
+                        );
                         typedefs_content.push_str(&type_docs);
                         // Every field of a zero-copy `#[defined_type]` enum is
                         // guaranteed `CheckedBitPattern`-eligible on-chain
@@ -241,7 +297,16 @@ pub fn generate(
                                     &tag_ty,
                                     sdk_core,
                                 );
-                            let generated = quote::quote! { #extra_items #checked_bit_pattern_impl };
+                            let zc_storage_items =
+                                crate::rust::pod_codegen::checked_enum::zc_storage_items(
+                                    &ident,
+                                    &parsed_enum.variants,
+                                    &tag_ty,
+                                    sdk_core,
+                                );
+                            let generated = quote::quote! {
+                                #extra_items #checked_bit_pattern_impl #zc_storage_items
+                            };
                             let mut file: syn::File = syn::parse2(generated).expect(
                                 "defined_type: checked_enum::generate output must parse as a syn::File",
                             );
@@ -259,8 +324,7 @@ pub fn generate(
                             } else {
                                 syn::parse_quote!(#[cfg(feature = "offchain")])
                             };
-                            let not_borsh_cfg: syn::Attribute =
-                                syn::parse_quote!(#[cfg(not(feature = "borsh"))]);
+                            let not_borsh_cfg: syn::Attribute = syn::parse_quote!(#[cfg(not(any(feature = "borsh", feature = "wincode")))]);
                             for item in &mut file.items {
                                 let attrs = match item {
                                     syn::Item::Struct(s) => &mut s.attrs,
@@ -296,9 +360,13 @@ pub fn generate(
                 // plain, arbitrary-bytes-safe in-place representation. Same
                 // check as `naclac-macros`'s `#[instruction_args]` uses for
                 // the on-chain struct this type mirrors.
-                let is_pod = fields
-                    .iter()
-                    .all(|f| is_type_pod(&f.ty, &idl.defined_types));
+                let is_pod = fields.iter().all(|f| {
+                    if idl.is_zero_copy {
+                        is_zero_copy_struct_pod(&f.ty, &idl.defined_types)
+                    } else {
+                        is_type_pod(&f.ty, &idl.defined_types)
+                    }
+                });
 
                 // naclac-syn names a tuple struct's fields by their
                 // positional index ("0", "1", "2", ...) rather than a real
@@ -307,7 +375,10 @@ pub fn generate(
                 // emitted with tuple-struct syntax (`Foo(pub T0, pub T1);`)
                 // instead of the named-field syntax below.
                 let is_tuple_struct = !fields.is_empty()
-                    && fields.iter().enumerate().all(|(i, f)| f.name == i.to_string());
+                    && fields
+                        .iter()
+                        .enumerate()
+                        .all(|(i, f)| f.name == i.to_string());
 
                 // Field types (e.g. `Address`/`Bool`) genuinely differ between
                 // `sdk_core_offchain` and `sdk_core_cpi` — not interchangeable,
@@ -350,7 +421,11 @@ pub fn generate(
                             if for_cpi {
                                 map_type_to_rust_cpi(&f.ty, idl.is_zero_copy, "crate::types::")
                             } else {
-                                map_type_to_rust_with_prefix(&f.ty, idl.is_zero_copy, "crate::types::")
+                                map_type_to_rust_with_prefix(
+                                    &f.ty,
+                                    idl.is_zero_copy,
+                                    "crate::types::",
+                                )
                             }
                         })
                         .collect();
@@ -365,7 +440,9 @@ pub fn generate(
                         typedefs_content.push_str(&format!(
                             "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]\n\
                              #[cfg_attr(feature = \"borsh\", borsh(crate = \"{sdk_core}::borsh\"))]\n\
-                             #[cfg_attr(not(feature = \"borsh\"), derive(Clone, Debug))]\n\
+                             #[cfg_attr(feature = \"wincode\", derive(Clone, Debug, {sdk_core}::wincode::SchemaWrite, {sdk_core}::wincode::SchemaRead))]\n\
+                             #[cfg_attr(feature = \"wincode\", wincode(crate = \"{sdk_core}::wincode\"))]\n\
+                             #[cfg_attr(not(any(feature = \"borsh\", feature = \"wincode\")), derive(Clone, Debug))]\n\
                              pub struct {name}{open}\n",
                             sdk_core = sdk_core,
                             name = struct_name,
@@ -377,7 +454,8 @@ pub fn generate(
                                 typedefs_content.push_str(&format!("    pub {},\n", f_ty));
                             } else {
                                 let f_snake = AsSnakeCase(&f.name).to_string();
-                                typedefs_content.push_str(&format!("    pub {}: {},\n", f_snake, f_ty));
+                                typedefs_content
+                                    .push_str(&format!("    pub {}: {},\n", f_snake, f_ty));
                             }
                         }
                         typedefs_content.push_str(if is_tuple_struct { ");\n\n" } else { "}\n\n" });
@@ -397,11 +475,14 @@ pub fn generate(
                     // branch exactly (`naclac-macros/src/lib.rs`'s `!is_zero_copy`
                     // path is a bare pass-through with zero layout machinery).
                     typedefs_content.push_str(cfg);
-                    typedefs_content.push_str("#[cfg(feature = \"borsh\")]\n");
+                    typedefs_content
+                        .push_str("#[cfg(any(feature = \"borsh\", feature = \"wincode\"))]\n");
                     typedefs_content.push_str(&render_docs(&t.docs, ""));
                     typedefs_content.push_str(&format!(
-                        "#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]\n\
-                         #[borsh(crate = \"{sdk_core}::borsh\")]\n\
+                        "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]\n\
+                         #[cfg_attr(feature = \"borsh\", borsh(crate = \"{sdk_core}::borsh\"))]\n\
+                         #[cfg_attr(feature = \"wincode\", derive(Clone, Debug, {sdk_core}::wincode::SchemaWrite, {sdk_core}::wincode::SchemaRead))]\n\
+                         #[cfg_attr(feature = \"wincode\", wincode(crate = \"{sdk_core}::wincode\"))]\n\
                          pub struct {name}{open}\n",
                         sdk_core = sdk_core,
                         name = struct_name,
@@ -428,8 +509,19 @@ pub fn generate(
                     // on-chain struct gets, instead of a blind, unverified
                     // `unsafe impl Pod` (the exact class of bug —
                     // `Debouncer`/`EpochTracker` — that file exists to catch).
+                    let zero_copy_field_tys: Vec<String> = fields
+                        .iter()
+                        .map(|f| {
+                            crate::rust::map_zero_copy_field_type(
+                                &f.ty,
+                                "crate::types::",
+                                for_cpi,
+                                &idl.defined_types,
+                            )
+                        })
+                        .collect();
                     let mut scratch_fields_src = String::new();
-                    for (f, f_ty) in fields.iter().zip(&mapped_field_tys) {
+                    for (f, f_ty) in fields.iter().zip(&zero_copy_field_tys) {
                         if is_tuple_struct {
                             scratch_fields_src.push_str(&format!("pub {},\n", f_ty));
                         } else {
@@ -453,24 +545,29 @@ pub fn generate(
                         });
                     let struct_ident: syn::Ident = syn::parse_str(&struct_name)
                         .expect("defined_type: struct name must be a valid identifier");
-                    let (padded_fields, extra_items) = crate::rust::pod_codegen::pod_struct_checks::generate(
-                        &struct_ident,
-                        &parsed_struct.fields,
-                        sdk_core,
-                    );
-                    let semi = if is_tuple_struct { quote::quote! { ; } } else { quote::quote! {} };
+                    let (padded_fields, extra_items) =
+                        crate::rust::pod_codegen::pod_struct_checks::generate(
+                            &struct_ident,
+                            &parsed_struct.fields,
+                            sdk_core,
+                        );
+                    let semi = if is_tuple_struct {
+                        quote::quote! { ; }
+                    } else {
+                        quote::quote! {}
+                    };
                     let struct_item_tokens = quote::quote! {
                         #[derive(Copy, Clone, Debug)]
                         #[repr(C)]
                         pub struct #struct_ident #padded_fields #semi
                     };
-                    let struct_file: syn::File = syn::parse2(struct_item_tokens).expect(
-                        "defined_type: generated struct item must parse as a syn::File",
-                    );
+                    let struct_file: syn::File = syn::parse2(struct_item_tokens)
+                        .expect("defined_type: generated struct item must parse as a syn::File");
                     let pretty_struct = prettyplease::unparse(&struct_file);
 
                     typedefs_content.push_str(cfg);
-                    typedefs_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+                    typedefs_content
+                        .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
                     typedefs_content.push_str(&render_docs(&t.docs, ""));
                     typedefs_content.push_str(&pretty_struct);
                     typedefs_content.push('\n');
@@ -489,7 +586,8 @@ pub fn generate(
                     } else {
                         syn::parse_quote!(#[cfg(feature = "offchain")])
                     };
-                    let not_borsh_cfg: syn::Attribute = syn::parse_quote!(#[cfg(not(feature = "borsh"))]);
+                    let not_borsh_cfg: syn::Attribute =
+                        syn::parse_quote!(#[cfg(not(any(feature = "borsh", feature = "wincode")))]);
                     for item in &mut extra_file.items {
                         let attrs = match item {
                             syn::Item::Const(c) => &mut c.attrs,
@@ -507,13 +605,15 @@ pub fn generate(
                     typedefs_content.push('\n');
 
                     typedefs_content.push_str(cfg);
-                    typedefs_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+                    typedefs_content
+                        .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
                     typedefs_content.push_str(&format!(
                         "unsafe impl {}::bytemuck::Zeroable for {} {{}}\n",
                         sdk_core, struct_name
                     ));
                     typedefs_content.push_str(cfg);
-                    typedefs_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+                    typedefs_content
+                        .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
                     typedefs_content.push_str(&format!(
                         "unsafe impl {}::bytemuck::Pod for {} {{}}\n",
                         sdk_core, struct_name
@@ -527,7 +627,8 @@ pub fn generate(
                     // caller needing to know the auto-inserted padding
                     // field's name.
                     typedefs_content.push_str(cfg);
-                    typedefs_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+                    typedefs_content
+                        .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
                     typedefs_content.push_str(&format!(
                         "impl core::default::Default for {1} {{\n    fn default() -> Self {{\n        {0}::bytemuck::Zeroable::zeroed()\n    }}\n}}\n\n",
                         sdk_core, struct_name

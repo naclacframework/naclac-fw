@@ -94,11 +94,11 @@ pub use transfer_hook::*;
 /// `instruction::*` constructor (`spl-token-metadata-interface`,
 /// `spl-token-group-interface`) — data-only, backend-agnostic values with no
 /// `AccountInfo` involved. Solana backend passes it straight to
-/// `crate::cpi::invoke_signed` (the same type, since `solana_program::instruction::Instruction`
+/// `crate::cpi::invoke_signed` (the same type, since `solana_instruction::Instruction`
 /// is a direct re-export of `solana_instruction::Instruction`). Pinocchio
 /// backend converts each `AccountMeta` into pinocchio's own
 /// `InstructionAccount` one-for-one (`AccountMeta::pubkey`,
-/// `solana_pubkey::Pubkey`, and `pinocchio::address::Address` are the same
+/// `solana_address::Address`, and `pinocchio::address::Address` are the same
 /// re-exported `solana_address::Address` type end to end — verified against
 /// each crate's own source, not assumed) and calls
 /// `crate::cpi::invoke_signed_pinocchio_handles` — the same pattern
@@ -228,13 +228,20 @@ fn find_extension_bytes<Ext: Extension>(
         if tlv.len() < offset + 4 {
             return Err(NaclacError::InvalidAccountDiscriminator);
         }
-        let entry_type = u16::from_le_bytes(tlv[offset..offset + 2].try_into().unwrap());
+        let entry_type = u16::from_le_bytes(
+            tlv[offset..offset + 2]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        );
         if entry_type == 0 {
             // Uninitialized marker: no more entries were ever written here.
             return Err(NaclacError::ConstraintAccountIsNone);
         }
-        let entry_len =
-            u16::from_le_bytes(tlv[offset + 2..offset + 4].try_into().unwrap()) as usize;
+        let entry_len = u16::from_le_bytes(
+            tlv[offset + 2..offset + 4]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        ) as usize;
         let value_start = offset + 4;
         let value_end = value_start
             .checked_add(entry_len)
@@ -312,13 +319,23 @@ impl TokenInterfaceAccountExtensions for InterfaceAccount<Mint> {
 /// have no alignment guarantee and a native multi-byte field would risk
 /// unaligned-access UB.
 fn read_u64(bytes: &[u8], offset: usize) -> u64 {
-    u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap())
+    u64::from_le_bytes(
+        bytes[offset..offset + 8]
+            .try_into()
+            .unwrap_or_else(|_| panic!("slice length mismatch")),
+    )
 }
 fn read_u16(bytes: &[u8], offset: usize) -> u16 {
-    u16::from_le_bytes(bytes[offset..offset + 2].try_into().unwrap())
+    u16::from_le_bytes(
+        bytes[offset..offset + 2]
+            .try_into()
+            .unwrap_or_else(|_| panic!("slice length mismatch")),
+    )
 }
 fn read_optional_address(bytes: &[u8], offset: usize) -> Option<Address> {
-    let raw: [u8; 32] = bytes[offset..offset + 32].try_into().unwrap();
+    let raw: [u8; 32] = bytes[offset..offset + 32]
+        .try_into()
+        .unwrap_or_else(|_| panic!("slice length mismatch"));
     if raw == [0u8; 32] {
         None
     } else {

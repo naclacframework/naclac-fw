@@ -44,13 +44,25 @@ impl ScaledUiAmountConfig {
         read_optional_address(&self.0, 0)
     }
     pub fn multiplier(&self) -> f64 {
-        f64::from_le_bytes(self.0[32..40].try_into().unwrap())
+        f64::from_le_bytes(
+            self.0[32..40]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        )
     }
     pub fn new_multiplier_effective_timestamp(&self) -> i64 {
-        i64::from_le_bytes(self.0[40..48].try_into().unwrap())
+        i64::from_le_bytes(
+            self.0[40..48]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        )
     }
     pub fn new_multiplier(&self) -> f64 {
-        f64::from_le_bytes(self.0[48..56].try_into().unwrap())
+        f64::from_le_bytes(
+            self.0[48..56]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        )
     }
 }
 
@@ -87,9 +99,9 @@ pub fn initialize_scaled_ui_amount_config_signed(
         data.extend_from_slice(authority.map(|a| a.as_ref()).unwrap_or(&[0u8; 32]));
         data.extend_from_slice(&multiplier.to_le_bytes());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -106,7 +118,7 @@ pub fn initialize_scaled_ui_amount_config_signed(
             mint_account: &mint.info.view,
             authority: authority.map(|a| a.as_address()),
             multiplier,
-            token_program: &program.info.view.address(),
+            token_program: program.info.view.address(),
         };
         ix.invoke()
     }
@@ -160,11 +172,11 @@ pub fn update_scaled_ui_amount_multiplier_signed(
         data.extend_from_slice(&multiplier.to_le_bytes());
         data.extend_from_slice(&effective_timestamp.to_le_bytes());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),

@@ -5,11 +5,14 @@
 //! CPI wrappers for the `spl-token-metadata-interface` instructions
 //! Token-2022 processes directly against a `MetadataPointer`-linked metadata
 //! account: `Initialize`, `UpdateField`, `RemoveKey`, `UpdateAuthority`,
-//! `Emit`. Each instruction's data/account shape is built via
-//! `spl-token-metadata-interface`'s own real `instruction::*` constructors
-//! rather than a naclac re-derivation, the same approach
-//! `transfer_checked_with_hook` (`transfer_hook.rs`) uses for
-//! `spl-transfer-hook-interface`.
+//! `Emit`. Each instruction's account list is built here directly, and its
+//! data payload uses `spl-token-metadata-interface`'s own real
+//! `Initialize`/`UpdateField`/`RemoveKey`/`UpdateAuthority`/`Emit` structs and
+//! `SPL_DISCRIMINATOR_SLICE` constants, Borsh-serialized via
+//! `pack_metadata_instruction` below rather than that crate's own
+//! `instruction::*` constructor functions or `TokenMetadataInstruction::pack()`
+//! — both panic in a way that requires `Debug` and pulls `core::fmt` into the
+//! on-chain binary (see `docs/naclac_token_audit_progress.md` finding #3).
 //!
 //! `UpdateField`/`RemoveKey` may grow or shrink the metadata account;
 //! Token-2022's own processor (`extension::token_metadata::processor`)
@@ -37,6 +40,25 @@
 use crate::prelude::{Address, CpiHandle, CpiHandleMut, Result, String};
 
 pub use spl_token_metadata_interface::state::Field;
+
+/// Borsh-serializes `data`, prefixed by its real `SPL_DISCRIMINATOR_SLICE` —
+/// replicates exactly what `spl_token_metadata_interface::instruction::TokenMetadataInstruction::pack()`
+/// produces, without going through it: that function calls
+/// `borsh::to_vec(data).unwrap()` internally, which requires `Debug` on
+/// borsh's `io::Error` and pulls `core::fmt` into the on-chain binary (see
+/// `docs/naclac_token_audit_progress.md` finding #3). `data`'s own real,
+/// unmodified struct and derived `BorshSerialize` impl are used here — only
+/// the panic path changes.
+fn pack_metadata_instruction<T>(data: &T) -> crate::prelude::Vec<u8>
+where
+    T: borsh::BorshSerialize + spl_discriminator::SplDiscriminate,
+{
+    let mut buf = crate::prelude::Vec::from(T::SPL_DISCRIMINATOR_SLICE);
+    buf.extend_from_slice(
+        &borsh::to_vec(data).unwrap_or_else(|_| panic!("failed to serialize instruction data")),
+    );
+    buf
+}
 
 /// Bundles `TokenMetadata::Initialize`'s three string fields — keeps
 /// `initialize_token_metadata(_signed)` under `clippy::too_many_arguments`
@@ -83,16 +105,17 @@ pub fn initialize_token_metadata_signed(
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     let TokenMetadataInitializeParams { name, symbol, uri } = params;
-    let ix = spl_token_metadata_interface::instruction::initialize(
-        &super::ix_addr(&program),
-        &super::ix_addr(&metadata.info),
-        &super::ix_addr(&update_authority),
-        &super::ix_addr(&mint),
-        &super::ix_addr(&mint_authority),
-        name,
-        symbol,
-        uri,
-    );
+    let data = spl_token_metadata_interface::instruction::Initialize { name, symbol, uri };
+    let ix = solana_instruction::Instruction {
+        program_id: super::ix_addr(&program),
+        accounts: crate::prelude::vec![
+            solana_instruction::AccountMeta::new(super::ix_addr(&metadata.info), false),
+            solana_instruction::AccountMeta::new_readonly(super::ix_addr(&update_authority), false),
+            solana_instruction::AccountMeta::new_readonly(super::ix_addr(&mint), false),
+            solana_instruction::AccountMeta::new_readonly(super::ix_addr(&mint_authority), true),
+        ],
+        data: pack_metadata_instruction(&data),
+    };
     let accounts = [
         CpiHandle::from(metadata),
         update_authority,
@@ -125,13 +148,15 @@ pub fn update_token_metadata_field_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
-    let ix = spl_token_metadata_interface::instruction::update_field(
-        &super::ix_addr(&program),
-        &super::ix_addr(&metadata.info),
-        &super::ix_addr(&update_authority),
-        field,
-        value,
-    );
+    let data = spl_token_metadata_interface::instruction::UpdateField { field, value };
+    let ix = solana_instruction::Instruction {
+        program_id: super::ix_addr(&program),
+        accounts: crate::prelude::vec![
+            solana_instruction::AccountMeta::new(super::ix_addr(&metadata.info), false),
+            solana_instruction::AccountMeta::new_readonly(super::ix_addr(&update_authority), true),
+        ],
+        data: pack_metadata_instruction(&data),
+    };
     let accounts = [CpiHandle::from(metadata), update_authority, program];
     super::invoke_interface_instruction(&ix, &accounts, signer_seeds)
 }
@@ -159,13 +184,15 @@ pub fn remove_token_metadata_key_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
-    let ix = spl_token_metadata_interface::instruction::remove_key(
-        &super::ix_addr(&program),
-        &super::ix_addr(&metadata.info),
-        &super::ix_addr(&update_authority),
-        key,
-        idempotent,
-    );
+    let data = spl_token_metadata_interface::instruction::RemoveKey { idempotent, key };
+    let ix = solana_instruction::Instruction {
+        program_id: super::ix_addr(&program),
+        accounts: crate::prelude::vec![
+            solana_instruction::AccountMeta::new(super::ix_addr(&metadata.info), false),
+            solana_instruction::AccountMeta::new_readonly(super::ix_addr(&update_authority), true),
+        ],
+        data: pack_metadata_instruction(&data),
+    };
     let accounts = [CpiHandle::from(metadata), update_authority, program];
     super::invoke_interface_instruction(&ix, &accounts, signer_seeds)
 }
@@ -191,12 +218,15 @@ pub fn update_token_metadata_authority_signed(
     super::validate_token_2022_program(&program)?;
     let new_authority = solana_nullable::MaybeNull::try_from(new_authority.map(super::ix_addr_ref))
         .map_err(|_| crate::prelude::NaclacError::InvalidAccountDiscriminator)?;
-    let ix = spl_token_metadata_interface::instruction::update_authority(
-        &super::ix_addr(&program),
-        &super::ix_addr(&metadata.info),
-        &super::ix_addr(&current_authority),
-        new_authority,
-    );
+    let data = spl_token_metadata_interface::instruction::UpdateAuthority { new_authority };
+    let ix = solana_instruction::Instruction {
+        program_id: super::ix_addr(&program),
+        accounts: crate::prelude::vec![
+            solana_instruction::AccountMeta::new(super::ix_addr(&metadata.info), false),
+            solana_instruction::AccountMeta::new_readonly(super::ix_addr(&current_authority), true),
+        ],
+        data: pack_metadata_instruction(&data),
+    };
     let accounts = [CpiHandle::from(metadata), current_authority, program];
     super::invoke_interface_instruction(&ix, &accounts, signer_seeds)
 }
@@ -211,12 +241,15 @@ pub fn emit_token_metadata(
     end: Option<u64>,
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
-    let ix = spl_token_metadata_interface::instruction::emit(
-        &super::ix_addr(&program),
-        &super::ix_addr(&metadata),
-        start,
-        end,
-    );
+    let data = spl_token_metadata_interface::instruction::Emit { start, end };
+    let ix = solana_instruction::Instruction {
+        program_id: super::ix_addr(&program),
+        accounts: crate::prelude::vec![solana_instruction::AccountMeta::new_readonly(
+            super::ix_addr(&metadata),
+            false
+        )],
+        data: pack_metadata_instruction(&data),
+    };
     let accounts = [metadata, program];
     super::invoke_interface_instruction(&ix, &accounts, &[])
 }

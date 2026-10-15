@@ -14,7 +14,7 @@
 //! one parameter, no args); `AddGroupsToGroupV1`/`RemoveGroupsFromGroupV1`
 //! name their group field `parent_group`, not `group`; and the four
 //! "Remove"/`AddGroupsToGroupV1` instructions carry a redundant
-//! `Vec<Pubkey>` arg used purely to cross-validate `remaining_accounts`
+//! `Vec<Address>` arg used purely to cross-validate `remaining_accounts`
 //! position-by-position (verified in the real processors, e.g.
 //! `add_groups_to_group.rs`: `if child_info.key != &args.groups[i] { ...
 //! IncorrectAccount ... }`) — this file derives that list from `items`'
@@ -31,8 +31,8 @@
 //! `items` is a borrowed `&[CpiHandleMut]`, not owned — building a
 //! `CpiHandle` from each only needs to read+copy its `info: AccountInfo`
 //! (both fields are `pub`), which `AccountInfo::to_cpi_handle()` (an
-//! existing `naclac-core` trait method: `*self` on `pinocchio`, `self.clone()`
-//! on `solana`) already does without consuming the `CpiHandleMut`. On
+//! existing `naclac-core` trait method) already does without consuming the
+//! `CpiHandleMut`. On
 //! `pinocchio` the account list is capped at `MAX_CPI_ACCOUNTS` (the
 //! framework's own existing CPI-account-array bound) and built as a
 //! stack array — see `invoke_group_relationship_pinocchio`.
@@ -103,9 +103,7 @@ fn invoke_group_relationship_pinocchio(
             authority_handle.info.view.address(),
         )
     } else {
-        ::pinocchio::instruction::InstructionAccount::readonly(
-            authority_handle.info.view.address(),
-        )
+        ::pinocchio::instruction::InstructionAccount::readonly(authority_handle.info.view.address())
     };
     ix_accounts[3] = ::pinocchio::instruction::InstructionAccount::readonly(
         accounts.system_program.info.view.address(),
@@ -134,7 +132,7 @@ fn invoke_group_relationship_pinocchio(
 }
 
 /// `solana`-only: builds the raw `Instruction` shared by all six functions
-/// below — discriminator + (if `include_pubkey_arg`) a `Vec<Pubkey>` of
+/// below — discriminator + (if `include_pubkey_arg`) a `Vec<Address>` of
 /// `items`' own addresses (the redundant cross-validation list some of the
 /// six carry — see this file's header) + the same 4 fixed accounts as
 /// `invoke_group_relationship_pinocchio`, plus one writable meta per item.
@@ -144,7 +142,7 @@ fn build_group_relationship_instruction(
     discriminator: u8,
     include_pubkey_arg: bool,
     items: &[CpiHandleMut<'_>],
-) -> solana_program::instruction::Instruction {
+) -> solana_instruction::Instruction {
     let mut data = crate::prelude::Vec::new();
     data.push(discriminator);
     if include_pubkey_arg {
@@ -155,27 +153,19 @@ fn build_group_relationship_instruction(
     }
 
     let mut accounts_meta = vec![
-        solana_program::instruction::AccountMeta::new(accounts.group.address(), false),
-        solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+        solana_instruction::AccountMeta::new(accounts.group.address(), false),
+        solana_instruction::AccountMeta::new(accounts.payer.address(), true),
         match &accounts.authority {
-            Some(a) => {
-                solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-            }
-            None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+            Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+            None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
         },
-        solana_program::instruction::AccountMeta::new_readonly(
-            accounts.system_program.address(),
-            false,
-        ),
+        solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
     ];
     for item in items {
-        accounts_meta.push(solana_program::instruction::AccountMeta::new(
-            item.address(),
-            false,
-        ));
+        accounts_meta.push(solana_instruction::AccountMeta::new(item.address(), false));
     }
 
-    solana_program::instruction::Instruction {
+    solana_instruction::Instruction {
         program_id: crate::ID,
         accounts: accounts_meta,
         data,
@@ -188,7 +178,7 @@ fn build_group_relationship_instruction(
 fn invoke_group_relationship_solana(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
-    ix: solana_program::instruction::Instruction,
+    ix: solana_instruction::Instruction,
     items: &[CpiHandleMut<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
@@ -196,7 +186,7 @@ fn invoke_group_relationship_solana(
         crate::prelude::Vec::with_capacity(5 + items.len());
     cpi_accounts.push(CpiHandle::from(accounts.group));
     cpi_accounts.push(CpiHandle::from(accounts.payer));
-    cpi_accounts.push(accounts.authority.unwrap_or_else(|| program.clone()));
+    cpi_accounts.push(accounts.authority.unwrap_or(program));
     cpi_accounts.push(accounts.system_program);
     cpi_accounts.extend(items.iter().map(|h| h.info.to_cpi_handle()));
     cpi_accounts.push(program);

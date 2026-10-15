@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator prefix for `BigData` accounts on-chain. */
+/** Discriminator prefix for `BigData` accounts on-chain. */
 export const BIGDATA_DISCRIMINATOR = new Uint8Array([159, 10, 131, 31, 30, 194, 163, 175]);
 
 /**
@@ -17,7 +17,7 @@ export interface BigData {
   payload: string | Uint8Array;
 }
 
-/** 8-byte discriminator prefix for `SmallData` accounts on-chain. */
+/** Discriminator prefix for `SmallData` accounts on-chain. */
 export const SMALLDATA_DISCRIMINATOR = new Uint8Array([244, 1, 200, 102, 86, 69, 45, 4]);
 
 /**

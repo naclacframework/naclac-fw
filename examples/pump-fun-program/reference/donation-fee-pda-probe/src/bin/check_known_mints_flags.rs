@@ -5,7 +5,7 @@
 //!
 //! Usage: cargo run --bin check_known_mints_flags [-- <rpc-url>]
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use std::str::FromStr;
 use std::time::Duration;
@@ -24,8 +24,8 @@ const KNOWN_MINTS: [&str; 8] = [
     "9SZvpw4sgLEEPEX1V7f726VbXsN3qWUin3S5cGsepump", // known mayhem-mode one, for comparison
 ];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn main() {
@@ -36,8 +36,8 @@ fn main() {
     let pump_program = pk(PUMP_PROGRAM_ID);
 
     for mint_str in KNOWN_MINTS {
-        let Ok(mint) = Pubkey::from_str(mint_str) else { continue };
-        let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+        let Ok(mint) = Address::from_str(mint_str) else { continue };
+        let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
         match client.get_account(&bonding_curve) {
             Ok(account) if account.data.len() >= 8 + 40 + 1 + 32 + 2 => {
                 let is_mayhem_mode = account.data[8 + 40 + 1 + 32];

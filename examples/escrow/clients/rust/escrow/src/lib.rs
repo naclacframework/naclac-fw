@@ -4,9 +4,9 @@
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
 #[cfg(feature = "cpi")]
-pub use naclac_lang::prelude as sdk_core;
-#[cfg(all(feature = "offchain", not(feature = "cpi")))]
-pub use naclac_client as sdk_core;
+pub use naclac_lang::prelude as sdk_core_cpi;
+#[cfg(feature = "offchain")]
+pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
 pub mod components;
@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("CftDHdXFWzSiY7AbXsJcBWVhWGx1qpk2TYbRtEeDvrX1");
+declare_id!("BUnzdon444sj9eHgaCNgnNk3ckdKc5xSgyax946Uuvau");
 
 #[cfg(feature = "offchain")]
 pub fn get_escrow_state_pda(
@@ -40,5 +40,16 @@ pub fn get_escrow_state_pda(
         ],
         program_id,
     )
+}
+
+#[cfg(feature = "cpi")]
+#[derive(Clone, Copy)]
+pub struct Escrow;
+
+#[cfg(feature = "cpi")]
+impl sdk_core_cpi::Id for Escrow {
+    fn id() -> sdk_core_cpi::Address {
+        sdk_core_cpi::Address::new_from_array([155, 179, 142, 109, 2, 25, 90, 225, 169, 236, 58, 38, 232, 115, 95, 53, 28, 111, 215, 91, 209, 19, 149, 118, 69, 62, 51, 95, 19, 63, 92, 210])
+    }
 }
 

@@ -24,7 +24,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -50,8 +50,8 @@ const REAL_TOKEN_RESERVES: u64 = 50_000_000_000_000;
 const REAL_SOL_RESERVES: u64 = 85_000_000_000;
 const TOKEN_TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -60,11 +60,11 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
-fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
+fn mint_account_data(mint_authority: Option<&Address>, decimals: u8) -> Vec<u8> {
     let mut data = vec![0u8; 82];
     if let Some(auth) = mint_authority {
         data[0..4].copy_from_slice(&1u32.to_le_bytes());
@@ -76,7 +76,7 @@ fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -88,7 +88,7 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
 // Field order confirmed in `probe28`/`probe29`. `enable_migrate = 1` and
 // `withdraw_authority` set to a funded account are both required for
 // `migrate` to accept the call.
-fn global_account_data(withdraw_authority: &Pubkey) -> Vec<u8> {
+fn global_account_data(withdraw_authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1); // initialized
@@ -117,7 +117,7 @@ fn global_account_data(withdraw_authority: &Pubkey) -> Vec<u8> {
     data
 }
 
-fn bonding_curve_account_data(creator: &Pubkey) -> Vec<u8> {
+fn bonding_curve_account_data(creator: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BONDING_CURVE_DISCRIMINATOR);
     data.extend_from_slice(&VIRTUAL_TOKEN_RESERVES.to_le_bytes());
@@ -178,8 +178,8 @@ fn main() {
     let withdraw_authority = Keypair::new();
     svm.airdrop(&withdraw_authority.pubkey(), 50_000_000_000).unwrap();
 
-    let creator = Pubkey::new_unique();
-    let mint = Pubkey::new_unique();
+    let creator = Address::new_unique();
+    let mint = Address::new_unique();
     svm.set_account(
         mint,
         Account { lamports: 10_000_000, data: mint_account_data(None, 6), owner: token_program, executable: false, rent_epoch: 0 },
@@ -192,14 +192,14 @@ fn main() {
     )
     .unwrap();
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account { lamports: 10_000_000, data: global_account_data(&withdraw_authority.pubkey()), owner: pump_program, executable: false, rent_epoch: 0 },
     )
     .unwrap();
 
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
     svm.set_account(
         bonding_curve,
         Account {
@@ -219,14 +219,14 @@ fn main() {
     )
     .unwrap();
 
-    let (amm_global_config, _) = Pubkey::find_program_address(&[b"global_config"], &pump_amm_program);
+    let (amm_global_config, _) = Address::find_program_address(&[b"global_config"], &pump_amm_program);
     svm.set_account(
         amm_global_config,
         Account { lamports: 10_000_000, data: global_config_account_data(), owner: pump_amm_program, executable: false, rent_epoch: 0 },
     )
     .unwrap();
 
-    let (pool_authority, _) = Pubkey::find_program_address(&[b"pool-authority", mint.as_ref()], &pump_program);
+    let (pool_authority, _) = Address::find_program_address(&[b"pool-authority", mint.as_ref()], &pump_program);
     // Pre-funded with SOL under System ownership so it can act as a fee
     // payer/signer-via-CPI if that's what the real program uses it for —
     // exactly the question this probe is meant to answer.
@@ -237,18 +237,18 @@ fn main() {
     .unwrap();
 
     let index: [u8; 2] = [0, 0];
-    let (pool, _) = Pubkey::find_program_address(
+    let (pool, _) = Address::find_program_address(
         &[b"pool", &index, pool_authority.as_ref(), mint.as_ref(), wsol_mint.as_ref()],
         &pump_amm_program,
     );
-    let (lp_mint, _) = Pubkey::find_program_address(&[b"pool_lp_mint", pool.as_ref()], &pump_amm_program);
+    let (lp_mint, _) = Address::find_program_address(&[b"pool_lp_mint", pool.as_ref()], &pump_amm_program);
     let pool_authority_mint_account = ata_address(&pool_authority, &mint, &token_program);
     let pool_authority_wsol_account = ata_address(&pool_authority, &wsol_mint, &token_program);
     let user_pool_token_account = ata_address(&pool_authority, &lp_mint, &token_2022_program);
     let pool_base_token_account = ata_address(&pool, &mint, &token_program);
     let pool_quote_token_account = ata_address(&pool, &wsol_mint, &token_program);
-    let pump_amm_event_authority = Pubkey::find_program_address(&[b"__event_authority"], &pump_amm_program).0;
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &pump_program).0;
+    let pump_amm_event_authority = Address::find_program_address(&[b"__event_authority"], &pump_amm_program).0;
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &pump_program).0;
 
     println!("--- known pubkeys ---");
     println!("mint = {mint}");
@@ -301,7 +301,7 @@ fn main() {
     let budget_ix = set_compute_unit_limit_ix(400_000);
     let blockhash = svm.latest_blockhash();
     let msg = Message::new(&[budget_ix, ix], Some(&user.pubkey()));
-    let account_keys: Vec<Pubkey> = msg.account_keys.clone();
+    let account_keys: Vec<Address> = msg.account_keys.clone();
     let tx = Transaction::new(&[&user], msg, blockhash);
 
     match svm.send_transaction(tx) {

@@ -24,7 +24,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -46,19 +46,19 @@ const MINT_WHITELIST_V1_DISCRIMINATOR: [u8; 8] = [73, 115, 177, 235, 234, 1, 95,
 const DEBOUNCER_V1_DISCRIMINATOR: [u8; 8] = [137, 137, 192, 77, 110, 184, 189, 28];
 const EPOCH_TRACKER_V1_DISCRIMINATOR: [u8; 8] = [130, 12, 50, 226, 170, 109, 160, 155];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(
         &[owner.as_ref(), token_program.as_ref(), mint.as_ref()],
         &pk(ASSOCIATED_TOKEN_PROGRAM_ID),
     )
     .0
 }
 
-fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
+fn mint_account_data(mint_authority: Option<&Address>, decimals: u8) -> Vec<u8> {
     let mut data = vec![0u8; 82];
     if let Some(auth) = mint_authority {
         data[0..4].copy_from_slice(&1u32.to_le_bytes());
@@ -70,7 +70,7 @@ fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -80,11 +80,11 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
 }
 
 /// Standard Anchor/Borsh account: 8-byte discriminator + fields in the
-/// struct's own declared order. `MintWhitelistV1 { bump: u8, mints: Vec<Pubkey> }`
+/// struct's own declared order. `MintWhitelistV1 { bump: u8, mints: Vec<Address> }`
 /// — this is well-documented, deterministic Borsh encoding (unlike naclac's
 /// own zero-copy component layout, which is a genuinely separate, unverified
 /// question this probe does NOT need to answer).
-fn mint_whitelist_v1_account_data(bump: u8, mints: &[Pubkey]) -> Vec<u8> {
+fn mint_whitelist_v1_account_data(bump: u8, mints: &[Address]) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&MINT_WHITELIST_V1_DISCRIMINATOR);
     data.push(bump);
@@ -95,8 +95,8 @@ fn mint_whitelist_v1_account_data(bump: u8, mints: &[Pubkey]) -> Vec<u8> {
     data
 }
 
-fn decode_pubkey(data: &[u8], offset: &mut usize) -> Pubkey {
-    let p = Pubkey::try_from(&data[*offset..*offset + 32]).unwrap();
+fn decode_pubkey(data: &[u8], offset: &mut usize) -> Address {
+    let p = Address::try_from(&data[*offset..*offset + 32]).unwrap();
     *offset += 32;
     p
 }
@@ -133,7 +133,7 @@ fn decode_string(data: &[u8], offset: &mut usize) -> String {
 fn print_donation_made_event(payload: &[u8]) {
     let mut o = 8usize; // skip event discriminator, already checked by caller
     let daas_disc = decode_u8(payload, &mut o);
-    let config_id = Pubkey::try_from(&payload[o..o + 32]).unwrap();
+    let config_id = Address::try_from(&payload[o..o + 32]).unwrap();
     o += 32;
     let mint = decode_pubkey(payload, &mut o);
     let epoch = decode_u128(payload, &mut o);
@@ -191,7 +191,7 @@ fn decode_debouncer_v1(data: &[u8]) {
     let mut o = 8usize;
     let bump = decode_u8(data, &mut o);
     let state = decode_u8(data, &mut o); // enum: 0=Uninitialized, 1=Initialized
-    let config_id = Pubkey::try_from(&data[o..o + 32]).unwrap();
+    let config_id = Address::try_from(&data[o..o + 32]).unwrap();
     o += 32;
     let mint = decode_pubkey(data, &mut o);
     let total_amount = decode_u64(data, &mut o);
@@ -208,7 +208,7 @@ fn decode_epoch_tracker_v1(data: &[u8]) {
     let mut o = 8usize;
     let bump = decode_u8(data, &mut o);
     let state = decode_u8(data, &mut o);
-    let config_id = Pubkey::try_from(&data[o..o + 32]).unwrap();
+    let config_id = Address::try_from(&data[o..o + 32]).unwrap();
     o += 32;
     let mint = decode_pubkey(data, &mut o);
     let current_epoch = decode_u128(data, &mut o);
@@ -238,7 +238,7 @@ fn main() {
     // donates) — a mint with a live mint_authority fails the real program's
     // own `MintNotSafeForDonation` check unless whitelisted, confirmed via
     // this probe's first run.
-    let mint = Pubkey::new_unique();
+    let mint = Address::new_unique();
     svm.set_account(
         mint,
         Account {
@@ -253,7 +253,7 @@ fn main() {
 
     // --- mint_whitelist: empty singleton fixture — this instruction reads it, doesn't appear to create it ---
     let (mint_whitelist, mint_whitelist_bump) =
-        Pubkey::find_program_address(&[MINT_WHITELIST_V1_SEED], &program_id);
+        Address::find_program_address(&[MINT_WHITELIST_V1_SEED], &program_id);
     svm.set_account(
         mint_whitelist,
         Account {
@@ -287,20 +287,20 @@ fn main() {
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
 
-    let config_id = Pubkey::new_unique();
-    let credited_to = Pubkey::new_unique();
+    let config_id = Address::new_unique();
+    let credited_to = Address::new_unique();
 
-    let (epoch_tracker, _epoch_tracker_bump) = Pubkey::find_program_address(
+    let (epoch_tracker, _epoch_tracker_bump) = Address::find_program_address(
         &[EPOCH_TRACKER_V1_SEED, config_id.as_ref(), mint.as_ref()],
         &program_id,
     );
-    let (debouncer, _debouncer_bump) = Pubkey::find_program_address(
+    let (debouncer, _debouncer_bump) = Address::find_program_address(
         &[DEBOUNCER_V1_SEED, config_id.as_ref(), mint.as_ref()],
         &program_id,
     );
     let debouncer_token_account = ata_address(&debouncer, &mint, &token_program);
 
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &program_id).0;
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &program_id).0;
 
     const TIP_BPS: u16 = 500; // 5%, arbitrary non-zero value chosen to make tip vs gross_amount unambiguous in the result
     const MESSAGE: &str = "probe1";

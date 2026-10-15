@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_add_blocker` instruction. */
+/** Discriminator for the `attach_add_blocker` instruction. */
 export const ATTACH_ADD_BLOCKER_DISCRIMINATOR = new Uint8Array([62, 52, 101, 253, 225, 25, 171, 202]);
 
 /** Accounts for the `attachAddBlocker` instruction. */
 export interface AttachAddBlockerAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

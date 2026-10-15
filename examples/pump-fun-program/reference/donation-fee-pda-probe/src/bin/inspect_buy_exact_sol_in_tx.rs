@@ -22,7 +22,7 @@
 //! newer/rarer instruction than classic `buy` and may not appear in just the
 //! most recent page.
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::{GetConfirmedSignaturesForAddress2Config, RpcClient};
 use solana_rpc_client_api::config::RpcTransactionConfig;
 use solana_transaction_status_client_types::{EncodedTransaction, UiMessage, UiTransactionEncoding};
@@ -37,8 +37,8 @@ const PAGE_SIZE: usize = 1000;
 const MAX_PAGES: usize = 30;
 const NUM_WORKERS: usize = 16;
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 /// Returns true if this signature's transaction (a) actually succeeded

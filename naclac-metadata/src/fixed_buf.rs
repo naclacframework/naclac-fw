@@ -47,7 +47,10 @@ pub(crate) struct FixedBuf<const N: usize> {
 
 impl<const N: usize> FixedBuf<N> {
     pub(crate) fn new() -> Self {
-        Self { buf: [0u8; N], len: 0 }
+        Self {
+            buf: [0u8; N],
+            len: 0,
+        }
     }
 
     pub(crate) fn as_slice(&self) -> &[u8] {

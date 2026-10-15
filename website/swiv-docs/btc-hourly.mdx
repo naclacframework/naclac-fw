@@ -1,0 +1,45 @@
+---
+title: BTC Hourly Markets
+description: Continuous hourly prediction pools for Bitcoin price forecasting.
+---
+
+BTC Hourly Markets are **continuous prediction pools** where users forecast the price of Bitcoin at the end of each hour.
+
+## How It Works
+
+<Steps>
+  <Step title="A new pool is created every hour">
+    Each pool has a fixed start and end time aligned to the clock hour.
+  </Step>
+  <Step title="Enter upcoming pools early">
+    Users can enter upcoming pools before they begin — earning a higher time bonus for early entry.
+  </Step>
+  <Step title="Pool closes at the hour">
+    At the cutoff time, the pool closes and no further entries or updates are accepted.
+  </Step>
+  <Step title="Final price is sourced from oracle">
+    The Bitcoin price is fetched from a reliable oracle at the exact cutoff time.
+  </Step>
+  <Step title="Pool is resolved and rewards distributed">
+    Predictions are scored, weights calculated, and rewards distributed based on accuracy.
+  </Step>
+</Steps>
+
+## Structure
+
+| Property | Detail |
+|---|---|
+| Pool frequency | Every hour |
+| Entry window | Open from previous settlement until pool close |
+| Price source | Pyth Oracle at exact cutoff time |
+| Settlement | Automatic after outcome is submitted |
+
+<Note>
+  This structure creates a **continuous prediction environment** with no downtime between markets. As one pool settles, the next is already open for entry.
+</Note>
+
+## Tips for BTC Hourly Markets
+
+- Enter early to maximize your time bonus
+- Monitor market conditions before the cutoff
+- A single confident prediction with no updates earns both time and conviction bonuses

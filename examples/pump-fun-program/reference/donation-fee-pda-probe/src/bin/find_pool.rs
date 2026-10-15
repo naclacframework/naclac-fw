@@ -10,7 +10,7 @@
 //! Usage: cargo run --bin find_pool -- <base_mint> [rpc-url]
 
 use solana_account_decoder::UiAccountEncoding;
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_rpc_client_api::config::{RpcAccountInfoConfig, RpcProgramAccountsConfig};
 use solana_rpc_client_api::filter::{Memcmp, RpcFilterType};
@@ -26,13 +26,13 @@ fn main() {
     let base_mint_str = std::env::args()
         .nth(1)
         .expect("usage: find_pool <base_mint> [rpc-url]");
-    let base_mint = Pubkey::from_str(&base_mint_str).expect("invalid base_mint pubkey");
+    let base_mint = Address::from_str(&base_mint_str).expect("invalid base_mint pubkey");
     let rpc_url = std::env::args()
         .nth(2)
         .unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
     let client = RpcClient::new_with_timeout(rpc_url, Duration::from_secs(60));
 
-    let pump_amm_program = Pubkey::from_str(PUMP_AMM_PROGRAM_ID).unwrap();
+    let pump_amm_program = Address::from_str(PUMP_AMM_PROGRAM_ID).unwrap();
 
     let config = RpcProgramAccountsConfig {
         filters: Some(vec![
@@ -63,14 +63,14 @@ fn main() {
             let mut o = 8usize;
             let pool_bump = data[o]; o += 1;
             let index = u16::from_le_bytes(data[o..o + 2].try_into().unwrap()); o += 2;
-            let creator = Pubkey::try_from(&data[o..o + 32]).unwrap(); o += 32;
-            let got_base_mint = Pubkey::try_from(&data[o..o + 32]).unwrap(); o += 32;
-            let quote_mint = Pubkey::try_from(&data[o..o + 32]).unwrap(); o += 32;
-            let lp_mint = Pubkey::try_from(&data[o..o + 32]).unwrap(); o += 32;
-            let pool_base_token_account = Pubkey::try_from(&data[o..o + 32]).unwrap(); o += 32;
-            let pool_quote_token_account = Pubkey::try_from(&data[o..o + 32]).unwrap(); o += 32;
+            let creator = Address::try_from(&data[o..o + 32]).unwrap(); o += 32;
+            let got_base_mint = Address::try_from(&data[o..o + 32]).unwrap(); o += 32;
+            let quote_mint = Address::try_from(&data[o..o + 32]).unwrap(); o += 32;
+            let lp_mint = Address::try_from(&data[o..o + 32]).unwrap(); o += 32;
+            let pool_base_token_account = Address::try_from(&data[o..o + 32]).unwrap(); o += 32;
+            let pool_quote_token_account = Address::try_from(&data[o..o + 32]).unwrap(); o += 32;
             let lp_supply = u64::from_le_bytes(data[o..o + 8].try_into().unwrap()); o += 8;
-            let coin_creator = Pubkey::try_from(&data[o..o + 32]).unwrap();
+            let coin_creator = Address::try_from(&data[o..o + 32]).unwrap();
             println!("  pool_bump={pool_bump} index={index}");
             println!("  creator={creator}");
             println!("  base_mint={got_base_mint}");

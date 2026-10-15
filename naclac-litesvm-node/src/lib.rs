@@ -52,6 +52,18 @@ fn to_send_transaction_result(meta: NaclacTransactionMetadata) -> SendTransactio
         signature: meta.signature.to_string(),
         logs: meta.logs,
         compute_units_consumed: BigInt::from(meta.compute_units_consumed),
+        inner_instructions: meta.inner_instructions.map(|calls| {
+            calls
+                .into_iter()
+                .map(|call| InnerInstructionResult {
+                    outer_index: call.outer_index as u32,
+                    stack_height: u32::from(call.stack_height),
+                    program_id: call.program_id.to_string(),
+                    accounts: call.accounts.iter().map(|a| a.to_string()).collect(),
+                    data: Buffer::from(call.data),
+                })
+                .collect()
+        }),
     }
 }
 
@@ -69,11 +81,25 @@ pub struct LatestBlockhashResult {
     pub blockhash: String,
 }
 
+/// One CPI-invoked instruction with its account keys already resolved to
+/// base58 addresses. Mirrors `naclac_client::NaclacInnerInstruction`.
+#[napi(object)]
+pub struct InnerInstructionResult {
+    pub outer_index: u32,
+    pub stack_height: u32,
+    pub program_id: String,
+    pub accounts: Vec<String>,
+    pub data: Buffer,
+}
+
 #[napi(object)]
 pub struct SendTransactionResult {
     pub signature: String,
     pub logs: Vec<String>,
     pub compute_units_consumed: BigInt,
+    /// Absent when the backend couldn't supply inner instructions (which is
+    /// different from present-and-empty: the transaction made no CPIs).
+    pub inner_instructions: Option<Vec<InnerInstructionResult>>,
 }
 
 #[napi(object)]
@@ -212,13 +238,11 @@ impl LiteSvm {
         Ok(BigInt::from(lamports))
     }
 
-    /// `wire_bytes` is a fully-signed transaction already serialized to
-    /// Solana's standard wire format — exactly what
-    /// `getBase64EncodedWireTransaction` (kit) or `.serialize()` (web3.js)
-    /// already produce, so callers on either SDK can pass the same bytes
-    /// straight through with no naclac-specific conversion. litesvm
-    /// executes and finalizes synchronously — there is no separate
-    /// "confirm" step to wait for once this returns.
+    /// `wire_bytes` must be in naclac-litesvm wire format: `[message bytes][sig_0 (64 bytes)]...`.
+    /// This is what `getBase64EncodedWireTransaction` from `@solana/kit` produces.
+    /// `@solana/web3.js` `VersionedTransaction.serialize()` uses `[sig-count][sigs][message]`;
+    /// the TypeScript legacy provider converts it before passing here. litesvm executes
+    /// and finalizes synchronously — there is no separate "confirm" step once this returns.
     #[napi]
     pub fn send_transaction(&self, env: Env, wire_bytes: Buffer) -> Result<SendTransactionResult> {
         let bytes: &[u8] = wire_bytes.as_ref();

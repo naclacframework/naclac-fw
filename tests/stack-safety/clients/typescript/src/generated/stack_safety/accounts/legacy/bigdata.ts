@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { BigData } from "../../types";
 
-/** 8-byte on-chain discriminator for `BigData` accounts. */
+/** On-chain discriminator for `BigData` accounts. */
 export const BIGDATA_DISCRIMINATOR = new Uint8Array([159, 10, 131, 31, 30, 194, 163, 175]);
 
 /** Fetches a `BigData` account. Throws if it does not exist. */

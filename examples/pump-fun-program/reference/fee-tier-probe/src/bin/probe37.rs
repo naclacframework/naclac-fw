@@ -16,7 +16,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -45,8 +45,8 @@ fn isqrt(n: u128) -> u128 {
     x
 }
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -55,11 +55,11 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
-fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
+fn mint_account_data(mint_authority: Option<&Address>, decimals: u8) -> Vec<u8> {
     let mut data = vec![0u8; 82];
     if let Some(auth) = mint_authority {
         data[0..4].copy_from_slice(&1u32.to_le_bytes());
@@ -71,7 +71,7 @@ fn mint_account_data(mint_authority: Option<&Pubkey>, decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64, is_native: Option<u64>) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64, is_native: Option<u64>) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -121,7 +121,7 @@ fn run_case(label: &str, base_amount_in: u64, quote_amount_in: u64) {
     let creator = Keypair::new();
     svm.airdrop(&creator.pubkey(), 100_000_000_000).unwrap();
 
-    let base_mint = Pubkey::new_unique();
+    let base_mint = Address::new_unique();
     svm.set_account(
         base_mint,
         Account { lamports: 10_000_000, data: mint_account_data(Some(&creator.pubkey()), 6), owner: token_program, executable: false, rent_epoch: 0 },
@@ -165,7 +165,7 @@ fn run_case(label: &str, base_amount_in: u64, quote_amount_in: u64) {
     )
     .unwrap();
 
-    let (global_config, _gc_bump) = Pubkey::find_program_address(&[b"global_config"], &pump_amm_program);
+    let (global_config, _gc_bump) = Address::find_program_address(&[b"global_config"], &pump_amm_program);
     svm.set_account(
         global_config,
         Account { lamports: 10_000_000, data: global_config_account_data(), owner: pump_amm_program, executable: false, rent_epoch: 0 },
@@ -173,17 +173,17 @@ fn run_case(label: &str, base_amount_in: u64, quote_amount_in: u64) {
     .unwrap();
 
     let index: u16 = 0;
-    let (pool, _pool_bump) = Pubkey::find_program_address(
+    let (pool, _pool_bump) = Address::find_program_address(
         &[b"pool", &index.to_le_bytes(), creator.pubkey().as_ref(), base_mint.as_ref(), wsol_mint.as_ref()],
         &pump_amm_program,
     );
-    let (lp_mint, _lp_bump) = Pubkey::find_program_address(&[b"pool_lp_mint", pool.as_ref()], &pump_amm_program);
+    let (lp_mint, _lp_bump) = Address::find_program_address(&[b"pool_lp_mint", pool.as_ref()], &pump_amm_program);
     let user_pool_token_account = ata_address(&creator.pubkey(), &lp_mint, &token_2022_program);
     let pool_base_token_account = ata_address(&pool, &base_mint, &token_program);
     let pool_quote_token_account = ata_address(&pool, &wsol_mint, &token_program);
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &pump_amm_program).0;
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &pump_amm_program).0;
 
-    let coin_creator = Pubkey::new_unique();
+    let coin_creator = Address::new_unique();
     let mut data = CREATE_POOL_DISCRIMINATOR.to_vec();
     data.extend_from_slice(&index.to_le_bytes());
     data.extend_from_slice(&base_amount_in.to_le_bytes());

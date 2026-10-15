@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `burn_vault_tokens` instruction. */
+/** Discriminator for the `burn_vault_tokens` instruction. */
 export const BURN_VAULT_TOKENS_DISCRIMINATOR = new Uint8Array([233, 203, 165, 201, 175, 43, 188, 159]);
 
 /** Instruction arguments for `burnVaultTokens`. */
@@ -14,9 +14,9 @@ export interface BurnVaultTokensArgs {
 /** Accounts for the `burnVaultTokens` instruction. */
 export interface BurnVaultTokensAccounts {
   mint: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   vault: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

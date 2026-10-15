@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator prefix for `Child` accounts on-chain. */
+/** Discriminator prefix for `Child` accounts on-chain. */
 export const CHILD_DISCRIMINATOR = new Uint8Array([161, 191, 179, 184, 153, 88, 25, 203]);
 
 /** Auto-generated account interface from the program IDL. */
@@ -12,7 +12,7 @@ export interface Child {
   value: bigint | number;
 }
 
-/** 8-byte discriminator prefix for `ConfigEntry` accounts on-chain. */
+/** Discriminator prefix for `ConfigEntry` accounts on-chain. */
 export const CONFIGENTRY_DISCRIMINATOR = new Uint8Array([27, 123, 205, 1, 39, 158, 208, 211]);
 
 /** Auto-generated account interface from the program IDL. */
@@ -21,7 +21,7 @@ export interface ConfigEntry {
   value: bigint | number;
 }
 
-/** 8-byte discriminator prefix for `Entry` accounts on-chain. */
+/** Discriminator prefix for `Entry` accounts on-chain. */
 export const ENTRY_DISCRIMINATOR = new Uint8Array([63, 18, 152, 113, 215, 246, 221, 250]);
 
 /** Auto-generated account interface from the program IDL. */
@@ -30,7 +30,7 @@ export interface Entry {
   value: bigint | number;
 }
 
-/** 8-byte discriminator prefix for `Registry` accounts on-chain. */
+/** Discriminator prefix for `Registry` accounts on-chain. */
 export const REGISTRY_DISCRIMINATOR = new Uint8Array([47, 174, 110, 246, 184, 182, 252, 218]);
 
 /** Auto-generated account interface from the program IDL. */
@@ -40,7 +40,7 @@ export interface Registry {
   label: string | Uint8Array;
 }
 
-/** 8-byte discriminator prefix for `TaggedChild` accounts on-chain. */
+/** Discriminator prefix for `TaggedChild` accounts on-chain. */
 export const TAGGEDCHILD_DISCRIMINATOR = new Uint8Array([232, 255, 227, 60, 79, 70, 12, 111]);
 
 /** Auto-generated account interface from the program IDL. */

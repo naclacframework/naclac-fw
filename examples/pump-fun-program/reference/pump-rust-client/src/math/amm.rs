@@ -1,6 +1,6 @@
 //! AMM (pump-swap) quote helpers.
 
-use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang::solana_address::Address;
 
 use crate::math::bonding_curve::TOKEN_SUPPLY;
 use crate::math::fees::{ceil_div, compute_amm_fee_bps, creator_fee_amount, fee_amount, AmmFeeBps};
@@ -26,13 +26,13 @@ pub struct SellBaseInputResult {
 
 /// Common AMM trade context. `pool_creator` is the pool's anchor `creator`
 /// field; `coin_creator` is the per-coin creator that receives the
-/// coin-creator fee slice (set to `Pubkey::default()` to skip the slice).
+/// coin-creator fee slice (set to `Address::default()` to skip the slice).
 pub struct AmmContext<'a> {
     pub global_config: &'a GlobalConfig,
     pub fee_config: Option<&'a FeeConfig>,
-    pub base_mint: &'a Pubkey,
-    pub pool_creator: &'a Pubkey,
-    pub coin_creator: &'a Pubkey,
+    pub base_mint: &'a Address,
+    pub pool_creator: &'a Address,
+    pub coin_creator: &'a Address,
     pub base_reserve: u64,
     pub quote_reserve: u64,
     pub base_mint_supply: u64,
@@ -64,7 +64,7 @@ pub fn buy_quote_input(ctx: &AmmContext<'_>, quote_in: u64) -> QuoteResult<BuyQu
         ctx.base_reserve,
         ctx.quote_reserve,
     );
-    let coin_creator_bps = if *ctx.coin_creator == Pubkey::default() {
+    let coin_creator_bps = if *ctx.coin_creator == Address::default() {
         0
     } else {
         creator_fee_bps

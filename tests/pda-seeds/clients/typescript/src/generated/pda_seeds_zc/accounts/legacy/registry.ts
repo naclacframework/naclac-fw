@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { Registry } from "../../types";
 
-/** 8-byte on-chain discriminator for `Registry` accounts. */
+/** On-chain discriminator for `Registry` accounts. */
 export const REGISTRY_DISCRIMINATOR = new Uint8Array([47, 174, 110, 246, 184, 182, 252, 218]);
 
 /** Fetches a `Registry` account. Throws if it does not exist. */

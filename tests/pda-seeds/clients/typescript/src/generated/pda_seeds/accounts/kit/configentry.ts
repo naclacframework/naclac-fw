@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { ConfigEntry } from "../../types";
 
-/** 8-byte on-chain discriminator for `ConfigEntry` accounts. */
+/** On-chain discriminator for `ConfigEntry` accounts. */
 export const CONFIGENTRY_DISCRIMINATOR = new Uint8Array([27, 123, 205, 1, 39, 158, 208, 211]);
+
+function stripConfigEntryDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = CONFIGENTRY_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `ConfigEntry` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link ConfigEntry} account data. */
 export function getConfigEntryEncoder(): naclac.FixedSizeEncoder<ConfigEntry> {
@@ -39,7 +47,7 @@ export function decodeConfigEntry<TAddress extends string = string>(
 ): naclac.Account<ConfigEntry, TAddress> | naclac.MaybeAccount<ConfigEntry, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripConfigEntryDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getConfigEntryDecoder(),
   );
@@ -88,7 +96,7 @@ export async function fetchAllMaybeConfigEntry(
 }
 
 /** Fetches ALL `ConfigEntry` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllConfigEntryByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

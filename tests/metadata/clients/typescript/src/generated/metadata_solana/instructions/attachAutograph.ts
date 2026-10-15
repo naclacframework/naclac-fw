@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_autograph` instruction. */
+/** Discriminator for the `attach_autograph` instruction. */
 export const ATTACH_AUTOGRAPH_DISCRIMINATOR = new Uint8Array([120, 114, 92, 157, 146, 255, 202, 36]);
 
 /** Accounts for the `attachAutograph` instruction. */
 export interface AttachAutographAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The external Metaplex Core program to CPI into.
    * SAFETY: the real Metaplex Core program — external to this workspace.
    */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

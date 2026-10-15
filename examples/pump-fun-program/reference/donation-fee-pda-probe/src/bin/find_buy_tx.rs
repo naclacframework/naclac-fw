@@ -6,7 +6,7 @@
 //!
 //! Usage: cargo run --bin find_buy_tx [-- <rpc-url>]
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_rpc_client_api::config::RpcTransactionConfig;
 use solana_transaction_status_client_types::{EncodedTransaction, UiMessage, UiTransactionEncoding};
@@ -22,7 +22,7 @@ fn main() {
         .unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
     let client = RpcClient::new_with_timeout(rpc_url, Duration::from_secs(60));
 
-    let pump_program = Pubkey::from_str(PUMP_PROGRAM_ID).unwrap();
+    let pump_program = Address::from_str(PUMP_PROGRAM_ID).unwrap();
 
     let sigs = client
         .get_signatures_for_address(&pump_program)

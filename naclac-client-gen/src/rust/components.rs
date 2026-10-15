@@ -94,11 +94,13 @@ pub fn generate_components(
             // --- Borsh-mode declaration: original fields, no padding, no
             // Pod concept at all.
             comp_content.push_str(cfg);
-            comp_content.push_str("#[cfg(feature = \"borsh\")]\n");
+            comp_content.push_str("#[cfg(any(feature = \"borsh\", feature = \"wincode\"))]\n");
             comp_content.push_str(&render_docs(&acc.docs, ""));
             comp_content.push_str(&format!(
-                "#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]\n\
-                 #[borsh(crate = \"{sdk_core}::borsh\")]\n\
+                "#[cfg_attr(feature = \"borsh\", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]\n\
+                 #[cfg_attr(feature = \"borsh\", borsh(crate = \"{sdk_core}::borsh\"))]\n\
+                 #[cfg_attr(feature = \"wincode\", derive(Clone, Debug, {sdk_core}::wincode::SchemaWrite, {sdk_core}::wincode::SchemaRead))]\n\
+                 #[cfg_attr(feature = \"wincode\", wincode(crate = \"{sdk_core}::wincode\"))]\n\
                  pub struct {name} {{\n",
                 sdk_core = sdk_core,
                 name = struct_name
@@ -117,8 +119,21 @@ pub fn generate_components(
             // heap-owning/dynamic field simply couldn't compile there), so
             // — unlike `types/typedefs.rs`'s struct branch — there's no
             // `is_pod` check needed here; this path is unconditional.
+            let zero_copy_field_tys: Vec<String> = acc
+                .ty
+                .fields
+                .iter()
+                .map(|field| {
+                    crate::rust::map_zero_copy_field_type(
+                        &field.ty,
+                        "",
+                        for_cpi,
+                        &idl.defined_types,
+                    )
+                })
+                .collect();
             let mut scratch_fields_src = String::new();
-            for (field, field_ty) in acc.ty.fields.iter().zip(&mapped_field_tys) {
+            for (field, field_ty) in acc.ty.fields.iter().zip(&zero_copy_field_tys) {
                 let field_snake = AsSnakeCase(&field.name).to_string();
                 scratch_fields_src.push_str(&format!("pub {}: {},\n", field_snake, field_ty));
             }
@@ -133,11 +148,12 @@ pub fn generate_components(
             });
             let struct_ident: syn::Ident = syn::parse_str(&struct_name)
                 .expect("component: account struct name must be a valid identifier");
-            let (padded_fields, extra_items) = crate::rust::pod_codegen::pod_struct_checks::generate(
-                &struct_ident,
-                &parsed_struct.fields,
-                sdk_core,
-            );
+            let (padded_fields, extra_items) =
+                crate::rust::pod_codegen::pod_struct_checks::generate(
+                    &struct_ident,
+                    &parsed_struct.fields,
+                    sdk_core,
+                );
             let struct_item_tokens = quote::quote! {
                 #[derive(Copy, Clone, Debug)]
                 #[repr(C)]
@@ -147,7 +163,7 @@ pub fn generate_components(
                 .expect("component: generated account struct item must parse as a syn::File");
 
             comp_content.push_str(cfg);
-            comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+            comp_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
             comp_content.push_str(&render_docs(&acc.docs, ""));
             comp_content.push_str(&prettyplease::unparse(&struct_file));
             comp_content.push('\n');
@@ -164,7 +180,8 @@ pub fn generate_components(
             } else {
                 syn::parse_quote!(#[cfg(feature = "offchain")])
             };
-            let not_borsh_cfg: syn::Attribute = syn::parse_quote!(#[cfg(not(feature = "borsh"))]);
+            let not_borsh_cfg: syn::Attribute =
+                syn::parse_quote!(#[cfg(not(any(feature = "borsh", feature = "wincode")))]);
             for item in &mut extra_file.items {
                 let attrs = match item {
                     syn::Item::Const(c) => &mut c.attrs,
@@ -182,13 +199,13 @@ pub fn generate_components(
             comp_content.push('\n');
 
             comp_content.push_str(cfg);
-            comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+            comp_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
             comp_content.push_str(&format!(
                 "unsafe impl {}::bytemuck::Zeroable for {} {{}}\n",
                 sdk_core, struct_name
             ));
             comp_content.push_str(cfg);
-            comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+            comp_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
             comp_content.push_str(&format!(
                 "unsafe impl {}::bytemuck::Pod for {} {{}}\n",
                 sdk_core, struct_name
@@ -199,7 +216,7 @@ pub fn generate_components(
             // `Struct { field: v, ..Default::default() }` keeps working
             // without knowing the auto-inserted padding field's name.
             comp_content.push_str(cfg);
-            comp_content.push_str("#[cfg(not(feature = \"borsh\"))]\n");
+            comp_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
             comp_content.push_str(&format!(
                 "impl core::default::Default for {1} {{\n    fn default() -> Self {{\n        {0}::bytemuck::Zeroable::zeroed()\n    }}\n}}\n\n",
                 sdk_core, struct_name
@@ -226,8 +243,8 @@ pub fn generate_components(
                 .join(", ");
             let disc_name = acc.name.to_uppercase().replace(' ', "_");
             comp_content.push_str(&format!(
-                "\n/// 8-byte on-chain discriminator for `{}` accounts.\n\
-                 pub const {}_DISCRIMINATOR: [u8; 8] = [{}];\n",
+                "\n/// On-chain discriminator for `{}` accounts.\n\
+                 pub const {}_DISCRIMINATOR: &[u8] = &[{}];\n",
                 acc_camel, disc_name, disc_bytes,
             ));
 
@@ -238,9 +255,9 @@ pub fn generate_components(
             // the real IDL at generation time), not guessed at runtime.
             comp_content.push_str(&format!(
                 r#"#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl naclac_client::NaclacDecode for {acc_camel} {{
-    const DISCRIMINATOR: Option<[u8; 8]> = Some({disc_name}_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some({disc_name}_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {{
         naclac_client::decode_pod_checked::<Self>(data, {disc_name}_DISCRIMINATOR)
     }}
@@ -249,9 +266,18 @@ impl naclac_client::NaclacDecode for {acc_camel} {{
 #[cfg(feature = "offchain")]
 #[cfg(feature = "borsh")]
 impl naclac_client::NaclacDecode for {acc_camel} {{
-    const DISCRIMINATOR: Option<[u8; 8]> = Some({disc_name}_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some({disc_name}_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {{
         naclac_client::decode_borsh_checked::<Self>(data, {disc_name}_DISCRIMINATOR)
+    }}
+}}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "wincode")]
+impl naclac_client::NaclacDecode for {acc_camel} {{
+    const DISCRIMINATOR: Option<&'static [u8]> = Some({disc_name}_DISCRIMINATOR);
+    fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {{
+        naclac_client::decode_wincode_checked::<Self>(data, {disc_name}_DISCRIMINATOR)
     }}
 }}
 "#,
@@ -301,7 +327,7 @@ pub fn fetch_all_{acc_snake}(
     provider: &naclac_client::NaclacProvider,
     program_id: &naclac_client::Address,
 ) -> Result<crate::sdk_core_offchain::Vec<(naclac_client::Address, {acc_camel})>, naclac_client::NaclacClientError> {{
-    let raw_accounts = provider.get_program_accounts(program_id, Some(&{disc_name}_DISCRIMINATOR))?;
+    let raw_accounts = provider.get_program_accounts(program_id, Some({disc_name}_DISCRIMINATOR))?;
     let mut results = crate::sdk_core_offchain::Vec::new();
     for (address, data) in raw_accounts {{
         if let Ok(value) = <{acc_camel} as naclac_client::NaclacDecode>::naclac_decode(&data) {{

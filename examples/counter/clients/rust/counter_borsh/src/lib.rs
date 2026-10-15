@@ -23,7 +23,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("BYFM8wr8RjLM9RDjoAVaMw6YAqSZKxiTYHyggREpr4nS");
+declare_id!("BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1");
 
 #[cfg(feature = "offchain")]
 pub fn get_counter_account_pda(
@@ -31,7 +31,7 @@ pub fn get_counter_account_pda(
 ) -> (naclac_client::Address, u8) {
     naclac_client::Address::find_program_address(
         &[
-            &[99, 111, 117, 110, 116, 101, 114, 95, 118, 50],
+            &[99, 111, 117, 110, 116, 101, 114],
         ],
         program_id,
     )
@@ -44,7 +44,7 @@ pub struct CounterBorsh;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for CounterBorsh {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([156, 150, 24, 197, 130, 255, 149, 99, 58, 163, 68, 21, 228, 177, 253, 48, 120, 95, 201, 203, 8, 218, 107, 186, 186, 27, 194, 37, 26, 175, 112, 239])
+        sdk_core_cpi::Address::new_from_array([2, 164, 153, 101, 66, 25, 53, 85, 125, 16, 176, 218, 210, 238, 230, 132, 182, 192, 19, 210, 8, 98, 174, 204, 16, 122, 159, 190, 194, 96, 106, 26])
     }
 }
 

@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_interest_bearing_mint` instruction. */
+/** Discriminator for the `create_mint2022_with_interest_bearing_mint` instruction. */
 export const CREATE_MINT2022_WITH_INTEREST_BEARING_MINT_DISCRIMINATOR = new Uint8Array([30, 160, 73, 76, 71, 56, 132, 201]);
 
 /** Instruction arguments for `createMint2022WithInterestBearingMint`. */
@@ -22,9 +22,9 @@ export interface CreateMint2022WithInterestBearingMintAccounts {
    * `InterestBearingConfig` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

@@ -83,9 +83,9 @@ pub fn initialize_mint_close_authority_signed(
             None => data.push(0),
         }
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -101,7 +101,7 @@ pub fn initialize_mint_close_authority_signed(
         let ix = ::pinocchio_token_2022::instructions::mint_close_authority::InitializeMintCloseAuthority {
             mint: &mint.info.view,
             close_authority: close_authority.map(|a| a.as_address()),
-            token_program: &program.info.view.address(),
+            token_program: program.info.view.address(),
         };
         ix.invoke()
     }

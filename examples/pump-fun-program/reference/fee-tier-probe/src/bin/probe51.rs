@@ -39,7 +39,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -63,8 +63,8 @@ const BONDING_CURVE_DISCRIMINATOR: [u8; 8] = [23, 183, 248, 55, 96, 216, 172, 96
 // earlier probes this session that decoded real TradeEvent logs.
 const TRADE_EVENT_DISCRIMINATOR: [u8; 8] = [189, 219, 127, 211, 78, 230, 97, 238];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -73,11 +73,11 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -86,7 +86,7 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
     data
 }
 
-fn token_balance_of(svm: &LiteSVM, address: &Pubkey) -> u64 {
+fn token_balance_of(svm: &LiteSVM, address: &Address) -> u64 {
     match svm.get_account(address) {
         Some(acc) if acc.data.len() >= 72 => u64::from_le_bytes(acc.data[64..72].try_into().unwrap()),
         _ => 0,
@@ -99,7 +99,7 @@ fn bonding_curve_account_data(
     real_token_reserves: u64,
     real_quote_reserves: u64,
     token_total_supply: u64,
-    creator: &Pubkey,
+    creator: &Address,
 ) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BONDING_CURVE_DISCRIMINATOR);
@@ -116,12 +116,12 @@ fn bonding_curve_account_data(
     data
 }
 
-fn fetch_account(client: &RpcClient, pubkey: &Pubkey) -> Result<Account, String> {
+fn fetch_account(client: &RpcClient, pubkey: &Address) -> Result<Account, String> {
     let remote = client.get_account(pubkey).map_err(|e| format!("{e:?}"))?;
     Ok(Account {
         lamports: remote.lamports,
         data: remote.data.clone(),
-        owner: Pubkey::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
+        owner: Address::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
         executable: remote.executable,
         rent_epoch: remote.rent_epoch,
     })
@@ -137,7 +137,7 @@ fn decode_trade_event_prefix(data: &[u8]) {
         return;
     }
     let mut o = 0usize;
-    let mint = Pubkey::new_from_array(data[o..o + 32].try_into().unwrap());
+    let mint = Address::new_from_array(data[o..o + 32].try_into().unwrap());
     o += 32;
     let sol_amount = u64::from_le_bytes(data[o..o + 8].try_into().unwrap());
     o += 8;
@@ -145,7 +145,7 @@ fn decode_trade_event_prefix(data: &[u8]) {
     o += 8;
     let is_buy = data[o];
     o += 1;
-    let user = Pubkey::new_from_array(data[o..o + 32].try_into().unwrap());
+    let user = Address::new_from_array(data[o..o + 32].try_into().unwrap());
     o += 32;
     let timestamp = i64::from_le_bytes(data[o..o + 8].try_into().unwrap());
     o += 8;
@@ -157,13 +157,13 @@ fn decode_trade_event_prefix(data: &[u8]) {
     o += 8;
     let real_token_reserves = u64::from_le_bytes(data[o..o + 8].try_into().unwrap());
     o += 8;
-    let fee_recipient = Pubkey::new_from_array(data[o..o + 32].try_into().unwrap());
+    let fee_recipient = Address::new_from_array(data[o..o + 32].try_into().unwrap());
     o += 32;
     let fee_basis_points = u64::from_le_bytes(data[o..o + 8].try_into().unwrap());
     o += 8;
     let fee = u64::from_le_bytes(data[o..o + 8].try_into().unwrap());
     o += 8;
-    let creator = Pubkey::new_from_array(data[o..o + 32].try_into().unwrap());
+    let creator = Address::new_from_array(data[o..o + 32].try_into().unwrap());
     o += 32;
     let creator_fee_basis_points = u64::from_le_bytes(data[o..o + 8].try_into().unwrap());
     o += 8;
@@ -213,32 +213,32 @@ macro_rules! find_and_decode_trade_event {
 }
 
 struct TradeAccounts {
-    global: Pubkey,
-    base_mint: Pubkey,
-    quote_mint: Pubkey,
-    base_token_program: Pubkey,
-    quote_token_program: Pubkey,
-    associated_token_program: Pubkey,
-    fee_recipient: Pubkey,
-    associated_quote_fee_recipient: Pubkey,
-    buyback_fee_recipient: Pubkey,
-    associated_quote_buyback_fee_recipient: Pubkey,
-    bonding_curve: Pubkey,
-    associated_base_bonding_curve: Pubkey,
-    associated_quote_bonding_curve: Pubkey,
-    user: Pubkey,
-    associated_base_user: Pubkey,
-    associated_quote_user: Pubkey,
-    creator_vault: Pubkey,
-    associated_creator_vault: Pubkey,
-    sharing_config: Pubkey,
-    global_volume_accumulator: Pubkey,
-    user_volume_accumulator: Pubkey,
-    associated_user_volume_accumulator: Pubkey,
-    fee_config: Pubkey,
-    fee_program: Pubkey,
-    system_program: Pubkey,
-    program: Pubkey,
+    global: Address,
+    base_mint: Address,
+    quote_mint: Address,
+    base_token_program: Address,
+    quote_token_program: Address,
+    associated_token_program: Address,
+    fee_recipient: Address,
+    associated_quote_fee_recipient: Address,
+    buyback_fee_recipient: Address,
+    associated_quote_buyback_fee_recipient: Address,
+    bonding_curve: Address,
+    associated_base_bonding_curve: Address,
+    associated_quote_bonding_curve: Address,
+    user: Address,
+    associated_base_user: Address,
+    associated_quote_user: Address,
+    creator_vault: Address,
+    associated_creator_vault: Address,
+    sharing_config: Address,
+    global_volume_accumulator: Address,
+    user_volume_accumulator: Address,
+    associated_user_volume_accumulator: Address,
+    fee_config: Address,
+    fee_program: Address,
+    system_program: Address,
+    program: Address,
 }
 
 fn build_ix(accs: &TradeAccounts, data: Vec<u8>, is_buy: bool) -> Instruction {
@@ -271,7 +271,7 @@ fn build_ix(accs: &TradeAccounts, data: Vec<u8>, is_buy: bool) -> Instruction {
     metas.push(AccountMeta::new_readonly(accs.fee_config, false));
     metas.push(AccountMeta::new_readonly(accs.fee_program, false));
     metas.push(AccountMeta::new_readonly(accs.system_program, false));
-    metas.push(AccountMeta::new_readonly(Pubkey::find_program_address(&[b"__event_authority"], &accs.program).0, false));
+    metas.push(AccountMeta::new_readonly(Address::find_program_address(&[b"__event_authority"], &accs.program).0, false));
     metas.push(AccountMeta::new_readonly(accs.program, false));
 
     Instruction { program_id: accs.program, accounts: metas, data }
@@ -296,29 +296,29 @@ fn main() {
     }
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let global_account = fetch_account(&client, &global).expect("fetch global failed");
     svm.set_account(global, global_account.clone()).unwrap();
 
     let real_buyback_basis_points = u64::from_le_bytes(global_account.data[997..1005].try_into().unwrap());
     println!("Real Global.buyback_basis_points (offset 997, decoded directly): {real_buyback_basis_points}");
 
-    let (fee_config, _) = Pubkey::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
+    let (fee_config, _) = Address::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
     let fee_config_account = fetch_account(&client, &fee_config).expect("fetch fee_config failed");
     svm.set_account(fee_config, fee_config_account).unwrap();
 
     let quote_mint_account = fetch_account(&client, &quote_mint).expect("fetch WSOL mint failed");
     svm.set_account(quote_mint, quote_mint_account).unwrap();
 
-    let creator = Pubkey::new_unique();
-    let base_mint = Pubkey::new_unique();
+    let creator = Address::new_unique();
+    let base_mint = Address::new_unique();
     svm.set_account(
         base_mint,
         Account { lamports: 10_000_000, data: { let mut d = vec![0u8; 82]; d[44] = 6; d[45] = 1; d }, owner: base_token_program, executable: false, rent_epoch: 0 },
     )
     .unwrap();
 
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", base_mint.as_ref()], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", base_mint.as_ref()], &pump_program);
     let virtual_token_reserves = 1_073_000_000_000_000u64;
     let virtual_sol_reserves = 30_000_000_000u64;
     let token_total_supply = 1_000_000_000_000_000u64;
@@ -353,7 +353,7 @@ fn main() {
     )
     .unwrap();
 
-    let fee_recipient = Pubkey::try_from(&global_account.data[41..73]).expect("fee_recipient pubkey");
+    let fee_recipient = Address::try_from(&global_account.data[41..73]).expect("fee_recipient pubkey");
     // THE FIX vs. probe50: clone fee_recipient's real, already-rent-exempt
     // mainnet account instead of leaving it nonexistent (0 lamports).
     let fee_recipient_account = fetch_account(&client, &fee_recipient).expect("fetch fee_recipient failed");
@@ -361,7 +361,7 @@ fn main() {
     let associated_quote_fee_recipient = ata_address(&fee_recipient, &quote_mint, &quote_token_program);
 
     let buyback_start = 8 + 733;
-    let buyback_fee_recipient = Pubkey::try_from(&global_account.data[buyback_start..buyback_start + 32]).expect("buyback pubkey");
+    let buyback_fee_recipient = Address::try_from(&global_account.data[buyback_start..buyback_start + 32]).expect("buyback pubkey");
     let buyback_vault_account = fetch_account(&client, &buyback_fee_recipient).expect("fetch buyback vault failed");
     svm.set_account(buyback_fee_recipient, buyback_vault_account).unwrap();
     let associated_quote_buyback_fee_recipient = ata_address(&buyback_fee_recipient, &quote_mint, &quote_token_program);
@@ -371,16 +371,16 @@ fn main() {
     )
     .unwrap();
 
-    let (creator_vault, _) = Pubkey::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
+    let (creator_vault, _) = Address::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
     let associated_creator_vault = ata_address(&creator_vault, &quote_mint, &quote_token_program);
 
-    let (sharing_config, _) = Pubkey::find_program_address(&[b"sharing-config", base_mint.as_ref()], &pump_fees_program);
+    let (sharing_config, _) = Address::find_program_address(&[b"sharing-config", base_mint.as_ref()], &pump_fees_program);
 
-    let (global_volume_accumulator, _) = Pubkey::find_program_address(&[b"global_volume_accumulator"], &pump_program);
+    let (global_volume_accumulator, _) = Address::find_program_address(&[b"global_volume_accumulator"], &pump_program);
     let gva_account = fetch_account(&client, &global_volume_accumulator).expect("fetch global_volume_accumulator failed");
     svm.set_account(global_volume_accumulator, gva_account).unwrap();
 
-    let (user_volume_accumulator, _) = Pubkey::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
+    let (user_volume_accumulator, _) = Address::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
     let associated_user_volume_accumulator = ata_address(&user_volume_accumulator, &quote_mint, &quote_token_program);
     svm.set_account(
         associated_user_volume_accumulator,
@@ -398,7 +398,7 @@ fn main() {
         fee_config, fee_program: pump_fees_program, system_program, program: pump_program,
     };
 
-    let named: Vec<(&str, Pubkey)> = vec![
+    let named: Vec<(&str, Address)> = vec![
         ("global", accs.global), ("base_mint", accs.base_mint), ("quote_mint", accs.quote_mint),
         ("base_token_program", accs.base_token_program), ("quote_token_program", accs.quote_token_program),
         ("associated_token_program", accs.associated_token_program), ("fee_recipient", accs.fee_recipient),
@@ -415,7 +415,7 @@ fn main() {
         ("fee_config", accs.fee_config), ("fee_program", accs.fee_program),
         ("system_program", accs.system_program), ("program", accs.program),
     ];
-    let label_for = |pk: &Pubkey| -> String {
+    let label_for = |pk: &Address| -> String {
         named.iter().find(|(_, addr)| addr == pk).map(|(name, _)| name.to_string()).unwrap_or_else(|| pk.to_string())
     };
 
@@ -428,7 +428,7 @@ fn main() {
     let budget_ix = set_compute_unit_limit_ix(400_000);
     let blockhash = svm.latest_blockhash();
     let msg = Message::new(&[budget_ix, ix], Some(&user.pubkey()));
-    let account_keys: Vec<Pubkey> = msg.account_keys.clone();
+    let account_keys: Vec<Address> = msg.account_keys.clone();
     println!("\n-- Full transaction account_keys (indexed) --");
     for (i, k) in account_keys.iter().enumerate() {
         println!("  [{i}] {} = {}", label_for(k), k);
@@ -506,7 +506,7 @@ fn main() {
     let budget_ix2 = set_compute_unit_limit_ix(400_000);
     let blockhash2 = svm.latest_blockhash();
     let smsg = Message::new(&[budget_ix2, sell_ix], Some(&user.pubkey()));
-    let saccount_keys: Vec<Pubkey> = smsg.account_keys.clone();
+    let saccount_keys: Vec<Address> = smsg.account_keys.clone();
     println!("\n-- Full transaction account_keys (indexed) --");
     for (i, k) in saccount_keys.iter().enumerate() {
         println!("  [{i}] {} = {}", label_for(k), k);

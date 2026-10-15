@@ -29,7 +29,7 @@ use crate::prelude::{ToCpiHandle, ToCpiHandleMut};
 // SOLANA BACKEND
 #[cfg(not(feature = "pinocchio"))]
 mod solana_system {
-    use crate::prelude::{CpiHandle, CpiHandleMut, Result};
+    use crate::prelude::{vec, CpiHandle, CpiHandleMut, Result};
 
     /// The Solana System Program ID (all zeros)
     pub const ID: solana_address::Address = solana_address::Address::new_from_array([
@@ -41,48 +41,35 @@ mod solana_system {
         transfer_signed(from, to, lamports, &[])
     }
 
+    /// Builds the `Transfer` instruction by hand (`Instruction::new_with_bytes`)
+    /// rather than via `solana_system_interface::instruction::transfer`, whose
+    /// `new_with_wincode`/`new_with_bincode` path pulls generic-serializer and
+    /// `Debug`-formatting machinery into the program for four fixed fields.
+    /// Discriminant (2) and account-meta shape verified against the real
+    /// `solana_system_interface::instruction::{SystemInstruction, transfer}`
+    /// source, not guessed.
     pub fn transfer_signed(
         from: CpiHandleMut<'_>,
         to: CpiHandleMut<'_>,
         lamports: u64,
         signer_seeds: &[&[&[u8]]],
     ) -> Result<()> {
-        let ix =
-            solana_system_interface::instruction::transfer(from.info.key, to.info.key, lamports);
+        let accounts = vec![
+            solana_instruction::AccountMeta::new(*from.info.key, true),
+            solana_instruction::AccountMeta::new(*to.info.key, false),
+        ];
+
+        let mut ix_data = [0u8; 12];
+        ix_data[0..4].copy_from_slice(&2u32.to_le_bytes()); // Transfer discriminator = 2
+        ix_data[4..12].copy_from_slice(&lamports.to_le_bytes());
+
+        let ix = solana_instruction::Instruction::new_with_bytes(ID, &ix_data, accounts);
+
         let accounts = [CpiHandle::from(from), CpiHandle::from(to)];
         crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
     }
 
-    #[repr(C)]
-    struct StableAccountMeta {
-        pub pubkey: solana_address::Address,
-        pub is_writable: bool,
-        pub is_signer: bool,
-    }
-
-    #[repr(C)]
-    struct StableVec<T> {
-        pub ptr: *const T,
-        pub len: usize,
-        pub cap: usize,
-    }
-
-    #[repr(C)]
-    struct StableInstruction {
-        pub accounts: StableVec<StableAccountMeta>,
-        pub data: StableVec<u8>,
-        pub program_id: solana_address::Address,
-    }
-
-    extern "C" {
-        fn sol_invoke_signed_rust(
-            instruction_addr: *const u8,
-            account_infos_addr: *const u8,
-            account_infos_len: u64,
-            signers_seeds_addr: *const u8,
-            signers_seeds_len: u64,
-        ) -> u64;
-    }
+    use crate::cpi::stable::{invoke_signed_raw, StableAccountMeta, StableInstruction};
 
     pub fn create_account_unchecked(
         from: CpiHandleMut<'_>,
@@ -123,13 +110,13 @@ mod solana_system {
         let stable_accounts = [
             StableAccountMeta {
                 pubkey: from.info.address(),
-                is_writable: true,
                 is_signer: true,
+                is_writable: true,
             },
             StableAccountMeta {
                 pubkey: to.info.address(),
-                is_writable: true,
                 is_signer: true,
+                is_writable: true,
             },
         ];
 
@@ -139,19 +126,7 @@ mod solana_system {
         ix_data[12..20].copy_from_slice(&space.to_le_bytes());
         ix_data[20..52].copy_from_slice(owner.as_ref());
 
-        let stable_ix = StableInstruction {
-            accounts: StableVec {
-                ptr: stable_accounts.as_ptr(),
-                len: stable_accounts.len(),
-                cap: stable_accounts.len(),
-            },
-            data: StableVec {
-                ptr: ix_data.as_ptr(),
-                len: ix_data.len(),
-                cap: ix_data.len(),
-            },
-            program_id: ID,
-        };
+        let stable_ix = StableInstruction::new(ID, &stable_accounts, &ix_data);
 
         let account_infos = unsafe {
             [
@@ -161,75 +136,7 @@ mod solana_system {
             ]
         };
 
-        unsafe {
-            let result = sol_invoke_signed_rust(
-                &stable_ix as *const StableInstruction as *const u8,
-                account_infos.as_ptr() as *const u8,
-                account_infos.len() as u64,
-                signer_seeds.as_ptr() as *const u8,
-                signer_seeds.len() as u64,
-            );
-            if result != 0 {
-                return Err(solana_program::program_error::ProgramError::Custom(
-                    result as u32,
-                ));
-            }
-        }
-        Ok(())
-    }
-
-    /// Fallback for a target account that already holds lamports (e.g. a
-    /// PDA that received a plain SOL transfer before this instruction ran)
-    /// — plain `CreateAccount` requires a zero-lamport target and fails
-    /// with `AccountAlreadyInUse` otherwise. Uses the real
-    /// `solana_system_interface::instruction::create_account_allow_prefund`
-    /// (SIMD-0312) rather than a hand-rolled `Allocate`+`Assign` sequence,
-    /// since the real instruction already handles crediting the shortfall
-    /// itself in one CPI.
-    fn create_account_allow_prefund_signed(
-        from: CpiHandleMut<'_>,
-        to: CpiHandleMut<'_>,
-        lamports: u64,
-        space: u64,
-        owner: &solana_address::Address,
-        signer_seeds: &[&[&[u8]]],
-    ) -> Result<()> {
-        let current = to.info.lamports();
-        let ix = solana_system_interface::instruction::create_account_allow_prefund(
-            &to.info.address(),
-            Some((&from.info.address(), lamports.saturating_sub(current))),
-            space,
-            owner,
-        );
-        // SAFETY: lifetime-erased for the duration of this CPI only, same
-        // as every other call site in this module.
-        let account_infos = unsafe { [to.info.to_lifetime(), from.info.to_lifetime()] };
-        solana_program::program::invoke_signed(&ix, &account_infos, signer_seeds)
-    }
-
-    /// Checked, prefund-aware `CreateAccount` — the real
-    /// `solana_system_interface::instruction::create_account` builder plus
-    /// the standard `solana_program::program::invoke_signed` (which enforces
-    /// the normal `AccountInfo` borrow rules), instead of this module's own
-    /// lower-level FFI path. Used only when `to` is confirmed empty; see
-    /// `create_account_allow_prefund_signed` for the pre-funded case.
-    fn create_account_checked_empty_signed(
-        from: CpiHandleMut<'_>,
-        to: CpiHandleMut<'_>,
-        lamports: u64,
-        space: u64,
-        owner: &solana_address::Address,
-        signer_seeds: &[&[&[u8]]],
-    ) -> Result<()> {
-        let ix = solana_system_interface::instruction::create_account(
-            &from.info.address(),
-            &to.info.address(),
-            lamports,
-            space,
-            owner,
-        );
-        let account_infos = unsafe { [from.info.to_lifetime(), to.info.to_lifetime()] };
-        solana_program::program::invoke_signed(&ix, &account_infos, signer_seeds)
+        invoke_signed_raw(&stable_ix, &account_infos, signer_seeds)
     }
 
     pub fn create_account(
@@ -243,6 +150,16 @@ mod solana_system {
         create_account_signed(from, to, program, lamports, space, owner, &[])
     }
 
+    /// Checked, prefund-aware account creation. When `to` holds no lamports
+    /// this is the System Program's `CreateAccount` (discriminant 0, accounts
+    /// `[from, to]`, funding `lamports`); otherwise `CreateAccountAllowPrefund`
+    /// (SIMD-0312: discriminant 13, accounts `[to, from]`, funding the
+    /// shortfall `lamports - to.lamports`, saturating at 0). Both are
+    /// `[discriminant: u32, amount: u64, space: u64, owner: [u8; 32]]`, with
+    /// both accounts writable signers, and must stay byte-identical to
+    /// `solana_system_interface::instruction::SystemInstruction`. Fails with
+    /// `AccountBorrowFailed` if either account's lamports or data is borrowed
+    /// elsewhere, as `solana_cpi::invoke_signed` would.
     pub fn create_account_signed(
         from: CpiHandleMut<'_>,
         to: CpiHandleMut<'_>,
@@ -252,11 +169,69 @@ mod solana_system {
         owner: &solana_address::Address,
         signer_seeds: &[&[&[u8]]],
     ) -> Result<()> {
-        if to.info.lamports() > 0 {
-            create_account_allow_prefund_signed(from, to, lamports, space, owner, signer_seeds)
+        let current = **to
+            .info
+            .lamports
+            .try_borrow()
+            .map_err(|_| crate::prelude::ProgramError::AccountBorrowFailed)?;
+        let (discriminant, amount, first, second) = if current == 0 {
+            (0u32, lamports, &from.info, &to.info)
         } else {
-            create_account_checked_empty_signed(from, to, lamports, space, owner, signer_seeds)
+            (
+                13u32,
+                lamports.saturating_sub(current),
+                &to.info,
+                &from.info,
+            )
+        };
+
+        for info in [first, second] {
+            drop(
+                info.lamports
+                    .try_borrow_mut()
+                    .map_err(|_| crate::prelude::ProgramError::AccountBorrowFailed)?,
+            );
+            drop(
+                info.data
+                    .try_borrow_mut()
+                    .map_err(|_| crate::prelude::ProgramError::AccountBorrowFailed)?,
+            );
         }
+
+        let accounts = [
+            StableAccountMeta {
+                pubkey: first.address(),
+                is_signer: true,
+                is_writable: true,
+            },
+            StableAccountMeta {
+                pubkey: second.address(),
+                is_signer: true,
+                is_writable: true,
+            },
+        ];
+        let mut ix_data = [0u8; 52];
+        ix_data[0..4].copy_from_slice(&discriminant.to_le_bytes());
+        ix_data[4..12].copy_from_slice(&amount.to_le_bytes());
+        ix_data[12..20].copy_from_slice(&space.to_le_bytes());
+        ix_data[20..52].copy_from_slice(owner.as_ref());
+        let instruction = StableInstruction::new(ID, &accounts, &ix_data);
+
+        // SAFETY: these are bitwise aliases of the accounts `first` and
+        // `second` point to, which outlive this call, read as the SDK's
+        // `AccountInfo` that `AccountInfoData` mirrors (the same layout
+        // `to_lifetime` transmutes between). They are never dropped
+        // (`ManuallyDrop`), so the `Rc` counts are neither incremented nor
+        // decremented, and they do not escape this function.
+        let infos = core::mem::ManuallyDrop::new(unsafe {
+            [
+                core::ptr::read(first.data_ref() as *const crate::prelude::AccountInfoData
+                    as *const solana_account_info::AccountInfo<'static>),
+                core::ptr::read(second.data_ref() as *const crate::prelude::AccountInfoData
+                    as *const solana_account_info::AccountInfo<'static>),
+            ]
+        });
+        invoke_signed_raw(&instruction, &*infos, signer_seeds)
     }
 }
 
@@ -387,16 +362,16 @@ mod pinocchio_system {
         Ok(())
     }
 
-    /// Checked, prefund-aware `CreateAccount`/`CreateAccountAllowPrefund` —
-    /// goes through the real `pinocchio_system::instructions::{CreateAccount,
-    /// CreateAccountAllowPrefund}` structs directly, both of which perform
-    /// their own `is_borrowed()` check on every account before invoking
-    /// (unlike `create_account_unchecked_raw` above, naclac's own hand-rolled
-    /// `invoke_signed_unchecked` call with no check of its own). Routes to
-    /// the prefund variant when `to` already holds lamports (e.g. a PDA
-    /// pre-funded by a plain SOL transfer before this instruction ran) —
-    /// plain `CreateAccount` requires a zero-lamport target and fails
-    /// otherwise.
+    /// Checked, prefund-aware account creation. When `to` holds no lamports
+    /// this is the System Program's `CreateAccount` (discriminant 0,
+    /// accounts `[from, to]`, funding `lamports`); otherwise it is
+    /// `CreateAccountAllowPrefund` (discriminant 13, accounts `[to]` plus
+    /// `from` only when `to` is short of `lamports`, funding the shortfall).
+    /// Both share the 52-byte data layout `[discriminant: u32, amount: u64,
+    /// space: u64, owner: [u8; 32]]` and must stay byte-identical to
+    /// `pinocchio_system::instructions::{CreateAccount,
+    /// CreateAccountAllowPrefund}`. Fails with `AccountBorrowFailed` if any
+    /// account passed to the CPI has its data borrowed.
     #[inline(always)]
     fn create_account_checked_raw(
         from: &crate::prelude::AccountView,
@@ -406,42 +381,58 @@ mod pinocchio_system {
         owner: &crate::prelude::Address,
         signer_seeds: &[::pinocchio::cpi::Signer],
     ) -> Result<()> {
+        let (from, to) = (*from, *to);
         let current = to.lamports();
-        if current > 0 {
-            // `Funding.lamports` is the amount to *transfer*, i.e. the
-            // shortfall against what the account already holds, not the
-            // full target `lamports`.
-            let shortfall = lamports.saturating_sub(current);
-            ::pinocchio_system::instructions::CreateAccountAllowPrefund {
-                to,
-                space,
-                // The real struct wants pinocchio's own `Address` type, not
-                // naclac's — `as_address()` is the established,
-                // verified-safe bridge between the two (same type at the
-                // byte level, used the same way elsewhere in this
-                // codebase, e.g. `naclac-token/src/extensions/mod.rs`'s
-                // `ix_addr`).
-                owner: owner.as_address(),
-                funding: if shortfall == 0 {
-                    None
+        let (discriminant, amount, first, second, account_count): (u32, u64, _, _, usize) =
+            if current == 0 {
+                if from.is_borrowed() | to.is_borrowed() {
+                    return Err(crate::prelude::ProgramError::AccountBorrowFailed);
+                }
+                (0, lamports, from, to, 2)
+            } else {
+                let shortfall = lamports.saturating_sub(current);
+                if shortfall == 0 {
+                    if to.is_borrowed() {
+                        return Err(crate::prelude::ProgramError::AccountBorrowFailed);
+                    }
+                    (13, 0, to, from, 1)
                 } else {
-                    Some(::pinocchio_system::instructions::Funding {
-                        from,
-                        lamports: shortfall,
-                    })
+                    if to.is_borrowed() | from.is_borrowed() {
+                        return Err(crate::prelude::ProgramError::AccountBorrowFailed);
+                    }
+                    (13, shortfall, to, from, 2)
+                }
+            };
+
+        let ix_accounts = [
+            ::pinocchio::instruction::InstructionAccount::writable_signer(first.address()),
+            ::pinocchio::instruction::InstructionAccount::writable_signer(second.address()),
+        ];
+        let mut ix_data = [0u8; 52];
+        ix_data[0..4].copy_from_slice(&discriminant.to_le_bytes());
+        ix_data[4..12].copy_from_slice(&amount.to_le_bytes());
+        ix_data[12..20].copy_from_slice(&space.to_le_bytes());
+        ix_data[20..52].copy_from_slice(owner.as_ref());
+        let cpi_accounts = [
+            ::pinocchio::cpi::CpiAccount::from(&first),
+            ::pinocchio::cpi::CpiAccount::from(&second),
+        ];
+
+        // SAFETY: `account_count` is 1 or 2, within both arrays; the borrow
+        // check above covers every account included in the call.
+        unsafe {
+            ::pinocchio::cpi::invoke_signed_unchecked(
+                &::pinocchio::instruction::InstructionView {
+                    program_id: &ID,
+                    accounts: core::slice::from_raw_parts(ix_accounts.as_ptr(), account_count),
+                    data: &ix_data,
                 },
-            }
-            .invoke_signed(signer_seeds)
-        } else {
-            ::pinocchio_system::instructions::CreateAccount {
-                from,
-                to,
-                lamports,
-                space,
-                owner: owner.as_address(),
-            }
-            .invoke_signed(signer_seeds)
+                core::slice::from_raw_parts(cpi_accounts.as_ptr(), account_count),
+                signer_seeds,
+            );
         }
+
+        Ok(())
     }
 
     pub fn create_account_unchecked(

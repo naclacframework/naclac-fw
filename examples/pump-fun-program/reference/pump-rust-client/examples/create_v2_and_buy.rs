@@ -3,7 +3,7 @@ mod common;
 
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::native_token::LAMPORTS_PER_SOL;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{Keypair, Signer};
 
 use pump_rust_client::{constants, PumpSdk};
@@ -32,7 +32,7 @@ async fn main() {
             "EX",
             "https://example.com/ex.json",
             user.pubkey(),
-            Pubkey::default(),
+            Address::default(),
             false,
             false,
             None,

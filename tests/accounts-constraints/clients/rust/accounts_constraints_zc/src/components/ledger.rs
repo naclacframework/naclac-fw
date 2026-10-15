@@ -7,16 +7,18 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg(feature = "borsh")]
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct Ledger {
     pub bump: u8,
     pub value: u64,
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct Ledger {
@@ -27,7 +29,7 @@ pub struct Ledger {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __Ledger_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>();
@@ -36,7 +38,7 @@ const __Ledger_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __Ledger_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __Ledger_GAP_0
@@ -57,7 +59,7 @@ const __Ledger_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < Ledger > () == (::core::mem::size_of:: < u8 > () +
@@ -66,7 +68,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
     assert_impl::<u8>();
@@ -74,13 +76,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for Ledger {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for Ledger {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for Ledger {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -88,16 +90,18 @@ impl core::default::Default for Ledger {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(feature = "borsh")]
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct LedgerCpi {
     pub bump: u8,
     pub value: u64,
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct LedgerCpi {
@@ -108,7 +112,7 @@ pub struct LedgerCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __LedgerCpi_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>();
@@ -117,7 +121,7 @@ const __LedgerCpi_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __LedgerCpi_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __LedgerCpi_GAP_0
@@ -138,7 +142,7 @@ const __LedgerCpi_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < LedgerCpi > () == (::core::mem::size_of:: < u8 > () +
@@ -147,7 +151,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
     assert_impl::<u8>();
@@ -155,13 +159,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for LedgerCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for LedgerCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for LedgerCpi {
     fn default() -> Self {
         crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
@@ -169,12 +173,12 @@ impl core::default::Default for LedgerCpi {
 }
 
 
-/// 8-byte on-chain discriminator for `Ledger` accounts.
-pub const LEDGER_DISCRIMINATOR: [u8; 8] = [43, 41, 21, 213, 180, 176, 95, 32];
+/// On-chain discriminator for `Ledger` accounts.
+pub const LEDGER_DISCRIMINATOR: &[u8] = &[43, 41, 21, 213, 180, 176, 95, 32];
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl naclac_client::NaclacDecode for Ledger {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(LEDGER_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(LEDGER_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_pod_checked::<Self>(data, LEDGER_DISCRIMINATOR)
     }
@@ -183,9 +187,18 @@ impl naclac_client::NaclacDecode for Ledger {
 #[cfg(feature = "offchain")]
 #[cfg(feature = "borsh")]
 impl naclac_client::NaclacDecode for Ledger {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(LEDGER_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(LEDGER_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_borsh_checked::<Self>(data, LEDGER_DISCRIMINATOR)
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "wincode")]
+impl naclac_client::NaclacDecode for Ledger {
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(LEDGER_DISCRIMINATOR);
+    fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
+        naclac_client::decode_wincode_checked::<Self>(data, LEDGER_DISCRIMINATOR)
     }
 }
 #[cfg(feature = "offchain")]
@@ -217,7 +230,7 @@ pub fn fetch_all_ledger(
     provider: &naclac_client::NaclacProvider,
     program_id: &naclac_client::Address,
 ) -> Result<crate::sdk_core_offchain::Vec<(naclac_client::Address, Ledger)>, naclac_client::NaclacClientError> {
-    let raw_accounts = provider.get_program_accounts(program_id, Some(&LEDGER_DISCRIMINATOR))?;
+    let raw_accounts = provider.get_program_accounts(program_id, Some(LEDGER_DISCRIMINATOR))?;
     let mut results = crate::sdk_core_offchain::Vec::new();
     for (address, data) in raw_accounts {
         if let Ok(value) = <Ledger as naclac_client::NaclacDecode>::naclac_decode(&data) {

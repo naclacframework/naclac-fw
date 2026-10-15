@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { CounterBorshClient } from "../../clients/typescript/src/generated/counter_borsh";
+import { CounterBorshClient } from "../../clients/typescript/src/generated/counter_borsh/client-kit";
 
 describe("Naclac CounterBorsh Test Suite (Kit)", () => {
   let client: CounterBorshClient;
@@ -8,7 +8,7 @@ describe("Naclac CounterBorsh Test Suite (Kit)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterBorshClient("litesvm", payer);
+    client = new CounterBorshClient("devnet", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 
@@ -46,9 +46,9 @@ describe("Naclac CounterBorsh Test Suite (Kit)", () => {
       throw new Error("Count did not increment correctly");
     }
 
-    // Race-free: reads events straight out of the already-confirmed
-    // transaction's own logs, instead of racing a live subscription.
-    const capturedEvents = client.parseCounterIncrementedEvents(txResult!.logs);
+    // The event is a self-CPI (`emit_cpi!`), so it is in the transaction's
+    // inner instructions, not its logs.
+    const capturedEvents = await client.parseCounterIncrementedEventsFromTransaction(txResult!);
     if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
 
     console.log(`      🔔 Event Fired! New Count: ${capturedEvents[0].newCount}`);

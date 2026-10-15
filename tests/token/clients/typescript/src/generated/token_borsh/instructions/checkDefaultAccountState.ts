@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_default_account_state` instruction. */
+/** Discriminator for the `check_default_account_state` instruction. */
 export const CHECK_DEFAULT_ACCOUNT_STATE_DISCRIMINATOR = new Uint8Array([255, 107, 101, 2, 68, 186, 61, 6]);
 
 /** Instruction arguments for `checkDefaultAccountState`. */

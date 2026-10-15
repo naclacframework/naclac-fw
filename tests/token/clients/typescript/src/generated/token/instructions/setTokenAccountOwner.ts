@@ -3,20 +3,20 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `set_token_account_owner` instruction. */
+/** Discriminator for the `set_token_account_owner` instruction. */
 export const SET_TOKEN_ACCOUNT_OWNER_DISCRIMINATOR = new Uint8Array([234, 23, 62, 251, 44, 39, 183, 236]);
 
 /** Accounts for the `setTokenAccountOwner` instruction. */
 export interface SetTokenAccountOwnerAccounts {
   vault: naclac.Address | string;
-  current_owner: naclac.Address | string;
+  currentOwner: naclac.Address | string;
   /**
    * SAFETY: only used as an address — its own key becomes the vault's new
    * owner via `set_authority_signed` below; its data is never read or
    * deserialized.
    */
-  new_owner: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  newOwner: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

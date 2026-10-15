@@ -23,9 +23,22 @@ export type {
 export {
   encodeInstructionData,
   decodeAccountData,
+  decodeDiscriminatedAccountData,
   getIdlCodec,
 } from "./coder/index";
 export type { NaclacCodec } from "./coder/index";
+
+export {
+  parseEventsFromLogs,
+  parseEventsFromInnerInstructions,
+  parseEventsFromTransaction,
+  resolveRpcInnerInstructions,
+} from "./events";
+export type {
+  NaclacInnerInstruction,
+  NaclacRpcResult,
+  RpcInnerInstructions,
+} from "./events";
 
 export { 
   resolvePdas, 

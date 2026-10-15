@@ -20,7 +20,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -32,8 +32,8 @@ const TOKEN_PROGRAM_ID: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const ASSOCIATED_TOKEN_PROGRAM_ID: &str = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
 const SYSTEM_PROGRAM_ID: &str = "11111111111111111111111111111111";
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn borsh_string(s: &str) -> Vec<u8> {
@@ -45,8 +45,8 @@ fn borsh_string(s: &str) -> Vec<u8> {
 
 struct Ctx {
     svm: LiteSVM,
-    fees_program: Pubkey,
-    pump_program: Pubkey,
+    fees_program: Address,
+    pump_program: Address,
     payer: Keypair,
 }
 
@@ -75,12 +75,12 @@ impl Ctx {
         }
     }
 
-    fn event_authority(&self) -> Pubkey {
-        Pubkey::find_program_address(&[b"__event_authority"], &self.fees_program).0
+    fn event_authority(&self) -> Address {
+        Address::find_program_address(&[b"__event_authority"], &self.fees_program).0
     }
 
-    fn fee_program_global_pda(&self) -> (Pubkey, u8) {
-        Pubkey::find_program_address(&[b"fee-program-global"], &self.fees_program)
+    fn fee_program_global_pda(&self) -> (Address, u8) {
+        Address::find_program_address(&[b"fee-program-global"], &self.fees_program)
     }
 
     /// Injects a self-controlled FeeProgramGlobal at its real PDA address, so
@@ -88,11 +88,11 @@ impl Ctx {
     /// / disable_flags / claim_rate_limit we choose.
     fn seed_fee_program_global(
         &mut self,
-        authority: Pubkey,
+        authority: Address,
         disable_flags: u8,
-        social_claim_authority: Pubkey,
+        social_claim_authority: Address,
         claim_rate_limit: u64,
-    ) -> Pubkey {
+    ) -> Address {
         let (addr, bump) = self.fee_program_global_pda();
         let mut data = Vec::with_capacity(8 + 1 + 32 + 1 + 32 + 8 + 256);
         data.extend_from_slice(&[162, 165, 245, 49, 29, 37, 55, 242]); // FeeProgramGlobal discriminator
@@ -121,7 +121,7 @@ impl Ctx {
     /// testing whether the program cares what address this is at all).
     fn seed_social_fee_pda(
         &mut self,
-        addr: Pubkey,
+        addr: Address,
         bump: u8,
         user_id: &str,
         platform: u8,
@@ -159,8 +159,8 @@ impl Ctx {
     /// spurious InvalidAccountData in the first pass). Just patches the
     /// `admin` field (bytes [9..41], right after discriminator+bump) to a
     /// keypair we hold, so we can sign as admin.
-    fn seed_fee_config(&mut self, admin: Pubkey) -> Pubkey {
-        let (addr, _bump) = Pubkey::find_program_address(
+    fn seed_fee_config(&mut self, admin: Address) -> Address {
+        let (addr, _bump) = Address::find_program_address(
             &[b"fee_config", self.pump_program.as_ref()],
             &self.fees_program,
         );
@@ -250,7 +250,7 @@ fn test_empty_ix(ctx: &mut Ctx) {
 fn test_v1_deprecated(ctx: &mut Ctx) {
     let social_claim_authority = Keypair::new();
     let fee_program_global = ctx.seed_fee_program_global(
-        Pubkey::new_unique(),
+        Address::new_unique(),
         0,
         social_claim_authority.pubkey(),
         0,
@@ -259,7 +259,7 @@ fn test_v1_deprecated(ctx: &mut Ctx) {
     // Now-confirmed seed formula from the #4 probe: [SEED, user_id_bytes, platform_byte].
     let user_id = "testuser";
     let platform: u8 = 0;
-    let (social_fee_pda_addr, bump) = Pubkey::find_program_address(
+    let (social_fee_pda_addr, bump) = Address::find_program_address(
         &[b"social-fee-pda", user_id.as_bytes(), std::slice::from_ref(&platform)],
         &ctx.fees_program,
     );
@@ -295,7 +295,7 @@ fn test_v1_deprecated(ctx: &mut Ctx) {
 /// comment only confirms 0=pump, 1=twitter). Also doubles as a #4 seed probe.
 fn test_platform_validation_and_seed_guess(ctx: &mut Ctx) {
     let fee_program_global =
-        ctx.seed_fee_program_global(Pubkey::new_unique(), 0, Pubkey::new_unique(), 0);
+        ctx.seed_fee_program_global(Address::new_unique(), 0, Address::new_unique(), 0);
 
     let user_id = "seedtest1";
     let platform: u8 = 99;
@@ -356,7 +356,7 @@ fn test_platform_validation_and_seed_guess(ctx: &mut Ctx) {
     ];
 
     for (desc, seeds) in seed_sets {
-        let (addr, _bump) = Pubkey::find_program_address(&seeds, &ctx.fees_program);
+        let (addr, _bump) = Address::find_program_address(&seeds, &ctx.fees_program);
         let mut data = vec![144, 224, 59, 211, 78, 248, 202, 220]; // create_social_fee_pda
         data.extend_from_slice(&borsh_string(user_id));
         data.push(platform);
@@ -382,10 +382,10 @@ fn test_platform_validation_and_seed_guess(ctx: &mut Ctx) {
 /// #5a/#5b: initialize_buyback seed-guessing + authority-default check.
 fn test_buyback(ctx: &mut Ctx) {
     // A minimal SPL Token mint we own the bytes for (Mint layout: 82 bytes:
-    // mint_authority COption<Pubkey>(36) + supply u64(8) + decimals u8(1) +
-    // is_initialized bool(1) + freeze_authority COption<Pubkey>(36) = 82).
-    let mint = Pubkey::new_unique();
-    let mint_authority = Pubkey::new_unique();
+    // mint_authority COption<Address>(36) + supply u64(8) + decimals u8(1) +
+    // is_initialized bool(1) + freeze_authority COption<Address>(36) = 82).
+    let mint = Address::new_unique();
+    let mint_authority = Address::new_unique();
     let mut mint_data = vec![0u8; 82];
     mint_data[0..4].copy_from_slice(&1u32.to_le_bytes()); // COption::Some
     mint_data[4..36].copy_from_slice(mint_authority.as_ref());
@@ -431,8 +431,8 @@ fn test_buyback(ctx: &mut Ctx) {
     ];
 
     for (desc, seeds) in seed_sets {
-        let (vault_addr, _bump) = Pubkey::find_program_address(&seeds, &ctx.fees_program);
-        let (vault_ata, _) = Pubkey::find_program_address(
+        let (vault_addr, _bump) = Address::find_program_address(&seeds, &ctx.fees_program);
+        let (vault_ata, _) = Address::find_program_address(
             &[
                 vault_addr.as_ref(),
                 pk(TOKEN_PROGRAM_ID).as_ref(),
@@ -466,7 +466,7 @@ fn test_buyback(ctx: &mut Ctx) {
         // after the 8-byte discriminator) to answer #5b.
         if let Some(acct) = ctx.svm.get_account(&vault_addr) {
             if acct.data.len() >= 40 {
-                let authority = Pubkey::try_from(&acct.data[8..40]).unwrap();
+                let authority = Address::try_from(&acct.data[8..40]).unwrap();
                 println!(
                     "  -> BuybackVault.authority = {authority} (payer = {}) match_payer={}",
                     ctx.payer.pubkey(),

@@ -39,7 +39,7 @@ export class EventsBorshClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider, false);
+    this.program = new naclac.LegacyProgram(IDL, provider, false, []);
   }
 
   /**
@@ -48,6 +48,14 @@ export class EventsBorshClient {
    */
   public initCounter(args?: Record<string, never>, accounts?: Partial<instructions.InitCounterAccounts>) {
     return instructions.initCounter(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `initCounterUnchecked` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public initCounterUnchecked(args?: Record<string, never>, accounts?: Partial<instructions.InitCounterUncheckedAccounts>) {
+    return instructions.initCounterUnchecked(this.program, args ?? {}, accounts);
   }
 
   /**
@@ -130,6 +138,54 @@ export class EventsBorshClient {
     return instructions.emitViaSolLogDataSized(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `eventCpiSmoke` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiSmoke(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiSmokeAccounts>) {
+    return instructions.eventCpiSmoke(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiEmit` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiEmit(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiEmitAccounts>) {
+    return instructions.eventCpiEmit(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `emitViaSelfCpiNoProgram` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public emitViaSelfCpiNoProgram(args?: Record<string, never>, accounts?: Partial<instructions.EmitViaSelfCpiNoProgramAccounts>) {
+    return instructions.emitViaSelfCpiNoProgram(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiNoop` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiNoop(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiNoopAccounts>) {
+    return instructions.eventCpiNoop(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiLogOne` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiLogOne(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiLogOneAccounts>) {
+    return instructions.eventCpiLogOne(this.program, args ?? {}, accounts);
+  }
+
+  /**
+   * Builds the `eventCpiEmitOne` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public eventCpiEmitOne(args?: Record<string, never>, accounts?: Partial<instructions.EventCpiEmitOneAccounts>) {
+    return instructions.eventCpiEmitOne(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `counter` account. Returns `[PublicKey, bumpSeed]`. */
   public getCounterPda(seeds: {
   }): [naclac.PublicKey, number] {
@@ -185,9 +241,9 @@ export class EventsBorshClient {
     return this.program.waitForEvent<types.CounterIncremented>("CounterIncremented", options);
   }
 
-  /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. */
-  public parseCounterIncrementedEvents(logs: readonly string[]) {
-    return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs);
+  /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseCounterIncrementedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs, innerInstructions);
   }
 
   /** Subscribes to `SizedPayload` events. Returns a listener ID. */
@@ -200,9 +256,9 @@ export class EventsBorshClient {
     return this.program.waitForEvent<types.SizedPayload>("SizedPayload", options);
   }
 
-  /** Decodes every `SizedPayload` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSizedPayload` — prefer this when you already know which transaction you're checking. */
-  public parseSizedPayloadEvents(logs: readonly string[]) {
-    return this.program.parseEvents<types.SizedPayload>("SizedPayload", logs);
+  /** Decodes every `SizedPayload` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSizedPayload` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseSizedPayloadEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.SizedPayload>("SizedPayload", logs, innerInstructions);
   }
 
   /** Removes a registered event listener by its ID. */

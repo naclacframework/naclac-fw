@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { Child } from "../../types";
 
-/** 8-byte on-chain discriminator for `Child` accounts. */
+/** On-chain discriminator for `Child` accounts. */
 export const CHILD_DISCRIMINATOR = new Uint8Array([161, 191, 179, 184, 153, 88, 25, 203]);
+
+function stripChildDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = CHILD_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `Child` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link Child} account data. */
 export function getChildEncoder(): naclac.FixedSizeEncoder<Child> {
@@ -39,7 +47,7 @@ export function decodeChild<TAddress extends string = string>(
 ): naclac.Account<Child, TAddress> | naclac.MaybeAccount<Child, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripChildDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getChildDecoder(),
   );
@@ -88,7 +96,7 @@ export async function fetchAllMaybeChild(
 }
 
 /** Fetches ALL `Child` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllChildByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

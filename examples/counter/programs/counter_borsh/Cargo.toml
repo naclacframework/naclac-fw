@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []
@@ -20,7 +20,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
-counter-borsh-client = { version = "0.1.0", path = "../../clients/rust/counter_borsh", features = ["borsh"] }
+counter-borsh-client = { version = "0.1.0", path = "../../clients/rust/counter_borsh" }
 
 [lints]
 workspace = true

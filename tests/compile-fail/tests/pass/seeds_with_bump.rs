@@ -1,6 +1,6 @@
 #![allow(unexpected_cfgs)]
-// Valid counterpart to tests/fail/17_seeds_missing_bump.rs — bare `bump`
-// satisfies the "seeds requires bump" check.
+// Bare `bump` on an existing `Account<T>` whose component declares a `bump`
+// field reads the stored bump.
 use naclac_lang::prelude::*;
 
 #[derive(Accounts)]

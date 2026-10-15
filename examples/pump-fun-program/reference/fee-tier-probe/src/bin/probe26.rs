@@ -14,7 +14,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -24,8 +24,8 @@ const PUMP_PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
 const ADD_QUOTE_MINT_DISCRIMINATOR: [u8; 8] = [111, 121, 21, 56, 40, 24, 94, 209];
 const GLOBAL_DISCRIMINATOR: [u8; 8] = [167, 232, 232, 177, 200, 108, 114, 127];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -34,7 +34,7 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn global_account_data(authority: &Pubkey, buyback_marker: &Pubkey) -> Vec<u8> {
+fn global_account_data(authority: &Address, buyback_marker: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1);
@@ -71,18 +71,18 @@ fn main() {
 
     let authority = Keypair::new();
     svm.airdrop(&authority.pubkey(), 10_000_000_000).unwrap();
-    let buyback_marker = Pubkey::new_unique();
+    let buyback_marker = Address::new_unique();
     println!("buyback_marker (pre-existing, should stay unchanged if add_quote_mint doesn't touch it) = {buyback_marker}\n");
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account { lamports: 10_000_000, data: global_account_data(&authority.pubkey(), &buyback_marker), owner: pump_program, executable: false, rent_epoch: 0 },
     )
     .unwrap();
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
-    let new_quote_mint = Pubkey::new_unique();
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
+    let new_quote_mint = Address::new_unique();
 
     let mut data = ADD_QUOTE_MINT_DISCRIMINATOR.to_vec();
     data.extend_from_slice(new_quote_mint.as_ref());

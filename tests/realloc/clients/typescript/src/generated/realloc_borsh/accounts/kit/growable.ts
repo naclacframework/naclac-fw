@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { Growable } from "../../types";
 
-/** 8-byte on-chain discriminator for `Growable` accounts. */
+/** On-chain discriminator for `Growable` accounts. */
 export const GROWABLE_DISCRIMINATOR = new Uint8Array([2, 210, 153, 187, 63, 113, 200, 133]);
+
+function stripGrowableDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = GROWABLE_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `Growable` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link Growable} account data. */
 export function getGrowableEncoder(): naclac.FixedSizeEncoder<Growable> {
@@ -39,7 +47,7 @@ export function decodeGrowable<TAddress extends string = string>(
 ): naclac.Account<Growable, TAddress> | naclac.MaybeAccount<Growable, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripGrowableDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getGrowableDecoder(),
   );
@@ -88,7 +96,7 @@ export async function fetchAllMaybeGrowable(
 }
 
 /** Fetches ALL `Growable` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllGrowableByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

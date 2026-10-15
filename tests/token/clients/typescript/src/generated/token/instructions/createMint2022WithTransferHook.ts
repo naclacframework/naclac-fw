@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_transfer_hook` instruction. */
+/** Discriminator for the `create_mint2022_with_transfer_hook` instruction. */
 export const CREATE_MINT2022_WITH_TRANSFER_HOOK_DISCRIMINATOR = new Uint8Array([40, 196, 26, 207, 77, 145, 63, 110]);
 
 /** Instruction arguments for `createMint2022WithTransferHook`. */
@@ -20,9 +20,9 @@ export interface CreateMint2022WithTransferHookAccounts {
    * body below — see `CreateMint2022WithTransferFee::mint`'s SAFETY note.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

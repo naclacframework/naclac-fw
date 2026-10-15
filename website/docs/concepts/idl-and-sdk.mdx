@@ -1,0 +1,239 @@
+---
+title: "Naclac IDL Generation and TypeScript Client SDK Guide"
+sidebarTitle: "IDL & SDK"
+description: "Naclac automatically generates an IDL JSON and a typed TypeScript client SDK on every build, enabling instant frontend and test integration."
+---
+
+Every `naclac build` run produces two artifacts beyond the compiled `.so` binary: a machine-readable Interface Definition Language (IDL) file that describes every instruction, account, event, and error in your program, and a full TypeScript client SDK derived from that IDL. You do not write or maintain the client by hand — it is always in sync with your on-chain program because it is regenerated from the same source of truth on every build.
+
+---
+
+## What Is the IDL?
+
+The IDL is a JSON file written to `target/idl/<program_name>.json` after each successful build. It is the contract between your on-chain program and any off-chain consumer — a frontend, a test suite, a monitoring bot, or another program's client library.
+
+The IDL encodes:
+
+- **`address`** — the program's base-58 public key for the current build target.
+- **`is_zero_copy`** — whether the program was built in Optimized or Pinocchio mode, so clients know to use zero-copy account deserialization.
+- **`metadata`** — name, version, and description sourced from the program crate's `Cargo.toml`.
+- **`instructions`** — every `#[instruction]` handler, including its 8-byte discriminator (derived by hashing the instruction name), its ordered account list with writability/signer/PDA metadata, and its argument types.
+- **`accounts`** — every `#[component]` struct, each with a `name` and a `type` object containing `kind: "struct"` and a `fields` array of name/type pairs.
+- **`events`** — every `#[event]` struct with its discriminator and field layout, enabling typed event subscriptions on the client.
+- **`errors`** — every `#[error_code]` variant with its numeric code and human-readable message.
+- **`constants`** — every `pub const` referenced by a PDA seed or explicitly exported with `#[naclac_export]`, including PDA seed values, so the TypeScript client can derive the same PDAs without hardcoding values. The `value` field is a string representation of the constant (e.g. `"counter_v2"` for `b"counter_v2"`).
+- **`types`** — any shared enums or structs used as instruction arguments or nested account fields.
+
+The discriminator for each instruction is the first 8 bytes of the SHA-256 hash of `"global:<instruction_name>"`. Naclac uses this discriminator to route incoming transactions to the correct handler, and encodes it in the IDL so clients can construct transaction data correctly without a separate registry.
+
+---
+
+## IDL Structure Example
+
+The following snippet shows a representative IDL for a simple counter program with one `initialize` instruction.
+
+```json
+{
+  "address": "<PROGRAM_ID>",
+  "is_zero_copy": false,
+  "metadata": {
+    "name": "my_counter",
+    "version": "0.1.0",
+    "description": ""
+  },
+  "instructions": [
+    {
+      "name": "initialize",
+      "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "counter_account",
+          "writable": true,
+          "signer": false,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [99, 111, 117, 110, 116, 101, 114, 95, 118, 50]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "writable": false,
+          "signer": false,
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Counter",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "count", "type": "u64" },
+          { "name": "bump",  "type": "u8"  }
+        ]
+      }
+    }
+  ],
+  "events": [],
+  "errors": [],
+  "constants": [
+    {
+      "name": "SEED_COUNTER",
+      "type": "bytes",
+      "value": "counter_v2"
+    }
+  ],
+  "types": []
+}
+```
+
+The `pda.seeds` array under `counter_account` mirrors the `seeds = [SEED_COUNTER]` constraint in your Rust accounts struct. The TypeScript client reads this at runtime to derive the PDA address automatically when you call `client.getCounterAccountPda({})`.
+
+---
+
+## TypeScript Client SDK
+
+Running `naclac build` (or `naclac generate` explicitly — see [Regenerating the SDK](#regenerating-the-sdk) below) produces a fully-typed OOP client class at:
+
+```
+clients/src/generated/<program_name>/client.ts
+```
+
+The generated class provides three categories of methods:
+
+### Instruction builders
+
+One method per `#[instruction]` handler. Each method returns a fluent builder that lets you chain `.accounts(...)` overrides, `.signers(...)`, and finally `.rpc()` to send the transaction or `.transaction()` to get an unsigned `Transaction` object.
+
+```typescript
+client.initialize({})
+  .accounts({ payer: payer.address, counterAccount: counterPda })
+  .rpc();
+```
+
+Arguments are passed as a typed object matching the instruction's `args` definition in the IDL. For instructions with no args, pass `{}`.
+
+### Account fetchers
+
+One `fetch<AccountName>(address)` method per `#[component]`. These fetch and decode the account at the given address into a typed object.
+
+```typescript
+const state = await client.fetchCounter(counterPda);
+console.log(state.count); // bigint
+```
+
+In zero-copy programs (`is_zero_copy: true`), the client uses a zero-copy-aware decoder that reads fields at their known byte offsets rather than running a Borsh deserializer loop.
+
+### PDA helpers
+
+One `get<AccountName>Pda(seeds)` method per `#[component]` that has a `seeds` pattern in the IDL. The method accepts a typed seeds object and returns a `Promise<Address>` — the derived PDA address.
+
+```typescript
+const counterPda = await client.getCounterAccountPda({});
+```
+
+### Event listeners
+
+One `waitFor<EventName>(options)` method per `#[event]`. The method subscribes to program logs, parses emitted events by discriminator, and resolves a promise with the first matching event. Pass `timeoutMs` to avoid hanging tests.
+
+```typescript
+const event = await client.waitForCounterIncremented({ timeoutMs: 10000 });
+console.log(event.newCount);
+```
+
+---
+
+## Using the Client in Tests
+
+The TypeScript test file at `tests/<program_name>.test.ts` imports the generated client and the `@naclac-fw/client` runtime. Here is a full example covering initialization, account fetch, and event listening for the counter program:
+
+```typescript
+import * as naclac from "@naclac-fw/client";
+import { MyCounterClient } from "../clients/src/generated/my_counter/client";
+
+describe("my_counter", () => {
+  let client: MyCounterClient;
+  let payer: naclac.KeyPairSigner;
+  let counterPda: naclac.Address;
+
+  before(async () => {
+    payer = await naclac.loadNodeWallet();
+    client = new MyCounterClient("localnet", payer);
+    counterPda = await client.getCounterAccountPda({});
+  });
+
+  it("initializes the counter", async () => {
+    await client
+      .initialize({})
+      .accounts({ payer: payer.address, counterAccount: counterPda })
+      .rpc();
+
+    const state = await client.fetchCounter(counterPda);
+    console.log("Initial count:", state.count);
+  });
+
+  it("increments the counter and emits an event", async () => {
+    // Start listening before sending the transaction
+    const eventPromise = client.waitForCounterIncremented({ timeoutMs: 10000 });
+
+    await client
+      .increment({})
+      .accounts({ authority: payer.address, counterAccount: counterPda })
+      .rpc();
+
+    const event = await eventPromise;
+    console.log("New count from event:", event.newCount);
+
+    const state = await client.fetchCounter(counterPda);
+    console.log("On-chain count:", state.count);
+  });
+});
+```
+
+Run your tests with:
+
+```bash
+naclac test
+```
+
+This command starts a local validator, deploys all programs, runs `[scripts] test` from `Naclac.toml`, and tears down the validator on exit.
+
+---
+
+## Regenerating the SDK
+
+`naclac build` regenerates the client automatically on every successful compilation. If you make changes to instructions or accounts and want to regenerate the client without a full Rust recompile, run:
+
+```bash
+naclac generate
+```
+
+To regenerate the client for a specific program by its program ID:
+
+```bash
+naclac generate <PROGRAM_ID>
+```
+
+Use `naclac generate` after:
+- Adding, removing, or renaming an `#[instruction]` handler.
+- Adding or removing fields from a `#[component]` struct.
+- Adding a new `#[event]` or `#[error_code]`.
+- Changing PDA seed definitions in `constants.rs`.
+
+The command reads the existing IDL from `target/idl/` — it does not recompile your Rust code — so it is fast enough to run on every save during active frontend or test development.
+
+<Tip>
+  **Commit the `clients/` directory to source control.** The generated client at `clients/src/generated/` is the primary integration surface for any consumer of your program — frontends, bots, and other programs' test suites. Committing it means consumers can install your client as an npm package or a Git dependency without needing to run `naclac generate` themselves. Pin the client version alongside your program deployment tags so consumers always have a client that matches the on-chain IDL.
+</Tip>

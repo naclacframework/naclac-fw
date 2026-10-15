@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_token_interface` instruction. */
+/** Discriminator for the `check_token_interface` instruction. */
 export const CHECK_TOKEN_INTERFACE_DISCRIMINATOR = new Uint8Array([115, 104, 120, 251, 228, 88, 185, 115]);
 
 /** Accounts for the `checkTokenInterface` instruction. */

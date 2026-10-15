@@ -7,10 +7,13 @@
 //! account: `InitializeGroup`, `UpdateGroupMaxSize`, `UpdateGroupAuthority`,
 //! `InitializeMember`. Unlike `TokenMetadata`, both `TokenGroup` and
 //! `TokenGroupMember` are fixed-size Pod structs — no reallocation is ever
-//! needed for any of these instructions. Each instruction's data/account
-//! shape is built via `spl-token-group-interface`'s own real
-//! `instruction::*` constructors, the same approach `token_metadata.rs` uses
-//! for `spl-token-metadata-interface`.
+//! needed for any of these instructions. `UpdateGroupMaxSize`/
+//! `InitializeMember` are built via `spl-token-group-interface`'s own real
+//! `instruction::*` constructors; `InitializeGroup`/`UpdateGroupAuthority`
+//! are built directly from that crate's own real structs and
+//! `SPL_DISCRIMINATOR_SLICE` constants instead, since their constructor
+//! functions panic in a way that requires `Debug` and pulls `core::fmt` into
+//! the on-chain binary (see `docs/naclac_token_audit_progress.md` finding #2).
 //!
 //! Both backends: `pinocchio-token-2022` itself covers only the
 //! `GroupPointer`/`GroupMemberPointer` extensions (not the content
@@ -80,14 +83,31 @@ pub fn initialize_token_group_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
-    let ix = spl_token_group_interface::instruction::initialize_group(
-        &super::ix_addr(&program),
-        &super::ix_addr(&group.info),
-        &super::ix_addr(&mint),
-        &super::ix_addr(&mint_authority),
-        update_authority.map(super::ix_addr_ref),
-        max_size,
+    // Hand-rolled in place of `spl_token_group_interface::instruction::initialize_group`,
+    // which internally calls `.expect(...)` on the `MaybeNull` conversion below —
+    // see `docs/naclac_token_audit_progress.md` finding #2.
+    let maybe_update_authority =
+        solana_nullable::MaybeNull::try_from(update_authority.map(super::ix_addr_ref))
+            .unwrap_or_else(|_| panic!("update_authority must not be the zero address"));
+    let data = spl_token_group_interface::instruction::InitializeGroup {
+        update_authority: maybe_update_authority,
+        max_size: max_size.into(),
+    };
+    let mut ix_data =
+        crate::prelude::Vec::with_capacity(8 + core::mem::size_of_val(&data));
+    ix_data.extend_from_slice(
+        <spl_token_group_interface::instruction::InitializeGroup as spl_discriminator::SplDiscriminate>::SPL_DISCRIMINATOR_SLICE,
     );
+    ix_data.extend_from_slice(bytemuck::bytes_of(&data));
+    let ix = solana_instruction::Instruction {
+        program_id: super::ix_addr(&program),
+        accounts: crate::prelude::vec![
+            solana_instruction::AccountMeta::new(super::ix_addr(&group.info), false),
+            solana_instruction::AccountMeta::new_readonly(super::ix_addr(&mint), false),
+            solana_instruction::AccountMeta::new_readonly(super::ix_addr(&mint_authority), true),
+        ],
+        data: ix_data,
+    };
     let accounts = [CpiHandle::from(group), mint, mint_authority, program];
     super::invoke_interface_instruction(&ix, &accounts, signer_seeds)
 }
@@ -140,12 +160,29 @@ pub fn update_token_group_authority_signed(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
-    let ix = spl_token_group_interface::instruction::update_group_authority(
-        &super::ix_addr(&program),
-        &super::ix_addr(&group.info),
-        &super::ix_addr(&current_authority),
-        new_authority.map(super::ix_addr_ref),
+    // Hand-rolled in place of `spl_token_group_interface::instruction::update_group_authority`,
+    // which internally calls `.expect(...)` on the `MaybeNull` conversion below —
+    // see `docs/naclac_token_audit_progress.md` finding #2.
+    let maybe_new_authority =
+        solana_nullable::MaybeNull::try_from(new_authority.map(super::ix_addr_ref))
+            .unwrap_or_else(|_| panic!("new_authority must not be the zero address"));
+    let data = spl_token_group_interface::instruction::UpdateGroupAuthority {
+        new_authority: maybe_new_authority,
+    };
+    let mut ix_data =
+        crate::prelude::Vec::with_capacity(8 + core::mem::size_of_val(&data));
+    ix_data.extend_from_slice(
+        <spl_token_group_interface::instruction::UpdateGroupAuthority as spl_discriminator::SplDiscriminate>::SPL_DISCRIMINATOR_SLICE,
     );
+    ix_data.extend_from_slice(bytemuck::bytes_of(&data));
+    let ix = solana_instruction::Instruction {
+        program_id: super::ix_addr(&program),
+        accounts: crate::prelude::vec![
+            solana_instruction::AccountMeta::new(super::ix_addr(&group.info), false),
+            solana_instruction::AccountMeta::new_readonly(super::ix_addr(&current_authority), true),
+        ],
+        data: ix_data,
+    };
     let accounts = [CpiHandle::from(group), current_authority, program];
     super::invoke_interface_instruction(&ix, &accounts, signer_seeds)
 }

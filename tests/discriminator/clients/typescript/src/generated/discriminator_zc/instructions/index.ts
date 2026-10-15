@@ -4,3 +4,4 @@
 export * from "./initVault";
 export * from "./initConfig";
 export * from "./readVault";
+export * from "./touchConfig";

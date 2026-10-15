@@ -48,7 +48,7 @@ const UPDATE_APP_DATA_IX_LEN: usize = 1 + APP_DATA_KEY_ENCODED_LEN + 3;
 /// A fully-read `AppData` instance — header fields plus the actual data
 /// bytes. On `solana`, `data` is a heap-copied `Vec<u8>` (the account is
 /// only borrowed for the duration of the read). On `pinocchio`, `data` is a
-/// zero-copy `Span<u8>` view directly into the account's own live bytes —
+/// zero-copy `ZcVec<u8>` view directly into the account's own live bytes —
 /// no heap allocation, no artificial size cap, since it reflects however
 /// many bytes are actually stored on-chain.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -58,7 +58,7 @@ pub struct AppDataInfo {
     #[cfg(not(feature = "pinocchio"))]
     pub data: crate::prelude::Vec<u8>,
     #[cfg(feature = "pinocchio")]
-    pub data: Span<u8>,
+    pub data: ZcVec<u8>,
 }
 
 /// Attaches an `AppData` adapter to an `Asset` via `AddExternalPluginAdapterV1`.
@@ -315,7 +315,7 @@ pub fn fetch_collection_app_data(
 /// `solana`-only: `AppDataInfo::data` is a heap `Vec<u8>` on this backend
 /// (see the struct's own doc comment), so this walks the same external
 /// registry `find_external_registry_match` does on `pinocchio`, but copies
-/// the matched data bytes into an owned `Vec` instead of a `Span`.
+/// the matched data bytes into an owned `Vec` instead of a `ZcVec`.
 #[cfg(not(feature = "pinocchio"))]
 fn read_app_data(
     data: &[u8],
@@ -404,7 +404,7 @@ pub fn fetch_asset_app_data(
         return Ok(Some(AppDataInfo {
             data_authority,
             schema,
-            data: Span::new(&[]),
+            data: ZcVec::new(&[]),
         }));
     };
     let end = checked_end(data_offset, data_len)?;
@@ -414,7 +414,7 @@ pub fn fetch_asset_app_data(
     Ok(Some(AppDataInfo {
         data_authority,
         schema,
-        data: Span::new(&data[data_offset..end]),
+        data: ZcVec::new(&data[data_offset..end]),
     }))
 }
 
@@ -458,7 +458,7 @@ pub fn fetch_collection_app_data(
         return Ok(Some(AppDataInfo {
             data_authority,
             schema,
-            data: Span::new(&[]),
+            data: ZcVec::new(&[]),
         }));
     };
     let end = checked_end(data_offset, data_len)?;
@@ -468,7 +468,7 @@ pub fn fetch_collection_app_data(
     Ok(Some(AppDataInfo {
         data_authority,
         schema,
-        data: Span::new(&data[data_offset..end]),
+        data: ZcVec::new(&data[data_offset..end]),
     }))
 }
 
@@ -492,7 +492,10 @@ pub(crate) fn read_plugin_authority(
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
             let bytes: [u8; 32] = data[offset + 1..end].try_into().unwrap();
-            Ok((PluginAuthorityArg::Address(Address::new_from_array(bytes)), 33))
+            Ok((
+                PluginAuthorityArg::Address(Address::new_from_array(bytes)),
+                33,
+            ))
         }
         _ => Err(NaclacError::InvalidInstructionData.err(0)),
     }

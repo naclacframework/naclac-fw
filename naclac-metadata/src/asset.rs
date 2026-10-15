@@ -15,7 +15,7 @@
 //! overflow errors resulted (`docs/07-solana-backend-stack-overflow-fix.md`),
 //! not a hypothetical. `AssetView` hand-walks the real Borsh layout directly
 //! off the account's raw bytes on **both** backends instead — necessarily a
-//! sequential offset walk, not the fixed-stride `Span<T>`/`bytemuck::Pod`
+//! sequential offset walk, not the fixed-stride `ZcVec<T>`/`bytemuck::Pod`
 //! shape naclac-token's TLV extensions use, since `name`/`uri` are
 //! variable-length; per-field offsets are computed once in
 //! `AssetView::try_from`/`from_bytes` and cached, so later accessor calls
@@ -229,9 +229,10 @@ impl<'a> AssetLike for AssetView<'a> {
     fn update_authority(&self) -> UpdateAuthorityKind {
         match self.update_authority_tag {
             0 => UpdateAuthorityKind::None,
-            1 => {
-                UpdateAuthorityKind::Address(read_pubkey(self.data, self.update_authority_pubkey_offset))
-            }
+            1 => UpdateAuthorityKind::Address(read_pubkey(
+                self.data,
+                self.update_authority_pubkey_offset,
+            )),
             _ => UpdateAuthorityKind::Collection(read_pubkey(
                 self.data,
                 self.update_authority_pubkey_offset,
@@ -343,8 +344,7 @@ pub fn create_asset_signed(
         // Option<Vec<..>>(1) }`. Always `DataState::AccountState`(0) with no
         // initial plugins/adapters here — same as the `pinocchio` branch
         // below, which encodes this identical layout by hand already.
-        let mut data =
-            crate::prelude::Vec::with_capacity(2 + 4 + name.len() + 4 + uri.len() + 2);
+        let mut data = crate::prelude::Vec::with_capacity(2 + 4 + name.len() + 4 + uri.len() + 2);
         data.push(20u8); // CreateV2 discriminator
         data.push(0u8); // DataState::AccountState
         data.extend_from_slice(&(name.len() as u32).to_le_bytes());
@@ -355,43 +355,32 @@ pub fn create_asset_signed(
         data.push(0u8); // external_plugin_adapters: None
 
         let accounts_meta = vec![
-            solana_program::instruction::AccountMeta::new(accounts.asset.address(), true),
+            solana_instruction::AccountMeta::new(accounts.asset.address(), true),
             match &accounts.collection {
-                Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(c) => solana_instruction::AccountMeta::new(c.address(), false),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
             match &accounts.authority {
-                Some(a) => {
-                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-            solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
+            solana_instruction::AccountMeta::new(accounts.payer.address(), true),
             match &accounts.owner {
-                Some(o) => {
-                    solana_program::instruction::AccountMeta::new_readonly(o.address(), false)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(o) => solana_instruction::AccountMeta::new_readonly(o.address(), false),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
             match &accounts.update_authority {
-                Some(u) => {
-                    solana_program::instruction::AccountMeta::new_readonly(u.address(), false)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(u) => solana_instruction::AccountMeta::new_readonly(u.address(), false),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-            solana_program::instruction::AccountMeta::new_readonly(
-                accounts.system_program.address(),
-                false,
-            ),
+            solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
             match &accounts.log_wrapper {
-                Some(l) => {
-                    solana_program::instruction::AccountMeta::new_readonly(l.address(), false)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(l) => solana_instruction::AccountMeta::new_readonly(l.address(), false),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
         ];
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: crate::ID,
             accounts: accounts_meta,
             data,
@@ -399,18 +388,13 @@ pub fn create_asset_signed(
 
         let cpi_accounts = [
             CpiHandle::from(accounts.asset),
-            accounts
-                .collection
-                .map(CpiHandle::from)
-                .unwrap_or_else(|| program.clone()),
-            accounts.authority.unwrap_or_else(|| program.clone()),
+            accounts.collection.map(CpiHandle::from).unwrap_or(program),
+            accounts.authority.unwrap_or(program),
             CpiHandle::from(accounts.payer),
-            accounts.owner.unwrap_or_else(|| program.clone()),
-            accounts
-                .update_authority
-                .unwrap_or_else(|| program.clone()),
+            accounts.owner.unwrap_or(program),
+            accounts.update_authority.unwrap_or(program),
             accounts.system_program,
-            accounts.log_wrapper.unwrap_or_else(|| program.clone()),
+            accounts.log_wrapper.unwrap_or(program),
             program,
         ];
         crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
@@ -471,7 +455,9 @@ pub fn create_asset_signed(
             ::pinocchio::instruction::InstructionAccount::writable_signer(
                 payer_handle.info.view.address(),
             ),
-            ::pinocchio::instruction::InstructionAccount::readonly(owner_handle.info.view.address()),
+            ::pinocchio::instruction::InstructionAccount::readonly(
+                owner_handle.info.view.address(),
+            ),
             ::pinocchio::instruction::InstructionAccount::readonly(
                 update_authority_handle.info.view.address(),
             ),

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `cancel` instruction. */
+/** Discriminator for the `cancel` instruction. */
 export const CANCEL_DISCRIMINATOR = new Uint8Array([232, 219, 223, 41, 219, 236, 220, 190]);
 
 /** Instruction arguments for `cancel`. */

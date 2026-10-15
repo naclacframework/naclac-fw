@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_group_pointer` instruction. */
+/** Discriminator for the `create_mint2022_with_group_pointer` instruction. */
 export const CREATE_MINT2022_WITH_GROUP_POINTER_DISCRIMINATOR = new Uint8Array([22, 124, 81, 51, 16, 218, 147, 158]);
 
 /** Instruction arguments for `createMint2022WithGroupPointer`. */
@@ -22,9 +22,9 @@ export interface CreateMint2022WithGroupPointerAccounts {
    * `GroupPointer` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

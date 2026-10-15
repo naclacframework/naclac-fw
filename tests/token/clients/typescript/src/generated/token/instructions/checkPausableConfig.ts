@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_pausable_config` instruction. */
+/** Discriminator for the `check_pausable_config` instruction. */
 export const CHECK_PAUSABLE_CONFIG_DISCRIMINATOR = new Uint8Array([248, 215, 7, 252, 136, 203, 211, 202]);
 
 /** Instruction arguments for `checkPausableConfig`. */
 export interface CheckPausableConfigArgs {
-  expected_authority: naclac.Address | string | null;
-  expected_paused: number;
+  expectedAuthority: naclac.Address | string | null;
+  expectedPaused: number;
 }
 
 /** Accounts for the `checkPausableConfig` instruction. */

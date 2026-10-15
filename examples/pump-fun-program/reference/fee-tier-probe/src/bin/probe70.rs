@@ -12,7 +12,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -36,8 +36,8 @@ const BONDING_CURVE_DISCRIMINATOR: [u8; 8] = [23, 183, 248, 55, 96, 216, 172, 96
 const CREATE_FEE_SHARING_CONFIG_DISCRIMINATOR: [u8; 8] = [195, 78, 86, 76, 111, 52, 251, 213];
 const SHARING_CONFIG_DISCRIMINATOR: [u8; 8] = [216, 74, 9, 0, 56, 140, 93, 75];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -55,7 +55,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
 
 // Real, confirmed 24-field `Global` (probe21.rs), authority = whoever we
 // pass so `payer` can also double as `bonding_curve.creator` below.
-fn global_account_data(authority: &Pubkey) -> Vec<u8> {
+fn global_account_data(authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1);
@@ -83,7 +83,7 @@ fn global_account_data(authority: &Pubkey) -> Vec<u8> {
 }
 
 // Real `BondingCurve` (probe23.rs), `creator` set to whoever we pass.
-fn bonding_curve_account_data(creator: &Pubkey) -> Vec<u8> {
+fn bonding_curve_account_data(creator: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BONDING_CURVE_DISCRIMINATOR);
     data.extend_from_slice(&1_073_000_000_000_000u64.to_le_bytes()); // virtual_token_reserves
@@ -116,21 +116,21 @@ fn main() {
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
 
-    let mint = Pubkey::new_unique();
+    let mint = Address::new_unique();
     svm.set_account(mint, Account { lamports: 10_000_000, data: mint_account_data(6), owner: token_program, executable: false, rent_epoch: 0 }).unwrap();
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(global, Account { lamports: 10_000_000, data: global_account_data(&payer.pubkey()), owner: pump_program, executable: false, rent_epoch: 0 }).unwrap();
 
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
     svm.set_account(
         bonding_curve,
         Account { lamports: 10_000_000, data: bonding_curve_account_data(&payer.pubkey()), owner: pump_program, executable: false, rent_epoch: 0 },
     ).unwrap();
 
-    let (sharing_config, _) = Pubkey::find_program_address(&[b"sharing-config", mint.as_ref()], &pump_fees_program);
-    let (pump_event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
-    let (pump_fees_event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_fees_program);
+    let (sharing_config, _) = Address::find_program_address(&[b"sharing-config", mint.as_ref()], &pump_fees_program);
+    let (pump_event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
+    let (pump_fees_event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_fees_program);
 
     println!("sharing_config PDA = {sharing_config}");
     println!("(before call) exists = {}", svm.get_account(&sharing_config).is_some());

@@ -37,6 +37,48 @@ pub fn map_type_to_rust_cpi(
     map_type_to_rust_inner(idl_type, is_zero_copy, defined_prefix, true)
 }
 
+/// The Rust type of a field of a *zero-copy* struct (a component, a fixed
+/// event, a defined struct): like the two mappers above, except that a defined
+/// enum, also as the element of an array, becomes `ZcEnum<Enum>`. A bare enum
+/// is never `Pod`, so a zero-copy struct stores it in that byte container, as
+/// the program's own source does. An enum inside another enum's variant, and
+/// an instruction argument, stay the plain enum.
+pub fn map_zero_copy_field_type(
+    idl_type: &serde_json::Value,
+    defined_prefix: &str,
+    for_cpi: bool,
+    defined_types: &[crate::IdlType],
+) -> String {
+    let plain = |ty: &serde_json::Value| {
+        if for_cpi {
+            map_type_to_rust_cpi(ty, true, defined_prefix)
+        } else {
+            map_type_to_rust_with_prefix(ty, true, defined_prefix)
+        }
+    };
+    let Some(object) = idl_type.as_object() else {
+        return plain(idl_type);
+    };
+    if let Some(arr) = object.get("array") {
+        if let (Some(inner), Some(len)) = (arr.get(0), arr.get(1).and_then(|v| v.as_u64())) {
+            return format!(
+                "[{}; {}]",
+                map_zero_copy_field_type(inner, defined_prefix, for_cpi, defined_types),
+                len
+            );
+        }
+    }
+    if let Some(name) = object.get("defined").and_then(|d| d.as_str()) {
+        let is_enum = defined_types
+            .iter()
+            .any(|t| t.name == name && matches!(t.ty, crate::IdlTypeDefVariants::Enum { .. }));
+        if is_enum {
+            return format!("{}::ZcEnum<{}>", sdk_core_alias(for_cpi), plain(idl_type));
+        }
+    }
+    plain(idl_type)
+}
+
 /// Which `sdk_core` alias a generated type reference should resolve
 /// through. `naclac_client` (offchain) and `naclac_lang::prelude` (cpi) each
 /// define their *own* `Address`/`Bool` (and, for `Address` under pinocchio, a
@@ -63,6 +105,9 @@ fn map_type_to_rust_inner(
     let sdk_core = sdk_core_alias(for_cpi);
     match idl_type {
         serde_json::Value::String(s) => match s.as_str() {
+            // A Rust `bool` is not `Pod`; a zero-copy layout carries the same
+            // single 0/1 byte as naclac's `Bool`.
+            "bool" if is_zero_copy => format!("{}::Bool", sdk_core),
             "u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32" | "i64" | "i128"
             | "f32" | "f64" | "usize" | "isize" | "bool" => s.to_string(),
             "string" | "String" => {
@@ -186,6 +231,21 @@ pub fn has_dynamic_args(ix: &crate::IdlInstruction, defined_types: &[crate::IdlT
 /// immediately, since the native and wire sizes disagree and every field
 /// after it lands at the wrong offset.
 pub fn is_type_pod(ty: &serde_json::Value, defined_types: &[crate::IdlType]) -> bool {
+    is_type_pod_impl(ty, defined_types, false)
+}
+
+/// Like `is_type_pod`, but treats a defined-type enum as Pod-compatible. A
+/// zero-copy struct field holding an enum is emitted as `ZcEnum<E>`, which
+/// is itself `Pod` even though `E` is not.
+pub fn is_zero_copy_struct_pod(ty: &serde_json::Value, defined_types: &[crate::IdlType]) -> bool {
+    is_type_pod_impl(ty, defined_types, true)
+}
+
+fn is_type_pod_impl(
+    ty: &serde_json::Value,
+    defined_types: &[crate::IdlType],
+    enums_are_pod: bool,
+) -> bool {
     match ty {
         serde_json::Value::String(s) => {
             !matches!(s.as_str(), "string" | "String" | "bytes" | "&[u8]" | "[u8]")
@@ -200,7 +260,7 @@ pub fn is_type_pod(ty: &serde_json::Value, defined_types: &[crate::IdlType]) -> 
             if let Some(arr) = o.get("array") {
                 return arr
                     .get(0)
-                    .is_none_or(|inner| is_type_pod(inner, defined_types));
+                    .is_none_or(|inner| is_type_pod_impl(inner, defined_types, enums_are_pod));
             }
             if let Some(defined) = o.get("defined").and_then(|d| d.as_str()) {
                 if defined == "Bool" {
@@ -218,10 +278,10 @@ pub fn is_type_pod(ty: &serde_json::Value, defined_types: &[crate::IdlType]) -> 
                         // defined-type enum through `bytes_of_checked_bit_
                         // pattern` instead of `bytemuck::bytes_of`
                         // accordingly.
-                        crate::IdlTypeDefVariants::Enum { .. } => false,
-                        crate::IdlTypeDefVariants::Struct { fields } => {
-                            fields.iter().all(|f| is_type_pod(&f.ty, defined_types))
-                        }
+                        crate::IdlTypeDefVariants::Enum { .. } => enums_are_pod,
+                        crate::IdlTypeDefVariants::Struct { fields } => fields
+                            .iter()
+                            .all(|f| is_type_pod_impl(&f.ty, defined_types, enums_are_pod)),
                     },
                     None => true,
                 };
@@ -246,7 +306,9 @@ pub fn render_docs(docs: &[String], indent: &str) -> String {
 pub enum ArgWireKind {
     Pod,
     DynamicString,
-    DynamicVec { inner_is_u8: bool },
+    DynamicVec {
+        inner_is_u8: bool,
+    },
     /// `Option<T>` — the `NaclacPod` blanket impl requires `T: NaclacPod`,
     /// so `T` is always one of the leaf types (`u8..u128`, `Bool`, `Address`,
     /// `[u8; N]`) covered by `impl_naclac_pod!`/the array impl, never a
@@ -308,7 +370,10 @@ fn write_field_bytes(
                         if let Some(td) = defined_types.iter().find(|t| t.name == defined) {
                             match &td.ty {
                                 crate::IdlTypeDefVariants::Struct { fields } => {
-                                    if fields.iter().any(|f| !is_type_pod(&f.ty, defined_types)) {
+                                    if fields
+                                        .iter()
+                                        .any(|f| !is_zero_copy_struct_pod(&f.ty, defined_types))
+                                    {
                                         for f in fields {
                                             let f_snake = heck::AsSnakeCase(&f.name).to_string();
                                             let nested_expr = format!("{}.{}", expr, f_snake);
@@ -371,7 +436,11 @@ fn write_field_bytes(
             // bytes must be read through `bytes_of_checked_bit_pattern`
             // instead of `bytemuck::bytes_of` whenever the inner type is
             // one — `bytemuck::bytes_of` would fail to compile against it.
-            let inner_is_enum = match inner_ty_json.as_object().and_then(|o| o.get("defined")).and_then(|d| d.as_str()) {
+            let inner_is_enum = match inner_ty_json
+                .as_object()
+                .and_then(|o| o.get("defined"))
+                .and_then(|d| d.as_str())
+            {
                 Some(defined) => defined_types
                     .iter()
                     .find(|t| t.name == defined)
@@ -403,15 +472,50 @@ fn write_field_bytes(
                 let inner_ty_json = ty
                     .get("vec")
                     .expect("DynamicVec classification guarantees a \"vec\" key");
+                // `Vec<String>` / `Vec<Vec<u8>>`: an element count, then each item as
+                // its own u32 byte length and bytes, matching `read_length_prefixed_items`.
+                let item_bytes = if inner_ty_json.as_str() == Some("string") {
+                    Some("__item.as_bytes()")
+                } else if inner_ty_json.get("vec").and_then(|v| v.as_str()) == Some("u8") {
+                    Some("&__item[..]")
+                } else {
+                    None
+                };
+                if let Some(item_bytes) = item_bytes {
+                    writes.push_str(&format!(
+                        "        ix_data.extend_from_slice(&({0}.len() as u32).to_le_bytes());\n        for __item in {0}.iter() {{\n            ix_data.extend_from_slice(&(__item.len() as u32).to_le_bytes());\n            ix_data.extend_from_slice({1});\n        }}\n",
+                        expr, item_bytes
+                    ));
+                    return;
+                }
                 let inner_ty_str = if for_cpi {
                     map_type_to_rust_cpi(inner_ty_json, is_zero_copy, "crate::types::")
                 } else {
                     map_type_to_rust_with_prefix(inner_ty_json, is_zero_copy, "crate::types::")
                 };
-                let elem_ref = if for_cpi { "&__elem" } else { "__elem" };
+                let inner_is_enum = inner_ty_json
+                    .as_object()
+                    .and_then(|o| o.get("defined"))
+                    .and_then(|d| d.as_str())
+                    .is_some_and(|defined| {
+                        defined_types
+                            .iter()
+                            .find(|t| t.name == defined)
+                            .is_some_and(|td| {
+                                matches!(td.ty, crate::IdlTypeDefVariants::Enum { .. })
+                            })
+                    });
+                // `.iter()` yields `&T`, which is what the checked-bytes helper takes; a
+                // client enum is `CheckedBitPattern` only, so `bytemuck::bytes_of` would not compile.
+                let element_bytes = if inner_is_enum {
+                    format!("{}::bytes_of_checked_bit_pattern(__elem)", sdk_core)
+                } else {
+                    let elem_ref = if for_cpi { "&__elem" } else { "__elem" };
+                    format!("{}::bytemuck::bytes_of({})", sdk_core, elem_ref)
+                };
                 writes.push_str(&format!(
-                    "        ix_data.extend_from_slice(&(({0}.len() * core::mem::size_of::<{3}>()) as u32).to_le_bytes());\n        for __elem in {0}.iter() {{\n            ix_data.extend_from_slice({1}::bytemuck::bytes_of({2}));\n        }}\n",
-                    expr, sdk_core, elem_ref, inner_ty_str
+                    "        ix_data.extend_from_slice(&(({0}.len() * core::mem::size_of::<{2}>()) as u32).to_le_bytes());\n        for __elem in {0}.iter() {{\n            ix_data.extend_from_slice({1});\n        }}\n",
+                    expr, element_bytes, inner_ty_str
                 ));
             }
         }
@@ -484,15 +588,15 @@ pub fn references_defined_type(ty: &serde_json::Value) -> bool {
 /// Collects the name of every `definedTypes` entry `ty` references (deduped,
 /// first-seen order), recursing through `option`/`vec`/`array` wrapping —
 /// used to build a precise `import { ... } from "./typedefs"` list rather
-/// than importing every defined type the whole program has. Same `Bool`/
-/// `Opt*` exclusion as `references_defined_type`: those resolve through
-/// the SDK core or get inlined, never through a `typedefs` import.
+/// than importing every defined type the whole program has. Same `Bool`
+/// exclusion as `references_defined_type`: it resolves through the SDK
+/// core, never through a `typedefs` import.
 pub fn collect_defined_type_names(ty: &serde_json::Value, out: &mut Vec<String>) {
     let serde_json::Value::Object(o) = ty else {
         return;
     };
     if let Some(defined) = o.get("defined").and_then(|d| d.as_str()) {
-        if defined != "Bool" && !defined.starts_with("Opt") && !out.iter().any(|n| n == defined) {
+        if defined != "Bool" && !out.iter().any(|n| n == defined) {
             out.push(defined.to_string());
         }
         return;
@@ -523,6 +627,12 @@ pub fn generate_rust_sdk(
             .filter(|s| !s.is_empty())
             .collect();
     }
+    let wincode_marker =
+        crate::paths::resolve_target_dir(workspace_root).join(format!(".{}-wincode", program_name));
+    if wincode_marker.exists() {
+        idl.is_wincode = true;
+        idl.is_zero_copy = false;
+    }
 
     let program_name_snake = AsSnakeCase(program_name).to_string();
     let program_name_kebab = program_name.replace("_", "-");
@@ -544,7 +654,9 @@ pub fn generate_rust_sdk(
 
     let header = "// 🛑 DO NOT EDIT - AUTO-GENERATED BY NACLAC\n// Re-run `naclac generate` to refresh this file.\n\n";
 
-    let default_features = if idl.is_zero_copy {
+    let default_features = if idl.is_wincode {
+        r#"default = ["offchain", "wincode"]"#
+    } else if idl.is_zero_copy {
         r#"default = ["offchain"]"#
     } else {
         r#"default = ["offchain", "borsh"]"#
@@ -566,6 +678,7 @@ cpi = ["dep:naclac-lang"]
 zero_copy = ["naclac-lang/solana"]
 pinocchio = ["naclac-lang/pinocchio"]
 borsh = ["naclac-lang/borsh", "zero_copy"]
+wincode = ["naclac-lang/wincode", "zero_copy"]
 
 [dependencies]
 naclac-client = {{ version = "0.1.0", optional = true{naclac_client_path} }}

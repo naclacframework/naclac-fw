@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_authority` instruction. */
+/** Discriminator for the `check_authority` instruction. */
 export const CHECK_AUTHORITY_DISCRIMINATOR = new Uint8Array([150, 20, 117, 137, 30, 218, 200, 87]);
 
 /** Accounts for the `checkAuthority` instruction. */

@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use events_borsh_client::{
     instructions::{
         build_emit_via_self_cpi_sized, build_emit_via_sol_log_data_sized,
@@ -13,7 +13,7 @@ fn setup() -> NaclacProvider {
 }
 
 /// Real, measured CU cost of both emit mechanisms across a range of payload
-/// sizes â€” answers whether CU scales with payload size, and if so how, for
+/// sizes — answers whether CU scales with payload size, and if so how, for
 /// self-CPI vs. `sol_log_data` under solana-program+borsh. Every call reuses
 /// the same fresh `provider`/blockhash per size so results aren't polluted
 /// by replay-avoidance retries.

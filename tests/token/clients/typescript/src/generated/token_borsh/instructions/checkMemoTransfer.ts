@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_memo_transfer` instruction. */
+/** Discriminator for the `check_memo_transfer` instruction. */
 export const CHECK_MEMO_TRANSFER_DISCRIMINATOR = new Uint8Array([111, 90, 98, 4, 185, 241, 187, 85]);
 
 /** Instruction arguments for `checkMemoTransfer`. */

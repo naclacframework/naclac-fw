@@ -284,15 +284,13 @@ pub fn execute(target_file: Option<&str>, run_order: bool) {
                                 if program_id == target_pid {
                                     let mut instruction_name = "Unknown".to_string();
                                     if let Ok(data_bytes) = hex::decode(data_hex) {
-                                        if data_bytes.len() >= 8 {
-                                            let mut disc = [0u8; 8];
-                                            disc.copy_from_slice(&data_bytes[0..8]);
-                                            for idl in &idls {
-                                                for idl_ix in &idl.instructions {
-                                                    if idl_ix.discriminator == disc {
-                                                        instruction_name = idl_ix.name.clone();
-                                                        break;
-                                                    }
+                                        for idl in &idls {
+                                            for idl_ix in &idl.instructions {
+                                                if !idl_ix.discriminator.is_empty()
+                                                    && data_bytes.starts_with(&idl_ix.discriminator)
+                                                {
+                                                    instruction_name = idl_ix.name.clone();
+                                                    break;
                                                 }
                                             }
                                         }

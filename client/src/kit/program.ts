@@ -2,11 +2,17 @@ import type { NaclacIdl } from "../idl";
 import type { NaclacProvider } from "./provider";
 import { MethodsBuilder } from "./methods";
 import { AccountFetcher } from "./account";
-import { address, type Address } from "@solana/kit";
+import { address, getProgramDerivedAddress, type Address } from "@solana/kit";
 
-import { getDiscriminator } from "../utils/hash";
+import { resolveDiscriminator } from "../utils/hash";
 import { resolvePdas } from "../utils/pda";
-import { tryDecodeEventLog, parseEventsFromLogs } from "../events";
+import {
+  tryDecodeEventLog,
+  parseEventsFromLogs,
+  parseEventsFromTransaction,
+  eventFieldLayout,
+  type NaclacInnerInstruction,
+} from "../events";
 
 export type IdlInstructionName<T extends NaclacIdl> =
   T["instructions"][number]["name"];
@@ -21,6 +27,8 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
   readonly provider: NaclacProvider;
   /** See the constructor's own doc comment — a codegen-time-only fact, never part of `idl`. */
   readonly isZeroCopy: boolean;
+  /** Names of this program's `#[event(alloc)]` events — also a codegen-time-only fact. */
+  readonly allocEvents: readonly string[];
 
   readonly methods: {
     [Name in IdlInstructionName<TIdl>]: (
@@ -117,19 +125,27 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
    * never round-tripped through IDL data. Determines whether a
    * `definedTypes` struct/enum's wire layout is real C-layout-with-padding
    * or tightly-packed Borsh — see `client/src/coder/types.ts`'s
-   * `getIdlCodec`.
+   * `getIdlCodec`. `allocEvents` is the same kind of fact: which events are
+   * `#[event(alloc)]` (sequentially encoded, not a fixed struct) in a
+   * zero-copy program.
    */
-  constructor(idl: TIdl, provider: NaclacProvider, isZeroCopy = false) {
+  constructor(
+    idl: TIdl,
+    provider: NaclacProvider,
+    isZeroCopy = false,
+    allocEvents: readonly string[] = [],
+  ) {
     this.idl = idl;
     this.provider = provider;
     this.isZeroCopy = isZeroCopy;
+    this.allocEvents = allocEvents;
 
     this.methods = {} as any;
     for (const ixDef of idl.instructions) {
       (this.methods as any)[ixDef.name] = (
         args: Record<string, unknown> = {},
       ) => {
-        return new MethodsBuilder(idl, ixDef, args, provider, isZeroCopy);
+        return new MethodsBuilder(idl, ixDef, args, provider, isZeroCopy, allocEvents);
       };
     }
 
@@ -145,6 +161,12 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
     }
   }
 
+  /**
+   * Calls `callback` for every `eventName` event a live log subscription sees.
+   * Only events emitted with `emit!` reach it: an `emit_cpi!` event is in the
+   * transaction's inner instructions, not its logs — read that one from
+   * `.rpc()`'s `parseEvents()` instead.
+   */
   addEventListener(
     eventName: string,
     callback: (event: any, slot: number, signature: string) => void,
@@ -154,7 +176,8 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
       throw new Error(`[Naclac] Event "${eventName}" not found in IDL.`);
     }
 
-    const discriminator = getDiscriminator("event", eventName);
+    const discriminator = resolveDiscriminator(eventDef.discriminator, "event", eventName);
+    const zeroCopyLayout = eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName);
     const listenerId = this._listenerIdCounter++;
 
     if (this.provider.litesvm) {
@@ -165,7 +188,7 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
         this.idl.address,
         (_programId: string, logs: string[], signature: string, slot: number) => {
           for (const log of logs) {
-            const decoded = tryDecodeEventLog(eventDef as any, discriminator, log, this.idl.definedTypes, this.isZeroCopy);
+            const decoded = tryDecodeEventLog(eventDef as any, discriminator, log, this.idl.definedTypes, zeroCopyLayout);
             if (decoded === null) continue;
             callback(decoded, slot, signature);
           }
@@ -192,7 +215,7 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
           if (!logs) continue;
 
           for (const log of logs) {
-            const decoded = tryDecodeEventLog(eventDef as any, discriminator, log, this.idl.definedTypes, this.isZeroCopy);
+            const decoded = tryDecodeEventLog(eventDef as any, discriminator, log, this.idl.definedTypes, zeroCopyLayout);
             if (decoded === null) continue;
             callback(
               decoded,
@@ -235,7 +258,38 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
    * future transactions whose signatures you don't know yet (an indexer, a bot, ...).
    */
   parseEvents<T = any>(eventName: string, logs: readonly string[]): T[] {
-    return parseEventsFromLogs<T>(this.idl, eventName, logs, this.isZeroCopy);
+    return parseEventsFromLogs<T>(
+      this.idl,
+      eventName,
+      logs,
+      eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+    );
+  }
+
+  /**
+   * Like `parseEvents`, but also decodes events the program emitted as
+   * self-CPIs (`emit_cpi!`), which never appear in the logs. Async because
+   * the program's `event_authority` PDA has to be derived (`@solana/kit` only
+   * offers an async derivation). Pass the inner instructions of a
+   * *successful* transaction, e.g. `.rpc()`'s returned `innerInstructions`.
+   */
+  async parseEventsFromTransaction<T = any>(
+    eventName: string,
+    tx: {
+      logs: readonly string[];
+      innerInstructions?: readonly NaclacInnerInstruction[];
+    },
+  ): Promise<T[]> {
+    const [eventAuthority] = await getProgramDerivedAddress({
+      programAddress: address(this.idl.address),
+      seeds: [new TextEncoder().encode("__event_authority")],
+    });
+    return parseEventsFromTransaction<T>(
+      this.idl,
+      eventName,
+      { ...tx, eventAuthority },
+      eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+    );
   }
 
   async waitForEvent<T = any>(

@@ -25,7 +25,7 @@
 //! needs the *same* underlying account referenced twice in one
 //! instruction — once read-only as `asset_signer`, once writable as
 //! `payer` (the fee is subtracted from it) — which is safe here: the real
-//! `solana_program::program::invoke_signed`'s own safety check only takes
+//! `solana_program::invoke_signed`'s own safety check only takes
 //! sequential, transient borrows (one `AccountMeta` at a time, each
 //! immediately dropped before the next), never two overlapping ones, and
 //! `CpiHandle`/`CpiHandleMut`'s `info` field is `pub`, so a second handle
@@ -76,15 +76,7 @@ pub struct ExecuteAssetAccounts<'a> {
 }
 
 /// Duplicates an `AccountInfo` for the "same account, two roles" case (see
-/// this file's header). `AccountInfo` is `Clone`-only on `solana` but also
-/// `Copy` on `pinocchio` — a plain `.clone()` call is correct on both but
-/// triggers `clippy::clone_on_copy` on the branch where it's redundant, so
-/// each backend gets its own real (not suppressed) implementation.
-#[cfg(not(feature = "pinocchio"))]
-fn clone_account_info(info: &AccountInfo) -> AccountInfo {
-    info.clone()
-}
-#[cfg(feature = "pinocchio")]
+/// this file's header).
 fn clone_account_info(info: &AccountInfo) -> AccountInfo {
     *info
 }
@@ -131,43 +123,29 @@ pub fn execute_signed(
         data.extend_from_slice(instruction_data);
 
         let mut accounts_meta = vec![
-            solana_program::instruction::AccountMeta::new(accounts.asset.address(), false),
+            solana_instruction::AccountMeta::new(accounts.asset.address(), false),
             match &accounts.collection {
-                Some(c) => solana_program::instruction::AccountMeta::new(c.address(), false),
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(c) => solana_instruction::AccountMeta::new(c.address(), false),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-            solana_program::instruction::AccountMeta::new_readonly(
-                accounts.asset_signer.address(),
-                false,
-            ),
-            solana_program::instruction::AccountMeta::new(
-                payer_handle_mut.address(),
-                payer_is_signer,
-            ),
+            solana_instruction::AccountMeta::new_readonly(accounts.asset_signer.address(), false),
+            solana_instruction::AccountMeta::new(payer_handle_mut.address(), payer_is_signer),
             match &accounts.authority {
-                Some(a) => {
-                    solana_program::instruction::AccountMeta::new_readonly(a.address(), true)
-                }
-                None => solana_program::instruction::AccountMeta::new_readonly(crate::ID, false),
+                Some(a) => solana_instruction::AccountMeta::new_readonly(a.address(), true),
+                None => solana_instruction::AccountMeta::new_readonly(crate::ID, false),
             },
-            solana_program::instruction::AccountMeta::new_readonly(
-                accounts.system_program.address(),
-                false,
-            ),
-            solana_program::instruction::AccountMeta::new_readonly(
-                accounts.target_program.address(),
-                false,
-            ),
+            solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
+            solana_instruction::AccountMeta::new_readonly(accounts.target_program.address(), false),
         ];
         for a in remaining_accounts {
-            accounts_meta.push(solana_program::instruction::AccountMeta {
+            accounts_meta.push(solana_instruction::AccountMeta {
                 pubkey: a.handle.address(),
                 is_signer: a.is_signer,
                 is_writable: a.is_writable,
             });
         }
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: crate::ID,
             accounts: accounts_meta,
             data,
@@ -176,19 +154,14 @@ pub fn execute_signed(
         let mut cpi_accounts: crate::prelude::Vec<CpiHandle<'_>> =
             crate::prelude::Vec::with_capacity(8 + remaining_accounts.len());
         cpi_accounts.push(CpiHandle::from(accounts.asset));
-        cpi_accounts.push(
-            accounts
-                .collection
-                .map(CpiHandle::from)
-                .unwrap_or_else(|| program.clone()),
-        );
+        cpi_accounts.push(accounts.collection.map(CpiHandle::from).unwrap_or(program));
         cpi_accounts.push(accounts.asset_signer);
         cpi_accounts.push(CpiHandle::from(payer_handle_mut));
-        cpi_accounts.push(accounts.authority.unwrap_or_else(|| program.clone()));
+        cpi_accounts.push(accounts.authority.unwrap_or(program));
         cpi_accounts.push(accounts.system_program);
         cpi_accounts.push(accounts.target_program);
         for a in remaining_accounts {
-            cpi_accounts.push(a.handle.clone());
+            cpi_accounts.push(a.handle);
         }
         cpi_accounts.push(program);
         crate::cpi::invoke_signed(&ix, &cpi_accounts, signer_seeds)
@@ -223,8 +196,9 @@ pub fn execute_signed(
             core::array::from_fn(|_| {
                 ::pinocchio::instruction::InstructionAccount::readonly(program.info.view.address())
             });
-        ix_accounts[0] =
-            ::pinocchio::instruction::InstructionAccount::writable(asset_handle.info.view.address());
+        ix_accounts[0] = ::pinocchio::instruction::InstructionAccount::writable(
+            asset_handle.info.view.address(),
+        );
         ix_accounts[1] = if collection_is_some {
             ::pinocchio::instruction::InstructionAccount::writable(
                 collection_handle.info.view.address(),
@@ -242,9 +216,7 @@ pub fn execute_signed(
                 payer_handle.info.view.address(),
             )
         } else {
-            ::pinocchio::instruction::InstructionAccount::writable(
-                payer_handle.info.view.address(),
-            )
+            ::pinocchio::instruction::InstructionAccount::writable(payer_handle.info.view.address())
         };
         ix_accounts[4] = if authority_is_some {
             ::pinocchio::instruction::InstructionAccount::readonly_signer(

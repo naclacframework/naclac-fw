@@ -5,7 +5,7 @@ description = "Regression test: naclac-macros/src/accounts.rs's stack-frame size
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []

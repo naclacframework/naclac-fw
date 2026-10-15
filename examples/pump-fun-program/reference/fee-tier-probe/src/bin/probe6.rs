@@ -12,7 +12,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -20,8 +20,8 @@ use std::str::FromStr;
 
 const PUMP_FEES_PROGRAM_ID: &str = "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ";
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn borsh_string(s: &str) -> Vec<u8> {
@@ -44,16 +44,16 @@ fn main() {
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 100_000_000_000).unwrap();
 
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &fees_program).0;
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &fees_program).0;
 
     // --- fee_program_global: no rate limit (0), so any clock value clears it ---
     let social_claim_authority = Keypair::new();
     let (fee_program_global, fpg_bump) =
-        Pubkey::find_program_address(&[b"fee-program-global"], &fees_program);
+        Address::find_program_address(&[b"fee-program-global"], &fees_program);
     let mut fpg_data = Vec::with_capacity(8 + 1 + 32 + 1 + 32 + 8 + 256);
     fpg_data.extend_from_slice(&[162, 165, 245, 49, 29, 37, 55, 242]);
     fpg_data.push(fpg_bump);
-    fpg_data.extend_from_slice(Pubkey::new_unique().as_ref()); // authority (unused here)
+    fpg_data.extend_from_slice(Address::new_unique().as_ref()); // authority (unused here)
     fpg_data.push(0); // disable_flags
     fpg_data.extend_from_slice(social_claim_authority.pubkey().as_ref());
     fpg_data.extend_from_slice(&0u64.to_le_bytes()); // claim_rate_limit = 0
@@ -73,7 +73,7 @@ fn main() {
     // --- social_fee_pda: seeded with a known, large lamport balance ---
     let user_id = "probe6user";
     let platform = 0u8;
-    let (social_fee_pda, sfp_bump) = Pubkey::find_program_address(
+    let (social_fee_pda, sfp_bump) = Address::find_program_address(
         &[b"social-fee-pda", user_id.as_bytes(), std::slice::from_ref(&platform)],
         &fees_program,
     );

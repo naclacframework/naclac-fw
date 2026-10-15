@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_counter` instruction. */
+/** Discriminator for the `init_counter` instruction. */
 export const INIT_COUNTER_DISCRIMINATOR = new Uint8Array([247, 168, 146, 45, 125, 26, 142, 80]);
 
 /** Accounts for the `initCounter` instruction. */

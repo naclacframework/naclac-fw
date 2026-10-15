@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "C4gz1yWQvjVbFA3nxGRTGGzyMHaz6uMHqyemC78LqZJT",
+  "address": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
   "metadata": {
     "name": "counter",
     "version": "0.1.0",
@@ -16,7 +16,7 @@ export const IDL = {
           "name": "counter_account", "writable": true,
           "pda": {
             "seeds": [
-              { "kind": "const", "value": [99,111,117,110,116,101,114,95,118,50], "name": "SEED_COUNTER" }
+              { "kind": "const", "value": [99,111,117,110,116,101,114], "name": "SEED_COUNTER" }
             ]
           }
         },
@@ -34,7 +34,7 @@ export const IDL = {
           "name": "counter_account", "writable": true,
           "pda": {
             "seeds": [
-              { "kind": "const", "value": [99,111,117,110,116,101,114,95,118,50], "name": "SEED_COUNTER" }
+              { "kind": "const", "value": [99,111,117,110,116,101,114], "name": "SEED_COUNTER" }
             ]
           }
         }
@@ -76,7 +76,7 @@ export const IDL = {
     {
       "name": "SEED_COUNTER",
       "type": "bytes",
-      "value": "[99, 111, 117, 110, 116, 101, 114, 95, 118, 50]"
+      "value": "[99, 111, 117, 110, 116, 101, 114]"
     }
   ],
   "definedTypes": [],
@@ -84,7 +84,7 @@ export const IDL = {
     {
       "name": "counter_account",
       "seeds": [
-        { "kind": "const", "value": [99,111,117,110,116,101,114,95,118,50], "name": "SEED_COUNTER" }
+        { "kind": "const", "value": [99,111,117,110,116,101,114], "name": "SEED_COUNTER" }
       ]
     }
   ]

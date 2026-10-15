@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_permanent_delegate_burn` instruction. */
+/** Discriminator for the `exercise_permanent_delegate_burn` instruction. */
 export const EXERCISE_PERMANENT_DELEGATE_BURN_DISCRIMINATOR = new Uint8Array([173, 184, 58, 158, 131, 174, 203, 68]);
 
 /** Instruction arguments for `exercisePermanentDelegateBurn`. */
@@ -13,10 +13,10 @@ export interface ExercisePermanentDelegateBurnArgs {
 
 /** Accounts for the `exercisePermanentDelegateBurn` instruction. */
 export interface ExercisePermanentDelegateBurnAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
   vault: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -107,18 +107,18 @@ pub fn generate(
     let mut extra_items = Vec::new();
     let mut union_fields = Vec::new();
     let mut match_arms = Vec::new();
+    let mut unit_lits = Vec::new();
 
     for (variant, discriminant) in variants.iter().zip(discriminants.iter()) {
         let variant_ident = &variant.ident;
-        let discriminant_lit =
-            syn::LitInt::new(&discriminant.to_string(), variant_ident.span());
+        let discriminant_lit = syn::LitInt::new(&discriminant.to_string(), variant_ident.span());
 
         if matches!(&variant.fields, Fields::Unit) {
             // A unit variant's entire representation is the tag — nothing
             // else to validate once the tag itself matches. Genuinely no
             // union member needed (matches bytemuck_derive's own fieldless
             // handling), not a corner cut: there are no other bytes.
-            match_arms.push(quote! { #discriminant_lit => true, });
+            unit_lits.push(discriminant_lit);
             continue;
         }
 
@@ -164,8 +164,7 @@ pub fn generate(
             unsafe impl #bytemuck::Zeroable for #bits_ident {}
         });
 
-        let field_indices: Vec<syn::Index> =
-            (1..=field_tys.len()).map(syn::Index::from).collect();
+        let field_indices: Vec<syn::Index> = (1..=field_tys.len()).map(syn::Index::from).collect();
         extra_items.push(quote! {
             unsafe impl #bytemuck::CheckedBitPattern for #payload_ident {
                 type Bits = #bits_ident;
@@ -203,21 +202,126 @@ pub fn generate(
         unsafe impl #bytemuck::Zeroable for #bits_ident {}
     });
 
+    let validity_expr = if match_arms.is_empty() {
+        if unit_lits.is_empty() {
+            quote! { false }
+        } else {
+            quote! { matches!(unsafe { bits.__tag }, #(#unit_lits)|*) }
+        }
+    } else {
+        let unit_arm = if unit_lits.is_empty() {
+            quote! {}
+        } else {
+            quote! { #(#unit_lits)|* => true, }
+        };
+        quote! {
+            match unsafe { bits.__tag } {
+                #unit_arm
+                #(#match_arms)*
+                _ => false,
+            }
+        }
+    };
+
     let checked_bit_pattern_impl = quote! {
         unsafe impl #bytemuck::CheckedBitPattern for #ident {
             type Bits = #bits_ident;
             #[inline]
             fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-                match unsafe { bits.__tag } {
-                    #(#match_arms)*
-                    _ => false,
-                }
+                #validity_expr
             }
         }
     };
 
-    (
-        quote! { #(#extra_items)* },
-        checked_bit_pattern_impl,
-    )
+    (quote! { #(#extra_items)* }, checked_bit_pattern_impl)
+}
+
+/// Generates `ZcWrite` and `ZcEnumKind` for the enum, so a client struct can
+/// store it as `ZcEnum<#ident>`; the client twin of
+/// `naclac-macros/src/checked_enum.rs`'s `zc_storage_items`, with `crate_path`
+/// locating the core crate that exports them. `write_into` writes the tag,
+/// then each field of the active variant at its offset in the per-variant
+/// payload struct `generate` declares; bytes it does not write stay zero.
+pub fn zc_storage_items(
+    ident: &Ident,
+    variants: &syn::punctuated::Punctuated<Variant, syn::Token![,]>,
+    tag_ty: &syn::Type,
+    crate_path: &str,
+) -> TokenStream {
+    let core: syn::Path =
+        syn::parse_str(crate_path).expect("defined_type: crate_path must be a valid Rust path");
+    let variants: Vec<&Variant> = variants.iter().collect();
+    let discriminants = variant_discriminants(&variants);
+
+    let arms = variants
+        .iter()
+        .zip(discriminants.iter())
+        .map(|(variant, discriminant)| {
+            let variant_ident = &variant.ident;
+            let discriminant_lit =
+                syn::LitInt::new(&discriminant.to_string(), variant_ident.span());
+            let write_tag = quote! {
+                let __tag: #tag_ty = #discriminant_lit;
+                #core::ZcWrite::write_into(
+                    &__tag,
+                    &mut out[..core::mem::size_of::<#tag_ty>()],
+                );
+            };
+
+            if matches!(&variant.fields, Fields::Unit) {
+                return quote! { Self::#variant_ident => { #write_tag } };
+            }
+
+            let payload_ident = format_ident!("{}Variant{}", ident, variant_ident);
+            let field_tys: Vec<&syn::Type> = variant.fields.iter().map(|f| &f.ty).collect();
+            let bindings: Vec<Ident> = (0..field_tys.len())
+                .map(|i| format_ident!("__f{}", i))
+                .collect();
+            let field_indices: Vec<syn::Index> =
+                (1..=field_tys.len()).map(syn::Index::from).collect();
+            let pattern = match &variant.fields {
+                Fields::Named(named) => {
+                    let names = named.named.iter().filter_map(|f| f.ident.as_ref());
+                    quote! { Self::#variant_ident { #(#names: #bindings),* } }
+                }
+                _ => quote! { Self::#variant_ident ( #(#bindings),* ) },
+            };
+
+            quote! {
+                #pattern => {
+                    #write_tag
+                    #({
+                        let __at = core::mem::offset_of!(#payload_ident, #field_indices);
+                        #core::ZcFieldWrite::write_field(
+                            #bindings,
+                            &mut out[__at..__at + core::mem::size_of::<#field_tys>()],
+                        );
+                    })*
+                }
+            }
+        });
+
+    quote! {
+        impl #core::ZcWrite for #ident {
+            fn write_into(&self, out: &mut [u8]) {
+                match self {
+                    #(#arms)*
+                }
+            }
+        }
+
+        impl #core::ZcFieldWrite for #ident {
+            fn write_field(&self, out: &mut [u8]) {
+                #core::ZcWrite::write_into(self, out);
+            }
+        }
+
+        unsafe impl #core::ZcEnumKind for #ident {
+            type Stored = #core::ZcStorage<
+                #ident,
+                { core::mem::align_of::<#ident>() },
+                { core::mem::size_of::<#ident>() },
+            >;
+        }
+    }
 }

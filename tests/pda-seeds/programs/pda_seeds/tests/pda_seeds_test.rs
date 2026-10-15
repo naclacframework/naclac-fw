@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use pda_seeds_client::{
     get_child_pda, get_entry_pda, get_registry_pda,
     instructions::{
@@ -22,15 +22,15 @@ const SEED_CHILD_SAFE: &[u8] = b"child_safe";
 const SEED_TAGGED_CHILD: &[u8] = b"tagged_child";
 const SEED_CONFIG_ENTRY: &[u8] = b"config_entry";
 
-fn discriminated_bytes<T: bytemuck::Pod>(disc: [u8; 8], value: &T) -> Vec<u8> {
-    let mut out = Vec::with_capacity(8 + core::mem::size_of::<T>());
-    out.extend_from_slice(&disc);
+fn discriminated_bytes<T: bytemuck::Pod>(disc: &[u8], value: &T) -> Vec<u8> {
+    let mut out = Vec::with_capacity(disc.len() + core::mem::size_of::<T>());
+    out.extend_from_slice(disc);
     out.extend_from_slice(bytemuck::bytes_of(value));
     out
 }
 
 /// Asserts a transaction failed with exactly the given `Custom` error code
-/// â€” not just "any error", the specific numeric `NaclacError` (framework
+/// — not just "any error", the specific numeric `NaclacError` (framework
 /// errors, 3000s) the failure actually produces. Mirrors
 /// `tests/error-codes/programs/error_codes/tests/error_codes_test.rs`'s
 /// helper of the same name and shape.
@@ -68,7 +68,7 @@ fn seed_expression_shapes_all_resolve_correctly() {
 
     // --- Case 2: dynamic seed via whole-account `.as_ref()`, init ---
     // On-chain, `registry.as_ref()` yields the registry PDA's own address
-    // bytes (Account<T>: AsRefByteSlice) â€” mirror that here.
+    // bytes (Account<T>: AsRefByteSlice) — mirror that here.
     let (entry_pda, entry_bump) =
         Address::find_program_address(&[SEED_ENTRY, registry_pda.as_ref()], &PROGRAM_ID);
 
@@ -85,14 +85,14 @@ fn seed_expression_shapes_all_resolve_correctly() {
     )
     .send_and_confirm()
     .expect(
-        "init_entry should succeed â€” this is the exact seed shape \
+        "init_entry should succeed — this is the exact seed shape \
          ZERO_COPY_BORSH_PARITY_AUDIT.md finding #3 broke on \
          (`token_a_mint.as_ref()` misrewritten as a Deref field access)",
     );
 
     // --- Case 3: dynamic seed + bare bump, existing (non-init) account ---
     // The confirmed zero-coverage gap from ZERO_COPY_CONSISTENCY_PLAN.md
-    // Part 6e â€” forces the macro to read `entry.bump` back out of the
+    // Part 6e — forces the macro to read `entry.bump` back out of the
     // account's own already-loaded data at runtime.
     build_touch_entry_bare_bump(
         &provider,
@@ -105,7 +105,7 @@ fn seed_expression_shapes_all_resolve_correctly() {
     .send_and_confirm()
     .expect("touch_entry_bare_bump should succeed (auto-bump on existing zero-copy account)");
 
-    // --- Case 4: explicit bump, existing account â€” positive then negative ---
+    // --- Case 4: explicit bump, existing account — positive then negative ---
     build_touch_registry_explicit_bump(
         &provider,
         PROGRAM_ID,
@@ -127,13 +127,13 @@ fn seed_expression_shapes_all_resolve_correctly() {
         },
     )
     .send_and_confirm();
-    // `TouchRegistryExplicitBump { registry }` â€” `registry` is field index
+    // `TouchRegistryExplicitBump { registry }` — `registry` is field index
     // 0; a wrong explicit `bump` mismatch emits `ConstraintSeeds` (6) ->
-    // 3000 + 0*100 + 6 = 3006.
-    assert_custom_code(wrong_result, 3006);
+    // 10000 + 0*100 + 6 = 10006.
+    assert_custom_code(wrong_result, 10006);
 
     // --- Case 5: nested field-access + method-chain seed, init ---
-    // `registry.bump.to_le_bytes().as_ref()` â€” distinct from case 2's
+    // `registry.bump.to_le_bytes().as_ref()` — distinct from case 2's
     // whole-account access; exercises the generic seed-normalization
     // fallback's handling of a field-then-method chain.
     let registry_bump_bytes = registry_bump.to_le_bytes();
@@ -159,11 +159,11 @@ fn seed_expression_shapes_all_resolve_correctly() {
 /// every PDA via `Address::find_program_address` directly, so it proves the
 /// *on-chain program's* validation logic is correct but never actually calls
 /// the *generated SDK helpers* (`get_registry_pda`/`get_entry_pda`/
-/// `get_child_pda`) at all â€” a bug in the generator itself (like the one
+/// `get_child_pda`) at all — a bug in the generator itself (like the one
 /// `get_child_pda` had: it used to type `registry_bump` as a 32-byte
 /// `Address` and derive a completely wrong PDA) could exist here
 /// undetected. This test calls the generated helpers directly and confirms
-/// the SDK and the real deployed on-chain program agree â€” not just that the
+/// the SDK and the real deployed on-chain program agree — not just that the
 /// numbers match, but that a transaction built with the SDK-derived address
 /// is actually accepted by the program.
 #[test]
@@ -175,7 +175,7 @@ fn generated_pda_helpers_agree_with_on_chain_program() {
     let (registry_pda_manual, registry_bump) =
         Address::find_program_address(&[SEED_REGISTRY], &PROGRAM_ID);
 
-    // The generated helper â€” this is the actual thing under test.
+    // The generated helper — this is the actual thing under test.
     let (registry_pda, registry_bump_from_sdk) = get_registry_pda(&PROGRAM_ID);
     assert_eq!(
         registry_pda, registry_pda_manual,
@@ -183,7 +183,7 @@ fn generated_pda_helpers_agree_with_on_chain_program() {
     );
     assert_eq!(registry_bump_from_sdk, registry_bump);
 
-    // Use the SDK-derived address for the actual transaction â€” if the SDK
+    // Use the SDK-derived address for the actual transaction — if the SDK
     // were wrong, the on-chain program would reject this outright.
     build_init_registry(
         &provider,
@@ -221,8 +221,8 @@ fn generated_pda_helpers_agree_with_on_chain_program() {
     .expect("init_entry with the SDK-derived entry PDA should be accepted on-chain");
 
     // This is the specific case that was broken: `get_child_pda` used to
-    // take `registry_bump: &Address` (wrong â€” 32 bytes) instead of
-    // `registry_bump: u8` (correct â€” 1 byte, matching the real on-chain
+    // take `registry_bump: &Address` (wrong — 32 bytes) instead of
+    // `registry_bump: u8` (correct — 1 byte, matching the real on-chain
     // seed `registry.bump.to_le_bytes()`).
     let registry_bump_bytes = registry_bump.to_le_bytes();
     let (child_pda_manual, child_bump) =
@@ -230,7 +230,7 @@ fn generated_pda_helpers_agree_with_on_chain_program() {
     let (child_pda, child_bump_from_sdk) = get_child_pda(&PROGRAM_ID, registry_bump);
     assert_eq!(
         child_pda, child_pda_manual,
-        "get_child_pda must match the hand-derived PDA â€” this is the exact case that used \
+        "get_child_pda must match the hand-derived PDA — this is the exact case that used \
          to silently compute a completely wrong address"
     );
     assert_eq!(child_bump_from_sdk, child_bump);
@@ -253,13 +253,13 @@ fn generated_pda_helpers_agree_with_on_chain_program() {
 /// The other half of the on-chain/IDL/SDK consistency check: `init_child`
 /// above proves a field-dependent seed with a *primitive* field type
 /// (`u8`) gets a correctly-generated helper. This proves the opposite case
-/// â€” a field-dependent seed whose field type is *not* a plain primitive
+/// — a field-dependent seed whose field type is *not* a plain primitive
 /// (`registry.label`, a `[u8; 4]` array) must NOT get a generated helper at
 /// all. naclac-syn has no way to mechanically know how to turn an
 /// arbitrary array/defined type into seed bytes the way it does for
 /// primitives, so guessing would risk silently generating a helper that
 /// computes the wrong PDA (exactly the bug `get_child_pda` had before it
-/// was fixed) â€” the correct behavior is to skip it and leave a comment,
+/// was fixed) — the correct behavior is to skip it and leave a comment,
 /// which this test asserts on the generated source directly.
 #[test]
 fn non_primitive_field_seed_pda_helper_is_correctly_skipped() {
@@ -282,7 +282,7 @@ fn non_primitive_field_seed_pda_helper_is_correctly_skipped() {
     let _ = registry_bump;
 
     // `init_registry` sets `registry.label = [0, 0, 0, 0]`, so hand-derive
-    // against that same value â€” the on-chain program itself handles this
+    // against that same value — the on-chain program itself handles this
     // seed shape fine; only the *generated client helper* is intentionally
     // absent.
     let registry_label = [0u8, 0, 0, 0];
@@ -303,7 +303,7 @@ fn non_primitive_field_seed_pda_helper_is_correctly_skipped() {
     .send_and_confirm()
     .expect(
         "init_tagged_child should succeed on-chain even though no SDK PDA helper \
-         exists for it â€” this seed shape is handled by the generic runtime \
+         exists for it — this seed shape is handled by the generic runtime \
          seed-normalization path, not a generated helper",
     );
 
@@ -311,7 +311,7 @@ fn non_primitive_field_seed_pda_helper_is_correctly_skipped() {
     assert!(
         !generated_lib_rs.contains("pub fn get_tagged_child_pda"),
         "the generator must NOT invent a get_tagged_child_pda helper for a seed \
-         that depends on a non-primitive field type (`registry.label: [u8; 4]`) â€” \
+         that depends on a non-primitive field type (`registry.label: [u8; 4]`) — \
          guessing here risks silently generating a helper that computes the wrong \
          PDA, exactly like the original get_child_pda bug"
     );
@@ -327,10 +327,10 @@ fn non_primitive_field_seed_pda_helper_is_correctly_skipped() {
 /// (`registry.as_ref()`), which `seed_binding_tokens` resolves via its
 /// cross-field-reference special case. Here the sibling is a plain,
 /// unchecked `AccountInfo` with `.address()` called on it
-/// (`config_program_id.address().as_ref()`) â€” not a zero-copy account field,
+/// (`config_program_id.address().as_ref()`) — not a zero-copy account field,
 /// so it falls through to the generic expression-peeling path instead. Both
 /// are verify-only (never `init`), bare `bump`, reading the bump stored on
-/// the existing account â€” this checks whether that mechanism holds for the
+/// the existing account — this checks whether that mechanism holds for the
 /// *generic* path the same way it already does for the cross-field one.
 #[test]
 fn bare_bump_verify_with_account_info_seed_reference() {
@@ -359,7 +359,7 @@ fn bare_bump_verify_with_account_info_seed_reference() {
     )
     .send_and_confirm()
     .expect(
-        "touch_config_entry_bare_bump should succeed â€” bare bump, verify-only, \
+        "touch_config_entry_bare_bump should succeed — bare bump, verify-only, \
          seed referencing a plain AccountInfo sibling field via .address()",
     );
 
@@ -372,11 +372,11 @@ fn bare_bump_verify_with_account_info_seed_reference() {
 
 /// Same seed shape as `bare_bump_verify_with_account_info_seed_reference`,
 /// but the instruction also takes a `u128` arg ahead of the bare-bump
-/// account check â€” matching `pump_fees::get_fees`'s exact arg shape
+/// account check — matching `pump_fees::get_fees`'s exact arg shape
 /// (`Bool, u128, u64, Bool` before its `AccountInfo`-seeded, bare-bump
 /// `fee_config` account). Isolates whether combining instruction-arg parsing
 /// (particularly a `u128`, given this framework's two independent
-/// arg-wire-format parsers) with this seed shape breaks the seeds check â€”
+/// arg-wire-format parsers) with this seed shape breaks the seeds check —
 /// something no other passing seed-shape test exercises.
 #[test]
 fn bare_bump_verify_with_account_info_seed_reference_and_ix_args() {
@@ -409,7 +409,7 @@ fn bare_bump_verify_with_account_info_seed_reference_and_ix_args() {
     )
     .send_and_confirm()
     .expect(
-        "touch_config_entry_bare_bump_with_args should succeed â€” same seed shape as \
+        "touch_config_entry_bare_bump_with_args should succeed — same seed shape as \
          the args-free version, but with get_fees's exact ix-arg shape ahead of it",
     );
 
@@ -424,7 +424,7 @@ fn bare_bump_verify_with_account_info_seed_reference_and_ix_args() {
 /// account is verify-only *and never `mut`* (a plain read), whereas every
 /// other seed-shape test so far marks the account `mut` so it can write to
 /// it. Isolates whether a non-`mut`, bare-bump, `AccountInfo`-seeded
-/// account being only read (never written) â€” with the same ix-arg shape â€”
+/// account being only read (never written) — with the same ix-arg shape —
 /// changes how/when the seeds check runs.
 #[test]
 fn read_only_bare_bump_verify_with_account_info_seed_reference() {
@@ -457,7 +457,7 @@ fn read_only_bare_bump_verify_with_account_info_seed_reference() {
     )
     .send_and_confirm()
     .expect(
-        "read_config_entry_bare_bump should succeed â€” non-mut, verify-only, bare bump, \
+        "read_config_entry_bare_bump should succeed — non-mut, verify-only, bare bump, \
          seed referencing a plain AccountInfo sibling field via .address()",
     );
 
@@ -468,13 +468,13 @@ fn read_only_bare_bump_verify_with_account_info_seed_reference() {
 /// Regression test for the dynamic-seed-`init` canonicalization fix: bare
 /// `bump` on a fresh PDA under non-literal seeds used to be a hard
 /// `compile_error!` (naclac-macros/src/instruction/security.rs's
-/// `Some(PdaBump::Auto)` arm reached when `init_config.is_some()`) â€” no
+/// `Some(PdaBump::Auto)` arm reached when `init_config.is_some()`) — no
 /// client-supplied bump was trusted, and no on-chain search was allowed
 /// either, so there was no way to write this at all. Now the framework runs
 /// its own real canonical search (`naclac_lang::prelude::find_program_address`)
 /// instead. The client here only ever computes the expected *address* (via
 /// `find_program_address`, exactly as any real client already must, since
-/// Solana requires every account be listed up front) â€” no bump is passed in
+/// Solana requires every account be listed up front) — no bump is passed in
 /// the instruction at all, unlike `init_child`'s `bump = bump` above.
 #[test]
 fn dynamic_seeds_init_bare_bump_establishes_canonical_bump_on_chain() {
@@ -514,7 +514,7 @@ fn dynamic_seeds_init_bare_bump_establishes_canonical_bump_on_chain() {
     )
     .send_and_confirm()
     .expect(
-        "init_child_safe should succeed â€” bare bump on a fresh dynamic-seed PDA, \
+        "init_child_safe should succeed — bare bump on a fresh dynamic-seed PDA, \
          verified via the framework's own on-chain canonical search rather than \
          a client-supplied bump",
     );

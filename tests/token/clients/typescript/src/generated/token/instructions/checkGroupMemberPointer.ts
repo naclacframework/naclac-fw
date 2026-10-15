@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_group_member_pointer` instruction. */
+/** Discriminator for the `check_group_member_pointer` instruction. */
 export const CHECK_GROUP_MEMBER_POINTER_DISCRIMINATOR = new Uint8Array([70, 213, 2, 76, 99, 119, 193, 221]);
 
 /** Instruction arguments for `checkGroupMemberPointer`. */
 export interface CheckGroupMemberPointerArgs {
-  expected_authority: naclac.Address | string | null;
-  expected_member_address: naclac.Address | string | null;
+  expectedAuthority: naclac.Address | string | null;
+  expectedMemberAddress: naclac.Address | string | null;
 }
 
 /** Accounts for the `checkGroupMemberPointer` instruction. */

@@ -1,0 +1,350 @@
+1:"$Sreact.fragment"
+2:I[93539,["/_next/static/chunks/2wo-mzypa7a-v.js"],"themeBootstrapScript"]
+8:I[68027,["/_next/static/chunks/2wo-mzypa7a-v.js"],"default",1]
+:HL["/_next/static/chunks/3eq40bw5kq29_.css","style"]
+:HL["/_next/static/chunks/3i-1knwz676y_.css","style"]
+:HL["/_next/static/media/70bc3e132a0a741e-s.p.3t6q91iet4nsy.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/_next/static/media/83afe278b6a6bb3c-s.p.2bn3s6zvc0dyp.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+3:T1004,:root {
+  --default-border-color: var(--gray-800);
+}
+
+.dark {
+  --default-border-color: var(--gray-800);
+}
+
+#sidebar .nav-dropdown-trigger {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-left: 0.375rem;
+}
+
+#sidebar .nav-dropdown-trigger:hover {
+  background-color: rgb(0 0 0 / 0.04) !important;
+}
+
+.dark #sidebar .nav-dropdown-trigger:hover {
+  background-color: rgb(255 255 255 / 0.06) !important;
+}
+
+#sidebar .nav-dropdown-trigger .nav-dropdown-item-icon {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  height: auto !important;
+  width: auto !important;
+  padding: 0 !important;
+}
+
+.nav-dropdown-content {
+  border-radius: 0 !important;
+}
+
+.nav-dropdown-content .nav-dropdown-item {
+  border-radius: 0 !important;
+}
+
+.nav-dropdown-content .nav-dropdown-item-icon {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  height: auto !important;
+  width: auto !important;
+  padding: 0 !important;
+}
+
+.nav-dropdown-content .nav-dropdown-item-description {
+  display: none !important;
+}
+
+#sidebar .nav-anchor span {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] {
+  color: rgb(var(--primary)) !important;
+  font-weight: 600 !important;
+}
+
+body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] span {
+  color: inherit !important;
+}
+
+body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] svg {
+  background-color: rgb(var(--primary)) !important;
+}
+
+.dark body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] {
+  color: rgb(var(--primary-light)/var(--tw-text-opacity,1)) !important;
+}
+
+.dark body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] svg {
+  background-color: rgb(var(--primary-light)/var(--tw-text-opacity,1)) !important;
+}
+
+:is(#content-area[data-current-path='/'], [data-current-path='/'] #content-area):has([data-product-guide-index]) {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:is(#content-area[data-current-path='/'], [data-current-path='/'] #content-area):has([data-product-guide-index]) > div:first-child {
+  background: transparent !important;
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0 !important;
+}
+
+[data-product-guide-index] a:not(.product-guide-feature-card) {
+  background-color: #fafafa !important;
+}
+
+.dark [data-product-guide-index] a:not(.product-guide-feature-card) {
+  background-color: #08080a !important;
+}
+
+.product-guide-feature-card {
+  grid-column: 1 / -1;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 260px;
+  background: url('/images/sample-feature-light.png') center / cover no-repeat !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: white !important;
+  .dark & {
+    background-image: url('/images/sample-feature-dark.png') !important;
+  }
+}
+
+.product-guide-feature-card > div {
+  display: flex !important;
+  flex: 1;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.product-guide-feature-card :is(h2, h3, p, span, svg) {
+  color: white !important;
+}
+
+.product-guide-feature-card :is(svg, [class*='icon']) {
+  background-color: white !important;
+  width: 2em !important;
+  height: 2em !important;
+  margin-top: 2px;
+}
+
+.product-guide-feature-card-title {
+  font-size: 1.2em;
+  font-weight: 500;
+}
+
+.product-guide-feature-card :is(h2, h3, p, span, svg).product-guide-feature-card-description {
+  font-size: 1.05em;
+  font-weight: 400;
+  color: rgb(var(--gray-50) / 62.5%) !important;
+  .dark & {
+    color: rgb(var(--gray-50) / 50%) !important;
+  }
+}
+0:{"P":null,"c":["","index"],"q":"","i":false,"f":[[["",{"children":[["slug","index","oc",[]],{"children":["__PAGE__",{},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4624],[["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/3eq40bw5kq29_.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","link","1",{"rel":"stylesheet","href":"/_next/static/chunks/3i-1knwz676y_.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","script","script-0",{"src":"/_next/static/chunks/2wo-mzypa7a-v.js","async":true,"nonce":"$undefined"}]],["$","html",null,{"lang":"en","className":"inter_fe8b9d92-module__LINzvG__variable jetbrains_mono_7d65b77b-module__VxV-Ta__variable antialiased","data-docs-theme":"sequoia","data-icon-library":"lucide","suppressHydrationWarning":true,"children":[["$","head",null,{"children":[["$","script",null,{"id":"theme-bootstrap","dangerouslySetInnerHTML":{"__html":"$2"}}],["$","script",null,{"id":"docs-path-tracker","dangerouslySetInnerHTML":{"__html":"!function(){var p=(location.pathname||\"\").split(\"?\")[0].split(\"#\")[0]||\"\";p=\"\"===p||\"index\"===p?\"/\":(p.charAt(0)===\"/\"?p:\"/\"+p);document.documentElement.setAttribute(\"data-current-path\",p);}();"}}],["$","style",null,{"id":"docs-brand-theme","dangerouslySetInnerHTML":{"__html":"\n              :root {\n                --primary: 122 77 235;\n                --primary-light: 122 77 235;\n                --primary-dark: 122 77 235;\n                --tooltip-foreground: 255 255 255;\n                --background-light: 255 255 255;\n                --background-dark: 11 10 15;\n                --gray-50: 246 245 250;\n                --gray-100: 241 240 245;\n                --gray-200: 226 224 229;\n                --gray-300: 209 208 213;\n                --gray-400: 162 160 165;\n                --gray-500: 115 114 119;\n                --gray-600: 83 82 87;\n                --gray-700: 66 64 69;\n                --gray-800: 41 39 44;\n                --gray-900: 26 25 29;\n                --gray-950: 13 12 17;\n              }\n              .dark {\n                --primary: 122 77 235;\n              }\n            "}}],["$","style",null,{"id":"docs-custom-css","dangerouslySetInnerHTML":{"__html":"$3"}}]]}],"$L4"]}]]}],{"children":["$L5",{"children":["$L6",{},null,false,null]},null,false,null]},null,false,null],"$L7",false]],"m":"$undefined","G":["$8",["$L9","$La"]],"S":true,"h":null,"r":"$undefined","s":"$undefined","a":"$undefined","l":"$undefined","p":"$undefined","d":"$undefined","b":"luk2k8Bw6kxoxDQrfURbX"}
+b:I[39756,["/_next/static/chunks/2wo-mzypa7a-v.js"],"default"]
+c:I[37457,["/_next/static/chunks/2wo-mzypa7a-v.js"],"default"]
+f:I[97367,["/_next/static/chunks/2wo-mzypa7a-v.js"],"OutletBoundary"]
+10:"$Sreact.suspense"
+12:I[97367,["/_next/static/chunks/2wo-mzypa7a-v.js"],"ViewportBoundary"]
+14:I[97367,["/_next/static/chunks/2wo-mzypa7a-v.js"],"MetadataBoundary"]
+4:["$","body",null,{"children":["$","$Lb",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$Lc",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[[["$","title",null,{"children":"404: This page could not be found."}],["$","div",null,{"style":{"fontFamily":"system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\"","height":"100vh","textAlign":"center","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center"},"children":["$","div",null,{"children":[["$","style",null,{"dangerouslySetInnerHTML":{"__html":"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}"}}],["$","h1",null,{"className":"next-error-h1","style":{"display":"inline-block","margin":"0 20px 0 0","padding":"0 23px 0 0","fontSize":24,"fontWeight":500,"verticalAlign":"top","lineHeight":"49px"},"children":404}],["$","div",null,{"style":{"display":"inline-block"},"children":["$","h2",null,{"style":{"fontSize":14,"fontWeight":400,"lineHeight":"49px","margin":0},"children":"This page could not be found."}]}]]}]}]],[]],"forbidden":"$undefined","unauthorized":"$undefined"}]}]
+5:["$","$1","c",{"children":[[["$","script","script-0",{"src":"/_next/static/chunks/22i43cg4l4-dq.js","async":true,"nonce":"$undefined"}],["$","script","script-1",{"src":"/_next/static/chunks/3x7_subm8f70z.js","async":true,"nonce":"$undefined"}]],"$Ld"]}]
+6:["$","$1","c",{"children":["$Le",[["$","script","script-0",{"src":"/_next/static/chunks/1v6wc17awxgle.js","async":true,"nonce":"$undefined"}],["$","script","script-1",{"src":"/_next/static/chunks/2_d267mikrasa.js","async":true,"nonce":"$undefined"}]],["$","$Lf",null,{"children":["$","$10",null,{"name":"Next.MetadataOutlet","children":"$@11"}]}]]}]
+7:["$","$1","h",{"children":[null,["$","$L12",null,{"children":"$L13"}],["$","div",null,{"hidden":true,"children":["$","$L14",null,{"children":["$","$10",null,{"name":"Next.Metadata","children":"$L15"}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}]
+9:["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/3eq40bw5kq29_.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]
+a:["$","link","1",{"rel":"stylesheet","href":"/_next/static/chunks/3i-1knwz676y_.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]
+16:I[65685,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js"],"TopNav"]
+17:T1004,:root {
+  --default-border-color: var(--gray-800);
+}
+
+.dark {
+  --default-border-color: var(--gray-800);
+}
+
+#sidebar .nav-dropdown-trigger {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-left: 0.375rem;
+}
+
+#sidebar .nav-dropdown-trigger:hover {
+  background-color: rgb(0 0 0 / 0.04) !important;
+}
+
+.dark #sidebar .nav-dropdown-trigger:hover {
+  background-color: rgb(255 255 255 / 0.06) !important;
+}
+
+#sidebar .nav-dropdown-trigger .nav-dropdown-item-icon {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  height: auto !important;
+  width: auto !important;
+  padding: 0 !important;
+}
+
+.nav-dropdown-content {
+  border-radius: 0 !important;
+}
+
+.nav-dropdown-content .nav-dropdown-item {
+  border-radius: 0 !important;
+}
+
+.nav-dropdown-content .nav-dropdown-item-icon {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  height: auto !important;
+  width: auto !important;
+  padding: 0 !important;
+}
+
+.nav-dropdown-content .nav-dropdown-item-description {
+  display: none !important;
+}
+
+#sidebar .nav-anchor span {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] {
+  color: rgb(var(--primary)) !important;
+  font-weight: 600 !important;
+}
+
+body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] span {
+  color: inherit !important;
+}
+
+body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] svg {
+  background-color: rgb(var(--primary)) !important;
+}
+
+.dark body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] {
+  color: rgb(var(--primary-light)/var(--tw-text-opacity,1)) !important;
+}
+
+.dark body:has([data-product-guide-index]) #sidebar a.nav-anchor[href='/'] svg {
+  background-color: rgb(var(--primary-light)/var(--tw-text-opacity,1)) !important;
+}
+
+:is(#content-area[data-current-path='/'], [data-current-path='/'] #content-area):has([data-product-guide-index]) {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:is(#content-area[data-current-path='/'], [data-current-path='/'] #content-area):has([data-product-guide-index]) > div:first-child {
+  background: transparent !important;
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0 !important;
+}
+
+[data-product-guide-index] a:not(.product-guide-feature-card) {
+  background-color: #fafafa !important;
+}
+
+.dark [data-product-guide-index] a:not(.product-guide-feature-card) {
+  background-color: #08080a !important;
+}
+
+.product-guide-feature-card {
+  grid-column: 1 / -1;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 260px;
+  background: url('/images/sample-feature-light.png') center / cover no-repeat !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: white !important;
+  .dark & {
+    background-image: url('/images/sample-feature-dark.png') !important;
+  }
+}
+
+.product-guide-feature-card > div {
+  display: flex !important;
+  flex: 1;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.product-guide-feature-card :is(h2, h3, p, span, svg) {
+  color: white !important;
+}
+
+.product-guide-feature-card :is(svg, [class*='icon']) {
+  background-color: white !important;
+  width: 2em !important;
+  height: 2em !important;
+  margin-top: 2px;
+}
+
+.product-guide-feature-card-title {
+  font-size: 1.2em;
+  font-weight: 500;
+}
+
+.product-guide-feature-card :is(h2, h3, p, span, svg).product-guide-feature-card-description {
+  font-size: 1.05em;
+  font-weight: 400;
+  color: rgb(var(--gray-50) / 62.5%) !important;
+  .dark & {
+    color: rgb(var(--gray-50) / 50%) !important;
+  }
+}
+d:["$","div",null,{"className":"relative flex min-h-screen flex-col overflow-x-clip w-full max-w-full","children":[false,["$","$L16",null,{"tabs":[{"tab":"Documentation","groups":[{"group":"Overview","pages":[{"id":"index","slug":["index"],"title":"Introduction"}]},{"group":"How It Works","pages":[{"id":"trading","slug":["trading"],"title":"Trading"},{"id":"mechanics","slug":["mechanics"],"title":"Prediction & Reward Mechanics"},{"id":"btc-hourly","slug":["btc-hourly"],"title":"BTC Hourly Markets"},{"id":"referrals","slug":["referrals"],"title":"Referrals"},{"id":"privacy","slug":["privacy"],"title":"Privacy"}]},{"group":"Resources","pages":[{"id":"faq","slug":["faq"],"title":"FAQ"},{"id":"technical","slug":["technical"],"title":"Technical Overview"},{"id":"risks","slug":["risks"],"title":"Risks & Disclaimer"}]}]},{"tab":"Legal","groups":[{"group":"Legal","pages":[{"id":"legal/terms","slug":["legal","terms"],"title":"Terms & Conditions"},{"id":"legal/privacy-policy","slug":["legal","privacy-policy"],"title":"Privacy Policy"}]}]}],"currentTab":"Documentation","currentSlugKey":"index","pages":[{"id":"index","slug":"$d:props:children:1:props:tabs:0:groups:0:pages:0:slug","title":"Introduction","tab":"Documentation","group":"Overview","description":"Swiv is a private precision market protocol that enables users to forecast real-world outcomes using numerical predictions."},{"id":"trading","slug":"$d:props:children:1:props:tabs:0:groups:1:pages:0:slug","title":"Trading","tab":"Documentation","group":"How It Works","description":"How Swiv prediction pools work, their lifecycle, and how to participate."},{"id":"mechanics","slug":"$d:props:children:1:props:tabs:0:groups:1:pages:1:slug","title":"Prediction & Reward Mechanics","tab":"Documentation","group":"How It Works","description":"How Swiv calculates weights, accuracy scores, and reward distributions."},{"id":"btc-hourly","slug":"$d:props:children:1:props:tabs:0:groups:1:pages:2:slug","title":"BTC Hourly Markets","tab":"Documentation","group":"How It Works","description":"Continuous hourly prediction pools for Bitcoin price forecasting."},{"id":"referrals","slug":"$d:props:children:1:props:tabs:0:groups:1:pages:3:slug","title":"Referrals","tab":"Documentation","group":"How It Works","description":"Invite others to Swiv and earn a share of the protocol fee they generate."},{"id":"privacy","slug":"$d:props:children:1:props:tabs:0:groups:1:pages:4:slug","title":"Privacy","tab":"Documentation","group":"How It Works","description":"How Swiv keeps all user activity private until settlement."},{"id":"faq","slug":"$d:props:children:1:props:tabs:0:groups:2:pages:0:slug","title":"FAQ","tab":"Documentation","group":"Resources","description":"Answers to common questions about using Swiv."},{"id":"technical","slug":"$d:props:children:1:props:tabs:0:groups:2:pages:1:slug","title":"Technical Overview","tab":"Documentation","group":"Resources","description":"How Swiv is built — Solana, private execution, oracle integration, and backend services."},{"id":"risks","slug":"$d:props:children:1:props:tabs:0:groups:2:pages:2:slug","title":"Risks & Disclaimer","tab":"Documentation","group":"Resources","description":"Important risks and disclosures to understand before using Swiv."},{"id":"legal/terms","slug":"$d:props:children:1:props:tabs:1:groups:0:pages:0:slug","title":"Terms & Conditions","tab":"Legal","group":"Legal","description":"Terms governing your use of Swiv."},{"id":"legal/privacy-policy","slug":"$d:props:children:1:props:tabs:1:groups:0:pages:1:slug","title":"Privacy Policy","tab":"Legal","group":"Legal","description":"How Swiv collects, uses, and protects your information."}],"site":{"name":"Swiv Docs","theme":"sequoia","description":"Documentation for Swiv — a private precision market protocol for numerical predictions.","favicon":"/icon.png","githubUrl":"$undefined","colors":{"primaryRgb":"122 77 235","lightRgb":"122 77 235","darkRgb":"122 77 235"},"cssVariables":{"backgroundDark":"11 10 15","backgroundLight":"255 255 255","gray50":"246 245 250","gray100":"241 240 245","gray200":"226 224 229","gray300":"209 208 213","gray400":"162 160 165","gray500":"115 114 119","gray600":"83 82 87","gray700":"66 64 69","gray800":"41 39 44","gray900":"26 25 29","gray950":"13 12 17"},"logo":{"light":"/logo/light.png","dark":"/logo/dark.png"},"primaryButton":{"label":"Launch App","href":"https://app.swiv.xyz"},"navbarLinks":[],"anchors":[{"anchor":"Website","icon":"globe","href":"https://swiv.xyz"},{"anchor":"Support","icon":"life-buoy","href":"mailto:support@swiv.xyz"}],"footer":{"socials":{"x":"https://x.com/SwivOfficial","discord":"https://discord.com/invite/bSTQFNNg7w","telegram":"https://twitter.com/SwivOfficial","github":"https://github.com/swiv-labs","website":"https://twitter.com/SwivOfficial"}},"icons":{"library":"lucide"},"styling":{"eyebrows":"breadcrumbs"},"contextual":{"options":["copy","view","assistant","chatgpt","claude","perplexity","grok","aistudio","devin","windsurf","mcp","add-mcp","cursor","vscode","devin-mcp"]},"customCss":"$17"},"stars":null}],"$L18","$L19"]}]
+1a:I[22016,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js","/_next/static/chunks/1v6wc17awxgle.js","/_next/static/chunks/2_d267mikrasa.js"],""]
+23:I[39536,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js"],"PageScrollbar"]
+18:["$","div",null,{"id":"content-container","className":"mx-auto flex w-full max-w-[88rem] flex-1 gap-8 px-4 sm:px-6 py-8 min-w-0","children":[["$","nav",null,{"id":"sidebar-content","aria-label":"Pages","className":"scrollbar-common sticky top-20 hidden max-h-[calc(100vh-6rem)] shrink-0 self-start overflow-y-auto lg:block text-sm w-72 border-r border-gray-100 dark:border-white/10 pr-6","children":["$","div",null,{"id":"navigation-items","className":"min-w-0 flex-1 min-h-0","children":[["$","ul",null,{"className":"list-none mb-6 space-y-1","children":[["$","li","https://swiv.xyz",{"className":"list-none","children":["$","a",null,{"href":"https://swiv.xyz","target":"_blank","rel":"noreferrer","className":"link nav-anchor pl-4 group flex items-center lg:text-sm lg:leading-6 py-1 gap-3.5 text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 transition-colors","children":[["$","svg",null,{"className":"size-4 shrink-0 bg-gray-400 dark:bg-gray-500 group-hover:bg-primary dark:group-hover:bg-primary-light transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/lucide/v1.16.0/globe.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/lucide/v1.16.0/globe.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center","maskSize":"100%"}}],["$","span",null,{"children":"Website"}]]}]}],["$","li","mailto:support@swiv.xyz",{"className":"list-none","children":["$","a",null,{"href":"mailto:support@swiv.xyz","target":"_blank","rel":"noreferrer","className":"link nav-anchor pl-4 group flex items-center lg:text-sm lg:leading-6 py-1 gap-3.5 text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 transition-colors","children":[["$","svg",null,{"className":"size-4 shrink-0 bg-gray-400 dark:bg-gray-500 group-hover:bg-primary dark:group-hover:bg-primary-light transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/lucide/v1.16.0/life-buoy.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/lucide/v1.16.0/life-buoy.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center","maskSize":"100%"}}],["$","span",null,{"children":"Support"}]]}]}]]}],["$","div",null,{"className":"flex flex-col mt-2 gap-6 lg:gap-8 first:mt-0","children":[["$","div","Overview",{"children":[["$","div",null,{"className":"sidebar-group-header flex items-center gap-2.5 pl-4 mb-3.5 lg:mb-2.5 text-gray-900 dark:text-gray-200 text-xs font-normal","children":["$","h3",null,{"className":"sidebar-title","children":"Overview"}]}],["$","ul",null,{"className":"sidebar-group space-y-px flex flex-col","children":[["$","li","index",{"id":"/index","data-title":"Introduction","data-active":"true","children":["$","$L1a",null,{"href":"/index","data-active":"true","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-primary dark:text-primary-light [text-shadow:-0.2px_0_0_currentColor,0.2px_0_0_currentColor]","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Introduction"}]}]}]]}]]}],["$","div","How It Works",{"children":[["$","div",null,{"className":"sidebar-group-header flex items-center gap-2.5 pl-4 mb-3.5 lg:mb-2.5 text-gray-900 dark:text-gray-200 text-xs font-normal","children":["$","h3",null,{"className":"sidebar-title","children":"How It Works"}]}],["$","ul",null,{"className":"sidebar-group space-y-px flex flex-col","children":[["$","li","trading",{"id":"/trading","data-title":"Trading","data-active":"$undefined","children":["$","$L1a",null,{"href":"/trading","data-active":"$undefined","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":"$L1b"}]}],"$L1c","$L1d","$L1e","$L1f"]}]]}],"$L20"]}]]}]}],"$L21","$L22"]}]
+19:["$","$L23",null,{}]
+24:I[7587,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js"],"PageTransition"]
+28:I[42080,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js"],"Toc"]
+1b:["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Trading"}]
+1c:["$","li","mechanics",{"id":"/mechanics","data-title":"Prediction & Reward Mechanics","data-active":"$undefined","children":["$","$L1a",null,{"href":"/mechanics","data-active":"$undefined","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Prediction & Reward Mechanics"}]}]}]
+1d:["$","li","btc-hourly",{"id":"/btc-hourly","data-title":"BTC Hourly Markets","data-active":"$undefined","children":["$","$L1a",null,{"href":"/btc-hourly","data-active":"$undefined","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"BTC Hourly Markets"}]}]}]
+1e:["$","li","referrals",{"id":"/referrals","data-title":"Referrals","data-active":"$undefined","children":["$","$L1a",null,{"href":"/referrals","data-active":"$undefined","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Referrals"}]}]}]
+1f:["$","li","privacy",{"id":"/privacy","data-title":"Privacy","data-active":"$undefined","children":["$","$L1a",null,{"href":"/privacy","data-active":"$undefined","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Privacy"}]}]}]
+20:["$","div","Resources",{"children":[["$","div",null,{"className":"sidebar-group-header flex items-center gap-2.5 pl-4 mb-3.5 lg:mb-2.5 text-gray-900 dark:text-gray-200 text-xs font-normal","children":["$","h3",null,{"className":"sidebar-title","children":"Resources"}]}],["$","ul",null,{"className":"sidebar-group space-y-px flex flex-col","children":[["$","li","faq",{"id":"/faq","data-title":"FAQ","data-active":"$undefined","children":["$","$L1a",null,{"href":"/faq","data-active":"$undefined","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"FAQ"}]}]}],["$","li","technical",{"id":"/technical","data-title":"Technical Overview","data-active":"$undefined","children":["$","$L1a",null,{"href":"/technical","data-active":"$undefined","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Technical Overview"}]}]}],["$","li","risks",{"id":"/risks","data-title":"Risks & Disclaimer","data-active":"$undefined","children":["$","$L1a",null,{"href":"/risks","data-active":"$undefined","className":"group flex items-start pr-3 py-1.5 pl-4 gap-x-3 text-left break-words hyphens-auto w-full transition-colors text-gray-700 dark:text-gray-400 hover:text-primary hover:dark:text-primary-light","children":["$","span",null,{"className":"min-w-0 max-w-full break-words hyphens-auto","children":"Risks & Disclaimer"}]}]}]]}]]}]
+21:["$","main",null,{"id":"content-area","data-current-path":"/index","className":"min-w-0 max-w-full flex-1 overflow-x-clip","children":[["$","$L24",null,{"children":["$","$Lb",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$Lc",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","div",null,{"className":"flex flex-col items-center px-6 py-24 text-center","children":[["$","p",null,{"className":"text-8xl font-bold text-gray-200 dark:text-gray-800","children":"404"}],["$","h1",null,{"className":"mt-4 text-2xl font-semibold text-gray-950 dark:text-gray-50","children":"Page not found"}],["$","p",null,{"className":"mt-2 max-w-md text-gray-600 dark:text-gray-400","children":"The page you're looking for doesn't exist or may have moved."}],["$","$L1a",null,{"href":"/","className":"mt-8 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90","children":"Go home"}],["$","div",null,{"className":"mt-12 w-full max-w-sm text-left","children":[["$","p",null,{"className":"mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100","children":"You might be looking for"}],["$","ul",null,{"className":"flex flex-col gap-2","children":[["$","li","index",{"children":["$","$L1a",null,{"href":"/index","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"Introduction"}]}],["$","li","trading",{"children":["$","$L1a",null,{"href":"/trading","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"Trading"}]}],["$","li","mechanics",{"children":["$","$L1a",null,{"href":"/mechanics","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"Prediction & Reward Mechanics"}]}],["$","li","btc-hourly",{"children":["$","$L1a",null,{"href":"/btc-hourly","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"BTC Hourly Markets"}]}],["$","li","referrals",{"children":["$","$L1a",null,{"href":"/referrals","className":"text-sm text-gray-600 transition-colors hover:text-primary dark:text-gray-400 dark:hover:text-primary-light","children":"Referrals"}]}]]}]]}]]}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}]}],["$","footer",null,{"id":"footer","className":"flex gap-12 justify-between pt-10 border-t border-gray-100 sm:flex dark:border-gray-800/50 pb-28 mt-16","children":["$","div",null,{"className":"flex gap-6 flex-wrap","children":[["$","a","x",{"href":"https://x.com/SwivOfficial","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"x"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/x-twitter.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/x-twitter.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}],["$","a","discord",{"href":"https://discord.com/invite/bSTQFNNg7w","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"discord"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/discord.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/discord.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}],"$L25","$L26","$L27"]}]}]]}]
+29:I[46697,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js","/_next/static/chunks/1v6wc17awxgle.js","/_next/static/chunks/2_d267mikrasa.js"],"CopyPageButton"]
+2a:I[73471,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js","/_next/static/chunks/1v6wc17awxgle.js","/_next/static/chunks/2_d267mikrasa.js"],"H2"]
+2b:I[73471,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js","/_next/static/chunks/1v6wc17awxgle.js","/_next/static/chunks/2_d267mikrasa.js"],"CardGroup"]
+2c:I[73471,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js","/_next/static/chunks/1v6wc17awxgle.js","/_next/static/chunks/2_d267mikrasa.js"],"Card"]
+2d:I[73471,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js","/_next/static/chunks/1v6wc17awxgle.js","/_next/static/chunks/2_d267mikrasa.js"],"AccordionGroup"]
+2e:I[73471,["/_next/static/chunks/2wo-mzypa7a-v.js","/_next/static/chunks/22i43cg4l4-dq.js","/_next/static/chunks/3x7_subm8f70z.js","/_next/static/chunks/1v6wc17awxgle.js","/_next/static/chunks/2_d267mikrasa.js"],"Accordion"]
+30:I[27201,["/_next/static/chunks/2wo-mzypa7a-v.js"],"IconMark"]
+:HL["/images/swiv-banner.png","image"]
+22:["$","$L28",null,{"theme":"sequoia"}]
+25:["$","a","telegram",{"href":"https://twitter.com/SwivOfficial","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"telegram"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/telegram.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/telegram.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}]
+26:["$","a","github",{"href":"https://github.com/swiv-labs","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"github"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/github.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/brands/github.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}]
+27:["$","a","website",{"href":"https://twitter.com/SwivOfficial","target":"_blank","rel":"noopener noreferrer","className":"h-fit","children":[["$","span",null,{"className":"sr-only","children":"website"}],["$","svg",null,{"className":"forced-colors:forced-color-adjust-none forced-colors:bg-[color:CanvasText]! w-5 h-5 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400 transition-colors","aria-hidden":"true","style":{"maskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/solid/earth-americas.svg\")","WebkitMaskImage":"url(\"https://d3gk2c5xim1je2.cloudfront.net/fontawesome/v7.2.0/solid/earth-americas.svg\")","maskRepeat":"no-repeat","WebkitMaskRepeat":"no-repeat","maskPosition":"center","WebkitMaskPosition":"center"}}]]}]
+e:["$","article",null,{"className":"max-w-none","children":[["$","header",null,{"id":"header","className":"relative leading-none mb-6","children":[["$","div",null,{"className":"mt-0.5 space-y-1","children":[["$","nav",null,{"aria-label":"Breadcrumb","children":["$","ol",null,{"className":"breadcrumb-list flex flex-row items-center gap-1.5 list-none m-0 p-0","children":["$","li",null,{"className":"breadcrumb-item inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400","data-breadcrumb-title":"Overview","aria-current":"page","children":"Overview"}]}]}],["$","div",null,{"className":"flex flex-col sm:flex-row items-start sm:items-center relative gap-2 min-w-0","children":[["$","h1",null,{"id":"page-title","className":"text-3xl sm:text-4xl text-gray-900 tracking-tight dark:text-gray-200 [overflow-wrap:anywhere] font-medium","children":"Introduction"}],["$","$L29",null,{}]]}]]}],["$","div",null,{"className":"mt-2 text-lg text-gray-600 dark:text-gray-400","children":["$","p",null,{"children":"Swiv is a private precision market protocol that enables users to forecast real-world outcomes using numerical predictions."}]}]]}],["$","div",null,{"id":"content","className":"mdx-content relative prose prose-gray dark:prose-invert max-w-none","children":[["$","$L2a",null,{"id":"what-is-swiv","children":"What is Swiv?"}],"\n",["$","p",null,{"children":["$","img",null,{"src":"/images/swiv-banner.png","alt":"Swiv Banner"}]}],"\n",["$","p",null,{"children":["Swiv is a private precision market protocol that enables users to forecast real-world outcomes using ",["$","strong",null,{"children":"numerical predictions"}]," rather than binary (yes/no) bets."]}],"\n",["$","p",null,{"children":"Unlike traditional prediction markets, Swiv rewards precision. Users submit exact values (e.g., BTC price at a given time), and rewards are distributed based on how close those predictions are to the final outcome."}],"\n",["$","p",null,{"children":["All predictions remain ",["$","strong",null,{"children":"private until settlement"}],", preventing copy trading and herd behavior."]}],"\n",["$","$L2b",null,{"cols":2,"children":[["$","$L2c",null,{"title":"Trading","icon":"chart-candlestick","href":"/trading","children":["$","p",null,{"children":"How pools work, lifecycle states, and how to participate."}]}],["$","$L2c",null,{"title":"Prediction & Reward Mechanics","icon":"calculator","href":"/mechanics","children":["$","p",null,{"children":"Weight-based reward formula, accuracy scores, and bonuses."}]}],["$","$L2c",null,{"title":"BTC Hourly Markets","icon":"bitcoin","href":"/btc-hourly","children":["$","p",null,{"children":"Continuous hourly Bitcoin price prediction pools."}]}],["$","$L2c",null,{"title":"Privacy","icon":"shield","href":"/privacy","children":["$","p",null,{"children":"How Swiv keeps all activity private until settlement."}]}],["$","$L2c",null,{"title":"FAQ","icon":"life-buoy","href":"/faq","children":["$","p",null,{"children":"Answers to common questions about using Swiv."}]}],["$","$L2c",null,{"title":"Technical Overview","icon":"cpu","href":"/technical","children":["$","p",null,{"children":"Solana program, private execution, oracle integration."}]}]]}],"\n",["$","$L2a",null,{"id":"key-principles","children":"Key Principles"}],"\n",["$","$L2d",null,{"children":[["$","$L2e",null,{"title":"Precision over correctness","children":["$","p",null,{"children":"Rewards are not binary. The closer your prediction is to the final outcome, the greater your share of the pool."}]}],["$","$L2e",null,{"title":"Early, confident predictions win more","children":["$","p",null,{"children":"Submitting early and not updating your prediction earns time and conviction bonuses that multiply your weight."}]}],["$","$L2e",null,{"title":"Privacy prevents manipulation","children":["$","p",null,{"children":"No one can see your prediction before settlement, eliminating copy trading and late-stage bandwagon effects."}]}]]}]]}],["$","nav",null,{"id":"pagination","aria-label":"Pagination","className":"not-prose mt-12 grid sm:grid-cols-2 gap-4 border-t border-gray-100 pt-6 dark:border-gray-800","children":[["$","div",null,{}],["$","$L1a",null,{"href":"/trading","data-component-part":"pagination-next","className":"group flex items-center min-w-0 border border-gray-200/70 dark:border-gray-800/70 rounded-xl py-3 px-4 hover:border-gray-300 dark:hover:border-gray-700 justify-end text-right transition-colors","children":"$L2f"}]]}]]}]
+2f:["$","div",null,{"className":"space-y-1 min-w-0 max-w-full","children":[["$","div",null,{"className":"flex items-center justify-end text-sm text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 gap-x-1","children":[["$","span",null,{"className":"font-medium","children":"Next"}],["$","svg",null,{"xmlns":"http://www.w3.org/2000/svg","width":"14","height":"14","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","className":"size-3 shrink-0","children":["$","path",null,{"d":"M9 18l6-6-6-6"}]}]]}],["$","div",null,{"className":"truncate font-medium text-gray-900 dark:text-gray-200","children":"Trading"}]]}]
+13:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
+11:null
+15:[["$","title","0",{"children":"Introduction"}],["$","meta","1",{"name":"description","content":"Swiv is a private precision market protocol that enables users to forecast real-world outcomes using numerical predictions."}],["$","link","2",{"rel":"icon","href":"/icon.png"}],["$","$L30","3",{}]]

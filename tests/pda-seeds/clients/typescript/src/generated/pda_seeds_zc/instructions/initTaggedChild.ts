@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_tagged_child` instruction. */
+/** Discriminator for the `init_tagged_child` instruction. */
 export const INIT_TAGGED_CHILD_DISCRIMINATOR = new Uint8Array([40, 46, 85, 175, 69, 80, 143, 191]);
 
 /** Instruction arguments for `initTaggedChild`. */

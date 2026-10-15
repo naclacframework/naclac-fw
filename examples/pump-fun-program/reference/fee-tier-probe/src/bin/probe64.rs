@@ -28,7 +28,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -46,8 +46,8 @@ const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 // Confirmed real, `reference/pump-rust-client/idls/pump.json`.
 const CREATE_V2_DISCRIMINATOR: [u8; 8] = [214, 144, 76, 236, 95, 139, 49, 180];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -56,16 +56,16 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
-fn fetch_account(client: &RpcClient, pubkey: &Pubkey) -> Result<Account, String> {
+fn fetch_account(client: &RpcClient, pubkey: &Address) -> Result<Account, String> {
     let remote = client.get_account(pubkey).map_err(|e| format!("{e:?}"))?;
     Ok(Account {
         lamports: remote.lamports,
         data: remote.data.clone(),
-        owner: Pubkey::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
+        owner: Address::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
         executable: remote.executable,
         rent_epoch: remote.rent_epoch,
     })
@@ -79,7 +79,7 @@ fn run_case(
     client: &RpcClient,
     global_account: &Account,
     usdc_mint_account: &Account,
-    quote_token_program: Pubkey,
+    quote_token_program: Address,
 ) {
     println!("\n=== case {label}: quote_token_program = {quote_token_program} ===");
 
@@ -95,29 +95,29 @@ fn run_case(
     svm.add_program_from_file(pump_program, &so_path).unwrap_or_else(|e| panic!("load pump.so: {e:?}"));
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(global, global_account.clone()).unwrap();
     svm.set_account(quote_mint, usdc_mint_account.clone()).unwrap();
 
     let mint = Keypair::new();
-    let (mint_authority, _) = Pubkey::find_program_address(&[b"mint-authority"], &pump_program);
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.pubkey().as_ref()], &pump_program);
+    let (mint_authority, _) = Address::find_program_address(&[b"mint-authority"], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.pubkey().as_ref()], &pump_program);
     let associated_bonding_curve = ata_address(&bonding_curve, &mint.pubkey(), &base_token_program);
     let associated_quote_bonding_curve = ata_address(&bonding_curve, &quote_mint, &quote_token_program);
 
     let user = Keypair::new();
     svm.airdrop(&user.pubkey(), 100_000_000_000).unwrap();
 
-    let (global_params, _) = Pubkey::find_program_address(&[b"global-params"], &mayhem_program);
-    let (sol_vault, _) = Pubkey::find_program_address(&[b"sol-vault"], &mayhem_program);
-    let (mayhem_state, _) = Pubkey::find_program_address(&[b"mayhem-state", mint.pubkey().as_ref()], &mayhem_program);
-    let mayhem_token_vault = Pubkey::new_unique();
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (global_params, _) = Address::find_program_address(&[b"global-params"], &mayhem_program);
+    let (sol_vault, _) = Address::find_program_address(&[b"sol-vault"], &mayhem_program);
+    let (mayhem_state, _) = Address::find_program_address(&[b"mayhem-state", mint.pubkey().as_ref()], &mayhem_program);
+    let mayhem_token_vault = Address::new_unique();
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
     let name = "Probe Quote Coin";
     let symbol = "PQC";
     let uri = "https://example.com/probe64.json";
-    let creator = Pubkey::new_unique();
+    let creator = Address::new_unique();
 
     let mut data = CREATE_V2_DISCRIMINATOR.to_vec();
     for s in [name, symbol, uri] {
@@ -157,7 +157,7 @@ fn run_case(
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new(&[set_compute_unit_limit_ix(400_000), ix], Some(&user.pubkey()));
-    let account_keys: Vec<Pubkey> = msg.account_keys.clone();
+    let account_keys: Vec<Address> = msg.account_keys.clone();
     let tx = Transaction::new(&[&user, &mint], msg, blockhash);
 
     match svm.send_transaction(tx) {
@@ -170,7 +170,7 @@ fn run_case(
             // token_total_supply, complete, creator, is_mayhem_mode,
             // is_cashback_coin, quote_mint. 8-byte discriminator prefix.
             let virtual_quote_reserves = u64::from_le_bytes(bc.data[16..24].try_into().unwrap());
-            let bc_quote_mint = Pubkey::new_from_array(bc.data[83..115].try_into().unwrap());
+            let bc_quote_mint = Address::new_from_array(bc.data[83..115].try_into().unwrap());
             println!("bonding_curve.virtual_quote_reserves = {virtual_quote_reserves}");
             println!("bonding_curve.quote_mint = {bc_quote_mint} (expect {quote_mint})");
 
@@ -185,8 +185,8 @@ fn run_case(
                 Some(acc) => {
                     println!("associated_quote_bonding_curve: exists, owner={}, data_len={}", acc.owner, acc.data.len());
                     if acc.data.len() >= 72 {
-                        let ata_mint = Pubkey::new_from_array(acc.data[0..32].try_into().unwrap());
-                        let ata_owner = Pubkey::new_from_array(acc.data[32..64].try_into().unwrap());
+                        let ata_mint = Address::new_from_array(acc.data[0..32].try_into().unwrap());
+                        let ata_owner = Address::new_from_array(acc.data[32..64].try_into().unwrap());
                         println!("  token_account.mint = {ata_mint}, token_account.owner = {ata_owner}");
                     }
                 }
@@ -198,7 +198,7 @@ fn run_case(
             for line in &e.meta.logs {
                 println!("  LOG: {line}");
             }
-            let named: Vec<(&str, Pubkey)> = vec![
+            let named: Vec<(&str, Address)> = vec![
                 ("mint", mint.pubkey()), ("mint_authority", mint_authority), ("bonding_curve", bonding_curve),
                 ("associated_bonding_curve", associated_bonding_curve), ("global", global), ("user", user.pubkey()),
                 ("system_program", system_program), ("base_token_program", base_token_program),
@@ -208,7 +208,7 @@ fn run_case(
                 ("quote_mint", quote_mint), ("associated_quote_bonding_curve", associated_quote_bonding_curve),
                 ("quote_token_program", quote_token_program),
             ];
-            let label_for = |pk: &Pubkey| -> String {
+            let label_for = |pk: &Address| -> String {
                 named.iter().find(|(_, addr)| addr == pk).map(|(name, _)| name.to_string()).unwrap_or_else(|| pk.to_string())
             };
             println!("\n-- Decoded inner instructions (labeled accounts) --");
@@ -235,7 +235,7 @@ fn main() {
     let client = RpcClient::new_with_timeout(rpc_url, Duration::from_secs(60));
 
     let pump_program = pk(PUMP_PROGRAM_ID);
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let global_account = fetch_account(&client, &global).expect("fetch global failed");
     let usdc_mint_account = fetch_account(&client, &pk(USDC_MINT)).expect("fetch USDC mint failed");
 

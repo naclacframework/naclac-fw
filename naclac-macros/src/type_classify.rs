@@ -107,7 +107,7 @@ pub(crate) fn option_inner_type(ty: &Type) -> Option<&Type> {
     }
 }
 
-/// True if `ty` is the deprecated `Pubkey` type (replaced by `Address`).
+/// True if `ty` is the deprecated `Address` type (replaced by `Address`).
 pub(crate) fn is_deprecated_pubkey(ty: &Type) -> bool {
     is_exactly(ty, "Pubkey")
 }
@@ -123,11 +123,13 @@ pub(crate) fn is_byte_slice_ref(ty: &Type) -> bool {
     false
 }
 
-/// How a `Vec`/`String`-shaped type should be handled: an explicit
-/// zero-copy opt-in (`ZcVec<T>`/`Span<T>`/`ZcString`, no allocation) or a
-/// heap-allocated `Vec<T>`/`String`, or neither (a fixed-size/Pod type).
+/// How a `Vec`/`String`/`Option`-shaped type should be handled: an explicit
+/// zero-copy opt-in (`ZcVec<T>`/`ZcString`, no allocation), a
+/// heap-allocated `Vec<T>`/`String`, an `Option<T>` (fixed wire size, but
+/// never a native in-memory `Pod` bit-pattern match — see `OptionPod`), or
+/// neither (a true fixed-size/`Pod` type).
 pub(crate) enum DynamicKind {
-    /// `ZcVec<T>` or `Span<T>`.
+    /// `ZcVec<T>`.
     ZcVec,
     /// `ZcString`.
     ZcString,
@@ -135,6 +137,17 @@ pub(crate) enum DynamicKind {
     HeapVec,
     /// `String`.
     HeapString,
+    /// `Option<T>`. Every consumer that dispatches per-argument/per-field via
+    /// `NaclacArgs`/`NaclacPod` (never a whole-struct raw byte-cast) may
+    /// treat this identically to `Fixed` — `NaclacPod`'s `Option<T>` impl
+    /// (`naclac-core/src/prelude.rs`) already encodes/decodes the correct
+    /// 1-byte-tag-plus-payload wire format. The one place that must *not*
+    /// conflate the two: whatever decides if a struct can take the
+    /// whole-struct `unsafe impl Pod`/raw-`read_unaligned` fast path — an
+    /// `Option<T>`'s wire format never matches its native in-memory
+    /// representation, so a struct containing one is unsound to blob-cast as
+    /// a whole, unlike a struct of only genuinely-`Fixed` fields.
+    OptionPod,
     /// Anything else.
     Fixed,
 }
@@ -145,10 +158,11 @@ pub(crate) fn classify_dynamic(ty: &Type) -> DynamicKind {
         .map(syn::Ident::to_string)
         .as_deref()
     {
-        Some("ZcVec") | Some("Span") => DynamicKind::ZcVec,
+        Some("ZcVec") => DynamicKind::ZcVec,
         Some("ZcString") => DynamicKind::ZcString,
         Some("Vec") => DynamicKind::HeapVec,
         Some("String") => DynamicKind::HeapString,
+        Some("Option") => DynamicKind::OptionPod,
         _ => DynamicKind::Fixed,
     }
 }

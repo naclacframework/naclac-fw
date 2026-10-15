@@ -27,7 +27,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -44,8 +44,8 @@ const WSOL_MINT: &str = "So11111111111111111111111111111111111111112";
 const BUY_V2_DISCRIMINATOR: [u8; 8] = [184, 23, 238, 97, 103, 197, 211, 61];
 const BONDING_CURVE_DISCRIMINATOR: [u8; 8] = [23, 183, 248, 55, 96, 216, 172, 96];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -54,11 +54,11 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -73,7 +73,7 @@ fn bonding_curve_account_data(
     real_token_reserves: u64,
     real_quote_reserves: u64,
     token_total_supply: u64,
-    creator: &Pubkey,
+    creator: &Address,
 ) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&BONDING_CURVE_DISCRIMINATOR);
@@ -86,19 +86,19 @@ fn bonding_curve_account_data(
     data.extend_from_slice(creator.as_ref());
     data.push(0); // is_mayhem_mode
     data.push(0); // is_cashback_coin
-    // quote_mint: all-zero (Pubkey::default()) -- matches our own
+    // quote_mint: all-zero (Address::default()) -- matches our own
     // implementation's real-behavior assumption that a classic/SOL-paired
     // curve never literally stores WSOL_MINT here.
     data.extend_from_slice(&[0u8; 32]);
     data
 }
 
-fn fetch_account(client: &RpcClient, pubkey: &Pubkey) -> Result<Account, String> {
+fn fetch_account(client: &RpcClient, pubkey: &Address) -> Result<Account, String> {
     let remote = client.get_account(pubkey).map_err(|e| format!("{e:?}"))?;
     Ok(Account {
         lamports: remote.lamports,
         data: remote.data.clone(),
-        owner: Pubkey::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
+        owner: Address::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
         executable: remote.executable,
         rent_epoch: remote.rent_epoch,
     })
@@ -123,11 +123,11 @@ fn main() {
     }
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let global_account = fetch_account(&client, &global).expect("fetch global failed");
     svm.set_account(global, global_account.clone()).unwrap();
 
-    let (fee_config, _) = Pubkey::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
+    let (fee_config, _) = Address::find_program_address(&[b"fee_config", pump_program.as_ref()], &pump_fees_program);
     let fee_config_account = fetch_account(&client, &fee_config).expect("fetch fee_config failed");
     svm.set_account(fee_config, fee_config_account).unwrap();
 
@@ -135,15 +135,15 @@ fn main() {
     let quote_mint_account = fetch_account(&client, &quote_mint).expect("fetch WSOL mint failed");
     svm.set_account(quote_mint, quote_mint_account).unwrap();
 
-    let creator = Pubkey::new_unique();
-    let base_mint = Pubkey::new_unique();
+    let creator = Address::new_unique();
+    let base_mint = Address::new_unique();
     svm.set_account(
         base_mint,
         Account { lamports: 10_000_000, data: { let mut d = vec![0u8; 82]; d[44] = 6; d[45] = 1; d }, owner: base_token_program, executable: false, rent_epoch: 0 },
     )
     .unwrap();
 
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", base_mint.as_ref()], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", base_mint.as_ref()], &pump_program);
     let virtual_token_reserves = 1_073_000_000_000_000u64;
     let virtual_sol_reserves = 30_000_000_000u64;
     let token_total_supply = 1_000_000_000_000_000u64;
@@ -183,11 +183,11 @@ fn main() {
     )
     .unwrap();
 
-    let fee_recipient = Pubkey::try_from(&global_account.data[41..73]).expect("fee_recipient pubkey");
+    let fee_recipient = Address::try_from(&global_account.data[41..73]).expect("fee_recipient pubkey");
     let associated_quote_fee_recipient = ata_address(&fee_recipient, &quote_mint, &quote_token_program);
 
     let buyback_start = 8 + 733;
-    let buyback_fee_recipient = Pubkey::try_from(&global_account.data[buyback_start..buyback_start + 32]).expect("buyback pubkey");
+    let buyback_fee_recipient = Address::try_from(&global_account.data[buyback_start..buyback_start + 32]).expect("buyback pubkey");
     let buyback_vault_account = fetch_account(&client, &buyback_fee_recipient).expect("fetch buyback vault failed");
     svm.set_account(buyback_fee_recipient, buyback_vault_account).unwrap();
     let associated_quote_buyback_fee_recipient = ata_address(&buyback_fee_recipient, &quote_mint, &quote_token_program);
@@ -197,16 +197,16 @@ fn main() {
     )
     .unwrap();
 
-    let (creator_vault, _) = Pubkey::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
+    let (creator_vault, _) = Address::find_program_address(&[b"creator-vault", creator.as_ref()], &pump_program);
     let associated_creator_vault = ata_address(&creator_vault, &quote_mint, &quote_token_program);
 
-    let (sharing_config, _) = Pubkey::find_program_address(&[b"sharing-config", base_mint.as_ref()], &pump_fees_program);
+    let (sharing_config, _) = Address::find_program_address(&[b"sharing-config", base_mint.as_ref()], &pump_fees_program);
 
-    let (global_volume_accumulator, _) = Pubkey::find_program_address(&[b"global_volume_accumulator"], &pump_program);
+    let (global_volume_accumulator, _) = Address::find_program_address(&[b"global_volume_accumulator"], &pump_program);
     let gva_account = fetch_account(&client, &global_volume_accumulator).expect("fetch global_volume_accumulator failed");
     svm.set_account(global_volume_accumulator, gva_account).unwrap();
 
-    let (user_volume_accumulator, _) = Pubkey::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
+    let (user_volume_accumulator, _) = Address::find_program_address(&[b"user_volume_accumulator", user.pubkey().as_ref()], &pump_program);
     let associated_user_volume_accumulator = ata_address(&user_volume_accumulator, &quote_mint, &quote_token_program);
     svm.set_account(
         associated_user_volume_accumulator,
@@ -248,7 +248,7 @@ fn main() {
             AccountMeta::new_readonly(fee_config, false),
             AccountMeta::new_readonly(pump_fees_program, false),
             AccountMeta::new_readonly(system_program, false),
-            AccountMeta::new_readonly(Pubkey::find_program_address(&[b"__event_authority"], &pump_program).0, false),
+            AccountMeta::new_readonly(Address::find_program_address(&[b"__event_authority"], &pump_program).0, false),
             AccountMeta::new_readonly(pump_program, false),
         ],
         data,
@@ -257,7 +257,7 @@ fn main() {
     let budget_ix = set_compute_unit_limit_ix(400_000);
     let blockhash = svm.latest_blockhash();
     let msg = Message::new(&[budget_ix, ix], Some(&user.pubkey()));
-    let account_keys: Vec<Pubkey> = msg.account_keys.clone();
+    let account_keys: Vec<Address> = msg.account_keys.clone();
     let tx = Transaction::new(&[&user], msg, blockhash);
 
     match svm.send_transaction(tx) {
@@ -297,7 +297,7 @@ fn main() {
                 println!("  LOG: {line}");
             }
 
-            let named: Vec<(&str, Pubkey)> = vec![
+            let named: Vec<(&str, Address)> = vec![
                 ("global", global), ("base_mint", base_mint), ("quote_mint", quote_mint),
                 ("base_token_program", base_token_program), ("quote_token_program", quote_token_program),
                 ("associated_token_program", associated_token_program), ("fee_recipient", fee_recipient),
@@ -314,7 +314,7 @@ fn main() {
                 ("fee_config", fee_config), ("fee_program", pump_fees_program),
                 ("system_program", system_program), ("program", pump_program),
             ];
-            let label_for = |pk: &Pubkey| -> String {
+            let label_for = |pk: &Address| -> String {
                 named.iter().find(|(_, addr)| addr == pk).map(|(name, _)| name.to_string()).unwrap_or_else(|| pk.to_string())
             };
 

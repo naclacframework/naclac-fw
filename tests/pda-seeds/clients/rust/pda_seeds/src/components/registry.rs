@@ -7,9 +7,11 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg(feature = "borsh")]
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct Registry {
     pub bump: u8,
     pub tag: u32,
@@ -17,7 +19,7 @@ pub struct Registry {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct Registry {
@@ -30,7 +32,7 @@ pub struct Registry {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __Registry_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>();
@@ -39,7 +41,7 @@ const __Registry_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __Registry_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __Registry_GAP_0
@@ -49,7 +51,7 @@ const __Registry_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __Registry_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __Registry_GAP_0
@@ -75,7 +77,7 @@ const __Registry_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < Registry > () == (::core::mem::size_of:: < u8 > () +
@@ -85,7 +87,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
     assert_impl::<u8>();
@@ -94,13 +96,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for Registry {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for Registry {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for Registry {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -108,9 +110,11 @@ impl core::default::Default for Registry {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(feature = "borsh")]
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct RegistryCpi {
     pub bump: u8,
     pub tag: u32,
@@ -118,7 +122,7 @@ pub struct RegistryCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct RegistryCpi {
@@ -131,7 +135,7 @@ pub struct RegistryCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __RegistryCpi_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>();
@@ -140,7 +144,7 @@ const __RegistryCpi_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __RegistryCpi_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __RegistryCpi_GAP_0
@@ -150,7 +154,7 @@ const __RegistryCpi_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __RegistryCpi_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __RegistryCpi_GAP_0
@@ -176,7 +180,7 @@ const __RegistryCpi_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < RegistryCpi > () == (::core::mem::size_of:: < u8 > () +
@@ -186,7 +190,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
     assert_impl::<u8>();
@@ -195,13 +199,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for RegistryCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for RegistryCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for RegistryCpi {
     fn default() -> Self {
         crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
@@ -209,12 +213,12 @@ impl core::default::Default for RegistryCpi {
 }
 
 
-/// 8-byte on-chain discriminator for `Registry` accounts.
-pub const REGISTRY_DISCRIMINATOR: [u8; 8] = [47, 174, 110, 246, 184, 182, 252, 218];
+/// On-chain discriminator for `Registry` accounts.
+pub const REGISTRY_DISCRIMINATOR: &[u8] = &[47, 174, 110, 246, 184, 182, 252, 218];
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl naclac_client::NaclacDecode for Registry {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(REGISTRY_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(REGISTRY_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_pod_checked::<Self>(data, REGISTRY_DISCRIMINATOR)
     }
@@ -223,9 +227,18 @@ impl naclac_client::NaclacDecode for Registry {
 #[cfg(feature = "offchain")]
 #[cfg(feature = "borsh")]
 impl naclac_client::NaclacDecode for Registry {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(REGISTRY_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(REGISTRY_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_borsh_checked::<Self>(data, REGISTRY_DISCRIMINATOR)
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "wincode")]
+impl naclac_client::NaclacDecode for Registry {
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(REGISTRY_DISCRIMINATOR);
+    fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
+        naclac_client::decode_wincode_checked::<Self>(data, REGISTRY_DISCRIMINATOR)
     }
 }
 #[cfg(feature = "offchain")]
@@ -257,7 +270,7 @@ pub fn fetch_all_registry(
     provider: &naclac_client::NaclacProvider,
     program_id: &naclac_client::Address,
 ) -> Result<crate::sdk_core_offchain::Vec<(naclac_client::Address, Registry)>, naclac_client::NaclacClientError> {
-    let raw_accounts = provider.get_program_accounts(program_id, Some(&REGISTRY_DISCRIMINATOR))?;
+    let raw_accounts = provider.get_program_accounts(program_id, Some(REGISTRY_DISCRIMINATOR))?;
     let mut results = crate::sdk_core_offchain::Vec::new();
     for (address, data) in raw_accounts {
         if let Ok(value) = <Registry as naclac_client::NaclacDecode>::naclac_decode(&data) {

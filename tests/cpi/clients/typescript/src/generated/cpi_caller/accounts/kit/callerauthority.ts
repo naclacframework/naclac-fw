@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { CallerAuthority } from "../../types";
 
-/** 8-byte on-chain discriminator for `CallerAuthority` accounts. */
+/** On-chain discriminator for `CallerAuthority` accounts. */
 export const CALLERAUTHORITY_DISCRIMINATOR = new Uint8Array([184, 193, 233, 43, 192, 218, 253, 39]);
+
+function stripCallerAuthorityDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = CALLERAUTHORITY_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `CallerAuthority` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link CallerAuthority} account data. */
 export function getCallerAuthorityEncoder(): naclac.FixedSizeEncoder<CallerAuthority> {
@@ -37,7 +45,7 @@ export function decodeCallerAuthority<TAddress extends string = string>(
 ): naclac.Account<CallerAuthority, TAddress> | naclac.MaybeAccount<CallerAuthority, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripCallerAuthorityDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getCallerAuthorityDecoder(),
   );
@@ -86,7 +94,7 @@ export async function fetchAllMaybeCallerAuthority(
 }
 
 /** Fetches ALL `CallerAuthority` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllCallerAuthorityByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

@@ -2,6 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 export * from "./initCounter";
+export * from "./initCounterUnchecked";
 export * from "./incrementCounter";
 export * from "./touchCounterExplicitBump";
 export * from "./logEvent";
@@ -12,3 +13,9 @@ export * from "./emitViaSelfCpiSignedBaseline";
 export * from "./emitViaSolLogDataBaseline";
 export * from "./emitViaSelfCpiSized";
 export * from "./emitViaSolLogDataSized";
+export * from "./eventCpiSmoke";
+export * from "./eventCpiEmit";
+export * from "./emitViaSelfCpiNoProgram";
+export * from "./eventCpiNoop";
+export * from "./eventCpiLogOne";
+export * from "./eventCpiEmitOne";

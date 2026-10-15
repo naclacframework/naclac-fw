@@ -1089,7 +1089,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #fn_vis #fn_sig {
             // Before: log remaining CUs in debug mode.
             #[cfg(all(feature = "debug-mode", not(feature = "pinocchio")))]
-            naclac_lang::solana_program::log::sol_log_compute_units();
+            naclac_lang::solana_log::sol_log_compute_units();
             #[cfg(all(feature = "debug-mode", feature = "pinocchio"))]
             naclac_lang::prelude::sol_log_compute_units();
 
@@ -1097,7 +1097,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             // After: log remaining CUs to measure cost of this system.
             #[cfg(all(feature = "debug-mode", not(feature = "pinocchio")))]
-            naclac_lang::solana_program::log::sol_log_compute_units();
+            naclac_lang::solana_log::sol_log_compute_units();
             #[cfg(all(feature = "debug-mode", feature = "pinocchio"))]
             naclac_lang::prelude::sol_log_compute_units();
 

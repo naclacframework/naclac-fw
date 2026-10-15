@@ -1,0 +1,30 @@
+error[E0277]: `Mode` cannot be a field of a zero-copy struct
+  --> tests/fail/46_defined_type_bare_enum_field.rs:11:15
+   |
+11 |     pub mode: Mode,
+   |               ^^^^ this type is not `Pod`
+   |
+help: the trait `Pod` is not implemented for `Mode`
+  --> tests/fail/46_defined_type_bare_enum_field.rs:4:1
+   |
+ 4 | pub enum Mode {
+   | ^^^^^^^^^^^^^
+   = note: a `#[defined_type]` enum field must be written `ZcEnum<EnumName>`
+   = note: `bool` fields must be `Bool`; `Vec` and `String` need the Borsh or Wincode representation
+   = help: the following other types implement trait `Pod`:
+             ()
+             Address
+             ApplyPendingBalanceData
+             BatchedGroupedCiphertext2HandlesValidityProofContext
+             BatchedGroupedCiphertext2HandlesValidityProofData
+             BatchedGroupedCiphertext3HandlesValidityProofContext
+             BatchedGroupedCiphertext3HandlesValidityProofData
+             BatchedRangeProofContext
+           and $N others
+   = note: required for `Mode` to implement `ZcField`
+note: required by a bound in `assert_impl`
+  --> tests/fail/46_defined_type_bare_enum_field.rs:9:1
+   |
+ 9 | #[defined_type]
+   | ^^^^^^^^^^^^^^^ required by this bound in `assert_impl`
+   = note: this error originates in the attribute macro `defined_type` (in Nightly builds, run with -Z macro-backtrace for more info)

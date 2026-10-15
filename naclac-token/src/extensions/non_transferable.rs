@@ -82,9 +82,9 @@ pub fn initialize_non_transferable_mint_signed(
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -99,7 +99,7 @@ pub fn initialize_non_transferable_mint_signed(
         let _ = signer_seeds;
         let ix = ::pinocchio_token_2022::instructions::InitializeNonTransferableMint {
             mint: &mint.info.view,
-            token_program: &program.info.view.address(),
+            token_program: program.info.view.address(),
         };
         ix.invoke()
     }

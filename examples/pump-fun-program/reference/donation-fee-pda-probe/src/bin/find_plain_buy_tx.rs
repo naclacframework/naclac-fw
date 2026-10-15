@@ -7,7 +7,7 @@
 //!
 //! Usage: cargo run --bin find_plain_buy_tx [-- <rpc-url>]
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_rpc_client_api::config::RpcTransactionConfig;
 use solana_transaction_status_client_types::{EncodedTransaction, UiMessage, UiTransactionEncoding};
@@ -17,8 +17,8 @@ use std::time::Duration;
 const PUMP_PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
 const BUY_DISCRIMINATOR: [u8; 8] = [102, 6, 61, 18, 1, 218, 235, 234];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn main() {
@@ -73,9 +73,9 @@ fn main() {
                 // mint is at instruction-relative position [3] per cross_reference_buy_tx's confirmed layout.
                 let Some(&mint_idx) = ix.accounts.get(3) else { continue };
                 let Some(mint_str) = all_keys.get(mint_idx as usize) else { continue };
-                let Ok(mint) = Pubkey::from_str(mint_str) else { continue };
+                let Ok(mint) = Address::from_str(mint_str) else { continue };
 
-                let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
+                let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.as_ref()], &pump_program);
                 let Ok(bc_account) = client.get_account(&bonding_curve) else { continue };
                 if bc_account.data.len() < 8 + 40 + 1 + 32 + 2 {
                     continue;

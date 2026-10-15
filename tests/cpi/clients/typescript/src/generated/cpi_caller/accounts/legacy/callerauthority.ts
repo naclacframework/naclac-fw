@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { CallerAuthority } from "../../types";
 
-/** 8-byte on-chain discriminator for `CallerAuthority` accounts. */
+/** On-chain discriminator for `CallerAuthority` accounts. */
 export const CALLERAUTHORITY_DISCRIMINATOR = new Uint8Array([184, 193, 233, 43, 192, 218, 253, 39]);
 
 /** Fetches a `CallerAuthority` account. Throws if it does not exist. */

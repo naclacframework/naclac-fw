@@ -3,12 +3,12 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_non_transferable` instruction. */
+/** Discriminator for the `check_non_transferable` instruction. */
 export const CHECK_NON_TRANSFERABLE_DISCRIMINATOR = new Uint8Array([109, 115, 191, 131, 114, 38, 137, 144]);
 
 /** Instruction arguments for `checkNonTransferable`. */
 export interface CheckNonTransferableArgs {
-  expected_present: number;
+  expectedPresent: number;
 }
 
 /** Accounts for the `checkNonTransferable` instruction. */

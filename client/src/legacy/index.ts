@@ -3,8 +3,9 @@ export {
   LegacyProgram,
   LegacyMethodsBuilder,
   LegacyAccountFetcher,
+  innerInstructionsFromLegacyTransaction,
 } from "./program";
-export type { LegacyProvider } from "./provider";
+export { type LegacyProvider, type TxVersion, normalizeTxVersion } from "./provider";
 export * from "./token";
 
 // ─── Re-export all @solana/web3.js primitives needed by generated client code ───
@@ -18,6 +19,11 @@ export {
   Connection,
   Transaction,
   TransactionInstruction,
+  VersionedTransaction,
+  TransactionMessage,
+  AddressLookupTableAccount,
+  MessageV1,
+  type TransactionConfig,
   // Data types used in account fetch results
   type AccountInfo,
   type ParsedAccountData,
@@ -28,5 +34,6 @@ export {
   type Commitment,
 } from "@solana/web3.js";
 
+export { compileToV1Message, serializeMessageV1, type CompileV1Args } from "./v1";
 export { createProvider, loadNodeWallet, transferSol } from "./setup";
 export { createLiteSvmProvider, type LiteSvmLegacyProvider } from "./provider-litesvm";

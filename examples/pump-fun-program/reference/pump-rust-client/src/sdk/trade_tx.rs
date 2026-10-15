@@ -1,4 +1,4 @@
-use anchor_lang::solana_program::instruction::Instruction;
+use anchor_lang::solana_instruction::Instruction;
 
 use crate::constants;
 use crate::math::QuoteResult;

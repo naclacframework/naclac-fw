@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_child_safe` instruction. */
+/** Discriminator for the `init_child_safe` instruction. */
 export const INIT_CHILD_SAFE_DISCRIMINATOR = new Uint8Array([28, 228, 30, 126, 154, 251, 158, 96]);
 
 /** Accounts for the `initChildSafe` instruction. */

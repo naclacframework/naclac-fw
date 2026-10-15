@@ -7,7 +7,7 @@
 //! inclusion. Real layout verified against `mpl-core`'s
 //! `generated::types::{VerifiedCreators, VerifiedCreatorsSignature}`:
 //! `VerifiedCreators { signatures: Vec<VerifiedCreatorsSignature> }`,
-//! `VerifiedCreatorsSignature { address: Pubkey, verified: bool }` — fixed
+//! `VerifiedCreatorsSignature { address: Address, verified: bool }` — fixed
 //! 33 bytes each, no per-element offset walk needed (unlike
 //! `Attributes`/`Autograph`). Collection-level attachment verified against
 //! the real program's `PluginType::manager()` (`UpdateAuthority`, not
@@ -25,7 +25,7 @@ use crate::plugin_registry::{find_plugin_offset, plugin_type};
 /// real `mpl-core` `VerifiedCreatorsSignature` type isn't available on
 /// `pinocchio`. `verified` is `Bool` (a `u8`-backed, `bytemuck::Pod`
 /// wrapper — plain `bool` isn't `Pod`, since not every byte pattern is a
-/// valid `bool`), so the whole struct is safely `Span`-able for zero-copy
+/// valid `bool`), so the whole struct is safely `ZcVec`-able for zero-copy
 /// reads on `pinocchio`: `#[repr(C)]` over `Address`(32, align 1) +
 /// `Bool`(1, align 1) produces zero padding, matching the real on-chain
 /// Borsh layout (32+1 bytes, no gaps) exactly. The `Pod`/`Zeroable` derive
@@ -73,9 +73,8 @@ pub fn attach_verified_creators_signed(
         if signatures.len() > MAX_VERIFIED_CREATOR_SIGNATURES {
             return Err(NaclacError::InvalidInstructionData.err(0));
         }
-        let mut data = crate::fixed_buf::FixedBuf::<
-            { 3 + 4 + MAX_VERIFIED_CREATOR_SIGNATURES * 33 },
-        >::new();
+        let mut data =
+            crate::fixed_buf::FixedBuf::<{ 3 + 4 + MAX_VERIFIED_CREATOR_SIGNATURES * 33 }>::new();
         data.push(2u8); // AddPluginV1 discriminator
         data.push(plugin_type::VERIFIED_CREATORS);
         data.extend_from_slice(&(signatures.len() as u32).to_le_bytes());
@@ -114,9 +113,8 @@ pub fn attach_collection_verified_creators_signed(
         if signatures.len() > MAX_VERIFIED_CREATOR_SIGNATURES {
             return Err(NaclacError::InvalidInstructionData.err(0));
         }
-        let mut data = crate::fixed_buf::FixedBuf::<
-            { 3 + 4 + MAX_VERIFIED_CREATOR_SIGNATURES * 33 },
-        >::new();
+        let mut data =
+            crate::fixed_buf::FixedBuf::<{ 3 + 4 + MAX_VERIFIED_CREATOR_SIGNATURES * 33 }>::new();
         data.push(3u8); // AddCollectionPluginV1 discriminator
         data.push(plugin_type::VERIFIED_CREATORS);
         data.extend_from_slice(&(signatures.len() as u32).to_le_bytes());
@@ -170,7 +168,7 @@ pub fn fetch_collection_verified_creators(
 }
 
 /// `solana`-only: `VerifiedCreatorSignature` isn't `bytemuck::Pod` on this
-/// backend (see the struct's own doc comment), so `Span<VerifiedCreatorSignature>`
+/// backend (see the struct's own doc comment), so `ZcVec<VerifiedCreatorSignature>`
 /// can't be constructed here the way it can on `pinocchio` — this walks the
 /// same fixed 33-byte (32-byte `address` + 1-byte `verified`) records
 /// `read_verified_creators` does, but builds owned entries directly instead.
@@ -216,7 +214,7 @@ fn read_verified_creators_owned(
 #[cfg(feature = "pinocchio")]
 pub fn fetch_asset_verified_creators(
     info: &AccountInfo,
-) -> Result<Option<Span<VerifiedCreatorSignature>>> {
+) -> Result<Option<ZcVec<VerifiedCreatorSignature>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -229,7 +227,7 @@ pub fn fetch_asset_verified_creators(
 #[cfg(feature = "pinocchio")]
 pub fn fetch_collection_verified_creators(
     info: &AccountInfo,
-) -> Result<Option<Span<VerifiedCreatorSignature>>> {
+) -> Result<Option<ZcVec<VerifiedCreatorSignature>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);
@@ -240,14 +238,14 @@ pub fn fetch_collection_verified_creators(
 /// Lower-level variant of `fetch_asset_verified_creators`/
 /// `fetch_collection_verified_creators`, `pinocchio`-only: see
 /// `edition.rs`'s `read_edition` for why this exists alongside the
-/// uniform-signature wrappers above. Zero-copy — `Span<VerifiedCreatorSignature>`
+/// uniform-signature wrappers above. Zero-copy — `ZcVec<VerifiedCreatorSignature>`
 /// views directly into `data`, no heap allocation, no artificial cap
 /// (reflects however many signatures are actually stored on-chain).
 #[cfg(feature = "pinocchio")]
 pub fn read_verified_creators(
     data: &[u8],
     plugin_header_offset: usize,
-) -> Result<Option<Span<VerifiedCreatorSignature>>> {
+) -> Result<Option<ZcVec<VerifiedCreatorSignature>>> {
     let Some(offset) =
         find_plugin_offset(data, plugin_header_offset, plugin_type::VERIFIED_CREATORS)?
     else {
@@ -267,7 +265,7 @@ pub fn read_verified_creators(
     if data.len() < list_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    Ok(Some(Span::from_bytes(&data[list_start..list_end])?))
+    Ok(Some(ZcVec::from_bytes(&data[list_start..list_end])?))
 }
 
 #[cfg(kani)]

@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_non_transferable` instruction. */
+/** Discriminator for the `create_mint2022_with_non_transferable` instruction. */
 export const CREATE_MINT2022_WITH_NON_TRANSFERABLE_DISCRIMINATOR = new Uint8Array([80, 20, 34, 23, 238, 241, 235, 144]);
 
 /** Instruction arguments for `createMint2022WithNonTransferable`. */
@@ -22,9 +22,9 @@ export interface CreateMint2022WithNonTransferableAccounts {
    * `NonTransferable` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

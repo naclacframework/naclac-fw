@@ -3,13 +3,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct NaclacProgram {
     pub name: String,
-    pub is_zero_copy: bool,
     pub instructions: Vec<NaclacInstruction>,
     pub accounts: Vec<NaclacAccountStruct>,
     pub events: Vec<NaclacEvent>,
     pub errors: Vec<NaclacError>,
     pub constants: Vec<NaclacConstant>,
     pub types: Vec<NaclacTypeDef>,
+    /// True when at least one instruction's accounts struct carries
+    /// `#[event_cpi]`, i.e. the program can emit events as self-CPIs.
+    #[serde(default)]
+    pub event_cpi: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -29,14 +32,12 @@ pub enum NaclacTypeDefTy {
     #[serde(rename = "enum")]
     Enum {
         variants: Vec<NaclacEnumVariant>,
-        /// The enum's `#[repr(uN)]` discriminant type as written in source
-        /// (e.g. `"u8"`, `"u16"`) — `None` means no explicit repr was
-        /// written, which `#[defined_type]`'s zero-copy branch defaults to
-        /// `u8` (`naclac-macros/src/lib.rs`). Consumers that need the real
-        /// discriminant width (e.g. client codegen matching the on-chain
-        /// zero-copy layout) must apply that same default when this is
-        /// `None`, not assume it's absent because the enum has no repr at
-        /// all.
+        /// The width of the enum's tag on the wire. Zero-copy programs: the
+        /// `#[repr(uN)]` written in source, or `u8` when none is. Borsh and
+        /// Wincode programs: always `u8`, whatever the source says, because
+        /// both encode the tag as one byte. Always populated by the IDL
+        /// generators; optional so an IDL file without it still deserializes,
+        /// in which case a reader applies `u8`.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         repr: Option<String>,
     },
@@ -86,7 +87,7 @@ pub enum NaclacEnumFields {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NaclacInstruction {
     pub name: String,
-    pub discriminator: [u8; 8],
+    pub discriminator: Vec<u8>,
     pub accounts: Vec<NaclacAccount>,
     pub args: Vec<NaclacField>,
     #[serde(default)]
@@ -107,6 +108,11 @@ pub struct NaclacAccount {
     pub optional: Option<bool>,
     pub pda: Option<NaclacPda>,
     pub address: Option<String>,
+    /// Set when the account is pinned to the program's own id
+    /// (`address = crate::ID`). The parser cannot know that id; the IDL
+    /// generator, which is handed it, fills `address` in.
+    #[serde(default)]
+    pub address_is_program_id: bool,
     #[serde(default)]
     pub docs: Vec<String>,
 }
@@ -149,6 +155,7 @@ pub enum NaclacSeed {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NaclacAccountStruct {
     pub name: String,
+    pub discriminator: Vec<u8>,
     pub fields: Vec<NaclacField>,
     #[serde(default)]
     pub docs: Vec<String>,
@@ -165,6 +172,7 @@ pub struct NaclacField {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NaclacEvent {
     pub name: String,
+    pub discriminator: Vec<u8>,
     pub fields: Vec<NaclacEventField>,
     /// True for `#[event(alloc)]` — sequential, length-prefixed encoding
     /// (Vec/String/Option-capable), as opposed to a fixed-size bytemuck cast.

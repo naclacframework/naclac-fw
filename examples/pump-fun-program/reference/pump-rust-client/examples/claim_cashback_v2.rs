@@ -3,7 +3,7 @@ mod common;
 
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::native_token::LAMPORTS_PER_SOL;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{Keypair, Signer};
 
 use pump_rust_client::{constants, PumpSdk};
@@ -32,7 +32,7 @@ async fn main() {
             "CBEX",
             "https://example.com/cbex.json",
             user.pubkey(),
-            Pubkey::default(),
+            Address::default(),
             false,
             true,
             None,
@@ -48,7 +48,7 @@ async fn main() {
         ComputeBudgetInstruction::set_compute_unit_limit(200_000),
         sdk.claim_cashback_v2_instruction(
             user.pubkey(),
-            Pubkey::default(),
+            Address::default(),
             constants::SPL_TOKEN_PROGRAM_ID,
         ),
     ];

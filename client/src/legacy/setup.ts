@@ -1,5 +1,6 @@
-import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
-import type { LegacyProvider } from "./provider";
+import { Connection, Keypair, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionMessage } from "@solana/web3.js";
+import { compileToV1Message } from "./v1";
+import { type LegacyProvider, type TxVersion, normalizeTxVersion } from "./provider";
 import { createLiteSvmProvider } from "./provider-litesvm";
 
 export type Cluster =
@@ -16,9 +17,12 @@ export type Cluster =
 export function createProvider(
   cluster: Cluster,
   payer?: Keypair,
+  defaultTxVersion?: TxVersion,
 ): LegacyProvider {
   if (cluster === "litesvm") {
-    return createLiteSvmProvider(payer);
+    const prov = createLiteSvmProvider(payer);
+    prov.defaultTxVersion = defaultTxVersion ?? "v1";
+    return prov;
   }
 
   let url: string;
@@ -40,6 +44,7 @@ export function createProvider(
     payer,
     publicKey: payer ? payer.publicKey : undefined,
     commitment: "confirmed",
+    defaultTxVersion: defaultTxVersion ?? "v1",
     getBalance: async (addr: string | PublicKey) => {
       const pubkey = typeof addr === "string" ? new PublicKey(addr) : addr;
       const lamports = await connection.getBalance(pubkey, "confirmed");
@@ -69,31 +74,56 @@ export async function transferSol(
     throw new Error("[Naclac] Provider has no payer or publicKey configured.");
   }
 
-  const transaction = new Transaction().add(
-    SystemProgram.transfer({
-      fromPubkey,
-      toPubkey,
-      lamports: amount,
-    })
-  );
+  const txVersion = normalizeTxVersion(provider.defaultTxVersion);
+  const ix = SystemProgram.transfer({
+    fromPubkey,
+    toPubkey,
+    lamports: amount,
+  });
 
   const { blockhash, lastValidBlockHeight } = await provider.connection.getLatestBlockhash(
     (provider.commitment as any) ?? "confirmed"
   );
-  transaction.recentBlockhash = blockhash;
-  transaction.feePayer = fromPubkey;
 
-  let signedTx: Transaction;
-  if (provider.payer) {
-    transaction.sign(provider.payer);
-    signedTx = transaction;
-  } else if (provider.signTransaction) {
-    signedTx = await provider.signTransaction(transaction);
+  let signedTx: Transaction | VersionedTransaction;
+
+  if (txVersion === 1) {
+    const v1Msg = compileToV1Message({
+      payerKey: fromPubkey,
+      recentBlockhash: blockhash,
+      instructions: [ix],
+    });
+    const v1Tx = new VersionedTransaction(v1Msg);
+    if (provider.payer) {
+      v1Tx.sign([provider.payer]);
+    }
+    signedTx = provider.signTransaction ? await provider.signTransaction(v1Tx) : v1Tx;
+  } else if (txVersion === 0) {
+    const v0Msg = new TransactionMessage({
+      payerKey: fromPubkey,
+      recentBlockhash: blockhash,
+      instructions: [ix],
+    }).compileToV0Message();
+    const v0Tx = new VersionedTransaction(v0Msg);
+    if (provider.payer) {
+      v0Tx.sign([provider.payer]);
+    }
+    signedTx = provider.signTransaction ? await provider.signTransaction(v0Tx) : v0Tx;
   } else {
-    throw new Error("[Naclac] No signing capability found on legacy provider.");
+    const transaction = new Transaction().add(ix);
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = fromPubkey;
+    if (provider.payer) {
+      transaction.sign(provider.payer);
+    }
+    signedTx = provider.signTransaction ? await provider.signTransaction(transaction) : transaction;
   }
 
   const signature = await provider.connection.sendRawTransaction(signedTx.serialize());
+  if (provider.litesvm) {
+    return signature;
+  }
+
   await provider.connection.confirmTransaction({
     signature,
     blockhash,

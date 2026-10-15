@@ -29,7 +29,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -45,8 +45,8 @@ const MAYHEM_PROGRAM_ID: &str = "MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e";
 // Confirmed real, `reference/pump-rust-client/idls/pump.json`.
 const CREATE_V2_DISCRIMINATOR: [u8; 8] = [214, 144, 76, 236, 95, 139, 49, 180];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -55,16 +55,16 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
-fn fetch_account(client: &RpcClient, pubkey: &Pubkey) -> Result<Account, String> {
+fn fetch_account(client: &RpcClient, pubkey: &Address) -> Result<Account, String> {
     let remote = client.get_account(pubkey).map_err(|e| format!("{e:?}"))?;
     Ok(Account {
         lamports: remote.lamports,
         data: remote.data.clone(),
-        owner: Pubkey::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
+        owner: Address::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
         executable: remote.executable,
         rent_epoch: remote.rent_epoch,
     })
@@ -85,33 +85,33 @@ fn main() {
     svm.add_program_from_file(pump_program, &so_path).unwrap_or_else(|e| panic!("load pump.so: {e:?}"));
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let global_account = fetch_account(&client, &global).expect("fetch global failed");
     svm.set_account(global, global_account).unwrap();
 
     let mint = Keypair::new();
-    let (mint_authority, _) = Pubkey::find_program_address(&[b"mint-authority"], &pump_program);
-    let (bonding_curve, _) = Pubkey::find_program_address(&[b"bonding-curve", mint.pubkey().as_ref()], &pump_program);
+    let (mint_authority, _) = Address::find_program_address(&[b"mint-authority"], &pump_program);
+    let (bonding_curve, _) = Address::find_program_address(&[b"bonding-curve", mint.pubkey().as_ref()], &pump_program);
     let associated_bonding_curve = ata_address(&bonding_curve, &mint.pubkey(), &token_program);
 
     let user = Keypair::new();
     svm.airdrop(&user.pubkey(), 100_000_000_000).unwrap();
 
-    let (global_params, _) = Pubkey::find_program_address(&[b"global-params"], &mayhem_program);
-    let (sol_vault, _) = Pubkey::find_program_address(&[b"sol-vault"], &mayhem_program);
-    let (mayhem_state, _) = Pubkey::find_program_address(&[b"mayhem-state", mint.pubkey().as_ref()], &mayhem_program);
+    let (global_params, _) = Address::find_program_address(&[b"global-params"], &mayhem_program);
+    let (sol_vault, _) = Address::find_program_address(&[b"sol-vault"], &mayhem_program);
+    let (mayhem_state, _) = Address::find_program_address(&[b"mayhem-state", mint.pubkey().as_ref()], &mayhem_program);
     // Deliberately arbitrary/never-before-seen -- the IDL declares no `pda`
     // derivation for this account, unlike its 4 mayhem-account siblings, so
     // if `is_mayhem_mode=false` genuinely never touches it, this should not
     // matter at all.
-    let mayhem_token_vault = Pubkey::new_unique();
+    let mayhem_token_vault = Address::new_unique();
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
     let name = "Probe Coin";
     let symbol = "PROBE";
     let uri = "https://example.com/probe.json";
-    let creator = Pubkey::new_unique();
+    let creator = Address::new_unique();
 
     let mut data = CREATE_V2_DISCRIMINATOR.to_vec();
     for s in [name, symbol, uri] {
@@ -147,7 +147,7 @@ fn main() {
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new(&[set_compute_unit_limit_ix(400_000), ix], Some(&user.pubkey()));
-    let account_keys: Vec<Pubkey> = msg.account_keys.clone();
+    let account_keys: Vec<Address> = msg.account_keys.clone();
     let tx = Transaction::new(&[&user, &mint], msg, blockhash);
 
     match svm.send_transaction(tx) {
@@ -181,7 +181,7 @@ fn main() {
             for line in &e.meta.logs {
                 println!("  LOG: {line}");
             }
-            let named: Vec<(&str, Pubkey)> = vec![
+            let named: Vec<(&str, Address)> = vec![
                 ("mint", mint.pubkey()), ("mint_authority", mint_authority), ("bonding_curve", bonding_curve),
                 ("associated_bonding_curve", associated_bonding_curve), ("global", global), ("user", user.pubkey()),
                 ("system_program", system_program), ("token_program", token_program),
@@ -189,7 +189,7 @@ fn main() {
                 ("global_params", global_params), ("sol_vault", sol_vault), ("mayhem_state", mayhem_state),
                 ("mayhem_token_vault", mayhem_token_vault), ("event_authority", event_authority), ("program", pump_program),
             ];
-            let label_for = |pk: &Pubkey| -> String {
+            let label_for = |pk: &Address| -> String {
                 named.iter().find(|(_, addr)| addr == pk).map(|(name, _)| name.to_string()).unwrap_or_else(|| pk.to_string())
             };
             println!("\n-- Decoded inner instructions (labeled accounts) --");

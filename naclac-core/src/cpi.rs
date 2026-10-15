@@ -10,9 +10,9 @@
 //!
 //! `invoke`/`invoke_signed` (solana) and `invoke_pinocchio`/
 //! `invoke_signed_pinocchio_handles`/`invoke_signed_pinocchio` (pinocchio)
-//! always resolve to the *checked* path: on solana, the real
-//! `solana_program::program::invoke_signed`, which verifies every writable
-//! account's `AccountInfo` `RefCell` is actually borrowable before invoking;
+//! always resolve to the *checked* path: on solana, [`sdk::invoke_signed`]
+//! (the same checks as `solana_cpi::invoke_signed`), which verifies every
+//! named account's `AccountInfo` `RefCell` is borrowable before invoking;
 //! on pinocchio, the real `solana_instruction_view::cpi::invoke_signed_with_bounds`,
 //! which verifies each account's address matches the instruction's expected
 //! account at that position and that its borrow state is compatible with the
@@ -64,7 +64,7 @@ pub trait ToAccountInfos {
 
 #[cfg(not(feature = "pinocchio"))]
 pub fn invoke(
-    instruction: &solana_program::instruction::Instruction,
+    instruction: &solana_instruction::Instruction,
     account_handles: &[crate::prelude::CpiHandle<'_>],
 ) -> crate::prelude::Result<()> {
     invoke_signed(instruction, account_handles, &[])
@@ -72,7 +72,7 @@ pub fn invoke(
 
 #[cfg(not(feature = "pinocchio"))]
 pub fn invoke_signed(
-    instruction: &solana_program::instruction::Instruction,
+    instruction: &solana_instruction::Instruction,
     account_handles: &[crate::prelude::CpiHandle<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> crate::prelude::Result<()> {
@@ -82,15 +82,15 @@ pub fn invoke_signed(
             infos.push(handle.info.to_lifetime());
         }
     }
-    solana_program::program::invoke_signed(instruction, &infos, signer_seeds)
+    sdk::invoke_signed(instruction, &infos, signer_seeds)
 }
 
 /// Raw, no-borrow-check CPI — bypasses the `RefCell` borrow checks
-/// `invoke_signed`'s real `solana_program::program::invoke_signed` performs.
+/// [`sdk::invoke_signed`] performs.
 /// See this module's own doc comment for when to reach for this instead.
 #[cfg(not(feature = "pinocchio"))]
 pub fn invoke_unchecked(
-    instruction: &solana_program::instruction::Instruction,
+    instruction: &solana_instruction::Instruction,
     account_handles: &[crate::prelude::CpiHandle<'_>],
 ) -> crate::prelude::Result<()> {
     invoke_signed_unchecked(instruction, account_handles, &[])
@@ -98,7 +98,7 @@ pub fn invoke_unchecked(
 
 #[cfg(not(feature = "pinocchio"))]
 pub fn invoke_signed_unchecked(
-    instruction: &solana_program::instruction::Instruction,
+    instruction: &solana_instruction::Instruction,
     account_handles: &[crate::prelude::CpiHandle<'_>],
     signer_seeds: &[&[&[u8]]],
 ) -> crate::prelude::Result<()> {
@@ -108,7 +108,493 @@ pub fn invoke_signed_unchecked(
             infos.push(handle.info.to_lifetime());
         }
     }
-    solana_program::program::invoke_signed_unchecked(instruction, &infos, signer_seeds)
+    sdk::invoke_signed_unchecked(instruction, &infos, signer_seeds)
+}
+
+/// The runtime-facing CPI ABI of the `solana_program` backend, built from
+/// borrowed memory instead of the owning `Vec`s
+/// `solana_instruction::Instruction` requires (which `invoke_signed`
+/// then clones a second time into this very layout). The runtime reads these
+/// structs by offset, so their layouts are checked byte for byte against the
+/// SDK's `StableInstruction`/`AccountMeta` in this module's tests.
+#[cfg(not(feature = "pinocchio"))]
+pub(crate) mod stable {
+    use solana_account_info::AccountInfo;
+
+    /// Field order and sizes match `solana_stable_layout::StableVec`.
+    #[repr(C)]
+    pub(crate) struct StableVec<T> {
+        addr: u64,
+        cap: u64,
+        len: u64,
+        _marker: core::marker::PhantomData<T>,
+    }
+
+    impl<T> StableVec<T> {
+        #[inline(always)]
+        fn borrowing(slice: &[T]) -> Self {
+            Self {
+                addr: slice.as_ptr() as u64,
+                cap: slice.len() as u64,
+                len: slice.len() as u64,
+                _marker: core::marker::PhantomData,
+            }
+        }
+    }
+
+    /// Matches `solana_instruction::AccountMeta`'s `repr(C)` layout.
+    #[repr(C)]
+    pub(crate) struct StableAccountMeta {
+        pub(crate) pubkey: solana_address::Address,
+        pub(crate) is_signer: bool,
+        pub(crate) is_writable: bool,
+    }
+
+    /// Matches `solana_stable_layout::StableInstruction`. Borrows `accounts`
+    /// and `data` for `'a`, so it cannot outlive the memory it points into.
+    #[repr(C)]
+    pub(crate) struct StableInstruction<'a> {
+        accounts: StableVec<StableAccountMeta>,
+        data: StableVec<u8>,
+        program_id: solana_address::Address,
+        _borrows: core::marker::PhantomData<&'a ()>,
+    }
+
+    impl<'a> StableInstruction<'a> {
+        #[inline(always)]
+        pub(crate) fn new(
+            program_id: solana_address::Address,
+            accounts: &'a [StableAccountMeta],
+            data: &'a [u8],
+        ) -> Self {
+            Self {
+                accounts: StableVec::borrowing(accounts),
+                data: StableVec::borrowing(data),
+                program_id,
+                _borrows: core::marker::PhantomData,
+            }
+        }
+
+        /// Points at `instruction`'s own account metas and data. Sound because
+        /// `StableAccountMeta` has `solana_instruction::AccountMeta`'s exact
+        /// layout (checked in this module's tests), and the runtime reads only
+        /// each vector's address and length.
+        #[inline(always)]
+        pub(crate) fn from_instruction(instruction: &'a solana_instruction::Instruction) -> Self {
+            Self {
+                accounts: StableVec {
+                    addr: instruction.accounts.as_ptr() as u64,
+                    cap: instruction.accounts.len() as u64,
+                    len: instruction.accounts.len() as u64,
+                    _marker: core::marker::PhantomData,
+                },
+                data: StableVec::borrowing(&instruction.data),
+                program_id: instruction.program_id,
+                _borrows: core::marker::PhantomData,
+            }
+        }
+    }
+
+    /// Invokes `instruction` through the `sol_invoke_signed_rust` syscall with
+    /// no `RefCell` borrow checks: the caller must not pass a writable account
+    /// whose data or lamports are borrowed elsewhere. Goes through
+    /// `solana_define_syscall`, since on SBPF v3 a plain `extern "C"`
+    /// declaration is not a syscall call.
+    #[inline(always)]
+    pub(crate) fn invoke_signed_raw(
+        instruction: &StableInstruction<'_>,
+        account_infos: &[AccountInfo<'_>],
+        signers_seeds: &[&[&[u8]]],
+    ) -> crate::prelude::Result<()> {
+        #[cfg(target_os = "solana")]
+        {
+            let result = unsafe {
+                solana_define_syscall::definitions::sol_invoke_signed_rust(
+                    instruction as *const StableInstruction<'_> as *const u8,
+                    account_infos.as_ptr() as *const u8,
+                    account_infos.len() as u64,
+                    signers_seeds.as_ptr() as *const u8,
+                    signers_seeds.len() as u64,
+                )
+            };
+            if result != 0 {
+                return Err(result.into());
+            }
+        }
+        #[cfg(not(target_os = "solana"))]
+        let _ = (instruction, account_infos, signers_seeds);
+        Ok(())
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use alloc::vec;
+        use core::mem::{align_of, offset_of, size_of};
+        use solana_instruction::{AccountMeta, Instruction};
+        use solana_stable_layout::stable_instruction::StableInstruction as Official;
+
+        fn bytes_of<T>(value: &T) -> &[u8] {
+            unsafe { core::slice::from_raw_parts(value as *const T as *const u8, size_of::<T>()) }
+        }
+
+        #[test]
+        fn layouts_match_the_sdk() {
+            assert_eq!(size_of::<StableInstruction<'_>>(), size_of::<Official>());
+            assert_eq!(align_of::<StableInstruction<'_>>(), align_of::<Official>());
+            assert_eq!(
+                offset_of!(StableInstruction<'_>, accounts),
+                offset_of!(Official, accounts)
+            );
+            assert_eq!(
+                offset_of!(StableInstruction<'_>, data),
+                offset_of!(Official, data)
+            );
+            assert_eq!(
+                offset_of!(StableInstruction<'_>, program_id),
+                offset_of!(Official, program_id)
+            );
+
+            assert_eq!(size_of::<StableAccountMeta>(), size_of::<AccountMeta>());
+            assert_eq!(align_of::<StableAccountMeta>(), align_of::<AccountMeta>());
+            assert_eq!(
+                offset_of!(StableAccountMeta, pubkey),
+                offset_of!(AccountMeta, pubkey)
+            );
+            assert_eq!(
+                offset_of!(StableAccountMeta, is_signer),
+                offset_of!(AccountMeta, is_signer)
+            );
+            assert_eq!(
+                offset_of!(StableAccountMeta, is_writable),
+                offset_of!(AccountMeta, is_writable)
+            );
+        }
+
+        #[test]
+        fn encoding_matches_the_sdk_for_the_same_instruction() {
+            let program_id = solana_address::Address::new_from_array([7; 32]);
+            let first = solana_address::Address::new_from_array([9; 32]);
+            let second = solana_address::Address::new_from_array([5; 32]);
+            let data = [1u8, 2, 3, 4, 5];
+
+            let official = Official::from(Instruction {
+                program_id,
+                accounts: vec![
+                    AccountMeta {
+                        pubkey: first,
+                        is_signer: true,
+                        is_writable: false,
+                    },
+                    AccountMeta {
+                        pubkey: second,
+                        is_signer: false,
+                        is_writable: true,
+                    },
+                ],
+                data: data.to_vec(),
+            });
+
+            let accounts = [
+                StableAccountMeta {
+                    pubkey: first,
+                    is_signer: true,
+                    is_writable: false,
+                },
+                StableAccountMeta {
+                    pubkey: second,
+                    is_signer: false,
+                    is_writable: true,
+                },
+            ];
+            let ours = StableInstruction::new(program_id, &accounts, &data);
+
+            assert_eq!(ours.accounts.len, official.accounts.len);
+            assert_eq!(ours.data.len, official.data.len);
+            assert_eq!(bytes_of(&ours.program_id), bytes_of(&official.program_id));
+
+            let official_metas = unsafe {
+                core::slice::from_raw_parts(
+                    official.accounts.addr as *const AccountMeta,
+                    official.accounts.len as usize,
+                )
+            };
+            for (mine, theirs) in accounts.iter().zip(official_metas) {
+                assert_eq!(bytes_of(mine), bytes_of(theirs));
+            }
+            let official_data = unsafe {
+                core::slice::from_raw_parts(
+                    official.data.addr as *const u8,
+                    official.data.len as usize,
+                )
+            };
+            assert_eq!(official_data, data);
+        }
+
+        #[test]
+        fn from_instruction_encodes_like_the_sdk() {
+            let instruction = Instruction {
+                program_id: solana_address::Address::new_from_array([3; 32]),
+                accounts: vec![
+                    AccountMeta {
+                        pubkey: solana_address::Address::new_from_array([4; 32]),
+                        is_signer: true,
+                        is_writable: true,
+                    },
+                    AccountMeta {
+                        pubkey: solana_address::Address::new_from_array([6; 32]),
+                        is_signer: false,
+                        is_writable: false,
+                    },
+                ],
+                data: vec![9, 8, 7],
+            };
+            let official = Official::from(instruction.clone());
+            let ours = StableInstruction::from_instruction(&instruction);
+
+            assert_eq!(ours.accounts.len, official.accounts.len);
+            assert_eq!(ours.data.len, official.data.len);
+            assert_eq!(bytes_of(&ours.program_id), bytes_of(&official.program_id));
+
+            let meta_bytes = official.accounts.len as usize * size_of::<AccountMeta>();
+            let our_metas =
+                unsafe { core::slice::from_raw_parts(ours.accounts.addr as *const u8, meta_bytes) };
+            let official_metas = unsafe {
+                core::slice::from_raw_parts(official.accounts.addr as *const u8, meta_bytes)
+            };
+            assert_eq!(our_metas, official_metas);
+
+            let our_data = unsafe {
+                core::slice::from_raw_parts(ours.data.addr as *const u8, ours.data.len as usize)
+            };
+            let official_data = unsafe {
+                core::slice::from_raw_parts(
+                    official.data.addr as *const u8,
+                    official.data.len as usize,
+                )
+            };
+            assert_eq!(our_data, official_data);
+        }
+    }
+}
+
+/// The `solana_cpi` 3.1.0 API over the SDK's `AccountInfo`, with the same
+/// signatures, the same pre-invoke borrow checks and the same syscalls, so a
+/// program calling these behaves as it would with that crate.
+#[cfg(not(feature = "pinocchio"))]
+pub mod sdk {
+    use super::stable::{invoke_signed_raw, StableInstruction};
+    use crate::prelude::Vec;
+    use solana_account_info::AccountInfo;
+    use solana_address::Address;
+    use solana_instruction::Instruction;
+    use solana_program_error::ProgramResult;
+
+    /// [`invoke_signed`] with no signer seeds.
+    pub fn invoke(instruction: &Instruction, account_infos: &[AccountInfo]) -> ProgramResult {
+        invoke_signed(instruction, account_infos, &[])
+    }
+
+    /// [`invoke_signed_unchecked`] with no signer seeds.
+    pub fn invoke_unchecked(
+        instruction: &Instruction,
+        account_infos: &[AccountInfo],
+    ) -> ProgramResult {
+        invoke_signed_unchecked(instruction, account_infos, &[])
+    }
+
+    /// Invokes `instruction` after checking, for each of its account metas,
+    /// the first entry of `account_infos` with that key: a writable meta's
+    /// lamports and data must be mutably borrowable, a read-only meta's
+    /// borrowable, otherwise this returns `AccountBorrowFailed` without
+    /// invoking. The check borrows are released before the call.
+    pub fn invoke_signed(
+        instruction: &Instruction,
+        account_infos: &[AccountInfo],
+        signers_seeds: &[&[&[u8]]],
+    ) -> ProgramResult {
+        for account_meta in instruction.accounts.iter() {
+            for account_info in account_infos.iter() {
+                if account_meta.pubkey == *account_info.key {
+                    if account_meta.is_writable {
+                        let _ = account_info.try_borrow_mut_lamports()?;
+                        let _ = account_info.try_borrow_mut_data()?;
+                    } else {
+                        let _ = account_info.try_borrow_lamports()?;
+                        let _ = account_info.try_borrow_data()?;
+                    }
+                    break;
+                }
+            }
+        }
+
+        invoke_signed_unchecked(instruction, account_infos, signers_seeds)
+    }
+
+    /// Invokes `instruction` with no borrow checks: the caller must not pass a
+    /// writable account whose data or lamports are borrowed elsewhere.
+    /// Off-chain this does nothing and returns `Ok(())`.
+    pub fn invoke_signed_unchecked(
+        instruction: &Instruction,
+        account_infos: &[AccountInfo],
+        signers_seeds: &[&[&[u8]]],
+    ) -> ProgramResult {
+        invoke_signed_raw(
+            &StableInstruction::from_instruction(instruction),
+            account_infos,
+            signers_seeds,
+        )
+    }
+
+    /// The largest return data the runtime accepts.
+    pub const MAX_RETURN_DATA: usize = 1024;
+
+    /// Sets the current instruction's return data. Off-chain this does nothing.
+    pub fn set_return_data(data: &[u8]) {
+        #[cfg(target_os = "solana")]
+        unsafe {
+            solana_define_syscall::definitions::sol_set_return_data(
+                data.as_ptr(),
+                data.len() as u64,
+            )
+        };
+        #[cfg(not(target_os = "solana"))]
+        let _ = data;
+    }
+
+    /// The return data most recently set during this transaction and the id
+    /// of the program that set it, at most [`MAX_RETURN_DATA`] bytes; `None`
+    /// when it is empty. Off-chain always `None`.
+    pub fn get_return_data() -> Option<(Address, Vec<u8>)> {
+        #[cfg(target_os = "solana")]
+        {
+            let mut buf = [0u8; MAX_RETURN_DATA];
+            let mut program_id = Address::default();
+
+            let size = unsafe {
+                solana_define_syscall::definitions::sol_get_return_data(
+                    buf.as_mut_ptr(),
+                    buf.len() as u64,
+                    &mut program_id as *mut _ as *mut u8,
+                )
+            };
+
+            if size == 0 {
+                None
+            } else {
+                let size = core::cmp::min(size as usize, MAX_RETURN_DATA);
+                Some((program_id, buf[..size].to_vec()))
+            }
+        }
+
+        #[cfg(not(target_os = "solana"))]
+        None
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use alloc::vec;
+        use solana_instruction::AccountMeta;
+        use solana_program_error::ProgramError;
+
+        fn key(byte: u8) -> Address {
+            Address::new_from_array([byte; 32])
+        }
+
+        fn instruction(metas: &[(u8, bool)]) -> Instruction {
+            Instruction {
+                program_id: key(0xEE),
+                accounts: metas
+                    .iter()
+                    .map(|&(byte, is_writable)| AccountMeta {
+                        pubkey: key(byte),
+                        is_signer: false,
+                        is_writable,
+                    })
+                    .collect(),
+                data: vec![1, 2, 3],
+            }
+        }
+
+        fn both(instruction: &Instruction, infos: &[AccountInfo]) -> ProgramResult {
+            let ours = invoke_signed(instruction, infos, &[]);
+            let stock = solana_cpi::invoke_signed(instruction, infos, &[]);
+            assert!(ours == stock);
+            ours
+        }
+
+        #[test]
+        fn borrow_checks_match_solana_cpi() {
+            let (k1, k2, owner) = (key(1), key(2), key(0xAA));
+            let (mut lamports1, mut lamports2) = (10u64, 20u64);
+            let (mut data1, mut data2) = ([0u8; 4], [0u8; 4]);
+            let first =
+                AccountInfo::new(&k1, false, true, &mut lamports1, &mut data1, &owner, false);
+            let second =
+                AccountInfo::new(&k2, false, false, &mut lamports2, &mut data2, &owner, false);
+            let infos = [first.clone(), second.clone()];
+
+            assert!(both(&instruction(&[(1, true), (2, false)]), &infos) == Ok(()));
+            assert!(both(&instruction(&[(9, true)]), &infos) == Ok(()));
+
+            {
+                let _shared = first.data.borrow();
+                assert!(
+                    both(&instruction(&[(1, true)]), &infos)
+                        == Err(ProgramError::AccountBorrowFailed)
+                );
+                assert!(both(&instruction(&[(1, false)]), &infos) == Ok(()));
+            }
+            {
+                let _exclusive = first.lamports.borrow_mut();
+                assert!(
+                    both(&instruction(&[(1, false)]), &infos)
+                        == Err(ProgramError::AccountBorrowFailed)
+                );
+            }
+            {
+                let _exclusive = second.data.borrow_mut();
+                assert!(both(&instruction(&[(1, true)]), &infos) == Ok(()));
+                assert!(
+                    both(&instruction(&[(1, true), (2, false)]), &infos)
+                        == Err(ProgramError::AccountBorrowFailed)
+                );
+            }
+        }
+
+        #[test]
+        fn only_the_first_matching_account_info_is_checked() {
+            let (k1, owner) = (key(1), key(0xAA));
+            let (mut lamports_a, mut lamports_b) = (1u64, 2u64);
+            let (mut data_a, mut data_b) = ([0u8; 2], [0u8; 2]);
+            let free = AccountInfo::new(
+                &k1,
+                false,
+                true,
+                &mut lamports_a,
+                &mut data_a,
+                &owner,
+                false,
+            );
+            let busy = AccountInfo::new(
+                &k1,
+                false,
+                true,
+                &mut lamports_b,
+                &mut data_b,
+                &owner,
+                false,
+            );
+            let _held = busy.data.borrow_mut();
+
+            assert!(both(&instruction(&[(1, true)]), &[free.clone(), busy.clone()]) == Ok(()));
+            assert!(
+                both(&instruction(&[(1, true)]), &[busy.clone(), free.clone()])
+                    == Err(ProgramError::AccountBorrowFailed)
+            );
+        }
+    }
 }
 
 // ===========================================================================
@@ -236,9 +722,9 @@ pub fn invoke_signed_pinocchio_handles_unchecked(
         return Err(crate::prelude::NaclacError::TooManyCpiAccounts.into());
     }
 
-    let mut cpi_accounts_arr = [const {
-        core::mem::MaybeUninit::<::pinocchio::cpi::CpiAccount>::uninit()
-    }; crate::prelude::MAX_CPI_ACCOUNTS];
+    let mut cpi_accounts_arr =
+        [const { core::mem::MaybeUninit::<::pinocchio::cpi::CpiAccount>::uninit() };
+            crate::prelude::MAX_CPI_ACCOUNTS];
     let cpi_accounts_len = account_infos.len();
     for (uninit, info) in cpi_accounts_arr
         .iter_mut()
@@ -303,9 +789,9 @@ pub fn invoke_signed_pinocchio_unchecked(
         return Err(crate::prelude::NaclacError::TooManyCpiAccounts.into());
     }
 
-    let mut cpi_accounts_arr = [const {
-        core::mem::MaybeUninit::<::pinocchio::cpi::CpiAccount>::uninit()
-    }; crate::prelude::MAX_CPI_ACCOUNTS];
+    let mut cpi_accounts_arr =
+        [const { core::mem::MaybeUninit::<::pinocchio::cpi::CpiAccount>::uninit() };
+            crate::prelude::MAX_CPI_ACCOUNTS];
     let cpi_accounts_len = account_infos.len();
     for (uninit, view) in cpi_accounts_arr
         .iter_mut()

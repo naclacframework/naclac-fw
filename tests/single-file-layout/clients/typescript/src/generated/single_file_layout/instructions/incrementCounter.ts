@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `increment_counter` instruction. */
+/** Discriminator for the `increment_counter` instruction. */
 export const INCREMENT_COUNTER_DISCRIMINATOR = new Uint8Array([16, 125, 2, 171, 73, 24, 207, 229]);
 
 /** Accounts for the `incrementCounter` instruction. */

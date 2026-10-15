@@ -1,7 +1,8 @@
 //! # Component Macro Logic
 //!
 //! Handles the expansion of the `#[component]` attribute, transforming Rust structs into
-//! on-chain data accounts. It automatically generates the 8-byte discriminator and handles
+//! on-chain data accounts. It generates the account discriminator (8 bytes derived from the
+//! name, or the 1 to 8 bytes given by `#[component(discriminator = ..)]`) and handles
 //! the serialization/deserialization traits based on the active execution mode.
 
 use proc_macro::TokenStream;
@@ -25,14 +26,32 @@ use syn::{parse_macro_input, ItemStruct};
 /// mapper cannot know without either re-parsing elsewhere or waiting for the
 /// referenced type's own compiled impl to exist.
 #[cfg(feature = "idl-build")]
-pub(crate) fn idl_build_impl(struct_name: &syn::Ident, fields: &syn::Fields) -> proc_macro2::TokenStream {
+pub(crate) fn idl_build_impl(
+    struct_name: &syn::Ident,
+    struct_attrs: &[syn::Attribute],
+    fields: &syn::Fields,
+    account_disc: Option<&[u8]>,
+) -> proc_macro2::TokenStream {
+    let struct_docs = naclac_syn::parser::extract_docs(struct_attrs);
+    let account_disc_fn = match account_disc {
+        Some(disc) => quote! {
+            fn account_discriminator() -> Option<naclac_lang::prelude::Vec<u8>> {
+                Some(vec![#(#disc),*])
+            }
+        },
+        None => quote! {},
+    };
+    let constants = crate::crate_constants();
     let mut idl_fields = Vec::new();
     let mut defined_refs: Vec<syn::Type> = Vec::new();
 
-    for field in fields.iter() {
-        let name = field.ident.as_ref().map(|i| i.to_string()).unwrap_or_default();
+    for (index, field) in fields.iter().enumerate() {
+        let name = field.ident.as_ref().map_or_else(
+            || index.to_string(),
+            |ident| naclac_syn::parser::idl_name(&ident.to_string()),
+        );
         let docs = naclac_syn::parser::extract_docs(&field.attrs);
-        let ty_value = naclac_syn::parser::rust_type_to_idl(&field.ty, &[]);
+        let ty_value = naclac_syn::parser::rust_type_to_idl(&field.ty, &constants);
         let Ok(ty_json) = serde_json::to_string(&ty_value) else {
             continue;
         };
@@ -57,7 +76,10 @@ pub(crate) fn idl_build_impl(struct_name: &syn::Ident, fields: &syn::Fields) -> 
         #[cfg(feature = "idl-build")]
         impl naclac_lang::naclac_idl::idl_build::NaclacIdlBuild for #struct_name {
             fn create_type() -> Option<naclac_lang::naclac_idl::IdlTypeDef> {
-                Some(naclac_lang::naclac_idl::IdlTypeDef::Struct { fields: vec![#(#idl_fields),*] })
+                Some(naclac_lang::naclac_idl::IdlTypeDef::Struct {
+                    fields: vec![#(#idl_fields),*],
+                    docs: vec![#(#struct_docs.into()),*],
+                })
             }
 
             fn insert_types(
@@ -80,12 +102,19 @@ pub(crate) fn idl_build_impl(struct_name: &syn::Ident, fields: &syn::Fields) -> 
             fn get_full_path() -> naclac_lang::naclac_idl::__private::String {
                 #struct_name_str.into()
             }
+
+            #account_disc_fn
         }
     }
 }
 
 #[cfg(not(feature = "idl-build"))]
-pub(crate) fn idl_build_impl(_struct_name: &syn::Ident, _fields: &syn::Fields) -> proc_macro2::TokenStream {
+pub(crate) fn idl_build_impl(
+    _struct_name: &syn::Ident,
+    _struct_attrs: &[syn::Attribute],
+    _fields: &syn::Fields,
+    _account_disc: Option<&[u8]>,
+) -> proc_macro2::TokenStream {
     quote! {}
 }
 
@@ -93,22 +122,28 @@ pub(crate) fn idl_build_impl(_struct_name: &syn::Ident, _fields: &syn::Fields) -
 ///
 /// This generates the structural foundation for an on-chain account. Cargo
 /// gives a proc-macro no reliable way to see which features the calling
-/// crate has actually activated, so the choice between the two
-/// representations below can't be made here at macro-expansion time — both
-/// are always emitted, each gated by a real `#[cfg(...)]` in the output that
-/// the calling crate's own compiler resolves:
-/// - **Zero-Copy** (`#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]`):
+/// crate has actually activated, so the choice between the three
+/// representations below can't be made here at macro-expansion time — all
+/// three are always emitted, each gated by a real `#[cfg(...)]` in the output
+/// that the calling crate's own compiler resolves:
+/// - **Zero-Copy** (`#[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))]`):
 ///   Forces `#[repr(C)]`, derives `Pod`/`Zeroable`. `pinocchio` is always
-///   zero-copy; otherwise it's the default when `borsh` isn't active either
-///   (there is no third representation for account data).
+///   zero-copy; otherwise it's the default when neither `borsh` nor
+///   `wincode` is active.
 /// - **Borsh** (`#[cfg(all(not(feature = "pinocchio"), feature = "borsh"))]`):
 ///   Derives `BorshSerialize`/`BorshDeserialize` for heap-allocated SBF execution.
+/// - **Wincode** (`#[cfg(all(not(feature = "pinocchio"), feature = "wincode"))]`):
+///   Derives `SchemaRead`/`SchemaWrite` for heap-allocated SBF execution.
 ///
-/// For this to resolve correctly, the calling crate must declare `pinocchio`
-/// and `borsh` as features of its own (mirroring `naclac-lang`'s) — `#[cfg(
-/// feature = "X")]` only ever sees the crate currently being compiled's own
-/// declared features, never a dependency's.
-pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
+/// For this to resolve correctly, the calling crate must declare `pinocchio`,
+/// `borsh`, and `wincode` as features of its own (mirroring `naclac-lang`'s)
+/// — `#[cfg(feature = "X")]` only ever sees the crate currently being
+/// compiled's own declared features, never a dependency's.
+pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = match naclac_syn::discriminator::parse_macro_args(attr.into(), false) {
+        Ok(args) => args,
+        Err(err) => return err.to_compile_error().into(),
+    };
     let ast = parse_macro_input!(item as ItemStruct);
     let struct_name = &ast.ident;
     let vis = &ast.vis;
@@ -127,17 +162,18 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    // Compute the 8-byte Anchor-standard hash ONCE during compilation — identical for both representations.
-    let disc = naclac_syn::discriminator::compute_discriminator("account", &struct_name.to_string());
-
-    let b0 = disc[0];
-    let b1 = disc[1];
-    let b2 = disc[2];
-    let b3 = disc[3];
-    let b4 = disc[4];
-    let b5 = disc[5];
-    let b6 = disc[6];
-    let b7 = disc[7];
+    let disc_bytes = naclac_syn::discriminator::resolve_discriminator(
+        naclac_syn::discriminator::DiscriminatorKind::Account,
+        &struct_name.to_string(),
+        args.discriminator.as_deref(),
+    );
+    let disc_tokens = quote! { &[#(#disc_bytes),*] };
+    let disc_alignment_msg = format!(
+        "Naclac Error: `{struct_name}` is a zero-copy #[component] whose discriminator width is not \
+         a multiple of the struct's alignment, so its body would be misaligned inside the account \
+         data. Use a discriminator whose byte length is a multiple of the struct's alignment \
+         (8 bytes always works)."
+    );
 
     // Cleaned fields (strip `#[max_len]`) — shared by both representations.
     let mut cleaned_ast = ast.clone();
@@ -148,17 +184,18 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     let cleaned_fields = &cleaned_ast.fields;
 
-    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(feature = "borsh")))] };
+    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
     let borsh_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
+    let wincode_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "wincode"))] };
 
     // ── Zero-copy branch ────────────────────────────────────────────────
     //
     // NOTE: zero-copy component fields must NOT be silently rewritten from
-    // `Vec<T>`/`String` to `Span<T>`/`ZcString` here. Unlike an instruction
+    // `Vec<T>`/`String` to `ZcVec<T>`/`ZcString` here. Unlike an instruction
     // argument (parsed fresh from the current instruction's byte buffer, used
     // and discarded within that same call), a `#[component]` field is *persisted*
     // account data — it gets round-tripped through `unsafe impl Pod`/raw byte
-    // casting across separate transactions. `Span<T>` is a raw pointer + length;
+    // casting across separate transactions. `ZcVec<T>` is a raw pointer + length;
     // a pointer value written into on-chain bytes in one transaction is
     // meaningless (or attacker-controlled) when read back in a later one —
     // dereferencing it then is a real, exploitable memory-safety bug, not just
@@ -257,8 +294,8 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #zero_copy_cfg
         impl #struct_name {
-            pub const DISCRIMINATOR: [u8; 8] = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
-            pub const SPACE: usize = core::mem::size_of::<Self>() + 8;
+            pub const DISCRIMINATOR: &'static [u8] = #disc_tokens;
+            pub const SPACE: usize = core::mem::size_of::<Self>() + Self::DISCRIMINATOR.len();
 
             #[cfg(not(target_os = "solana"))]
             #[inline(always)]
@@ -266,10 +303,10 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 if data.len() < Self::SPACE {
                     return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(0));
                 }
-                if data[0..8] != Self::DISCRIMINATOR {
+                if &data[..Self::DISCRIMINATOR.len()] != Self::DISCRIMINATOR {
                     return Err(naclac_lang::prelude::NaclacError::AccountNotInitialized.err(0));
                 }
-                Ok(naclac_lang::prelude::bytemuck::from_bytes(&data[8..Self::SPACE]))
+                Ok(naclac_lang::prelude::bytemuck::from_bytes(&data[Self::DISCRIMINATOR.len()..Self::SPACE]))
             }
 
             #[cfg(not(target_os = "solana"))]
@@ -278,10 +315,10 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 if data.len() < Self::SPACE {
                     return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(0));
                 }
-                if data[0..8] != Self::DISCRIMINATOR {
+                if &data[..Self::DISCRIMINATOR.len()] != Self::DISCRIMINATOR {
                     return Err(naclac_lang::prelude::NaclacError::AccountNotInitialized.err(0));
                 }
-                Ok(naclac_lang::prelude::bytemuck::from_bytes_mut(&mut data[8..Self::SPACE]))
+                Ok(naclac_lang::prelude::bytemuck::from_bytes_mut(&mut data[Self::DISCRIMINATOR.len()..Self::SPACE]))
             }
         }
 
@@ -290,8 +327,15 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #zero_copy_cfg
         impl naclac_lang::prelude::Discriminator for #struct_name {
-            const DISCRIMINATOR: [u8; 8] = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
+            const DISCRIMINATOR: &'static [u8] = #disc_tokens;
         }
+
+        #zero_copy_cfg
+        const _: () = assert!(
+            <#struct_name as naclac_lang::prelude::Discriminator>::DISCRIMINATOR.len()
+                % core::mem::align_of::<#struct_name>() == 0,
+            #disc_alignment_msg
+        );
 
         #zero_copy_cfg
         const _: () = assert!(
@@ -355,23 +399,24 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #borsh_cfg
         impl #struct_name {
-            pub const DISCRIMINATOR: [u8; 8] = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
-            pub const SPACE: usize = 8 + #(#field_sizes)+*;
+            pub const DISCRIMINATOR: &'static [u8] = #disc_tokens;
+            pub const SPACE: usize = Self::DISCRIMINATOR.len() + #(#field_sizes)+*;
 
             pub fn try_deserialize(data: &mut &[u8]) -> naclac_lang::prelude::Result<Self> {
-                if data.len() < 8 {
+                let disc_len = Self::DISCRIMINATOR.len();
+                if data.len() < disc_len {
                     return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(0));
                 }
-                if data[0..8] != Self::DISCRIMINATOR {
+                if &data[..disc_len] != Self::DISCRIMINATOR {
                     return Err(naclac_lang::prelude::NaclacError::AccountNotInitialized.err(0));
                 }
-                let mut reader = &data[8..];
+                let mut reader = &data[disc_len..];
                 naclac_lang::prelude::BorshDeserialize::deserialize(&mut reader)
                     .map_err(|_| naclac_lang::prelude::NaclacError::DeserializationFailed.err(0))
             }
 
             pub fn try_serialize<W: naclac_lang::prelude::borsh::io::Write>(&self, writer: &mut W) -> naclac_lang::prelude::Result<()> {
-                writer.write_all(&Self::DISCRIMINATOR)
+                writer.write_all(Self::DISCRIMINATOR)
                     .map_err(|_| naclac_lang::prelude::NaclacError::SerializationFailed.err(0))?;
                 naclac_lang::prelude::BorshSerialize::serialize(self, writer)
                     .map_err(|_| naclac_lang::prelude::NaclacError::SerializationFailed.err(0))
@@ -380,15 +425,59 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #borsh_cfg
         impl naclac_lang::prelude::Discriminator for #struct_name {
-            const DISCRIMINATOR: [u8; 8] = [#b0, #b1, #b2, #b3, #b4, #b5, #b6, #b7];
+            const DISCRIMINATOR: &'static [u8] = #disc_tokens;
         }
     };
 
-    let idl_build_impl = idl_build_impl(struct_name, cleaned_fields);
+    let wincode_block = quote! {
+        #wincode_cfg
+        #[derive(Clone, naclac_lang::prelude::SchemaWrite, naclac_lang::prelude::SchemaRead)]
+        #[wincode(crate = "naclac_lang::prelude::wincode")]
+        #vis struct #struct_name #cleaned_fields
+
+        #wincode_cfg
+        impl #struct_name {
+            pub const DISCRIMINATOR: &'static [u8] = #disc_tokens;
+            pub const SPACE: usize = Self::DISCRIMINATOR.len() + #(#field_sizes)+*;
+
+            pub fn try_deserialize(data: &mut &[u8]) -> naclac_lang::prelude::Result<Self> {
+                let disc_len = Self::DISCRIMINATOR.len();
+                if data.len() < disc_len {
+                    return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(0));
+                }
+                if &data[..disc_len] != Self::DISCRIMINATOR {
+                    return Err(naclac_lang::prelude::NaclacError::AccountNotInitialized.err(0));
+                }
+                let mut reader = &data[disc_len..];
+                naclac_lang::prelude::wincode::config::deserialize(&mut reader, naclac_lang::prelude::wincode_config::CONFIG)
+                    .map_err(|_| naclac_lang::prelude::NaclacError::DeserializationFailed.err(0))
+            }
+
+            pub fn try_serialize<W: naclac_lang::prelude::wincode::io::Writer>(&self, writer: &mut W) -> naclac_lang::prelude::Result<()> {
+                writer.write(Self::DISCRIMINATOR)
+                    .map_err(|_| naclac_lang::prelude::NaclacError::SerializationFailed.err(0))?;
+                naclac_lang::prelude::wincode::config::serialize_into(writer, self, naclac_lang::prelude::wincode_config::CONFIG)
+                    .map_err(|_| naclac_lang::prelude::NaclacError::SerializationFailed.err(0))
+            }
+        }
+
+        #wincode_cfg
+        impl naclac_lang::prelude::Discriminator for #struct_name {
+            const DISCRIMINATOR: &'static [u8] = #disc_tokens;
+        }
+    };
+
+    let idl_build_impl = idl_build_impl(
+        struct_name,
+        &cleaned_ast.attrs,
+        cleaned_fields,
+        Some(&disc_bytes),
+    );
 
     TokenStream::from(quote! {
         #zero_copy_block
         #borsh_block
+        #wincode_block
         #idl_build_impl
     })
 }

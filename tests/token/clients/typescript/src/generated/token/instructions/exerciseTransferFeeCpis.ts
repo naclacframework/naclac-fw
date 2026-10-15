@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `exercise_transfer_fee_cpis` instruction. */
+/** Discriminator for the `exercise_transfer_fee_cpis` instruction. */
 export const EXERCISE_TRANSFER_FEE_CPIS_DISCRIMINATOR = new Uint8Array([37, 244, 113, 102, 136, 111, 203, 179]);
 
 /** Instruction arguments for `exerciseTransferFeeCpis`. */
@@ -14,12 +14,12 @@ export interface ExerciseTransferFeeCpisArgs {
 
 /** Accounts for the `exerciseTransferFeeCpis` instruction. */
 export interface ExerciseTransferFeeCpisAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
   source: naclac.Address | string;
-  vault_b: naclac.Address | string;
+  vaultB: naclac.Address | string;
   collector: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

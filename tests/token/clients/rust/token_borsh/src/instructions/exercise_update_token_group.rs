@@ -7,18 +7,20 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct ExerciseUpdateTokenGroupIxArgs {
     pub new_max_size: u64,
     pub new_authority: crate::sdk_core_offchain::Address,
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for ExerciseUpdateTokenGroupIxArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for ExerciseUpdateTokenGroupIxArgs {}
 
 #[cfg(feature = "cpi")]
@@ -27,18 +29,20 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C, packed))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct ExerciseUpdateTokenGroupCpiIxArgs {
     pub new_max_size: u64,
     pub new_authority: crate::sdk_core_cpi::Address,
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for ExerciseUpdateTokenGroupCpiIxArgs {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for ExerciseUpdateTokenGroupCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
@@ -61,13 +65,17 @@ pub fn build_exercise_update_token_group<'a>(
         new_max_size,
         new_authority,
     };
-    #[cfg(not(feature = "borsh"))]
+    #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
         ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(&args));
     }
     #[cfg(feature = "borsh")]
     {
         crate::sdk_core_offchain::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+    }
+    #[cfg(feature = "wincode")]
+    {
+        crate::sdk_core_offchain::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_offchain::wincode_config::CONFIG).unwrap();
     }
     naclac_client::InstructionBuilder::new(provider, program_id, ix_data)
         .account(naclac_client::AccountMeta { address: accounts.mint_authority, is_signer: false, is_writable: false }, "mint_authority")
@@ -144,13 +152,17 @@ impl<'info> ExerciseUpdateTokenGroupCpi<'info> for crate::sdk_core_cpi::Program<
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[235, 96, 84, 119, 8, 142, 109, 148]);
-        #[cfg(not(feature = "borsh"))]
+        #[cfg(not(any(feature = "borsh", feature = "wincode")))]
         {
         ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args));
         }
         #[cfg(feature = "borsh")]
         {
             crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+        }
+        #[cfg(feature = "wincode")]
+        {
+            crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();
         }
         #[cfg(feature = "pinocchio")]
         {
@@ -207,19 +219,19 @@ impl<'info> ExerciseUpdateTokenGroupCpi<'info> for crate::sdk_core_cpi::Program<
         {
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.mint_authority.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.mint.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.mint_authority.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.mint.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new(acc.address(), *is_signer)
                 } else {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
                 };
                 account_metas.push(meta);
             }
-            let instruction = ::naclac_lang::solana_program::instruction::Instruction {
+            let instruction = ::naclac_lang::solana_instruction::Instruction {
                 program_id: self.address(),
                 accounts: account_metas,
                 data: ix_data,

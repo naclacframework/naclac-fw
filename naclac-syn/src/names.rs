@@ -12,102 +12,108 @@
 //! normal build, and never to read a value or a type shape, only a name
 //! and the path needed to call that item's own generated print function.
 
-use std::fs;
+use crate::modules::{cfg_attrs, crate_modules, reaches_root, CrateModule};
 use std::path::Path;
 
 /// One `const`/`struct`/`enum` item found carrying the scanned-for
-/// attribute — `module_path` is that item's real path from crate root
-/// (e.g. `"crate::constants"`), assuming the standard Rust file-to-module
-/// convention (`src/foo/bar.rs` → `crate::foo::bar`, `mod.rs`/`lib.rs`/
-/// `main.rs` collapse to their parent) — not resolved for a `#[path = ...]`
-/// override, the one real gap in this scan.
+/// attribute.
 pub struct TaggedItem {
+    /// The path of the module declaring the item (e.g. `"crate::constants"`),
+    /// as the crate's module tree defines it.
     pub module_path: String,
     pub name: String,
-    /// True when the attribute's argument is exactly the bare `alloc`
-    /// identifier (i.e. `#[event(alloc)]`) — meaningless for any
-    /// `attr_name` other than `"event"`, always `false` there since
-    /// `#[constant]`/`#[error_code]` take no arguments.
+    /// True when an `#[event(..)]` attribute's arguments include `alloc`
+    /// (alone or alongside `discriminator = ..`) — always `false` for any
+    /// `attr_name` other than `"event"`.
     pub alloc: bool,
+    /// The `#[cfg(..)]` attributes gating the item: its modules' then its own.
+    /// Code that names the item must carry them, so it exists exactly when
+    /// the item does.
+    pub cfgs: Vec<syn::Attribute>,
+    /// Whether `module_path::name` can be named from every module of the
+    /// crate. When false, generated code naming it would not compile.
+    pub visible_from_root: bool,
 }
 
-/// Every top-level `const`/`struct`/`enum` in `program_dir/src/**/*.rs`
-/// whose attribute list contains `attr_name` (bare presence only, matching
-/// how `#[constant]`/`#[event]`/`#[error_code]` are already detected
-/// elsewhere in this crate — no argument parsing beyond checking for the
-/// `alloc` marker on `#[event(alloc)]`).
+fn item_visible(module: &CrateModule, vis: &syn::Visibility) -> bool {
+    module.visible_from_root && reaches_root(vis, module.depth)
+}
+
+fn item_cfgs(module: &CrateModule, attrs: &[syn::Attribute]) -> Vec<syn::Attribute> {
+    let mut cfgs = module.cfgs.clone();
+    cfgs.extend(cfg_attrs(attrs));
+    cfgs
+}
+
+/// Every `const`/`struct`/`enum` in any module of the crate whose attribute
+/// list contains `attr_name` (bare presence only, matching how
+/// `#[constant]`/`#[event]`/`#[error_code]` are already detected elsewhere
+/// in this crate — no argument parsing beyond checking for the `alloc`
+/// marker on `#[event(..)]`).
 pub fn scan_tagged_items(program_dir: &Path, attr_name: &str) -> Vec<TaggedItem> {
     let mut found = Vec::new();
-    let mut dirs_to_visit = vec![program_dir.join("src")];
-
-    while let Some(dir) = dirs_to_visit.pop() {
-        let Ok(entries) = fs::read_dir(&dir) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                dirs_to_visit.push(path);
-                continue;
-            }
-            if path.extension().unwrap_or_default() != "rs" {
-                continue;
-            }
-            let Ok(code) = fs::read_to_string(&path) else {
-                continue;
+    for module in crate_modules(program_dir) {
+        for item in &module.items {
+            let (attrs, ident, vis) = match item {
+                syn::Item::Struct(s) => (&s.attrs, &s.ident, &s.vis),
+                syn::Item::Enum(e) => (&e.attrs, &e.ident, &e.vis),
+                syn::Item::Const(c) => (&c.attrs, &c.ident, &c.vis),
+                _ => continue,
             };
-            let Ok(file) = syn::parse_file(&code) else {
-                continue;
-            };
-            let module_path = file_to_module_path(program_dir, &path);
-            for item in &file.items {
-                let (attrs, ident) = match item {
-                    syn::Item::Struct(s) => (&s.attrs, &s.ident),
-                    syn::Item::Enum(e) => (&e.attrs, &e.ident),
-                    syn::Item::Const(c) => (&c.attrs, &c.ident),
-                    _ => continue,
-                };
-                if let Some(attr) = attrs.iter().find(|a| a.path().is_ident(attr_name)) {
-                    let alloc = attr
-                        .parse_args::<syn::Ident>()
-                        .is_ok_and(|ident| ident == "alloc");
-                    found.push(TaggedItem {
-                        module_path: module_path.clone(),
-                        name: ident.to_string(),
-                        alloc,
-                    });
-                }
+            if let Some(attr) = attrs.iter().find(|a| a.path().is_ident(attr_name)) {
+                let alloc = attr_name == "event"
+                    && crate::discriminator::macro_args_of(attr, true).is_ok_and(|args| args.alloc);
+                found.push(TaggedItem {
+                    module_path: module.path.clone(),
+                    name: ident.to_string(),
+                    alloc,
+                    cfgs: item_cfgs(&module, attrs),
+                    visible_from_root: item_visible(&module, vis),
+                });
             }
         }
     }
-
     found
 }
 
-fn file_to_module_path(program_dir: &Path, file_path: &Path) -> String {
-    let src_dir = program_dir.join("src");
-    let rel = file_path.strip_prefix(&src_dir).unwrap_or(file_path);
+/// A `pub const` item of the crate that carries no `#[constant]`, with the
+/// path it can be named by from the crate root.
+pub struct PubConst {
+    pub module_path: String,
+    pub name: String,
+    pub ty: syn::Type,
+    pub docs: Vec<String>,
+    /// Same meaning as [`TaggedItem::cfgs`].
+    pub cfgs: Vec<syn::Attribute>,
+    /// Same meaning as [`TaggedItem::visible_from_root`].
+    pub visible_from_root: bool,
+}
 
-    let mut components: Vec<String> = rel
-        .components()
-        .map(|c| c.as_os_str().to_string_lossy().into_owned())
-        .collect();
-
-    if let Some(last) = components.last_mut() {
-        if let Some(stripped) = last.strip_suffix(".rs") {
-            *last = stripped.to_string();
+/// Every `pub const` in any module of the crate without a `#[constant]`
+/// attribute.
+pub fn scan_untagged_pub_consts(program_dir: &Path) -> Vec<PubConst> {
+    let mut found = Vec::new();
+    for module in crate_modules(program_dir) {
+        for item in &module.items {
+            let syn::Item::Const(item_const) = item else {
+                continue;
+            };
+            let is_pub = matches!(item_const.vis, syn::Visibility::Public(_));
+            let tagged = item_const
+                .attrs
+                .iter()
+                .any(|attr| attr.path().is_ident("constant"));
+            if is_pub && !tagged {
+                found.push(PubConst {
+                    module_path: module.path.clone(),
+                    name: item_const.ident.to_string(),
+                    ty: (*item_const.ty).clone(),
+                    docs: crate::parser::extract_docs(&item_const.attrs),
+                    cfgs: item_cfgs(&module, &item_const.attrs),
+                    visible_from_root: item_visible(&module, &item_const.vis),
+                });
+            }
         }
     }
-    match components.last().map(String::as_str) {
-        Some("lib") | Some("main") | Some("mod") => {
-            components.pop();
-        }
-        _ => {}
-    }
-
-    if components.is_empty() {
-        "crate".to_string()
-    } else {
-        format!("crate::{}", components.join("::"))
-    }
+    found
 }

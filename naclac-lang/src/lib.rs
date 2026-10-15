@@ -1,12 +1,36 @@
-#![cfg_attr(
-    all(any(feature = "pinocchio", feature = "no-std"), not(feature = "idl-build")),
-    no_std
-)]
+#![no_std]
 
 pub mod prelude;
 
 pub use naclac_core::*;
 pub use naclac_core::{context, cpi, cursor, error, event, system_program, wrappers};
+#[cfg(not(feature = "pinocchio"))]
+pub use naclac_core::naclac_solana_entrypoint;
+#[cfg(any(feature = "solana", feature = "pinocchio"))]
+pub use naclac_core::{__naclac_panic_handler, __naclac_panic_hook};
+
+/// Panic support for a program whose own crate is `no_std`. On the Solana
+/// backend `token` links the SPL crates, which use `std`, so std's panic
+/// handler is present and the program supplies only the hook.
+#[cfg(all(feature = "token", not(feature = "pinocchio")))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __naclac_nostd_panic {
+    () => {
+        $crate::__naclac_panic_hook!();
+    };
+}
+
+/// Panic support for a program whose own crate is `no_std` and whose build
+/// has no `std` from naclac: the program's `#[panic_handler]`.
+#[cfg(not(all(feature = "token", not(feature = "pinocchio"))))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __naclac_nostd_panic {
+    () => {
+        $crate::__naclac_panic_handler!();
+    };
+}
 
 #[cfg(all(feature = "token", not(any(feature = "solana", feature = "pinocchio"))))]
 compile_error!("the `token` feature requires `solana` or `pinocchio` to also be enabled");

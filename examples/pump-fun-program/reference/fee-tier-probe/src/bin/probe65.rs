@@ -32,7 +32,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -48,8 +48,8 @@ const GLOBAL_DISCRIMINATOR: [u8; 8] = [167, 232, 232, 177, 200, 108, 114, 127];
 const BUYBACK_FEE_RECIPIENTS_OFFSET: usize = 741;
 const BUYBACK_BASIS_POINTS_OFFSET: usize = 741 + 256;
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -58,7 +58,7 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn global_account_data(authority: &Pubkey, buyback_fee_recipients: &Pubkey, buyback_basis_points: u64) -> Vec<u8> {
+fn global_account_data(authority: &Address, buyback_fee_recipients: &Address, buyback_basis_points: u64) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1); // initialized
@@ -106,12 +106,12 @@ fn update_buyback_config_ix_data(buyback_basis_points: Option<u64>) -> Vec<u8> {
 fn run_call(
     svm: &mut LiteSVM,
     label: &str,
-    pump_program: Pubkey,
-    global: Pubkey,
-    event_authority: Pubkey,
+    pump_program: Address,
+    global: Address,
+    event_authority: Address,
     authority: &Keypair,
     buyback_basis_points: Option<u64>,
-    remaining_accounts: &[Pubkey],
+    remaining_accounts: &[Address],
 ) {
     println!("=== {label} ===");
     println!("  buyback_basis_points arg = {buyback_basis_points:?}");
@@ -157,9 +157,9 @@ fn run_call(
     let stored_bps = u64::from_le_bytes(
         global_after.data[BUYBACK_BASIS_POINTS_OFFSET..BUYBACK_BASIS_POINTS_OFFSET + 8].try_into().unwrap(),
     );
-    let stored_recipients: Vec<Pubkey> = (0..8)
+    let stored_recipients: Vec<Address> = (0..8)
         .map(|i| {
-            Pubkey::try_from(
+            Address::try_from(
                 &global_after.data[BUYBACK_FEE_RECIPIENTS_OFFSET + i * 32..BUYBACK_FEE_RECIPIENTS_OFFSET + i * 32 + 32],
             )
             .unwrap()
@@ -180,10 +180,10 @@ fn main() {
     let authority = Keypair::new();
     svm.airdrop(&authority.pubkey(), 10_000_000_000).unwrap();
 
-    let initial_marker = Pubkey::new_unique();
+    let initial_marker = Address::new_unique();
     println!("initial_marker (buyback_fee_recipients[8] before any call) = {initial_marker}\n");
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     svm.set_account(
         global,
         Account {
@@ -196,7 +196,7 @@ fn main() {
     )
     .unwrap();
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_program);
 
     // Call 1: Some(5000), 0 remaining_accounts -- expect bps=5000,
     // recipients still initial_marker (unchanged).
@@ -204,7 +204,7 @@ fn main() {
 
     // Call 2: Some(7777), 8 fresh remaining_accounts -- expect bps=7777,
     // recipients replaced with these 8.
-    let marker_new: Vec<Pubkey> = (0..8).map(|_| Pubkey::new_unique()).collect();
+    let marker_new: Vec<Address> = (0..8).map(|_| Address::new_unique()).collect();
     println!("marker_new (8 accounts for call 2):");
     for (i, m) in marker_new.iter().enumerate() {
         println!("  [{i}] {m}");
@@ -218,7 +218,7 @@ fn main() {
 
     // Call 4: None, 8 fresh remaining_accounts -- confirms recipients-update
     // is independent of the bps Option (works even when bps arg is None).
-    let marker_new2: Vec<Pubkey> = (0..8).map(|_| Pubkey::new_unique()).collect();
+    let marker_new2: Vec<Address> = (0..8).map(|_| Address::new_unique()).collect();
     println!("marker_new2 (8 accounts for call 4):");
     for (i, m) in marker_new2.iter().enumerate() {
         println!("  [{i}] {m}");
@@ -228,6 +228,6 @@ fn main() {
 
     // Call 5: Some(1), 3 remaining_accounts -- invalid count, expect a
     // rejection if the real program truly requires exactly 0 or 8.
-    let marker_bad: Vec<Pubkey> = (0..3).map(|_| Pubkey::new_unique()).collect();
+    let marker_bad: Vec<Address> = (0..3).map(|_| Address::new_unique()).collect();
     run_call(&mut svm, "Call 5: Some(1), 3 accounts (expect failure)", pump_program, global, event_authority, &authority, Some(1), &marker_bad);
 }

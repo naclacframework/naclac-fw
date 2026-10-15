@@ -23,7 +23,7 @@ mod common;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::native_token::LAMPORTS_PER_SOL;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{Keypair, Signer};
 
 use pump_rust_client::{constants, pda, AsyncPumpClient, PumpClientError, PumpSdk};
@@ -40,7 +40,7 @@ use common::{
 async fn buy_v2_for_user(
     client: &AsyncPumpClient,
     user: &Keypair,
-    mint: Pubkey,
+    mint: Address,
     amount: u64,
     max_sol_cost: u64,
 ) {
@@ -144,8 +144,8 @@ async fn fetch_bonding_curve_works_for_non_graduated_fixture() {
     );
     assert_eq!(
         bc.quote_mint,
-        Pubkey::default(),
-        "fixture quote should be Pubkey::default()"
+        Address::default(),
+        "fixture quote should be Address::default()"
     );
 }
 
@@ -167,7 +167,7 @@ async fn fetch_bonding_curve_works_for_graduated_fixture() {
 #[ignore = "requires `cargo run --features local-validator --bin local-validator` running"]
 async fn fetch_bonding_curve_errors_on_missing_mint() {
     let client = make_client();
-    let unknown = Pubkey::new_unique();
+    let unknown = Address::new_unique();
     let err = client
         .fetch_bonding_curve(&unknown)
         .await
@@ -388,7 +388,7 @@ async fn get_creator_vault_balance_grows_after_buy() {
 #[ignore = "requires `cargo run --features local-validator --bin local-validator` running"]
 async fn get_creator_vault_balance_returns_zero_for_unused_creator() {
     let client = make_client();
-    let unused = Pubkey::new_unique();
+    let unused = Address::new_unique();
     let bal = client
         .get_creator_vault_balance(&unused)
         .await

@@ -6,7 +6,12 @@
 
 use bytemuck::Pod;
 
-pub fn emit<T: Pod>(event: &T, discriminator: [u8; 8]) {
+pub fn emit<T: Pod>(event: &T, discriminator: &[u8]) {
     let data = bytemuck::bytes_of(event);
-    crate::prelude::sol_log_data(&[&discriminator, data]);
+    let logged = super::try_with_concat(&[discriminator, data], |frame| {
+        crate::prelude::sol_log_data(&[frame]);
+    });
+    if logged.is_none() {
+        crate::prelude::sol_log_data(&[discriminator, data]);
+    }
 }

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_rent_exempt` instruction. */
+/** Discriminator for the `check_rent_exempt` instruction. */
 export const CHECK_RENT_EXEMPT_DISCRIMINATOR = new Uint8Array([218, 238, 171, 16, 41, 107, 170, 172]);
 
 /** Accounts for the `checkRentExempt` instruction. */

@@ -1,0 +1,77 @@
+---
+title: "naclac init — Create and Scaffold a New Workspace"
+sidebarTitle: "Init"
+description: "naclac init scaffolds a new Naclac workspace with your chosen execution mode, generating Cargo.toml, Naclac.toml, program source, and TypeScript tests."
+---
+
+`naclac init` creates a complete Naclac workspace from scratch. It generates the full Rust program skeleton, workspace configuration, TypeScript test scaffolding, and a program keypair — then installs Node.js dependencies automatically using Yarn, pnpm, or npm (whichever it finds first). Run it once per project; use [`naclac add`](/cli/other-commands#naclac-add) to add further programs to an existing workspace.
+
+## Usage
+
+```bash
+naclac init <name> [--mode <mode>]
+```
+
+## Arguments and Flags
+
+| Argument | Description |
+|---|---|
+| `<name>` | Workspace and program name. Use `snake_case` — the name becomes your Rust module name and is transformed to `PascalCase` for the TypeScript client class. |
+| `--mode <mode>` | Execution mode: `pinocchio`, `standard`, or `optimized`. If omitted, an interactive prompt lets you choose. |
+
+## Mode Options
+
+Naclac supports three distinct execution modes that control the underlying Solana program runtime and serialization strategy. Choose the mode that matches your performance and compatibility requirements.
+
+**`pinocchio`** — no_std, maximum performance
+
+Uses the [Pinocchio](https://github.com/febo/pinocchio) runtime, which compiles without the Rust standard library. This mode produces the smallest possible `.so` binary and the lowest compute unit overhead. Choose this mode for latency-sensitive programs where every CU counts. The CLI automatically passes `--no-default-features --features pinocchio` to `cargo build-sbf` when it detects this mode.
+
+**`standard`** — solana-program + Borsh, maximum compatibility
+
+Uses the standard `solana-program` crate with [Borsh](https://borsh.io/) serialization. This is the most widely-understood approach and produces programs that are easy to inspect with ecosystem tooling. Choose this mode when compatibility and readability are the priority.
+
+**`optimized`** — solana-program + Zero-Copy
+
+Uses `solana-program` with zero-copy deserialization, bypassing Borsh for account data access. This mode avoids heap allocations when reading account data, making it a good middle ground between `standard` and `pinocchio` for programs that process large accounts.
+
+## What Gets Generated
+
+Running `naclac init my_token` creates the following structure:
+
+| Path | Description |
+|---|---|
+| `Cargo.toml` | Workspace manifest with `[workspace]` members and release profile tuned for SBF (`opt-level = 3`, LTO fat, `panic = "abort"`, `strip = true`) |
+| `Naclac.toml` | Project configuration: toolchain, cluster, wallet, program IDs, and test script |
+| `package.json` | Node.js project manifest with `@naclac-fw/client` dependency and Mocha/ts-mocha dev tooling |
+| `tsconfig.json` | TypeScript compiler config targeting ES2020 with strict mode and `resolveJsonModule` |
+| `.gitignore` | Pre-configured to exclude `target/`, `node_modules/`, `dist/`, keypairs, and lock files |
+| `programs/<name>/src/lib.rs` | Program entrypoint with `declare_id!` pre-populated from the generated keypair |
+| `programs/<name>/src/components/` | Directory for account struct definitions |
+| `programs/<name>/src/instructions/` | Directory for instruction handler modules |
+| `programs/<name>/src/systems/` | Directory for system-level logic |
+| `programs/<name>/src/events.rs` | Program event definitions |
+| `programs/<name>/src/errors.rs` | Custom error enum |
+| `programs/<name>/src/constants.rs` | Program-wide constants |
+| `tests/<name>.test.ts` | TypeScript integration test scaffold using Mocha and `@naclac-fw/client` |
+| `target/deploy/<name>-keypair.json` | Program keypair — the public key becomes your program ID |
+
+## Examples
+
+```bash
+# Interactive mode selection — a prompt lets you pick the mode
+naclac init my_token
+
+# Non-interactive with an explicit mode flag
+naclac init my_token --mode pinocchio
+
+# Standard compatibility mode
+naclac init my_token --mode standard
+
+# Zero-copy optimized mode
+naclac init my_token --mode optimized
+```
+
+<Note>
+  The workspace name drives naming throughout the project. `my_token` becomes the snake_case Rust module name (`my_token`) and the `declare_id!` macro identifier in `lib.rs`. It is also transformed to `PascalCase` (`MyToken`) for the generated TypeScript client class in `clients/src/generated/my_token.ts`. Keep the name lowercase and underscore-separated to avoid casing mismatches.
+</Note>

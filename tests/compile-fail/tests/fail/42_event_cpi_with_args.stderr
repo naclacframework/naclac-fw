@@ -1,0 +1,7 @@
+error: Naclac Error: #[event_cpi] does not take any arguments.
+ --> tests/fail/42_event_cpi_with_args.rs:6:1
+  |
+6 | #[event_cpi(custom_authority)]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `event_cpi` (in Nightly builds, run with -Z macro-backtrace for more info)

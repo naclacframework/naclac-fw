@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `emit_batch_fixed` instruction. */
+/** Discriminator for the `emit_batch_fixed` instruction. */
 export const EMIT_BATCH_FIXED_DISCRIMINATOR = new Uint8Array([39, 157, 69, 18, 179, 149, 14, 42]);
 
 /** Accounts for the `emitBatchFixed` instruction. */

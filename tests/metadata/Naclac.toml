@@ -6,8 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-metadata_solana = "9JfQzaTTBoz5tUF3Zam7uodt74NYk5tD6asYuQpAWLFV"
-metadata = "CfCmyXnF1To9ryX2g5Sj3X8yhpFopYxZFrgFf8fWVwU5"
+metadata_solana = "AzVPsPxCBJZsCMP2oTkUCDFCDDspXwW5qBRX3ymUyo2i"
+metadata = "5cdUGjvHDF48Vu3inTJhruWtj13Ut2cNomLLnG8boDJW"
 
 [provider]
 cluster = "localnet"

@@ -1,0 +1,18 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+event_cpi_widths = "6o9fGuTvcEA9icMvs4wbnmoAedc7up9aE8VdiYAfzpAF"
+event_cpi_widths_borsh = "7kLdG6DvcAFeFEdbqJqSLCvBvxE8i3BjXhsZzrJF9UgN"
+event_cpi_widths_zc = "4T82TMaMnPbKhbeTBMfMrkujQbWabDbNXRLfwmbnskoR"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --nocapture"

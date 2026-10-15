@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `transfer_tokens_checked` instruction. */
+/** Discriminator for the `transfer_tokens_checked` instruction. */
 export const TRANSFER_TOKENS_CHECKED_DISCRIMINATOR = new Uint8Array([5, 145, 13, 167, 254, 39, 93, 121]);
 
 /** Instruction arguments for `transferTokensChecked`. */

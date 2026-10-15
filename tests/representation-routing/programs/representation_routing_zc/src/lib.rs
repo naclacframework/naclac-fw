@@ -1,4 +1,6 @@
 use naclac_lang::prelude::*;
+#[cfg(test)]
+mod routing_test;
 
 declare_id!("11111111111111111111111111111111111111111");
 

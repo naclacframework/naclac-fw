@@ -7,42 +7,142 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct MintAuthority {
     pub bump: u8,
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct MintAuthority {
+    pub bump: u8,
+    pub __naclac_padding_0: [u8; __MintAuthority_GAP_0],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __MintAuthority_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < MintAuthority > () == (::core::mem::size_of:: < u8 > ()
+        + __MintAuthority_GAP_0),
+        "defined_type/#[component]: `MintAuthority`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for MintAuthority {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for MintAuthority {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for MintAuthority {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
+
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct MintAuthorityCpi {
     pub bump: u8,
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct MintAuthorityCpi {
+    pub bump: u8,
+    pub __naclac_padding_0: [u8; __MintAuthorityCpi_GAP_0],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __MintAuthorityCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < MintAuthorityCpi > () == (::core::mem::size_of:: < u8 >
+        () + __MintAuthorityCpi_GAP_0),
+        "defined_type/#[component]: `MintAuthorityCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for MintAuthorityCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for MintAuthorityCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for MintAuthorityCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
-/// 8-byte on-chain discriminator for `MintAuthority` accounts.
-pub const MINTAUTHORITY_DISCRIMINATOR: [u8; 8] = [148, 0, 219, 228, 254, 237, 76, 128];
+
+/// On-chain discriminator for `MintAuthority` accounts.
+pub const MINTAUTHORITY_DISCRIMINATOR: &[u8] = &[148, 0, 219, 228, 254, 237, 76, 128];
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl naclac_client::NaclacDecode for MintAuthority {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(MINTAUTHORITY_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(MINTAUTHORITY_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_pod_checked::<Self>(data, MINTAUTHORITY_DISCRIMINATOR)
     }
@@ -51,9 +151,18 @@ impl naclac_client::NaclacDecode for MintAuthority {
 #[cfg(feature = "offchain")]
 #[cfg(feature = "borsh")]
 impl naclac_client::NaclacDecode for MintAuthority {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(MINTAUTHORITY_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(MINTAUTHORITY_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_borsh_checked::<Self>(data, MINTAUTHORITY_DISCRIMINATOR)
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "wincode")]
+impl naclac_client::NaclacDecode for MintAuthority {
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(MINTAUTHORITY_DISCRIMINATOR);
+    fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
+        naclac_client::decode_wincode_checked::<Self>(data, MINTAUTHORITY_DISCRIMINATOR)
     }
 }
 #[cfg(feature = "offchain")]
@@ -85,7 +194,7 @@ pub fn fetch_all_mint_authority(
     provider: &naclac_client::NaclacProvider,
     program_id: &naclac_client::Address,
 ) -> Result<crate::sdk_core_offchain::Vec<(naclac_client::Address, MintAuthority)>, naclac_client::NaclacClientError> {
-    let raw_accounts = provider.get_program_accounts(program_id, Some(&MINTAUTHORITY_DISCRIMINATOR))?;
+    let raw_accounts = provider.get_program_accounts(program_id, Some(MINTAUTHORITY_DISCRIMINATOR))?;
     let mut results = crate::sdk_core_offchain::Vec::new();
     for (address, data) in raw_accounts {
         if let Ok(value) = <MintAuthority as naclac_client::NaclacDecode>::naclac_decode(&data) {

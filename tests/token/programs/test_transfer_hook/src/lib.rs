@@ -12,17 +12,13 @@
 //! program) actually reaches and runs the hook, without needing this
 //! program to implement any real transfer-gating logic of its own.
 
-use solana_program::{
-    account_info::{next_account_info, AccountInfo},
-    entrypoint,
-    entrypoint::ProgramResult,
-    msg,
-    program::invoke_signed,
-    program_error::ProgramError,
-    pubkey::Pubkey,
-    rent::Rent,
-    sysvar::Sysvar,
-};
+use solana_account_info::{next_account_info, AccountInfo};
+use solana_address::Address;
+use solana_cpi::invoke_signed;
+use solana_msg::msg;
+use solana_program_entrypoint::{entrypoint, ProgramResult};
+use solana_program_error::ProgramError;
+use solana_sysvar::{rent::Rent, Sysvar};
 use spl_tlv_account_resolution::state::ExtraAccountMetaList;
 use spl_transfer_hook_interface::{
     collect_extra_account_metas_signer_seeds, get_extra_account_metas_address_and_bump_seed,
@@ -32,7 +28,7 @@ use spl_transfer_hook_interface::{
 entrypoint!(process_instruction);
 
 fn process_instruction(
-    program_id: &Pubkey,
+    program_id: &Address,
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
@@ -51,7 +47,7 @@ fn process_instruction(
 }
 
 fn initialize_extra_account_meta_list(
-    program_id: &Pubkey,
+    program_id: &Address,
     accounts: &[AccountInfo],
     extra_account_metas: &[spl_tlv_account_resolution::account::ExtraAccountMeta],
 ) -> ProgramResult {

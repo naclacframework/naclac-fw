@@ -7,16 +7,18 @@ use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};
 use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "offchain")]
-#[cfg(feature = "borsh")]
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct TaggedChild {
     pub bump: u8,
     pub value: u64,
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct TaggedChild {
@@ -27,7 +29,7 @@ pub struct TaggedChild {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __TaggedChild_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>();
@@ -36,7 +38,7 @@ const __TaggedChild_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __TaggedChild_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __TaggedChild_GAP_0
@@ -57,7 +59,7 @@ const __TaggedChild_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < TaggedChild > () == (::core::mem::size_of:: < u8 > () +
@@ -66,7 +68,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
     assert_impl::<u8>();
@@ -74,13 +76,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for TaggedChild {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for TaggedChild {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for TaggedChild {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -88,16 +90,18 @@ impl core::default::Default for TaggedChild {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(feature = "borsh")]
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct TaggedChildCpi {
     pub bump: u8,
     pub value: u64,
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct TaggedChildCpi {
@@ -108,7 +112,7 @@ pub struct TaggedChildCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __TaggedChildCpi_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>();
@@ -117,7 +121,7 @@ const __TaggedChildCpi_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __TaggedChildCpi_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u8>() + __TaggedChildCpi_GAP_0
@@ -138,7 +142,7 @@ const __TaggedChildCpi_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < TaggedChildCpi > () == (::core::mem::size_of:: < u8 > ()
@@ -148,7 +152,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
     assert_impl::<u8>();
@@ -156,13 +160,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for TaggedChildCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for TaggedChildCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for TaggedChildCpi {
     fn default() -> Self {
         crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
@@ -170,12 +174,12 @@ impl core::default::Default for TaggedChildCpi {
 }
 
 
-/// 8-byte on-chain discriminator for `TaggedChild` accounts.
-pub const TAGGEDCHILD_DISCRIMINATOR: [u8; 8] = [232, 255, 227, 60, 79, 70, 12, 111];
+/// On-chain discriminator for `TaggedChild` accounts.
+pub const TAGGEDCHILD_DISCRIMINATOR: &[u8] = &[232, 255, 227, 60, 79, 70, 12, 111];
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl naclac_client::NaclacDecode for TaggedChild {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(TAGGEDCHILD_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(TAGGEDCHILD_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_pod_checked::<Self>(data, TAGGEDCHILD_DISCRIMINATOR)
     }
@@ -184,9 +188,18 @@ impl naclac_client::NaclacDecode for TaggedChild {
 #[cfg(feature = "offchain")]
 #[cfg(feature = "borsh")]
 impl naclac_client::NaclacDecode for TaggedChild {
-    const DISCRIMINATOR: Option<[u8; 8]> = Some(TAGGEDCHILD_DISCRIMINATOR);
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(TAGGEDCHILD_DISCRIMINATOR);
     fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
         naclac_client::decode_borsh_checked::<Self>(data, TAGGEDCHILD_DISCRIMINATOR)
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(feature = "wincode")]
+impl naclac_client::NaclacDecode for TaggedChild {
+    const DISCRIMINATOR: Option<&'static [u8]> = Some(TAGGEDCHILD_DISCRIMINATOR);
+    fn naclac_decode(data: &[u8]) -> Result<Self, naclac_client::NaclacClientError> {
+        naclac_client::decode_wincode_checked::<Self>(data, TAGGEDCHILD_DISCRIMINATOR)
     }
 }
 #[cfg(feature = "offchain")]
@@ -218,7 +231,7 @@ pub fn fetch_all_tagged_child(
     provider: &naclac_client::NaclacProvider,
     program_id: &naclac_client::Address,
 ) -> Result<crate::sdk_core_offchain::Vec<(naclac_client::Address, TaggedChild)>, naclac_client::NaclacClientError> {
-    let raw_accounts = provider.get_program_accounts(program_id, Some(&TAGGEDCHILD_DISCRIMINATOR))?;
+    let raw_accounts = provider.get_program_accounts(program_id, Some(TAGGEDCHILD_DISCRIMINATOR))?;
     let mut results = crate::sdk_core_offchain::Vec::new();
     for (address, data) in raw_accounts {
         if let Ok(value) = <TaggedChild as naclac_client::NaclacDecode>::naclac_decode(&data) {

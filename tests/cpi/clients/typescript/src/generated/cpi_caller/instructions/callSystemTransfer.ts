@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `call_system_transfer` instruction. */
+/** Discriminator for the `call_system_transfer` instruction. */
 export const CALL_SYSTEM_TRANSFER_DISCRIMINATOR = new Uint8Array([209, 242, 153, 89, 35, 228, 52, 175]);
 
 /** Instruction arguments for `callSystemTransfer`. */

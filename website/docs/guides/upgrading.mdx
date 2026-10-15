@@ -1,0 +1,109 @@
+---
+title: "Upgrade a Deployed Naclac Program and Reclaim Buffers"
+sidebarTitle: "Upgrading"
+description: "Upgrade a deployed Naclac program and securely reclaim buffer lamports using naclac upgrade with automatic buffer account management."
+---
+
+The `naclac upgrade` command redeploys a modified program to an existing program address and automatically reclaims lamports from intermediate buffer accounts. Unlike a fresh deploy (which provisions a new program account), an upgrade overwrites the executable data in place — the program ID stays the same, so existing clients, PDAs, and on-chain references keep working without any changes.
+
+## Upgrading a Program
+
+### 1. Rebuild
+
+Compile your changes first so the `.so` binary in `target/deploy/` reflects the latest code:
+
+```bash
+naclac build
+```
+
+### 2. Upgrade
+
+```bash
+naclac upgrade
+```
+
+Naclac reads the program IDs from the `[programs]` table in `Naclac.toml`, reads the cluster and wallet from `[provider]`, and runs `solana program deploy --program-id <id>` with the freshly compiled binary. After the program data is written, Naclac runs `solana program close --buffers` to close any temporary buffer accounts and refund the locked SOL to your upgrade authority wallet.
+
+### Upgrade a specific program
+
+In workspaces with multiple programs, target a single program by passing its base58 program ID:
+
+```bash
+naclac upgrade <PROGRAM_ID>
+```
+
+Replace `<PROGRAM_ID>` with the program's public key (e.g. `ABC123...xyz`). You can find the program ID in `Naclac.toml` under `[programs.<cluster>]`, or in the output of `naclac deploy`. Naclac matches the ID against keypair files in `target/deploy/` to locate the correct `.so` binary, then upgrades only that program.
+
+### What happens under the hood
+
+1. Naclac verifies the program ID by matching the deploy keypair against the target public key.
+2. It uploads your `.so` binary to a fresh buffer account on-chain.
+3. Once the buffer is fully uploaded, `solana program deploy --program-id` atomically swaps the buffer into the existing program account.
+4. Naclac closes all orphaned buffer accounts associated with your wallet and refunds the lamports.
+
+Because the swap is atomic, there is no window during which the program account holds partially-written code — the old version keeps running until the moment the new version is fully staged.
+
+## Command Options
+
+For more control over the upgrade process, use the optional flags:
+
+```bash
+naclac upgrade <PROGRAM_ID> \
+  --filepath target/deploy/my_counter.so \
+  --buffer <BUFFER_ADDRESS>
+```
+
+| Flag | Description |
+|---|---|
+| (no flags) | Auto-detects the `.so` file by matching the program ID to a keypair in `target/deploy/` |
+| `--filepath <path>` | Path to a specific `.so` binary to upload; use this when deploying a pre-built artifact from CI |
+| `--buffer <address>` | Reuse an existing, already-uploaded buffer account; skips the upload step and finalises the upgrade immediately |
+
+The `--buffer` flag is particularly useful when you have pre-staged a buffer in a separate step (for example, during a multi-sig upgrade flow where the upload and the authority approval happen at different times).
+
+## Verifying Determinism
+
+After an upgrade, confirm that the on-chain bytecode matches your local source by running the verifier with the program's base58 ID:
+
+```bash
+naclac verify <PROGRAM_ID>
+```
+
+Naclac's verify command performs the following steps:
+
+1. **Checks for Docker.** A Docker daemon must be running — Naclac uses the `ellipsislabs/solana:latest` container to produce a deterministic build that is free from host OS differences (e.g. Mac vs. Linux linker output).
+2. **Builds in isolation.** Naclac mounts your workspace into the container and runs `cargo build-sbf` inside it, producing a `.so` binary that is reproducible across machines.
+3. **Hashes the local binary.** A SHA-256 digest is computed over the locally built `.so`.
+4. **Dumps the on-chain binary.** Naclac calls `solana program dump <program-id>` to download the deployed executable data.
+5. **Compares checksums.** The on-chain data is truncated to the length of the local binary (Solana pads deployed programs for future reallocations), then hashed and compared. A match means the deployed program is byte-for-byte identical to what your source code produces.
+
+Verification is valuable before audits, after upgrades on mainnet, and as a CI step to catch accidental binary drift.
+
+<Note>
+  `naclac verify` requires Docker to be installed and the daemon to be running. Install Docker from [docs.docker.com/get-docker](https://docs.docker.com/get-docker/) if it is not already present on your machine.
+</Note>
+
+## Upgrade Authority
+
+The **upgrade authority** is the keypair whose public key is recorded on-chain as the account allowed to modify the program. Naclac sets this to the wallet configured in `Naclac.toml` at initial deploy time:
+
+```toml
+[provider]
+wallet = "~/.config/solana/id.json"
+```
+
+Only the holder of this keypair can issue future upgrades. If you deploy from a team key or a hardware wallet, make sure that key is the one listed in `Naclac.toml` when you run `naclac upgrade`.
+
+### Making a program immutable
+
+If you want to permanently freeze a program — preventing all future upgrades — revoke the upgrade authority:
+
+```bash
+solana program set-upgrade-authority <PROGRAM_ID> --final
+```
+
+The `--final` flag sets the upgrade authority to `None` on-chain. This action is **irreversible**: once a program is immutable, no keypair (including your own) can ever change its code again. Only do this after you are fully confident in the deployed version.
+
+<Warning>
+  **Back up your deploy keypairs.** The upgrade authority key is derived from `target/deploy/<program_name>-keypair.json`. If you lose this file and have no backup, you permanently lose the ability to upgrade the program — even if you still hold the wallet keypair. Store a secure, offline backup of the entire `target/deploy/` directory. Do not commit these files to a public repository.
+</Warning>

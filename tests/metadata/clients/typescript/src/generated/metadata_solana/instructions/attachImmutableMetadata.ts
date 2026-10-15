@@ -3,21 +3,21 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_immutable_metadata` instruction. */
+/** Discriminator for the `attach_immutable_metadata` instruction. */
 export const ATTACH_IMMUTABLE_METADATA_DISCRIMINATOR = new Uint8Array([220, 31, 234, 126, 119, 173, 196, 23]);
 
 /** Accounts for the `attachImmutableMetadata` instruction. */
 export interface AttachImmutableMetadataAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The external Metaplex Core program to CPI into.
    * SAFETY: the real Metaplex Core program — external to this workspace,
    * so there's no naclac `Program<T>` marker type to constrain it with;
    * callers are expected to pass the real deployed program ID.
    */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

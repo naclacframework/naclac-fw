@@ -7,7 +7,9 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckPermissionedBurnIxArgs {
     pub expected_authority: Option<crate::sdk_core_offchain::Address>,
 }
@@ -18,7 +20,9 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckPermissionedBurnCpiIxArgs {
     pub expected_authority: Option<crate::sdk_core_cpi::Address>,
 }
@@ -39,7 +43,7 @@ pub fn build_check_permissioned_burn<'a>(
     let args = CheckPermissionedBurnIxArgs {
         expected_authority,
     };
-    #[cfg(not(feature = "borsh"))]
+    #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
         match &args.expected_authority {
             Some(__inner) => {
@@ -55,6 +59,10 @@ pub fn build_check_permissioned_burn<'a>(
     #[cfg(feature = "borsh")]
     {
         crate::sdk_core_offchain::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+    }
+    #[cfg(feature = "wincode")]
+    {
+        crate::sdk_core_offchain::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_offchain::wincode_config::CONFIG).unwrap();
     }
     naclac_client::InstructionBuilder::new(provider, program_id, ix_data)
         .account(naclac_client::AccountMeta { address: accounts.mint, is_signer: false, is_writable: false }, "mint")
@@ -121,7 +129,7 @@ impl<'info> CheckPermissionedBurnCpi<'info> for crate::sdk_core_cpi::Program<cra
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[52, 89, 178, 224, 81, 194, 237, 170]);
-        #[cfg(not(feature = "borsh"))]
+        #[cfg(not(any(feature = "borsh", feature = "wincode")))]
         {
         match &args.expected_authority {
             Some(__inner) => {
@@ -137,6 +145,10 @@ impl<'info> CheckPermissionedBurnCpi<'info> for crate::sdk_core_cpi::Program<cra
         #[cfg(feature = "borsh")]
         {
             crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+        }
+        #[cfg(feature = "wincode")]
+        {
+            crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();
         }
         #[cfg(feature = "pinocchio")]
         {
@@ -185,17 +197,17 @@ impl<'info> CheckPermissionedBurnCpi<'info> for crate::sdk_core_cpi::Program<cra
         {
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.mint.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.mint.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new(acc.address(), *is_signer)
                 } else {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
                 };
                 account_metas.push(meta);
             }
-            let instruction = ::naclac_lang::solana_program::instruction::Instruction {
+            let instruction = ::naclac_lang::solana_instruction::Instruction {
                 program_id: self.address(),
                 accounts: account_metas,
                 data: ix_data,

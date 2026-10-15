@@ -16,7 +16,7 @@ pub fn emit_via_self_cpi_fixed_2048(ctx: Context<EmitViaSelfCpiFixed2048>) -> Re
     let mut data = [0u8; 8 + 2048];
     data[..8].copy_from_slice(&LOG_EVENT_FIXED_2048_DISCRIMINATOR);
 
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: *ctx.program_id,
         accounts: vec![],
         data: data.to_vec(),

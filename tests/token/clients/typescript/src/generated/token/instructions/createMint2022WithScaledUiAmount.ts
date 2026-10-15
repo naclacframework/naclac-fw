@@ -3,15 +3,15 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022_with_scaled_ui_amount` instruction. */
+/** Discriminator for the `create_mint2022_with_scaled_ui_amount` instruction. */
 export const CREATE_MINT2022_WITH_SCALED_UI_AMOUNT_DISCRIMINATOR = new Uint8Array([189, 215, 232, 227, 212, 144, 144, 24]);
 
 /** Instruction arguments for `createMint2022WithScaledUiAmount`. */
 export interface CreateMint2022WithScaledUiAmountArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
-  multiplier_bits: bigint | number;
+  multiplierBits: bigint | number;
 }
 
 /** Accounts for the `createMint2022WithScaledUiAmount` instruction. */
@@ -24,9 +24,9 @@ export interface CreateMint2022WithScaledUiAmountAccounts {
    * `ScaledUiAmountConfig` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

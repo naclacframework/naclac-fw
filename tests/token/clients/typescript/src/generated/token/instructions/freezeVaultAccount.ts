@@ -3,15 +3,15 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `freeze_vault_account` instruction. */
+/** Discriminator for the `freeze_vault_account` instruction. */
 export const FREEZE_VAULT_ACCOUNT_DISCRIMINATOR = new Uint8Array([90, 163, 131, 135, 96, 117, 45, 192]);
 
 /** Accounts for the `freezeVaultAccount` instruction. */
 export interface FreezeVaultAccountAccounts {
   vault: naclac.Address | string;
   mint: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

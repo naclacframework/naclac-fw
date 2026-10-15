@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_freeze_delegate` instruction. */
+/** Discriminator for the `attach_freeze_delegate` instruction. */
 export const ATTACH_FREEZE_DELEGATE_DISCRIMINATOR = new Uint8Array([55, 132, 87, 185, 230, 38, 79, 237]);
 
 /** Accounts for the `attachFreezeDelegate` instruction. */
 export interface AttachFreezeDelegateAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The external Metaplex Core program to CPI into.
    * SAFETY: the real Metaplex Core program — external to this workspace.
    */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

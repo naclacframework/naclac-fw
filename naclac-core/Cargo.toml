@@ -7,11 +7,19 @@ repository.workspace = true
 description = "The core Rust framework for writing hyper-optimized Solana smart contracts."
 
 [dependencies]
-solana-program = { workspace = true, optional = true }
+solana-account-info = { workspace = true, optional = true }
+solana-msg = { workspace = true, optional = true }
+solana-program-error = { workspace = true, optional = true }
+solana-rent = { workspace = true, optional = true, features = ["sysvar"] }
+solana-clock = { workspace = true, optional = true, features = ["sysvar"] }
+solana-get-sysvar = { workspace = true, optional = true }
+solana-sha256-hasher = { workspace = true, optional = true }
+solana-instruction = { workspace = true, optional = true }
 bytemuck = { workspace = true, features = ["derive"] }
 naclac-macros = { workspace = true }
 borsh = { workspace = true, features = ["derive"], optional = true }
-solana-system-interface = { workspace = true, features = ["bincode"], optional = true }
+wincode = { version = "0.6.1", default-features = false, features = ["derive", "alloc"], optional = true }
+solana-system-interface = { version = "^3", default-features = false, features = ["wincode"], optional = true }
 pinocchio = { workspace = true, optional = true }
 pinocchio-system = { workspace = true, optional = true }
 pinocchio-log = { workspace = true, optional = true }
@@ -23,10 +31,10 @@ five8 = { workspace = true }
 solana-define-syscall = { workspace = true, optional = true }
 
 [features]
-no-std = []
 default = ["solana"]
-solana = ["dep:solana-program", "dep:solana-system-interface", "dep:solana-address", "dep:solana-define-syscall"]
-borsh = ["dep:borsh", "naclac-macros/borsh"]
+solana = ["dep:solana-account-info", "dep:solana-msg", "dep:solana-program-error", "dep:solana-rent", "dep:solana-clock", "dep:solana-get-sysvar", "dep:solana-sha256-hasher", "dep:solana-instruction", "dep:solana-system-interface", "dep:solana-address", "solana-address?/bytemuck", "dep:solana-define-syscall"]
+borsh = ["dep:borsh", "naclac-macros/borsh", "solana-address?/borsh"]
+wincode = ["dep:wincode", "naclac-macros/wincode", "solana-address?/wincode"]
 pinocchio = [
     "dep:pinocchio",
     "dep:pinocchio-system",
@@ -38,10 +46,12 @@ pinocchio = [
     "naclac-macros/pinocchio"
 ]
 debug-mode = ["naclac-macros/debug-mode"]
-# `idl-build`'s print binary needs `std` (to print the assembled JSON) even
-# when `pinocchio`/`no-std` are also active for the real on-chain build —
-# see `lib.rs`'s `no_std` cfg_attr, which this exempts.
 idl-build = []
+
+[dev-dependencies]
+solana-stable-layout = "=3.0.1"
+solana-program-entrypoint = { workspace = true }
+solana-cpi = { workspace = true }
 
 [lints]
 workspace = true

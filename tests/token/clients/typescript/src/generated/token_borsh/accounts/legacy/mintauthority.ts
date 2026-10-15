@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { MintAuthority } from "../../types";
 
-/** 8-byte on-chain discriminator for `MintAuthority` accounts. */
+/** On-chain discriminator for `MintAuthority` accounts. */
 export const MINTAUTHORITY_DISCRIMINATOR = new Uint8Array([148, 0, 219, 228, 254, 237, 76, 128]);
 
 /** Fetches a `MintAuthority` account. Throws if it does not exist. */

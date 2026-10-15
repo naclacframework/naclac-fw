@@ -4,11 +4,9 @@
   "type": "module",
   "scripts": {
     "dev:main": "pnpm --filter @naclac/site-main dev",
-    "dev:docs": "pnpm --filter @naclac/site-docs dev",
-    "dev:docs-app": "pnpm --filter docs dev",
+    "dev:docs": "naclac-docs dev ./docs",
     "build:main": "pnpm --filter @naclac/site-main build",
-    "build:docs": "pnpm --filter @naclac/site-docs build",
-    "build:docs-app": "pnpm --filter docs build",
+    "build:docs": "naclac-docs build ./docs",
     "build": "pnpm -r build"
   }
 }

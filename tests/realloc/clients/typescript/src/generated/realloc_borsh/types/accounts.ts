@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator prefix for `Growable` accounts on-chain. */
+/** Discriminator prefix for `Growable` accounts on-chain. */
 export const GROWABLE_DISCRIMINATOR = new Uint8Array([2, 210, 153, 187, 63, 113, 200, 133]);
 
 /** Auto-generated account interface from the program IDL. */

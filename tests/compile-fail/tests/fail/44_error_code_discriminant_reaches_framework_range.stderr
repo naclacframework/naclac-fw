@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: #[error_code] variant `TooLarge::Collides` has a negative or too-large discriminant: user error codes (6000 + discriminant) must stay below 10000, where naclac's framework error codes begin
+ --> tests/fail/44_error_code_discriminant_reaches_framework_range.rs:6:1
+  |
+6 | #[error_code]
+  | ^^^^^^^^^^^^^ evaluation of `_` failed here

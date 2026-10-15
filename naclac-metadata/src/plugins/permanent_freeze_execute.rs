@@ -25,7 +25,12 @@ pub fn attach_permanent_freeze_execute_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let data = [2u8, plugin_type::PERMANENT_FREEZE_EXECUTE, frozen as u8, 0u8];
+        let data = [
+            2u8,
+            plugin_type::PERMANENT_FREEZE_EXECUTE,
+            frozen as u8,
+            0u8,
+        ];
         add_asset_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
@@ -50,7 +55,12 @@ pub fn attach_collection_permanent_freeze_execute_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let data = [3u8, plugin_type::PERMANENT_FREEZE_EXECUTE, frozen as u8, 0u8];
+        let data = [
+            3u8,
+            plugin_type::PERMANENT_FREEZE_EXECUTE,
+            frozen as u8,
+            0u8,
+        ];
         add_collection_plugin_signed(program, accounts, &data, signer_seeds)
     }
 
@@ -131,7 +141,11 @@ pub fn read_permanent_freeze_execute(
     data: &[u8],
     plugin_header_offset: usize,
 ) -> Result<Option<bool>> {
-    match find_plugin_offset(data, plugin_header_offset, plugin_type::PERMANENT_FREEZE_EXECUTE)? {
+    match find_plugin_offset(
+        data,
+        plugin_header_offset,
+        plugin_type::PERMANENT_FREEZE_EXECUTE,
+    )? {
         Some(offset) => {
             let offset = offset as usize;
             if data.len() <= offset {

@@ -3,22 +3,22 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `approve_plugin_authority` instruction. */
+/** Discriminator for the `approve_plugin_authority` instruction. */
 export const APPROVE_PLUGIN_AUTHORITY_DISCRIMINATOR = new Uint8Array([138, 91, 203, 231, 137, 85, 91, 34]);
 
 /** Accounts for the `approvePluginAuthority` instruction. */
 export interface ApprovePluginAuthorityAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The account whose pubkey becomes the plugin's new authority.
    * SAFETY: only its pubkey is read — it need not exist or be owned by
    * anything in particular.
    */
-  new_authority: naclac.Address | string;
+  newAuthority: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_transfer_hook_update` instruction. */
+/** Discriminator for the `exercise_transfer_hook_update` instruction. */
 export const EXERCISE_TRANSFER_HOOK_UPDATE_DISCRIMINATOR = new Uint8Array([49, 136, 136, 195, 219, 206, 239, 165]);
 
 /** Instruction arguments for `exerciseTransferHookUpdate`. */
 export interface ExerciseTransferHookUpdateArgs {
-  new_hook_program_id: naclac.Address | string;
+  newHookProgramId: naclac.Address | string;
 }
 
 /** Accounts for the `exerciseTransferHookUpdate` instruction. */
 export interface ExerciseTransferHookUpdateAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -21,7 +21,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -37,8 +37,8 @@ const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
 const POOL_DISCRIMINATOR: [u8; 8] = [241, 154, 109, 4, 17, 177, 109, 188];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -47,8 +47,8 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
 fn mint_account_data(decimals: u8) -> Vec<u8> {
@@ -58,7 +58,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -70,13 +70,13 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
 fn pool_account_data(
     pool_bump: u8,
     index: u16,
-    creator: &Pubkey,
-    base_mint: &Pubkey,
-    quote_mint: &Pubkey,
-    lp_mint: &Pubkey,
-    pool_base_token_account: &Pubkey,
-    pool_quote_token_account: &Pubkey,
-    coin_creator: &Pubkey,
+    creator: &Address,
+    base_mint: &Address,
+    quote_mint: &Address,
+    lp_mint: &Address,
+    pool_base_token_account: &Address,
+    pool_quote_token_account: &Address,
+    coin_creator: &Address,
     lp_supply: u64,
     is_mayhem_mode: bool,
     is_cashback_coin: bool,
@@ -101,18 +101,18 @@ fn pool_account_data(
     data
 }
 
-fn fetch_account(client: &RpcClient, pubkey: &Pubkey) -> Result<Account, String> {
+fn fetch_account(client: &RpcClient, pubkey: &Address) -> Result<Account, String> {
     let remote = client.get_account(pubkey).map_err(|e| format!("{e:?}"))?;
     Ok(Account {
         lamports: remote.lamports,
         data: remote.data.clone(),
-        owner: Pubkey::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
+        owner: Address::from_str(&remote.owner.to_string()).map_err(|e| format!("{e:?}"))?,
         executable: remote.executable,
         rent_epoch: remote.rent_epoch,
     })
 }
 
-fn token_balance(svm: &LiteSVM, addr: &Pubkey) -> Option<u64> {
+fn token_balance(svm: &LiteSVM, addr: &Address) -> Option<u64> {
     svm.get_account(addr).map(|acc| u64::from_le_bytes(acc.data[64..72].try_into().unwrap()))
 }
 
@@ -138,22 +138,22 @@ fn main() {
     svm.add_program_from_file(pump_amm_program, &pump_amm_so_path).unwrap_or_else(|e| panic!("load pump_amm.so: {e:?}"));
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
-    let (amm_global_config, _) = Pubkey::find_program_address(&[b"global_config"], &pump_amm_program);
+    let (amm_global_config, _) = Address::find_program_address(&[b"global_config"], &pump_amm_program);
     let amm_global_config_account = fetch_account(&client, &amm_global_config).expect("fetch amm global_config failed");
     svm.set_account(amm_global_config, amm_global_config_account).unwrap();
 
     let quote_mint_account = fetch_account(&client, &quote_mint).expect("fetch USDC mint failed");
     svm.set_account(quote_mint, quote_mint_account).unwrap();
 
-    let base_mint = Pubkey::new_unique();
+    let base_mint = Address::new_unique();
     svm.set_account(base_mint, Account { lamports: 10_000_000, data: mint_account_data(6), owner: base_token_program, executable: false, rent_epoch: 0 }).unwrap();
 
     // pool_authority derived the same way real migrate_v2 derives it (seeds
     // under PUMP_PROGRAM_ID, which is where our dummy caller lives) --
     // dummy-cpi-caller re-derives and asserts this internally too.
-    let (pool_authority, _) = Pubkey::find_program_address(&[b"pool-authority", base_mint.as_ref()], &dummy_caller_program);
+    let (pool_authority, _) = Address::find_program_address(&[b"pool-authority", base_mint.as_ref()], &dummy_caller_program);
     let pool_index: u16 = 0;
-    let (pool, pool_bump) = Pubkey::find_program_address(
+    let (pool, pool_bump) = Address::find_program_address(
         &[b"pool", &pool_index.to_le_bytes(), pool_authority.as_ref(), base_mint.as_ref(), quote_mint.as_ref()],
         &pump_amm_program,
     );
@@ -161,10 +161,10 @@ fn main() {
     // ([POOL_LP_MINT_SEED, pool.address()] under pump_amm) -- the prior
     // probe48 runs used an arbitrary unrelated pubkey here, the last
     // untested candidate after ruling out lp_supply and coin_creator.
-    let (lp_mint, _) = Pubkey::find_program_address(&[b"pool_lp_mint", pool.as_ref()], &pump_amm_program);
+    let (lp_mint, _) = Address::find_program_address(&[b"pool_lp_mint", pool.as_ref()], &pump_amm_program);
     let pool_base_token_account = ata_address(&pool, &base_mint, &base_token_program);
     let pool_quote_token_account = ata_address(&pool, &quote_mint, &quote_token_program);
-    let coin_creator = Pubkey::new_unique();
+    let coin_creator = Address::new_unique();
 
     // lp_supply corrected to the REAL value real create_pool's own
     // lp_bootstrap_amount(base_amount_in=200_000_000_000_000,
@@ -194,11 +194,11 @@ fn main() {
     // migrate_v2 funds it via System::Transfer before this point.
     svm.set_account(pool_authority, Account { lamports: 50_000_000, data: vec![], owner: system_program, executable: false, rent_epoch: 0 }).unwrap();
 
-    let (boost_vault_authority, _) = Pubkey::find_program_address(&[b"boost_vault", pool.as_ref()], &pump_amm_program);
+    let (boost_vault_authority, _) = Address::find_program_address(&[b"boost_vault", pool.as_ref()], &pump_amm_program);
     let boost_vault = ata_address(&boost_vault_authority, &quote_mint, &quote_token_program);
     // Deliberately not pre-created, same as probe47's second attempt.
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], &pump_amm_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], &pump_amm_program);
 
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
@@ -230,7 +230,7 @@ fn main() {
 
     let blockhash = svm.latest_blockhash();
     let msg = Message::new(&[set_compute_unit_limit_ix(400_000), dummy_ix], Some(&payer.pubkey()));
-    let account_keys: Vec<Pubkey> = msg.account_keys.clone();
+    let account_keys: Vec<Address> = msg.account_keys.clone();
     let tx = Transaction::new(&[&payer], msg, blockhash);
 
     println!("\n=== Submitting dummy-cpi-caller -> init_boost (signed as real pool_authority PDA via invoke_signed) ===");

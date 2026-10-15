@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { Counter } from "../../types";
 
-/** 8-byte on-chain discriminator for `Counter` accounts. */
+/** On-chain discriminator for `Counter` accounts. */
 export const COUNTER_DISCRIMINATOR = new Uint8Array([255, 176, 4, 245, 188, 253, 124, 25]);
 
 /** Fetches a `Counter` account. Throws if it does not exist. */

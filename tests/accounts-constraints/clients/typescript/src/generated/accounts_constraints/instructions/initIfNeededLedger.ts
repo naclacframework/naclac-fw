@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_if_needed_ledger` instruction. */
+/** Discriminator for the `init_if_needed_ledger` instruction. */
 export const INIT_IF_NEEDED_LEDGER_DISCRIMINATOR = new Uint8Array([22, 82, 120, 44, 13, 132, 41, 18]);
 
 /** Instruction arguments for `initIfNeededLedger`. */

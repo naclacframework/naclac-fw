@@ -98,35 +98,73 @@ pub enum SeedOwned {
 /// `update_*` — borrows rather than owns.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExtraAccountArg<'a> {
-    PreconfiguredProgram { is_signer: bool, is_writable: bool },
-    PreconfiguredCollection { is_signer: bool, is_writable: bool },
-    PreconfiguredOwner { is_signer: bool, is_writable: bool },
-    PreconfiguredRecipient { is_signer: bool, is_writable: bool },
-    PreconfiguredAsset { is_signer: bool, is_writable: bool },
+    PreconfiguredProgram {
+        is_signer: bool,
+        is_writable: bool,
+    },
+    PreconfiguredCollection {
+        is_signer: bool,
+        is_writable: bool,
+    },
+    PreconfiguredOwner {
+        is_signer: bool,
+        is_writable: bool,
+    },
+    PreconfiguredRecipient {
+        is_signer: bool,
+        is_writable: bool,
+    },
+    PreconfiguredAsset {
+        is_signer: bool,
+        is_writable: bool,
+    },
     CustomPda {
         seeds: &'a [SeedArg<'a>],
         custom_program_id: Option<Address>,
         is_signer: bool,
         is_writable: bool,
     },
-    Address { address: Address, is_signer: bool, is_writable: bool },
+    Address {
+        address: Address,
+        is_signer: bool,
+        is_writable: bool,
+    },
 }
 
 /// Owned mirror of `ExtraAccount`, for the read side.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExtraAccountOwned {
-    PreconfiguredProgram { is_signer: bool, is_writable: bool },
-    PreconfiguredCollection { is_signer: bool, is_writable: bool },
-    PreconfiguredOwner { is_signer: bool, is_writable: bool },
-    PreconfiguredRecipient { is_signer: bool, is_writable: bool },
-    PreconfiguredAsset { is_signer: bool, is_writable: bool },
+    PreconfiguredProgram {
+        is_signer: bool,
+        is_writable: bool,
+    },
+    PreconfiguredCollection {
+        is_signer: bool,
+        is_writable: bool,
+    },
+    PreconfiguredOwner {
+        is_signer: bool,
+        is_writable: bool,
+    },
+    PreconfiguredRecipient {
+        is_signer: bool,
+        is_writable: bool,
+    },
+    PreconfiguredAsset {
+        is_signer: bool,
+        is_writable: bool,
+    },
     CustomPda {
         seeds: crate::prelude::Vec<SeedOwned>,
         custom_program_id: Option<Address>,
         is_signer: bool,
         is_writable: bool,
     },
-    Address { address: Address, is_signer: bool, is_writable: bool },
+    Address {
+        address: Address,
+        is_signer: bool,
+        is_writable: bool,
+    },
 }
 
 /// Backend-neutral `Oracle` payload — `fetch_asset_oracle`/
@@ -172,32 +210,52 @@ fn encode_extra_account_owned(
     ea: &ExtraAccountArg<'_>,
 ) -> Result<()> {
     match ea {
-        ExtraAccountArg::PreconfiguredProgram { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredProgram {
+            is_signer,
+            is_writable,
+        } => {
             data.push(0u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::PreconfiguredCollection { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredCollection {
+            is_signer,
+            is_writable,
+        } => {
             data.push(1u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::PreconfiguredOwner { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredOwner {
+            is_signer,
+            is_writable,
+        } => {
             data.push(2u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::PreconfiguredRecipient { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredRecipient {
+            is_signer,
+            is_writable,
+        } => {
             data.push(3u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::PreconfiguredAsset { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredAsset {
+            is_signer,
+            is_writable,
+        } => {
             data.push(4u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::CustomPda { seeds, custom_program_id, is_signer, is_writable } => {
+        ExtraAccountArg::CustomPda {
+            seeds,
+            custom_program_id,
+            is_signer,
+            is_writable,
+        } => {
             if seeds.len() > MAX_ORACLE_CUSTOM_PDA_SEEDS {
                 return Err(NaclacError::InvalidInstructionData.err(0));
             }
@@ -216,7 +274,11 @@ fn encode_extra_account_owned(
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::Address { address, is_signer, is_writable } => {
+        ExtraAccountArg::Address {
+            address,
+            is_signer,
+            is_writable,
+        } => {
             data.push(6u8);
             data.extend_from_slice(address.as_ref());
             data.push(*is_signer as u8);
@@ -274,7 +336,7 @@ const MAX_SEED_ENCODED_LEN: usize = 1 + 4 + MAX_ORACLE_SEED_BYTES_LEN;
 
 /// Max Borsh-encoded width of an `ExtraAccount` — the `CustomPda` variant
 /// (tag + 4-byte seed count + up to `MAX_ORACLE_CUSTOM_PDA_SEEDS` seeds +
-/// `Option<Pubkey>` + 2 bools) is the widest.
+/// `Option<Address>` + 2 bools) is the widest.
 #[cfg(feature = "pinocchio")]
 const MAX_EXTRA_ACCOUNT_ENCODED_LEN: usize =
     1 + 4 + MAX_ORACLE_CUSTOM_PDA_SEEDS * MAX_SEED_ENCODED_LEN + (1 + 32) + 1 + 1;
@@ -323,32 +385,52 @@ fn encode_extra_account<S: crate::fixed_buf::ByteSink>(
     ea: &ExtraAccountArg<'_>,
 ) -> Result<()> {
     match ea {
-        ExtraAccountArg::PreconfiguredProgram { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredProgram {
+            is_signer,
+            is_writable,
+        } => {
             data.push(0u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::PreconfiguredCollection { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredCollection {
+            is_signer,
+            is_writable,
+        } => {
             data.push(1u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::PreconfiguredOwner { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredOwner {
+            is_signer,
+            is_writable,
+        } => {
             data.push(2u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::PreconfiguredRecipient { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredRecipient {
+            is_signer,
+            is_writable,
+        } => {
             data.push(3u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::PreconfiguredAsset { is_signer, is_writable } => {
+        ExtraAccountArg::PreconfiguredAsset {
+            is_signer,
+            is_writable,
+        } => {
             data.push(4u8);
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::CustomPda { seeds, custom_program_id, is_signer, is_writable } => {
+        ExtraAccountArg::CustomPda {
+            seeds,
+            custom_program_id,
+            is_signer,
+            is_writable,
+        } => {
             if seeds.len() > MAX_ORACLE_CUSTOM_PDA_SEEDS {
                 return Err(NaclacError::InvalidInstructionData.err(0));
             }
@@ -367,7 +449,11 @@ fn encode_extra_account<S: crate::fixed_buf::ByteSink>(
             data.push(*is_signer as u8);
             data.push(*is_writable as u8);
         }
-        ExtraAccountArg::Address { address, is_signer, is_writable } => {
+        ExtraAccountArg::Address {
+            address,
+            is_signer,
+            is_writable,
+        } => {
             data.push(6u8);
             data.extend_from_slice(address.as_ref());
             data.push(*is_signer as u8);
@@ -720,12 +806,7 @@ pub fn update_collection_oracle_signed(
             }
             None => data.push(0u8),
         }
-        update_collection_external_adapter_signed(
-            program,
-            accounts,
-            data.as_slice(),
-            signer_seeds,
-        )
+        update_collection_external_adapter_signed(program, accounts, data.as_slice(), signer_seeds)
     }
 }
 
@@ -768,10 +849,7 @@ pub fn remove_collection_oracle_signed(
 /// Reads an `Asset`'s `Oracle` adapter identified by `base_address`, if
 /// attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_asset_oracle(
-    info: &AccountInfo,
-    base_address: Address,
-) -> Result<Option<OracleInfo>> {
+pub fn fetch_asset_oracle(info: &AccountInfo, base_address: Address) -> Result<Option<OracleInfo>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -826,8 +904,7 @@ fn read_oracle(
             if data.len() < candidate.header_offset + 32 {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let bytes: [u8; 32] = data
-                [candidate.header_offset..candidate.header_offset + 32]
+            let bytes: [u8; 32] = data[candidate.header_offset..candidate.header_offset + 32]
                 .try_into()
                 .unwrap();
             Ok(Address::new_from_array(bytes) == base_address)
@@ -864,8 +941,7 @@ fn read_seed(data: &[u8], offset: usize) -> Result<(SeedOwned, usize)> {
             if data.len() < prefix_end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let len =
-                u32::from_le_bytes(data[offset + 1..prefix_end].try_into().unwrap()) as usize;
+            let len = u32::from_le_bytes(data[offset + 1..prefix_end].try_into().unwrap()) as usize;
             let payload_end = checked_end(prefix_end, len)?;
             if data.len() < payload_end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
@@ -896,35 +972,50 @@ fn read_extra_account(data: &[u8], offset: usize) -> Result<(ExtraAccountOwned, 
         0 => {
             let (is_signer, is_writable) = read_bools(checked_end(offset, 1)?)?;
             Ok((
-                ExtraAccountOwned::PreconfiguredProgram { is_signer, is_writable },
+                ExtraAccountOwned::PreconfiguredProgram {
+                    is_signer,
+                    is_writable,
+                },
                 3,
             ))
         }
         1 => {
             let (is_signer, is_writable) = read_bools(checked_end(offset, 1)?)?;
             Ok((
-                ExtraAccountOwned::PreconfiguredCollection { is_signer, is_writable },
+                ExtraAccountOwned::PreconfiguredCollection {
+                    is_signer,
+                    is_writable,
+                },
                 3,
             ))
         }
         2 => {
             let (is_signer, is_writable) = read_bools(checked_end(offset, 1)?)?;
             Ok((
-                ExtraAccountOwned::PreconfiguredOwner { is_signer, is_writable },
+                ExtraAccountOwned::PreconfiguredOwner {
+                    is_signer,
+                    is_writable,
+                },
                 3,
             ))
         }
         3 => {
             let (is_signer, is_writable) = read_bools(checked_end(offset, 1)?)?;
             Ok((
-                ExtraAccountOwned::PreconfiguredRecipient { is_signer, is_writable },
+                ExtraAccountOwned::PreconfiguredRecipient {
+                    is_signer,
+                    is_writable,
+                },
                 3,
             ))
         }
         4 => {
             let (is_signer, is_writable) = read_bools(checked_end(offset, 1)?)?;
             Ok((
-                ExtraAccountOwned::PreconfiguredAsset { is_signer, is_writable },
+                ExtraAccountOwned::PreconfiguredAsset {
+                    is_signer,
+                    is_writable,
+                },
                 3,
             ))
         }
@@ -1051,10 +1142,7 @@ fn read_oracle_header(data: &[u8], offset: usize) -> Result<OracleInfo> {
 /// Reads an `Asset`'s `Oracle` adapter identified by `base_address`, if
 /// attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_oracle(
-    info: &AccountInfo,
-    base_address: Address,
-) -> Result<Option<OracleInfo>> {
+pub fn fetch_asset_oracle(info: &AccountInfo, base_address: Address) -> Result<Option<OracleInfo>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);

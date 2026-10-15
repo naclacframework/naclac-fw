@@ -15,9 +15,9 @@ solana-address = { workspace = true }
 solana-keypair = { workspace = true }
 solana-signature = { workspace = true }
 solana-transaction = { workspace = true }
-wincode = "=0.5.5"
-napi = { version = "3", default-features = false, features = ["napi6"] }
-napi-derive = "3"
+wincode = { workspace = true }
+napi = { version = "^3", default-features = false, features = ["napi6"] }
+napi-derive = "^3"
 
 [build-dependencies]
-napi-build = "2"
+napi-build = "^2"

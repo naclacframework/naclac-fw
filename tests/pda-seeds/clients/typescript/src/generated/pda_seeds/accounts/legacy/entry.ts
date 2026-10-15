@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { Entry } from "../../types";
 
-/** 8-byte on-chain discriminator for `Entry` accounts. */
+/** On-chain discriminator for `Entry` accounts. */
 export const ENTRY_DISCRIMINATOR = new Uint8Array([63, 18, 152, 113, 215, 246, 221, 250]);
 
 /** Fetches a `Entry` account. Throws if it does not exist. */

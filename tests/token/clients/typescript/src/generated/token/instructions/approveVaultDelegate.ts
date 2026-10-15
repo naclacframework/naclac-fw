@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `approve_vault_delegate` instruction. */
+/** Discriminator for the `approve_vault_delegate` instruction. */
 export const APPROVE_VAULT_DELEGATE_DISCRIMINATOR = new Uint8Array([233, 127, 64, 92, 215, 136, 181, 12]);
 
 /** Instruction arguments for `approveVaultDelegate`. */
@@ -19,8 +19,8 @@ export interface ApproveVaultDelegateAccounts {
    * `approve_signed` below; its data is never read or deserialized.
    */
   delegate: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

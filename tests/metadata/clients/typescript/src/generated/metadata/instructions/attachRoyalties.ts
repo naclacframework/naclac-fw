@@ -3,26 +3,26 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_royalties` instruction. */
+/** Discriminator for the `attach_royalties` instruction. */
 export const ATTACH_ROYALTIES_DISCRIMINATOR = new Uint8Array([24, 98, 35, 91, 122, 162, 210, 223]);
 
 /** Instruction arguments for `attachRoyalties`. */
 export interface AttachRoyaltiesArgs {
-  basis_points: number;
+  basisPoints: number;
 }
 
 /** Accounts for the `attachRoyalties` instruction. */
 export interface AttachRoyaltiesAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The external Metaplex Core program to CPI into.
    * SAFETY: the real Metaplex Core program — external to this workspace,
    * so there's no naclac `Program<T>` marker type to constrain it with;
    * callers are expected to pass the real deployed program ID.
    */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

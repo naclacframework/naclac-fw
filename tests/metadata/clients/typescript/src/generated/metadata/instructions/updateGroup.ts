@@ -3,22 +3,22 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `update_group` instruction. */
+/** Discriminator for the `update_group` instruction. */
 export const UPDATE_GROUP_DISCRIMINATOR = new Uint8Array([9, 242, 1, 110, 91, 22, 172, 97]);
 
 /** Instruction arguments for `updateGroup`. */
 export interface UpdateGroupArgs {
-  new_name: string;
-  new_uri: string;
+  newName: string;
+  newUri: string;
 }
 
 /** Accounts for the `updateGroup` instruction. */
 export interface UpdateGroupAccounts {
   group: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

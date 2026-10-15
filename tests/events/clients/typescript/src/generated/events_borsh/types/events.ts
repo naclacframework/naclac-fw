@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for `CounterIncremented` events in transaction logs. */
+/** Discriminator for `CounterIncremented` events in transaction logs. */
 export const COUNTERINCREMENTED_EVENT_DISCRIMINATOR = new Uint8Array([219, 181, 183, 220, 88, 58, 114, 198]);
 
 /** Auto-generated event interface from the program IDL. */
@@ -27,7 +27,7 @@ export async function waitForCounterIncremented(
   return program.waitForEvent("CounterIncremented", options) as Promise<CounterIncremented | null>;
 }
 
-/** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented`/`addCounterIncrementedListener` — prefer this when you already know which transaction you're checking. */
+/** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented`/`addCounterIncrementedListener` — prefer this when you already know which transaction you're checking. Logs only: events emitted via `emit_cpi!` never appear in logs, so use the client's own `parse...Events` method with the inner instructions for those. */
 export function parseCounterIncrementedEvents(
   program: any,
   logs: readonly string[]
@@ -35,7 +35,7 @@ export function parseCounterIncrementedEvents(
   return program.parseEvents("CounterIncremented", logs) as CounterIncremented[];
 }
 
-/** 8-byte discriminator for `SizedPayload` events in transaction logs. */
+/** Discriminator for `SizedPayload` events in transaction logs. */
 export const SIZEDPAYLOAD_EVENT_DISCRIMINATOR = new Uint8Array([91, 244, 46, 223, 146, 67, 182, 142]);
 
 /**
@@ -62,7 +62,7 @@ export async function waitForSizedPayload(
   return program.waitForEvent("SizedPayload", options) as Promise<SizedPayload | null>;
 }
 
-/** Decodes every `SizedPayload` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSizedPayload`/`addSizedPayloadListener` — prefer this when you already know which transaction you're checking. */
+/** Decodes every `SizedPayload` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSizedPayload`/`addSizedPayloadListener` — prefer this when you already know which transaction you're checking. Logs only: events emitted via `emit_cpi!` never appear in logs, so use the client's own `parse...Events` method with the inner instructions for those. */
 export function parseSizedPayloadEvents(
   program: any,
   logs: readonly string[]

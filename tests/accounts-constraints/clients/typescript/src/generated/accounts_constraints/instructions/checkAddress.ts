@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_address` instruction. */
+/** Discriminator for the `check_address` instruction. */
 export const CHECK_ADDRESS_DISCRIMINATOR = new Uint8Array([59, 51, 114, 147, 41, 214, 123, 101]);
 
 /** Accounts for the `checkAddress` instruction. */

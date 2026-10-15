@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_transfer_hook` instruction. */
+/** Discriminator for the `check_transfer_hook` instruction. */
 export const CHECK_TRANSFER_HOOK_DISCRIMINATOR = new Uint8Array([215, 39, 110, 212, 151, 21, 84, 111]);
 
 /** Instruction arguments for `checkTransferHook`. */

@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `remove_app_data` instruction. */
+/** Discriminator for the `remove_app_data` instruction. */
 export const REMOVE_APP_DATA_DISCRIMINATOR = new Uint8Array([165, 106, 192, 15, 24, 23, 114, 161]);
 
 /** Accounts for the `removeAppData` instruction. */
 export interface RemoveAppDataAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

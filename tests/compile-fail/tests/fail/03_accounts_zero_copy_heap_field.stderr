@@ -1,5 +1,41 @@
-error: Naclac Error: In Zero-Copy mode, heap-based types like 'Vec' and 'String' are not valid Accounts-struct field wrapper types for 'bad'. Account fields must be an account wrapper type (Account<T>, Signer, Program<T>, etc.).
+error[E0599]: the method `address` exists for reference `&std::vec::Vec<u8>`, but its trait bounds were not satisfied
+ --> tests/fail/03_accounts_zero_copy_heap_field.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^ method cannot be called on `&std::vec::Vec<u8>` due to unsatisfied trait bounds
+  |
+  = note: the following trait bounds were not satisfied:
+          `std::vec::Vec<u8>: naclac_lang::prelude::ToAddress`
+          which is required by `&std::vec::Vec<u8>: naclac_lang::prelude::ToAddress`
+  = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `std::vec::Vec<u8>: ToAccountInfo` is not satisfied
+ --> tests/fail/03_accounts_zero_copy_heap_field.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^ the trait `ToAccountInfo` is not implemented for `std::vec::Vec<u8>`
+  |
+  = help: the following other types implement trait `ToAccountInfo`:
+            Box<T>
+            Interface<T>
+            InterfaceAccount<T>
+            Program<T>
+            Signer
+            naclac_lang::prelude::Account<T>
+            naclac_lang::prelude::AccountInfo
+  = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `std::vec::Vec<u8>: NaclacAccount` is not satisfied
  --> tests/fail/03_accounts_zero_copy_heap_field.rs:9:14
   |
 9 |     pub bad: Vec<u8>,
-  |              ^^^^^^^
+  |              ^^^^^^^ the trait `NaclacAccount` is not implemented for `std::vec::Vec<u8>`
+  |
+  = help: the following other types implement trait `NaclacAccount`:
+            Box<T>
+            Interface<T>
+            InterfaceAccount<T>
+            Program<T>
+            Signer
+            naclac_lang::prelude::Account<T>
+            naclac_lang::prelude::AccountInfo

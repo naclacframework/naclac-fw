@@ -8,7 +8,14 @@
  */
 
 import { strict as assert } from "assert";
-import { encodeInstructionData, decodeAccountData } from "../src/coder/instruction";
+import {
+  encodeInstructionData,
+  decodeAccountData,
+  decodeDiscriminatedAccountData,
+} from "../src/coder/instruction";
+import { tryDecodeEventLog } from "../src/events";
+import { getIdlCodec } from "../src/coder/index";
+import { getDiscriminator, resolveDiscriminator } from "../src/utils/hash";
 import type { IdlInstruction } from "../src/idl";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -128,5 +135,142 @@ describe("decodeAccountData", () => {
 
     assert.ok(decoded.authority !== undefined, "authority should be present");
     assert.equal(decoded.count, 42n, "count should decode to BigInt 42n");
+  });
+});
+
+describe("custom-width discriminators", () => {
+  const countFields = [{ name: "count", type: "u64" }];
+
+  function accountBytes(disc: number[], count: bigint): Uint8Array {
+    const body = new Uint8Array(8);
+    new DataView(body.buffer).setBigUint64(0, count, true);
+    return new Uint8Array([...disc, ...body]);
+  }
+
+  it("encodeInstructionData writes a 1-byte and a 3-byte discriminator verbatim", () => {
+    const oneByte: IdlInstruction = { name: "a", discriminator: [7], accounts: [], args: [{ name: "bump", type: "u8" }] };
+    assert.deepEqual(Array.from(encodeInstructionData(oneByte, { bump: 9 })), [7, 9]);
+
+    const threeByte: IdlInstruction = { name: "b", discriminator: [1, 2, 3], accounts: [], args: [] };
+    assert.deepEqual(Array.from(encodeInstructionData(threeByte, {})), [1, 2, 3]);
+  });
+
+  it("decodeAccountData starts reading at the given offset", () => {
+    assert.equal(decodeAccountData(countFields, accountBytes([5], 42n), undefined, false, 1).count, 42n);
+    assert.equal(decodeAccountData(countFields, accountBytes([1, 2, 3], 99n), undefined, false, 3).count, 99n);
+  });
+
+  it("decodeDiscriminatedAccountData accepts a matching discriminator of any width", () => {
+    const one = decodeDiscriminatedAccountData(countFields, accountBytes([5], 7n), Uint8Array.from([5]), "Thing");
+    assert.equal(one.count, 7n);
+    const three = decodeDiscriminatedAccountData(countFields, accountBytes([1, 2, 3], 8n), Uint8Array.from([1, 2, 3]), "Thing");
+    assert.equal(three.count, 8n);
+  });
+
+  it("decodeDiscriminatedAccountData rejects a different account type", () => {
+    assert.throws(
+      () => decodeDiscriminatedAccountData(countFields, accountBytes([6], 7n), Uint8Array.from([5]), "Thing"),
+      /does not start with the "Thing" discriminator/,
+    );
+  });
+
+  it("decodeDiscriminatedAccountData rejects data shorter than the discriminator", () => {
+    assert.throws(
+      () => decodeDiscriminatedAccountData(countFields, Uint8Array.from([1, 2]), Uint8Array.from([1, 2, 3]), "Thing"),
+      /does not start with the "Thing" discriminator/,
+    );
+  });
+
+  it("resolveDiscriminator prefers the IDL value and falls back to the name-derived default", () => {
+    assert.deepEqual(Array.from(resolveDiscriminator([9, 9], "event", "Foo")), [9, 9]);
+    assert.deepEqual(
+      Array.from(resolveDiscriminator(undefined, "event", "Foo")),
+      Array.from(getDiscriminator("event", "Foo")),
+    );
+  });
+
+  it("tryDecodeEventLog matches a 1-byte event discriminator and skips others", () => {
+    const eventDef = { fields: [{ name: "value", type: "u64" }] };
+    const payload = new Uint8Array(8);
+    new DataView(payload.buffer).setBigUint64(0, 123n, true);
+    const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64");
+
+    const matching = `Program data: ${b64(Uint8Array.from([4]))} ${b64(payload)}`;
+    assert.equal(tryDecodeEventLog(eventDef, Uint8Array.from([4]), matching)?.value, 123n);
+
+    const other = `Program data: ${b64(Uint8Array.from([5]))} ${b64(payload)}`;
+    assert.equal(tryDecodeEventLog(eventDef, Uint8Array.from([4]), other), null);
+
+    const tooShort = `Program data: ${b64(Uint8Array.from([4]))}`;
+    assert.equal(tryDecodeEventLog(eventDef, Uint8Array.from([4, 4]), tooShort), null);
+  });
+});
+
+describe("Borsh/Wincode enum tag is the variant's real discriminant", () => {
+  const definedTypes = [
+    {
+      name: "Mode",
+      type: {
+        kind: "enum",
+        repr: "u8",
+        variants: [
+          { name: "Off", discriminant: "0" },
+          { name: "On", discriminant: "1" },
+          { name: "Auto", discriminant: "7" },
+          {
+            name: "Rect",
+            discriminant: "8",
+            fields: [{ name: "width", type: "u16" }],
+          },
+        ],
+      },
+    },
+  ];
+  const codec = getIdlCodec({ defined: "Mode" }, definedTypes, false);
+
+  it("a unit variant with an explicit discriminant writes that discriminant, not its position", () => {
+    assert.deepEqual(Array.from(codec.encode({ kind: "Auto" })), [7]);
+  });
+
+  it("a variant after an explicit discriminant continues from it", () => {
+    assert.deepEqual(Array.from(codec.encode({ kind: "Rect", width: 513 })), [8, 1, 2]);
+  });
+
+  it("decode maps the discriminant back to the variant", () => {
+    assert.deepEqual(codec.decode(Uint8Array.from([7])), { kind: "Auto" });
+    assert.deepEqual(codec.decode(Uint8Array.from([8, 1, 2])), { kind: "Rect", width: 513 });
+  });
+
+  it("an unknown discriminant is rejected", () => {
+    assert.throws(() => codec.decode(Uint8Array.from([2])), /Invalid enum discriminant 2/);
+  });
+});
+
+describe("Vec codec matches Borsh's wire format", () => {
+  it("Vec<u8> is a u32 LE element count followed by the bytes", () => {
+    const codec = getIdlCodec({ vec: "u8" }, [], false);
+    const wire = [3, 0, 0, 0, 1, 2, 3];
+    assert.deepEqual(Array.from(codec.encode([1, 2, 3])), wire);
+    assert.deepEqual(Array.from(codec.decode(Uint8Array.from(wire)) as ArrayLike<number>), [1, 2, 3]);
+  });
+
+  it("Vec<u32> counts elements, not bytes", () => {
+    const codec = getIdlCodec({ vec: "u32" }, [], false);
+    const wire = [2, 0, 0, 0, 7, 0, 0, 0, 9, 0, 0, 0];
+    assert.deepEqual(Array.from(codec.encode([7, 9])), wire);
+    assert.deepEqual(Array.from(codec.decode(Uint8Array.from(wire)) as ArrayLike<number>), [7, 9]);
+  });
+
+  it("an empty Vec is just a zero count", () => {
+    const codec = getIdlCodec({ vec: "u8" }, [], false);
+    assert.deepEqual(Array.from(codec.encode([])), [0, 0, 0, 0]);
+  });
+
+  it("an #[event(alloc)] log line with a Vec<u8> field decodes with the sequential layout", () => {
+    const eventDef = { fields: [{ name: "data", type: { vec: "u8" } }] };
+    const raw = Uint8Array.from([9, 3, 0, 0, 0, 1, 2, 3]);
+    const log = `Program data: ${Buffer.from(raw).toString("base64")}`;
+    const decoded = tryDecodeEventLog(eventDef, Uint8Array.from([9]), log, [], false);
+    assert.deepEqual(Array.from(decoded?.data as ArrayLike<number>), [1, 2, 3]);
   });
 });

@@ -26,7 +26,7 @@ pub fn emit_via_self_cpi_baseline(ctx: Context<EmitViaSelfCpiBaseline>) -> Resul
     let mut data = LOG_EVENT_DISCRIMINATOR.to_vec();
     data.extend_from_slice(&0u32.to_le_bytes());
 
-    let ix = solana_program::instruction::Instruction {
+    let ix = solana_instruction::Instruction {
         program_id: *ctx.program_id,
         accounts: vec![],
         data,

@@ -6,7 +6,7 @@
 //! "signatures" left by holders. Real layout verified against `mpl-core`'s
 //! `generated::types::{Autograph, AutographSignature}`:
 //! `Autograph { signatures: Vec<AutographSignature> }`,
-//! `AutographSignature { address: Pubkey, message: String }` — genuinely
+//! `AutographSignature { address: Address, message: String }` — genuinely
 //! variable-width per element (unlike `VerifiedCreators`' fixed-width
 //! entries), so reading requires a linear scan, same shape as
 //! `attributes.rs`'s walk.

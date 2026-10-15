@@ -44,7 +44,7 @@ impl<T: Clone> Interface<T> {
         }
 
         Ok(Self {
-            info: info.clone(),
+            info: *info,
             _phantom: core::marker::PhantomData,
         })
     }
@@ -88,14 +88,14 @@ impl<T: Clone> Deref for Interface<T> {
 #[cfg(not(feature = "pinocchio"))]
 impl<T: Clone> ToAccountInfo for Interface<T> {
     fn to_account_info(&self) -> AccountInfo {
-        self.info.clone()
+        self.info
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
 impl<T: Clone> crate::wrappers::ToAccountInfos for Interface<T> {
     fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
-        crate::prelude::vec![self.info.clone()]
+        crate::prelude::vec![self.info]
     }
 }
 
@@ -205,7 +205,7 @@ impl crate::wrappers::Ids for TokenInterface {
 
 impl<T: crate::wrappers::Ids + Clone> crate::wrappers::NaclacAccount for Interface<T> {
     #[inline(always)]
-    fn try_from(info: &crate::prelude::AccountType, index: usize) -> Result<Self> {
+    fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from(info, T::ids(), index)
     }
 }

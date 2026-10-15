@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use cpi_caller_client::{
     get_caller_authority_pda,
     instructions::{
@@ -20,7 +20,7 @@ fn setup() -> NaclacProvider {
 /// 2. real cross-program CPI (unsigned) to a *second*, separately-deployed
 ///    naclac program, via that program's auto-generated client SDK
 ///    (`call_setup_counter` -> `cpi_callee`'s `init_counter`)
-/// 3. real cross-program CPI *signed with PDA seeds* â€” `cpi_callee`'s
+/// 3. real cross-program CPI *signed with PDA seeds* — `cpi_callee`'s
 ///    `authorized_increment` requires its `authority` to sign, and that
 ///    authority is `cpi_caller`'s own PDA, so the CPI must be
 ///    `invoke_signed` with that PDA's exact seeds

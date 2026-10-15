@@ -355,8 +355,7 @@ pub fn generate_init_cpi(
 
                 #[cfg(not(feature = "pinocchio"))]
                 {
-                    let rent = naclac_lang::solana_program::rent::Rent::get()?;
-                    let lamports = rent.minimum_balance(82_usize);
+                    let lamports = naclac_lang::prelude::const_rent_lamports(82);
 
                     #create_call_solana(
                         naclac_lang::prelude::CpiHandleMut { info: __payer_info.clone(), _phantom: core::marker::PhantomData },
@@ -457,8 +456,7 @@ pub fn generate_init_cpi(
 
                 #[cfg(not(feature = "pinocchio"))]
                 {
-                    let rent = naclac_lang::solana_program::rent::Rent::get()?;
-                    let lamports = rent.minimum_balance(165_usize);
+                    let lamports = naclac_lang::prelude::const_rent_lamports(165);
 
                     #create_call_solana(
                         naclac_lang::prelude::CpiHandleMut { info: __payer_info.clone(), _phantom: core::marker::PhantomData },
@@ -729,23 +727,36 @@ pub fn generate_init_cpi(
     };
 
     quote! {
+        let __disc_len: usize =
+            <#inner_type as naclac_lang::prelude::Discriminator>::DISCRIMINATOR.len();
         let __needs_init = if info.data_is_empty() {
             true
         } else {
             #[cfg(not(feature = "pinocchio"))]
             {
                 let __data = info.try_borrow_data()?;
-                __data.len() >= 8 && __data[0..8] == [0u8; 8]
+                if __disc_len == 8 {
+                    __data.len() >= 8 && __data[0..8] == [0u8; 8]
+                } else {
+                    __disc_len > 0
+                        && __data.len() >= __disc_len
+                        && __data[..__disc_len].iter().all(|__b| *__b == 0)
+                }
             }
             #[cfg(feature = "pinocchio")]
             {
-                // Read first 8 bytes as u64 and check == 0 (all-zero discriminator = uninit).
-                // Avoids bounds-check panic string from data[0..8] indexing.
-                // SAFETY: data_is_empty() was false above, and Solana accounts are
-                // always >= 8 bytes when non-empty (minimum data size is 8 + header).
+                // An account whose first `__disc_len` bytes are all zero is uninitialized:
+                // no real discriminator is all-zero (enforced at compile time).
+                // Width 8 reads a single u64 to avoid the bounds-check panic string.
                 let __data_ptr = info.view.data_ptr();
                 let __data_len = info.view.data_len();
-                __data_len >= 8 && unsafe { *(__data_ptr as *const u64) } == 0
+                if __disc_len == 8 {
+                    __data_len >= 8 && unsafe { *(__data_ptr as *const u64) } == 0
+                } else {
+                    __disc_len > 0
+                        && __data_len >= __disc_len
+                        && (0..__disc_len).all(|__i| unsafe { *__data_ptr.add(__i) } == 0)
+                }
             }
         };
 
@@ -754,12 +765,6 @@ pub fn generate_init_cpi(
         if __needs_init {
             #[cfg(not(feature = "pinocchio"))]
             {
-                // Const-rent formula, not `Rent::get()` + `minimum_balance()`:
-                // measured at ~668 CU for the real sysvar fetch + calculation
-                // versus ~101 CU here — the same trade pinocchio's own branch
-                // below already makes. Shared, single implementation
-                // (naclac-core's own `const_rent_lamports`, Kani-proven)
-                // instead of re-deriving this formula as generated tokens.
                 let lamports = naclac_lang::prelude::const_rent_lamports((#space_tokens) as usize);
 
                 #signer_seeds_logic
@@ -772,13 +777,6 @@ pub fn generate_init_cpi(
                 let __payer_info_wrapper = naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref);
 
                 if info.data_is_empty() {
-                    // Delegates to the crate's own public `system_program::create_account_signed`
-                    // instead of hand-rolling a second copy of the same raw CreateAccount CPI —
-                    // this used to be an independent, byte-for-byte-identical reimplementation
-                    // that could silently drift from the public helper. Mirrors the same
-                    // "call the shared dual-backend helper" pattern already used by
-                    // `realloc.rs` (`system_program::transfer`) and the `associated_token::mint`
-                    // constraint (`associated_token::create`).
                     #create_call_solana(
                         naclac_lang::prelude::CpiHandleMut { info: __payer_info_wrapper, _phantom: core::marker::PhantomData },
                         naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
@@ -791,7 +789,10 @@ pub fn generate_init_cpi(
                 }
 
                 let mut __account_data = info.try_borrow_mut_data()?;
-                __account_data[0..8].copy_from_slice(&#inner_type::DISCRIMINATOR);
+                __account_data
+                    .get_mut(..__disc_len)
+                    .ok_or_else(|| naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(#idx))?
+                    .copy_from_slice(<#inner_type as naclac_lang::prelude::Discriminator>::DISCRIMINATOR);
             }
 
             #[cfg(feature = "pinocchio")]
@@ -806,9 +807,6 @@ pub fn generate_init_cpi(
                 let __payer_info = #payer_ref;
 
                 if info.data_is_empty() {
-                    // Shared, single implementation (naclac-core's own
-                    // `const_rent_lamports`, Kani-proven): eliminates
-                    // Rent::get() sysvar call.
                     let __space = (#space_tokens) as usize;
                     let __lamports = naclac_lang::prelude::const_rent_lamports(__space);
                     #create_call_pinocchio(
@@ -824,8 +822,8 @@ pub fn generate_init_cpi(
                 // SAFETY: We are initializing the account discriminator.
                 unsafe {
                     let ptr = info.view.data_ptr() as *mut u8;
-                    let slice = core::slice::from_raw_parts_mut(ptr, 8);
-                    slice.copy_from_slice(&#inner_type::DISCRIMINATOR);
+                    let slice = core::slice::from_raw_parts_mut(ptr, __disc_len);
+                    slice.copy_from_slice(<#inner_type as naclac_lang::prelude::Discriminator>::DISCRIMINATOR);
                 }
             }
         }

@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { Config } from "../../types";
 
-/** 8-byte on-chain discriminator for `Config` accounts. */
+/** On-chain discriminator for `Config` accounts. */
 export const CONFIG_DISCRIMINATOR = new Uint8Array([155, 12, 170, 224, 30, 250, 204, 130]);
+
+function stripConfigDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = CONFIG_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `Config` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link Config} account data. */
 export function getConfigEncoder(): naclac.FixedSizeEncoder<Config> {
@@ -39,7 +47,7 @@ export function decodeConfig<TAddress extends string = string>(
 ): naclac.Account<Config, TAddress> | naclac.MaybeAccount<Config, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripConfigDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getConfigDecoder(),
   );
@@ -88,7 +96,7 @@ export async function fetchAllMaybeConfig(
 }
 
 /** Fetches ALL `Config` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllConfigByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

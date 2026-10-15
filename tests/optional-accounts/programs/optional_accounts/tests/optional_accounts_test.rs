@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use optional_accounts_client::{
     fetch_thing,
     get_thing_a_pda, get_thing_b_pda, get_optional_thing_pda,
@@ -72,7 +72,7 @@ fn touch_optional_increments_when_present() {
 
 /// The absent case: passing `None` must produce the sentinel (the program's
 /// own address) in that slot, be recognized as absent by `load_and_validate`,
-/// and skip the field entirely â€” not fail, not misindex later accounts (there
+/// and skip the field entirely — not fail, not misindex later accounts (there
 /// are none after it here, but `touch_two_optional` below covers ordering).
 #[test]
 fn touch_optional_is_noop_when_absent() {
@@ -88,7 +88,7 @@ fn touch_optional_is_noop_when_absent() {
     );
 }
 
-/// A real, non-`Thing` account (the payer's own wallet â€” no discriminator,
+/// A real, non-`Thing` account (the payer's own wallet — no discriminator,
 /// wrong owner) passed into the optional slot must still be rejected by the
 /// same validation a non-optional `Account<Thing>` field would apply.
 /// Optionality only gates *whether* loading happens, not *how thoroughly*.
@@ -135,12 +135,9 @@ fn touch_two_optional_both_present_increments_both() {
     assert_eq!(thing_b.value, 1);
 }
 
-/// The `MUT_MASK` regression case: two independent optional `mut` fields,
-/// both omitted in the same call, both carrying the identical sentinel
-/// address (the program's own). Before the `MUT_MASK` fix, this would have
-/// falsely tripped the duplicate-mutable-account guard â€” two `mut` slots
-/// sharing one address looks exactly like a real collision unless optional
-/// fields are excluded from the mask.
+/// Two optional `mut` fields both omitted in the same call carry the identical
+/// sentinel address (the program's own). A repeated sentinel is not an alias
+/// of a real account, so it must not trip the duplicate-mutable-account guard.
 #[test]
 fn touch_two_optional_both_absent_does_not_trigger_duplicate_mutable_error() {
     let provider = setup();
@@ -162,8 +159,35 @@ fn touch_two_optional_both_absent_does_not_trigger_duplicate_mutable_error() {
     );
 }
 
+/// Two optional `mut` fields both given the same real account are a genuine
+/// duplicate-mutable collision and must be rejected exactly like two required
+/// `mut` fields: 10000 + 0*100 + ConstraintDuplicateMutableAccount(25) = 10025.
+#[test]
+fn touch_two_optional_same_present_account_is_rejected() {
+    let provider = setup();
+    let thing_a_pda = init_thing_a(&provider);
+
+    let result = build_touch_two_optional(
+        &provider,
+        PROGRAM_ID,
+        TouchTwoOptionalAccounts {
+            thing_a: Some(thing_a_pda),
+            thing_b: Some(thing_a_pda),
+        },
+    )
+    .send_and_confirm();
+
+    match result {
+        Err(NaclacClientError::TransactionFailed {
+            instruction_err: InstructionError::Custom(code),
+            ..
+        }) => assert_eq!(code, 10025, "wrong custom error code"),
+        other => panic!("expected a Custom(10025) transaction failure, got {other:?}"),
+    }
+}
+
 /// Mixed case: one optional field present, the other absent, in the same
-/// call â€” confirms the sentinel comparison is per-slot, not all-or-nothing.
+/// call — confirms the sentinel comparison is per-slot, not all-or-nothing.
 #[test]
 fn touch_two_optional_mixed_presence_only_touches_the_present_one() {
     let provider = setup();
@@ -186,7 +210,7 @@ fn touch_two_optional_mixed_presence_only_touches_the_present_one() {
 
 /// `init` on a seeded `Option<T>` field: a caller passing a real,
 /// not-yet-existing PDA must have it created and initialized exactly like a
-/// non-optional `init` would â€” `init_cpi.rs`'s codegen runs before `self`
+/// non-optional `init` would — `init_cpi.rs`'s codegen runs before `self`
 /// exists, already inside the sentinel's `Some` branch, so this needed no
 /// codegen changes, only removing the parser-level rejection.
 #[test]
@@ -212,7 +236,7 @@ fn init_optional_thing_creates_when_present() {
 }
 
 /// `init` on an absent optional field: the sentinel check gates everything,
-/// including `#init_logic` â€” so passing `None` must skip account creation
+/// including `#init_logic` — so passing `None` must skip account creation
 /// entirely, not attempt to create an account at the program's own address.
 #[test]
 fn init_optional_thing_skips_when_absent() {
@@ -243,7 +267,7 @@ fn init_optional_thing_skips_when_absent() {
 
 /// `close` on a present `Option<T>` field: `close_account.rs` runs in
 /// `teardown()`, after `self` exists, so this needed a real fix (unlike
-/// `init`) â€” bound to a local `__target` inside `if let Some(...)`.
+/// `init`) — bound to a local `__target` inside `if let Some(...)`.
 #[test]
 fn close_optional_thing_closes_when_present() {
     let provider = setup();
@@ -297,7 +321,7 @@ fn close_optional_thing_is_noop_when_absent() {
 }
 
 /// `realloc` on a present `Option<T>` field: same "needed a real fix" shape
-/// as `close` â€” resizes exactly like a non-optional `realloc` would.
+/// as `close` — resizes exactly like a non-optional `realloc` would.
 #[test]
 fn realloc_optional_thing_resizes_when_present() {
     let provider = setup();

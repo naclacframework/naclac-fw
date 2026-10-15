@@ -4,4 +4,4 @@
 import * as naclac from "@naclac-fw/client";
 
 /** The on-chain address of this program. */
-export const PROGRAM_ID = naclac.address("9JfQzaTTBoz5tUF3Zam7uodt74NYk5tD6asYuQpAWLFV");
+export const PROGRAM_ID = naclac.address("AzVPsPxCBJZsCMP2oTkUCDFCDDspXwW5qBRX3ymUyo2i");

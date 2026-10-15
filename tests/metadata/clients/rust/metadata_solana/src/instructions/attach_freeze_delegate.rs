@@ -142,20 +142,20 @@ impl<'info> AttachFreezeDelegateCpi<'info> for crate::sdk_core_cpi::Program<crat
         {
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.asset.address(), true),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new(accounts.payer.address(), true),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
-                ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(accounts.mpl_core_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.asset.address(), true),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.payer.address(), true),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.mpl_core_program.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new(acc.address(), *is_signer)
                 } else {
-                    ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
+                    ::naclac_lang::solana_instruction::AccountMeta::new_readonly(acc.address(), *is_signer)
                 };
                 account_metas.push(meta);
             }
-            let instruction = ::naclac_lang::solana_program::instruction::Instruction {
+            let instruction = ::naclac_lang::solana_instruction::Instruction {
                 program_id: self.address(),
                 accounts: account_metas,
                 data: ix_data,

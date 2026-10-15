@@ -29,11 +29,11 @@ use std::fs;
 use anchor_lang::AccountSerialize;
 use anchor_spl::token::spl_token;
 use solana_client::rpc_client::RpcClient;
-use solana_program::program_option::COption;
-use solana_program::program_pack::Pack;
+use solana_program_option::COption;
+use solana_program_pack::Pack;
 use solana_sdk::account::Account;
 use solana_sdk::address_lookup_table::state::{AddressLookupTable, LookupTableMeta};
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::rent::Rent;
 use solana_sdk::system_program;
 use spl_token_2022::extension::PodStateWithExtensionsMut;
@@ -71,7 +71,7 @@ const OUT_PATH: &str = concat!(
 /// AMM-only or hybrid-orderbook path. Values come from Raydium's public
 /// liquidity-pool list for pool `58oQChx4…`.
 mod raydium_sol_usdc {
-    use super::Pubkey;
+    use super::Address;
     use pump_rust_client::constants::{
         pump::PROGRAM_ID as PUMP_PROGRAM_ID,
         pump_agent_payments::PROGRAM_ID as PUMP_AGENT_PAYMENTS_PROGRAM_ID,
@@ -79,20 +79,20 @@ mod raydium_sol_usdc {
         MPL_TOKEN_METADATA_PROGRAM_ID,
     };
     use pump_rust_client::pda;
-    use solana_program::pubkey;
+    use solana_address;
 
     // AMM side
-    pub const POOL: Pubkey = pubkey!("58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2");
-    pub const AMM_AUTHORITY: Pubkey = pubkey!("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1");
-    pub const OPEN_ORDERS: Pubkey = pubkey!("HRk9CMrpq7Jn9sh7mzxE8CChHG8dneX9p475QKz4Fsfc");
-    pub const TARGET_ORDERS: Pubkey = pubkey!("CZza3Ej4Mc58MnxWA385itCC9jCo3L1D7zc3LKy1bZMR");
-    pub const WSOL_VAULT: Pubkey = pubkey!("DQyrAcCrDXQ7NeoqGgDCZwBvWDcYmFCjSb9JtteuvPpz");
-    pub const USDC_VAULT: Pubkey = pubkey!("HLmqeL62xR1QoZ1HKKbXRrdN1p3phKpxRMb2VVopvBBz");
+    pub const POOL: Address = pubkey!("58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2");
+    pub const AMM_AUTHORITY: Address = pubkey!("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1");
+    pub const OPEN_ORDERS: Address = pubkey!("HRk9CMrpq7Jn9sh7mzxE8CChHG8dneX9p475QKz4Fsfc");
+    pub const TARGET_ORDERS: Address = pubkey!("CZza3Ej4Mc58MnxWA385itCC9jCo3L1D7zc3LKy1bZMR");
+    pub const WSOL_VAULT: Address = pubkey!("DQyrAcCrDXQ7NeoqGgDCZwBvWDcYmFCjSb9JtteuvPpz");
+    pub const USDC_VAULT: Address = pubkey!("HLmqeL62xR1QoZ1HKKbXRrdN1p3phKpxRMb2VVopvBBz");
 
-    pub const USDC_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-    pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
+    pub const USDC_MINT: Address = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+    pub const WSOL_MINT: Address = pubkey!("So11111111111111111111111111111111111111112");
 
-    pub fn alt_extras() -> Vec<Pubkey> {
+    pub fn alt_extras() -> Vec<Address> {
         vec![
             // POOL,
             // AMM_AUTHORITY,
@@ -108,8 +108,8 @@ mod raydium_sol_usdc {
             // MAYHEM_PROGRAM_ID,
             // MPL_TOKEN_METADATA_PROGRAM_ID,
             // PUMP_AGENT_PAYMENTS_PROGRAM_ID,
-            // solana_program::pubkey!("6Vo3245eszAb5wuqEMw8mGdbfRUdKbHhDHP5LcaGuTAB"),
-            // solana_program::pubkey!("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"),
+            // solana_address!("6Vo3245eszAb5wuqEMw8mGdbfRUdKbHhDHP5LcaGuTAB"),
+            // solana_address!("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"),
             // // event_authorities
             // pda::pump::event_authority().0,
             // pda::pump_amm::event_authority().0,
@@ -134,17 +134,17 @@ mod raydium_sol_usdc {
     // (via `dump-programs`), not snapshotted as an account, so it's not in
     // the fetch list below.
     #[allow(dead_code)]
-    pub const MARKET_PROGRAM_ID: Pubkey = pubkey!("srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX");
-    pub const MARKET: Pubkey = pubkey!("8BnEgHoWFysVcuFFX7QztDmzuH8r5ZFvyP3sYwn1XTh6");
-    pub const MARKET_AUTHORITY: Pubkey = pubkey!("CTz5UMLQm2SRWHzQnU62Pi4yJqbNGjgRBHqqp6oDHfF7");
-    pub const MARKET_BASE_VAULT: Pubkey = pubkey!("CKxTHwM9fPMRRvZmFnFoqKNd9pQR21c5Aq9bh5h9oghX");
-    pub const MARKET_QUOTE_VAULT: Pubkey = pubkey!("6A5NHCj1yF6urc9wZNe6Bcjj4LVszQNj5DwAWG97yzMu");
-    pub const MARKET_BIDS: Pubkey = pubkey!("5jWUncPNBMZJ3sTHKmMLszypVkoRK6bfEQMQUHweeQnh");
-    pub const MARKET_ASKS: Pubkey = pubkey!("EaXdHx7x3mdGA38j5RSmKYSXMzAFzzUXCLNBEDXDn1d5");
+    pub const MARKET_PROGRAM_ID: Address = pubkey!("srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX");
+    pub const MARKET: Address = pubkey!("8BnEgHoWFysVcuFFX7QztDmzuH8r5ZFvyP3sYwn1XTh6");
+    pub const MARKET_AUTHORITY: Address = pubkey!("CTz5UMLQm2SRWHzQnU62Pi4yJqbNGjgRBHqqp6oDHfF7");
+    pub const MARKET_BASE_VAULT: Address = pubkey!("CKxTHwM9fPMRRvZmFnFoqKNd9pQR21c5Aq9bh5h9oghX");
+    pub const MARKET_QUOTE_VAULT: Address = pubkey!("6A5NHCj1yF6urc9wZNe6Bcjj4LVszQNj5DwAWG97yzMu");
+    pub const MARKET_BIDS: Address = pubkey!("5jWUncPNBMZJ3sTHKmMLszypVkoRK6bfEQMQUHweeQnh");
+    pub const MARKET_ASKS: Address = pubkey!("EaXdHx7x3mdGA38j5RSmKYSXMzAFzzUXCLNBEDXDn1d5");
     // `MARKET_EVENT_QUEUE` was previously `8CvwxZ9Dg1LRxpgHsvQwYDqEYFA6jSdNG6N4qbSCC4SD`
     // but that address does not exist on mainnet. Left out of the clone
     // list — fill in once we have a confirmed pubkey.
-    // pub const MARKET_EVENT_QUEUE: Pubkey = pubkey!("…");
+    // pub const MARKET_EVENT_QUEUE: Address = pubkey!("…");
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -265,7 +265,7 @@ fn parse_cli() -> Result<Cli, String> {
 /// created). When `fetch_from_mainnet` is `true` the entry is fetched from
 /// mainnet regardless of `--network`; flip back to `false` to revert that
 /// PDA to the selected-network fetch.
-fn fixed_pdas() -> Vec<(&'static str, Pubkey, bool, bool)> {
+fn fixed_pdas() -> Vec<(&'static str, Address, bool, bool)> {
     vec![
         ("pump:global", pda::pump::global().0, true, false),
         (
@@ -422,20 +422,20 @@ fn fixed_pdas() -> Vec<(&'static str, Pubkey, bool, bool)> {
         // Optional — markets without fee-discount logic don't need them.
         (
             "openbook:srm_mint",
-            solana_program::pubkey!("SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt"),
+            solana_address!("SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt"),
             false,
             true,
         ),
         (
             "openbook:msrm_mint",
-            solana_program::pubkey!("MSRMcoVyrFxnSgo5uXwone5SKcGhT1KEJMFEkMEWf9L"),
+            solana_address!("MSRMcoVyrFxnSgo5uXwone5SKcGhT1KEJMFEkMEWf9L"),
             false,
             true,
         ),
     ]
 }
 
-fn print_account(label: &str, key: &Pubkey, acct: &Account) {
+fn print_account(label: &str, key: &Address, acct: &Account) {
     println!(
         "  {:<40} {} lamports={} owner={} data={}B",
         label,
@@ -451,9 +451,9 @@ fn print_account(label: &str, key: &Pubkey, acct: &Account) {
 /// confusingly downstream); optional entries log a skip line.
 fn clone_one(
     rpc: &RpcClient,
-    out: &mut HashMap<Pubkey, Account>,
+    out: &mut HashMap<Address, Account>,
     label: &str,
-    key: Pubkey,
+    key: Address,
     required: bool,
 ) -> Result<Option<Account>, Box<dyn std::error::Error>> {
     if let Some(existing) = out.get(&key) {
@@ -482,7 +482,7 @@ fn clone_one(
 /// Reset ALT meta (active from slot 0) and replace the address list.
 fn rewrite_alt_active_from_slot_0(
     acct: &mut Account,
-    addresses: Vec<Pubkey>,
+    addresses: Vec<Address>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut deserialized = AddressLookupTable::deserialize(&acct.data)?;
     deserialized.meta = LookupTableMeta::default();
@@ -493,8 +493,8 @@ fn rewrite_alt_active_from_slot_0(
 
 fn rewrite_token_account(
     acct: &mut Account,
-    new_mint: Option<Pubkey>,
-    new_owner: Option<Pubkey>,
+    new_mint: Option<Address>,
+    new_owner: Option<Address>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if acct.owner == constants::SPL_TOKEN_2022_PROGRAM_ID {
         let state = PodStateWithExtensionsMut::<PodAccount>::unpack(&mut acct.data)?;
@@ -521,7 +521,7 @@ fn rewrite_token_account(
 
 fn rewrite_mint_authority(
     acct: &mut Account,
-    new_authority: Pubkey,
+    new_authority: Address,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if acct.owner == constants::SPL_TOKEN_2022_PROGRAM_ID {
         let state = PodStateWithExtensionsMut::<PodMint>::unpack(&mut acct.data)?;
@@ -546,13 +546,13 @@ fn rewrite_mint_authority(
 /// The vaults are ATAs of the pool, so their addresses change and their
 /// `Token.owner` (and the quote vault's `Token.mint`) must be rewritten.
 fn patch_graduated_pool_to_usdc_quote_mint(
-    out: &mut HashMap<Pubkey, Account>,
+    out: &mut HashMap<Address, Account>,
     fixture: &FixtureMint,
-    base_mint: &Pubkey,
-    pool_creator: &Pubkey,
+    base_mint: &Address,
+    pool_creator: &Address,
     pool: &Pool,
-    original_pool_pda: Pubkey,
-    original_quote_mint: Pubkey,
+    original_pool_pda: Address,
+    original_quote_mint: Address,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let original_lp_mint = pool.lp_mint;
     let original_base_vault = pool.pool_base_token_account;
@@ -657,7 +657,7 @@ fn patch_graduated_pool_to_usdc_quote_mint(
 /// pool-authority PDA.
 fn clone_fixture_mint(
     rpc: &RpcClient,
-    out: &mut HashMap<Pubkey, Account>,
+    out: &mut HashMap<Address, Account>,
     fixture: &FixtureMint,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mint = fixture.mint;
@@ -757,12 +757,12 @@ fn clone_fixture_mint(
     // address, then re-key under the USDC_QUOTE_MINT derived address with
     // `Token.mint` rewritten, matching the bonding-curve quote ATA logic.
     {
-        let on_chain_quote_mint = if original_bc_quote_mint == Pubkey::default() {
+        let on_chain_quote_mint = if original_bc_quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             original_bc_quote_mint
         };
-        let patched_quote_mint = if bc.quote_mint == Pubkey::default() {
+        let patched_quote_mint = if bc.quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             bc.quote_mint
@@ -813,7 +813,7 @@ fn clone_fixture_mint(
     let sharing_config_key = pda::pump::sharing_config(&mint).0;
     if let Some(sharing_acct) = clone_one(rpc, out, "  sharing_config", sharing_config_key, false)?
     {
-        let quote_mint = if bc.quote_mint == Pubkey::default() {
+        let quote_mint = if bc.quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             bc.quote_mint
@@ -884,7 +884,7 @@ fn clone_fixture_mint(
     // simply be missing and the AMM tests will be skipped at runtime.
     if bc.complete {
         let pool_creator = pda::pump::pool_authority(&mint).0;
-        let pool_quote_mint = if original_bc_quote_mint == Pubkey::default() {
+        let pool_quote_mint = if original_bc_quote_mint == Address::default() {
             constants::NATIVE_MINT
         } else {
             original_bc_quote_mint
@@ -955,7 +955,7 @@ fn clone_fixture_mint(
 /// the original because `whitelisted_quote_mints` is fixed-size; the
 /// `assert_eq!` is a tripwire if the IDL ever drifts.
 fn whitelist_test_quote_mint_in_global(
-    out: &mut HashMap<Pubkey, Account>,
+    out: &mut HashMap<Address, Account>,
     global: &Global,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if global
@@ -996,15 +996,15 @@ fn whitelist_test_quote_mint_in_global(
 /// owned by [`fixtures::USDC_QUOTE_MINT_AUTHORITY`] so tests can
 /// `mint_to` arbitrary balances on the local validator. Always overwrites:
 /// re-running the clone script regenerates a fresh mint with supply=0.
-fn synthesize_quote_mint(out: &mut HashMap<Pubkey, Account>) {
+fn synthesize_quote_mint(out: &mut HashMap<Address, Account>) {
     let mint = spl_token::state::Mint {
-        mint_authority: solana_program::program_option::COption::Some(
+        mint_authority: solana_program_option::COption::Some(
             fixtures::USDC_QUOTE_MINT_AUTHORITY,
         ),
         supply: 0,
         decimals: 6,
         is_initialized: true,
-        freeze_authority: solana_program::program_option::COption::None,
+        freeze_authority: solana_program_option::COption::None,
     };
     let mut data = vec![0u8; spl_token::state::Mint::LEN];
     spl_token::state::Mint::pack(mint, &mut data).expect("pack test quote Mint");
@@ -1048,18 +1048,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         None
     };
 
-    let default_keys: Vec<Pubkey> = labeled
+    let default_keys: Vec<Address> = labeled
         .iter()
         .filter(|(_, _, _, from_mainnet)| !*from_mainnet)
         .map(|(_, k, _, _)| *k)
         .collect();
-    let mainnet_keys: Vec<Pubkey> = labeled
+    let mainnet_keys: Vec<Address> = labeled
         .iter()
         .filter(|(_, _, _, from_mainnet)| *from_mainnet)
         .map(|(_, k, _, _)| *k)
         .collect();
 
-    let mut by_key: HashMap<Pubkey, Option<Account>> = HashMap::new();
+    let mut by_key: HashMap<Address, Option<Account>> = HashMap::new();
     if !default_keys.is_empty() {
         println!(
             "📡 Fetching {} key(s) from {network:?} ({rpc_url})",
@@ -1088,9 +1088,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let mut out: HashMap<Pubkey, Account> = HashMap::new();
+    let mut out: HashMap<Address, Account> = HashMap::new();
     let mut global_account: Option<Account> = None;
-    let mut alt_keys: Vec<Pubkey> = Vec::new();
+    let mut alt_keys: Vec<Address> = Vec::new();
     println!("📥 Fixed PDAs:");
     for (label, key, required, from_mainnet) in labeled.iter() {
         let suffix = if *from_mainnet { " (mainnet)" } else { "" };
@@ -1127,8 +1127,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // devnet + mainnet ALTs plus the Raydium extras, with meta reset to
     // active-from-slot-0. Lets a single snapshot serve either ALT pubkey.
     if !alt_keys.is_empty() {
-        let mut seen: std::collections::HashSet<Pubkey> = std::collections::HashSet::new();
-        let mut merged: Vec<Pubkey> = Vec::new();
+        let mut seen: std::collections::HashSet<Address> = std::collections::HashSet::new();
+        let mut merged: Vec<Address> = Vec::new();
         for key in &alt_keys {
             let acct = out.get(key).expect("alt account must be in out");
             let table = AddressLookupTable::deserialize(&acct.data)?;
@@ -1156,13 +1156,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let global = decode_global(&global_account.expect("pump:global must be set above").data)?;
     whitelist_test_quote_mint_in_global(&mut out, &global)?;
-    let mut recipients: Vec<Pubkey> = Vec::new();
+    let mut recipients: Vec<Address> = Vec::new();
     recipients.push(global.fee_recipient);
     recipients.extend(global.fee_recipients.iter().copied());
     recipients.push(global.reserved_fee_recipient);
     recipients.extend(global.reserved_fee_recipients.iter().copied());
     recipients.extend(global.buyback_fee_recipients.iter().copied());
-    recipients.retain(|p| *p != Pubkey::default());
+    recipients.retain(|p| *p != Address::default());
     recipients.sort();
     recipients.dedup();
     println!(

@@ -8,7 +8,7 @@
 //!
 //! Usage: cargo run --bin find_creation_tx -- <donation_fee_pda_address> [rpc-url]
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_rpc_client_api::config::RpcTransactionConfig;
 use solana_transaction_status_client_types::{
@@ -23,7 +23,7 @@ fn main() {
     let address_str = std::env::args()
         .nth(1)
         .expect("usage: find_creation_tx <donation_fee_pda_address> [rpc-url]");
-    let address = Pubkey::from_str(&address_str).expect("invalid pubkey");
+    let address = Address::from_str(&address_str).expect("invalid pubkey");
     let rpc_url = std::env::args()
         .nth(2)
         .unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());

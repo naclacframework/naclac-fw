@@ -3,23 +3,23 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `transfer_asset` instruction. */
+/** Discriminator for the `transfer_asset` instruction. */
 export const TRANSFER_ASSET_DISCRIMINATOR = new Uint8Array([126, 66, 109, 18, 60, 172, 131, 124]);
 
 /** Accounts for the `transferAsset` instruction. */
 export interface TransferAssetAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The account whose pubkey becomes the asset's new owner.
    * SAFETY: only its pubkey is read (passed readonly, non-signer, to the
    * real Metaplex Core program) — it need not exist or be owned by
    * anything in particular.
    */
-  new_owner: naclac.Address | string;
+  newOwner: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

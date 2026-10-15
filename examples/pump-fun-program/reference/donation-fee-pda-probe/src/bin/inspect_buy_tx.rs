@@ -14,7 +14,7 @@
 //!
 //! Usage: cargo run --bin inspect_buy_tx [-- <rpc-url>]
 
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_rpc_client_api::config::RpcTransactionConfig;
 use solana_transaction_status_client_types::{EncodedTransaction, UiMessage, UiTransactionEncoding};
@@ -24,8 +24,8 @@ use std::time::Duration;
 const PUMP_PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
 const BUY_DISCRIMINATOR: [u8; 8] = [102, 6, 61, 18, 1, 218, 235, 234];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn main() {
@@ -34,13 +34,13 @@ fn main() {
     let pump_program = pk(PUMP_PROGRAM_ID);
 
     // Real, live `global.buyback_fee_recipients[8]` — already-confirmed offset.
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     let global_account = client.get_account(&global).expect("failed to fetch global");
     let start = 8 + 733;
     let mut buyback_recipients = Vec::new();
     for i in 0..8 {
         let off = start + i * 32;
-        buyback_recipients.push(Pubkey::try_from(&global_account.data[off..off + 32]).unwrap());
+        buyback_recipients.push(Address::try_from(&global_account.data[off..off + 32]).unwrap());
     }
     println!("Current global.buyback_fee_recipients:");
     for (i, r) in buyback_recipients.iter().enumerate() {
@@ -83,7 +83,7 @@ fn main() {
                     let key_str = all_keys.get(idx).cloned().unwrap_or_default();
                     let mut extra = String::new();
                     if i >= 16 {
-                        if let Ok(key) = Pubkey::from_str(&key_str) {
+                        if let Ok(key) = Address::from_str(&key_str) {
                             let matched = buyback_recipients.iter().position(|&r| r == key);
                             if let Ok(acc) = client.get_account(&key) {
                                 extra = format!(

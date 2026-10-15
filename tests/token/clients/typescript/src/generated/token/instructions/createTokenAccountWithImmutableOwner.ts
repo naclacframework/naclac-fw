@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_token_account_with_immutable_owner` instruction. */
+/** Discriminator for the `create_token_account_with_immutable_owner` instruction. */
 export const CREATE_TOKEN_ACCOUNT_WITH_IMMUTABLE_OWNER_DISCRIMINATOR = new Uint8Array([91, 50, 138, 16, 250, 61, 153, 184]);
 
 /** Accounts for the `createTokenAccountWithImmutableOwner` instruction. */
@@ -15,7 +15,7 @@ export interface CreateTokenAccountWithImmutableOwnerAccounts {
    * `Discriminator` to check since this is a raw SPL `TokenAccount` +
    * `ImmutableOwner` extension layout, not a naclac component.
    */
-  token_account: naclac.Address | string;
+  tokenAccount: naclac.Address | string;
   mint: naclac.Address | string;
   /**
    * SAFETY: only used as an address — its own key becomes the new
@@ -23,8 +23,8 @@ export interface CreateTokenAccountWithImmutableOwnerAccounts {
    * read or deserialized.
    */
   owner: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

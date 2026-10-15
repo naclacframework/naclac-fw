@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use realloc_client::{
     get_growable_pda,
     instructions::{
@@ -13,12 +13,12 @@ fn setup() -> NaclacProvider {
 }
 
 /// Growing: the account's real on-chain byte length actually changes, the
-/// payer actually funds the rent top-up, and â€” critically â€” the newly
+/// payer actually funds the rent top-up, and — critically — the newly
 /// allocated bytes are genuinely zeroed. This last part was flagged in
 /// `TEST_PLAN.md` as a suspected dead-code gap (`realloc::zero` parsed but
 /// never wired up); tracing the underlying `resize()` primitives directly
 /// showed both backends already zero new memory unconditionally themselves,
-/// but reasoning from code isn't the same as observing it â€” this is the
+/// but reasoning from code isn't the same as observing it — this is the
 /// actual observation.
 #[test]
 fn growing_resizes_funds_and_zeroes_new_bytes() {
@@ -87,7 +87,7 @@ fn growing_resizes_funds_and_zeroes_new_bytes() {
 }
 
 /// Shrinking: the account's real byte length actually decreases, and the
-/// now-excess rent is refunded back to the payer â€” the real bug found
+/// now-excess rent is refunded back to the payer — the real bug found
 /// while reading `realloc.rs` (no refund logic existed at all before this
 /// fix) and fixed as part of this test case, not left as an unverified
 /// code-reading claim.

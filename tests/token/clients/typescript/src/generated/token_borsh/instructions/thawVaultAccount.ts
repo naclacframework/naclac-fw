@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `thaw_vault_account` instruction. */
+/** Discriminator for the `thaw_vault_account` instruction. */
 export const THAW_VAULT_ACCOUNT_DISCRIMINATOR = new Uint8Array([103, 77, 214, 244, 101, 3, 183, 3]);
 
 /** Accounts for the `thawVaultAccount` instruction. */

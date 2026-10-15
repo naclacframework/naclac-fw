@@ -9,8 +9,9 @@ use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckAccountFieldsArgs {
     pub expected_vault_delegate: Option<crate::sdk_core_offchain::Address>,
     pub expected_vault_delegated_amount: u64,
@@ -22,18 +23,12 @@ pub struct CheckAccountFieldsArgs {
     pub expected_mint_is_initialized: u8,
 }
 
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CheckAccountFieldsArgs {}
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CheckAccountFieldsArgs {}
-
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckAccountFieldsArgsCpi {
     pub expected_vault_delegate: Option<crate::sdk_core_cpi::Address>,
     pub expected_vault_delegated_amount: u64,
@@ -45,52 +40,34 @@ pub struct CheckAccountFieldsArgsCpi {
     pub expected_mint_is_initialized: u8,
 }
 
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CheckAccountFieldsArgsCpi {}
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CheckAccountFieldsArgsCpi {}
-
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckInterestBearingMintArgs {
     pub expected_rate_authority: Option<crate::sdk_core_offchain::Address>,
     pub expected_current_rate: i16,
 }
 
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CheckInterestBearingMintArgs {}
-#[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CheckInterestBearingMintArgs {}
-
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckInterestBearingMintArgsCpi {
     pub expected_rate_authority: Option<crate::sdk_core_cpi::Address>,
     pub expected_current_rate: i16,
 }
 
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CheckInterestBearingMintArgsCpi {}
-#[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CheckInterestBearingMintArgsCpi {}
-
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CheckTransferFeeConfigArgs {
     pub expected_withheld_amount: u64,
     pub expected_newer_basis_points: u16,
@@ -102,17 +79,189 @@ pub struct CheckTransferFeeConfigArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CheckTransferFeeConfigArgs {
+    pub expected_withheld_amount: u64,
+    pub __naclac_padding_0: [u8; __CheckTransferFeeConfigArgs_GAP_0],
+    pub expected_newer_basis_points: u16,
+    pub __naclac_padding_1: [u8; __CheckTransferFeeConfigArgs_GAP_1],
+    pub expected_newer_maximum_fee: u64,
+    pub __naclac_padding_2: [u8; __CheckTransferFeeConfigArgs_GAP_2],
+    pub current_epoch: u64,
+    pub __naclac_padding_3: [u8; __CheckTransferFeeConfigArgs_GAP_3],
+    pub transfer_amount: u64,
+    pub __naclac_padding_4: [u8; __CheckTransferFeeConfigArgs_GAP_4],
+    pub expected_fee: u64,
+    pub __naclac_padding_5: [u8; __CheckTransferFeeConfigArgs_GAP_5],
+    pub expected_post_fee_amount: u64,
+    pub __naclac_padding_6: [u8; __CheckTransferFeeConfigArgs_GAP_6],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_0 + ::core::mem::size_of::<u16>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgs_GAP_1 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgs_GAP_1 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_2 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgs_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgs_GAP_1 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_2 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_3 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgs_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgs_GAP_1 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_2 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_3 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_4 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgs_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgs_GAP_1 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_2 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_3 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_4 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgs_GAP_5 + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CheckTransferFeeConfigArgs > () ==
+        (::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgs_GAP_0 +
+        ::core::mem::size_of:: < u16 > () + __CheckTransferFeeConfigArgs_GAP_1 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgs_GAP_2 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgs_GAP_3 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgs_GAP_4 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgs_GAP_5 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgs_GAP_6),
+        "defined_type/#[component]: `CheckTransferFeeConfigArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u16>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CheckTransferFeeConfigArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CheckTransferFeeConfigArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CheckTransferFeeConfigArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CheckTransferFeeConfigArgsCpi {
     pub expected_withheld_amount: u64,
     pub expected_newer_basis_points: u16,
@@ -124,13 +273,185 @@ pub struct CheckTransferFeeConfigArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CheckTransferFeeConfigArgsCpi {
+    pub expected_withheld_amount: u64,
+    pub __naclac_padding_0: [u8; __CheckTransferFeeConfigArgsCpi_GAP_0],
+    pub expected_newer_basis_points: u16,
+    pub __naclac_padding_1: [u8; __CheckTransferFeeConfigArgsCpi_GAP_1],
+    pub expected_newer_maximum_fee: u64,
+    pub __naclac_padding_2: [u8; __CheckTransferFeeConfigArgsCpi_GAP_2],
+    pub current_epoch: u64,
+    pub __naclac_padding_3: [u8; __CheckTransferFeeConfigArgsCpi_GAP_3],
+    pub transfer_amount: u64,
+    pub __naclac_padding_4: [u8; __CheckTransferFeeConfigArgsCpi_GAP_4],
+    pub expected_fee: u64,
+    pub __naclac_padding_5: [u8; __CheckTransferFeeConfigArgsCpi_GAP_5],
+    pub expected_post_fee_amount: u64,
+    pub __naclac_padding_6: [u8; __CheckTransferFeeConfigArgsCpi_GAP_6],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_0 + ::core::mem::size_of::<u16>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_1 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_2 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_3 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_4 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CheckTransferFeeConfigArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_0 + ::core::mem::size_of::<u16>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_4 + ::core::mem::size_of::<u64>()
+        + __CheckTransferFeeConfigArgsCpi_GAP_5 + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CheckTransferFeeConfigArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgsCpi_GAP_0 +
+        ::core::mem::size_of:: < u16 > () + __CheckTransferFeeConfigArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgsCpi_GAP_2 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgsCpi_GAP_3 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgsCpi_GAP_4 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgsCpi_GAP_5 +
+        ::core::mem::size_of:: < u64 > () + __CheckTransferFeeConfigArgsCpi_GAP_6),
+        "defined_type/#[component]: `CheckTransferFeeConfigArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u16>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CheckTransferFeeConfigArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CheckTransferFeeConfigArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CheckTransferFeeConfigArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_default_account_state`
 /// (`naclac-token/src/extensions/default_account_state.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
@@ -140,8 +461,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CheckTransferFeeConfigArgsCpi
 /// can later update the extension via that same authority.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithDefaultAccountStateArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -150,13 +471,134 @@ pub struct CreateMint2022WithDefaultAccountStateArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_default_account_state`
+/// (`naclac-token/src/extensions/default_account_state.rs`): allocates the
+/// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
+/// — `InitializeDefaultAccountState` must run before `InitializeMint`, so
+/// the auto-`init` path used by `create_mint2022.rs` can't be used here).
+/// Sets the mint's freeze authority so `exercise_default_account_state_update`
+/// can later update the extension via that same authority.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithDefaultAccountStateArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithDefaultAccountStateArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithDefaultAccountStateArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithDefaultAccountStateArgs_GAP_2],
+    pub initial_state: u8,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithDefaultAccountStateArgs_GAP_3],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithDefaultAccountStateArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithDefaultAccountStateArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithDefaultAccountStateArgs_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithDefaultAccountStateArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithDefaultAccountStateArgs_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithDefaultAccountStateArgs_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithDefaultAccountStateArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithDefaultAccountStateArgs_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithDefaultAccountStateArgs_GAP_1
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithDefaultAccountStateArgs_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithDefaultAccountStateArgs > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithDefaultAccountStateArgs_GAP_0 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithDefaultAccountStateArgs_GAP_1 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithDefaultAccountStateArgs_GAP_2 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithDefaultAccountStateArgs_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithDefaultAccountStateArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithDefaultAccountStateArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithDefaultAccountStateArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithDefaultAccountStateArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_default_account_state`
 /// (`naclac-token/src/extensions/default_account_state.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
@@ -166,8 +608,8 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithDefaul
 /// can later update the extension via that same authority.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithDefaultAccountStateArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -176,21 +618,142 @@ pub struct CreateMint2022WithDefaultAccountStateArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_default_account_state`
+/// (`naclac-token/src/extensions/default_account_state.rs`): allocates the
+/// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
+/// — `InitializeDefaultAccountState` must run before `InitializeMint`, so
+/// the auto-`init` path used by `create_mint2022.rs` can't be used here).
+/// Sets the mint's freeze authority so `exercise_default_account_state_update`
+/// can later update the extension via that same authority.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithDefaultAccountStateArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_2],
+    pub initial_state: u8,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_3],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_2
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithDefaultAccountStateArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_0 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_2 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithDefaultAccountStateArgsCpi_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithDefaultAccountStateArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithDefaultAccountStateArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithDefaultAccountStateArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithDefaultAccountStateArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_group_member_pointer`
 /// (`naclac-token/src/extensions/group_member_pointer.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeGroupMemberPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithGroupMemberPointerArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -199,21 +762,136 @@ pub struct CreateMint2022WithGroupMemberPointerArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_group_member_pointer`
+/// (`naclac-token/src/extensions/group_member_pointer.rs`): allocates the
+/// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
+/// — `InitializeGroupMemberPointer` must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithGroupMemberPointerArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithGroupMemberPointerArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithGroupMemberPointerArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithGroupMemberPointerArgs_GAP_2],
+    pub member_address: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithGroupMemberPointerArgs_GAP_3],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerArgs_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupMemberPointerArgs_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupMemberPointerArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupMemberPointerArgs_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithGroupMemberPointerArgs > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithGroupMemberPointerArgs_GAP_0 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithGroupMemberPointerArgs_GAP_1 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithGroupMemberPointerArgs_GAP_2 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
+        __CreateMint2022WithGroupMemberPointerArgs_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithGroupMemberPointerArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithGroupMemberPointerArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithGroupMemberPointerArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_group_member_pointer`
 /// (`naclac-token/src/extensions/group_member_pointer.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeGroupMemberPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithGroupMemberPointerArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -222,13 +900,132 @@ pub struct CreateMint2022WithGroupMemberPointerArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_group_member_pointer`
+/// (`naclac-token/src/extensions/group_member_pointer.rs`): allocates the
+/// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
+/// — `InitializeGroupMemberPointer` must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithGroupMemberPointerArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_2],
+    pub member_address: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_3],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithGroupMemberPointerArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_0 + ::core::mem::size_of:: < u8
+        > () + __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_2 + ::core::mem::size_of:: <
+        crate ::sdk_core_cpi::Address > () +
+        __CreateMint2022WithGroupMemberPointerArgsCpi_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithGroupMemberPointerArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithGroupMemberPointerArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithGroupMemberPointerArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group_member`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
@@ -238,8 +1035,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithGroupMember
 /// own PDA update authority.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithGroupMemberPointerAndMemberArgs {
     pub member_seed: u64,
     pub member_mint_bump: u8,
@@ -247,13 +1044,112 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_token_group_member`
+/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// member mint PDA, points a self-referential `GroupMemberPointer` at
+/// itself, initializes the mint, then joins it to an already-initialized
+/// `TokenGroup` on `group_mint` (created by
+/// `create_mint2022_with_group_pointer_and_group`), signed by the group's
+/// own PDA update authority.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithGroupMemberPointerAndMemberArgs {
+    pub member_seed: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_0],
+    pub member_mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_2],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithGroupMemberPointerAndMemberArgs > ()
+        == (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_0 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_1 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_2),
+        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerAndMemberArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithGroupMemberPointerAndMemberArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithGroupMemberPointerAndMemberArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group_member`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
@@ -263,8 +1159,8 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithGroupM
 /// own PDA update authority.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
     pub member_seed: u64,
     pub member_mint_bump: u8,
@@ -272,21 +1168,120 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_token_group_member`
+/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// member mint PDA, points a self-referential `GroupMemberPointer` at
+/// itself, initializes the mint, then joins it to an already-initialized
+/// `TokenGroup` on `group_mint` (created by
+/// `create_mint2022_with_group_pointer_and_group`), signed by the group's
+/// own PDA update authority.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
+    pub member_seed: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_0],
+    pub member_mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_2],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithGroupMemberPointerAndMemberArgsCpi >
+        () == (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_0 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_2),
+        "defined_type/#[component]: `CreateMint2022WithGroupMemberPointerAndMemberArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_group_pointer`
 /// (`naclac-token/src/extensions/group_pointer.rs`): allocates the mint PDA
 /// by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeGroupPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithGroupPointerArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -295,21 +1290,133 @@ pub struct CreateMint2022WithGroupPointerArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_group_pointer`
+/// (`naclac-token/src/extensions/group_pointer.rs`): allocates the mint PDA
+/// by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
+/// `InitializeGroupPointer` must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithGroupPointerArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithGroupPointerArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithGroupPointerArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithGroupPointerArgs_GAP_2],
+    pub group_address: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithGroupPointerArgs_GAP_3],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerArgs_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerArgs_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerArgs_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithGroupPointerArgs > () ==
+        (::core::mem::size_of:: < u64 > () + __CreateMint2022WithGroupPointerArgs_GAP_0 +
+        ::core::mem::size_of:: < u8 > () + __CreateMint2022WithGroupPointerArgs_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __CreateMint2022WithGroupPointerArgs_GAP_2 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
+        __CreateMint2022WithGroupPointerArgs_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithGroupPointerArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithGroupPointerArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithGroupPointerArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithGroupPointerArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_group_pointer`
 /// (`naclac-token/src/extensions/group_pointer.rs`): allocates the mint PDA
 /// by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeGroupPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithGroupPointerArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -318,13 +1425,126 @@ pub struct CreateMint2022WithGroupPointerArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_group_pointer`
+/// (`naclac-token/src/extensions/group_pointer.rs`): allocates the mint PDA
+/// by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
+/// `InitializeGroupPointer` must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithGroupPointerArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithGroupPointerArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithGroupPointerArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithGroupPointerArgsCpi_GAP_2],
+    pub group_address: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithGroupPointerArgsCpi_GAP_3],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerArgsCpi_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerArgsCpi_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerArgsCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithGroupPointerArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithGroupPointerArgsCpi_GAP_0 + ::core::mem::size_of:: < u8 > ()
+        + __CreateMint2022WithGroupPointerArgsCpi_GAP_1 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithGroupPointerArgsCpi_GAP_2 + ::core::mem::size_of:: <
+        crate ::sdk_core_cpi::Address > () +
+        __CreateMint2022WithGroupPointerArgsCpi_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithGroupPointerArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithGroupPointerArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithGroupPointerArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithGroupPointerArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
@@ -342,8 +1562,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithGroupPointe
 /// pre-allocated headroom as `InvalidAccountData`.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithGroupPointerAndGroupArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -352,13 +1572,142 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_token_group`
+/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// hand, points a self-referential `GroupPointer` at the mint itself
+/// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
+/// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
+/// fixed-size, `InitializeGroup`'s own processor still grows the account
+/// itself via the same self-reallocating `alloc_and_serialize` mechanism
+/// `TokenMetadata::Initialize` uses (verified against
+/// `spl-token-2022-11.0.0`'s real `extension::token_group::processor`) — so
+/// the account must be created at exactly its `GroupPointer`-only size, not
+/// pre-sized for `TokenGroup` too: `InitializeMint2`'s own validation
+/// requires the account's length to exactly equal
+/// `ExtensionType::try_calculate_account_len` for whatever extensions are
+/// present *at that point* (just `GroupPointer`), rejecting any extra
+/// pre-allocated headroom as `InvalidAccountData`.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithGroupPointerAndGroupArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithGroupPointerAndGroupArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithGroupPointerAndGroupArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithGroupPointerAndGroupArgs_GAP_2],
+    pub max_size: u64,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithGroupPointerAndGroupArgs_GAP_3],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerAndGroupArgs_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerAndGroupArgs_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerAndGroupArgs_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerAndGroupArgs_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerAndGroupArgs_GAP_1
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerAndGroupArgs_GAP_2
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithGroupPointerAndGroupArgs > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithGroupPointerAndGroupArgs_GAP_0 + ::core::mem::size_of:: < u8
+        > () + __CreateMint2022WithGroupPointerAndGroupArgs_GAP_1 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithGroupPointerAndGroupArgs_GAP_2 + ::core::mem::size_of:: < u64
+        > () + __CreateMint2022WithGroupPointerAndGroupArgs_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithGroupPointerAndGroupArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithGroupPointerAndGroupArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithGroupPointerAndGroupArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
@@ -376,8 +1725,8 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithGroupP
 /// pre-allocated headroom as `InvalidAccountData`.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithGroupPointerAndGroupArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -386,13 +1735,142 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_token_group`
+/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// hand, points a self-referential `GroupPointer` at the mint itself
+/// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
+/// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
+/// fixed-size, `InitializeGroup`'s own processor still grows the account
+/// itself via the same self-reallocating `alloc_and_serialize` mechanism
+/// `TokenMetadata::Initialize` uses (verified against
+/// `spl-token-2022-11.0.0`'s real `extension::token_group::processor`) — so
+/// the account must be created at exactly its `GroupPointer`-only size, not
+/// pre-sized for `TokenGroup` too: `InitializeMint2`'s own validation
+/// requires the account's length to exactly equal
+/// `ExtensionType::try_calculate_account_len` for whatever extensions are
+/// present *at that point* (just `GroupPointer`), rejecting any extra
+/// pre-allocated headroom as `InvalidAccountData`.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithGroupPointerAndGroupArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_2],
+    pub max_size: u64,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_3],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_2
+        + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithGroupPointerAndGroupArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_0 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_2 + ::core::mem::size_of:: <
+        u64 > () + __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithGroupPointerAndGroupArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithGroupPointerAndGroupArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithGroupPointerAndGroupArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_interest_bearing_mint`
 /// (`naclac-token/src/extensions/interest_bearing_mint.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
@@ -400,8 +1878,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithGroupPointe
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithInterestBearingMintArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -410,13 +1888,132 @@ pub struct CreateMint2022WithInterestBearingMintArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_interest_bearing_mint`
+/// (`naclac-token/src/extensions/interest_bearing_mint.rs`): allocates the
+/// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
+/// — `InitializeInterestBearingMint` must run before `InitializeMint`, so
+/// the auto-`init` path used by `create_mint2022.rs` can't be used here).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithInterestBearingMintArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithInterestBearingMintArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithInterestBearingMintArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithInterestBearingMintArgs_GAP_2],
+    pub rate: i16,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithInterestBearingMintArgs_GAP_3],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithInterestBearingMintArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithInterestBearingMintArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithInterestBearingMintArgs_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithInterestBearingMintArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithInterestBearingMintArgs_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithInterestBearingMintArgs_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<i16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithInterestBearingMintArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithInterestBearingMintArgs_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithInterestBearingMintArgs_GAP_1
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithInterestBearingMintArgs_GAP_2
+        + ::core::mem::size_of::<i16>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<i16>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithInterestBearingMintArgs > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithInterestBearingMintArgs_GAP_0 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithInterestBearingMintArgs_GAP_1 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithInterestBearingMintArgs_GAP_2 +
+        ::core::mem::size_of:: < i16 > () +
+        __CreateMint2022WithInterestBearingMintArgs_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithInterestBearingMintArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<i16>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithInterestBearingMintArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithInterestBearingMintArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithInterestBearingMintArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_interest_bearing_mint`
 /// (`naclac-token/src/extensions/interest_bearing_mint.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
@@ -424,8 +2021,8 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithIntere
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithInterestBearingMintArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -434,21 +2031,140 @@ pub struct CreateMint2022WithInterestBearingMintArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_interest_bearing_mint`
+/// (`naclac-token/src/extensions/interest_bearing_mint.rs`): allocates the
+/// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
+/// — `InitializeInterestBearingMint` must run before `InitializeMint`, so
+/// the auto-`init` path used by `create_mint2022.rs` can't be used here).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithInterestBearingMintArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithInterestBearingMintArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithInterestBearingMintArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithInterestBearingMintArgsCpi_GAP_2],
+    pub rate: i16,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithInterestBearingMintArgsCpi_GAP_3],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithInterestBearingMintArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithInterestBearingMintArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithInterestBearingMintArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithInterestBearingMintArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithInterestBearingMintArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithInterestBearingMintArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<i16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithInterestBearingMintArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithInterestBearingMintArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithInterestBearingMintArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithInterestBearingMintArgsCpi_GAP_2
+        + ::core::mem::size_of::<i16>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<i16>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithInterestBearingMintArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithInterestBearingMintArgsCpi_GAP_0 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithInterestBearingMintArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithInterestBearingMintArgsCpi_GAP_2 + ::core::mem::size_of:: <
+        i16 > () + __CreateMint2022WithInterestBearingMintArgsCpi_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithInterestBearingMintArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<i16>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithInterestBearingMintArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithInterestBearingMintArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithInterestBearingMintArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_metadata_pointer`
 /// (`naclac-token/src/extensions/metadata_pointer.rs`): allocates the mint
 /// PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeMetadataPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithMetadataPointerArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -457,21 +2173,134 @@ pub struct CreateMint2022WithMetadataPointerArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_metadata_pointer`
+/// (`naclac-token/src/extensions/metadata_pointer.rs`): allocates the mint
+/// PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
+/// `InitializeMetadataPointer` must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithMetadataPointerArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithMetadataPointerArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithMetadataPointerArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithMetadataPointerArgs_GAP_2],
+    pub metadata_address: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithMetadataPointerArgs_GAP_3],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithMetadataPointerArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithMetadataPointerArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithMetadataPointerArgs_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithMetadataPointerArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithMetadataPointerArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithMetadataPointerArgs_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithMetadataPointerArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithMetadataPointerArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithMetadataPointerArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithMetadataPointerArgs_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithMetadataPointerArgs > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithMetadataPointerArgs_GAP_0 + ::core::mem::size_of:: < u8 > ()
+        + __CreateMint2022WithMetadataPointerArgs_GAP_1 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithMetadataPointerArgs_GAP_2 + ::core::mem::size_of:: <
+        crate ::sdk_core_offchain::Address > () +
+        __CreateMint2022WithMetadataPointerArgs_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithMetadataPointerArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithMetadataPointerArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithMetadataPointerArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithMetadataPointerArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_metadata_pointer`
 /// (`naclac-token/src/extensions/metadata_pointer.rs`): allocates the mint
 /// PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeMetadataPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithMetadataPointerArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -480,11 +2309,125 @@ pub struct CreateMint2022WithMetadataPointerArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_metadata_pointer`
+/// (`naclac-token/src/extensions/metadata_pointer.rs`): allocates the mint
+/// PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
+/// `InitializeMetadataPointer` must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithMetadataPointerArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithMetadataPointerArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithMetadataPointerArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithMetadataPointerArgsCpi_GAP_2],
+    pub metadata_address: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithMetadataPointerArgsCpi_GAP_3],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithMetadataPointerArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithMetadataPointerArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithMetadataPointerArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithMetadataPointerArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithMetadataPointerArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithMetadataPointerArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithMetadataPointerArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithMetadataPointerArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithMetadataPointerArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithMetadataPointerArgsCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithMetadataPointerArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithMetadataPointerArgsCpi_GAP_0 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithMetadataPointerArgsCpi_GAP_1 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithMetadataPointerArgsCpi_GAP_2 +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > () +
+        __CreateMint2022WithMetadataPointerArgsCpi_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithMetadataPointerArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithMetadataPointerArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithMetadataPointerArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithMetadataPointerArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
 /// Real end-to-end proof of `initialize_token_metadata`
@@ -499,7 +2442,9 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithMetadataPoi
 /// headroom keeps a later grow rent-exempt.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CreateMint2022WithMetadataPointerAndMetadataArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -522,7 +2467,9 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgs {
 /// headroom keeps a later grow rent-exempt.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CreateMint2022WithMetadataPointerAndMetadataArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -533,6 +2480,7 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgsCpi {
 }
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_non_transferable_mint`
 /// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI had zero
 /// implementation and zero test coverage before this file: an earlier pass
@@ -542,8 +2490,8 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgsCpi {
 /// must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithNonTransferableArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -551,13 +2499,107 @@ pub struct CreateMint2022WithNonTransferableArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_non_transferable_mint`
+/// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI had zero
+/// implementation and zero test coverage before this file: an earlier pass
+/// wrongly assumed `NonTransferable` had no dedicated init CPI at all.
+/// Allocates the mint PDA by hand (same reason as
+/// `create_mint2022_with_transfer_fee.rs` — `InitializeNonTransferableMint`
+/// must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithNonTransferableArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithNonTransferableArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithNonTransferableArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithNonTransferableArgs_GAP_2],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithNonTransferableArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithNonTransferableArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithNonTransferableArgs_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithNonTransferableArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithNonTransferableArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithNonTransferableArgs_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithNonTransferableArgs > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithNonTransferableArgs_GAP_0 + ::core::mem::size_of:: < u8 > ()
+        + __CreateMint2022WithNonTransferableArgs_GAP_1 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithNonTransferableArgs_GAP_2),
+        "defined_type/#[component]: `CreateMint2022WithNonTransferableArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithNonTransferableArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithNonTransferableArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithNonTransferableArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_non_transferable_mint`
 /// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI had zero
 /// implementation and zero test coverage before this file: an earlier pass
@@ -567,8 +2609,8 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithNonTra
 /// must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithNonTransferableArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -576,13 +2618,109 @@ pub struct CreateMint2022WithNonTransferableArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_non_transferable_mint`
+/// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI had zero
+/// implementation and zero test coverage before this file: an earlier pass
+/// wrongly assumed `NonTransferable` had no dedicated init CPI at all.
+/// Allocates the mint PDA by hand (same reason as
+/// `create_mint2022_with_transfer_fee.rs` — `InitializeNonTransferableMint`
+/// must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithNonTransferableArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithNonTransferableArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithNonTransferableArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithNonTransferableArgsCpi_GAP_2],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithNonTransferableArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithNonTransferableArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithNonTransferableArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithNonTransferableArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithNonTransferableArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithNonTransferableArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithNonTransferableArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithNonTransferableArgsCpi_GAP_0 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithNonTransferableArgsCpi_GAP_1 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithNonTransferableArgsCpi_GAP_2),
+        "defined_type/#[component]: `CreateMint2022WithNonTransferableArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithNonTransferableArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithNonTransferableArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithNonTransferableArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_permanent_delegate`
 /// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI
 /// function had zero test coverage before this file: the only existing
@@ -592,8 +2730,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithNonTransfer
 /// must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithPermanentDelegateArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -601,13 +2739,107 @@ pub struct CreateMint2022WithPermanentDelegateArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_permanent_delegate`
+/// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI
+/// function had zero test coverage before this file: the only existing
+/// test read a hand-crafted fixture, never a mint the real CPI actually
+/// created. Allocates the mint PDA by hand (same reason as
+/// `create_mint2022_with_transfer_fee.rs` — `InitializePermanentDelegate`
+/// must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithPermanentDelegateArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithPermanentDelegateArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithPermanentDelegateArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithPermanentDelegateArgs_GAP_2],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithPermanentDelegateArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithPermanentDelegateArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithPermanentDelegateArgs_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithPermanentDelegateArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithPermanentDelegateArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithPermanentDelegateArgs_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithPermanentDelegateArgs > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithPermanentDelegateArgs_GAP_0 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithPermanentDelegateArgs_GAP_1 + ::core::mem::size_of:: <
+        u8 > () + __CreateMint2022WithPermanentDelegateArgs_GAP_2),
+        "defined_type/#[component]: `CreateMint2022WithPermanentDelegateArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithPermanentDelegateArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithPermanentDelegateArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithPermanentDelegateArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_permanent_delegate`
 /// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI
 /// function had zero test coverage before this file: the only existing
@@ -617,8 +2849,8 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithPerman
 /// must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithPermanentDelegateArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -626,13 +2858,111 @@ pub struct CreateMint2022WithPermanentDelegateArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_permanent_delegate`
+/// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI
+/// function had zero test coverage before this file: the only existing
+/// test read a hand-crafted fixture, never a mint the real CPI actually
+/// created. Allocates the mint PDA by hand (same reason as
+/// `create_mint2022_with_transfer_fee.rs` — `InitializePermanentDelegate`
+/// must run before `InitializeMint`).
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithPermanentDelegateArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithPermanentDelegateArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithPermanentDelegateArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithPermanentDelegateArgsCpi_GAP_2],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithPermanentDelegateArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithPermanentDelegateArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithPermanentDelegateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithPermanentDelegateArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithPermanentDelegateArgsCpi_GAP_0
+        + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithPermanentDelegateArgsCpi_GAP_1
+        + ::core::mem::size_of::<u8>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithPermanentDelegateArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithPermanentDelegateArgsCpi_GAP_0 + ::core::mem::size_of:: < u8
+        > () + __CreateMint2022WithPermanentDelegateArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u8 > () +
+        __CreateMint2022WithPermanentDelegateArgsCpi_GAP_2),
+        "defined_type/#[component]: `CreateMint2022WithPermanentDelegateArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithPermanentDelegateArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithPermanentDelegateArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithPermanentDelegateArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_fee_config`
 /// (`naclac-token/src/extensions.rs`): allocates the mint PDA itself (rather
 /// than going through the `mint::decimals =`/`mint::authority =` auto-`init`
@@ -644,8 +2974,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithPermanentDe
 /// `initialize_transfer_fee_config`, `initialize_mint`) by hand.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithTransferFeeArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -655,13 +2985,149 @@ pub struct CreateMint2022WithTransferFeeArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_transfer_fee_config`
+/// (`naclac-token/src/extensions.rs`): allocates the mint PDA itself (rather
+/// than going through the `mint::decimals =`/`mint::authority =` auto-`init`
+/// path used by `create_mint2022.rs`), since Token-2022 requires
+/// `InitializeTransferFeeConfig` to run *before* `InitializeMint` — the
+/// auto-`init` path bundles account-creation and `InitializeMint` into one
+/// step with no room to inject the extension-init CPI in between, so this
+/// instruction drives all three steps (`create_account_signed`,
+/// `initialize_transfer_fee_config`, `initialize_mint`) by hand.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithTransferFeeArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithTransferFeeArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithTransferFeeArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithTransferFeeArgs_GAP_2],
+    pub transfer_fee_basis_points: u16,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithTransferFeeArgs_GAP_3],
+    pub maximum_fee: u64,
+    pub __naclac_padding_4: [u8; __CreateMint2022WithTransferFeeArgs_GAP_4],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_2 + ::core::mem::size_of::<u16>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgs_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_2 + ::core::mem::size_of::<u16>()
+        + __CreateMint2022WithTransferFeeArgs_GAP_3 + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithTransferFeeArgs > () ==
+        (::core::mem::size_of:: < u64 > () + __CreateMint2022WithTransferFeeArgs_GAP_0 +
+        ::core::mem::size_of:: < u8 > () + __CreateMint2022WithTransferFeeArgs_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __CreateMint2022WithTransferFeeArgs_GAP_2 +
+        ::core::mem::size_of:: < u16 > () + __CreateMint2022WithTransferFeeArgs_GAP_3 +
+        ::core::mem::size_of:: < u64 > () + __CreateMint2022WithTransferFeeArgs_GAP_4),
+        "defined_type/#[component]: `CreateMint2022WithTransferFeeArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u16>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithTransferFeeArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithTransferFeeArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithTransferFeeArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_fee_config`
 /// (`naclac-token/src/extensions.rs`): allocates the mint PDA itself (rather
 /// than going through the `mint::decimals =`/`mint::authority =` auto-`init`
@@ -673,8 +3139,8 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithTransf
 /// `initialize_transfer_fee_config`, `initialize_mint`) by hand.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithTransferFeeArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -684,13 +3150,150 @@ pub struct CreateMint2022WithTransferFeeArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_transfer_fee_config`
+/// (`naclac-token/src/extensions.rs`): allocates the mint PDA itself (rather
+/// than going through the `mint::decimals =`/`mint::authority =` auto-`init`
+/// path used by `create_mint2022.rs`), since Token-2022 requires
+/// `InitializeTransferFeeConfig` to run *before* `InitializeMint` — the
+/// auto-`init` path bundles account-creation and `InitializeMint` into one
+/// step with no room to inject the extension-init CPI in between, so this
+/// instruction drives all three steps (`create_account_signed`,
+/// `initialize_transfer_fee_config`, `initialize_mint`) by hand.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithTransferFeeArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithTransferFeeArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithTransferFeeArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithTransferFeeArgsCpi_GAP_2],
+    pub transfer_fee_basis_points: u16,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithTransferFeeArgsCpi_GAP_3],
+    pub maximum_fee: u64,
+    pub __naclac_padding_4: [u8; __CreateMint2022WithTransferFeeArgsCpi_GAP_4],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_2 + ::core::mem::size_of::<u16>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferFeeArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_2 + ::core::mem::size_of::<u16>()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_3 + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithTransferFeeArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () + __CreateMint2022WithTransferFeeArgsCpi_GAP_0
+        + ::core::mem::size_of:: < u8 > () + __CreateMint2022WithTransferFeeArgsCpi_GAP_1
+        + ::core::mem::size_of:: < u8 > () + __CreateMint2022WithTransferFeeArgsCpi_GAP_2
+        + ::core::mem::size_of:: < u16 > () +
+        __CreateMint2022WithTransferFeeArgsCpi_GAP_3 + ::core::mem::size_of:: < u64 > ()
+        + __CreateMint2022WithTransferFeeArgsCpi_GAP_4),
+        "defined_type/#[component]: `CreateMint2022WithTransferFeeArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<u16>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithTransferFeeArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithTransferFeeArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithTransferFeeArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_hook`
 /// (`naclac-token/src/extensions.rs`) — same shape as
 /// `create_mint2022_with_transfer_fee`, see that file's doc comment for why
@@ -699,8 +3302,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithTransferFee
 /// auto-`init` path.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithTransferHookArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -709,13 +3312,127 @@ pub struct CreateMint2022WithTransferHookArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_transfer_hook`
+/// (`naclac-token/src/extensions.rs`) — same shape as
+/// `create_mint2022_with_transfer_fee`, see that file's doc comment for why
+/// this drives `create_account_signed`/extension-init/`initialize_mint` by
+/// hand instead of using the `mint::decimals =`/`mint::authority =`
+/// auto-`init` path.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithTransferHookArgs {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithTransferHookArgs_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithTransferHookArgs_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithTransferHookArgs_GAP_2],
+    pub hook_program_id: crate::sdk_core_offchain::Address,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithTransferHookArgs_GAP_3],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferHookArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferHookArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferHookArgs_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferHookArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferHookArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferHookArgs_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferHookArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferHookArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferHookArgs_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferHookArgs_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithTransferHookArgs > () ==
+        (::core::mem::size_of:: < u64 > () + __CreateMint2022WithTransferHookArgs_GAP_0 +
+        ::core::mem::size_of:: < u8 > () + __CreateMint2022WithTransferHookArgs_GAP_1 +
+        ::core::mem::size_of:: < u8 > () + __CreateMint2022WithTransferHookArgs_GAP_2 +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
+        __CreateMint2022WithTransferHookArgs_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithTransferHookArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_offchain::Address>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithTransferHookArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithTransferHookArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithTransferHookArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_hook`
 /// (`naclac-token/src/extensions.rs`) — same shape as
 /// `create_mint2022_with_transfer_fee`, see that file's doc comment for why
@@ -724,8 +3441,8 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithTransf
 /// auto-`init` path.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithTransferHookArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -734,13 +3451,128 @@ pub struct CreateMint2022WithTransferHookArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of `initialize_transfer_hook`
+/// (`naclac-token/src/extensions.rs`) — same shape as
+/// `create_mint2022_with_transfer_fee`, see that file's doc comment for why
+/// this drives `create_account_signed`/extension-init/`initialize_mint` by
+/// hand instead of using the `mint::decimals =`/`mint::authority =`
+/// auto-`init` path.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct CreateMint2022WithTransferHookArgsCpi {
+    pub id: u64,
+    pub __naclac_padding_0: [u8; __CreateMint2022WithTransferHookArgsCpi_GAP_0],
+    pub mint_bump: u8,
+    pub __naclac_padding_1: [u8; __CreateMint2022WithTransferHookArgsCpi_GAP_1],
+    pub decimals: u8,
+    pub __naclac_padding_2: [u8; __CreateMint2022WithTransferHookArgsCpi_GAP_2],
+    pub hook_program_id: crate::sdk_core_cpi::Address,
+    pub __naclac_padding_3: [u8; __CreateMint2022WithTransferHookArgsCpi_GAP_3],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferHookArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferHookArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferHookArgsCpi_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferHookArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferHookArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferHookArgsCpi_GAP_1 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __CreateMint2022WithTransferHookArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __CreateMint2022WithTransferHookArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferHookArgsCpi_GAP_1 + ::core::mem::size_of::<u8>()
+        + __CreateMint2022WithTransferHookArgsCpi_GAP_2
+        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CreateMint2022WithTransferHookArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () +
+        __CreateMint2022WithTransferHookArgsCpi_GAP_0 + ::core::mem::size_of:: < u8 > ()
+        + __CreateMint2022WithTransferHookArgsCpi_GAP_1 + ::core::mem::size_of:: < u8 >
+        () + __CreateMint2022WithTransferHookArgsCpi_GAP_2 + ::core::mem::size_of:: <
+        crate ::sdk_core_cpi::Address > () +
+        __CreateMint2022WithTransferHookArgsCpi_GAP_3),
+        "defined_type/#[component]: `CreateMint2022WithTransferHookArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u8>();
+    assert_impl::<crate::sdk_core_cpi::Address>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithTransferHookArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithTransferHookArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for CreateMint2022WithTransferHookArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
 /// `naclac-token/src/extensions.rs` (`transfer_checked_with_fee`,
 /// `harvest_withheld_tokens_to_mint`, `withdraw_withheld_tokens_from_mint`,
@@ -750,8 +3582,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithTransferHoo
 /// Token-2022 accepted the instruction.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct ExerciseTransferFeeCpisArgs {
     pub amount1: u64,
     pub decimals: u8,
@@ -763,13 +3595,192 @@ pub struct ExerciseTransferFeeCpisArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
+/// `naclac-token/src/extensions.rs` (`transfer_checked_with_fee`,
+/// `harvest_withheld_tokens_to_mint`, `withdraw_withheld_tokens_from_mint`,
+/// `withdraw_withheld_tokens_from_accounts`, `set_transfer_fee`) — chains
+/// all five against a real Token-2022 mint/vaults and asserts the resulting
+/// on-chain balances/withheld amounts/config at each step, not just that
+/// Token-2022 accepted the instruction.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ExerciseTransferFeeCpisArgs {
+    pub amount1: u64,
+    pub __naclac_padding_0: [u8; __ExerciseTransferFeeCpisArgs_GAP_0],
+    pub decimals: u8,
+    pub __naclac_padding_1: [u8; __ExerciseTransferFeeCpisArgs_GAP_1],
+    pub fee1: u64,
+    pub __naclac_padding_2: [u8; __ExerciseTransferFeeCpisArgs_GAP_2],
+    pub amount2: u64,
+    pub __naclac_padding_3: [u8; __ExerciseTransferFeeCpisArgs_GAP_3],
+    pub fee2: u64,
+    pub __naclac_padding_4: [u8; __ExerciseTransferFeeCpisArgs_GAP_4],
+    pub new_basis_points: u16,
+    pub __naclac_padding_5: [u8; __ExerciseTransferFeeCpisArgs_GAP_5],
+    pub new_maximum_fee: u64,
+    pub __naclac_padding_6: [u8; __ExerciseTransferFeeCpisArgs_GAP_6],
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgs_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgs_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgs_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgs_GAP_1 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgs_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgs_GAP_1 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_2 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgs_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgs_GAP_1 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_2 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_3 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgs_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgs_GAP_1 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_2 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_3 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_4 + ::core::mem::size_of::<u16>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgs_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgs_GAP_1 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_2 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_3 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgs_GAP_4 + ::core::mem::size_of::<u16>()
+        + __ExerciseTransferFeeCpisArgs_GAP_5 + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ExerciseTransferFeeCpisArgs > () ==
+        (::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgs_GAP_0 +
+        ::core::mem::size_of:: < u8 > () + __ExerciseTransferFeeCpisArgs_GAP_1 +
+        ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgs_GAP_2 +
+        ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgs_GAP_3 +
+        ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgs_GAP_4 +
+        ::core::mem::size_of:: < u16 > () + __ExerciseTransferFeeCpisArgs_GAP_5 +
+        ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgs_GAP_6),
+        "defined_type/#[component]: `ExerciseTransferFeeCpisArgs`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u16>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for ExerciseTransferFeeCpisArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for ExerciseTransferFeeCpisArgs {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for ExerciseTransferFeeCpisArgs {
+    fn default() -> Self {
+        crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
+    }
+}
 
 #[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
 /// `naclac-token/src/extensions.rs` (`transfer_checked_with_fee`,
 /// `harvest_withheld_tokens_to_mint`, `withdraw_withheld_tokens_from_mint`,
@@ -779,8 +3790,8 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for ExerciseTransferFeeCpisA
 /// Token-2022 accepted the instruction.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Copy, Clone, Debug))]
-#[cfg_attr(not(feature = "borsh"), repr(C))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct ExerciseTransferFeeCpisArgsCpi {
     pub amount1: u64,
     pub decimals: u8,
@@ -792,9 +3803,187 @@ pub struct ExerciseTransferFeeCpisArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+/// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
+/// `naclac-token/src/extensions.rs` (`transfer_checked_with_fee`,
+/// `harvest_withheld_tokens_to_mint`, `withdraw_withheld_tokens_from_mint`,
+/// `withdraw_withheld_tokens_from_accounts`, `set_transfer_fee`) — chains
+/// all five against a real Token-2022 mint/vaults and asserts the resulting
+/// on-chain balances/withheld amounts/config at each step, not just that
+/// Token-2022 accepted the instruction.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ExerciseTransferFeeCpisArgsCpi {
+    pub amount1: u64,
+    pub __naclac_padding_0: [u8; __ExerciseTransferFeeCpisArgsCpi_GAP_0],
+    pub decimals: u8,
+    pub __naclac_padding_1: [u8; __ExerciseTransferFeeCpisArgsCpi_GAP_1],
+    pub fee1: u64,
+    pub __naclac_padding_2: [u8; __ExerciseTransferFeeCpisArgsCpi_GAP_2],
+    pub amount2: u64,
+    pub __naclac_padding_3: [u8; __ExerciseTransferFeeCpisArgsCpi_GAP_3],
+    pub fee2: u64,
+    pub __naclac_padding_4: [u8; __ExerciseTransferFeeCpisArgsCpi_GAP_4],
+    pub new_basis_points: u16,
+    pub __naclac_padding_5: [u8; __ExerciseTransferFeeCpisArgsCpi_GAP_5],
+    pub new_maximum_fee: u64,
+    pub __naclac_padding_6: [u8; __ExerciseTransferFeeCpisArgsCpi_GAP_6],
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgsCpi_GAP_0: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u8>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgsCpi_GAP_1: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_0 + ::core::mem::size_of::<u8>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgsCpi_GAP_2: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_1 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgsCpi_GAP_3: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_2 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgsCpi_GAP_4: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_3 + ::core::mem::size_of::<u64>();
+    let __align: usize = ::core::mem::align_of::<u16>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgsCpi_GAP_5: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_4 + ::core::mem::size_of::<u16>();
+    let __align: usize = ::core::mem::align_of::<u64>();
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[allow(non_upper_case_globals)]
+const __ExerciseTransferFeeCpisArgsCpi_GAP_6: usize = {
+    let __offset: usize = ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_0 + ::core::mem::size_of::<u8>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_1 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_2 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_3 + ::core::mem::size_of::<u64>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_4 + ::core::mem::size_of::<u16>()
+        + __ExerciseTransferFeeCpisArgsCpi_GAP_5 + ::core::mem::size_of::<u64>();
+    let __align: usize = {
+        let mut __a = 1usize;
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u8>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u16>();
+        if __b > __a {
+            __a = __b;
+        }
+        let __b = ::core::mem::align_of::<u64>();
+        if __b > __a {
+            __a = __b;
+        }
+        __a
+    };
+    let __rem = __offset % __align;
+    if __rem == 0 { 0 } else { __align - __rem }
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < ExerciseTransferFeeCpisArgsCpi > () ==
+        (::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_0 +
+        ::core::mem::size_of:: < u8 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_1 +
+        ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_2 +
+        ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_3 +
+        ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_4 +
+        ::core::mem::size_of:: < u16 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_5 +
+        ::core::mem::size_of:: < u64 > () + __ExerciseTransferFeeCpisArgsCpi_GAP_6),
+        "defined_type/#[component]: `ExerciseTransferFeeCpisArgsCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / naclac-macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    assert_impl::<u64>();
+    assert_impl::<u8>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u64>();
+    assert_impl::<u16>();
+    assert_impl::<u64>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for ExerciseTransferFeeCpisArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for ExerciseTransferFeeCpisArgsCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl core::default::Default for ExerciseTransferFeeCpisArgsCpi {
+    fn default() -> Self {
+        crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
+    }
+}
 

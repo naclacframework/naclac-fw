@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { EscrowState } from "../../types";
 
-/** 8-byte on-chain discriminator for `EscrowState` accounts. */
+/** On-chain discriminator for `EscrowState` accounts. */
 export const ESCROWSTATE_DISCRIMINATOR = new Uint8Array([19, 90, 148, 111, 55, 130, 229, 108]);
+
+function stripEscrowStateDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = ESCROWSTATE_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `EscrowState` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link EscrowState} account data. */
 export function getEscrowStateEncoder(): naclac.FixedSizeEncoder<EscrowState> {
@@ -47,7 +55,7 @@ export function decodeEscrowState<TAddress extends string = string>(
 ): naclac.Account<EscrowState, TAddress> | naclac.MaybeAccount<EscrowState, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripEscrowStateDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getEscrowStateDecoder(),
   );
@@ -96,7 +104,7 @@ export async function fetchAllMaybeEscrowState(
 }
 
 /** Fetches ALL `EscrowState` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllEscrowStateByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

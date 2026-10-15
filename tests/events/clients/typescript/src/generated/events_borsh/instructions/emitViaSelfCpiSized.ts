@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `emit_via_self_cpi_sized` instruction. */
+/** Discriminator for the `emit_via_self_cpi_sized` instruction. */
 export const EMIT_VIA_SELF_CPI_SIZED_DISCRIMINATOR = new Uint8Array([202, 145, 216, 139, 183, 147, 134, 5]);
 
 /** Instruction arguments for `emitViaSelfCpiSized`. */
@@ -14,7 +14,7 @@ export interface EmitViaSelfCpiSizedArgs {
 /** Accounts for the `emitViaSelfCpiSized` instruction. */
 export interface EmitViaSelfCpiSizedAccounts {
   /** SAFETY: only its address is checked; its data is never read. */
-  program: naclac.Address | string;
+  program?: naclac.Address | string;
 }
 
 /**

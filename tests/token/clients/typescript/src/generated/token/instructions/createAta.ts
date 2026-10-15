@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_ata` instruction. */
+/** Discriminator for the `create_ata` instruction. */
 export const CREATE_ATA_DISCRIMINATOR = new Uint8Array([26, 102, 168, 62, 117, 72, 168, 17]);
 
 /** Accounts for the `createAta` instruction. */
@@ -22,10 +22,10 @@ export interface CreateAtaAccounts {
    * this is a raw SPL `TokenAccount` layout created by a separate
    * program.
    */
-  associated_token: naclac.Address | string;
-  system_program?: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  associated_token_program?: naclac.Address | string;
+  associatedToken: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
 }
 
 /**

@@ -10,7 +10,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -31,12 +31,12 @@ const MINT_WHITELIST_V1_SEED: &[u8] = b"mint_whitelist_v1";
 const MINT_WHITELIST_V1_DISCRIMINATOR: [u8; 8] = [73, 115, 177, 235, 234, 1, 95, 67];
 const DEBOUNCER_V1_DISCRIMINATOR: [u8; 8] = [137, 137, 192, 77, 110, 184, 189, 28];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(
         &[owner.as_ref(), token_program.as_ref(), mint.as_ref()],
         &pk(ASSOCIATED_TOKEN_PROGRAM_ID),
     )
@@ -51,7 +51,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -68,7 +68,7 @@ fn mint_whitelist_v1_account_data(bump: u8) -> Vec<u8> {
     data
 }
 
-fn read_debouncer_total_amount(svm: &LiteSVM, debouncer: &Pubkey) -> Option<u64> {
+fn read_debouncer_total_amount(svm: &LiteSVM, debouncer: &Address) -> Option<u64> {
     let acc = svm.get_account(debouncer)?;
     if acc.data.len() < 8 || acc.data[0..8] != DEBOUNCER_V1_DISCRIMINATOR {
         return None;
@@ -80,13 +80,13 @@ fn read_debouncer_total_amount(svm: &LiteSVM, debouncer: &Pubkey) -> Option<u64>
 
 fn donate(
     svm: &mut LiteSVM,
-    program_id: &Pubkey,
-    token_program: &Pubkey,
-    associated_token_program: &Pubkey,
-    system_program: &Pubkey,
-    mint: &Pubkey,
-    mint_whitelist: &Pubkey,
-    config_id: &Pubkey,
+    program_id: &Address,
+    token_program: &Address,
+    associated_token_program: &Address,
+    system_program: &Address,
+    mint: &Address,
+    mint_whitelist: &Address,
+    config_id: &Address,
     from: &Keypair,
     payer: &Keypair,
     amount: u64,
@@ -94,12 +94,12 @@ fn donate(
 ) -> Result<(), String> {
     let from_token_account = ata_address(&from.pubkey(), mint, token_program);
     let (epoch_tracker, _) =
-        Pubkey::find_program_address(&[EPOCH_TRACKER_V1_SEED, config_id.as_ref(), mint.as_ref()], program_id);
+        Address::find_program_address(&[EPOCH_TRACKER_V1_SEED, config_id.as_ref(), mint.as_ref()], program_id);
     let (debouncer, _) =
-        Pubkey::find_program_address(&[DEBOUNCER_V1_SEED, config_id.as_ref(), mint.as_ref()], program_id);
+        Address::find_program_address(&[DEBOUNCER_V1_SEED, config_id.as_ref(), mint.as_ref()], program_id);
     let debouncer_token_account = ata_address(&debouncer, mint, token_program);
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], program_id).0;
-    let credited_to = Pubkey::new_unique();
+    let event_authority = Address::find_program_address(&[b"__event_authority"], program_id).0;
+    let credited_to = Address::new_unique();
     let message = "probe4";
 
     let mut data = DONATE_PUBKEY_CONFIG_ID_WITH_PAYER_V1_DISCRIMINATOR.to_vec();
@@ -161,7 +161,7 @@ fn main() {
     .unwrap();
 
     let (mint_whitelist, mint_whitelist_bump) =
-        Pubkey::find_program_address(&[MINT_WHITELIST_V1_SEED], &program_id);
+        Address::find_program_address(&[MINT_WHITELIST_V1_SEED], &program_id);
     svm.set_account(
         mint_whitelist,
         Account {
@@ -192,9 +192,9 @@ fn main() {
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
 
-    let config_id = Pubkey::new_unique();
+    let config_id = Address::new_unique();
     let (debouncer, _) =
-        Pubkey::find_program_address(&[DEBOUNCER_V1_SEED, config_id.as_ref(), mint.as_ref()], &program_id);
+        Address::find_program_address(&[DEBOUNCER_V1_SEED, config_id.as_ref(), mint.as_ref()], &program_id);
 
     donate(
         &mut svm, &program_id, &token_program, &associated_token_program, &system_program,

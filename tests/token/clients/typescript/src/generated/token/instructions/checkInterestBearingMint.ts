@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `check_interest_bearing_mint` instruction. */
+/** Discriminator for the `check_interest_bearing_mint` instruction. */
 export const CHECK_INTEREST_BEARING_MINT_DISCRIMINATOR = new Uint8Array([24, 252, 8, 137, 207, 158, 50, 33]);
 
 /** Instruction arguments for `checkInterestBearingMint`. */

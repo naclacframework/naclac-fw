@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_optional` instruction. */
+/** Discriminator for the `touch_optional` instruction. */
 export const TOUCH_OPTIONAL_DISCRIMINATOR = new Uint8Array([251, 80, 11, 211, 209, 6, 3, 64]);
 
 /** Accounts for the `touchOptional` instruction. */

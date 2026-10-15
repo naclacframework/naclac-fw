@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { MintAuthority } from "../../types";
 
-/** 8-byte on-chain discriminator for `MintAuthority` accounts. */
+/** On-chain discriminator for `MintAuthority` accounts. */
 export const MINTAUTHORITY_DISCRIMINATOR = new Uint8Array([148, 0, 219, 228, 254, 237, 76, 128]);
+
+function stripMintAuthorityDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = MINTAUTHORITY_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `MintAuthority` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link MintAuthority} account data. */
 export function getMintAuthorityEncoder(): naclac.FixedSizeEncoder<MintAuthority> {
@@ -37,7 +45,7 @@ export function decodeMintAuthority<TAddress extends string = string>(
 ): naclac.Account<MintAuthority, TAddress> | naclac.MaybeAccount<MintAuthority, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripMintAuthorityDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getMintAuthorityDecoder(),
   );
@@ -86,7 +94,7 @@ export async function fetchAllMaybeMintAuthority(
 }
 
 /** Fetches ALL `MintAuthority` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllMintAuthorityByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

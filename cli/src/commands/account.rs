@@ -3,7 +3,6 @@ use solana_rpc_client::rpc_client::RpcClient;
 
 use bs58;
 use serde_json::{Map, Value};
-use sha2::{Digest, Sha256};
 use std::fs;
 use std::str::FromStr;
 
@@ -18,6 +17,7 @@ struct Idl {
 #[derive(Deserialize, Debug)]
 struct IdlAccountDef {
     name: String,
+    discriminator: Vec<u8>,
     #[serde(rename = "type")]
     ty: IdlTypeDef,
 }
@@ -70,12 +70,6 @@ pub fn execute(address: &str) {
         }
     };
 
-    if account_data.len() < 8 {
-        eprintln!("❌ Account data too small to contain a discriminator");
-        return;
-    }
-
-    let discriminator = &account_data[0..8];
     println!("✅ Fetched {} bytes of data.", account_data.len());
 
     let current_dir = std::env::current_dir().unwrap();
@@ -102,11 +96,8 @@ pub fn execute(address: &str) {
         if let Ok(content) = fs::read_to_string(entry.path()) {
             if let Ok(idl) = serde_json::from_str::<Idl>(&content) {
                 for acc in idl.accounts {
-                    let preimage = format!("account:{}", acc.name);
-                    let mut hasher = Sha256::new();
-                    hasher.update(preimage.as_bytes());
-                    let hashed = hasher.finalize();
-                    if &hashed[0..8] == discriminator {
+                    if !acc.discriminator.is_empty() && account_data.starts_with(&acc.discriminator)
+                    {
                         matched_def = Some(acc);
                         break;
                     }
@@ -125,7 +116,7 @@ pub fn execute(address: &str) {
 
     println!("🎯 Type Matched: {}", def.name);
 
-    let mut offset = 8;
+    let mut offset = def.discriminator.len();
     let mut result_obj = Map::new();
 
     for field in def.ty.fields {

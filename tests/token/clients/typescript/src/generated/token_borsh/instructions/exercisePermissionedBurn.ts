@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_permissioned_burn` instruction. */
+/** Discriminator for the `exercise_permissioned_burn` instruction. */
 export const EXERCISE_PERMISSIONED_BURN_DISCRIMINATOR = new Uint8Array([64, 121, 14, 103, 167, 20, 67, 175]);
 
 /** Instruction arguments for `exercisePermissionedBurn`. */

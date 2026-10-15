@@ -3,12 +3,12 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_immutable_owner` instruction. */
+/** Discriminator for the `check_immutable_owner` instruction. */
 export const CHECK_IMMUTABLE_OWNER_DISCRIMINATOR = new Uint8Array([39, 115, 111, 154, 219, 195, 75, 192]);
 
 /** Instruction arguments for `checkImmutableOwner`. */
 export interface CheckImmutableOwnerArgs {
-  expected_present: number;
+  expectedPresent: number;
 }
 
 /** Accounts for the `checkImmutableOwner` instruction. */

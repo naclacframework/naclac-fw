@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `close_big` instruction. */
+/** Discriminator for the `close_big` instruction. */
 export const CLOSE_BIG_DISCRIMINATOR = new Uint8Array([80, 248, 96, 7, 7, 207, 31, 221]);
 
 /** Accounts for the `closeBig` instruction. */

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_seeded` instruction. */
+/** Discriminator for the `init_seeded` instruction. */
 export const INIT_SEEDED_DISCRIMINATOR = new Uint8Array([194, 72, 3, 113, 154, 190, 21, 206]);
 
 /** Accounts for the `initSeeded` instruction. */

@@ -1,0 +1,143 @@
+---
+title: "Validate Accounts with #[derive(Accounts)] and Constraints"
+sidebarTitle: "Account Validation"
+description: "Use Naclac's #[derive(Accounts)] macro and #[account] constraints to validate, deserialize, and hydrate accounts for each instruction."
+---
+
+Account validation is the foundation of secure Solana programs. Naclac generates all the validation checks from the `#[account(...)]` attributes on your struct — no manual `AccountInfo` parsing needed. Every constraint you declare is enforced before your instruction body runs.
+
+## Defining an Accounts Struct
+
+Create one accounts struct per instruction in the corresponding instruction file. In standard Borsh mode, derive `Accounts`; in zero-copy or Pinocchio mode, derive `AccountsLoader`:
+
+**Standard mode (`#[derive(Accounts)]`):**
+
+```rust
+use naclac_lang::prelude::*;
+use crate::components::counter::Counter;
+use crate::constants::SEED_COUNTER;
+
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = Counter::SPACE,
+        seeds = [SEED_COUNTER],
+        bump
+    )]
+    pub counter_account: Account<'info, Counter>,
+
+    pub system_program: Program<'info, System>,
+}
+```
+
+**Zero-copy / Pinocchio mode (`#[derive(AccountsLoader)]`):**
+
+```rust
+#[derive(AccountsLoader)]
+pub struct Initialize<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = Counter::SPACE,
+        seeds = [SEED_COUNTER],
+        bump
+    )]
+    pub counter_account: AccountLoader<'info, Counter>,
+
+    pub system_program: Program<'info, System>,
+}
+```
+
+`AccountsLoader` uses `AccountLoader<'info, T>` instead of `Account<'info, T>`. The loader memory-maps account data directly — your component struct is accessed as a raw byte cast rather than a deserialized copy. Use `AccountsLoader` any time your component is annotated with `#[component(zero_copy)]`.
+
+The generated `load_and_validate` method processes all accounts in order, applies every constraint, and returns the hydrated struct or a `ProgramError` — all before your instruction function body executes.
+
+## Available Account Constraints
+
+Place constraints inside the `#[account(...)]` attribute as comma-separated key-value pairs:
+
+| Constraint | Description |
+|---|---|
+| `mut` | Marks the account as writable. Required for any account your instruction modifies. |
+| `init` | Creates and initializes the account on-chain via a system program CPI. Requires `payer` and `space`. |
+| `init_if_needed` | Like `init` but a no-op if the account already exists. Useful for idempotent setup instructions. |
+| `seeds = [...], bump` | Derives a PDA from the provided seeds and the current program ID, then verifies the account address matches. Always pair `seeds` with `bump`. |
+| `has_one = field` | Asserts that `account.field == ctx.accounts.field.key()`. Enforces ownership and authority relationships. |
+| `owner = expr` | Asserts that the account's owner program matches `expr`. Useful when reading accounts owned by another program. |
+| `address = expr` | Asserts the account's exact public key equals `expr`. Use for well-known singletons (e.g., the system program). |
+| `close = dest` | After the instruction completes, closes the account by zeroing its data and transferring all lamports to `dest`. |
+| `realloc = size` | Reallocates the account's data to `size` bytes. Combine with `mut` and `realloc::payer = ...` to fund the realloc. |
+
+Multiple constraints on the same account are AND-ed together — all must pass:
+
+```rust
+#[account(
+    mut,
+    seeds = [SEED_COUNTER],
+    bump,
+    has_one = authority
+)]
+pub counter_account: AccountLoader<'info, Counter>,
+```
+
+## Using Bumps
+
+When you declare `seeds = [...], bump` on an account, Naclac derives the canonical bump during validation and makes it available through `ctx.bumps`. Each PDA in the struct gets its own field in the auto-generated bumps struct:
+
+```rust
+// Access the bump for counter_account
+counter.bump = ctx.bumps.counter_account;
+```
+
+Always store the bump in your component at initialization time. When you need to sign a PDA CPI later, pass the stored bump rather than re-deriving it — this saves compute units:
+
+```rust
+let seeds = &[SEED_COUNTER, &[ctx.accounts.counter_account.bump]];
+```
+
+The `ctx.bumps` struct is named `<AccountsStructName>Bumps` and only contains fields for accounts that have `seeds` declared. Accounts without a `seeds` constraint do not appear in the bumps struct.
+
+## `has_one` for Authority Checks
+
+Use `has_one` to enforce that a field stored inside an account's data matches one of the accounts passed to the instruction. This is the standard pattern for authority / ownership checks:
+
+```rust
+#[derive(AccountsLoader)]
+pub struct Increment<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [SEED_COUNTER],
+        bump,
+        has_one = authority
+    )]
+    pub counter_account: AccountLoader<'info, Counter>,
+}
+```
+
+`has_one = authority` expands to a check that `counter_account.authority == authority.key()`. If the signer's public key does not match the authority stored in the counter account, the instruction fails before your function body runs. This prevents unauthorized callers from modifying accounts they do not own.
+
+You can chain multiple `has_one` constraints on the same account:
+
+```rust
+#[account(
+    mut,
+    has_one = authority,
+    has_one = mint
+)]
+pub vault: AccountLoader<'info, Vault>,
+```
+
+<Note>
+All constraints are checked inside `load_and_validate` before control ever reaches your instruction function. If any constraint fails, Naclac returns a `ProgramError` immediately. Your instruction body only executes when every single check on every single account has passed.
+</Note>

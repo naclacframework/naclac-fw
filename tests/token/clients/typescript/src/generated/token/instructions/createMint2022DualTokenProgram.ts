@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022_dual_token_program` instruction. */
+/** Discriminator for the `create_mint2022_dual_token_program` instruction. */
 export const CREATE_MINT2022_DUAL_TOKEN_PROGRAM_DISCRIMINATOR = new Uint8Array([230, 187, 124, 241, 67, 144, 28, 222]);
 
 /** Instruction arguments for `createMint2022DualTokenProgram`. */
 export interface CreateMint2022DualTokenProgramArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
 }
 
@@ -23,10 +23,10 @@ export interface CreateMint2022DualTokenProgramAccounts {
    * `token::program`, not by field order.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  token_2022_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  token2022Program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

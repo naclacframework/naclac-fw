@@ -10,7 +10,8 @@ pub struct Initialize {
     #[account(
         init,
         payer = payer,
-        seeds = [SEED_COUNTER]
+        seeds = [SEED_COUNTER],
+        bump
     )]
     pub counter_account: Account<Counter>,
 

@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use pump_amm_client::{
     fetch_global_config, fetch_pool, get_boost_vault_authority_pda, get_global_config_pda, get_lp_mint_pda,
     get_pool_pda,
@@ -37,7 +37,7 @@ fn load_test_admin_keypair() -> Keypair {
     Keypair::new_from_array(secret_bytes)
 }
 
-/// `pump`'s real declared program ID â€” only used here as PDA seed-derivation
+/// `pump`'s real declared program ID — only used here as PDA seed-derivation
 /// material for `pump_creator_vault`, never actually loaded (this test never
 /// CPIs into `pump` itself, only `pump_amm` directly, to isolate whether
 /// `transfer_creator_fees_to_pump(_v2)` works correctly on its own).
@@ -86,11 +86,11 @@ fn read_token_account_amount(provider: &NaclacProvider, address: &Address) -> u6
 }
 
 /// `GlobalConfig`'s real discriminator, per the generated IDL
-/// (`target/idl/pump_amm.json`) â€” matches `reference/fee-tier-probe/src/bin/probe14.rs`'s
+/// (`target/idl/pump_amm.json`) — matches `reference/fee-tier-probe/src/bin/probe14.rs`'s
 /// own `GLOBAL_CONFIG_DISCRIMINATOR` exactly (both are the same name-derived hash).
 fn global_config_account_data(disable_flags: u8, boost_enabled: bool, admin: &Address, boost_authority: &Address) -> Vec<u8> {
     let mut data = vec![149, 8, 156, 202, 160, 252, 176, 217];
-    data.push(0); // bump â€” unused by `create_pool`, value doesn't matter here
+    data.push(0); // bump — unused by `create_pool`, value doesn't matter here
     data.push(disable_flags);
     data.push(if boost_enabled { 1 } else { 0 });
     data.extend_from_slice(&admin.to_bytes());
@@ -102,11 +102,11 @@ fn global_config_account_data(disable_flags: u8, boost_enabled: bool, admin: &Ad
 /// `pump_fees` drives it through: calls it directly, with `coin_creator` an
 /// arbitrary keypair (only ever used as PDA seed material, never
 /// deserialized), and neither `coin_creator_vault_authority` nor
-/// `pump_creator_vault` pre-created â€” mirrors exactly how `pump_fees` (and
+/// `pump_creator_vault` pre-created — mirrors exactly how `pump_fees` (and
 /// `reference/fee-tier-probe/src/bin/probe11.rs`) leave them. Confirms
-/// whether the real bytecode's close-recreate-forward sequence â€” including
+/// whether the real bytecode's close-recreate-forward sequence — including
 /// the final direct `coin_creator_vault_authority.sub_lamports(..)` /
-/// `pump_creator_vault.add_lamports(..)` step â€” works when
+/// `pump_creator_vault.add_lamports(..)` step — works when
 /// `coin_creator_vault_authority` was never explicitly created (still
 /// System-owned going in).
 #[test]
@@ -253,7 +253,7 @@ fn transfer_creator_fees_to_pump_sweeps_wsol_balance() {
 /// deposit untouched (no fee on initial liquidity), and that `lp_mint` is
 /// genuinely created under Token-2022 with the real 9-decimals value
 /// (`probe14`-confirmed) despite `base_token_program`/`quote_token_program`
-/// both being classic Token in the same instruction â€” the `token::program = X`
+/// both being classic Token in the same instruction — the `token::program = X`
 /// disambiguation fix this session added, exercised for real here.
 #[test]
 fn create_pool_bootstraps_liquidity_and_mints_lp_tokens() {
@@ -381,7 +381,7 @@ fn create_pool_bootstraps_liquidity_and_mints_lp_tokens() {
     );
 
     // floor(sqrt(1e9 * 2e9)) - 100 = floor(sqrt(2e18)) - 100 = 1_414_213_562 - 100
-    // = 1_414_213_462 â€” same formula/inputs `probe14` confirmed against real bytecode.
+    // = 1_414_213_462 — same formula/inputs `probe14` confirmed against real bytecode.
     const EXPECTED_LP_MINTED: u64 = 1_414_213_462;
     assert_eq!(
         read_token_account_amount(&provider, &user_pool_token_account),
@@ -393,7 +393,7 @@ fn create_pool_bootstraps_liquidity_and_mints_lp_tokens() {
     assert_eq!(
         lp_mint_account.owner, TOKEN_2022_PROGRAM_ID,
         "lp_mint must be owned by Token-2022 even though base/quote_token_program are classic Token \
-         in this same instruction â€” the token::program disambiguation fix, exercised for real"
+         in this same instruction — the token::program disambiguation fix, exercised for real"
     );
     assert_eq!(lp_mint_account.data[44], 9, "lp_mint decimals must be 9 (probe14-confirmed real value)");
 

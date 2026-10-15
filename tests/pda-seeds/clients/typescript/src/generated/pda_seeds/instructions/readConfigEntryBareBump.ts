@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `read_config_entry_bare_bump` instruction. */
+/** Discriminator for the `read_config_entry_bare_bump` instruction. */
 export const READ_CONFIG_ENTRY_BARE_BUMP_DISCRIMINATOR = new Uint8Array([210, 17, 27, 227, 111, 244, 4, 34]);
 
 /** Instruction arguments for `readConfigEntryBareBump`. */

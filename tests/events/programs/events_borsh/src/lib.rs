@@ -15,6 +15,10 @@ pub mod events_prog {
         init_counter::init_counter(ctx)
     }
 
+    pub fn init_counter_unchecked(ctx: Context<InitCounterUnchecked>) -> Result {
+        init_counter_unchecked::init_counter_unchecked(ctx)
+    }
+
     pub fn increment_counter(ctx: Context<IncrementCounter>) -> Result {
         increment_counter::increment_counter(ctx)
     }
@@ -53,5 +57,29 @@ pub mod events_prog {
 
     pub fn emit_via_sol_log_data_sized(ctx: Context<EmitViaSolLogDataSized>, size: u32) -> Result {
         emit_via_sol_log_data_sized::emit_via_sol_log_data_sized(ctx, size)
+    }
+
+    pub fn event_cpi_smoke(ctx: Context<EventCpiSmoke>) -> Result {
+        event_cpi_smoke::event_cpi_smoke(ctx)
+    }
+
+    pub fn event_cpi_emit(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_emit(ctx)
+    }
+
+    pub fn emit_via_self_cpi_no_program(ctx: Context<EmitViaSelfCpiNoProgram>) -> Result {
+        emit_via_self_cpi_no_program::emit_via_self_cpi_no_program(ctx)
+    }
+
+    pub fn event_cpi_noop(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_noop(ctx)
+    }
+
+    pub fn event_cpi_log_one(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_log_one(ctx)
+    }
+
+    pub fn event_cpi_emit_one(ctx: Context<EventCpiEmit>) -> Result {
+        event_cpi_emit::event_cpi_emit_one(ctx)
     }
 }

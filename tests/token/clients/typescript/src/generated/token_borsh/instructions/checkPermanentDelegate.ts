@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_permanent_delegate` instruction. */
+/** Discriminator for the `check_permanent_delegate` instruction. */
 export const CHECK_PERMANENT_DELEGATE_DISCRIMINATOR = new Uint8Array([245, 167, 175, 200, 221, 164, 191, 228]);
 
 /** Instruction arguments for `checkPermanentDelegate`. */

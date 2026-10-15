@@ -2,5 +2,6 @@
 // Re-run `naclac generate` to refresh this file.
 
 export * from "./accounts";
+export * from "./typedefs";
 export * from "./events";
 export * from "./constants";

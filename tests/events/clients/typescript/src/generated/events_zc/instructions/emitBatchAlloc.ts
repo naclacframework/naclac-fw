@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `emit_batch_alloc` instruction. */
+/** Discriminator for the `emit_batch_alloc` instruction. */
 export const EMIT_BATCH_ALLOC_DISCRIMINATOR = new Uint8Array([186, 210, 167, 115, 104, 189, 246, 44]);
 
 /** Accounts for the `emitBatchAlloc` instruction. */

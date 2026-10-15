@@ -5,7 +5,7 @@ description = "Regression test: naclac-syn's source discovery is a plain recursi
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []

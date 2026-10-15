@@ -11,7 +11,7 @@
 //! Usage: cargo run [-- <rpc-url>]  (defaults to public mainnet-beta).
 
 use solana_account_decoder::UiAccountEncoding;
-use solana_program::pubkey::Pubkey;
+use solana_address::Address;
 use solana_rpc_client::rpc_client::RpcClient;
 use solana_rpc_client_api::config::{RpcAccountInfoConfig, RpcProgramAccountsConfig};
 use solana_rpc_client_api::filter::{Memcmp, RpcFilterType};
@@ -28,17 +28,17 @@ const BONDING_CURVE_DISCRIMINATOR: [u8; 8] = [23, 183, 248, 55, 96, 216, 172, 96
 const POOL_DISCRIMINATOR: [u8; 8] = [241, 154, 109, 4, 17, 177, 109, 188];
 const SHARING_CONFIG_DISCRIMINATOR: [u8; 8] = [216, 74, 9, 0, 56, 140, 93, 75];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 struct DonationFeePda {
     bump: u8,
     version: u8,
-    config_id: Pubkey,
-    base_mint: Pubkey,
-    quote_mint: Pubkey,
-    creator: Pubkey,
+    config_id: Address,
+    base_mint: Address,
+    quote_mint: Address,
+    creator: Address,
     total_donated: u64,
     last_crank_ts: i64,
 }
@@ -52,13 +52,13 @@ fn decode_donation_fee_pda(data: &[u8]) -> Option<DonationFeePda> {
     o += 1;
     let version = *data.get(o)?;
     o += 1;
-    let config_id = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let config_id = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32;
-    let base_mint = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let base_mint = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32;
-    let quote_mint = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let quote_mint = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32;
-    let creator = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let creator = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32;
     let total_donated = u64::from_le_bytes(data.get(o..o + 8)?.try_into().ok()?);
     o += 8;
@@ -79,44 +79,44 @@ fn decode_donation_fee_pda(data: &[u8]) -> Option<DonationFeePda> {
 /// bonding_curve fields we care about here: skip 5 u64s + complete(bool),
 /// then creator(pubkey), then is_mayhem_mode/is_cashback_coin(bool each),
 /// then quote_mint(pubkey) — confirmed layout from pump-public-docs/idl/pump.json.
-fn decode_bonding_curve(data: &[u8]) -> Option<(bool, Pubkey, Pubkey)> {
+fn decode_bonding_curve(data: &[u8]) -> Option<(bool, Address, Address)> {
     if data.len() < 8 || data[0..8] != BONDING_CURVE_DISCRIMINATOR {
         return None;
     }
     let mut o = 8usize + 8 * 5;
     let complete = *data.get(o)? != 0;
     o += 1;
-    let creator = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let creator = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32 + 1 + 1;
-    let quote_mint = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let quote_mint = Address::try_from(data.get(o..o + 32)?).ok()?;
     Some((complete, creator, quote_mint))
 }
 
 /// pool_bump(1), index(2), creator(32), base_mint(32), quote_mint(32),
 /// lp_mint(32), pool_base_token_account(32), pool_quote_token_account(32),
 /// lp_supply(8), coin_creator(32) — confirmed from pump-public-docs/idl/pump_amm.json.
-fn decode_pool(data: &[u8]) -> Option<(Pubkey, Pubkey, Pubkey, Pubkey)> {
+fn decode_pool(data: &[u8]) -> Option<(Address, Address, Address, Address)> {
     if data.len() < 8 || data[0..8] != POOL_DISCRIMINATOR {
         return None;
     }
     let mut o = 8usize + 1 + 2;
-    let creator = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let creator = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32;
-    let base_mint = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let base_mint = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32;
-    let quote_mint = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let quote_mint = Address::try_from(data.get(o..o + 32)?).ok()?;
     o += 32 + 32 + 32 + 32 + 8;
-    let coin_creator = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
+    let coin_creator = Address::try_from(data.get(o..o + 32)?).ok()?;
     Some((creator, base_mint, quote_mint, coin_creator))
 }
 
-fn decode_sharing_config_admin(data: &[u8]) -> Option<(Pubkey, Pubkey)> {
+fn decode_sharing_config_admin(data: &[u8]) -> Option<(Address, Address)> {
     if data.len() < 8 || data[0..8] != SHARING_CONFIG_DISCRIMINATOR {
         return None;
     }
     let o = 8usize + 1 + 1 + 1;
-    let mint = Pubkey::try_from(data.get(o..o + 32)?).ok()?;
-    let admin = Pubkey::try_from(data.get(o + 32..o + 64)?).ok()?;
+    let mint = Address::try_from(data.get(o..o + 32)?).ok()?;
+    let admin = Address::try_from(data.get(o + 32..o + 64)?).ok()?;
     Some((mint, admin))
 }
 
@@ -167,7 +167,7 @@ fn main() {
         println!("  total_donated={}", dfp.total_donated);
         println!("  last_crank_ts={}", dfp.last_crank_ts);
 
-        let (bonding_curve, _) = Pubkey::find_program_address(
+        let (bonding_curve, _) = Address::find_program_address(
             &[b"bonding-curve", dfp.base_mint.as_ref()],
             &pump_program,
         );
@@ -183,11 +183,11 @@ fn main() {
             println!("  bonding_curve: NOT FOUND at {bonding_curve}");
         }
 
-        let (pool_authority, _) = Pubkey::find_program_address(
+        let (pool_authority, _) = Address::find_program_address(
             &[b"pool-authority", dfp.base_mint.as_ref()],
             &pump_program,
         );
-        let (pool, _) = Pubkey::find_program_address(
+        let (pool, _) = Address::find_program_address(
             &[b"pool", &0u16.to_le_bytes(), pool_authority.as_ref(), dfp.base_mint.as_ref(), wsol_mint.as_ref()],
             &pump_amm_program,
         );
@@ -207,7 +207,7 @@ fn main() {
             println!("  pool: NOT FOUND at derived address {pool} (mint may not be graduated)");
         }
 
-        let (sharing_config, _) = Pubkey::find_program_address(
+        let (sharing_config, _) = Address::find_program_address(
             &[b"sharing-config", dfp.base_mint.as_ref()],
             &fees_program,
         );

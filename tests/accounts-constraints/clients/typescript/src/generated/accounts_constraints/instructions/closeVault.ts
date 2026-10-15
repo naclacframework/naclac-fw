@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `close_vault` instruction. */
+/** Discriminator for the `close_vault` instruction. */
 export const CLOSE_VAULT_DISCRIMINATOR = new Uint8Array([141, 103, 17, 126, 72, 75, 29, 29]);
 
 /** Accounts for the `closeVault` instruction. */

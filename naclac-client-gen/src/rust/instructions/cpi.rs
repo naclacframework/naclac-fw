@@ -224,13 +224,17 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         format!(
             "        let mut ix_data = crate::sdk_core_cpi::Vec::new();\n\
              \x20       ix_data.extend_from_slice(&[{}]);\n\
-             \x20       #[cfg(not(feature = \"borsh\"))]\n\
+             \x20       #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
              \x20       {{\n\
              {}\
              \x20       }}\n\
              \x20       #[cfg(feature = \"borsh\")]\n\
              \x20       {{\n\
              \x20           crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();\n\
+             \x20       }}\n\
+             \x20       #[cfg(feature = \"wincode\")]\n\
+             \x20       {{\n\
+             \x20           crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();\n\
              \x20       }}\n",
             disc_str, zc_writes
         )
@@ -398,7 +402,7 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
             format!("accounts.{}.address()", acc_snake)
         };
         all_metas.push(format!(
-            "::naclac_lang::solana_program::instruction::AccountMeta::{}({}, {})",
+            "::naclac_lang::solana_instruction::AccountMeta::{}({}, {})",
             method, address_expr, is_signer
         ));
     }
@@ -414,15 +418,15 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     impl_body.push_str(
         "            for (acc, is_writable, is_signer) in remaining_accounts {\n\
          \x20               let meta = if *is_writable {\n\
-         \x20                   ::naclac_lang::solana_program::instruction::AccountMeta::new(acc.address(), *is_signer)\n\
+         \x20                   ::naclac_lang::solana_instruction::AccountMeta::new(acc.address(), *is_signer)\n\
          \x20               } else {\n\
-         \x20                   ::naclac_lang::solana_program::instruction::AccountMeta::new_readonly(acc.address(), *is_signer)\n\
+         \x20                   ::naclac_lang::solana_instruction::AccountMeta::new_readonly(acc.address(), *is_signer)\n\
          \x20               };\n\
          \x20               account_metas.push(meta);\n\
          \x20           }\n"
     );
     impl_body.push_str(
-        "            let instruction = ::naclac_lang::solana_program::instruction::Instruction {\n\
+        "            let instruction = ::naclac_lang::solana_instruction::Instruction {\n\
          \x20               program_id: self.address(),\n\
          \x20               accounts: account_metas,\n\
          \x20               data: ix_data,\n\

@@ -7,36 +7,36 @@
 //! seed strings) are sourced directly from the IDLs in `idls/pump.json` and
 //! `idls/pump_amm.json`.
 
-use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang::solana_address::Address;
 
-pub const SPL_TOKEN_PROGRAM_ID: Pubkey = anchor_spl::token::ID;
-pub const SPL_TOKEN_2022_PROGRAM_ID: Pubkey = anchor_spl::token_2022::ID;
-pub const SPL_ATA_PROGRAM_ID: Pubkey = anchor_spl::associated_token::ID;
-pub const MPL_TOKEN_METADATA_PROGRAM_ID: Pubkey = anchor_spl::metadata::ID;
+pub const SPL_TOKEN_PROGRAM_ID: Address = anchor_spl::token::ID;
+pub const SPL_TOKEN_2022_PROGRAM_ID: Address = anchor_spl::token_2022::ID;
+pub const SPL_ATA_PROGRAM_ID: Address = anchor_spl::associated_token::ID;
+pub const MPL_TOKEN_METADATA_PROGRAM_ID: Address = anchor_spl::metadata::ID;
 /// Wrapped-SOL mint, used as the default quote mint.
-pub const NATIVE_MINT: Pubkey = anchor_spl::token::spl_token::native_mint::ID;
+pub const NATIVE_MINT: Address = anchor_spl::token::spl_token::native_mint::ID;
 /// Rent sysvar account (required by `migrate` / `migrate_v2`).
-pub const RENT_SYSVAR_ID: Pubkey =
-    Pubkey::from_str_const("SysvarRent111111111111111111111111111111111");
+pub const RENT_SYSVAR_ID: Address =
+    Address::from_str_const("SysvarRent111111111111111111111111111111111");
 /// Pump's reward-token mint.
-pub const PUMP_TOKEN_MINT: Pubkey =
-    Pubkey::from_str_const("pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn");
+pub const PUMP_TOKEN_MINT: Address =
+    Address::from_str_const("pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn");
 
-pub const FEE_PROGRAM_ID: Pubkey =
-    Pubkey::from_str_const("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ");
-pub const MAYHEM_PROGRAM_ID: Pubkey =
-    Pubkey::from_str_const("MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e");
+pub const FEE_PROGRAM_ID: Address =
+    Address::from_str_const("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ");
+pub const MAYHEM_PROGRAM_ID: Address =
+    Address::from_str_const("MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e");
 
 /// Address lookup table for pump trades.
-pub const MAINNET_ALT: Pubkey =
-    Pubkey::from_str_const("Hyif6eWb8x88RVrvjPfabsgRYnwkVnyByEXTVTXbUcyP");
-pub const DEVNET_ALT: Pubkey =
-    Pubkey::from_str_const("7Je3GuLHSXZT6oC96EuAKTH8LsMhvC32z72cqVxUnvR7");
+pub const MAINNET_ALT: Address =
+    Address::from_str_const("Hyif6eWb8x88RVrvjPfabsgRYnwkVnyByEXTVTXbUcyP");
+pub const DEVNET_ALT: Address =
+    Address::from_str_const("7Je3GuLHSXZT6oC96EuAKTH8LsMhvC32z72cqVxUnvR7");
 
 pub mod pump {
     use super::*;
 
-    pub const PROGRAM_ID: Pubkey = crate::pump::ID;
+    pub const PROGRAM_ID: Address = crate::pump::ID;
 
     pub const GLOBAL_SEED: &[u8] = b"global";
     pub const BONDING_CURVE_SEED: &[u8] = b"bonding-curve";
@@ -50,13 +50,13 @@ pub mod pump {
     pub const METADATA_SEED: &[u8] = b"metadata";
     pub const FEE_CONFIG_SEED: &[u8] = b"fee_config";
     pub const SHARING_CONFIG_SEED: &[u8] = b"sharing-config";
-    pub const FEE_CONFIG_PROGRAM_SEED_KEY: Pubkey = PROGRAM_ID;
+    pub const FEE_CONFIG_PROGRAM_SEED_KEY: Address = PROGRAM_ID;
 }
 
 pub mod pump_amm {
     use super::*;
 
-    pub const PROGRAM_ID: Pubkey = crate::pump_amm::ID;
+    pub const PROGRAM_ID: Address = crate::pump_amm::ID;
 
     pub const GLOBAL_CONFIG_SEED: &[u8] = b"global_config";
     pub const POOL_SEED: &[u8] = b"pool";
@@ -68,14 +68,14 @@ pub mod pump_amm {
     pub const USER_VOLUME_ACCUMULATOR_SEED: &[u8] = b"user_volume_accumulator";
     pub const POOL_V2_SEED: &[u8] = b"pool-v2";
     pub const FEE_CONFIG_SEED: &[u8] = b"fee_config";
-    pub const FEE_CONFIG_PROGRAM_SEED_KEY: Pubkey = PROGRAM_ID;
+    pub const FEE_CONFIG_PROGRAM_SEED_KEY: Address = PROGRAM_ID;
     pub const BOOST_VAULT_AUTHORITY_SEED: &[u8] = b"boost_vault";
 }
 
 pub mod pump_agent_payments {
     use super::*;
 
-    pub const PROGRAM_ID: Pubkey = crate::pump_agent_payments::ID;
+    pub const PROGRAM_ID: Address = crate::pump_agent_payments::ID;
 
     pub const GLOBAL_CONFIG_SEED: &[u8] = b"global-config";
     pub const TOKEN_AGENT_PAYMENTS_SEED: &[u8] = b"token-agent-payments";

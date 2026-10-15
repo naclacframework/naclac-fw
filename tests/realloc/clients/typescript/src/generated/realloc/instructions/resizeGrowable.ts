@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `resize_growable` instruction. */
+/** Discriminator for the `resize_growable` instruction. */
 export const RESIZE_GROWABLE_DISCRIMINATOR = new Uint8Array([166, 0, 216, 224, 238, 57, 30, 44]);
 
 /** Instruction arguments for `resizeGrowable`. */
 export interface ResizeGrowableArgs {
-  new_space: bigint | number;
+  newSpace: bigint | number;
 }
 
 /** Accounts for the `resizeGrowable` instruction. */
 export interface ResizeGrowableAccounts {
   payer: naclac.Address | string;
   growable?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

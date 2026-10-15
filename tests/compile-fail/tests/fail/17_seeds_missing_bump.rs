@@ -1,30 +1,18 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/instruction/security.rs:393 — a `seeds = [...]`
-// constraint with no `bump` at all. On-chain `find_program_address` is
-// strictly banned, so seeds validation always requires a bump to enable the
-// hash-and-compare optimization.
+// A `seeds = [...]` constraint with no `bump` on an existing account whose
+// type does not prove the deriving program created it (`AccountInfo`).
+// On-chain bump discovery skips the curve check, so it is only allowed for
+// `Account<T>`/`InterfaceAccount<T>`; any other type must supply its bump.
 //
-// Note: this trybuild fixture has no `Naclac.toml`, so `find_program_id`
-// (security.rs:812) can never resolve a program ID here — meaning the
-// compile-time-literal-PDA precomputation path (which needs both an
-// all-literal seed array *and* a resolvable program ID) never activates in
-// this crate, regardless of whether the seed itself is a literal. Every
-// `seeds = [...]` fixture here exercises the dynamic-PDA branch. A case
-// specifically for the *other* branch (`bump = <expr>` combined with `init`
-// on a genuinely precomputed literal-seed PDA, security.rs:325-332) needs a
-// real program workspace with a working `Naclac.toml`/`declare_id!` instead
-// — not testable in isolation here.
+// This fixture has no `Naclac.toml`, so no program ID resolves at compile
+// time and every `seeds = [...]` here takes the dynamic-PDA branch.
 use naclac_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct Foo {
+    /// SAFETY: only its address is checked against the seeds; never read.
     #[account(seeds = [b"foo"])]
-    pub account: Account<FooData>,
-}
-
-#[component]
-pub struct FooData {
-    pub value: u64,
+    pub account: AccountInfo,
 }
 
 fn main() {}

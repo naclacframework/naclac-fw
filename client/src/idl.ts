@@ -68,8 +68,8 @@ export interface IdlInstruction {
 export interface IdlAccountDef {
   name: string;
   /**
-   * 8-byte discriminator prefix stored at byte 0 of every account's data.
-   * Used to verify the account type before deserialising.
+   * Discriminator prefix (1 to 8 bytes) stored at byte 0 of every account's
+   * data. Used to verify the account type before deserialising.
    */
   discriminator?: readonly number[];
   readonly type: {
@@ -89,8 +89,8 @@ export interface IdlEventField {
 export interface IdlEventDef {
   readonly name: string;
   /**
-   * 8-byte discriminator used to identify this event in transaction logs.
-   * Computed as sha256("event:<EventName>")[0..8].
+   * Discriminator (1 to 8 bytes) that identifies this event in transaction
+   * logs: `sha256("event:<EventName>")[0..8]` unless the event declares one.
    */
   readonly discriminator?: readonly number[];
   readonly fields: readonly IdlEventField[];
@@ -183,6 +183,12 @@ export interface NaclacIdl {
    * to the root for tooling that needs a quick lookup.
    */
   readonly pdas: readonly IdlPdaDef[];
+  /**
+   * The program's reserved self-CPI event tag: present only when some
+   * instruction uses `#[event_cpi]`. A self-CPI event's instruction data is
+   * `eventCpiTag ++ event discriminator ++ event fields`.
+   */
+  readonly eventCpiTag?: readonly number[];
   /** @deprecated Use `definedTypes` instead. Kept for backward compatibility. */
   readonly types?: readonly IdlDefinedType[];
 }

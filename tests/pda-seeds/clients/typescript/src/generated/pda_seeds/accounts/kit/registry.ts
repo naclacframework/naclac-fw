@@ -4,8 +4,16 @@
 import * as naclac from "@naclac-fw/client/kit";
 import type { Registry } from "../../types";
 
-/** 8-byte on-chain discriminator for `Registry` accounts. */
+/** On-chain discriminator for `Registry` accounts. */
 export const REGISTRY_DISCRIMINATOR = new Uint8Array([47, 174, 110, 246, 184, 182, 252, 218]);
+
+function stripRegistryDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = REGISTRY_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `Registry` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
+}
 
 /** Gets the encoder for {@link Registry} account data. */
 export function getRegistryEncoder(): naclac.FixedSizeEncoder<Registry> {
@@ -41,7 +49,7 @@ export function decodeRegistry<TAddress extends string = string>(
 ): naclac.Account<Registry, TAddress> | naclac.MaybeAccount<Registry, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripRegistryDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
     getRegistryDecoder(),
   );
@@ -90,7 +98,7 @@ export async function fetchAllMaybeRegistry(
 }
 
 /** Fetches ALL `Registry` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllRegistryByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],

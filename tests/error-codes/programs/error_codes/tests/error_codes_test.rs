@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use error_codes_client::{
     instructions::{
         build_check_amount, build_check_authority, build_check_fixed_address,
@@ -14,8 +14,8 @@ fn setup() -> NaclacProvider {
 }
 
 /// Asserts a transaction failed with exactly the given `Custom` error code
-/// â€” not just "any error", the specific numeric code `#[error_code]`
-/// (custom errors, 6000+) or a `NaclacError` (framework errors, 3000s)
+/// — not just "any error", the specific numeric code `#[error_code]`
+/// (custom errors, 6000..10000) or a `NaclacError` (framework errors, 10000+)
 /// actually produces.
 fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientError>, expected: u32) {
     match result {
@@ -95,12 +95,12 @@ fn custom_error_codes_surface_correctly() {
 }
 
 /// Confirms `NaclacError` framework errors and `#[error_code]` custom
-/// errors genuinely don't collide in code-space â€” not just that the two
+/// errors genuinely don't collide in code-space — not just that the two
 /// formulas don't overlap on paper (3000s vs. 6000+), but that a real
 /// framework-triggered failure actually lands in the 3000s as expected.
 ///
 /// `address = <const>` is used rather than a missing `Signer` signature:
-/// omitting a required signature never reaches the chain at all â€” Solana's
+/// omitting a required signature never reaches the chain at all — Solana's
 /// own client-side transaction-signing rules reject building the
 /// transaction outright (`NotEnoughSigners`), so the on-chain
 /// `ConstraintSigner` check never runs. A wrong `address` is a perfectly
@@ -128,8 +128,8 @@ fn framework_errors_stay_in_their_own_codespace() {
         },
     )
     .send_and_confirm();
-    // `target` is field index 0 -> 3000 + 0*100 + ConstraintAddress(3) = 3003.
-    assert_custom_code(wrong_address_result, 3003);
+    // `target` is field index 0 -> 10000 + 0*100 + ConstraintAddress(3) = 10003.
+    assert_custom_code(wrong_address_result, 10003);
 }
 
 /// A missing `Signer` signature is caught even earlier than the on-chain

@@ -20,7 +20,7 @@ mod common;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::native_token::LAMPORTS_PER_SOL;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::pubkey::Address;
 use solana_sdk::signature::{Keypair, Signer};
 
 use pump_rust_client::accounts::decode_fee_config;
@@ -530,7 +530,7 @@ async fn run_create_coin_then_trade_tx_sell(
             uri: "https://example.com/txt.json".into(),
             mayhem_mode,
             cashback,
-            quote_mint: Pubkey::default(),
+            quote_mint: Address::default(),
             global: &global,
             token_amount,
             max_quote_tokens: max_sol_cost,

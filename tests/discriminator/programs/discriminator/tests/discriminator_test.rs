@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use discriminator_client::{
     instructions::{
         build_init_config, build_init_vault, build_read_vault, InitConfigAccounts,
@@ -9,7 +9,7 @@ use discriminator_client::{
 };
 
 /// Asserts a transaction failed with exactly the given `Custom` error code
-/// â€” not just "any error", the specific numeric `NaclacError` (framework
+/// — not just "any error", the specific numeric `NaclacError` (framework
 /// errors, 3000s) the failure actually produces. Mirrors
 /// `tests/error-codes/programs/error_codes/tests/error_codes_test.rs`'s
 /// helper of the same name and shape.
@@ -59,13 +59,13 @@ fn rejects_type_confused_account_in_vault_slot() {
     )
     .send_and_confirm();
 
-    // `ReadVault { caller, vault }` â€” `vault` is field index 1, not `mut`
+    // `ReadVault { caller, vault }` — `vault` is field index 1, not `mut`
     // (so `try_from`, not the discriminator-skipping `try_from_mut`, is
-    // used â€” `accounts.rs`). This is the pinocchio/zero-copy backend, so
+    // used — `accounts.rs`). This is the pinocchio/zero-copy backend, so
     // `Account<Vault>` resolves to its zero-copy branch
     // (`wrappers/accounts/account.rs`'s `try_from`), whose discriminator
-    // mismatch emits `InvalidAccountDiscriminator` (22) -> 3000 + 1*100 + 22 = 3122.
-    assert_custom_code(result, 3122);
+    // mismatch emits `InvalidAccountDiscriminator` (22) -> 10000 + 1*100 + 22 = 10122.
+    assert_custom_code(result, 10122);
 }
 
 /// Positive-path companion: a correctly-typed Vault account must still be

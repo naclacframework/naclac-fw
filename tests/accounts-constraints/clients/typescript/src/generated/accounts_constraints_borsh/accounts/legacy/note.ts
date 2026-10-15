@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { Note } from "../../types";
 
-/** 8-byte on-chain discriminator for `Note` accounts. */
+/** On-chain discriminator for `Note` accounts. */
 export const NOTE_DISCRIMINATOR = new Uint8Array([203, 75, 252, 196, 81, 210, 122, 126]);
 
 /** Fetches a `Note` account. Throws if it does not exist. */

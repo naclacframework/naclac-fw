@@ -80,9 +80,9 @@ pub fn initialize_metadata_pointer_signed(
         data.extend_from_slice(authority.map(|a| a.as_ref()).unwrap_or(&[0u8; 32]));
         data.extend_from_slice(metadata_address.map(|a| a.as_ref()).unwrap_or(&[0u8; 32]));
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -99,7 +99,7 @@ pub fn initialize_metadata_pointer_signed(
             mint: &mint.info.view,
             authority: authority.map(|a| a.as_address()),
             metadata_address: metadata_address.map(|a| a.as_address()),
-            token_program: &program.info.view.address(),
+            token_program: program.info.view.address(),
         };
         ix.invoke()
     }
@@ -140,11 +140,11 @@ pub fn update_metadata_pointer_signed(
         let mut data = vec![39u8, 1u8];
         data.extend_from_slice(metadata_address.map(|a| a.as_ref()).unwrap_or(&[0u8; 32]));
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),

@@ -60,8 +60,10 @@ pub fn asset_has_burn_delegate(info: &AccountInfo) -> Result<bool> {
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(false);
     };
-    Ok(
-        find_plugin_offset(info.data(), plugin_header_offset, plugin_type::BURN_DELEGATE)?
-            .is_some(),
-    )
+    Ok(find_plugin_offset(
+        info.data(),
+        plugin_header_offset,
+        plugin_type::BURN_DELEGATE,
+    )?
+    .is_some())
 }

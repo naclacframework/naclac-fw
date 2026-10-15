@@ -1,6 +1,6 @@
-use anchor_lang::solana_program::{
+use anchor_lang::solana_{
     instruction::{AccountMeta, Instruction},
-    pubkey::Pubkey,
+    pubkey::Address,
     system_program,
 };
 use anchor_lang::{InstructionData, ToAccountMetas};
@@ -15,12 +15,12 @@ impl PumpSdk {
     #[deprecated(note = "Use create_v2_instruction instead")]
     pub fn create_instruction(
         &self,
-        mint: Pubkey,
-        user: Pubkey,
+        mint: Address,
+        user: Address,
         name: impl Into<String>,
         symbol: impl Into<String>,
         uri: impl Into<String>,
-        creator: Pubkey,
+        creator: Address,
     ) -> Instruction {
         let token_program = constants::SPL_TOKEN_PROGRAM_ID;
         let bonding_curve = pda::pump::bonding_curve(&mint).0;
@@ -37,7 +37,7 @@ impl PumpSdk {
             system_program: system_program::ID,
             token_program,
             associated_token_program: constants::SPL_ATA_PROGRAM_ID,
-            rent: Pubkey::from_str_const("SysvarRent111111111111111111111111111111111"),
+            rent: Address::from_str_const("SysvarRent111111111111111111111111111111111"),
             event_authority: pda::pump::event_authority().0,
             program: crate::pump::ID,
         };
@@ -58,14 +58,14 @@ impl PumpSdk {
     #[deprecated(note = "Use buy_v2_instruction instead")]
     pub fn buy_instruction(
         &self,
-        mint: Pubkey,
-        user: Pubkey,
-        creator: Pubkey,
-        fee_recipient: Pubkey,
-        buyback_fee_recipient: Pubkey,
+        mint: Address,
+        user: Address,
+        creator: Address,
+        fee_recipient: Address,
+        buyback_fee_recipient: Address,
         amount: u64,
         max_sol_cost: u64,
-        token_program: Pubkey,
+        token_program: Address,
     ) -> Instruction {
         let bonding_curve = pda::pump::bonding_curve(&mint).0;
         let accounts = client::accounts::Buy {
@@ -109,14 +109,14 @@ impl PumpSdk {
     #[deprecated(note = "Use sell_v2_instruction instead")]
     pub fn sell_instruction(
         &self,
-        mint: Pubkey,
-        user: Pubkey,
-        creator: Pubkey,
-        fee_recipient: Pubkey,
-        buyback_fee_recipient: Pubkey,
+        mint: Address,
+        user: Address,
+        creator: Address,
+        fee_recipient: Address,
+        buyback_fee_recipient: Address,
         amount: u64,
         min_sol_output: u64,
-        token_program: Pubkey,
+        token_program: Address,
         is_cashback_coin: bool,
     ) -> Instruction {
         let bonding_curve = pda::pump::bonding_curve(&mint).0;

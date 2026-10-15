@@ -18,7 +18,7 @@ use super::{read_optional_address, Extension};
 use crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
 
 #[cfg(not(feature = "pinocchio"))]
-use crate::prelude::vec;
+use crate::prelude::{vec, Vec};
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
 
@@ -107,9 +107,9 @@ pub fn initialize_transfer_hook_signed(
         data.extend_from_slice(authority.map(|a| a.as_ref()).unwrap_or(&[0u8; 32]));
         data.extend_from_slice(hook_program_id.map(|a| a.as_ref()).unwrap_or(&[0u8; 32]));
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -169,11 +169,11 @@ pub fn transfer_hook_update_signed(
         let mut data = vec![36u8, 1u8];
         data.extend_from_slice(hook_program_id.map(|a| a.as_ref()).unwrap_or(&[0u8; 32]));
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(mint.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(
+                solana_instruction::AccountMeta::new(mint.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(
                     authority.info.address(),
                     true,
                 ),
@@ -239,25 +239,24 @@ pub fn transfer_hook_update_signed(
 /// project's rules warn against — left as an explicit, tracked gap rather
 /// than attempted here.
 #[cfg(not(feature = "pinocchio"))]
+pub struct TransferCheckedWithHookAccounts<'a, 'b> {
+    pub program: CpiHandle<'b>,
+    pub from: CpiHandleMut<'b>,
+    pub mint: CpiHandle<'b>,
+    pub to: CpiHandleMut<'b>,
+    pub authority: CpiHandle<'b>,
+    pub hook_program: CpiHandle<'b>,
+    pub extra_accounts: &'a [CpiHandle<'b>],
+}
+
+#[cfg(not(feature = "pinocchio"))]
 pub fn transfer_checked_with_hook(
-    program: CpiHandle<'_>,
-    from: CpiHandleMut<'_>,
-    mint: CpiHandle<'_>,
-    to: CpiHandleMut<'_>,
-    authority: CpiHandle<'_>,
-    hook_program: CpiHandle<'_>,
-    extra_accounts: &[CpiHandle<'_>],
+    accounts: TransferCheckedWithHookAccounts<'_, '_>,
     amount: u64,
     decimals: u8,
 ) -> Result<()> {
     transfer_checked_with_hook_signed(
-        program,
-        from,
-        mint,
-        to,
-        authority,
-        hook_program,
-        extra_accounts,
+        accounts,
         amount,
         decimals,
         &[],
@@ -266,24 +265,18 @@ pub fn transfer_checked_with_hook(
 
 #[cfg(not(feature = "pinocchio"))]
 pub fn transfer_checked_with_hook_signed(
-    program: CpiHandle<'_>,
-    from: CpiHandleMut<'_>,
-    mint: CpiHandle<'_>,
-    to: CpiHandleMut<'_>,
-    authority: CpiHandle<'_>,
-    hook_program: CpiHandle<'_>,
-    extra_accounts: &[CpiHandle<'_>],
+    accounts: TransferCheckedWithHookAccounts<'_, '_>,
     amount: u64,
     decimals: u8,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    super::validate_token_2022_program(&program)?;
+    super::validate_token_2022_program(&accounts.program)?;
     let mut cpi_instruction = ::spl_token_2022::instruction::transfer_checked(
-        &program.address(),
-        &from.info.address(),
-        &mint.info.address(),
-        &to.info.address(),
-        &authority.info.address(),
+        &accounts.program.address(),
+        &accounts.from.info.address(),
+        &accounts.mint.info.address(),
+        &accounts.to.info.address(),
+        &accounts.authority.info.address(),
         &[],
         amount,
         decimals,
@@ -293,10 +286,10 @@ pub fn transfer_checked_with_hook_signed(
     // the duration of this call only — matches the same lifetime-erasure
     // `naclac-core::cpi::invoke_signed` already performs internally for
     // every other CPI helper in this crate.
-    let source_info = unsafe { from.info.to_lifetime() };
-    let mint_info = unsafe { mint.info.to_lifetime() };
-    let destination_info = unsafe { to.info.to_lifetime() };
-    let authority_info = unsafe { authority.info.to_lifetime() };
+    let source_info = unsafe { accounts.from.info.to_lifetime() };
+    let mint_info = unsafe { accounts.mint.info.to_lifetime() };
+    let destination_info = unsafe { accounts.to.info.to_lifetime() };
+    let authority_info = unsafe { accounts.authority.info.to_lifetime() };
 
     let mut cpi_account_infos = vec![
         source_info.clone(),
@@ -305,12 +298,12 @@ pub fn transfer_checked_with_hook_signed(
         authority_info.clone(),
     ];
 
-    let additional_account_infos: Vec<_> = extra_accounts
+    let additional_account_infos: Vec<_> = accounts.extra_accounts
         .iter()
         .map(|handle| unsafe { handle.info.to_lifetime() })
         .collect();
 
-    let hook_program_address = hook_program.address();
+    let hook_program_address = accounts.hook_program.address();
 
     ::spl_transfer_hook_interface::onchain::add_extra_accounts_for_execute_cpi(
         &mut cpi_instruction,
@@ -324,5 +317,5 @@ pub fn transfer_checked_with_hook_signed(
         &additional_account_infos,
     )?;
 
-    solana_program::program::invoke_signed(&cpi_instruction, &cpi_account_infos, signer_seeds)
+    naclac_core::prelude::invoke_signed(&cpi_instruction, &cpi_account_infos, signer_seeds)
 }

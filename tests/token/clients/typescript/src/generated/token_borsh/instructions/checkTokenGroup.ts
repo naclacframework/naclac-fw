@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_token_group` instruction. */
+/** Discriminator for the `check_token_group` instruction. */
 export const CHECK_TOKEN_GROUP_DISCRIMINATOR = new Uint8Array([64, 59, 5, 251, 75, 155, 157, 122]);
 
 /** Instruction arguments for `checkTokenGroup`. */

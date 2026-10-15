@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { TaggedChild } from "../../types";
 
-/** 8-byte on-chain discriminator for `TaggedChild` accounts. */
+/** On-chain discriminator for `TaggedChild` accounts. */
 export const TAGGEDCHILD_DISCRIMINATOR = new Uint8Array([232, 255, 227, 60, 79, 70, 12, 111]);
 
 /** Fetches a `TaggedChild` account. Throws if it does not exist. */

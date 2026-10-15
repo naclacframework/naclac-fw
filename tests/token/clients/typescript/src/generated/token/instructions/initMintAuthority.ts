@@ -3,14 +3,14 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `init_mint_authority` instruction. */
+/** Discriminator for the `init_mint_authority` instruction. */
 export const INIT_MINT_AUTHORITY_DISCRIMINATOR = new Uint8Array([110, 95, 157, 123, 154, 140, 42, 253]);
 
 /** Accounts for the `initMintAuthority` instruction. */
 export interface InitMintAuthorityAccounts {
   payer: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

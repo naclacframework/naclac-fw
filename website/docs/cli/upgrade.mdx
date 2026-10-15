@@ -1,0 +1,67 @@
+---
+title: "naclac upgrade — Upgrade an Already-Deployed Program"
+sidebarTitle: "Upgrade"
+description: "naclac upgrade redeploys a modified program to an existing address and reclaims buffer lamports, with options to specify the binary path or buffer account."
+---
+
+`naclac upgrade` replaces the on-chain bytecode of an already-deployed program with a new build while keeping the same program address. Unlike `naclac deploy`, which is used for first-time deployments, `naclac upgrade` targets an existing program account and handles buffer account cleanup to reclaim the lamports locked during the upload. Use it after you have modified your program logic and rebuilt with `naclac build`.
+
+## Usage
+
+```bash
+naclac upgrade [program_id] [--filepath <path>] [--buffer <address>]
+```
+
+## Flags
+
+| Flag | Description |
+|---|---|
+| `[program_id]` | Name of the program to upgrade. Defaults to all programs listed in `Naclac.toml` for the current cluster. |
+| `--filepath <path>` | Explicit path to a compiled `.so` binary. If omitted, the CLI uses the binary at `target/deploy/<name>.so`. |
+| `--buffer <address>` | Reuse an existing buffer account that already contains the uploaded program data. Useful if a previous upload completed but the final upgrade transaction failed. |
+
+## Examples
+
+```bash
+# Build first, then upgrade all programs
+naclac build && naclac upgrade
+
+# Upgrade a specific program only
+naclac upgrade my_counter
+
+# Upgrade using a pre-uploaded buffer account
+naclac upgrade my_counter --buffer <BUFFER_ADDRESS>
+
+# Upgrade using a binary at a custom path
+naclac upgrade my_counter --filepath ./releases/my_counter_v2.so
+```
+
+---
+
+## naclac verify
+
+`naclac verify` confirms that the on-chain program bytecode deterministically matches your local source code, giving you tamper-evidence assurance after any deployment or upgrade.
+
+### Usage
+
+```bash
+naclac verify [program_id]
+```
+
+### Arguments
+
+| Argument | Description |
+|---|---|
+| `[program_id]` | Program to verify. Defaults to all programs in `Naclac.toml` for the current cluster. |
+
+`naclac verify` works in three steps:
+
+1. **Deterministic Docker build** — it spins up the `ellipsislabs/solana:latest` container and compiles your program source inside a standardized environment, eliminating OS-level differences between Mac, Windows, and Linux. Docker must be installed and running before you use this command.
+2. **Local hash** — it SHA-256 hashes the `.so` binary produced by the Docker build.
+3. **On-chain comparison** — it fetches the deployed program data via `solana program dump`, hashes the same-length prefix, and compares the two digests. A match confirms the on-chain program is running exactly the code in your local repository. A mismatch exits with a non-zero status and prints both checksums so you can investigate.
+
+<Warning>
+  `naclac verify` requires Docker to be installed and the Docker daemon to be running. If Docker is not available, the command exits immediately with an error before performing any build or comparison.
+</Warning>
+
+Run `naclac verify` as part of a CI pipeline after every deployment to maintain a tamper-evidence guarantee over your production programs.

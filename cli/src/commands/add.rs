@@ -1,12 +1,13 @@
-use dialoguer::theme::ColorfulTheme;
-use dialoguer::Select;
 use heck::ToSnakeCase;
 use std::fs;
 
-use crate::commands::init::templates::{generate_program, ProgramMode};
+use crate::commands::init::templates::{
+    generate_program, parse_mode, parse_ts_framework, prompt_mode_selection, prompt_ts_framework,
+    TsFramework,
+};
 use crate::commands::init::utils::generate_keypair;
 
-pub fn execute(name: &str, mode_flag: Option<&str>) {
+pub fn execute(name: &str, mode_flag: Option<&str>, ts_flag: Option<&str>) {
     let current_dir = std::env::current_dir().unwrap();
 
     let workspace_root = if current_dir.join("Naclac.toml").exists() {
@@ -26,15 +27,12 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
         std::process::exit(1);
     }
 
-    // --- Mode Selection ---
     let mode = if let Some(m) = mode_flag {
-        match m.to_lowercase().as_str() {
-            "pinocchio" => ProgramMode::Pinocchio,
-            "standard" | "borsh" => ProgramMode::Standard,
-            "optimized" | "zero-copy" => ProgramMode::Optimized,
-            _ => {
+        match parse_mode(m) {
+            Some(mode) => mode,
+            None => {
                 eprintln!(
-                    "❌ Error: Invalid mode '{}'. Available: pinocchio, standard, optimized",
+                    "❌ Error: Invalid mode '{}'. Available: pinocchio, zero-copy, wincode, borsh",
                     m
                 );
                 std::process::exit(1);
@@ -44,9 +42,32 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
         prompt_mode_selection()
     };
 
+    let ts_framework = if let Some(t) = ts_flag {
+        match parse_ts_framework(t) {
+            Some(ts) => ts,
+            None => {
+                eprintln!(
+                    "❌ Error: Invalid TypeScript framework '{}'. Available: kit, legacy",
+                    t
+                );
+                std::process::exit(1);
+            }
+        }
+    } else {
+        let pkg_path = workspace_root.join("package.json");
+        let pkg_content = fs::read_to_string(&pkg_path).unwrap_or_default();
+        if pkg_content.contains("\"@solana/kit\"") {
+            TsFramework::Kit
+        } else if pkg_content.contains("\"@solana/web3.js\"") {
+            TsFramework::Legacy
+        } else {
+            prompt_ts_framework()
+        }
+    };
+
     println!(
-        "🏗️  Initializing new Naclac program: '{}' (Mode: {:?})...",
-        snake_name, mode
+        "🏗️  Initializing new Naclac program: '{}' (Mode: {:?}, TS: {:?})...",
+        snake_name, mode, ts_framework
     );
 
     let keypair_path = naclac_client_gen::resolve_target_dir(&workspace_root)
@@ -54,10 +75,8 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
         .join(format!("{}-keypair.json", snake_name));
     let address = generate_keypair(&keypair_path);
 
-    // --- Generate Program using shared template engine ---
-    generate_program(&workspace_root, name, &address, mode, false);
+    generate_program(&workspace_root, name, &address, mode, ts_framework, false);
 
-    // --- Sync Naclac.toml ---
     let config_path = workspace_root.join("Naclac.toml");
     let mut config_text = fs::read_to_string(&config_path).unwrap_or_default();
 
@@ -88,26 +107,4 @@ pub fn execute(name: &str, mode_flag: Option<&str>) {
         "🎉 '{}' is locked, loaded, and ready to disrupt!",
         snake_name
     );
-}
-
-fn prompt_mode_selection() -> ProgramMode {
-    let selections = &[
-        "Pinocchio Mode (no-std, High Performance)",
-        "Standard Mode (Solana-Program + Borsh)",
-        "Optimized Mode (Solana-Program + Zero-Copy)",
-    ];
-
-    let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Choose program mode")
-        .default(0)
-        .items(&selections[..])
-        .interact()
-        .unwrap_or(0);
-
-    match selection {
-        0 => ProgramMode::Pinocchio,
-        1 => ProgramMode::Standard,
-        2 => ProgramMode::Optimized,
-        _ => ProgramMode::Pinocchio,
-    }
 }

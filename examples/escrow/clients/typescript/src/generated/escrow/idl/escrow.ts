@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "CftDHdXFWzSiY7AbXsJcBWVhWGx1qpk2TYbRtEeDvrX1",
+  "address": "BUnzdon444sj9eHgaCNgnNk3ckdKc5xSgyax946Uuvau",
   "metadata": {
     "name": "escrow",
     "version": "0.1.0",
@@ -9,444 +9,137 @@ export const IDL = {
     {
       "name": "make",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        138,
-        227,
-        232,
-        77,
-        223,
-        166,
-        96,
-        197
-      ],
+      "discriminator": [138,227,232,77,223,166,96,197],
       "accounts": [
+        { "name": "maker", "writable": true, "signer": true },
+        { "name": "mint_a" },
+        { "name": "mint_b" },
         {
-          "name": "maker",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "mintA",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "mintB",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "escrowState",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "escrow_state", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ],
-                "name": "SEED_ESCROW"
-              },
-              {
-                "kind": "account",
-                "path": "maker"
-              },
-              {
-                "kind": "arg",
-                "path": "seed"
-              }
+              { "kind": "const", "value": [101,115,99,114,111,119], "name": "SEED_ESCROW" },
+              { "kind": "account", "path": "maker" },
+              { "kind": "arg", "path": "seed" }
             ]
           }
         },
-        {
-          "name": "vaultTokenAccount",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "makerTokenAccountA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "tokenProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "vault_token_account", "writable": true },
+        { "name": "maker_token_account_a", "writable": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        {
-          "name": "seed",
-          "type": "u64"
-        },
-        {
-          "name": "escrowBump",
-          "type": "u8"
-        },
-        {
-          "name": "amountA",
-          "type": "u64"
-        },
-        {
-          "name": "amountB",
-          "type": "u64"
-        }
+        { "name": "seed", "type": "u64" },
+        { "name": "amount_a", "type": "u64" },
+        { "name": "amount_b", "type": "u64" }
       ]
     },
     {
       "name": "take",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        149,
-        226,
-        52,
-        104,
-        6,
-        142,
-        230,
-        39
-      ],
+      "discriminator": [149,226,52,104,6,142,230,39],
       "accounts": [
-        {
-          "name": "taker",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
+        { "name": "taker", "writable": true, "signer": true },
         {
           "name": "maker",
-          "writable": true,
-          "signer": false,
-          "optional": false
+          "docs": [
+            "SAFETY: Verified through `escrow_state` PDA seed derivation; receives rent on close."
+          ],
+          "writable": true
         },
+        { "name": "mint_a" },
+        { "name": "mint_b" },
         {
-          "name": "mintA",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "mintB",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "escrowState",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "escrow_state", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ],
-                "name": "SEED_ESCROW"
-              },
-              {
-                "kind": "account",
-                "path": "maker"
-              },
-              {
-                "kind": "arg",
-                "path": "seed"
-              }
+              { "kind": "const", "value": [101,115,99,114,111,119], "name": "SEED_ESCROW" },
+              { "kind": "account", "path": "maker" },
+              { "kind": "arg", "path": "seed" }
             ]
           }
         },
-        {
-          "name": "vaultTokenAccount",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "takerTokenAccountA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "takerTokenAccountB",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "makerTokenAccountB",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "tokenProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "vault_token_account", "writable": true },
+        { "name": "taker_token_account_a", "writable": true },
+        { "name": "taker_token_account_b", "writable": true },
+        { "name": "maker_token_account_b", "writable": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        {
-          "name": "seed",
-          "type": "u64"
-        }
+        { "name": "seed", "type": "u64" }
       ]
     },
     {
       "name": "cancel",
       "optionalAccountStrategy": "programId",
-      "discriminator": [
-        232,
-        219,
-        223,
-        41,
-        219,
-        236,
-        220,
-        190
-      ],
+      "discriminator": [232,219,223,41,219,236,220,190],
       "accounts": [
+        { "name": "maker", "writable": true, "signer": true },
+        { "name": "mint_a" },
         {
-          "name": "maker",
-          "writable": true,
-          "signer": true,
-          "optional": false
-        },
-        {
-          "name": "mintA",
-          "writable": false,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "escrowState",
-          "writable": true,
-          "signer": false,
-          "optional": false,
+          "name": "escrow_state", "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ],
-                "name": "SEED_ESCROW"
-              },
-              {
-                "kind": "account",
-                "path": "maker"
-              },
-              {
-                "kind": "arg",
-                "path": "seed"
-              }
+              { "kind": "const", "value": [101,115,99,114,111,119], "name": "SEED_ESCROW" },
+              { "kind": "account", "path": "maker" },
+              { "kind": "arg", "path": "seed" }
             ]
           }
         },
-        {
-          "name": "vaultTokenAccount",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "makerTokenAccountA",
-          "writable": true,
-          "signer": false,
-          "optional": false
-        },
-        {
-          "name": "tokenProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false,
-          "optional": false,
-          "address": "11111111111111111111111111111111"
-        }
+        { "name": "vault_token_account", "writable": true },
+        { "name": "maker_token_account_a", "writable": true },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        {
-          "name": "seed",
-          "type": "u64"
-        }
+        { "name": "seed", "type": "u64" }
       ]
     }
   ],
   "accounts": [
     {
       "name": "EscrowState",
-      "discriminator": [
-        19,
-        90,
-        148,
-        111,
-        55,
-        130,
-        229,
-        108
-      ],
+      "discriminator": [19,90,148,111,55,130,229,108],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "maker",
-            "type": "publicKey"
-          },
-          {
-            "name": "mintA",
-            "type": "publicKey"
-          },
-          {
-            "name": "mintB",
-            "type": "publicKey"
-          },
-          {
-            "name": "amountA",
-            "type": "u64"
-          },
-          {
-            "name": "amountB",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
+          { "name": "maker", "type": "publicKey" },
+          { "name": "mint_a", "type": "publicKey" },
+          { "name": "mint_b", "type": "publicKey" },
+          { "name": "amount_a", "type": "u64" },
+          { "name": "amount_b", "type": "u64" },
+          { "name": "bump", "type": "u8" }
         ]
       }
     }
   ],
   "events": [
     {
-      "name": "EscrowCreated",
-      "discriminator": [
-        70,
-        127,
-        105,
-        102,
-        92,
-        97,
-        7,
-        173
-      ],
+      "name": "EscrowCancelled",
+      "discriminator": [98,241,195,122,213,0,162,161],
       "fields": [
-        {
-          "name": "maker",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amountA",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "amountB",
-          "type": "u64",
-          "index": false
-        }
+        { "name": "maker", "type": "publicKey", "index": false },
+        { "name": "amount_a", "type": "u64", "index": false }
+      ]
+    },
+    {
+      "name": "EscrowCreated",
+      "discriminator": [70,127,105,102,92,97,7,173],
+      "fields": [
+        { "name": "maker", "type": "publicKey", "index": false },
+        { "name": "amount_a", "type": "u64", "index": false },
+        { "name": "amount_b", "type": "u64", "index": false }
       ]
     },
     {
       "name": "EscrowExchanged",
-      "discriminator": [
-        227,
-        173,
-        205,
-        57,
-        1,
-        154,
-        129,
-        42
-      ],
+      "discriminator": [227,173,205,57,1,154,129,42],
       "fields": [
-        {
-          "name": "taker",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amountA",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "amountB",
-          "type": "u64",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "EscrowCancelled",
-      "discriminator": [
-        98,
-        241,
-        195,
-        122,
-        213,
-        0,
-        162,
-        161
-      ],
-      "fields": [
-        {
-          "name": "maker",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "amountA",
-          "type": "u64",
-          "index": false
-        }
+        { "name": "taker", "type": "publicKey", "index": false },
+        { "name": "amount_a", "type": "u64", "index": false },
+        { "name": "amount_b", "type": "u64", "index": false }
       ]
     }
   ],
@@ -476,34 +169,17 @@ export const IDL = {
     {
       "name": "SEED_ESCROW",
       "type": "bytes",
-      "value": "b\"escrow\""
+      "value": "[101, 115, 99, 114, 111, 119]"
     }
   ],
   "definedTypes": [],
   "pdas": [
     {
-      "name": "escrowState",
+      "name": "escrow_state",
       "seeds": [
-        {
-          "kind": "const",
-          "value": [
-            101,
-            115,
-            99,
-            114,
-            111,
-            119
-          ],
-          "name": "SEED_ESCROW"
-        },
-        {
-          "kind": "account",
-          "path": "maker"
-        },
-        {
-          "kind": "arg",
-          "path": "seed"
-        }
+        { "kind": "const", "value": [101,115,99,114,111,119], "name": "SEED_ESCROW" },
+        { "kind": "account", "path": "maker" },
+        { "kind": "arg", "path": "seed" }
       ]
     }
   ]

@@ -3,8 +3,8 @@ import { address } from "@solana/kit";
 import { getBase58Codec } from "@solana/codecs";
 import type { IdlAccountDef } from "../idl";
 import type { NaclacProvider } from "./provider";
-import { decodeAccountData } from "../coder/instruction";
-import { getDiscriminator } from "../utils/hash";
+import { decodeDiscriminatedAccountData } from "../coder/instruction";
+import { resolveDiscriminator } from "../utils/hash";
 import { decodeBase64 } from "../utils/common";
 
 /**
@@ -33,6 +33,25 @@ export class AccountFetcher {
     this.programId = programId;
     this.definedTypes = definedTypes;
     this.isZeroCopy = isZeroCopy;
+  }
+
+  private discriminator(): Uint8Array {
+    return resolveDiscriminator(
+      this.accountDef.discriminator,
+      "account",
+      this.accountDef.name,
+    );
+  }
+
+  private decode(rawBytes: Uint8Array): Record<string, unknown> {
+    return decodeDiscriminatedAccountData(
+      this.accountDef.type.fields as any,
+      rawBytes,
+      this.discriminator(),
+      this.accountDef.name,
+      this.definedTypes,
+      this.isZeroCopy,
+    );
   }
 
   /**
@@ -67,12 +86,7 @@ export class AccountFetcher {
     const rawBase64 = (accountInfo.data as [string, string])[0];
     const rawBytes = decodeBase64(rawBase64);
 
-    return decodeAccountData(
-      this.accountDef.type.fields as any,
-      new Uint8Array(rawBytes),
-      this.definedTypes,
-      this.isZeroCopy,
-    );
+    return this.decode(new Uint8Array(rawBytes));
   }
 
   /**
@@ -110,12 +124,7 @@ export class AccountFetcher {
       try {
         const rawBase64 = (acctInfo.data as [string, string])[0];
         const rawBytes = decodeBase64(rawBase64);
-        return decodeAccountData(
-          this.accountDef.type.fields as any,
-          new Uint8Array(rawBytes),
-          this.definedTypes,
-          this.isZeroCopy,
-        );
+        return this.decode(new Uint8Array(rawBytes));
       } catch (err) {
         if (opts.dropCorrupted) {
           console.warn(`[Naclac] Dropping corrupted account:`, err);
@@ -147,7 +156,7 @@ export class AccountFetcher {
 
   /**
    * Fetches all on-chain accounts of this type owned by the program.
-   * Uses a memcmp filter on the 8-byte account discriminator for precision.
+   * Uses a memcmp filter on the account discriminator for precision.
    *
    * @param opts.filters Additional memcmp or dataSize RPC filters to narrow results.
    * @param opts.dropCorrupted If true, accounts that fail to deserialise are silently dropped.
@@ -155,7 +164,7 @@ export class AccountFetcher {
   async all(opts: { filters?: any[]; dropCorrupted?: boolean } = {}): Promise<
     Array<{ publicKey: Address; account: Record<string, unknown> }>
   > {
-    const discriminator = getDiscriminator("account", this.accountDef.name);
+    const discriminator = this.discriminator();
     // getBase58Codec().decode(bytes) → base58 string, which is what memcmp.bytes expects.
     const base58Discriminator = getBase58Codec().decode(discriminator);
     const commitment = this.provider.commitment ?? "confirmed";
@@ -179,12 +188,7 @@ export class AccountFetcher {
       try {
         const rawBase64 = acctInfo.account.data[0];
         const rawBytes = decodeBase64(rawBase64);
-        const accountData = decodeAccountData(
-          this.accountDef.type.fields as any,
-          new Uint8Array(rawBytes),
-          this.definedTypes,
-          this.isZeroCopy,
-        );
+        const accountData = this.decode(new Uint8Array(rawBytes));
         return {
           publicKey: acctInfo.pubkey as Address,
           account: accountData,

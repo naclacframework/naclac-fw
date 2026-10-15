@@ -455,21 +455,21 @@ pub fn sync_native_with_extra_accounts(
         };
         ix.accounts.insert(
             1,
-            solana_program::instruction::AccountMeta::new_readonly(rent_sysvar.address(), false),
+            solana_instruction::AccountMeta::new_readonly(rent_sysvar.address(), false),
         );
         ix.accounts.extend(
             extra_accounts
                 .iter()
-                .map(|extra| solana_program::instruction::AccountMeta::new(extra.address(), false)),
+                .map(|extra| solana_instruction::AccountMeta::new(extra.address(), false)),
         );
 
         let native_handle: CpiHandle<'_> = CpiHandle::from(native_token);
         let mut accounts: [CpiHandle<'_>; MAX_SYNC_NATIVE_EXTRA_ACCOUNTS + 3] =
-            core::array::from_fn(|_| native_handle.clone());
+            [native_handle; MAX_SYNC_NATIVE_EXTRA_ACCOUNTS + 3];
         accounts[1] = rent_sysvar;
         accounts[2] = program;
         let extra_len = extra_accounts.len();
-        accounts[3..3 + extra_len].clone_from_slice(extra_accounts);
+        accounts[3..3 + extra_len].copy_from_slice(extra_accounts);
 
         crate::cpi::invoke_signed(&ix, &accounts[..3 + extra_len], &[])
     }
@@ -685,9 +685,9 @@ pub fn initialize_mint_signed(
             data.extend_from_slice(&[0u8; 32]);
         }
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
-            accounts: vec![solana_program::instruction::AccountMeta::new(
+            accounts: vec![solana_instruction::AccountMeta::new(
                 mint.info.address(),
                 false,
             )],
@@ -735,11 +735,11 @@ pub fn initialize_account_signed(
         data[0] = 18; // InitializeAccount3 discriminant
         data[1..].copy_from_slice(authority.info.address().as_ref());
 
-        let ix = solana_program::instruction::Instruction {
+        let ix = solana_instruction::Instruction {
             program_id: program.address(),
             accounts: vec![
-                solana_program::instruction::AccountMeta::new(account.info.address(), false),
-                solana_program::instruction::AccountMeta::new_readonly(mint.info.address(), false),
+                solana_instruction::AccountMeta::new(account.info.address(), false),
+                solana_instruction::AccountMeta::new_readonly(mint.info.address(), false),
             ],
             data: data.to_vec(),
         };
@@ -1082,24 +1082,40 @@ pub fn set_authority_signed(
 // ===========================================================================
 
 #[cfg_attr(
-    all(feature = "borsh", not(feature = "pinocchio")),
+    all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")),
     derive(crate::borsh::BorshSerialize, crate::borsh::BorshDeserialize)
 )]
 #[cfg_attr(
-    all(feature = "borsh", not(feature = "pinocchio")),
+    all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")),
     borsh(crate = "crate::borsh")
+)]
+#[cfg_attr(
+    all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")),
+    derive(crate::wincode::SchemaRead, crate::wincode::SchemaWrite)
+)]
+#[cfg_attr(
+    all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")),
+    wincode(crate = "crate::wincode")
 )]
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct TokenAccount(pub [u8; 165]);
 
 #[cfg_attr(
-    all(feature = "borsh", not(feature = "pinocchio")),
+    all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")),
     derive(crate::borsh::BorshSerialize, crate::borsh::BorshDeserialize)
 )]
 #[cfg_attr(
-    all(feature = "borsh", not(feature = "pinocchio")),
+    all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")),
     borsh(crate = "crate::borsh")
+)]
+#[cfg_attr(
+    all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")),
+    derive(crate::wincode::SchemaRead, crate::wincode::SchemaWrite)
+)]
+#[cfg_attr(
+    all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")),
+    wincode(crate = "crate::wincode")
 )]
 #[repr(transparent)]
 #[derive(Copy, Clone)]
@@ -1116,9 +1132,7 @@ unsafe impl crate::prelude::Pod for Mint {}
 unsafe impl crate::prelude::Zeroable for Mint {}
 
 impl Discriminator for TokenAccount {
-    fn discriminator_len() -> usize {
-        0
-    }
+    const DISCRIMINATOR: &'static [u8] = &[];
 
     /// A plain `TokenAccount` is always owned by the legacy Token program.
     /// `InterfaceAccount<TokenAccount>` (below) is the type to use for a
@@ -1137,9 +1151,7 @@ impl Discriminator for TokenAccount {
 }
 
 impl Discriminator for Mint {
-    fn discriminator_len() -> usize {
-        0
-    }
+    const DISCRIMINATOR: &'static [u8] = &[];
 
     /// See `TokenAccount::validate_account` above; validates the `Mint`
     /// layout via `validate_mint_bytes`.
@@ -1156,6 +1168,20 @@ impl Discriminator for Mint {
 
 impl crate::prelude::NaclacZeroCopy for TokenAccount {}
 impl crate::prelude::NaclacZeroCopy for Mint {}
+
+#[cfg(feature = "idl-build")]
+impl naclac_idl::idl_build::NaclacIdlBuild for TokenAccount {
+    fn get_full_path() -> naclac_idl::__private::String {
+        naclac_idl::__private::String::from("TokenAccount")
+    }
+}
+
+#[cfg(feature = "idl-build")]
+impl naclac_idl::idl_build::NaclacIdlBuild for Mint {
+    fn get_full_path() -> naclac_idl::__private::String {
+        naclac_idl::__private::String::from("Mint")
+    }
+}
 
 /// `InterfaceAccount<TokenAccount>`/`InterfaceAccount<Mint>` (naclac-core's
 /// `wrappers/accounts/interface_account.rs`) accept either the legacy Token
@@ -1184,7 +1210,7 @@ impl crate::prelude::ValidateInterfaceLayout for Mint {
     }
 }
 
-/// Reads a `COption<Pubkey>` at `tag_offset` (4-byte tag, then 32-byte
+/// Reads a `COption<Address>` at `tag_offset` (4-byte tag, then 32-byte
 /// value immediately after) — `None` unless the tag is exactly the
 /// canonical `[1,0,0,0]` `Some` encoding. Shared by `TokenAccount`'s
 /// `delegate`/`close_authority` and `Mint`'s `mint_authority`/
@@ -1193,7 +1219,9 @@ fn read_coption_address(data: &[u8], tag_offset: usize) -> Option<Address> {
     if data[tag_offset..tag_offset + 4] != [1u8, 0, 0, 0] {
         return None;
     }
-    let bytes: [u8; 32] = data[tag_offset + 4..tag_offset + 36].try_into().unwrap();
+    let bytes: [u8; 32] = data[tag_offset + 4..tag_offset + 36]
+        .try_into()
+        .unwrap_or_else(|_| panic!("slice length mismatch"));
     Some(Address::new_from_array(bytes))
 }
 
@@ -1227,12 +1255,16 @@ impl TokenAccount {
         if self.0[109..113] != [1u8, 0, 0, 0] {
             return None;
         }
-        let bytes: [u8; 8] = self.0[113..121].try_into().unwrap();
+        let bytes: [u8; 8] = self.0[113..121]
+            .try_into()
+            .unwrap_or_else(|_| panic!("slice length mismatch"));
         Some(u64::from_le_bytes(bytes))
     }
     /// The amount `delegate()` is currently authorized to transfer, if any delegate is set.
     pub fn delegated_amount(&self) -> u64 {
-        let bytes: [u8; 8] = self.0[121..129].try_into().unwrap();
+        let bytes: [u8; 8] = self.0[121..129]
+            .try_into()
+            .unwrap_or_else(|_| panic!("slice length mismatch"));
         u64::from_le_bytes(bytes)
     }
     /// The authority allowed to close this account and reclaim its rent, if any.
@@ -1277,7 +1309,11 @@ impl TokenAccount {
         if data.len() < 32 {
             return Err(NaclacError::ConstraintAccountIsNone);
         }
-        let actual = Address::new_from_array(data[0..32].try_into().unwrap());
+        let actual = Address::new_from_array(
+            data[0..32]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        );
         if &actual != expected {
             return Err(NaclacError::ConstraintAccountIsNone);
         }
@@ -1292,7 +1328,11 @@ impl TokenAccount {
         if data.len() < 64 {
             return Err(NaclacError::ConstraintAccountIsNone);
         }
-        let actual = Address::new_from_array(data[32..64].try_into().unwrap());
+        let actual = Address::new_from_array(
+            data[32..64]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        );
         if &actual != expected {
             return Err(NaclacError::ConstraintAddress);
         }
@@ -1324,7 +1364,11 @@ impl Mint {
         if data[0..4] != [1u8, 0, 0, 0] {
             return Err(NaclacError::Unauthorized);
         }
-        let actual = Address::new_from_array(data[4..36].try_into().unwrap());
+        let actual = Address::new_from_array(
+            data[4..36]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        );
         if &actual != expected {
             return Err(NaclacError::ConstraintAddress);
         }
@@ -1343,7 +1387,11 @@ impl Mint {
         if data[46..50] != [1u8, 0, 0, 0] {
             return Err(NaclacError::Unauthorized);
         }
-        let actual = Address::new_from_array(data[50..82].try_into().unwrap());
+        let actual = Address::new_from_array(
+            data[50..82]
+                .try_into()
+                .unwrap_or_else(|_| panic!("slice length mismatch")),
+        );
         if &actual != expected {
             return Err(NaclacError::ConstraintAddress);
         }

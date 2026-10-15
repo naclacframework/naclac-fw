@@ -39,7 +39,7 @@ export class TokenBorshClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider, false);
+    this.program = new naclac.LegacyProgram(IDL, provider, false, []);
   }
 
   /**

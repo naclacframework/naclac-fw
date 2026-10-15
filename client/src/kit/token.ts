@@ -4,6 +4,8 @@ import {
   pipe,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
+  setTransactionMessageComputeUnitLimit,
+  setTransactionMessageLoadedAccountsDataSizeLimit,
   appendTransactionMessageInstruction,
   appendTransactionMessageInstructions,
   signTransactionMessageWithSigners,
@@ -16,7 +18,7 @@ import {
   getCreateAssociatedTokenIdempotentInstruction,
   getMintToInstruction,
 } from "@solana-program/token-2022";
-import type { NaclacProvider } from "./provider";
+import { type NaclacProvider, normalizeTxVersion } from "./provider";
 import { getAssociatedTokenAddress } from "../utils/pda";
 export { getAssociatedTokenAddress };
 
@@ -61,14 +63,23 @@ export async function createMint(
     { programAddress: address(tokenProgram) },
   );
 
+  const targetVersion = normalizeTxVersion(provider.defaultTxVersion);
+  const baseMsg = targetVersion === 1
+    ? pipe(
+        createTransactionMessage({ version: 1 }),
+        (msg) => setTransactionMessageComputeUnitLimit(1_400_000, msg),
+        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(64 * 1024 * 1024, msg),
+      )
+    : createTransactionMessage({ version: targetVersion });
+
   const txMessage = pipe(
-    createTransactionMessage({ version: "legacy" }),
-    (msg) => setTransactionMessageFeePayerSigner(provider.signer, msg),
-    (msg) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, msg),
-    (msg) => appendTransactionMessageInstructions([createAccountIx, initMintIx], msg)
+    baseMsg,
+    (msg: any) => setTransactionMessageFeePayerSigner(provider.signer, msg),
+    (msg: any) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, msg),
+    (msg: any) => appendTransactionMessageInstructions([createAccountIx, initMintIx], msg)
   );
 
-  const signedTx = await signTransactionMessageWithSigners(txMessage);
+  const signedTx = await signTransactionMessageWithSigners(txMessage as any);
   await getSendAndConfirm(provider)(signedTx as any);
   return mintSigner.address as string;
 }
@@ -100,14 +111,23 @@ export async function createAta(
     tokenProgram: address(tokenProgram),
   });
 
+  const targetVersion = normalizeTxVersion(provider.defaultTxVersion);
+  const baseMsg = targetVersion === 1
+    ? pipe(
+        createTransactionMessage({ version: 1 }),
+        (msg) => setTransactionMessageComputeUnitLimit(1_400_000, msg),
+        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(64 * 1024 * 1024, msg),
+      )
+    : createTransactionMessage({ version: targetVersion });
+
   const txMessage = pipe(
-    createTransactionMessage({ version: "legacy" }),
-    (msg) => setTransactionMessageFeePayerSigner(provider.signer, msg),
-    (msg) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, msg),
-    (msg) => appendTransactionMessageInstruction(createAtaIx, msg)
+    baseMsg,
+    (msg: any) => setTransactionMessageFeePayerSigner(provider.signer, msg),
+    (msg: any) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, msg),
+    (msg: any) => appendTransactionMessageInstruction(createAtaIx, msg)
   );
 
-  const signedTx = await signTransactionMessageWithSigners(txMessage);
+  const signedTx = await signTransactionMessageWithSigners(txMessage as any);
   await getSendAndConfirm(provider)(signedTx as any);
   return ata as string;
 }
@@ -146,13 +166,22 @@ export async function mintTo(
     { programAddress: address(tokenProgram) }
   );
 
+  const targetVersion = normalizeTxVersion(provider.defaultTxVersion);
+  const baseMsg = targetVersion === 1
+    ? pipe(
+        createTransactionMessage({ version: 1 }),
+        (msg) => setTransactionMessageComputeUnitLimit(1_400_000, msg),
+        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(64 * 1024 * 1024, msg),
+      )
+    : createTransactionMessage({ version: targetVersion });
+
   const txMessage = pipe(
-    createTransactionMessage({ version: "legacy" }),
-    (msg) => setTransactionMessageFeePayerSigner(provider.signer, msg),
-    (msg) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, msg),
-    (msg) => appendTransactionMessageInstructions([createAtaIx, mintToIx], msg)
+    baseMsg,
+    (msg: any) => setTransactionMessageFeePayerSigner(provider.signer, msg),
+    (msg: any) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, msg),
+    (msg: any) => appendTransactionMessageInstructions([createAtaIx, mintToIx], msg)
   );
 
-  const signedTx = await signTransactionMessageWithSigners(txMessage);
+  const signedTx = await signTransactionMessageWithSigners(txMessage as any);
   await getSendAndConfirm(provider)(signedTx as any);
 }

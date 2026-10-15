@@ -14,7 +14,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -23,8 +23,8 @@ use std::str::FromStr;
 const PUMP_PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
 const GLOBAL_DISCRIMINATOR: [u8; 8] = [167, 232, 232, 177, 200, 108, 114, 127];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -33,7 +33,7 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn global_account_data(authority: &Pubkey, buyback_marker: &Pubkey, whitelisted_quote_mint: &Pubkey) -> Vec<u8> {
+fn global_account_data(authority: &Address, buyback_marker: &Address, whitelisted_quote_mint: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&GLOBAL_DISCRIMINATOR);
     data.push(1);
@@ -61,31 +61,31 @@ fn global_account_data(authority: &Pubkey, buyback_marker: &Pubkey, whitelisted_
     data
 }
 
-fn run_case(svm: &mut LiteSVM, pump_program: &Pubkey, label: &str, disc: [u8; 8], extra_args: &[u8], extra_accounts: Vec<AccountMeta>) {
-    run_case_with_whitelist(svm, pump_program, label, disc, extra_args, extra_accounts, &Pubkey::default())
+fn run_case(svm: &mut LiteSVM, pump_program: &Address, label: &str, disc: [u8; 8], extra_args: &[u8], extra_accounts: Vec<AccountMeta>) {
+    run_case_with_whitelist(svm, pump_program, label, disc, extra_args, extra_accounts, &Address::default())
 }
 
 fn run_case_with_whitelist(
     svm: &mut LiteSVM,
-    pump_program: &Pubkey,
+    pump_program: &Address,
     label: &str,
     disc: [u8; 8],
     extra_args: &[u8],
     extra_accounts: Vec<AccountMeta>,
-    whitelisted_quote_mint: &Pubkey,
+    whitelisted_quote_mint: &Address,
 ) {
     let authority = Keypair::new();
     svm.airdrop(&authority.pubkey(), 10_000_000_000).unwrap();
-    let buyback_marker = Pubkey::new_unique();
+    let buyback_marker = Address::new_unique();
 
-    let (global, _) = Pubkey::find_program_address(&[b"global"], pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], pump_program);
     svm.set_account(
         global,
         Account { lamports: 10_000_000, data: global_account_data(&authority.pubkey(), &buyback_marker, whitelisted_quote_mint), owner: *pump_program, executable: false, rent_epoch: 0 },
     )
     .unwrap();
 
-    let (event_authority, _) = Pubkey::find_program_address(&[b"__event_authority"], pump_program);
+    let (event_authority, _) = Address::find_program_address(&[b"__event_authority"], pump_program);
 
     let mut data = disc.to_vec();
     data.extend_from_slice(extra_args);
@@ -125,7 +125,7 @@ fn main() {
     svm.add_program_from_file(pump_program, &so_path).unwrap_or_else(|e| panic!("load pump.so: {e:?}"));
     svm.set_sysvar::<Clock>(&Clock { unix_timestamp: 1_700_000_000, slot: 100, epoch: 0, leader_schedule_epoch: 0, epoch_start_timestamp: 0 });
 
-    let quote_mint = Pubkey::new_unique();
+    let quote_mint = Address::new_unique();
     // Previous run failed early on "quote mint not whitelisted" before ever
     // reaching whatever else the instruction does -- pre-whitelist it this
     // time so we actually see past that check.
@@ -142,7 +142,7 @@ fn main() {
     run_case(&mut svm, &pump_program, "toggle_cashback_enabled", [115, 103, 224, 255, 189, 89, 86, 195], &[1], vec![]);
     run_case(&mut svm, &pump_program, "toggle_create_v2", [28, 255, 230, 240, 172, 107, 203, 171], &[1], vec![]);
     run_case(&mut svm, &pump_program, "toggle_mayhem_mode", [1, 9, 111, 208, 100, 31, 255, 163], &[1], vec![]);
-    let new_authority = Pubkey::new_unique();
+    let new_authority = Address::new_unique();
     run_case(
         &mut svm,
         &pump_program,

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `close_vault_account` instruction. */
+/** Discriminator for the `close_vault_account` instruction. */
 export const CLOSE_VAULT_ACCOUNT_DISCRIMINATOR = new Uint8Array([39, 75, 108, 102, 35, 81, 100, 114]);
 
 /** Accounts for the `closeVaultAccount` instruction. */
@@ -14,8 +14,8 @@ export interface CloseVaultAccountAccounts {
    * `close_account_signed` below; its data is never read or deserialized.
    */
   destination: naclac.Address | string;
-  mint_authority?: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

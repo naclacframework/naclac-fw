@@ -1,14 +1,16 @@
-#![cfg_attr(feature = "pinocchio", no_std)]
+#![no_std]
 
 pub(crate) use naclac_core::wrappers;
 
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
 pub(crate) use naclac_core::cpi;
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio")))]
+#[cfg(all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")))]
 pub(crate) use naclac_core::borsh;
 
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")))]
+pub(crate) use naclac_core::wincode;
+
 extern crate alloc;
 
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
@@ -88,7 +90,10 @@ pub mod prelude {
     };
 
     #[cfg(all(feature = "solana", not(feature = "pinocchio")))]
-    pub use crate::extensions::{transfer_checked_with_hook, transfer_checked_with_hook_signed};
+    pub use crate::extensions::{
+        transfer_checked_with_hook, transfer_checked_with_hook_signed,
+        TransferCheckedWithHookAccounts,
+    };
 
     #[cfg(feature = "pinocchio")]
     pub use crate::{

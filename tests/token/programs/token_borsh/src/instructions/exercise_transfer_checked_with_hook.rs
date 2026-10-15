@@ -47,13 +47,15 @@ pub fn exercise_transfer_checked_with_hook(
     extra_accounts.extend(ctx.remaining_accounts.iter().map(|info| info.to_cpi_handle()));
 
     naclac_lang::prelude::transfer_checked_with_hook_signed(
-        ctx.accounts.token_program.to_cpi_handle(),
-        ctx.accounts.source.to_cpi_handle_mut(),
-        ctx.accounts.mint.to_cpi_handle(),
-        ctx.accounts.destination.to_cpi_handle_mut(),
-        ctx.accounts.mint_authority.to_cpi_handle(),
-        ctx.accounts.hook_program.to_cpi_handle(),
-        &extra_accounts,
+        naclac_lang::prelude::TransferCheckedWithHookAccounts {
+            program: ctx.accounts.token_program.to_cpi_handle(),
+            from: ctx.accounts.source.to_cpi_handle_mut(),
+            mint: ctx.accounts.mint.to_cpi_handle(),
+            to: ctx.accounts.destination.to_cpi_handle_mut(),
+            authority: ctx.accounts.mint_authority.to_cpi_handle(),
+            hook_program: ctx.accounts.hook_program.to_cpi_handle(),
+            extra_accounts: &extra_accounts,
+        },
         amount,
         decimals,
         signer,

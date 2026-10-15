@@ -17,7 +17,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     rent::Rent,
     signature::{Keypair, Signer},
     transaction::Transaction,
@@ -46,8 +46,8 @@ const MINT_WHITELIST_V1_SEED: &[u8] = b"mint_whitelist_v1";
 const DONATION_FEE_PDA_LEN: usize = 8 + 1 + 1 + 32 * 4 + 8 + 8 + 64;
 const TOKEN_ACCOUNT_LEN: usize = 165;
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -56,8 +56,8 @@ fn set_compute_unit_limit_ix(units: u32) -> Instruction {
     Instruction { program_id: pk("ComputeBudget111111111111111111111111111111"), accounts: vec![], data }
 }
 
-fn ata_address(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
+fn ata_address(owner: &Address, mint: &Address, token_program: &Address) -> Address {
+    Address::find_program_address(&[owner.as_ref(), token_program.as_ref(), mint.as_ref()], &pk(ASSOCIATED_TOKEN_PROGRAM_ID)).0
 }
 
 fn mint_account_data(decimals: u8) -> Vec<u8> {
@@ -68,7 +68,7 @@ fn mint_account_data(decimals: u8) -> Vec<u8> {
     data
 }
 
-fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64, is_native_reserve: Option<u64>) -> Vec<u8> {
+fn token_account_data(mint: &Address, owner: &Address, amount: u64, is_native_reserve: Option<u64>) -> Vec<u8> {
     let mut data = vec![0u8; 165];
     data[0..32].copy_from_slice(mint.as_ref());
     data[32..64].copy_from_slice(owner.as_ref());
@@ -84,10 +84,10 @@ fn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64, is_native_rese
 fn donation_fee_pda_account_data(
     bump: u8,
     version: u8,
-    config_id: &Pubkey,
-    base_mint: &Pubkey,
-    quote_mint: &Pubkey,
-    creator: &Pubkey,
+    config_id: &Address,
+    base_mint: &Address,
+    quote_mint: &Address,
+    creator: &Address,
     total_donated: u64,
     last_crank_ts: i64,
 ) -> Vec<u8> {
@@ -105,7 +105,7 @@ fn donation_fee_pda_account_data(
     data
 }
 
-fn fee_program_global_account_data(bump: u8, authority: &Pubkey) -> Vec<u8> {
+fn fee_program_global_account_data(bump: u8, authority: &Address) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&FEE_PROGRAM_GLOBAL_DISCRIMINATOR);
     data.push(bump);
@@ -117,7 +117,7 @@ fn fee_program_global_account_data(bump: u8, authority: &Pubkey) -> Vec<u8> {
     data
 }
 
-fn mint_whitelist_v1_account_data(bump: u8, mints: &[Pubkey]) -> Vec<u8> {
+fn mint_whitelist_v1_account_data(bump: u8, mints: &[Address]) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(&MINT_WHITELIST_V1_DISCRIMINATOR);
     data.push(bump);
@@ -156,12 +156,12 @@ fn run_case(label: &str, donation_fee_pda_excess_lamports: u64, ata_balance: u64
     )
     .unwrap();
 
-    let base_mint = Pubkey::new_unique();
-    let config_id = Pubkey::new_unique();
-    let creator = Pubkey::new_unique();
+    let base_mint = Address::new_unique();
+    let config_id = Address::new_unique();
+    let creator = Address::new_unique();
 
     let (donation_fee_pda, df_bump) =
-        Pubkey::find_program_address(&[b"donation-fee-pda", base_mint.as_ref(), config_id.as_ref()], &fees_program);
+        Address::find_program_address(&[b"donation-fee-pda", base_mint.as_ref(), config_id.as_ref()], &fees_program);
 
     let rent = Rent::default();
     let df_rent_exempt = rent.minimum_balance(DONATION_FEE_PDA_LEN);
@@ -193,12 +193,12 @@ fn run_case(label: &str, donation_fee_pda_excess_lamports: u64, ata_balance: u64
     )
     .unwrap();
 
-    let (fee_program_global, fpg_bump) = Pubkey::find_program_address(&[b"fee-program-global"], &fees_program);
+    let (fee_program_global, fpg_bump) = Address::find_program_address(&[b"fee-program-global"], &fees_program);
     svm.set_account(
         fee_program_global,
         Account {
             lamports: 10_000_000,
-            data: fee_program_global_account_data(fpg_bump, &Pubkey::new_unique()),
+            data: fee_program_global_account_data(fpg_bump, &Address::new_unique()),
             owner: fees_program,
             executable: false,
             rent_epoch: 0,
@@ -206,7 +206,7 @@ fn run_case(label: &str, donation_fee_pda_excess_lamports: u64, ata_balance: u64
     )
     .unwrap();
 
-    let (mint_whitelist, mw_bump) = Pubkey::find_program_address(&[MINT_WHITELIST_V1_SEED], &donation_relay_program);
+    let (mint_whitelist, mw_bump) = Address::find_program_address(&[MINT_WHITELIST_V1_SEED], &donation_relay_program);
     svm.set_account(
         mint_whitelist,
         Account { lamports: 10_000_000, data: mint_whitelist_v1_account_data(mw_bump, &[]), owner: donation_relay_program, executable: false, rent_epoch: 0 },
@@ -214,13 +214,13 @@ fn run_case(label: &str, donation_fee_pda_excess_lamports: u64, ata_balance: u64
     .unwrap();
 
     let (epoch_tracker, _) =
-        Pubkey::find_program_address(&[EPOCH_TRACKER_V1_SEED, config_id.as_ref(), wsol_mint.as_ref()], &donation_relay_program);
+        Address::find_program_address(&[EPOCH_TRACKER_V1_SEED, config_id.as_ref(), wsol_mint.as_ref()], &donation_relay_program);
     let (debouncer, _) =
-        Pubkey::find_program_address(&[DEBOUNCER_V1_SEED, config_id.as_ref(), wsol_mint.as_ref()], &donation_relay_program);
+        Address::find_program_address(&[DEBOUNCER_V1_SEED, config_id.as_ref(), wsol_mint.as_ref()], &donation_relay_program);
     let debouncer_ata = ata_address(&debouncer, &wsol_mint, &token_program);
 
-    let event_authority = Pubkey::find_program_address(&[b"__event_authority"], &fees_program).0;
-    let donation_relay_event_authority = Pubkey::find_program_address(&[b"__event_authority"], &donation_relay_program).0;
+    let event_authority = Address::find_program_address(&[b"__event_authority"], &fees_program).0;
+    let donation_relay_event_authority = Address::find_program_address(&[b"__event_authority"], &donation_relay_program).0;
 
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 100_000_000_000).unwrap();
@@ -252,7 +252,7 @@ fn run_case(label: &str, donation_fee_pda_excess_lamports: u64, ata_balance: u64
     let budget_ix = set_compute_unit_limit_ix(400_000);
     let blockhash = svm.latest_blockhash();
     let msg = Message::new(&[budget_ix, ix], Some(&payer.pubkey()));
-    let account_keys: Vec<Pubkey> = msg.account_keys.clone();
+    let account_keys: Vec<Address> = msg.account_keys.clone();
     let tx = Transaction::new(&[&payer], msg, blockhash);
 
     println!("--- {label} ---");

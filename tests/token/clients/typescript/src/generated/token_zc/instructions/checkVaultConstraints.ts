@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_vault_constraints` instruction. */
+/** Discriminator for the `check_vault_constraints` instruction. */
 export const CHECK_VAULT_CONSTRAINTS_DISCRIMINATOR = new Uint8Array([1, 137, 39, 253, 229, 182, 25, 55]);
 
 /** Accounts for the `checkVaultConstraints` instruction. */

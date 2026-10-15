@@ -101,7 +101,7 @@ pub fn create_mint2022_with_group_member_pointer_and_member(
     // handle's own `.info` rather than re-borrowing `ctx.accounts.member_mint`,
     // same reasoning as `create_mint2022_with_metadata_pointer_and_metadata.rs`.
     let member_handle = ctx.accounts.member_mint.to_cpi_handle_mut();
-    let member_mint_info = member_handle.info.clone();
+    let member_mint_info = member_handle.info;
     let member_mint_handle = member_mint_info.to_cpi_handle();
     naclac_lang::prelude::initialize_token_group_member_signed(
         ctx.accounts.token_program.to_cpi_handle(),

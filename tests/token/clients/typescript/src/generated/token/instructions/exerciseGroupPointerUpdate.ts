@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `exercise_group_pointer_update` instruction. */
+/** Discriminator for the `exercise_group_pointer_update` instruction. */
 export const EXERCISE_GROUP_POINTER_UPDATE_DISCRIMINATOR = new Uint8Array([5, 142, 18, 129, 180, 136, 196, 195]);
 
 /** Instruction arguments for `exerciseGroupPointerUpdate`. */
 export interface ExerciseGroupPointerUpdateArgs {
-  new_group_address: naclac.Address | string;
+  newGroupAddress: naclac.Address | string;
 }
 
 /** Accounts for the `exerciseGroupPointerUpdate` instruction. */
 export interface ExerciseGroupPointerUpdateAccounts {
-  mint_authority?: naclac.Address | string;
+  mintAuthority?: naclac.Address | string;
   mint: naclac.Address | string;
-  token_program?: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
 }
 
 /**

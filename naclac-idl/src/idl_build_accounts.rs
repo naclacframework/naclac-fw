@@ -53,7 +53,7 @@ impl IdlSeedBuild {
             IdlSeedBuild::Account { path, account_type } => {
                 let field_type = account_type.and_then(|ty_name| {
                     let field_name = path.split_once('.')?.1;
-                    let IdlTypeDef::Struct { fields } = types.get(&ty_name)? else {
+                    let IdlTypeDef::Struct { fields, .. } = types.get(&ty_name)? else {
                         return None;
                     };
                     fields

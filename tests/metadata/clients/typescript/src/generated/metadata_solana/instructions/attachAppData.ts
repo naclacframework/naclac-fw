@@ -3,19 +3,19 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `attach_app_data` instruction. */
+/** Discriminator for the `attach_app_data` instruction. */
 export const ATTACH_APP_DATA_DISCRIMINATOR = new Uint8Array([116, 162, 102, 210, 219, 233, 28, 114]);
 
 /** Accounts for the `attachAppData` instruction. */
 export interface AttachAppDataAccounts {
   asset: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /**
    * The external Metaplex Core program to CPI into.
    * SAFETY: the real Metaplex Core program — external to this workspace.
    */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

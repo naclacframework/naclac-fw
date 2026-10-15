@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `check_collection` instruction. */
+/** Discriminator for the `check_collection` instruction. */
 export const CHECK_COLLECTION_DISCRIMINATOR = new Uint8Array([63, 75, 228, 213, 32, 144, 198, 172]);
 
 /** Instruction arguments for `checkCollection`. */
 export interface CheckCollectionArgs {
-  expected_update_authority: naclac.Address | string;
-  expected_name: string;
-  expected_uri: string;
-  expected_num_minted: number;
-  expected_current_size: number;
+  expectedUpdateAuthority: naclac.Address | string;
+  expectedName: string;
+  expectedUri: string;
+  expectedNumMinted: number;
+  expectedCurrentSize: number;
 }
 
 /** Accounts for the `checkCollection` instruction. */

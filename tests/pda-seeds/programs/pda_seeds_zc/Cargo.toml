@@ -5,7 +5,7 @@ description = "Regression test: PDA seed-expression classification (solana-zeroc
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []

@@ -1,0 +1,139 @@
+---
+title: "Define Instructions Using the #[naclac_program] Macro"
+sidebarTitle: "Instructions"
+description: "Use the #[naclac_program] macro to define your Solana program's entry point and instruction handlers with automatic dispatch and zero boilerplate."
+---
+
+The `#[naclac_program]` macro transforms a plain Rust module into a fully wired Solana program entry point — generating an optimized `match` dispatcher keyed on 8-byte SHA256 discriminators. Every public function inside the module becomes a dispatchable instruction with no manual routing code required.
+
+## Basic Program Structure
+
+Start with `lib.rs` at the root of your program crate. Declare your program ID, import your instruction modules, and annotate the `mod` block with `#[naclac_program]`:
+
+```rust
+use naclac_lang::prelude::*;
+
+declare_id!("YourProgramIdHere...");
+
+pub mod components;
+pub mod instructions;
+pub mod events;
+pub mod errors;
+pub mod constants;
+
+use instructions::*;
+
+#[naclac_program]
+pub mod my_program {
+    pub fn initialize(ctx: Context<Initialize>) -> Result {
+        instructions::initialize::initialize(ctx)
+    }
+
+    pub fn increment(ctx: Context<Increment>) -> Result {
+        instructions::increment::increment(ctx)
+    }
+}
+```
+
+Each function in the module is a thin dispatcher: it receives the validated `Context<T>` and delegates to the real implementation in its instruction module. This separation keeps `lib.rs` clean and makes each instruction independently testable.
+
+## Instruction Handler Signature
+
+Every public function inside `#[naclac_program]` must return `Result` — a type alias for `core::result::Result<(), ProgramError>` provided by `naclac_lang::prelude`. The first argument is always `Context<T>`, where `T` is your accounts struct for that instruction.
+
+Additional instruction arguments follow after `ctx`. In standard Borsh mode they are deserialized with `BorshDeserialize`; in zero-copy mode they are read directly from the instruction data buffer with no allocation:
+
+```rust
+pub fn transfer_tokens(
+    ctx: Context<TransferTokens>,
+    amount: u64,
+    memo: ZcString,  // zero-copy string — no allocation
+) -> Result {
+    instructions::transfer_tokens::transfer_tokens(ctx, amount, memo)
+}
+```
+
+**`Context<T>`** is a struct that bundles three things your instruction needs:
+
+| Field | Type | Description |
+|---|---|---|
+| `ctx.accounts` | `T` (hydrated) | Your validated accounts struct, ready to use |
+| `ctx.bumps` | `T::BumpsStruct` | Auto-generated bump map for every PDA in `T` |
+| `ctx.program_id` | `&Pubkey` | The currently executing program's public key |
+
+**`ZcString`** and **`ZcVec<T>`** (an alias for `Span<T>`) are zero-copy slice wrappers that borrow directly from the instruction data buffer. Use them for dynamic-length instruction arguments instead of `String` or `Vec<T>` when you want to avoid heap allocation.
+
+## Instruction Handler Functions
+
+Place your actual instruction logic in dedicated files under `src/instructions/`, as a plain function:
+
+```rust
+use naclac_lang::prelude::*;
+
+pub fn initialize(ctx: Context<Initialize>) -> Result {
+    let counter = &mut ctx.accounts.counter_account;
+
+    counter.authority = ctx.accounts.payer.key();
+    counter.count = 0;
+    counter.bump = ctx.bumps.counter_account;
+
+    Ok(())
+}
+```
+
+No attribute is needed on the handler itself — wiring it into dispatch and the IDL happens entirely through the `#[program] mod { ... }` block (see the [Program Structure](/concepts/workspace-structure) guide), which declares a thin wrapper that calls out to your handler:
+
+```rust
+#[program]
+pub mod counter {
+    pub fn initialize(ctx: Context<Initialize>) -> Result {
+        initialize::initialize(ctx)
+    }
+}
+```
+
+Zero-copy vs. Borsh argument deserialization is chosen automatically from the crate's own `borsh`/`pinocchio` feature flags — nothing to opt into per-function.
+
+## Discriminators
+
+Naclac generates an 8-byte discriminator for each instruction by computing `SHA256("global:<function_name>")` and taking the first 8 bytes — the same algorithm used by Anchor. This means Naclac programs are wire-compatible with Anchor-generated TypeScript clients out of the box.
+
+The dispatcher in the generated entry point looks up the first 8 bytes of instruction data and routes to the matching handler:
+
+```
+SHA256("global:initialize") → [af, af, 6d, 7c, 55, 43, 56, 01]
+SHA256("global:increment")  → [e9, 22, 8f, 6b, 42, 3c, 84, 7e]
+```
+
+Because discriminators are derived from the function name, **two instructions with the same name in the same program will produce a collision** — the second will silently shadow the first. Always use unique, descriptive function names across your entire `#[naclac_program]` module.
+
+## Zero-Copy Mode Entry Point
+
+To enable zero-copy instruction dispatch across your entire program, pass the `zero_copy` argument to `#[naclac_program]`:
+
+```rust
+#[naclac_program(zero_copy)]
+pub mod my_program {
+    pub fn initialize(ctx: Context<Initialize>) -> Result {
+        instructions::initialize::initialize(ctx)
+    }
+
+    pub fn increment(ctx: Context<Increment>) -> Result {
+        instructions::increment::increment(ctx)
+    }
+}
+```
+
+In this mode, instruction arguments are read directly from the raw `&[u8]` buffer via `NaclacPod::naclac_from_bytes` — a `core::ptr::read_unaligned` under the hood — with no Borsh parsing overhead. Your accounts structs must use `#[derive(AccountsLoader)]` and your components must use `#[component(zero_copy)]`. Instruction handlers should be annotated with `#[instruction(zero_copy)]`.
+
+For Pinocchio mode (`#![no_std]`), `zero_copy` is always active regardless of the attribute argument. The generated entry point uses stack-allocated arrays throughout and never touches the heap.
+
+## `declare_id!`
+
+`declare_id!` registers your program's on-chain public key as a compile-time constant. On the Solana backend it delegates to `solana_program::declare_id!`; on Pinocchio it produces a `pub const ID: Pubkey` via compile-time address parsing:
+
+```rust
+declare_id!("YourProgramIdHere...");
+```
+
+`naclac build` automatically keeps this value in sync with the keypair at `target/deploy/<program_name>-keypair.json`. If the keypair doesn't exist yet, `naclac build` generates one, derives the public key, and patches `declare_id!` before compiling. You should commit `declare_id!` with your production program ID once you have deployed to mainnet.

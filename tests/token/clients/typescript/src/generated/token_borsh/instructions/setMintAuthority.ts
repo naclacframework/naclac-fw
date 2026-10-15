@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `set_mint_authority` instruction. */
+/** Discriminator for the `set_mint_authority` instruction. */
 export const SET_MINT_AUTHORITY_DISCRIMINATOR = new Uint8Array([67, 127, 155, 187, 100, 174, 103, 121]);
 
 /** Instruction arguments for `setMintAuthority`. */

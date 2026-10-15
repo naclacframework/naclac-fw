@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `remove_groups_from_group` instruction. */
+/** Discriminator for the `remove_groups_from_group` instruction. */
 export const REMOVE_GROUPS_FROM_GROUP_DISCRIMINATOR = new Uint8Array([251, 98, 149, 67, 60, 147, 135, 138]);
 
 /** Accounts for the `removeGroupsFromGroup` instruction. */
 export interface RemoveGroupsFromGroupAccounts {
   group: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

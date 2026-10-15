@@ -3,16 +3,16 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `remove_assets_from_group` instruction. */
+/** Discriminator for the `remove_assets_from_group` instruction. */
 export const REMOVE_ASSETS_FROM_GROUP_DISCRIMINATOR = new Uint8Array([172, 158, 180, 12, 76, 178, 64, 141]);
 
 /** Accounts for the `removeAssetsFromGroup` instruction. */
 export interface RemoveAssetsFromGroupAccounts {
   group: naclac.Address | string;
   payer: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
   /** SAFETY: the real Metaplex Core program — external to this workspace. */
-  mpl_core_program: naclac.Address | string;
+  mplCoreProgram: naclac.Address | string;
 }
 
 /**

@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `touch_boxed_optional` instruction. */
+/** Discriminator for the `touch_boxed_optional` instruction. */
 export const TOUCH_BOXED_OPTIONAL_DISCRIMINATOR = new Uint8Array([44, 5, 78, 189, 42, 214, 82, 212]);
 
 /** Accounts for the `touchBoxedOptional` instruction. */

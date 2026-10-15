@@ -98,8 +98,12 @@ pub fn generate_any_of_space_expr(
 ) -> TokenStream {
     let arms = types.iter().map(|ty| {
         quote! {
-            if __disc == <#ty as naclac_lang::prelude::Discriminator>::DISCRIMINATOR {
-                8 + core::mem::size_of::<#ty>()
+            if __data.len() >= <#ty as naclac_lang::prelude::Discriminator>::DISCRIMINATOR.len()
+                && &__data[..<#ty as naclac_lang::prelude::Discriminator>::DISCRIMINATOR.len()]
+                    == <#ty as naclac_lang::prelude::Discriminator>::DISCRIMINATOR
+            {
+                <#ty as naclac_lang::prelude::Discriminator>::DISCRIMINATOR.len()
+                    + core::mem::size_of::<#ty>()
             }
         }
     });
@@ -110,17 +114,29 @@ pub fn generate_any_of_space_expr(
         }
     };
 
+    let min_disc_len = quote! {
+        {
+            let mut __min = usize::MAX;
+            #(
+                let __len = <#types as naclac_lang::prelude::Discriminator>::DISCRIMINATOR.len();
+                if __len < __min {
+                    __min = __len;
+                }
+            )*
+            __min
+        }
+    };
+
     if grow_only {
         quote! {
             {
                 let __data = #field_name.try_borrow_data()?;
-                if __data.len() < 8 {
+                if __data.len() < #min_disc_len {
                     return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(#idx));
                 }
-                let __disc: [u8; 8] = __data[..8].try_into().unwrap();
                 let __current_len = __data.len();
-                drop(__data);
                 let __matched_size = #matched_size;
+                drop(__data);
                 core::cmp::max(__current_len, __matched_size)
             }
         }
@@ -128,12 +144,12 @@ pub fn generate_any_of_space_expr(
         quote! {
             {
                 let __data = #field_name.try_borrow_data()?;
-                if __data.len() < 8 {
+                if __data.len() < #min_disc_len {
                     return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(#idx));
                 }
-                let __disc: [u8; 8] = __data[..8].try_into().unwrap();
+                let __matched_size = #matched_size;
                 drop(__data);
-                #matched_size
+                __matched_size
             }
         }
     }

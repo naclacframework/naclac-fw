@@ -1,6 +1,7 @@
 use naclac_lang::prelude::*;
 use crate::components::escrow_state::EscrowState;
 use crate::constants::SEED_ESCROW;
+use crate::errors::EscrowError;
 use crate::events::EscrowExchanged;
 
 #[derive(Accounts)]
@@ -9,6 +10,7 @@ pub struct Take {
     #[account(mut)]
     pub taker: Signer,
 
+    /// SAFETY: Verified through `escrow_state` PDA seed derivation; receives rent on close.
     #[account(mut)]
     pub maker: AccountInfo,
 
@@ -19,20 +21,38 @@ pub struct Take {
         mut,
         seeds = [SEED_ESCROW, maker.address().as_ref(), &seed.to_le_bytes()],
         bump = escrow_state.bump,
-        close = maker
+        close = maker,
+        mint_a = mint_a @ EscrowError::InvalidMint,
+        mint_b = mint_b @ EscrowError::InvalidMint,
     )]
     pub escrow_state: Account<EscrowState>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = mint_a,
+        token::authority = escrow_state,
+    )]
     pub vault_token_account: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = mint_a,
+        token::authority = taker,
+    )]
     pub taker_token_account_a: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = mint_b,
+        token::authority = taker,
+    )]
     pub taker_token_account_b: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = mint_b,
+        token::authority = maker,
+    )]
     pub maker_token_account_b: Account<TokenAccount>,
 
     pub token_program: Program<Token>,
@@ -40,47 +60,6 @@ pub struct Take {
 }
 
 pub fn take(ctx: Context<Take>, seed: u64) -> Result {
-    // Verify vault token account mint and owner
-    require!(
-        ctx.accounts.vault_token_account.mint() == ctx.accounts.mint_a.address(),
-        crate::errors::EscrowError::InvalidMint
-    );
-    require!(
-        ctx.accounts.mint_a.address() == ctx.accounts.escrow_state.mint_a,
-        crate::errors::EscrowError::InvalidMint
-    );
-    require!(
-        ctx.accounts.mint_b.address() == ctx.accounts.escrow_state.mint_b,
-        crate::errors::EscrowError::InvalidMint
-    );
-    require!(
-        ctx.accounts.vault_token_account.owner() == ctx.accounts.escrow_state.address(),
-        crate::errors::EscrowError::Unauthorized
-    );
-    require!(
-        ctx.accounts.taker_token_account_a.owner() == ctx.accounts.taker.address(),
-        crate::errors::EscrowError::Unauthorized
-    );
-    require!(
-        ctx.accounts.taker_token_account_a.mint() == ctx.accounts.escrow_state.mint_a,
-        crate::errors::EscrowError::InvalidMint
-    );
-    require!(
-        ctx.accounts.taker_token_account_b.owner() == ctx.accounts.taker.address(),
-        crate::errors::EscrowError::Unauthorized
-    );
-    require!(
-        ctx.accounts.taker_token_account_b.mint() == ctx.accounts.escrow_state.mint_b,
-        crate::errors::EscrowError::InvalidMint
-    );
-    require!(
-        ctx.accounts.maker_token_account_b.owner() == ctx.accounts.escrow_state.maker,
-        crate::errors::EscrowError::Unauthorized
-    );
-    require!(
-        ctx.accounts.maker_token_account_b.mint() == ctx.accounts.escrow_state.mint_b,
-        crate::errors::EscrowError::InvalidMint
-    );
 
     // 1. Taker transfers Token B directly to the Maker
     let decimals_b = ctx.accounts.mint_b.decimals();

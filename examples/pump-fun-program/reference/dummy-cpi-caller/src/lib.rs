@@ -8,13 +8,13 @@
 //! the calling program's identity specifically, or on CPI context in
 //! general. Not part of any real deployment; exists only for this probe.
 
-use solana_program::{
+use solana_{
     account_info::AccountInfo,
     entrypoint,
     entrypoint::ProgramResult,
     instruction::{AccountMeta, Instruction},
     program::invoke_signed,
-    pubkey::Pubkey,
+    pubkey::Address,
 };
 
 entrypoint!(process_instruction);
@@ -22,7 +22,7 @@ entrypoint!(process_instruction);
 const INIT_BOOST_DISCRIMINATOR: [u8; 8] = [140, 233, 33, 94, 132, 90, 194, 143];
 
 fn process_instruction(
-    program_id: &Pubkey,
+    program_id: &Address,
     accounts: &[AccountInfo],
     _instruction_data: &[u8],
 ) -> ProgramResult {
@@ -48,7 +48,7 @@ fn process_instruction(
     let pump_amm_program = &accounts[13];
 
     let (derived_pool_authority, bump) =
-        Pubkey::find_program_address(&[b"pool-authority", base_mint.key.as_ref()], program_id);
+        Address::find_program_address(&[b"pool-authority", base_mint.key.as_ref()], program_id);
     assert_eq!(&derived_pool_authority, pool_authority.key, "pool_authority PDA mismatch");
 
     let ix = Instruction {

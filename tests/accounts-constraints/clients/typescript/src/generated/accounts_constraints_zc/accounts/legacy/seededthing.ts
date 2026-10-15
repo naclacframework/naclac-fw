@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { SeededThing } from "../../types";
 
-/** 8-byte on-chain discriminator for `SeededThing` accounts. */
+/** On-chain discriminator for `SeededThing` accounts. */
 export const SEEDEDTHING_DISCRIMINATOR = new Uint8Array([108, 26, 3, 60, 128, 59, 161, 172]);
 
 /** Fetches a `SeededThing` account. Throws if it does not exist. */

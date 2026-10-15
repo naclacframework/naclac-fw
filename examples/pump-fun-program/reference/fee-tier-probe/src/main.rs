@@ -16,7 +16,7 @@ use solana_sdk::{
     account::Account,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -33,9 +33,9 @@ const GET_FEES_DISCRIMINATOR: [u8; 8] = [231, 37, 126, 85, 207, 91, 63, 52];
 /// `types` section, a tuple struct wrapping a single `bool` field (NOT an
 /// actual `Option<bool>` — no presence/absence tag), so it's just 1 byte.
 fn build_get_fees_ix(
-    program_id: Pubkey,
-    fee_config: Pubkey,
-    config_program_id: Pubkey,
+    program_id: Address,
+    fee_config: Address,
+    config_program_id: Address,
     is_pump_pool: bool,
     market_cap_lamports: u128,
     trade_size_lamports: u64,
@@ -61,9 +61,9 @@ fn build_get_fees_ix(
 fn run_get_fees(
     svm: &mut LiteSVM,
     payer: &Keypair,
-    program_id: Pubkey,
-    fee_config: Pubkey,
-    config_program_id: Pubkey,
+    program_id: Address,
+    fee_config: Address,
+    config_program_id: Address,
     is_pump_pool: bool,
     market_cap_lamports: u128,
     is_new_quote_mint: bool,
@@ -110,9 +110,9 @@ fn run_get_fees(
 }
 
 fn main() {
-    let program_id = Pubkey::from_str(PUMP_FEES_PROGRAM_ID).unwrap();
-    let config_program_id = Pubkey::from_str(PUMP_PROGRAM_ID).unwrap();
-    let fee_config = Pubkey::from_str(FEE_CONFIG).unwrap();
+    let program_id = Address::from_str(PUMP_FEES_PROGRAM_ID).unwrap();
+    let config_program_id = Address::from_str(PUMP_PROGRAM_ID).unwrap();
+    let fee_config = Address::from_str(FEE_CONFIG).unwrap();
 
     let mut svm = LiteSVM::new();
 

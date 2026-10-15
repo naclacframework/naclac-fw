@@ -2,7 +2,7 @@ use naclac_lang::prelude::*;
 use crate::components::Note;
 use crate::constants::SEED_NOTE;
 
-// Real runtime exercise of `Span<T>`/`ZcString` (naclac-core/src/wrappers/span.rs):
+// Real runtime exercise of `ZcVec<T>`/`ZcString` (naclac-core/src/wrappers/zc_vec.rs):
 // `text: ZcString` is a genuine zero-allocation instruction argument — parsed
 // via `accounts.rs`'s `is_zc_string` codegen branch directly out of the raw
 // instruction-data buffer (length-prefixed: 4-byte LE length + UTF-8 bytes),

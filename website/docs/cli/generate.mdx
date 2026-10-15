@@ -1,0 +1,51 @@
+---
+title: "naclac generate — Regenerate TypeScript Client SDK"
+sidebarTitle: "Generate"
+description: "naclac generate creates a fully-typed TypeScript client SDK from your program's IDL, enabling instant client integration without manual type definitions."
+---
+
+`naclac generate` reads the IDL JSON from `target/idl/` and produces a typed TypeScript client class in `clients/src/generated/`. Run it whenever you add or modify instructions, accounts, or events and want to refresh the client without triggering a full recompile. Under normal development flow, [`naclac build`](/cli/build) calls `naclac generate` automatically as its final step — you only need to run it manually when you want to regenerate the SDK without recompiling.
+
+## Usage
+
+```bash
+naclac generate [program_id]
+```
+
+## Arguments
+
+| Argument | Description |
+|---|---|
+| `[program_id]` | Name of a specific program to generate the SDK for. If omitted, all IDL files found in `target/idl/` are processed. |
+
+## When to Run
+
+`naclac build` always calls `naclac generate` at the end of a successful build, so you do not need to run it separately after a full rebuild. Run `naclac generate` manually in two scenarios:
+
+- **You changed an instruction signature, account layout, or event definition** and want to update the TypeScript SDK for testing without incurring the cost of a full `cargo build-sbf` compilation.
+- **You edited the IDL JSON directly** (for example, to add documentation metadata) and want to regenerate the client from the modified file.
+
+## Output
+
+For each IDL file processed, `naclac generate` produces a TypeScript module at `clients/src/generated/<name>.ts` containing:
+
+- **A typed client class** with one method per instruction. Each method accepts strongly-typed arguments matching the instruction's account and data parameters.
+- **Account fetch methods** that deserialize raw on-chain account data into typed structs using the layout described in the IDL.
+- **`waitFor` event methods** that subscribe to program logs and resolve when a matching event is emitted.
+- **PDA derivation helpers** for any program-derived addresses defined in the IDL, computing the correct seeds automatically.
+
+All types are inferred directly from the IDL so they stay in sync with your program's source code — there are no hand-written type definitions to maintain.
+
+## Examples
+
+```bash
+# Regenerate the SDK for all programs in the workspace
+naclac generate
+
+# Regenerate the SDK for a specific program
+naclac generate my_counter
+```
+
+## Prerequisites
+
+`target/idl/<name>.json` must exist before you run `naclac generate`. Run `naclac build` at least once to produce the IDL. Subsequent calls to `naclac generate` can be run independently as long as that file is present.

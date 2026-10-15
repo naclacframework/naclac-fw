@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "3SiLWRe94GRqgeQtXgdiWg3FxXJ5nUeTHfE8HwayedN3",
+  "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL",
   "metadata": {
     "name": "events",
     "version": "0.1.0",
@@ -74,7 +74,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -93,7 +94,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -107,7 +109,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -124,7 +127,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": [
@@ -144,7 +148,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": [
@@ -160,7 +165,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -174,7 +180,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -188,7 +195,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -202,7 +210,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -257,7 +266,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -274,7 +284,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -291,7 +302,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -308,7 +320,8 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -366,7 +379,204 @@ export const IDL = {
           "name": "program",
           "docs": [
             "SAFETY: only its address is checked; its data is never read."
-          ]
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_smoke",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [215,139,157,28,58,47,180,141],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_emit",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [115,58,67,15,26,157,167,201],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "emit_via_self_cpi_no_program",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [244,109,153,50,200,38,32,90],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`SEED_EVENT_AUTHORITY`) is checked here; it's the CPI target",
+            "(`log_event_signed`) that checks `is_signer`, once `invoke_signed`",
+            "below has actually marked it as one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121], "name": "SEED_EVENT_AUTHORITY" }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_emit_nested",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [229,106,112,83,88,45,84,6],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_noop",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [110,69,3,215,140,104,136,176],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_log_one",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [115,112,134,57,230,62,112,111],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "event_cpi_emit_one",
+      "optionalAccountStrategy": "programId",
+      "discriminator": [129,189,117,118,42,101,201,201],
+      "accounts": [
+        {
+          "name": "event_authority",
+          "docs": [
+            "SAFETY: only its address (against the PDA derived from",
+            "`b\"__event_authority\"`) is checked here; the CPI receiver",
+            "validates `is_signer` once `invoke_signed` has marked it as",
+            "one. Its data is never read."
+          ],
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121] }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "SAFETY: only its address is checked; its data is never read."
+          ],
+          "address": "7LLnnxsXFgpgmx4S8VqjpBrBmpgawekjiSfX1KsCs2AL"
         }
       ],
       "args": []
@@ -394,30 +604,17 @@ export const IDL = {
       ]
     },
     {
-      "name": "SizedPayload",
-      "docs": [
-        "Variable-length payload for the self-CPI vs. `sol_log_data` CU sweep —",
-        "`data`'s length is the swept variable. `alloc` mode is required here:",
-        "pinocchio is always zero-copy, so a `Vec<u8>` field needs the",
-        "single-allocation buffer path rather than `Pod`/`bytemuck`."
-      ],
-      "discriminator": [91,244,46,223,146,67,182,142],
-      "fields": [
-        { "name": "data", "type": { "vec": "u8" }, "index": false }
-      ]
-    },
-    {
-      "name": "FixedPayload8",
-      "discriminator": [1,19,146,129,209,148,205,202],
-      "fields": [
-        { "name": "data", "type": { "array": ["u8",8] }, "index": false }
-      ]
-    },
-    {
       "name": "FixedPayload128",
       "discriminator": [47,116,166,255,167,192,125,167],
       "fields": [
         { "name": "data", "type": { "array": ["u8",128] }, "index": false }
+      ]
+    },
+    {
+      "name": "FixedPayload2048",
+      "discriminator": [147,6,227,182,198,172,189,254],
+      "fields": [
+        { "name": "data", "type": { "array": ["u8",2048] }, "index": false }
       ]
     },
     {
@@ -428,10 +625,37 @@ export const IDL = {
       ]
     },
     {
-      "name": "FixedPayload2048",
-      "discriminator": [147,6,227,182,198,172,189,254],
+      "name": "FixedPayload8",
+      "discriminator": [1,19,146,129,209,148,205,202],
       "fields": [
-        { "name": "data", "type": { "array": ["u8",2048] }, "index": false }
+        { "name": "data", "type": { "array": ["u8",8] }, "index": false }
+      ]
+    },
+    {
+      "name": "NestedPadded",
+      "docs": [
+        "An `alloc` event whose fields are a padded `defined_type` used directly",
+        "and as a `Vec` element, so its wire bytes contain that internal padding."
+      ],
+      "discriminator": [182,137,64,73,204,158,195,164],
+      "fields": [
+        { "name": "head", "type": "u8", "index": false },
+        { "name": "inner", "type": { "defined": "PaddedInner" }, "index": false },
+        { "name": "many", "type": { "vec": { "defined": "PaddedInner" } }, "index": false },
+        { "name": "note", "type": "string", "index": false }
+      ]
+    },
+    {
+      "name": "SizedPayload",
+      "docs": [
+        "Variable-length payload for the self-CPI vs. `sol_log_data` CU sweep —",
+        "`data`'s length is the swept variable. `alloc` mode is required here:",
+        "pinocchio is always zero-copy, so a `Vec<u8>` field needs the",
+        "single-allocation buffer path rather than `Pod`/`bytemuck`."
+      ],
+      "discriminator": [91,244,46,223,146,67,182,142],
+      "fields": [
+        { "name": "data", "type": { "vec": "u8" }, "index": false }
       ]
     }
   ],
@@ -448,7 +672,22 @@ export const IDL = {
       "value": "[95, 95, 101, 118, 101, 110, 116, 95, 97, 117, 116, 104, 111, 114, 105, 116, 121]"
     }
   ],
-  "definedTypes": [],
+  "definedTypes": [
+    {
+      "name": "PaddedInner",
+      "docs": [
+        "`kind` (1 byte) followed by an 8-aligned `amount` leaves 7 bytes of",
+        "internal padding in this type's C layout."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "kind", "type": "u8" },
+          { "name": "amount", "type": "u64" }
+        ]
+      }
+    }
+  ],
   "pdas": [
     {
       "name": "counter",
@@ -462,7 +701,8 @@ export const IDL = {
         { "kind": "const", "value": [95,95,101,118,101,110,116,95,97,117,116,104,111,114,105,116,121], "name": "SEED_EVENT_AUTHORITY" }
       ]
     }
-  ]
+  ],
+  "eventCpiTag": [34,131,189,8,189,141,224,48]
 } as const;
 
 export type Events = typeof IDL;

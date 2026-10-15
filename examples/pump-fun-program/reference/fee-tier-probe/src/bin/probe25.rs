@@ -12,7 +12,7 @@ use solana_sdk::{
     clock::Clock,
     instruction::{AccountMeta, Instruction},
     message::Message,
-    pubkey::Pubkey,
+    pubkey::Address,
     signature::{Keypair, Signer},
     transaction::Transaction,
 };
@@ -21,8 +21,8 @@ use std::str::FromStr;
 const PUMP_PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
 const INITIALIZE_DISCRIMINATOR: [u8; 8] = [175, 175, 109, 31, 13, 152, 155, 237];
 
-fn pk(s: &str) -> Pubkey {
-    Pubkey::from_str(s).unwrap()
+fn pk(s: &str) -> Address {
+    Address::from_str(s).unwrap()
 }
 
 fn set_compute_unit_limit_ix(units: u32) -> Instruction {
@@ -43,7 +43,7 @@ fn main() {
 
     // Deliberately do NOT pre-set `global` — `initialize` is real `init`,
     // it must create the account itself. Nothing else pre-seeded.
-    let (global, _) = Pubkey::find_program_address(&[b"global"], &pump_program);
+    let (global, _) = Address::find_program_address(&[b"global"], &pump_program);
     println!("global = {global} (fresh, not yet created)\n");
 
     let data = INITIALIZE_DISCRIMINATOR.to_vec();
@@ -78,7 +78,7 @@ fn main() {
                 if !all_zero {
                     for i in 0..8 {
                         let entry = &stored[i * 32..i * 32 + 32];
-                        if let Ok(p) = Pubkey::try_from(entry) {
+                        if let Ok(p) = Address::try_from(entry) {
                             println!("  [{i}] {p}");
                         }
                     }

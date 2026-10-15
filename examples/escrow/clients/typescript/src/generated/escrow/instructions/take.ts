@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `take` instruction. */
+/** Discriminator for the `take` instruction. */
 export const TAKE_DISCRIMINATOR = new Uint8Array([149, 226, 52, 104, 6, 142, 230, 39]);
 
 /** Instruction arguments for `take`. */
@@ -14,6 +14,7 @@ export interface TakeArgs {
 /** Accounts for the `take` instruction. */
 export interface TakeAccounts {
   taker: naclac.Address | string;
+  /** SAFETY: Verified through `escrow_state` PDA seed derivation; receives rent on close. */
   maker: naclac.Address | string;
   mintA: naclac.Address | string;
   mintB: naclac.Address | string;

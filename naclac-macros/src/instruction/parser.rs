@@ -574,7 +574,10 @@ fn parse_one_field(idx: usize, field: &syn::Field) -> syn::Result<ParsedField> {
     // returns `quote!{}` when `init_config` is `None`) with no compile-time
     // signal that `init` did nothing. See
     // `naclac-macros/docs/derive-accounts-gaps-audit.md`'s gap #2.
-    match (is_init || is_init_if_needed || is_init_unchecked, init_payer) {
+    match (
+        is_init || is_init_if_needed || is_init_unchecked,
+        init_payer,
+    ) {
         (true, Some(payer)) => {
             init_config = Some(InitConfig {
                 payer,

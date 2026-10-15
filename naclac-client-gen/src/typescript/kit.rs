@@ -60,8 +60,9 @@ pub fn generate_kit_client(
     // the runtime `Program` knows which wire layout (`defined_types`)
     // to use without needing it in the IDL data.
     client_content.push_str(&format!(
-        "    this.program = new naclac.Program(IDL, provider, {});\n",
-        idl.is_zero_copy
+        "    this.program = new naclac.Program(IDL, provider, {}, {});\n",
+        idl.is_zero_copy,
+        super::shared::alloc_events_literal(idl)?
     ));
     client_content.push_str("  }\n\n");
 
@@ -208,7 +209,8 @@ pub fn generate_kit_client(
                     if idl.defined_types.iter().any(|t| t.name == arg_ty) {
                         arg_ty = format!("types.{}", arg_ty);
                     }
-                    client_content.push_str(&format!("    {}: {arg_ty};\n", root.to_lower_camel_case()));
+                    client_content
+                        .push_str(&format!("    {}: {arg_ty};\n", root.to_lower_camel_case()));
                 }
                 IdlSeed::Account { path, field_type } => {
                     if seen_seeds.contains(path) {
@@ -225,7 +227,10 @@ pub fn generate_kit_client(
                         let ts_ty = map_type_to_ts(&serde_json::json!(field_ty), idl.is_zero_copy);
                         client_content.push_str(&format!("    {key}: {ts_ty};\n"));
                     } else {
-                        client_content.push_str(&format!("    {}: naclac.Address | string;\n", path.to_lower_camel_case()));
+                        client_content.push_str(&format!(
+                            "    {}: naclac.Address | string;\n",
+                            path.to_lower_camel_case()
+                        ));
                     }
                 }
                 _ => {}
@@ -352,6 +357,16 @@ pub fn generate_kit_client(
             event.name, event.name
         ));
         client_content.push_str("  }\n\n");
+
+        client_content.push_str(&format!(
+            "  /** Like `parse{}Events`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */\n  public async parse{}EventsFromTransaction(tx: {{ logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }}): Promise<types.{}[]> {{\n",
+            event.name, event.name, event.name
+        ));
+        client_content.push_str(&format!(
+            "    return this.program.parseEventsFromTransaction<types.{}>(\"{}\", tx);\n",
+            event.name, event.name
+        ));
+        client_content.push_str("  }\n\n");
     }
     if !idl.events.is_empty() {
         client_content.push_str("  /** Removes a registered event listener by its ID. */\n  public removeEventListener(listenerId: number) {\n");
@@ -394,7 +409,11 @@ pub fn generate_kit_client(
                 .collect::<Vec<_>>()
                 .join(", ");
             f.push_str(&format!(
-                "/** 8-byte on-chain discriminator for `{acct_name}` accounts. */\nexport const {}_DISCRIMINATOR = new Uint8Array([{arr}]);\n\n",
+                "/** On-chain discriminator for `{acct_name}` accounts. */\nexport const {}_DISCRIMINATOR = new Uint8Array([{arr}]);\n\n",
+                acct_name.to_uppercase()
+            ));
+            f.push_str(&format!(
+                "function strip{acct_name}Discriminator(data: Uint8Array): Uint8Array {{\n  const disc = {}_DISCRIMINATOR;\n  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {{\n    throw new Error(\"[Naclac] Account data does not start with the `{acct_name}` discriminator (wrong account type, or not initialized).\");\n  }}\n  return data.slice(disc.length);\n}}\n\n",
                 acct_name.to_uppercase()
             ));
         }
@@ -591,7 +610,12 @@ pub fn generate_kit_client(
         f.push_str(&format!("/** Gets the codec (encoder + decoder) for {{@link {acct_name}}} account data. */\nexport function get{acct_name}Codec(): naclac.FixedSizeCodec<{acct_name}> {{\n  return naclac.combineCodec(get{acct_name}Encoder(), get{acct_name}Decoder());\n}}\n\n"));
 
         // decodeXxx() overloads
-        f.push_str(&format!("export function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.EncodedAccount<TAddress>,\n): naclac.Account<{acct_name}, TAddress>;\nexport function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.MaybeEncodedAccount<TAddress>,\n): naclac.MaybeAccount<{acct_name}, TAddress>;\nexport function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.EncodedAccount<TAddress> | naclac.MaybeEncodedAccount<TAddress>,\n): naclac.Account<{acct_name}, TAddress> | naclac.MaybeAccount<{acct_name}, TAddress> {{\n  return naclac.decodeAccount(\n    ('data' in encodedAccount\n      ? {{ ...encodedAccount, data: encodedAccount.data.slice(8) }}\n      : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,\n    get{acct_name}Decoder(),\n  );\n}}\n\n"));
+        let data_slice = if acct.discriminator.is_some() {
+            format!("strip{acct_name}Discriminator(encodedAccount.data)")
+        } else {
+            "encodedAccount.data.slice(8)".to_string()
+        };
+        f.push_str(&format!("export function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.EncodedAccount<TAddress>,\n): naclac.Account<{acct_name}, TAddress>;\nexport function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.MaybeEncodedAccount<TAddress>,\n): naclac.MaybeAccount<{acct_name}, TAddress>;\nexport function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.EncodedAccount<TAddress> | naclac.MaybeEncodedAccount<TAddress>,\n): naclac.Account<{acct_name}, TAddress> | naclac.MaybeAccount<{acct_name}, TAddress> {{\n  return naclac.decodeAccount(\n    ('data' in encodedAccount\n      ? {{ ...encodedAccount, data: {data_slice} }}\n      : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,\n    get{acct_name}Decoder(),\n  );\n}}\n\n"));
 
         // fetchXxx() — throws if missing
         f.push_str(&format!("/** Fetches a `{acct_name}` account. Throws if it does not exist. */\nexport async function fetch{acct_name}<TAddress extends string = string>(\n  rpc: Parameters<typeof naclac.fetchEncodedAccount>[0],\n  address: naclac.Address<TAddress>,\n  config?: naclac.FetchAccountConfig,\n): Promise<naclac.Account<{acct_name}, TAddress>> {{\n  const maybeAccount = await fetchMaybe{acct_name}(rpc, address, config);\n  naclac.assertAccountExists(maybeAccount);\n  return maybeAccount;\n}}\n\n"));
@@ -608,7 +632,7 @@ pub fn generate_kit_client(
         // fetchAllXxxByOwner() — getProgramAccounts with discriminator filter
         if acct.discriminator.is_some() {
             f.push_str(&format!(
-                "/** Fetches ALL `{acct_name}` accounts owned by `programAddress`.\n * Uses the 8-byte discriminator as a memcmp filter for precision.\n */\nexport async function fetchAll{acct_name}ByOwner(\n  rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],\n  programAddress: naclac.Address,\n  options?: {{ commitment?: any; filters?: unknown[] }},\n): Promise<Array<naclac.Account<{acct_name}>>> {{\n  return naclac.fetchAllAccountsByProgram(\n    rpc,\n    programAddress,\n    {acct_upper}_DISCRIMINATOR,\n    decode{acct_name},\n    options,\n  );\n}}\n",
+                "/** Fetches ALL `{acct_name}` accounts owned by `programAddress`.\n * Uses the discriminator as a memcmp filter for precision.\n */\nexport async function fetchAll{acct_name}ByOwner(\n  rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],\n  programAddress: naclac.Address,\n  options?: {{ commitment?: any; filters?: unknown[] }},\n): Promise<Array<naclac.Account<{acct_name}>>> {{\n  return naclac.fetchAllAccountsByProgram(\n    rpc,\n    programAddress,\n    {acct_upper}_DISCRIMINATOR,\n    decode{acct_name},\n    options,\n  );\n}}\n",
                 acct_upper = acct_name.to_uppercase(),
                 acct_name = acct_name,
             ));

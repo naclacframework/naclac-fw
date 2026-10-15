@@ -9,7 +9,9 @@ use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 #[cfg(feature = "offchain")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckInterestBearingMintArgs {
     pub expected_rate_authority: Option<crate::sdk_core_offchain::Address>,
     pub expected_current_rate: i16,
@@ -18,16 +20,20 @@ pub struct CheckInterestBearingMintArgs {
 #[cfg(feature = "cpi")]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CheckInterestBearingMintArgsCpi {
     pub expected_rate_authority: Option<crate::sdk_core_cpi::Address>,
     pub expected_current_rate: i16,
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(feature = "borsh")]
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CheckTransferFeeConfigArgs {
     pub expected_withheld_amount: u64,
     pub expected_newer_basis_points: u16,
@@ -39,7 +45,7 @@ pub struct CheckTransferFeeConfigArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct CheckTransferFeeConfigArgs {
@@ -60,7 +66,7 @@ pub struct CheckTransferFeeConfigArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgs_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>();
@@ -69,7 +75,7 @@ const __CheckTransferFeeConfigArgs_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgs_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -79,7 +85,7 @@ const __CheckTransferFeeConfigArgs_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgs_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -90,7 +96,7 @@ const __CheckTransferFeeConfigArgs_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgs_GAP_3: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -102,7 +108,7 @@ const __CheckTransferFeeConfigArgs_GAP_3: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgs_GAP_4: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -115,7 +121,7 @@ const __CheckTransferFeeConfigArgs_GAP_4: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgs_GAP_5: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -129,7 +135,7 @@ const __CheckTransferFeeConfigArgs_GAP_5: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgs_GAP_6: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -175,7 +181,7 @@ const __CheckTransferFeeConfigArgs_GAP_6: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < CheckTransferFeeConfigArgs > () ==
@@ -190,7 +196,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
     assert_impl::<u64>();
@@ -203,13 +209,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CheckTransferFeeConfigArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CheckTransferFeeConfigArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for CheckTransferFeeConfigArgs {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -217,9 +223,11 @@ impl core::default::Default for CheckTransferFeeConfigArgs {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(feature = "borsh")]
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CheckTransferFeeConfigArgsCpi {
     pub expected_withheld_amount: u64,
     pub expected_newer_basis_points: u16,
@@ -231,7 +239,7 @@ pub struct CheckTransferFeeConfigArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct CheckTransferFeeConfigArgsCpi {
@@ -252,7 +260,7 @@ pub struct CheckTransferFeeConfigArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgsCpi_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>();
@@ -261,7 +269,7 @@ const __CheckTransferFeeConfigArgsCpi_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgsCpi_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -271,7 +279,7 @@ const __CheckTransferFeeConfigArgsCpi_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgsCpi_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -282,7 +290,7 @@ const __CheckTransferFeeConfigArgsCpi_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgsCpi_GAP_3: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -294,7 +302,7 @@ const __CheckTransferFeeConfigArgsCpi_GAP_3: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgsCpi_GAP_4: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -307,7 +315,7 @@ const __CheckTransferFeeConfigArgsCpi_GAP_4: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgsCpi_GAP_5: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -321,7 +329,7 @@ const __CheckTransferFeeConfigArgsCpi_GAP_5: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CheckTransferFeeConfigArgsCpi_GAP_6: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -367,7 +375,7 @@ const __CheckTransferFeeConfigArgsCpi_GAP_6: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < CheckTransferFeeConfigArgsCpi > () ==
@@ -382,7 +390,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
     assert_impl::<u64>();
@@ -395,13 +403,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CheckTransferFeeConfigArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CheckTransferFeeConfigArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for CheckTransferFeeConfigArgsCpi {
     fn default() -> Self {
         crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
@@ -409,7 +417,7 @@ impl core::default::Default for CheckTransferFeeConfigArgsCpi {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(feature = "borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group_member`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
@@ -417,8 +425,10 @@ impl core::default::Default for CheckTransferFeeConfigArgsCpi {
 /// `TokenGroup` on `group_mint` (created by
 /// `create_mint2022_with_group_pointer_and_group`), signed by the group's
 /// own PDA update authority.
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithGroupMemberPointerAndMemberArgs {
     pub member_seed: u64,
     pub member_mint_bump: u8,
@@ -426,7 +436,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_token_group_member`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
@@ -446,7 +456,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>();
@@ -455,7 +465,7 @@ const __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -466,7 +476,7 @@ const __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -494,7 +504,7 @@ const __CreateMint2022WithGroupMemberPointerAndMemberArgs_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < CreateMint2022WithGroupMemberPointerAndMemberArgs > ()
@@ -508,7 +518,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
     assert_impl::<u64>();
@@ -517,13 +527,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithGroupMemberPointerAndMemberArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithGroupMemberPointerAndMemberArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArgs {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -531,7 +541,7 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArg
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(feature = "borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group_member`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
@@ -539,8 +549,10 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArg
 /// `TokenGroup` on `group_mint` (created by
 /// `create_mint2022_with_group_pointer_and_group`), signed by the group's
 /// own PDA update authority.
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
     pub member_seed: u64,
     pub member_mint_bump: u8,
@@ -548,7 +560,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_token_group_member`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
@@ -568,7 +580,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>();
@@ -577,7 +589,7 @@ const __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -588,7 +600,7 @@ const __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -616,7 +628,7 @@ const __CreateMint2022WithGroupMemberPointerAndMemberArgsCpi_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < CreateMint2022WithGroupMemberPointerAndMemberArgsCpi >
@@ -630,7 +642,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
     assert_impl::<u64>();
@@ -639,13 +651,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
     fn default() -> Self {
         crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
@@ -653,7 +665,7 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArg
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(feature = "borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
@@ -669,8 +681,10 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArg
 /// `ExtensionType::try_calculate_account_len` for whatever extensions are
 /// present *at that point* (just `GroupPointer`), rejecting any extra
 /// pre-allocated headroom as `InvalidAccountData`.
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithGroupPointerAndGroupArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -679,7 +693,7 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_token_group`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
@@ -709,7 +723,7 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>();
@@ -718,7 +732,7 @@ const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -729,7 +743,7 @@ const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -742,7 +756,7 @@ const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_3: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -776,7 +790,7 @@ const __CreateMint2022WithGroupPointerAndGroupArgs_GAP_3: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < CreateMint2022WithGroupPointerAndGroupArgs > () ==
@@ -790,7 +804,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
     assert_impl::<u64>();
@@ -800,13 +814,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithGroupPointerAndGroupArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithGroupPointerAndGroupArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgs {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -814,7 +828,7 @@ impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgs {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(feature = "borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
@@ -830,8 +844,10 @@ impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgs {
 /// `ExtensionType::try_calculate_account_len` for whatever extensions are
 /// present *at that point* (just `GroupPointer`), rejecting any extra
 /// pre-allocated headroom as `InvalidAccountData`.
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithGroupPointerAndGroupArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -840,7 +856,7 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_token_group`
 /// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
@@ -870,7 +886,7 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>();
@@ -879,7 +895,7 @@ const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -890,7 +906,7 @@ const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -903,7 +919,7 @@ const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_3: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -937,7 +953,7 @@ const __CreateMint2022WithGroupPointerAndGroupArgsCpi_GAP_3: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < CreateMint2022WithGroupPointerAndGroupArgsCpi > () ==
@@ -951,7 +967,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
     assert_impl::<u64>();
@@ -961,13 +977,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithGroupPointerAndGroupArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithGroupPointerAndGroupArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgsCpi {
     fn default() -> Self {
         crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()
@@ -987,7 +1003,9 @@ impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgsCpi {
 /// headroom keeps a later grow rent-exempt.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CreateMint2022WithMetadataPointerAndMetadataArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -1010,7 +1028,9 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgs {
 /// headroom keeps a later grow rent-exempt.
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
-#[cfg_attr(not(feature = "borsh"), derive(Clone, Debug))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+#[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Clone, Debug))]
 pub struct CreateMint2022WithMetadataPointerAndMetadataArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -1021,15 +1041,17 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgsCpi {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(feature = "borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_hook`
 /// (`naclac-token/src/extensions/transfer_hook.rs`), under the
 /// non-pinocchio backend specifically — needed so
 /// `transfer_checked_with_hook` (non-pinocchio only) can be exercised
 /// against a real hook-gated mint; `token_borsh` is the only test program
 /// in this workspace that compiles under the non-pinocchio backend.
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_offchain::borsh")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CreateMint2022WithTransferHookArgs {
     pub id: u64,
     pub mint_bump: u8,
@@ -1038,7 +1060,7 @@ pub struct CreateMint2022WithTransferHookArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_transfer_hook`
 /// (`naclac-token/src/extensions/transfer_hook.rs`), under the
 /// non-pinocchio backend specifically — needed so
@@ -1059,7 +1081,7 @@ pub struct CreateMint2022WithTransferHookArgs {
 }
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithTransferHookArgs_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>();
@@ -1068,7 +1090,7 @@ const __CreateMint2022WithTransferHookArgs_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithTransferHookArgs_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -1078,7 +1100,7 @@ const __CreateMint2022WithTransferHookArgs_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithTransferHookArgs_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -1089,7 +1111,7 @@ const __CreateMint2022WithTransferHookArgs_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithTransferHookArgs_GAP_3: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -1121,7 +1143,7 @@ const __CreateMint2022WithTransferHookArgs_GAP_3: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < CreateMint2022WithTransferHookArgs > () ==
@@ -1134,7 +1156,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
     assert_impl::<u64>();
@@ -1144,13 +1166,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CreateMint2022WithTransferHookArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CreateMint2022WithTransferHookArgs {}
 #[cfg(feature = "offchain")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for CreateMint2022WithTransferHookArgs {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -1158,15 +1180,17 @@ impl core::default::Default for CreateMint2022WithTransferHookArgs {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(feature = "borsh")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_hook`
 /// (`naclac-token/src/extensions/transfer_hook.rs`), under the
 /// non-pinocchio backend specifically — needed so
 /// `transfer_checked_with_hook` (non-pinocchio only) can be exercised
 /// against a real hook-gated mint; `token_borsh` is the only test program
 /// in this workspace that compiles under the non-pinocchio backend.
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
-#[borsh(crate = "crate::sdk_core_cpi::borsh")]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
 pub struct CreateMint2022WithTransferHookArgsCpi {
     pub id: u64,
     pub mint_bump: u8,
@@ -1175,7 +1199,7 @@ pub struct CreateMint2022WithTransferHookArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_transfer_hook`
 /// (`naclac-token/src/extensions/transfer_hook.rs`), under the
 /// non-pinocchio backend specifically — needed so
@@ -1196,7 +1220,7 @@ pub struct CreateMint2022WithTransferHookArgsCpi {
 }
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithTransferHookArgsCpi_GAP_0: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>();
@@ -1205,7 +1229,7 @@ const __CreateMint2022WithTransferHookArgsCpi_GAP_0: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithTransferHookArgsCpi_GAP_1: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -1215,7 +1239,7 @@ const __CreateMint2022WithTransferHookArgsCpi_GAP_1: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithTransferHookArgsCpi_GAP_2: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -1226,7 +1250,7 @@ const __CreateMint2022WithTransferHookArgsCpi_GAP_2: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[allow(non_upper_case_globals)]
 const __CreateMint2022WithTransferHookArgsCpi_GAP_3: usize = {
     let __offset: usize = ::core::mem::size_of::<u64>()
@@ -1258,7 +1282,7 @@ const __CreateMint2022WithTransferHookArgsCpi_GAP_3: usize = {
     if __rem == 0 { 0 } else { __align - __rem }
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < CreateMint2022WithTransferHookArgsCpi > () ==
@@ -1272,7 +1296,7 @@ const _: () = {
     );
 };
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
     fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
     assert_impl::<u64>();
@@ -1282,13 +1306,13 @@ const _: fn() = || {
 };
 
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CreateMint2022WithTransferHookArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateMint2022WithTransferHookArgsCpi {}
 #[cfg(feature = "cpi")]
-#[cfg(not(feature = "borsh"))]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for CreateMint2022WithTransferHookArgsCpi {
     fn default() -> Self {
         crate::sdk_core_cpi::bytemuck::Zeroable::zeroed()

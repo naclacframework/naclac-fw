@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 
-declare_id!("9JfQzaTTBoz5tUF3Zam7uodt74NYk5tD6asYuQpAWLFV");
+declare_id!("AzVPsPxCBJZsCMP2oTkUCDFCDDspXwW5qBRX3ymUyo2i");
 
 pub mod instructions;
 pub mod events;

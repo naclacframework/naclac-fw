@@ -7,9 +7,9 @@ use crate::constants::SEED_MINT_AUTHORITY;
 // `AuthorityType::MintTokens`, anything else to `AuthorityType::FreezeAccount`
 // — a single instruction covers both variants rather than duplicating the
 // whole shape twice. `new_authority` is passed as a bare `AccountInfo`
-// account (its key only), not a raw `Address`/`Pubkey` instruction argument —
+// account (its key only), not a raw `Address`/`Address` instruction argument —
 // `naclac-macros/src/accounts.rs`'s zero-copy-mode compile check explicitly
-// bans a raw `Pubkey`/`Address` as an `#[instruction(...)]` argument, so this
+// bans a raw `Address`/`Address` as an `#[instruction(...)]` argument, so this
 // mirrors how every other cross-account key in this test case
 // (`check_mint_freeze_authority`'s `freeze_authority`, `create_ata`'s
 // `owner`) is passed.

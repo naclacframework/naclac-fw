@@ -19,7 +19,7 @@ macro_rules! declare_id {
     ($id:expr) => {};
 }
 
-declare_id!("CfCmyXnF1To9ryX2g5Sj3X8yhpFopYxZFrgFf8fWVwU5");
+declare_id!("5cdUGjvHDF48Vu3inTJhruWtj13Ut2cNomLLnG8boDJW");
 
 #[cfg(feature = "cpi")]
 #[derive(Clone, Copy)]
@@ -28,7 +28,7 @@ pub struct Metadata;
 #[cfg(feature = "cpi")]
 impl sdk_core_cpi::Id for Metadata {
     fn id() -> sdk_core_cpi::Address {
-        sdk_core_cpi::Address::new_from_array([173, 57, 241, 2, 231, 82, 13, 70, 217, 254, 200, 237, 220, 165, 252, 188, 208, 201, 130, 2, 113, 38, 1, 239, 24, 21, 254, 30, 156, 126, 171, 106])
+        sdk_core_cpi::Address::new_from_array([68, 143, 80, 33, 30, 13, 36, 204, 210, 108, 240, 35, 5, 4, 206, 21, 61, 6, 134, 32, 78, 202, 17, 242, 97, 85, 198, 237, 55, 71, 143, 151])
     }
 }
 

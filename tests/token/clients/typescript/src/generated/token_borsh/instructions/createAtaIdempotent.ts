@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_ata_idempotent` instruction. */
+/** Discriminator for the `create_ata_idempotent` instruction. */
 export const CREATE_ATA_IDEMPOTENT_DISCRIMINATOR = new Uint8Array([81, 88, 202, 92, 134, 69, 133, 143]);
 
 /** Accounts for the `createAtaIdempotent` instruction. */

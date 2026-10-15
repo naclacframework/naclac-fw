@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `emit_via_sol_log_data_sized` instruction. */
+/** Discriminator for the `emit_via_sol_log_data_sized` instruction. */
 export const EMIT_VIA_SOL_LOG_DATA_SIZED_DISCRIMINATOR = new Uint8Array([251, 28, 204, 156, 163, 133, 238, 156]);
 
 /** Instruction arguments for `emitViaSolLogDataSized`. */
@@ -14,7 +14,7 @@ export interface EmitViaSolLogDataSizedArgs {
 /** Accounts for the `emitViaSolLogDataSized` instruction. */
 export interface EmitViaSolLogDataSizedAccounts {
   /** SAFETY: only its address is checked; its data is never read. */
-  program: naclac.Address | string;
+  program?: naclac.Address | string;
 }
 
 /**

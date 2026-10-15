@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client";
 import * as types from "../types/typedefs";
 
-/** 8-byte discriminator for the `create_mint2022_with_transfer_fee` instruction. */
+/** Discriminator for the `create_mint2022_with_transfer_fee` instruction. */
 export const CREATE_MINT2022_WITH_TRANSFER_FEE_DISCRIMINATOR = new Uint8Array([135, 1, 125, 228, 92, 39, 133, 14]);
 
 /** Instruction arguments for `createMint2022WithTransferFee`. */
@@ -22,9 +22,9 @@ export interface CreateMint2022WithTransferFeeAccounts {
    * `TransferFeeConfig` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

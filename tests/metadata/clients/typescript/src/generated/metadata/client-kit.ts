@@ -28,7 +28,7 @@ export class MetadataClient {
   }
 
   constructor(
-    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet",
+    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet" | "litesvm",
     payer?: naclac.KeyPairSigner
   ) {
     let provider: naclac.NaclacProvider;
@@ -38,7 +38,7 @@ export class MetadataClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider, true);
+    this.program = new naclac.Program(IDL, provider, true, []);
   }
 
   /**
@@ -518,6 +518,11 @@ export class MetadataClient {
   /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. */
   public parseCounterIncrementedEvents(logs: readonly string[]) {
     return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs);
+  }
+
+  /** Like `parseCounterIncrementedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseCounterIncrementedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.CounterIncremented[]> {
+    return this.program.parseEventsFromTransaction<types.CounterIncremented>("CounterIncremented", tx);
   }
 
   /** Removes a registered event listener by its ID. */

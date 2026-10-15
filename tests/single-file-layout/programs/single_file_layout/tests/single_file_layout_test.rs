@@ -1,4 +1,4 @@
-﻿use naclac_client::*;
+use naclac_client::*;
 use single_file_layout_client::{
     fetch_counter, get_counter_pda,
     instructions::{
@@ -9,7 +9,7 @@ use single_file_layout_client::{
 };
 
 /// Proves `naclac-syn`'s source discovery (a plain recursive walk of every
-/// `.rs` file under `src/` â€” see `naclac-syn/src/lib.rs`'s
+/// `.rs` file under `src/` — see `naclac-syn/src/lib.rs`'s
 /// `parse_workspace_program`) doesn't require the `components/`/
 /// `instructions/` folder split every other test/example uses: the
 /// `#[component]`, both `#[derive(Accounts)]` structs, and both

@@ -3,13 +3,13 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `create_mint2022_with_pausable` instruction. */
+/** Discriminator for the `create_mint2022_with_pausable` instruction. */
 export const CREATE_MINT2022_WITH_PAUSABLE_DISCRIMINATOR = new Uint8Array([5, 234, 25, 249, 211, 112, 86, 17]);
 
 /** Instruction arguments for `createMint2022WithPausable`. */
 export interface CreateMint2022WithPausableArgs {
   id: bigint | number;
-  mint_bump: number;
+  mintBump: number;
   decimals: number;
 }
 
@@ -23,9 +23,9 @@ export interface CreateMint2022WithPausableAccounts {
    * `PausableConfig` extension layout, not a naclac component.
    */
   mint?: naclac.Address | string;
-  mint_authority: naclac.Address | string;
-  token_program?: naclac.Address | string;
-  system_program?: naclac.Address | string;
+  mintAuthority: naclac.Address | string;
+  tokenProgram?: naclac.Address | string;
+  systemProgram?: naclac.Address | string;
 }
 
 /**

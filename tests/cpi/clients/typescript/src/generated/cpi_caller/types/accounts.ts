@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator prefix for `CallerAuthority` accounts on-chain. */
+/** Discriminator prefix for `CallerAuthority` accounts on-chain. */
 export const CALLERAUTHORITY_DISCRIMINATOR = new Uint8Array([184, 193, 233, 43, 192, 218, 253, 39]);
 
 /** Auto-generated account interface from the program IDL. */
