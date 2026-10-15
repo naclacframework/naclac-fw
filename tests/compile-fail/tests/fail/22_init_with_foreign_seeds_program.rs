@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/instruction/parser.rs — `init`/`init_if_needed`
+// Site: macros/src/instruction/parser.rs — `init`/`init_if_needed`
 // combined with `seeds::program = ...` on the same field. The
 // account-creation CPI's `invoke_signed` always signs under the currently
 // executing program, so a `seeds::program` pointing at a different program

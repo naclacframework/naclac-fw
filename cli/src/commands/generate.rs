@@ -300,7 +300,7 @@ fn zero_copy_marker_path(workspace_root: &Path, prog_name: &str) -> PathBuf {
 }
 
 /// Mirrors `zero_copy_marker_path` for the `wincode` backend — client-gen
-/// (`naclac-client-gen/src/rust/mod.rs`) only ever sees the IDL JSON, not the
+/// (`client-gen/src/rust/mod.rs`) only ever sees the IDL JSON, not the
 /// program's `Cargo.toml`, so which of the three backends (Borsh/Wincode/raw
 /// zero-copy) a program uses has to reach it the same way `is_zero_copy`
 /// already does: a marker file written here, checked there.

@@ -453,7 +453,7 @@ impl core::default::Default for CheckTransferFeeConfigArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_default_account_state`
-/// (`naclac-token/src/extensions/default_account_state.rs`): allocates the
+/// (`token/src/extensions/default_account_state.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeDefaultAccountState` must run before `InitializeMint`, so
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
@@ -473,7 +473,7 @@ pub struct CreateMint2022WithDefaultAccountStateArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_default_account_state`
-/// (`naclac-token/src/extensions/default_account_state.rs`): allocates the
+/// (`token/src/extensions/default_account_state.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeDefaultAccountState` must run before `InitializeMint`, so
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
@@ -600,7 +600,7 @@ impl core::default::Default for CreateMint2022WithDefaultAccountStateArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_default_account_state`
-/// (`naclac-token/src/extensions/default_account_state.rs`): allocates the
+/// (`token/src/extensions/default_account_state.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeDefaultAccountState` must run before `InitializeMint`, so
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
@@ -620,7 +620,7 @@ pub struct CreateMint2022WithDefaultAccountStateArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_default_account_state`
-/// (`naclac-token/src/extensions/default_account_state.rs`): allocates the
+/// (`token/src/extensions/default_account_state.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeDefaultAccountState` must run before `InitializeMint`, so
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
@@ -747,7 +747,7 @@ impl core::default::Default for CreateMint2022WithDefaultAccountStateArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_group_member_pointer`
-/// (`naclac-token/src/extensions/group_member_pointer.rs`): allocates the
+/// (`token/src/extensions/group_member_pointer.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeGroupMemberPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
@@ -764,7 +764,7 @@ pub struct CreateMint2022WithGroupMemberPointerArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_group_member_pointer`
-/// (`naclac-token/src/extensions/group_member_pointer.rs`): allocates the
+/// (`token/src/extensions/group_member_pointer.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeGroupMemberPointer` must run before `InitializeMint`).
 #[derive(Copy, Clone, Debug)]
@@ -885,7 +885,7 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_group_member_pointer`
-/// (`naclac-token/src/extensions/group_member_pointer.rs`): allocates the
+/// (`token/src/extensions/group_member_pointer.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeGroupMemberPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
@@ -902,7 +902,7 @@ pub struct CreateMint2022WithGroupMemberPointerArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_group_member_pointer`
-/// (`naclac-token/src/extensions/group_member_pointer.rs`): allocates the
+/// (`token/src/extensions/group_member_pointer.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeGroupMemberPointer` must run before `InitializeMint`).
 #[derive(Copy, Clone, Debug)]
@@ -1027,7 +1027,7 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group_member`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// (`token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
 /// itself, initializes the mint, then joins it to an already-initialized
 /// `TokenGroup` on `group_mint` (created by
@@ -1046,7 +1046,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_token_group_member`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// (`token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
 /// itself, initializes the mint, then joins it to an already-initialized
 /// `TokenGroup` on `group_mint` (created by
@@ -1151,7 +1151,7 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArg
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group_member`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// (`token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
 /// itself, initializes the mint, then joins it to an already-initialized
 /// `TokenGroup` on `group_mint` (created by
@@ -1170,7 +1170,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_token_group_member`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// (`token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
 /// itself, initializes the mint, then joins it to an already-initialized
 /// `TokenGroup` on `group_mint` (created by
@@ -1275,7 +1275,7 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArg
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_group_pointer`
-/// (`naclac-token/src/extensions/group_pointer.rs`): allocates the mint PDA
+/// (`token/src/extensions/group_pointer.rs`): allocates the mint PDA
 /// by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeGroupPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
@@ -1292,7 +1292,7 @@ pub struct CreateMint2022WithGroupPointerArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_group_pointer`
-/// (`naclac-token/src/extensions/group_pointer.rs`): allocates the mint PDA
+/// (`token/src/extensions/group_pointer.rs`): allocates the mint PDA
 /// by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeGroupPointer` must run before `InitializeMint`).
 #[derive(Copy, Clone, Debug)]
@@ -1410,7 +1410,7 @@ impl core::default::Default for CreateMint2022WithGroupPointerArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_group_pointer`
-/// (`naclac-token/src/extensions/group_pointer.rs`): allocates the mint PDA
+/// (`token/src/extensions/group_pointer.rs`): allocates the mint PDA
 /// by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeGroupPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
@@ -1427,7 +1427,7 @@ pub struct CreateMint2022WithGroupPointerArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_group_pointer`
-/// (`naclac-token/src/extensions/group_pointer.rs`): allocates the mint PDA
+/// (`token/src/extensions/group_pointer.rs`): allocates the mint PDA
 /// by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeGroupPointer` must run before `InitializeMint`).
 #[derive(Copy, Clone, Debug)]
@@ -1546,7 +1546,7 @@ impl core::default::Default for CreateMint2022WithGroupPointerArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// (`token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
 /// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
 /// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
@@ -1574,7 +1574,7 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_token_group`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// (`token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
 /// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
 /// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
@@ -1709,7 +1709,7 @@ impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_token_group`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// (`token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
 /// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
 /// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
@@ -1737,7 +1737,7 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_token_group`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// (`token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
 /// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
 /// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
@@ -1872,7 +1872,7 @@ impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_interest_bearing_mint`
-/// (`naclac-token/src/extensions/interest_bearing_mint.rs`): allocates the
+/// (`token/src/extensions/interest_bearing_mint.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeInterestBearingMint` must run before `InitializeMint`, so
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
@@ -1890,7 +1890,7 @@ pub struct CreateMint2022WithInterestBearingMintArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_interest_bearing_mint`
-/// (`naclac-token/src/extensions/interest_bearing_mint.rs`): allocates the
+/// (`token/src/extensions/interest_bearing_mint.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeInterestBearingMint` must run before `InitializeMint`, so
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
@@ -2015,7 +2015,7 @@ impl core::default::Default for CreateMint2022WithInterestBearingMintArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_interest_bearing_mint`
-/// (`naclac-token/src/extensions/interest_bearing_mint.rs`): allocates the
+/// (`token/src/extensions/interest_bearing_mint.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeInterestBearingMint` must run before `InitializeMint`, so
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
@@ -2033,7 +2033,7 @@ pub struct CreateMint2022WithInterestBearingMintArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_interest_bearing_mint`
-/// (`naclac-token/src/extensions/interest_bearing_mint.rs`): allocates the
+/// (`token/src/extensions/interest_bearing_mint.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeInterestBearingMint` must run before `InitializeMint`, so
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).
@@ -2158,7 +2158,7 @@ impl core::default::Default for CreateMint2022WithInterestBearingMintArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_metadata_pointer`
-/// (`naclac-token/src/extensions/metadata_pointer.rs`): allocates the mint
+/// (`token/src/extensions/metadata_pointer.rs`): allocates the mint
 /// PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeMetadataPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
@@ -2175,7 +2175,7 @@ pub struct CreateMint2022WithMetadataPointerArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_metadata_pointer`
-/// (`naclac-token/src/extensions/metadata_pointer.rs`): allocates the mint
+/// (`token/src/extensions/metadata_pointer.rs`): allocates the mint
 /// PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeMetadataPointer` must run before `InitializeMint`).
 #[derive(Copy, Clone, Debug)]
@@ -2294,7 +2294,7 @@ impl core::default::Default for CreateMint2022WithMetadataPointerArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_metadata_pointer`
-/// (`naclac-token/src/extensions/metadata_pointer.rs`): allocates the mint
+/// (`token/src/extensions/metadata_pointer.rs`): allocates the mint
 /// PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeMetadataPointer` must run before `InitializeMint`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
@@ -2311,7 +2311,7 @@ pub struct CreateMint2022WithMetadataPointerArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_metadata_pointer`
-/// (`naclac-token/src/extensions/metadata_pointer.rs`): allocates the mint
+/// (`token/src/extensions/metadata_pointer.rs`): allocates the mint
 /// PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeMetadataPointer` must run before `InitializeMint`).
 #[derive(Copy, Clone, Debug)]
@@ -2431,7 +2431,7 @@ impl core::default::Default for CreateMint2022WithMetadataPointerArgsCpi {
 
 #[cfg(feature = "offchain")]
 /// Real end-to-end proof of `initialize_token_metadata`
-/// (`naclac-token/src/extensions/token_metadata.rs`): allocates the mint PDA
+/// (`token/src/extensions/token_metadata.rs`): allocates the mint PDA
 /// by hand, points a self-referential `MetadataPointer` at the mint itself
 /// (required — Token-2022's own `TokenMetadata::Initialize` processor
 /// rejects a metadata account that isn't the mint), initializes the mint,
@@ -2456,7 +2456,7 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgs {
 
 #[cfg(feature = "cpi")]
 /// Real end-to-end proof of `initialize_token_metadata`
-/// (`naclac-token/src/extensions/token_metadata.rs`): allocates the mint PDA
+/// (`token/src/extensions/token_metadata.rs`): allocates the mint PDA
 /// by hand, points a self-referential `MetadataPointer` at the mint itself
 /// (required — Token-2022's own `TokenMetadata::Initialize` processor
 /// rejects a metadata account that isn't the mint), initializes the mint,
@@ -2482,7 +2482,7 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_non_transferable_mint`
-/// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI had zero
+/// (`token/src/extensions/non_transferable.rs`) — this CPI had zero
 /// implementation and zero test coverage before this file: an earlier pass
 /// wrongly assumed `NonTransferable` had no dedicated init CPI at all.
 /// Allocates the mint PDA by hand (same reason as
@@ -2501,7 +2501,7 @@ pub struct CreateMint2022WithNonTransferableArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_non_transferable_mint`
-/// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI had zero
+/// (`token/src/extensions/non_transferable.rs`) — this CPI had zero
 /// implementation and zero test coverage before this file: an earlier pass
 /// wrongly assumed `NonTransferable` had no dedicated init CPI at all.
 /// Allocates the mint PDA by hand (same reason as
@@ -2601,7 +2601,7 @@ impl core::default::Default for CreateMint2022WithNonTransferableArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_non_transferable_mint`
-/// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI had zero
+/// (`token/src/extensions/non_transferable.rs`) — this CPI had zero
 /// implementation and zero test coverage before this file: an earlier pass
 /// wrongly assumed `NonTransferable` had no dedicated init CPI at all.
 /// Allocates the mint PDA by hand (same reason as
@@ -2620,7 +2620,7 @@ pub struct CreateMint2022WithNonTransferableArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_non_transferable_mint`
-/// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI had zero
+/// (`token/src/extensions/non_transferable.rs`) — this CPI had zero
 /// implementation and zero test coverage before this file: an earlier pass
 /// wrongly assumed `NonTransferable` had no dedicated init CPI at all.
 /// Allocates the mint PDA by hand (same reason as
@@ -2722,7 +2722,7 @@ impl core::default::Default for CreateMint2022WithNonTransferableArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_permanent_delegate`
-/// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI
+/// (`token/src/extensions/permanent_delegate.rs`) — this CPI
 /// function had zero test coverage before this file: the only existing
 /// test read a hand-crafted fixture, never a mint the real CPI actually
 /// created. Allocates the mint PDA by hand (same reason as
@@ -2741,7 +2741,7 @@ pub struct CreateMint2022WithPermanentDelegateArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_permanent_delegate`
-/// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI
+/// (`token/src/extensions/permanent_delegate.rs`) — this CPI
 /// function had zero test coverage before this file: the only existing
 /// test read a hand-crafted fixture, never a mint the real CPI actually
 /// created. Allocates the mint PDA by hand (same reason as
@@ -2841,7 +2841,7 @@ impl core::default::Default for CreateMint2022WithPermanentDelegateArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_permanent_delegate`
-/// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI
+/// (`token/src/extensions/permanent_delegate.rs`) — this CPI
 /// function had zero test coverage before this file: the only existing
 /// test read a hand-crafted fixture, never a mint the real CPI actually
 /// created. Allocates the mint PDA by hand (same reason as
@@ -2860,7 +2860,7 @@ pub struct CreateMint2022WithPermanentDelegateArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_permanent_delegate`
-/// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI
+/// (`token/src/extensions/permanent_delegate.rs`) — this CPI
 /// function had zero test coverage before this file: the only existing
 /// test read a hand-crafted fixture, never a mint the real CPI actually
 /// created. Allocates the mint PDA by hand (same reason as
@@ -2964,7 +2964,7 @@ impl core::default::Default for CreateMint2022WithPermanentDelegateArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_fee_config`
-/// (`naclac-token/src/extensions.rs`): allocates the mint PDA itself (rather
+/// (`token/src/extensions.rs`): allocates the mint PDA itself (rather
 /// than going through the `mint::decimals =`/`mint::authority =` auto-`init`
 /// path used by `create_mint2022.rs`), since Token-2022 requires
 /// `InitializeTransferFeeConfig` to run *before* `InitializeMint` — the
@@ -2987,7 +2987,7 @@ pub struct CreateMint2022WithTransferFeeArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_transfer_fee_config`
-/// (`naclac-token/src/extensions.rs`): allocates the mint PDA itself (rather
+/// (`token/src/extensions.rs`): allocates the mint PDA itself (rather
 /// than going through the `mint::decimals =`/`mint::authority =` auto-`init`
 /// path used by `create_mint2022.rs`), since Token-2022 requires
 /// `InitializeTransferFeeConfig` to run *before* `InitializeMint` — the
@@ -3129,7 +3129,7 @@ impl core::default::Default for CreateMint2022WithTransferFeeArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_fee_config`
-/// (`naclac-token/src/extensions.rs`): allocates the mint PDA itself (rather
+/// (`token/src/extensions.rs`): allocates the mint PDA itself (rather
 /// than going through the `mint::decimals =`/`mint::authority =` auto-`init`
 /// path used by `create_mint2022.rs`), since Token-2022 requires
 /// `InitializeTransferFeeConfig` to run *before* `InitializeMint` — the
@@ -3152,7 +3152,7 @@ pub struct CreateMint2022WithTransferFeeArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_transfer_fee_config`
-/// (`naclac-token/src/extensions.rs`): allocates the mint PDA itself (rather
+/// (`token/src/extensions.rs`): allocates the mint PDA itself (rather
 /// than going through the `mint::decimals =`/`mint::authority =` auto-`init`
 /// path used by `create_mint2022.rs`), since Token-2022 requires
 /// `InitializeTransferFeeConfig` to run *before* `InitializeMint` — the
@@ -3295,7 +3295,7 @@ impl core::default::Default for CreateMint2022WithTransferFeeArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions.rs`) — same shape as
+/// (`token/src/extensions.rs`) — same shape as
 /// `create_mint2022_with_transfer_fee`, see that file's doc comment for why
 /// this drives `create_account_signed`/extension-init/`initialize_mint` by
 /// hand instead of using the `mint::decimals =`/`mint::authority =`
@@ -3314,7 +3314,7 @@ pub struct CreateMint2022WithTransferHookArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions.rs`) — same shape as
+/// (`token/src/extensions.rs`) — same shape as
 /// `create_mint2022_with_transfer_fee`, see that file's doc comment for why
 /// this drives `create_account_signed`/extension-init/`initialize_mint` by
 /// hand instead of using the `mint::decimals =`/`mint::authority =`
@@ -3434,7 +3434,7 @@ impl core::default::Default for CreateMint2022WithTransferHookArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions.rs`) — same shape as
+/// (`token/src/extensions.rs`) — same shape as
 /// `create_mint2022_with_transfer_fee`, see that file's doc comment for why
 /// this drives `create_account_signed`/extension-init/`initialize_mint` by
 /// hand instead of using the `mint::decimals =`/`mint::authority =`
@@ -3453,7 +3453,7 @@ pub struct CreateMint2022WithTransferHookArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions.rs`) — same shape as
+/// (`token/src/extensions.rs`) — same shape as
 /// `create_mint2022_with_transfer_fee`, see that file's doc comment for why
 /// this drives `create_account_signed`/extension-init/`initialize_mint` by
 /// hand instead of using the `mint::decimals =`/`mint::authority =`
@@ -3574,7 +3574,7 @@ impl core::default::Default for CreateMint2022WithTransferHookArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
-/// `naclac-token/src/extensions.rs` (`transfer_checked_with_fee`,
+/// `token/src/extensions.rs` (`transfer_checked_with_fee`,
 /// `harvest_withheld_tokens_to_mint`, `withdraw_withheld_tokens_from_mint`,
 /// `withdraw_withheld_tokens_from_accounts`, `set_transfer_fee`) — chains
 /// all five against a real Token-2022 mint/vaults and asserts the resulting
@@ -3597,7 +3597,7 @@ pub struct ExerciseTransferFeeCpisArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
-/// `naclac-token/src/extensions.rs` (`transfer_checked_with_fee`,
+/// `token/src/extensions.rs` (`transfer_checked_with_fee`,
 /// `harvest_withheld_tokens_to_mint`, `withdraw_withheld_tokens_from_mint`,
 /// `withdraw_withheld_tokens_from_accounts`, `set_transfer_fee`) — chains
 /// all five against a real Token-2022 mint/vaults and asserts the resulting
@@ -3782,7 +3782,7 @@ impl core::default::Default for ExerciseTransferFeeCpisArgs {
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 /// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
-/// `naclac-token/src/extensions.rs` (`transfer_checked_with_fee`,
+/// `token/src/extensions.rs` (`transfer_checked_with_fee`,
 /// `harvest_withheld_tokens_to_mint`, `withdraw_withheld_tokens_from_mint`,
 /// `withdraw_withheld_tokens_from_accounts`, `set_transfer_fee`) — chains
 /// all five against a real Token-2022 mint/vaults and asserts the resulting
@@ -3805,7 +3805,7 @@ pub struct ExerciseTransferFeeCpisArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 /// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
-/// `naclac-token/src/extensions.rs` (`transfer_checked_with_fee`,
+/// `token/src/extensions.rs` (`transfer_checked_with_fee`,
 /// `harvest_withheld_tokens_to_mint`, `withdraw_withheld_tokens_from_mint`,
 /// `withdraw_withheld_tokens_from_accounts`, `set_transfer_fee`) — chains
 /// all five against a real Token-2022 mint/vaults and asserts the resulting

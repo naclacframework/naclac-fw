@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_transfer_fee_config`
-/// (`naclac-token/src/extensions.rs`): allocates the mint PDA itself (rather
+/// (`token/src/extensions.rs`): allocates the mint PDA itself (rather
 /// than going through the `mint::decimals =`/`mint::authority =` auto-`init`
 /// path used by `create_mint2022.rs`), since Token-2022 requires
 /// `InitializeTransferFeeConfig` to run *before* `InitializeMint` — the

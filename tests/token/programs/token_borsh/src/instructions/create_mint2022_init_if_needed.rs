@@ -4,7 +4,7 @@ use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof that `init_if_needed` re-validates `mint::decimals`/
 /// `mint::authority` against an already-existing mint, not just a
-/// freshly-created one (`naclac-macros/src/instruction/security.rs`'s Token/
+/// freshly-created one (`macros/src/instruction/security.rs`'s Token/
 /// Mint Validation block, gated on `field.init_config.is_none() ||
 /// field.is_init_if_needed`). Otherwise identical to `create_mint2022.rs`.
 ///
@@ -14,7 +14,7 @@ use crate::constants::SEED_MINT;
 /// local variable — so the referenced field may be declared anywhere in the
 /// struct relative to the field whose constraint references it. This
 /// ordering was previously required (a real compile error otherwise); see
-/// `naclac-macros/docs/derive-accounts-gaps-audit.md`'s gap #10.
+/// `macros/docs/derive-accounts-gaps-audit.md`'s gap #10.
 #[derive(Accounts)]
 #[instruction(id: u64, mint_bump: u8, decimals: u8)]
 pub struct CreateMint2022InitIfNeeded {

@@ -96,7 +96,7 @@ modes — not runtime account/serialization behavior).
 Every example and every other test case in this plan splits a program into
 `components/`, `instructions/`, etc. That's a convention this repo follows,
 not something the macros or `naclac-syn` require — confirmed directly from
-`naclac-syn/src/lib.rs`'s `parse_workspace_program`: it recursively
+`syn/src/lib.rs`'s `parse_workspace_program`: it recursively
 `fs::read_dir`s every file under `src/` and parses each one for
 `#[component]`/`#[derive(Accounts)]`/`#[instruction]` items, with no
 assumption about *which* files those live in. `tests/single-file-layout/`
@@ -142,13 +142,13 @@ ever gets refactored again.
 **Modes:** all three (constraint codegen is macro-level and mode-aware, per
 `security.rs`'s `is_zero_copy_account_field` branching).
 
-One instruction per constraint keyword found in `naclac-macros/src/instruction/parser.rs`
+One instruction per constraint keyword found in `macros/src/instruction/parser.rs`
 and `security.rs`, each with a positive case (constraint satisfied) and a
 negative case (constraint violated → expect the specific error, not just
 "any error"):
 
 **Correction to an earlier draft of this plan:** there is no literal
-`has_one` or `constraint = <expr>` keyword. `naclac-macros/src/instruction/parser.rs`'s
+`has_one` or `constraint = <expr>` keyword. `macros/src/instruction/parser.rs`'s
 `is_reserved` list treats any *non-reserved* bare identifier `X = Y` as a
 generic relation: "check `self.X` (a data field on the annotated account)
 equals `accounts.Y`'s address" — this is the `has_one`-equivalent, spelled
@@ -180,7 +180,7 @@ covering:
 `accounts_constraints_zc`).** Added `check_executable` — a single
 `#[account(executable)]`-constrained bare `AccountInfo` field, deliberately
 *not* `Program<T>` (which already enforces executable-ness internally on
-its own, unconditionally — see `naclac-core/src/wrappers/program.rs`'s
+its own, unconditionally — see `core/src/wrappers/program.rs`'s
 `try_from`; `executable` on a plain `AccountInfo` is for asserting the same
 property without that wrapper). Positive case passes the real System
 Program account (genuinely executable); negative case passes the payer's
@@ -208,7 +208,7 @@ coverage:
   credit — no need for a full funding transaction) and expects
   `NaclacError::ConstraintRentExempt`. `CheckRentExempt { target }` — field
   index 0 -> `3000 + 0*100 + ConstraintRentExempt(5) = 3005`
-  (discriminant read directly from `naclac-core/src/error.rs`).
+  (discriminant read directly from `core/src/error.rs`).
 - **`close`'s self-close guard** — `close_account.rs` rejects
   `target == dest` unconditionally, before any owner/data check, but every
   existing `close` test (`close_vault`) only ever exercised the success path
@@ -235,7 +235,7 @@ coverage:
   `#[account(mut, admin = authority @ VaultError::WrongAdmin)]`. Mismatched
   case now gets `VaultError::WrongAdmin`'s own code instead of the default
   `NaclacError::Unauthorized` — `#[error_code]` offsets custom discriminants
-  by 6000 (`naclac-macros/src/error_code.rs`), so with no explicit
+  by 6000 (`macros/src/error_code.rs`), so with no explicit
   discriminant `WrongAdmin` (the enum's only variant) lands at exactly 6000,
   a genuinely different codespace from `related_vault`'s own mismatch case
   (3021), proving the custom-error path fired instead of the default rather
@@ -256,7 +256,7 @@ coverage:
   index 0 -> `3000 + 0*100 + ConstraintSeeds(6) = 3006`.
 
 **Real framework bug found and fixed while adding `seeds::program`
-coverage** (in `naclac-macros/src/instruction/security.rs`'s PDA-validation
+coverage** (in `macros/src/instruction/security.rs`'s PDA-validation
 codegen, not a test-authoring mistake): the compile-time-precomputed-PDA
 optimization (`is_pda_precomputed`, taken whenever every seed element is a
 literal) always derived the expected PDA against the *current* crate's own
@@ -283,7 +283,7 @@ tiny, sub-rent-exempt balance — but `airdrop` is a real System Program
 transfer, and the runtime rejects any transfer that would leave a new
 account underfunded, so the test never even reached the constraint it was
 trying to exercise. Added `NaclacProvider::set_account_lamports`
-(`naclac-client/src/provider.rs`), which writes the lamport balance
+(`client-rs/src/provider.rs`), which writes the lamport balance
 directly via litesvm's `set_account` (litesvm-only, bypasses transaction/rent
 enforcement entirely), and switched the test to use it.
 
@@ -328,7 +328,7 @@ regressions. Five instructions (`init_registry`, `init_entry`,
   gap: proc-macros can't ask the compiler what an identifier resolves to
   (they run before name resolution), so the byte-value lookup has to stay a
   file read — but nothing required the *generated code* to skip referencing
-  the symbol too. Fixed in `naclac-macros/src/instruction/security.rs`'s
+  the symbol too. Fixed in `macros/src/instruction/security.rs`'s
   precomputed-PDA branch: it now splices the user's original seed
   expressions back in as a harmless `let _ = &SEED_COUNTER;`-style
   reference, so rustc's real post-expansion name resolution sees the import
@@ -358,7 +358,7 @@ covers a 3-mut-slot partial-aliasing case (`touch_triple_partial_alias`,
 (`dup_mut_zc`'s `write_note`/`Note`).
 
 Two real bugs found and fixed along the way:
-- `naclac-syn/src/parser.rs`'s `rust_type_to_idl` had no case for
+- `syn/src/parser.rs`'s `rust_type_to_idl` had no case for
   `ZcString`, so it fell through to `{"defined": "ZcString"}` (treated as a
   user-defined type) instead of `"string"`. Broke both the Rust and TS
   client generators, which then tried to reference a `types::ZcString` that
@@ -366,7 +366,7 @@ Two real bugs found and fixed along the way:
 - The Rust client generator's zero-copy `IxArgs` struct always assumed
   every instruction arg was fixed-size (`Copy` + `repr(C, packed)` +
   `bytemuck::Pod`), which can't work for a `String`/`Vec` arg. Fixed in
-  `naclac-client-gen/src/rust`: args are now classified pod vs. dynamic:
+  `client-gen/src/rust`: args are now classified pod vs. dynamic:
   pod-only instructions keep the bytemuck fast path, mixed/dynamic ones get
   a plain struct with per-field wire encoding (pod fields raw, dynamic
   fields length-prefixed) matching `accounts.rs`'s own on-chain read order.
@@ -385,8 +385,8 @@ path specific to one mode).
 
 **Correction to an earlier draft of this plan:** naclac already has this
 mechanism — it isn't a gap. Confirmed in
-[naclac-macros/src/accounts.rs:426-497](../naclac-macros/src/accounts.rs) and
-[instruction/parser.rs:108-117](../naclac-macros/src/instruction/parser.rs):
+[macros/src/accounts.rs:426-497](../macros/src/accounts.rs) and
+[instruction/parser.rs:108-117](../macros/src/instruction/parser.rs):
 a compile-time `MUT_MASK` bitmask over every `mut` field is checked against a
 runtime `__duplicates` bitvec, *and* a separate pairwise address check runs
 against `remaining_accounts`. Real usage confirmed in
@@ -509,7 +509,7 @@ duplicated). Two real bugs found and fixed while first running this:
   zero-copy-only, by design (real `Account<T>` in borsh mode isn't
   zero-copy). Fixed by manually writing
   `ctx.accounts.mint_authority.bump = ctx.bumps.mint_authority` in the
-  handler — `Context::bumps` (`naclac-core/src/context.rs:45`) is populated
+  handler — `Context::bumps` (`core/src/context.rs:45`) is populated
   in every mode, so this is a portable no-op in the two modes where the
   framework already did it automatically. Worth remembering for any future
   case: an instruction relying on bare `bump`'s auto-write-back needs this
@@ -558,9 +558,9 @@ duplicated). Two real bugs found and fixed while first running this:
   second, separately-deployed token program (e.g. Token-2022) in `litesvm`
   for the negative case — any non-Token-owned account reaches the relational
   check the same way, since `Account<TokenAccount>`'s own `try_from`
-  (`naclac-token/src/token.rs`, `discriminator_len() == 0`) and bare
+  (`token/src/token.rs`, `discriminator_len() == 0`) and bare
   `AccountInfo` perform no owner check of their own at load time (confirmed
-  by reading `naclac-core/src/wrappers/account.rs` and `account_loader.rs`
+  by reading `core/src/wrappers/account.rs` and `account_loader.rs`
   directly, not assumed).
 - `create_mint_with_freeze` (`programs/*/src/instructions/create_mint_with_freeze.rs`,
   all 3 modes) — mirrors `create_mint.rs` exactly but additionally sets
@@ -614,17 +614,17 @@ but nobody had ever wired equivalent `associated_token::mint`/
 users were stuck hand-rolling the CPI. **Built that declarative sugar
 instead of leaving the manual version as the final state**:
 
-- `naclac-macros/src/instruction/parser.rs` — added
+- `macros/src/instruction/parser.rs` — added
   `associated_token_mint`/`associated_token_authority` to `ParsedField`,
   recognized `associated_token::mint`/`associated_token::authority` as a
   reserved 2-segment key (same pattern as `mint::X`/`token::X`).
-- `naclac-macros/src/instruction/init_cpi.rs` — new codegen branch,
+- `macros/src/instruction/init_cpi.rs` — new codegen branch,
   inserted right after `mint::decimals`. Unlike `mint::decimals` (which
   hand-rolls raw CPI instruction bytes per backend, since there's no shared
   CreateAccount+InitializeMint helper), this reuses
   `naclac_lang::associated_token::create` directly — that function already
   branches on `#[cfg(feature = "pinocchio")]` internally (confirmed by
-  reading `naclac-token/src/associated_token.rs`), so the generated code
+  reading `token/src/associated_token.rs`), so the generated code
   needs no cfg branches of its own, the same "already unified at the call
   site" pattern established for `system_program::transfer` in `realloc.rs`.
 - `create_ata.rs` (all 3 variants) rewritten to use
@@ -657,7 +657,7 @@ Program itself — confirmed directly from the `litesvm` crate source
 and the real Associated Token Account program by default.
 
 **Real framework bug #1, found and fixed while building this**:
-`naclac-token/src/lib.rs`'s `prelude` module re-exported
+`token/src/lib.rs`'s `prelude` module re-exported
 `associated_token::Create as CreateAta` (the low-level, internal accounts
 struct) but never re-exported the `AssociatedTokenCpi` trait or the
 public-facing `CreateAtaAccounts` struct. Since `.create(...)` is a trait
@@ -667,7 +667,7 @@ method, `use naclac_lang::prelude::*` alone would never bring
 with "no method named `create` found," regardless of how correctly the rest
 of the call site was written. Fixed by adding
 `pub use crate::associated_token::{AssociatedTokenCpi, CreateAtaAccounts};`
-alongside the existing `CreateAta` re-export in `naclac-token/src/lib.rs`'s
+alongside the existing `CreateAta` re-export in `token/src/lib.rs`'s
 `prelude` module.
 
 **Real bug #2, caught by the actual build**: the `#[derive(Accounts)]`
@@ -693,7 +693,7 @@ distinct `Keypair::new()` for `owner` instead.
 Deferred to a follow-up (documented, not silently dropped):
 - Token-2022 variant specifically — the CPI helpers already branch on
   `program.address() == spl_token_2022::ID` internally (confirmed in
-  `naclac-token/src/token.rs`), so this is a matter of parameterizing the
+  `token/src/token.rs`), so this is a matter of parameterizing the
   existing instructions over `token_program`, not new code — left for the
   same follow-up pass as the ATA case. (Note: `check_vault_program`'s
   negative case above deliberately doesn't need a real, separately-deployed
@@ -714,7 +714,7 @@ token CPI would defeat the point of testing token constraint enforcement.
 every call; the test calls it twice and decodes both transactions'
 real log output (`tx_meta.parse_events_zero_copy::<CounterIncremented>()` in
 pinocchio/zc, `.parse_events_borsh()` in borsh — the only difference between
-the 3 mode variants, confirmed from `naclac-client/src/provider.rs`'s two
+the 3 mode variants, confirmed from `client-rs/src/provider.rs`'s two
 separate parse methods), asserting `new_count` is `1` then `2` — proving the
 payload reflects real, current on-chain state each time, not a stale or
 hand-constructed value. A second instruction, `touch_counter_explicit_bump`,
@@ -760,7 +760,7 @@ rather than guessing:
   about if a future case's assertions depend on bump *mismatches* being
   caught on an existing, non-`init`, literal-seeded account with bare bump.
 
-**Modes:** all three (`naclac-core/src/event/{borsh,zero_copy,pinocchio}.rs`
+**Modes:** all three (`core/src/event/{borsh,zero_copy,pinocchio}.rs`
 are three genuinely different implementations, not one implementation with
 cfg branches — confirmed by reading all three: borsh concatenates
 discriminator+serialized-payload into one `sol_log_data` slice, zero-copy/
@@ -785,7 +785,7 @@ cross-program CPI needs two actual programs, not one self-CPI'ing one.
 (`cpi-callee-client`, `features = ["cpi"]`) exactly like
 `examples/launchpad`'s `token_creator` depends on `amm-client` — this is
 the real mechanism a naclac user relies on for cross-program CPI, not a
-hand-rolled `invoke` call (confirmed via `naclac-client-gen/src/rust/instructions/cpi.rs`:
+hand-rolled `invoke` call (confirmed via `client-gen/src/rust/instructions/cpi.rs`:
 `{ix_camel}CpiAccounts`/`{ix_camel}Cpi` trait with `{ix_snake}`/`{ix_snake}_signed`
 methods, generated per-instruction, gated on the `cpi` feature).
 
@@ -841,8 +841,8 @@ every time.
 **Deferred to a follow-up, not silently dropped:** a dedicated test that
 actually *triggers* `MAX_CPI_SIGNERS`/`MAX_CPI_SEEDS_PER_SIGNER` and
 confirms the new `TooManyCpiSigners`/`TooManyCpiSeeds` errors fire (see the
-real bug found and fixed in `naclac-core/src/cpi.rs` and
-`naclac-token/src/token.rs` — both used to silently truncate past these
+real bug found and fixed in `core/src/cpi.rs` and
+`token/src/token.rs` — both used to silently truncate past these
 limits instead of erroring). The high-level generated CPI trait methods
 used here only ever pass one PDA signer, so forcing an overflow needs a
 lower-level raw `pinocchio::instruction::InstructionView` construction
@@ -947,7 +947,7 @@ needing a fresh one:
   non-functional end-to-end before this. Real bugs found and fixed, in the
   order they surfaced:
   - **`realloc`/`realloc::payer`/`realloc::zero` couldn't even parse**:
-    missing from `is_reserved` in `naclac-macros/src/instruction/parser.rs`,
+    missing from `is_reserved` in `macros/src/instruction/parser.rs`,
     so `realloc::payer = payer` fell into generic relation-field parsing and
     errored with "Expected relation field name".
   - **`fully_parse_realloc` searched for the wrong key names**: copy-pasted
@@ -961,7 +961,7 @@ needing a fresh one:
     bogus identifier `new_spaceasusize`. Fixed by normalizing only the
     `::`/`=` separators instead of stripping all whitespace.
   - **`AccountInfo::resize()` didn't exist**: naclac's own lifetime-erased
-    `AccountInfo` wrapper (`naclac-core/src/prelude.rs`, one definition per
+    `AccountInfo` wrapper (`core/src/prelude.rs`, one definition per
     backend) never had a `resize` method written at all. Added one to each:
     the solana-backend wrapper forwards to the real
     `solana_program::account_info::AccountInfo::resize` via the existing
@@ -971,7 +971,7 @@ needing a fresh one:
   - **Pinocchio growth was never funded at all**: the original code just
     resized on the pinocchio path with no lamport top-up whatsoever (silent
     under-funding on growth). Rewrote `generate_realloc_logic` in
-    `naclac-macros/src/instruction/realloc.rs` to use the framework's
+    `macros/src/instruction/realloc.rs` to use the framework's
     existing dual-backend `naclac_lang::prelude::system_program::transfer`
     helper (already used elsewhere for CPI transfers on both backends)
     instead of hand-rolled invoke code, so growth funding now genuinely
@@ -1009,16 +1009,16 @@ needing a fresh one:
 `error_codes`, solana-borsh — macro-syntax-level, not backend-dependent,
 per this section's own guidance). `TestError`
 (`ZeroAmount`/`Unauthorized`/`TooLarge`) confirmed from
-`naclac-macros/src/error_code.rs` directly: no explicit discriminants
+`macros/src/error_code.rs` directly: no explicit discriminants
 means the 6000 offset lands them at exactly 6000/6001/6002
 (`e as u32 + 6000`). `check_amount`/`check_authority` trigger each one via
 `require!`, positive + negative each.
 
 **Real bug found and fixed in `naclac-client-gen` while building this
 (not the framework itself, but the CLI's client generator):**
-`naclac-client-gen/src/rust/lib_generator.rs` unconditionally emitted
+`client-gen/src/rust/lib_generator.rs` unconditionally emitted
 `pub mod components;` regardless of whether the program had any
-`#[component]`s at all — `naclac-client-gen/src/rust/mod.rs` only creates
+`#[component]`s at all — `client-gen/src/rust/mod.rs` only creates
 the `src/components/` directory when `idl.accounts` is non-empty, so a
 pure-logic program (no components, like this one) got a generated client
 that failed to compile (`E0583: file not found for module`). Fixed by
@@ -1048,7 +1048,7 @@ backend-dependent) — pick solana-borsh since it's cheapest to iterate on.
 
 - Custom error enum with `#[error_code]`, confirm each variant's numeric
   code + message surfaces correctly in a failed transaction's logs
-- Confirm `NaclacError` framework errors (from `naclac-core/src/error.rs`)
+- Confirm `NaclacError` framework errors (from `core/src/error.rs`)
   and program-defined errors don't collide in code-space
 
 ---
@@ -1063,7 +1063,7 @@ as something to spot-check).
 
 - Generate IDL (`naclac-idl`) for one program per mode, confirm `is_zero_copy`
   (or equivalent field) is correct per mode
-- Generate the Rust client (`naclac-client-gen/src/rust/*`) and confirm it
+- Generate the Rust client (`client-gen/src/rust/*`) and confirm it
   compiles standalone against the IDL
 - Generate the TypeScript client, both `kit.rs` (new `@solana/kit`-style) and
   `legacy.rs` (`@solana/web3.js`-style) output variants — confirm both
@@ -1078,14 +1078,14 @@ hypothetical — worth a dedicated regression case here): `get_child_pda` in
 the generated Rust/TS clients was silently wrong whenever a PDA seed
 referenced a *field* of another account (e.g. `registry.bump`, a `u8`)
 rather than that account's own address. All three generators
-(`naclac-client-gen/src/rust/lib_generator.rs`, `.../typescript/kit.rs`,
+(`client-gen/src/rust/lib_generator.rs`, `.../typescript/kit.rs`,
 `.../typescript/legacy.rs`) treated any `IdlSeed::Account { path }` as a
 32-byte `Address` regardless of whether `path` was a plain account name or
 a dotted field-access path.
 
 **Fixed properly, not just contained.** Threaded the backing component
 type through the whole pipeline, mechanically — no guessing at any step:
-`naclac-syn/instruction.rs` now extracts the inner generic type from
+`syn/instruction.rs` now extracts the inner generic type from
 `Account<T>`/`InterfaceAccount<T>` fields (the same technique already used
 for `Program<T>`, just previously not applied to `Account<T>`), `pda.rs`
 resolves a dotted seed's real field type by looking it up in that
@@ -1158,7 +1158,7 @@ index rather than hitting real GitHub releases in CI.
 
 **✅ Built and passing (12/12 `optional_accounts`, 14/14 `optional_accounts_borsh`,
 14/14 `optional_accounts_zc` — 40/40 total).** Covers the sentinel design in
-[naclac-macros/docs/optional-accounts-plan.md](../naclac-macros/docs/optional-accounts-plan.md):
+[macros/docs/optional-accounts-plan.md](../macros/docs/optional-accounts-plan.md):
 an `Option<T>` field always occupies its declared slot; absence is signaled by
 the caller passing the program's own address in that slot, checked against
 `program_id` in the generated `load_and_validate`.
@@ -1187,7 +1187,7 @@ code — full detail in the plan doc):
 - `naclac-client-gen` was *omitting* absent optional accounts from generated
   transactions instead of sentinel-filling them — would have silently
   misindexed every account declared after an absent optional one.
-- `naclac-core/src/prelude.rs`'s `no-std`/`pinocchio`/`alloc` routing had a
+- `core/src/prelude.rs`'s `no-std`/`pinocchio`/`alloc` routing had a
   latent duplicate-import bug (only surfaced under `--all-features`) and a
   real gap where standalone `no-std` (without `pinocchio`) never linked
   `extern crate alloc` at all.

@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions/transfer_hook.rs`), under the
+/// (`token/src/extensions/transfer_hook.rs`), under the
 /// non-pinocchio backend specifically — needed so
 /// `transfer_checked_with_hook` (non-pinocchio only) can be exercised
 /// against a real hook-gated mint; `token_borsh` is the only test program

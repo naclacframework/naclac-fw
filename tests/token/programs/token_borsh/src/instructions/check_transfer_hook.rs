@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
 
 /// Reads `TransferHook` off a mint and `TransferHookAccount` off a token
-/// account via `get_extension` (`naclac-token/src/extensions.rs`) and
+/// account via `get_extension` (`token/src/extensions.rs`) and
 /// asserts every field matches the expected values passed in — proves the
 /// TLV byte-offset math for these two extension types end-to-end.
 #[derive(Accounts)]

@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `transfer_hook_update`
-/// (`naclac-token/src/extensions.rs`) — updates an already-initialized
+/// (`token/src/extensions.rs`) — updates an already-initialized
 /// mint's `TransferHook` program id via CPI, then reads it back to confirm
 /// the on-chain value actually changed, not just that Token-2022 accepted
 /// the instruction.

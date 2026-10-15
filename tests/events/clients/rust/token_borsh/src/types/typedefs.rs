@@ -411,7 +411,7 @@ impl core::default::Default for CheckTransferFeeConfigArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(feature = "borsh")]
 /// Real end-to-end proof of `initialize_token_group_member`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// (`token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
 /// itself, initializes the mint, then joins it to an already-initialized
 /// `TokenGroup` on `group_mint` (created by
@@ -428,7 +428,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 /// Real end-to-end proof of `initialize_token_group_member`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// (`token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
 /// itself, initializes the mint, then joins it to an already-initialized
 /// `TokenGroup` on `group_mint` (created by
@@ -533,7 +533,7 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArg
 #[cfg(feature = "cpi")]
 #[cfg(feature = "borsh")]
 /// Real end-to-end proof of `initialize_token_group_member`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// (`token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
 /// itself, initializes the mint, then joins it to an already-initialized
 /// `TokenGroup` on `group_mint` (created by
@@ -550,7 +550,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMemberArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 /// Real end-to-end proof of `initialize_token_group_member`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// (`token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
 /// itself, initializes the mint, then joins it to an already-initialized
 /// `TokenGroup` on `group_mint` (created by
@@ -655,7 +655,7 @@ impl core::default::Default for CreateMint2022WithGroupMemberPointerAndMemberArg
 #[cfg(feature = "offchain")]
 #[cfg(feature = "borsh")]
 /// Real end-to-end proof of `initialize_token_group`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// (`token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
 /// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
 /// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
@@ -681,7 +681,7 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 /// Real end-to-end proof of `initialize_token_group`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// (`token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
 /// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
 /// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
@@ -816,7 +816,7 @@ impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgs {
 #[cfg(feature = "cpi")]
 #[cfg(feature = "borsh")]
 /// Real end-to-end proof of `initialize_token_group`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// (`token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
 /// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
 /// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
@@ -842,7 +842,7 @@ pub struct CreateMint2022WithGroupPointerAndGroupArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 /// Real end-to-end proof of `initialize_token_group`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by
+/// (`token/src/extensions/token_group.rs`): allocates the mint PDA by
 /// hand, points a self-referential `GroupPointer` at the mint itself
 /// (mirrors `TokenMetadata`'s own self-referential requirement), initializes
 /// the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being
@@ -976,7 +976,7 @@ impl core::default::Default for CreateMint2022WithGroupPointerAndGroupArgsCpi {
 
 #[cfg(feature = "offchain")]
 /// Real end-to-end proof of `initialize_token_metadata`
-/// (`naclac-token/src/extensions/token_metadata.rs`): allocates the mint PDA
+/// (`token/src/extensions/token_metadata.rs`): allocates the mint PDA
 /// by hand, points a self-referential `MetadataPointer` at the mint itself
 /// (required — Token-2022's own `TokenMetadata::Initialize` processor
 /// rejects a metadata account that isn't the mint), initializes the mint,
@@ -999,7 +999,7 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgs {
 
 #[cfg(feature = "cpi")]
 /// Real end-to-end proof of `initialize_token_metadata`
-/// (`naclac-token/src/extensions/token_metadata.rs`): allocates the mint PDA
+/// (`token/src/extensions/token_metadata.rs`): allocates the mint PDA
 /// by hand, points a self-referential `MetadataPointer` at the mint itself
 /// (required — Token-2022's own `TokenMetadata::Initialize` processor
 /// rejects a metadata account that isn't the mint), initializes the mint,
@@ -1023,7 +1023,7 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgsCpi {
 #[cfg(feature = "offchain")]
 #[cfg(feature = "borsh")]
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions/transfer_hook.rs`), under the
+/// (`token/src/extensions/transfer_hook.rs`), under the
 /// non-pinocchio backend specifically — needed so
 /// `transfer_checked_with_hook` (non-pinocchio only) can be exercised
 /// against a real hook-gated mint; `token_borsh` is the only test program
@@ -1040,7 +1040,7 @@ pub struct CreateMint2022WithTransferHookArgs {
 #[cfg(feature = "offchain")]
 #[cfg(not(feature = "borsh"))]
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions/transfer_hook.rs`), under the
+/// (`token/src/extensions/transfer_hook.rs`), under the
 /// non-pinocchio backend specifically — needed so
 /// `transfer_checked_with_hook` (non-pinocchio only) can be exercised
 /// against a real hook-gated mint; `token_borsh` is the only test program
@@ -1160,7 +1160,7 @@ impl core::default::Default for CreateMint2022WithTransferHookArgs {
 #[cfg(feature = "cpi")]
 #[cfg(feature = "borsh")]
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions/transfer_hook.rs`), under the
+/// (`token/src/extensions/transfer_hook.rs`), under the
 /// non-pinocchio backend specifically — needed so
 /// `transfer_checked_with_hook` (non-pinocchio only) can be exercised
 /// against a real hook-gated mint; `token_borsh` is the only test program
@@ -1177,7 +1177,7 @@ pub struct CreateMint2022WithTransferHookArgsCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(feature = "borsh"))]
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions/transfer_hook.rs`), under the
+/// (`token/src/extensions/transfer_hook.rs`), under the
 /// non-pinocchio backend specifically — needed so
 /// `transfer_checked_with_hook` (non-pinocchio only) can be exercised
 /// against a real hook-gated mint; `token_borsh` is the only test program

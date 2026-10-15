@@ -3,12 +3,12 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `transfer_checked_with_hook`
-/// (`naclac-token/src/extensions/transfer_hook.rs`) — not just that
+/// (`token/src/extensions/transfer_hook.rs`) — not just that
 /// `initialize_transfer_hook`/`transfer_hook_update` are readable, but that
 /// a real transfer against a hook-gated mint actually resolves the hook's
 /// extra accounts and CPIs into the real hook program. `hook_program` plus
 /// the hook's `ExtraAccountMetaList` PDA (passed via `remaining_accounts`,
-/// the documented mechanism in `naclac-client/src/builder.rs` for exactly
+/// the documented mechanism in `client-rs/src/builder.rs` for exactly
 /// this "token-2022 extensions" case) are combined into the `extra_accounts`
 /// list `transfer_checked_with_hook_signed` requires.
 #[derive(Accounts)]

@@ -3,12 +3,12 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_scaled_ui_amount_config`
-/// (`naclac-token/src/extensions/scaled_ui_amount.rs`): allocates the mint
+/// (`token/src/extensions/scaled_ui_amount.rs`): allocates the mint
 /// PDA itself, since Token-2022 requires `ScaledUiAmountMintInstruction::Initialize`
 /// to run *before* `InitializeMint`, same pattern as
 /// `create_mint2022_with_transfer_fee.rs`. `multiplier_bits` carries the
 /// `f64` multiplier as raw `u64` bits over the wire — naclac's `NaclacPod`
-/// instruction-argument scheme (`naclac-core/src/prelude.rs`'s
+/// instruction-argument scheme (`core/src/prelude.rs`'s
 /// `impl_naclac_pod!` list) has no `f64` impl, so an `f64` instruction
 /// argument wouldn't deserialize; the value is only ever a native `f64`
 /// again inside this handler's own body, and when calling

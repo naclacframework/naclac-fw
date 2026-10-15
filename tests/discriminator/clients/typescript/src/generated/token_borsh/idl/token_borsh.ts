@@ -1388,7 +1388,7 @@ export const IDL = {
       "name": "CreateMint2022WithGroupMemberPointerAndMemberArgs",
       "docs": [
         "Real end-to-end proof of `initialize_token_group_member`",
-        "(`naclac-token/src/extensions/token_group.rs`): allocates a second,",
+        "(`token/src/extensions/token_group.rs`): allocates a second,",
         "member mint PDA, points a self-referential `GroupMemberPointer` at",
         "itself, initializes the mint, then joins it to an already-initialized",
         "`TokenGroup` on `group_mint` (created by",
@@ -1408,7 +1408,7 @@ export const IDL = {
       "name": "CreateMint2022WithGroupPointerAndGroupArgs",
       "docs": [
         "Real end-to-end proof of `initialize_token_group`",
-        "(`naclac-token/src/extensions/token_group.rs`): allocates the mint PDA by",
+        "(`token/src/extensions/token_group.rs`): allocates the mint PDA by",
         "hand, points a self-referential `GroupPointer` at the mint itself",
         "(mirrors `TokenMetadata`'s own self-referential requirement), initializes",
         "the mint, then initializes `TokenGroup` on it. Despite `TokenGroup` being",
@@ -1437,7 +1437,7 @@ export const IDL = {
       "name": "CreateMint2022WithMetadataPointerAndMetadataArgs",
       "docs": [
         "Real end-to-end proof of `initialize_token_metadata`",
-        "(`naclac-token/src/extensions/token_metadata.rs`): allocates the mint PDA",
+        "(`token/src/extensions/token_metadata.rs`): allocates the mint PDA",
         "by hand, points a self-referential `MetadataPointer` at the mint itself",
         "(required — Token-2022's own `TokenMetadata::Initialize` processor",
         "rejects a metadata account that isn't the mint), initializes the mint,",
@@ -1463,7 +1463,7 @@ export const IDL = {
       "name": "CreateMint2022WithTransferHookArgs",
       "docs": [
         "Real end-to-end proof of `initialize_transfer_hook`",
-        "(`naclac-token/src/extensions/transfer_hook.rs`), under the",
+        "(`token/src/extensions/transfer_hook.rs`), under the",
         "non-pinocchio backend specifically — needed so",
         "`transfer_checked_with_hook` (non-pinocchio only) can be exercised",
         "against a real hook-gated mint; `token_borsh` is the only test program",

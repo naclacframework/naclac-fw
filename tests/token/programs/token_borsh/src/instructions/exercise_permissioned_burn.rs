@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `permissioned_burn`
-/// (`naclac-token/src/extensions/permissioned_burn.rs`) — burns real tokens
+/// (`token/src/extensions/permissioned_burn.rs`) — burns real tokens
 /// from `vault` via CPI, co-signed by both the mint's permissioned-burn
 /// authority and the vault's own owner (here the same `mint_authority` PDA
 /// for both, matching the pattern this test's mints/vaults already share),

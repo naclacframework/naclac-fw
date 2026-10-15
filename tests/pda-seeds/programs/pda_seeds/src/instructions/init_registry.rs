@@ -6,7 +6,7 @@ use crate::constants::SEED_REGISTRY;
 // (no explicit value) is allowed here specifically because the seed is
 // fully resolvable at macro-expansion time; it also makes the framework
 // auto-write the derived bump into `registry.bump` after init (see
-// naclac-macros/src/accounts.rs's `mut_zero_copy_fields` handling), so
+// macros/src/accounts.rs's `mut_zero_copy_fields` handling), so
 // later instructions can read it back without us doing it manually.
 #[derive(Accounts)]
 pub struct InitRegistry {

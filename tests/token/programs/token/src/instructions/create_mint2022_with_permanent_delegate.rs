@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_permanent_delegate`
-/// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI
+/// (`token/src/extensions/permanent_delegate.rs`) — this CPI
 /// function had zero test coverage before this file: the only existing
 /// test read a hand-crafted fixture, never a mint the real CPI actually
 /// created. Allocates the mint PDA by hand (same reason as

@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
 
 /// Real end-to-end proof of `disable_required_memo_transfers`
-/// (`naclac-token/src/extensions/memo_transfer.rs`) — disables the
+/// (`token/src/extensions/memo_transfer.rs`) — disables the
 /// extension on an already-`MemoTransfer`-enabled vault via CPI, signed by
 /// the account's owner, then reads it back to confirm the on-chain flag
 /// actually flipped, not just that Token-2022 accepted the instruction.

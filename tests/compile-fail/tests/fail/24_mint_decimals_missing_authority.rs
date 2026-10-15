@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/instruction/init_cpi.rs — `mint::decimals =` on an
+// Site: macros/src/instruction/init_cpi.rs — `mint::decimals =` on an
 // `init` field with no `mint::authority =` alongside it. Previously a raw
 // proc-macro panic ("proc macro panicked", no clean span); now a spanned
 // `syn::Error`.

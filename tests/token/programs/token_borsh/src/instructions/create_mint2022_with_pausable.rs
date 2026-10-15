@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_pausable_config`
-/// (`naclac-token/src/extensions/pausable.rs`): allocates the mint PDA
+/// (`token/src/extensions/pausable.rs`): allocates the mint PDA
 /// itself, since Token-2022 requires `PausableInstruction::Initialize` to
 /// run *before* `InitializeMint`, same pattern as
 /// `create_mint2022_with_transfer_fee.rs`.

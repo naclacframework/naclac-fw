@@ -237,7 +237,7 @@ fn duplicate_mutable_account_via_remaining_accounts_is_rejected() {
 
 /// `Box<Account<T>>` coverage: no test program in this repo boxes any
 /// account field before this. Confirms the blanket impls added for
-/// `Box<T>` in `naclac-core/src/wrappers/mod.rs` (`NaclacAccount`, `Owner`,
+/// `Box<T>` in `core/src/wrappers/mod.rs` (`NaclacAccount`, `Owner`,
 /// `ToAddress`, `AsRefByteSlice`, `ToAccountInfo`/`ToAccountInfos`,
 /// `ToCpiHandle`/`ToCpiHandleMut`) make a boxed field load, validate, and
 /// mutate identically to a bare `Account<T>` field — the same `vault_a` PDA

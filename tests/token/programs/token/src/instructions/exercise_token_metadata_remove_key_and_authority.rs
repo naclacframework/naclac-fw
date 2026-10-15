@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `remove_token_metadata_key` and
-/// `update_token_metadata_authority` (`naclac-token/src/extensions/token_metadata.rs`),
+/// `update_token_metadata_authority` (`token/src/extensions/token_metadata.rs`),
 /// completing coverage alongside `exercise_token_metadata_lifecycle`'s
 /// `update_token_metadata_field`/`emit_token_metadata` — split into its own
 /// instruction since removing the authority must happen last (further

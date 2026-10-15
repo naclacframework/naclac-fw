@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 // Identical to `mint_to_vault.rs` but `token_program` is `Program<Token2022>`
-// — `mint_to_signed` (`naclac-token/src/token.rs`) already branches
+// — `mint_to_signed` (`token/src/token.rs`) already branches
 // internally on `program.address() == spl_token_2022::ID`, so the CPI itself
 // needed no changes; only the Accounts struct's static field type differs.
 // `mint`/`vault` use `InterfaceAccount<...>` rather than plain `Mint`/

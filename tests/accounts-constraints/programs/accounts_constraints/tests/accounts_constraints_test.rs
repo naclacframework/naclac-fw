@@ -641,7 +641,7 @@ fn relation_constraint_custom_error_replaces_default_unauthorized() {
     // `admin = authority @ VaultError::WrongAdmin` — the `@` custom-error
     // suffix replaces the default `NaclacError::Unauthorized` with
     // `VaultError::WrongAdmin`'s own code. `#[error_code]` offsets custom
-    // discriminants by 6000 (`naclac-macros/src/error_code.rs`); with no
+    // discriminants by 6000 (`macros/src/error_code.rs`); with no
     // explicit discriminant, `WrongAdmin` (the enum's only variant) lands
     // at exactly 6000 — a genuinely different codespace from
     // `NaclacError`'s 3000s, proving the custom-error path fired instead
@@ -707,7 +707,7 @@ fn seeds_program_constraint_derives_pda_against_external_program() {
 /// this instruction ran) — previously `create_account_signed` always used
 /// the raw `CreateAccount` System instruction, which requires a
 /// zero-lamport target and fails with `AccountAlreadyInUse` otherwise (see
-/// `naclac-macros/docs/derive-accounts-gaps-audit.md`'s gap #4). Pre-funds
+/// `macros/docs/derive-accounts-gaps-audit.md`'s gap #4). Pre-funds
 /// `seeded_pda` directly (a plain SOL transfer, not via the program at all)
 /// before calling `init_seeded` against it.
 #[test]

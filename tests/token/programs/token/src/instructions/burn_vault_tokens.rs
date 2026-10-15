@@ -5,7 +5,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 // Real `burn` CPI, signed by the `mint_authority` PDA's own seeds (the same
 // PDA that owns every vault in this test case, per `create_token_account`'s
 // `owner` argument at setup time) — mirrors `mint_to_vault.rs`'s signer-seeds
-// construction exactly. `burn`/`burn_signed` (`naclac-token/src/token.rs`)
+// construction exactly. `burn`/`burn_signed` (`token/src/token.rs`)
 // had zero test coverage before this.
 #[derive(Accounts)]
 pub struct BurnVaultTokens {

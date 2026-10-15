@@ -16,10 +16,10 @@ default = ["pinocchio"]
 pinocchio = ["naclac-lang/pinocchio"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", default-features = false, path = "../../../../naclac-lang", features = ["metadata"] }
+naclac-lang = { version = "0.1.0", default-features = false, path = "../../../../lang", features = ["metadata"] }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
 metadata-client = { version = "0.1.0", path = "../../clients/rust/metadata" }
 serde_json = "1.0.149"
 

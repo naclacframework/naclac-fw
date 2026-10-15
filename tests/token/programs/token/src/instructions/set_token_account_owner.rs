@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
 
 /// Real `SetAuthority(AccountOwner)` CPI against a Token-2022 token account
-/// (`naclac-token/src/token.rs`'s `set_authority_signed`, via
+/// (`token/src/token.rs`'s `set_authority_signed`, via
 /// `Program<Token2022>`) — used both as the baseline (a normal vault's owner
 /// can be reassigned) and, against a vault carrying `ImmutableOwner`, as the
 /// real end-to-end proof that the extension actually blocks the change

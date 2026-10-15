@@ -1,19 +1,19 @@
 [workspace]
 members = [
     "cli",
-    "naclac-client-gen", 
-    "naclac-idl", 
-    "naclac-core",
-    "naclac-token",
-    "naclac-metadata",
-    "naclac-lang",
-    "naclac-syn", 
-    "naclac-macros", 
+    "client-gen",
+    "idl",
+    "core",
+    "token",
+    "metadata",
+    "lang",
+    "syn",
+    "macros",
     "nacvm",
-    "naclac-client",
-    "naclac-litesvm-node"
+    "client-rs",
+    "litesvm-node"
 ]
-exclude = ["naclac-litesvm"]
+exclude = ["litesvm"]
 resolver = "2"
 
 [workspace.lints.rust]
@@ -31,15 +31,15 @@ repository = "https://github.com/naclacframework/naclac-fw"
 
 [workspace.dependencies]
 # Internal Workspace Crates
-naclac-syn = { version = "0.1.0", path = "naclac-syn" }
-naclac-idl = { version = "0.1.0", path = "naclac-idl" }
-naclac-client-gen = { version = "0.1.0", path = "naclac-client-gen" }
-naclac-macros = { version = "0.1.0", path = "naclac-macros", default-features = false }
-naclac-lang = { version = "0.1.0", path = "naclac-lang" }
-naclac-core = { version = "0.1.0", path = "naclac-core", default-features = false }
-naclac-token = { version = "0.1.0", path = "naclac-token", default-features = false }
-naclac-metadata = { version = "0.1.0", path = "naclac-metadata", default-features = false }
-naclac-client = { version = "0.1.0", path = "naclac-client" }
+naclac-syn = { version = "0.1.0", path = "syn" }
+naclac-idl = { version = "0.1.0", path = "idl" }
+naclac-client-gen = { version = "0.1.0", path = "client-gen" }
+naclac-macros = { version = "0.1.0", path = "macros", default-features = false }
+naclac-lang = { version = "0.1.0", path = "lang" }
+naclac-core = { version = "0.1.0", path = "core", default-features = false }
+naclac-token = { version = "0.1.0", path = "token", default-features = false }
+naclac-metadata = { version = "0.1.0", path = "metadata", default-features = false }
+naclac-client = { version = "0.1.0", path = "client-rs" }
 
 # Proc Macros & AST
 syn = { version = "3.0.3", features = ["full", "extra-traits", "parsing", "visit", "visit-mut"] }
@@ -67,7 +67,7 @@ toml = "1.1.1"
 wincode = "0.6.1"
 bytemuck = { version = "1.25.0", features = ["derive", "min_const_generics"] }
 sha2 = "0.11.0"
-litesvm = { path = "naclac-litesvm/crates/litesvm" }
+litesvm = { path = "litesvm/crates/litesvm" }
 thiserror = "2.0.18"
 five8 = { version = "1.0.0", default-features = false }
 

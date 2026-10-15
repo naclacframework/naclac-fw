@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 // Identical to `transfer_tokens.rs` but `token_program` is
-// `Program<Token2022>` — `transfer_checked_signed` (`naclac-token/src/token.rs`)
+// `Program<Token2022>` — `transfer_checked_signed` (`token/src/token.rs`)
 // already branches internally on `program.address() == spl_token_2022::ID`,
 // so only the Accounts struct's static field type differs. `mint`/`from`/`to`
 // use `InterfaceAccount<...>` rather than plain `Mint`/`TokenAccount`, since

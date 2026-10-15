@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `initialize_token_group_member`
-/// (`naclac-token/src/extensions/token_group.rs`): allocates a second,
+/// (`token/src/extensions/token_group.rs`): allocates a second,
 /// member mint PDA, points a self-referential `GroupMemberPointer` at
 /// itself, initializes the mint, then joins it to an already-initialized
 /// `TokenGroup` on `group_mint` (created by

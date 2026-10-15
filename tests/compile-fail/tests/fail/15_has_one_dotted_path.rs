@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/instruction/parser.rs:175 — a relation
+// Site: macros/src/instruction/parser.rs:175 — a relation
 // constraint's KEY must be a simple identifier. `foo::bar` isn't one of the
 // recognized two-segment reserved forms (`token::*`, `mint::*`,
 // `seeds::program`), so it falls through to the generic relation-constraint

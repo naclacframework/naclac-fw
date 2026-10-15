@@ -3,7 +3,7 @@
 //! conversions, scratch-array logic, etc.) — pure `solana-sdk` only, no
 //! naclac dependency at all. Compares real `Address::find_program_address`
 //! against a byte-for-byte copy of the exact formula now in
-//! `naclac-core/src/prelude.rs`.
+//! `core/src/prelude.rs`.
 
 use solana_sdk::pubkey::Address;
 use solana_sdk::hash::hashv;

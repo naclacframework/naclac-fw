@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/instruction/init_cpi.rs's
+// Site: macros/src/instruction/init_cpi.rs's
 // `resolve_token_program_idx` — an `init` `mint::decimals =`/`mint::authority
 // =` field with no `Program<Token>`/`Program<Token2022>`/
 // `Interface<TokenInterface>` anywhere in the struct. Previously a raw

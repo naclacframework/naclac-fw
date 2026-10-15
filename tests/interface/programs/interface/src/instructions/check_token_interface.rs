@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 
-// `naclac-core/src/wrappers/interface.rs` has had zero coverage in `tests/`
+// `core/src/wrappers/interface.rs` has had zero coverage in `tests/`
 // until this case, despite being real, already-used machinery
 // (`examples/token-vault/*/instructions/{deposit,withdraw}.rs` both declare
 // `pub token_program: Interface<TokenInterface>` exactly like this). The

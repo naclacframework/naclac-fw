@@ -2,7 +2,7 @@ use naclac_lang::prelude::*;
 use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
-// Real `close_account`/`close_account_signed` CPI (`naclac-token/src/token.rs`)
+// Real `close_account`/`close_account_signed` CPI (`token/src/token.rs`)
 // — the raw SPL Token instruction that closes a token account and returns
 // its lamports, distinct from naclac's own `#[account(close = ...)]`
 // framework constraint (already covered by

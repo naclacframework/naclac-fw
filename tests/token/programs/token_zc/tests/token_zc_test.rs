@@ -254,7 +254,7 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     assert_custom_code(wrong_authority_result, 10203);
 
     // `TokenAccount`'s own baked-in owner check (`Discriminator::validate_account`,
-    // `naclac-token/src/token.rs`) — distinct from the `token::mint`/
+    // `token/src/token.rs`) — distinct from the `token::mint`/
     // `token::authority` byte-comparison checks above, and runs first: it
     // rejects an account not owned by the Token program at all, regardless
     // of what its bytes happen to contain. `provider.payer.address()` is
@@ -276,7 +276,7 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     assert_custom_code(wrong_owner_result, 10204);
 
     // `TokenAccount`'s raw-layout validation (`validate_token_account_layout`,
-    // `naclac-token/src/token.rs`) — distinct from both the owner check above
+    // `token/src/token.rs`) — distinct from both the owner check above
     // and the `token::mint`/`token::authority` byte-comparison checks: a
     // 165-byte, all-zero buffer genuinely owned by the Token program passes
     // the owner check (owner is correct) and has canonical `COption` tags
@@ -691,7 +691,7 @@ fn create_ata_idempotent_is_a_noop_on_second_call() {
 
 /// `associated_token::mint`/`::authority`/`::bump` on an *existing*
 /// (non-`init`) account — the fix for the gap documented in
-/// `naclac-token/docs/04-associated-token-existing-account-gap.md`, where
+/// `token/docs/04-associated-token-existing-account-gap.md`, where
 /// this constraint used to compile to nothing at all. Covers: the real ATA
 /// with its correct bump succeeds; the real ATA with a wrong bump is
 /// rejected (`ConstraintSeeds`, the hash-and-compare address recomputes to

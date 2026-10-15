@@ -2,7 +2,7 @@ use naclac_lang::prelude::*;
 use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
-// Real `freeze_account`/`freeze_account_signed` CPI (`naclac-token/src/token.rs`),
+// Real `freeze_account`/`freeze_account_signed` CPI (`token/src/token.rs`),
 // signed by the `mint_authority` PDA — which is also the mint's real freeze
 // authority whenever the mint was created via `create_mint_with_freeze`.
 // Previously the only thing in this test case that ever touched freezing was

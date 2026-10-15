@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_group_pointer`
-/// (`naclac-token/src/extensions/group_pointer.rs`): allocates the mint PDA
+/// (`token/src/extensions/group_pointer.rs`): allocates the mint PDA
 /// by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeGroupPointer` must run before `InitializeMint`).
 #[instruction_args]

@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/event.rs:29 — `#[event]` field typed `Pubkey`
+// Site: macros/src/event.rs:29 — `#[event]` field typed `Pubkey`
 // (deprecated in favor of `Address`).
 use naclac_lang::prelude::*;
 

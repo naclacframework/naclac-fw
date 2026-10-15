@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/instruction/security.rs — `owner = "..."` that
+// Site: macros/src/instruction/security.rs — `owner = "..."` that
 // decodes as valid base58 but not to exactly 32 bytes. Previously a raw
 // proc-macro panic (`assert_eq!`); now a spanned `syn::Error`.
 use naclac_lang::prelude::*;

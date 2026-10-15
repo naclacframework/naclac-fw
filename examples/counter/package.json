@@ -11,7 +11,7 @@
   
   "dependencies": {
     "@naclac-fw/client": "link:../../client",
-    "@naclac-fw/litesvm": "link:../../naclac-litesvm-node",
+    "@naclac-fw/litesvm": "link:../../litesvm-node",
     "@solana-program/system": "^0.15",
     "@solana-program/token-2022": "^0.15.0",
     "@solana/kit": "^8",

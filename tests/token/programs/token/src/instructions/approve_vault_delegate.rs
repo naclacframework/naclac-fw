@@ -2,7 +2,7 @@ use naclac_lang::prelude::*;
 use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
-// Real `approve`/`approve_signed` CPI (`naclac-token/src/token.rs`), signed
+// Real `approve`/`approve_signed` CPI (`token/src/token.rs`), signed
 // by the `mint_authority` PDA (the vault's real owner). `delegate` is a bare
 // `AccountInfo` — only its address is used, mirroring
 // `set_mint_authority.rs`'s `new_authority` reasoning.

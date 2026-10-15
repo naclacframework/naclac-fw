@@ -4,7 +4,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `update_token_metadata_field`,
 /// `remove_token_metadata_key`, `update_token_metadata_authority`, and
-/// `emit_token_metadata` (`naclac-token/src/extensions/token_metadata.rs`):
+/// `emit_token_metadata` (`token/src/extensions/token_metadata.rs`):
 /// runs all four CPIs against an already-initialized `TokenMetadata` mint in
 /// one instruction, signed by the mint's own PDA authority. The final
 /// `emit_token_metadata` sets return data to the real, on-chain-recomputed

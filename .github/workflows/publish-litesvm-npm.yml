@@ -36,7 +36,7 @@ jobs:
             os: windows-latest
     defaults:
       run:
-        working-directory: naclac-litesvm-node
+        working-directory: litesvm-node
     steps:
       - uses: actions/checkout@v7
 
@@ -56,7 +56,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: litesvm-bindings-${{ matrix.target }}
-          path: naclac-litesvm-node/*.node
+          path: litesvm-node/*.node
           if-no-files-found: error
 
   publish-litesvm:
@@ -71,7 +71,7 @@ jobs:
       name: release
     defaults:
       run:
-        working-directory: naclac-litesvm-node
+        working-directory: litesvm-node
     steps:
       - uses: actions/checkout@v7
 
@@ -82,7 +82,7 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          path: naclac-litesvm-node/artifacts
+          path: litesvm-node/artifacts
           pattern: litesvm-bindings-*
           merge-multiple: true
 
@@ -140,7 +140,7 @@ jobs:
           else
             echo "No npmrc file found at that path."
           fi
-          echo "--- project-level .npmrc (naclac-litesvm-node/.npmrc) ---"
+          echo "--- project-level .npmrc (litesvm-node/.npmrc) ---"
           cat .npmrc || echo "none"
 
       # npm 11.5.1 is the documented minimum for OIDC trusted publishing,

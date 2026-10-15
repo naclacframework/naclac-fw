@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Previously a hard `compile_error!` (site: naclac-macros/src/instruction/
+// Previously a hard `compile_error!` (site: macros/src/instruction/
 // security.rs, the `Some(PdaBump::Auto)` arm reached when `init_config.is_some()`)
 // — dynamic (non-literal) seeds combined with `init` and bare `bump` had no
 // compile-time-precomputed answer available and no client-supplied bump to

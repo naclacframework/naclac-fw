@@ -1,10 +1,10 @@
 use naclac_lang::prelude::*;
 
-// `naclac-core/src/wrappers/zc_vec.rs`'s `ZcString` is the zero-copy
+// `core/src/wrappers/zc_vec.rs`'s `ZcString` is the zero-copy
 // replacement for `String` — but only ever as an *instruction argument*
 // (parsed fresh out of the current transaction's instruction-data buffer,
 // used and discarded within that same call). It is NOT a valid
-// `#[component]` field type: `naclac-macros/src/component.rs`'s own
+// `#[component]` field type: `macros/src/component.rs`'s own
 // zero-copy branch explicitly rejects `String`/`Vec<T>` fields with a
 // compile error (a `ZcVec<T>`/`ZcString` is a raw pointer + length; a
 // pointer value written into on-chain bytes in one transaction is

@@ -3,7 +3,7 @@
  *
  * Cross-checks the hand-ported TS zero-copy enum codec (`computeEnumCLayout`
  * / `getZeroCopyEnumCodec`, `src/coder/types.ts`) against real bytes
- * produced by the actual on-chain Rust macro (`naclac-macros/src/
+ * produced by the actual on-chain Rust macro (`macros/src/
  * checked_enum.rs`), not hand-computed expected values — a hand-derived
  * expectation would only prove the test author's arithmetic matches the
  * implementation's arithmetic, which proves nothing about whether either

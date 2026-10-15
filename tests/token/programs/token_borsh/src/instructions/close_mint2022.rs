@@ -4,7 +4,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof that `MintCloseAuthority` actually permits closing
 /// a Token-2022 mint via the ordinary `close_account`/`close_account_signed`
-/// CPI (`naclac-token/src/token.rs`) — no dedicated "close mint" action
+/// CPI (`token/src/token.rs`) — no dedicated "close mint" action
 /// exists in the real protocol, this extension only unlocks the standard
 /// `CloseAccount` instruction for a supply-zero mint. Signed by the
 /// `mint_authority` PDA — the same authority `create_mint2022_with_mint_close_authority.rs`

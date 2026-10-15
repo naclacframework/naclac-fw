@@ -381,7 +381,7 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     assert_custom_code(wrong_authority_result, 10203);
 
     // `TokenAccount`'s own baked-in owner check (`Discriminator::validate_account`,
-    // `naclac-token/src/token.rs`) — distinct from the `token::mint`/
+    // `token/src/token.rs`) — distinct from the `token::mint`/
     // `token::authority` byte-comparison checks above, and runs first: it
     // rejects an account not owned by the Token program at all, regardless
     // of what its bytes happen to contain. `provider.payer.address()` is
@@ -403,7 +403,7 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     assert_custom_code(wrong_owner_result, 10204);
 
     // `TokenAccount`'s raw-layout validation (`validate_token_account_layout`,
-    // `naclac-token/src/token.rs`) — distinct from both the owner check above
+    // `token/src/token.rs`) — distinct from both the owner check above
     // and the `token::mint`/`token::authority` byte-comparison checks: a
     // 165-byte, all-zero buffer genuinely owned by the Token program passes
     // the owner check (owner is correct) and has canonical `COption` tags
@@ -818,7 +818,7 @@ fn create_ata_idempotent_is_a_noop_on_second_call() {
 
 /// `associated_token::mint`/`::authority`/`::bump` on an *existing*
 /// (non-`init`) account — the fix for the gap documented in
-/// `naclac-token/docs/04-associated-token-existing-account-gap.md`, where
+/// `token/docs/04-associated-token-existing-account-gap.md`, where
 /// this constraint used to compile to nothing at all. Covers: the real ATA
 /// with its correct bump succeeds; the real ATA with a wrong bump is
 /// rejected (`ConstraintSeeds`, the hash-and-compare address recomputes to
@@ -978,7 +978,7 @@ fn setup_mint_authority_and_mint(
     (mint_authority_pda, mint_pda)
 }
 
-/// `burn`/`burn_signed` (`naclac-token/src/token.rs`) — mint tokens into a
+/// `burn`/`burn_signed` (`token/src/token.rs`) — mint tokens into a
 /// vault, burn part of the balance, and confirm the vault's raw SPL amount
 /// field (bytes `[64..72]`, same offset `read_token_account_amount` already
 /// uses) decreased by exactly the burned amount, not just "some amount".
@@ -1026,7 +1026,7 @@ fn burn_reduces_vault_balance_by_exact_amount() {
     );
 }
 
-/// `set_authority`/`set_authority_signed` (`naclac-token/src/token.rs`),
+/// `set_authority`/`set_authority_signed` (`token/src/token.rs`),
 /// mint-authority variant: after `set_mint_authority` (authority_type = 0 =
 /// `AuthorityType::MintTokens`), the mint's raw `mint_authority` `COption`
 /// pubkey (bytes `[4..36]` of the SPL `Mint` layout — bytes `[0..4]` are the
@@ -1166,7 +1166,7 @@ fn set_freeze_authority_updates_raw_mint_layout() {
     );
 }
 
-/// `freeze_account`/`thaw_account` (`_signed`) (`naclac-token/src/token.rs`)
+/// `freeze_account`/`thaw_account` (`_signed`) (`token/src/token.rs`)
 /// — the first test in this case to actually *call* the real freeze/thaw
 /// CPIs (`check_mint_freeze_authority` only ever validated the constraint,
 /// never froze anything). Uses `create_mint_with_freeze` so the
@@ -1294,7 +1294,7 @@ fn freeze_blocks_transfer_and_thaw_allows_it_again() {
     assert_eq!(read_token_account_amount(&provider, &to_vault.address()), 400_000);
 }
 
-/// `approve`/`revoke` (`_signed`) (`naclac-token/src/token.rs`) — approve a
+/// `approve`/`revoke` (`_signed`) (`token/src/token.rs`) — approve a
 /// delegate for a limited amount on a vault, confirm the delegate can
 /// transfer up to (but not more than) the approved amount via a
 /// delegate-signed `transfer` (SPL Token's `Transfer` instruction accepts
@@ -1408,7 +1408,7 @@ fn transfer_signed(
         .send_and_confirm()
 }
 
-/// `close_account`/`close_account_signed` (`naclac-token/src/token.rs`) —
+/// `close_account`/`close_account_signed` (`token/src/token.rs`) —
 /// the raw SPL Token CPI that closes a token account and returns its
 /// lamports, distinct from naclac's own `#[account(close = ...)]` framework
 /// constraint (`tests/accounts-constraints/`'s `close_vault`, which closes a
@@ -1493,7 +1493,7 @@ fn close_vault_account_returns_lamports_and_invalidates_account() {
     );
 }
 
-/// `transfer_checked`/`transfer_checked_signed` (`naclac-token/src/token.rs`)
+/// `transfer_checked`/`transfer_checked_signed` (`token/src/token.rs`)
 /// — mirrors `transfer_tokens`'s existing happy path but through the
 /// checked variant, which additionally validates the mint and decimals. The
 /// real SPL Token `TransferChecked` instruction itself validates the
@@ -1615,7 +1615,7 @@ fn token_2022_mint_creation_and_cpis_work_end_to_end() {
 
     // `create_token_account_with_program` lives in `naclac_client::utils` but
     // isn't re-exported at the crate root (only the `TOKEN_PROGRAM_ID`-only
-    // `create_token_account` convenience wrapper is, per `naclac-client/src/lib.rs`),
+    // `create_token_account` convenience wrapper is, per `client-rs/src/lib.rs`),
     // so it's reached via the module path brought into scope by `use naclac_client::*;`.
     let vault_a = Keypair::new();
     utils::create_token_account_with_program(&provider, &vault_a, &mint_pda, &mint_authority_pda, &TOKEN_2022_PROGRAM_ID)
@@ -1659,7 +1659,7 @@ fn token_2022_mint_creation_and_cpis_work_end_to_end() {
     assert_eq!(read_token_account_amount(&provider, &vault_b.address()), 400_000);
 
     // `InterfaceAccount<TokenAccount>`'s dual owner check
-    // (`Discriminator::validate_account`, `naclac-token/src/token.rs`)
+    // (`Discriminator::validate_account`, `token/src/token.rs`)
     // accepts Token *or* Token-2022 (proven above by `vault_a`/`vault_b`
     // both being real Token-2022 accounts) but must still reject an account
     // owned by neither. `provider.payer.address()` is owned by the System
@@ -1786,7 +1786,7 @@ fn create_mint2022_dual_token_program_rejects_wrong_program_in_targeted_slot() {
 /// 4-byte TLV header (`type = 1` for `TransferFeeConfig`, `length = 108`)
 /// followed by the 108-byte value. Every offset here was verified against
 /// `spl-token-2022-interface`'s real source before writing
-/// `naclac-token/src/extensions.rs` (see that file's doc comment for the
+/// `token/src/extensions.rs` (see that file's doc comment for the
 /// exact references checked) — this fixture exercises that same layout from
 /// the opposite direction, encoding it by hand rather than reading it.
 fn build_transfer_fee_mint_bytes(
@@ -1837,7 +1837,7 @@ fn build_transfer_fee_mint_bytes(
 }
 
 /// Proves `InterfaceAccount<Mint>::get_extension::<TransferFeeConfig>()`
-/// (`naclac-token/src/extensions.rs`) reads every field at the correct byte
+/// (`token/src/extensions.rs`) reads every field at the correct byte
 /// offset, and that `calculate_fee`/`calculate_post_fee_amount` compute the
 /// real Token-2022 fee formula correctly — including the `min(raw_fee,
 /// maximum_fee)` cap, exercised here by picking a transfer amount whose
@@ -2042,7 +2042,7 @@ fn build_permanent_delegate_mint_bytes(delegate: [u8; 32]) -> Vec<u8> {
 }
 
 /// Proves `InterfaceAccount<Mint>::get_extension::<PermanentDelegate>()`
-/// (`naclac-token/src/extensions.rs`) reads the delegate field at the
+/// (`token/src/extensions.rs`) reads the delegate field at the
 /// correct byte offset, plus a rejection case (mirrors
 /// `check_transfer_hook`'s own two-case shape).
 #[test]
@@ -2213,7 +2213,7 @@ fn check_account_fields_reads_base_token_layout_correctly() {
 }
 
 /// Real end-to-end proof of `initialize_transfer_fee_config`
-/// (`naclac-token/src/extensions.rs`): creates a genuine Token-2022 mint
+/// (`token/src/extensions.rs`): creates a genuine Token-2022 mint
 /// with the `TransferFeeConfig` extension via `create_mint2022_with_transfer_fee`
 /// (real `create_account_signed` + `InitializeTransferFeeConfig` +
 /// `InitializeMint` CPIs, not a hand-assembled fixture), then reads it back
@@ -2302,7 +2302,7 @@ fn create_mint2022_with_transfer_fee_produces_a_real_readable_extension() {
 }
 
 /// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
-/// `naclac-token/src/extensions.rs` — `exercise_transfer_fee_cpis` itself
+/// `token/src/extensions.rs` — `exercise_transfer_fee_cpis` itself
 /// asserts every intermediate balance/withheld-amount/config value against
 /// a real Token-2022 mint and vaults, so a successful `send_and_confirm`
 /// here is the actual proof; this test also independently re-checks the
@@ -2356,7 +2356,7 @@ fn exercise_transfer_fee_cpis_moves_real_balances_and_fees() {
     // `TransferFeeConfig` mint; the plain 165-byte
     // `create_token_account_with_program` fails `InitializeAccount3` with
     // `InvalidAccountData` against this mint. Matches
-    // `naclac-token/src/extensions.rs`'s own `EXTENSION_BASE_OFFSET` (165)
+    // `token/src/extensions.rs`'s own `EXTENSION_BASE_OFFSET` (165)
     // + `AccountType` marker + TLV layout exactly.
     const VAULT_WITH_TRANSFER_FEE_SPACE: usize = 165 + 1 + 2 + 2 + 8;
 
@@ -2447,7 +2447,7 @@ fn exercise_transfer_fee_cpis_moves_real_balances_and_fees() {
 }
 
 /// Real end-to-end proof of `transfer_hook_update`
-/// (`naclac-token/src/extensions.rs`) — `exercise_transfer_hook_update`
+/// (`token/src/extensions.rs`) — `exercise_transfer_hook_update`
 /// itself asserts the mint's `TransferHook.program_id` actually changed, so
 /// a successful `send_and_confirm` here is the actual proof.
 #[test]
@@ -2768,7 +2768,7 @@ fn immutable_owner_blocks_set_authority_and_normal_vault_allows_it() {
 }
 
 /// Real end-to-end proof of `enable_required_memo_transfers`/
-/// `disable_required_memo_transfers` (`naclac-token/src/extensions/memo_transfer.rs`)
+/// `disable_required_memo_transfers` (`token/src/extensions/memo_transfer.rs`)
 /// against real Token-2022: a vault created with the extension enabled
 /// reads back present and required, and `disable_required_memo_transfers`
 /// leaves the extension present but flips its flag — matching the real
@@ -2986,7 +2986,7 @@ fn memo_transfer_blocks_a_transfer_without_a_memo_and_allows_one_with_a_memo() {
     .expect("a transfer preceded by a real memo CPI must be accepted by real Token-2022");
 }
 
-/// Real end-to-end proof that `CpiGuard` (`naclac-token/src/extensions/cpi_guard.rs`,
+/// Real end-to-end proof that `CpiGuard` (`token/src/extensions/cpi_guard.rs`,
 /// read-only by design — see that file's own doc comment for why naclac
 /// doesn't expose enable/disable CPI helpers) is both readable and actually
 /// enforced by real Token-2022: `Enable` is sent as a genuine top-level
@@ -3132,7 +3132,7 @@ fn cpi_guard_blocks_a_cpi_approve_and_is_readable_after_a_real_top_level_enable(
 }
 
 /// Real end-to-end proof of `PausableConfig`'s three CPIs
-/// (`naclac-token/src/extensions/pausable.rs`) against real Token-2022: a
+/// (`token/src/extensions/pausable.rs`) against real Token-2022: a
 /// mint created with `initialize_pausable_config` reads back with the exact
 /// authority given, `pause_mint` genuinely blocks `MintTo` (verified against
 /// the real processor's `PausableConfig` check inside its transfer/mint
@@ -3285,7 +3285,7 @@ fn pausable_config_pause_blocks_minting_and_resume_allows_it_again() {
 }
 
 /// Real end-to-end proof that `MintCloseAuthority`
-/// (`naclac-token/src/extensions/mint_close_authority.rs`) actually permits
+/// (`token/src/extensions/mint_close_authority.rs`) actually permits
 /// closing a supply-zero Token-2022 mint via the ordinary `close_account`
 /// CPI, while an otherwise-identical mint with no `MintCloseAuthority`
 /// extension rejects the same close attempt — real Token-2022 refuses
@@ -3417,7 +3417,7 @@ fn mint_close_authority_closes_a_supply_zero_mint_and_rejects_a_plain_mint() {
 }
 
 /// Real end-to-end proof of `InterestBearingConfig`'s two CPIs
-/// (`naclac-token/src/extensions/interest_bearing_mint.rs`) against real
+/// (`token/src/extensions/interest_bearing_mint.rs`) against real
 /// Token-2022: a mint created with `initialize_interest_bearing_mint`
 /// reads back with the exact rate authority and rate given, and
 /// `update_interest_bearing_mint_rate` actually changes the on-chain rate.
@@ -3505,7 +3505,7 @@ fn interest_bearing_mint_produces_a_real_readable_extension_and_update_changes_t
 }
 
 /// Real end-to-end proof of `MetadataPointer`'s two CPIs
-/// (`naclac-token/src/extensions/metadata_pointer.rs`) against real
+/// (`token/src/extensions/metadata_pointer.rs`) against real
 /// Token-2022 — including `update_metadata_pointer`, a gap fill beyond
 /// anchor-spl-v2's own module, which only exposes `initialize`.
 #[test]
@@ -3589,7 +3589,7 @@ fn metadata_pointer_produces_a_real_readable_extension_and_update_changes_it() {
 }
 
 /// Real end-to-end proof of `GroupPointer`'s two CPIs
-/// (`naclac-token/src/extensions/group_pointer.rs`) against real
+/// (`token/src/extensions/group_pointer.rs`) against real
 /// Token-2022.
 #[test]
 fn group_pointer_produces_a_real_readable_extension_and_update_changes_it() {
@@ -3672,7 +3672,7 @@ fn group_pointer_produces_a_real_readable_extension_and_update_changes_it() {
 }
 
 /// Real end-to-end proof of `GroupMemberPointer`'s two CPIs
-/// (`naclac-token/src/extensions/group_member_pointer.rs`) against real
+/// (`token/src/extensions/group_member_pointer.rs`) against real
 /// Token-2022.
 #[test]
 fn group_member_pointer_produces_a_real_readable_extension_and_update_changes_it() {
@@ -3756,7 +3756,7 @@ fn group_member_pointer_produces_a_real_readable_extension_and_update_changes_it
 }
 
 /// Real end-to-end proof of `initialize_permanent_delegate`
-/// (`naclac-token/src/extensions/permanent_delegate.rs`) — this CPI had
+/// (`token/src/extensions/permanent_delegate.rs`) — this CPI had
 /// zero test coverage before this test (`check_permanent_delegate_reads_extension_correctly`
 /// only ever read a hand-crafted fixture, never a mint the real CPI
 /// actually created). Two things are proven here, not one:
@@ -3917,7 +3917,7 @@ fn permanent_delegate_lets_the_delegate_burn_from_an_account_it_does_not_own() {
 }
 
 /// Real end-to-end proof of `initialize_non_transferable_mint`
-/// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI was
+/// (`token/src/extensions/non_transferable.rs`) — this CPI was
 /// entirely missing before this test: an earlier pass wrongly concluded
 /// `NonTransferable` had no dedicated init CPI at all. Two things are
 /// proven, not one: the CPI actually runs against real Token-2022 and the
@@ -4094,7 +4094,7 @@ fn non_transferable_blocks_transfers_and_plain_mint_allows_it() {
 
 /// Real end-to-end proof of `initialize_token_metadata`, `update_token_metadata_field`,
 /// `remove_token_metadata_key`, `update_token_metadata_authority`, and
-/// `emit_token_metadata` (`naclac-token/src/extensions/token_metadata.rs`),
+/// `emit_token_metadata` (`token/src/extensions/token_metadata.rs`),
 /// exercised against the pinocchio backend (this test program's own
 /// default feature). `TokenMetadata` has no fixed byte layout naclac can
 /// read via `get_extension` (unlike every other extension in this crate) —
@@ -4204,7 +4204,7 @@ fn token_metadata_lifecycle_mutates_real_on_chain_state() {
 
 /// Real end-to-end proof of `initialize_token_group`,
 /// `update_token_group_max_size`, `update_token_group_authority`, and
-/// `initialize_token_group_member` (`naclac-token/src/extensions/token_group.rs`),
+/// `initialize_token_group_member` (`token/src/extensions/token_group.rs`),
 /// exercised against the pinocchio backend. Unlike `TokenMetadata`,
 /// `TokenGroup`/`TokenGroupMember` are fixed-size `Pod` structs naclac reads
 /// directly via `get_extension` (`check_token_group`/
@@ -4324,7 +4324,7 @@ fn token_group_lifecycle_mutates_real_on_chain_state() {
 }
 
 /// Real end-to-end proof of `ScaledUiAmountConfig`'s two CPIs
-/// (`naclac-token/src/extensions/scaled_ui_amount.rs`) against real
+/// (`token/src/extensions/scaled_ui_amount.rs`) against real
 /// Token-2022: a mint created with `initialize_scaled_ui_amount_config`
 /// reads back with the exact authority and multiplier given, and
 /// `update_scaled_ui_amount_multiplier` actually changes the on-chain
@@ -4399,7 +4399,7 @@ fn scaled_ui_amount_config_produces_a_real_readable_extension_and_update_changes
 }
 
 /// Real end-to-end proof that `PermissionedBurnConfig`
-/// (`naclac-token/src/extensions/permissioned_burn.rs`) actually blocks the
+/// (`token/src/extensions/permissioned_burn.rs`) actually blocks the
 /// ordinary `Burn` instruction and only allows burning via
 /// `permissioned_burn`, co-signed by the registered permissioned-burn
 /// authority — real Token-2022 unconditionally rejects

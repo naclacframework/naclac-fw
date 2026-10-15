@@ -1,0 +1,50 @@
+[package]
+name = "naclac-lang"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The core Rust framework for writing hyper-optimized Solana smart contracts."
+
+[dependencies]
+naclac-core = { workspace = true, default-features = false }
+naclac-macros = { workspace = true, default-features = false }
+naclac-token = { workspace = true, optional = true }
+naclac-metadata = { workspace = true, optional = true }
+# Optional: only pulled in under `idl-build` — the generated `NaclacIdlBuild`
+# impls (in the calling program crate itself, not this crate) reference
+# `naclac_lang::naclac_idl::...` paths, which need naclac-idl to actually be
+# in that program crate's dependency graph. A proc-macro's own dependencies
+# (naclac-macros') are never visible to the code it generates.
+naclac-idl = { workspace = true, optional = true }
+# Same reasoning as naclac-idl just above: the generated `idl-build`
+# assembler (in the calling program crate, not this crate) references
+# `naclac_lang::naclac_syn::...` paths (e.g. `discriminator::compute_discriminator`
+# for an account's discriminator) — a proc-macro's own dependencies
+# (naclac-macros'/naclac-idl's) are never visible to the code it generates.
+naclac-syn = { workspace = true, optional = true }
+
+[features]
+default = ["solana"]
+
+# Backend selection — forwards to naclac-core, and (via weak `?/` features)
+# to token/naclac-metadata IF they're already active via their own
+# feature toggle.
+solana = ["naclac-core/solana", "naclac-token?/solana", "naclac-metadata?/solana"]
+pinocchio = ["naclac-core/pinocchio", "naclac-macros/pinocchio", "naclac-token?/pinocchio", "naclac-metadata?/pinocchio"]
+
+# Single unified token toggle — ATA is always included with token support now, not a separate opt-in.
+token = ["dep:naclac-token"]
+
+# Metaplex Core (NFT/collection/plugin) support.
+metadata = ["dep:naclac-metadata"]
+
+debug-mode = ["naclac-core/debug-mode", "naclac-macros/debug-mode"]
+borsh = ["naclac-core/borsh", "naclac-token?/borsh", "naclac-macros/borsh"]
+wincode = ["naclac-core/wincode", "naclac-token?/wincode", "naclac-macros/wincode"]
+idl-build = ["naclac-macros/idl-build", "dep:naclac-idl", "dep:naclac-syn", "naclac-core/idl-build", "naclac-token?/idl-build"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+] }

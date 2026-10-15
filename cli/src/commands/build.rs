@@ -168,7 +168,7 @@ pub fn execute(
                 ));
             }
             // Feature set here must stay in sync with the real generator's template
-            // in naclac-client-gen/src/rust/mod.rs (generate_rust_sdk) — that's what
+            // in client-gen/src/rust/mod.rs (generate_rust_sdk) — that's what
             // overwrites this stub once `naclac generate` runs. The real generator
             // always declares `zero_copy`/`pinocchio`/`borsh` unconditionally (only
             // `default` varies by mode), so the stub must too, or any program's

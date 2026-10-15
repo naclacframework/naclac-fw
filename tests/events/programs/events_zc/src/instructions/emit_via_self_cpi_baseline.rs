@@ -11,7 +11,7 @@ pub struct EmitViaSelfCpiBaseline {
 }
 
 /// `sha256("global:log_event")[..8]` — must match `log_event`'s own
-/// discriminator (naclac-macros/src/program.rs's `global:<fn_name>` scheme)
+/// discriminator (macros/src/program.rs's `global:<fn_name>` scheme)
 /// or this self-CPI silently routes to the wrong handler.
 const LOG_EVENT_DISCRIMINATOR: [u8; 8] = [0x05, 0x09, 0x5a, 0x8d, 0xdf, 0x86, 0x39, 0xd9];
 

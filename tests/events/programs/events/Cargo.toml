@@ -18,10 +18,10 @@ pinocchio = ["naclac-lang/pinocchio"]
 idl-build = ["naclac-lang/idl-build"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", default-features = false }
+naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
 events-client = { version = "0.1.0", path = "../../clients/rust/events" }
 
 [lints]

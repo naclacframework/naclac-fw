@@ -2,13 +2,13 @@ use naclac_lang::prelude::*;
 use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
-// `set_authority`/`set_authority_signed` (`naclac-token/src/token.rs`), both
+// `set_authority`/`set_authority_signed` (`token/src/token.rs`), both
 // authority kinds this test case exercises: `authority_type == 0` maps to
 // `AuthorityType::MintTokens`, anything else to `AuthorityType::FreezeAccount`
 // — a single instruction covers both variants rather than duplicating the
 // whole shape twice. `new_authority` is passed as a bare `AccountInfo`
 // account (its key only), not a raw `Address`/`Address` instruction argument —
-// `naclac-macros/src/accounts.rs`'s zero-copy-mode compile check explicitly
+// `macros/src/accounts.rs`'s zero-copy-mode compile check explicitly
 // bans a raw `Address`/`Address` as an `#[instruction(...)]` argument, so this
 // mirrors how every other cross-account key in this test case
 // (`check_mint_freeze_authority`'s `freeze_authority`, `create_ata`'s

@@ -13,7 +13,7 @@ borsh = []
 wincode = []
 
 [dependencies]
-naclac-lang = { path = "../../naclac-lang", features = ["token"] }
+naclac-lang = { path = "../../lang", features = ["token"] }
 
 [dev-dependencies]
 trybuild = "1"

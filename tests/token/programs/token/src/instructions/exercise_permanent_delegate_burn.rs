@@ -7,7 +7,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 /// permanent delegate the ability to `Burn` from *any* account holding the
 /// mint's tokens, without that account's owner ever signing or having
 /// approved a per-account delegate. Uses the ordinary `burn`/`burn_signed`
-/// CPI (`naclac-token/src/token.rs`) with the mint's permanent-delegate
+/// CPI (`token/src/token.rs`) with the mint's permanent-delegate
 /// authority as the signer — `PermanentDelegate` is a mint-level
 /// authorization rule Token-2022 itself enforces on the standard
 /// `Burn`/`Transfer` instructions, not a separate CPI naclac needs to

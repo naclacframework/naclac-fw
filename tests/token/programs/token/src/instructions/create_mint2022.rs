@@ -12,7 +12,7 @@ use crate::constants::SEED_MINT;
 // this only needed a different static field type to let the *load-time*
 // `Program<T>::try_from` check accept the real Token-2022 program address
 // (`Token2022::id()` resolves to `TOKEN_2022_PROGRAM_ID`,
-// `naclac-core/src/wrappers/program.rs`).
+// `core/src/wrappers/program.rs`).
 #[derive(Accounts)]
 #[instruction(id: u64, mint_bump: u8, decimals: u8)]
 pub struct CreateMint2022 {

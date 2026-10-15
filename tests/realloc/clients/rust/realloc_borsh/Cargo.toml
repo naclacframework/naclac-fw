@@ -13,5 +13,5 @@ borsh = ["naclac-lang/borsh", "zero_copy"]
 wincode = ["naclac-lang/wincode", "zero_copy"]
 
 [dependencies]
-naclac-client = { version = "0.1.0", optional = true, path = "../../../../../naclac-client" }
-naclac-lang = { version = "0.1.0", optional = true, default-features = false, path = "../../../../../naclac-lang" }
+naclac-client = { version = "0.1.0", optional = true, path = "../../../../../client-rs" }
+naclac-lang = { version = "0.1.0", optional = true, default-features = false, path = "../../../../../lang" }

@@ -6,7 +6,7 @@ on:
     branches:
       - pending
     paths:
-      - naclac-litesvm-node/**
+      - litesvm-node/**
       - .github/workflows/publish-litesvm-npm.yml
       - .github/workflows/litesvm-dry-run.yml
 

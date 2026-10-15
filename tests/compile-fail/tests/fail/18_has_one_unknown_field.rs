@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/instruction/security.rs:701 — `has_one = <ident>`
+// Site: macros/src/instruction/security.rs:701 — `has_one = <ident>`
 // where `<ident>` isn't an actual field declared in the same Accounts
 // struct.
 use naclac_lang::prelude::*;

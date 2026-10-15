@@ -6,7 +6,7 @@ use crate::constants::SEED_NOTE;
 /// Borsh `#[component]` uses `Note::SPACE` (the real, `#[max_len]`-aware
 /// serialized size) rather than `size_of::<Note>()` (the much smaller
 /// in-memory `String` pointer/len/cap representation) — see
-/// `naclac-macros/docs/derive-accounts-gaps-audit.md`'s gap #3. No
+/// `macros/docs/derive-accounts-gaps-audit.md`'s gap #3. No
 /// `space =` is given here deliberately, so this only compiles/runs
 /// correctly if the macro's default is the real serialized size.
 #[derive(Accounts)]

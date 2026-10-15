@@ -44,7 +44,7 @@ use crate::events::CreateEvent;
 //   `associated_quote_bonding_curve`, `quote_token_program`) as
 //   `remaining_accounts`, "all three or none" — not declared IDL accounts.
 //   Re-expressed here as naclac's own declarative `Option<T>` account fields
-//   instead (`naclac-macros/docs/optional-accounts-plan.md`) rather than
+//   instead (`macros/docs/optional-accounts-plan.md`) rather than
 //   reading `ctx.remaining_accounts` directly, so the generated client SDK
 //   gets real typed, IDL-visible support for this capability instead of a
 //   hand-built `AccountMeta` side channel every caller would otherwise have
@@ -64,7 +64,7 @@ use crate::events::CreateEvent;
 // (`system_program::create_account` + `initialize_metadata_pointer` +
 // `initialize_mint`) rather than the declarative `mint::decimals`/
 // `mint::authority` sugar `create.rs` uses: naclac-macros' `init` attribute
-// parser (`naclac-macros/src/instruction/parser.rs`) only recognizes
+// parser (`macros/src/instruction/parser.rs`) only recognizes
 // `mint::decimals`/`mint::authority`/`mint::freeze_authority` today, with no
 // `extensions::*` keys at all, so there's no declarative way to sandwich a
 // Token-2022 extension-initialization CPI between allocation and

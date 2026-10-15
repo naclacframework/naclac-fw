@@ -10,7 +10,7 @@ export const BIGDATA_DISCRIMINATOR = new Uint8Array([159, 10, 131, 31, 30, 194, 
  * The 300-byte payload alone puts `Account<BigData>` over the per-field
  * stack budget regardless of `AccountInfo`'s own overhead — every field of
  * this type in this program must be `Box<Account<BigData>>`, or the whole
- * crate fails to compile (`naclac-macros/src/accounts.rs:332`).
+ * crate fails to compile (`macros/src/accounts.rs:332`).
  */
 export interface BigData {
   bump: number;

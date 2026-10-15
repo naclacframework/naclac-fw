@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/accounts.rs:41 — Accounts-struct field typed
+// Site: macros/src/accounts.rs:41 — Accounts-struct field typed
 // `Pubkey` (deprecated in favor of `Address`).
 use naclac_lang::prelude::*;
 use naclac_lang::solana_address::Address as Pubkey;

@@ -16,7 +16,7 @@ debug-mode = []
 idl-build = ["naclac-lang/idl-build"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }
+naclac-lang = { version = "0.1.0", path = "../../../../lang" }
 
 [lints]
 workspace = true

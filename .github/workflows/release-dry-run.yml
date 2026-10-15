@@ -6,9 +6,9 @@ on:
     paths:
       - Cargo.toml
       - client/package.json
-      - naclac-litesvm-node/package.json
-      - naclac-litesvm-node/Cargo.toml
-      - naclac-litesvm-node/src/**
+      - litesvm-node/package.json
+      - litesvm-node/Cargo.toml
+      - litesvm-node/src/**
       - .github/workflows/release.yml
       - .github/workflows/publish-crates.yml
       - .github/workflows/publish-npm.yml

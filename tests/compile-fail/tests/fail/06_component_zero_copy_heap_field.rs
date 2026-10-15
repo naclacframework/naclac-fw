@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/component.rs:94 — a heap-allocated field
+// Site: macros/src/component.rs:94 — a heap-allocated field
 // (`Vec`/`String`) inside a zero-copy `#[component]`. Persisted zero-copy
 // account data is round-tripped via raw byte-casting across separate
 // transactions; a heap pointer written in one transaction is meaningless

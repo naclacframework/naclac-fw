@@ -3,7 +3,7 @@ use crate::components::CallerAuthority;
 use crate::constants::SEED_CALLER_AUTHORITY;
 
 // Real CPI to the System Program — `SystemTransferAccounts`, the
-// `naclac-core/src/system_program.rs` helper.
+// `core/src/system_program.rs` helper.
 #[derive(Accounts)]
 pub struct CallSystemTransfer {
     #[account(mut)]

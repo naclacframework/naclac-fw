@@ -115,7 +115,7 @@ wincode = ["naclac-lang/wincode"]
 $idl_line
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "$fw_rel/naclac-lang", $dep_flags }
+naclac-lang = { version = "0.1.0", path = "$fw_rel/lang", $dep_flags }
 
 [lints]
 workspace = true

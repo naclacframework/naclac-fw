@@ -10,7 +10,7 @@ use crate::components::Vault;
 //      — the compile-time `MUT_MASK` (accounts.rs) excludes both `a` and
 //      `b`'s bit positions since they're marked `alias`, so the runtime
 //      `__duplicates` bitvec (which sets bits for *both* colliding indices,
-//      alias-agnostic — confirmed in naclac-core/src/cursor.rs's O(n^2) scan
+//      alias-agnostic — confirmed in core/src/cursor.rs's O(n^2) scan
 //      and `AccountCursor::next`) never intersects `MUT_MASK`. `c`'s own bit
 //      is never set at all (it collides with nothing), so it can't
 //      false-positive either.

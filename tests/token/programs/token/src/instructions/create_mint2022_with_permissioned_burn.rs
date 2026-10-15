@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_permissioned_burn`
-/// (`naclac-token/src/extensions/permissioned_burn.rs`): allocates the mint
+/// (`token/src/extensions/permissioned_burn.rs`): allocates the mint
 /// PDA itself, since Token-2022 requires `PermissionedBurnInstruction::Initialize`
 /// to run *before* `InitializeMint`, same pattern as
 /// `create_mint2022_with_transfer_fee.rs`.

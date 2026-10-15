@@ -14,7 +14,7 @@ custom-panic = []
 debug-mode = []
 
 [dependencies]
-naclac-lang = { path = "../../../../naclac-lang" }
+naclac-lang = { path = "../../../../lang" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

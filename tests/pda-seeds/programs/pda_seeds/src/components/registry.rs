@@ -3,7 +3,7 @@ use naclac_lang::prelude::*;
 // `bump` is a plain field here (not a framework-reserved name beyond
 // convention) — the framework auto-writes the derived bump into it after
 // `init` whenever the field's `seeds` constraint carries bare `bump` (no
-// explicit value). See naclac-macros/src/accounts.rs's `mut_zero_copy_fields`
+// explicit value). See macros/src/accounts.rs's `mut_zero_copy_fields`
 // handling.
 #[component]
 pub struct Registry {

@@ -17,11 +17,11 @@ default = ["borsh"]
 borsh = ["naclac-lang/borsh"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang", features = ["token"] }
+naclac-lang = { version = "0.1.0", path = "../../../../lang", features = ["token"] }
 spl-memo-interface = "2.1.0"
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
 token-borsh-client = { version = "0.1.0", path = "../../clients/rust/token_borsh" }
 solana-message = "^4"
 spl-transfer-hook-interface = "2.1.0"

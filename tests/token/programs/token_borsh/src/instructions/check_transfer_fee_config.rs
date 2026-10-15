@@ -12,7 +12,7 @@ pub struct CheckTransferFeeConfigArgs {
 }
 
 /// Reads the `TransferFeeConfig` extension off a Token-2022 mint via
-/// `InterfaceAccount<Mint>::get_extension` (`naclac-token/src/extensions.rs`)
+/// `InterfaceAccount<Mint>::get_extension` (`token/src/extensions.rs`)
 /// and asserts every field, plus `calculate_fee`/`calculate_post_fee_amount`,
 /// matches the expected values passed in — the only way to prove the TLV
 /// byte-offset math is correct end-to-end, not just that it compiles.

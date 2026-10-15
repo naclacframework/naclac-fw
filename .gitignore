@@ -9,7 +9,7 @@
 /examples/magicblock-labs/magicblock-validator
 /examples/pump-fun-program/pump-public-docs
 /examples/clear-msig
-/naclac-metadata/mpl-core
+/metadata/mpl-core
 *.log
 /docs/
 .stavreng-ignore

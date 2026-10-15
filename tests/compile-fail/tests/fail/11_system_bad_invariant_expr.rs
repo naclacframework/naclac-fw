@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/system.rs:705 — `#[system(invariant = "...")]`
+// Site: macros/src/system.rs:705 — `#[system(invariant = "...")]`
 // whose string isn't a parseable Rust boolean expression.
 use naclac_lang::prelude::*;
 

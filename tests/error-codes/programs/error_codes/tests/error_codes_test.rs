@@ -32,7 +32,7 @@ fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientErro
 /// `#[error_code]`'s 6000 offset: with no explicit discriminants,
 /// `TestError::ZeroAmount`/`Unauthorized`/`TooLarge` land at exactly
 /// 6000/6001/6002 (`e as u32 + 6000`, confirmed directly from
-/// `naclac-macros/src/error_code.rs`, not assumed).
+/// `macros/src/error_code.rs`, not assumed).
 #[test]
 fn custom_error_codes_surface_correctly() {
     let provider = setup();

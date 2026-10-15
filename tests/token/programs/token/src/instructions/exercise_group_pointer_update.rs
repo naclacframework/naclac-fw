@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `update_group_pointer`
-/// (`naclac-token/src/extensions/group_pointer.rs`) — updates an
+/// (`token/src/extensions/group_pointer.rs`) — updates an
 /// already-initialized mint's group pointer address via CPI, signed by the
 /// mint's group-pointer authority, then reads it back to confirm the
 /// on-chain value actually changed, not just that Token-2022 accepted the

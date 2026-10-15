@@ -4,7 +4,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Identical to `burn_vault_tokens.rs` but `token_program` is
 /// `Program<Token2022>` and the accounts are `InterfaceAccount<...>` —
-/// `burn_signed` (`naclac-token/src/token.rs`) already branches internally
+/// `burn_signed` (`token/src/token.rs`) already branches internally
 /// on the real token program's address, so only the Accounts struct's
 /// static field types differ. Used specifically to prove
 /// `PermissionedBurnConfig` enforcement: real Token-2022 unconditionally

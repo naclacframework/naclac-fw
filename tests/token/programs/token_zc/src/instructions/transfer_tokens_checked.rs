@@ -2,7 +2,7 @@ use naclac_lang::prelude::*;
 use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
-// `transfer_checked`/`transfer_checked_signed` (`naclac-token/src/token.rs`)
+// `transfer_checked`/`transfer_checked_signed` (`token/src/token.rs`)
 // — mirrors `transfer_tokens.rs` exactly but additionally validates the mint
 // and decimals; the real SPL Token `TransferChecked` instruction itself
 // rejects a `decimals` argument that doesn't match the mint's real decimals.

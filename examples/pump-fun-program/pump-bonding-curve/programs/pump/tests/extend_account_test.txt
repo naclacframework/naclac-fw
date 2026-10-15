@@ -1,5 +1,5 @@
 //! Confirms `extend_account`'s `realloc::any_of` constraint (see
-//! `naclac-macros/src/instruction/parser.rs` and `realloc.rs`) against real
+//! `macros/src/instruction/parser.rs` and `realloc.rs`) against real
 //! on-chain byte layouts for every component it lists, replayed inside
 //! LiteSVM from fixtures captured off devnet (`capture_devnet_fixtures.rs`,
 //! `tests/fixtures/*.bin`) rather than hand-typed approximations of what an

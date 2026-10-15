@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of every ongoing-action `TransferFeeConfig` CPI in
-/// `naclac-token/src/extensions.rs` (`transfer_checked_with_fee`,
+/// `token/src/extensions.rs` (`transfer_checked_with_fee`,
 /// `harvest_withheld_tokens_to_mint`, `withdraw_withheld_tokens_from_mint`,
 /// `withdraw_withheld_tokens_from_accounts`, `set_transfer_fee`) — chains
 /// all five against a real Token-2022 mint/vaults and asserts the resulting

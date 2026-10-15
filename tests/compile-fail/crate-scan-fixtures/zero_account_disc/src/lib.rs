@@ -1,6 +1,6 @@
 //! Must FAIL to build: `Foo`'s explicit discriminator is all-zero, which
 //! `validate_category` rejects for accounts (an all-zero prefix is how an
-//! uninitialized account is recognized — see naclac-syn/src/discriminator.rs).
+//! uninitialized account is recognized — see syn/src/discriminator.rs).
 //! Same crate-scan dependency as dup_account_disc/ — see its doc comment.
 use naclac_lang::prelude::*;
 

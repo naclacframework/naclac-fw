@@ -397,15 +397,15 @@ interface EnumVariantCLayout {
 /**
  * Computes a zero-copy enum's real on-chain layout: tag first (sized per
  * `repr`, defaulting to `u8` exactly like `#[defined_type]`'s own default —
- * `naclac-macros/src/lib.rs`), then each variant's own fields laid out
+ * `macros/src/lib.rs`), then each variant's own fields laid out
  * exactly like a struct whose first field is the tag (the same trick
- * `naclac-macros/src/checked_enum.rs`'s payload structs use, and the same
+ * `macros/src/checked_enum.rs`'s payload structs use, and the same
  * reason it's sound — see that file's own comment citing the Rust
  * reference on primitive representation of enums with fields), and an
  * overall union size/alignment = the max over every variant's own
  * (already self-padded) size/alignment, itself rounded up to that overall
  * alignment (standard `#[repr(C)]` union sizing). This mirrors
- * `naclac-pod-codegen`'s — the Rust client's copy of `naclac-macros/src/
+ * `naclac-pod-codegen`'s — the Rust client's copy of `macros/src/
  * checked_enum.rs` — own algorithm field-for-field; both must agree, since
  * both are independent implementations of what the real Rust compiler
  * computes for the on-chain enum, not derived from each other.
@@ -658,7 +658,7 @@ function getZeroCopyArgStructCodec(fields: any[], definedTypes: readonly any[] |
  * matched are the variant's *real* discriminant (`variant.discriminant`),
  * not its positional index — the opposite convention from
  * `getBorshEnumCodec`, and correct for zero-copy mode specifically because
- * `naclac-macros/src/checked_enum.rs`'s `variant_discriminants` mirrors
+ * `macros/src/checked_enum.rs`'s `variant_discriminants` mirrors
  * Rust's own real compiler discriminant rule (explicit `= N` respected),
  * unlike Borsh's derive default.
  */

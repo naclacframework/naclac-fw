@@ -8,7 +8,7 @@ declare_id!("FADseVzrrwxbzWN83XK9YXoHULUf4E2LvZDp8F3fKKm8");
 // the `components/`/`instructions/` split every other test case and example
 // uses. That split is a project convention, not something the macros or
 // `naclac-syn`'s source discovery require: `parse_workspace_program`
-// (naclac-syn/src/lib.rs) recursively walks every `.rs` file under `src/`
+// (syn/src/lib.rs) recursively walks every `.rs` file under `src/`
 // looking for `#[component]`/`#[derive(Accounts)]`/`#[instruction]` items
 // wherever they are, so a single `lib.rs` is just as discoverable as a
 // deeply split layout. This file (and its matching test) exists to prove

@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `update_token_group_max_size` and
-/// `update_token_group_authority` (`naclac-token/src/extensions/token_group.rs`),
+/// `update_token_group_authority` (`token/src/extensions/token_group.rs`),
 /// signed by the mint's own PDA authority (set as `TokenGroup`'s
 /// `update_authority` at creation). Reads the group back afterward via
 /// `get_extension` to confirm both CPIs actually changed on-chain state.

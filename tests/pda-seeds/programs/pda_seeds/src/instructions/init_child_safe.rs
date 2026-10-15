@@ -6,7 +6,7 @@ use crate::constants::SEED_CHILD_SAFE;
 /// but bare `bump` instead of a client-supplied `bump = <expr>` — no bump
 /// argument at all. Exercises the fix for naclac's dynamic-seed-`init`
 /// canonicalization gap: previously a hard `compile_error!`
-/// (naclac-macros/src/instruction/security.rs's `Some(PdaBump::Auto)` arm
+/// (macros/src/instruction/security.rs's `Some(PdaBump::Auto)` arm
 /// reached when `init_config.is_some()`), now routed through
 /// `naclac_lang::prelude::find_program_address`'s real on-chain canonical
 /// search instead of trusting an unverified client-supplied bump.

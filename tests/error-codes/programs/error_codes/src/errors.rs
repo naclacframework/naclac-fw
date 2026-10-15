@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 
-// `#[error_code]` offsets discriminants by 6000 (naclac-macros/src/error_code.rs)
+// `#[error_code]` offsets discriminants by 6000 (macros/src/error_code.rs)
 // specifically to stay clear of NaclacError's own framework codespace
 // (10000 + index*100 + error_type). With no explicit discriminants, these
 // three variants land at exactly 6000, 6001, 6002.

@@ -2,7 +2,7 @@ use naclac_lang::prelude::*;
 use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
-/// Real end-to-end proof of `resume_mint` (`naclac-token/src/extensions/pausable.rs`)
+/// Real end-to-end proof of `resume_mint` (`token/src/extensions/pausable.rs`)
 /// — resumes an already-paused mint via CPI, signed by the mint's pause
 /// authority, then reads it back to confirm the on-chain flag actually
 /// changed, not just that Token-2022 accepted the instruction.

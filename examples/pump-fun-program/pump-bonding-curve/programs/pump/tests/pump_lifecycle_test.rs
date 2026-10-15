@@ -321,7 +321,7 @@ fn ensure_global(provider: &NaclacProvider) -> Address {
 /// `authority` (a `#[account(mut)]` field, also `provider.payer.address()`)
 /// would then be the same key as `remaining_accounts`, and naclac's own
 /// duplicate-mutable-account check correctly rejects that (confirmed by
-/// reading `naclac-macros/src/accounts.rs`'s `ConstraintDuplicateMutableAccount`
+/// reading `macros/src/accounts.rs`'s `ConstraintDuplicateMutableAccount`
 /// check directly -- it flags any `mut` account whose key is referenced
 /// again elsewhere in the same instruction, a real Solana footgun
 /// protection, not a bug). Uses 8 small program-owned PDA fixtures instead,

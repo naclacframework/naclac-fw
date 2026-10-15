@@ -3,8 +3,8 @@ use naclac_lang::prelude::*;
 // `associated_token::mint`/`associated_token::authority`/`associated_token::bump`
 // on an *existing* (non-`init`) associated token account — exercises the
 // PDA hash-and-compare check in `check_associated_token_address`
-// (`naclac-token/src/associated_token.rs`), the fix for the gap documented
-// in `naclac-token/docs/04-associated-token-existing-account-gap.md`.
+// (`token/src/associated_token.rs`), the fix for the gap documented
+// in `token/docs/04-associated-token-existing-account-gap.md`.
 #[derive(Accounts)]
 #[instruction(ata_bump: u8)]
 pub struct CheckAtaConstraints {

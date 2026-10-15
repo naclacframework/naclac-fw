@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_transfer_hook`
-/// (`naclac-token/src/extensions.rs`) — same shape as
+/// (`token/src/extensions.rs`) — same shape as
 /// `create_mint2022_with_transfer_fee`, see that file's doc comment for why
 /// this drives `create_account_signed`/extension-init/`initialize_mint` by
 /// hand instead of using the `mint::decimals =`/`mint::authority =`

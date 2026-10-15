@@ -192,8 +192,8 @@ importers:
         version: 1.99.0(bufferutil@4.1.0)(typescript@5.9.3)
     devDependencies:
       '@naclac-fw/litesvm':
-        specifier: link:../naclac-litesvm-node
-        version: link:../naclac-litesvm-node
+        specifier: link:../litesvm-node
+        version: link:../litesvm-node
       '@solana/codecs-core':
         specifier: ^8
         version: 8.4.0(typescript@5.9.3)

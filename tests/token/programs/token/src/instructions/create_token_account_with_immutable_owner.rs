@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
 
 /// Real end-to-end proof of `initialize_immutable_owner`
-/// (`naclac-token/src/extensions/immutable_owner.rs`): allocates a plain
+/// (`token/src/extensions/immutable_owner.rs`): allocates a plain
 /// (non-PDA) token account by hand, since `InitializeImmutableOwner` must
 /// run before `InitializeAccount3` — there is no auto-`init` path that
 /// leaves room to inject the extension-init CPI in between. `token_account`

@@ -467,7 +467,7 @@ fn read_only_bare_bump_verify_with_account_info_seed_reference() {
 
 /// Regression test for the dynamic-seed-`init` canonicalization fix: bare
 /// `bump` on a fresh PDA under non-literal seeds used to be a hard
-/// `compile_error!` (naclac-macros/src/instruction/security.rs's
+/// `compile_error!` (macros/src/instruction/security.rs's
 /// `Some(PdaBump::Auto)` arm reached when `init_config.is_some()`) — no
 /// client-supplied bump was trusted, and no on-chain search was allowed
 /// either, so there was no way to write this at all. Now the framework runs

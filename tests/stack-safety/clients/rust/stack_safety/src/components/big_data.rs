@@ -11,7 +11,7 @@ use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 /// The 300-byte payload alone puts `Account<BigData>` over the per-field
 /// stack budget regardless of `AccountInfo`'s own overhead — every field of
 /// this type in this program must be `Box<Account<BigData>>`, or the whole
-/// crate fails to compile (`naclac-macros/src/accounts.rs:332`).
+/// crate fails to compile (`macros/src/accounts.rs:332`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
 #[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
@@ -26,7 +26,7 @@ pub struct BigData {
 /// The 300-byte payload alone puts `Account<BigData>` over the per-field
 /// stack budget regardless of `AccountInfo`'s own overhead — every field of
 /// this type in this program must be `Box<Account<BigData>>`, or the whole
-/// crate fails to compile (`naclac-macros/src/accounts.rs:332`).
+/// crate fails to compile (`macros/src/accounts.rs:332`).
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct BigData {
@@ -102,7 +102,7 @@ impl core::default::Default for BigData {
 /// The 300-byte payload alone puts `Account<BigData>` over the per-field
 /// stack budget regardless of `AccountInfo`'s own overhead — every field of
 /// this type in this program must be `Box<Account<BigData>>`, or the whole
-/// crate fails to compile (`naclac-macros/src/accounts.rs:332`).
+/// crate fails to compile (`macros/src/accounts.rs:332`).
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
 #[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
@@ -117,7 +117,7 @@ pub struct BigDataCpi {
 /// The 300-byte payload alone puts `Account<BigData>` over the per-field
 /// stack budget regardless of `AccountInfo`'s own overhead — every field of
 /// this type in this program must be `Box<Account<BigData>>`, or the whole
-/// crate fails to compile (`naclac-macros/src/accounts.rs:332`).
+/// crate fails to compile (`macros/src/accounts.rs:332`).
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct BigDataCpi {

@@ -2,7 +2,7 @@ use naclac_lang::prelude::*;
 use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
-// Real `revoke`/`revoke_signed` CPI (`naclac-token/src/token.rs`), the
+// Real `revoke`/`revoke_signed` CPI (`token/src/token.rs`), the
 // counterpart to `approve_vault_delegate.rs` — signed by the same
 // `mint_authority` PDA owner.
 #[derive(Accounts)]

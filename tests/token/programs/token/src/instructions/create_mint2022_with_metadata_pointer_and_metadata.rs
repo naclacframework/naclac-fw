@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::{SEED_MINT, SEED_MINT_AUTHORITY};
 
 /// Real end-to-end proof of `initialize_token_metadata`
-/// (`naclac-token/src/extensions/token_metadata.rs`): allocates the mint PDA
+/// (`token/src/extensions/token_metadata.rs`): allocates the mint PDA
 /// by hand, points a self-referential `MetadataPointer` at the mint itself
 /// (required — Token-2022's own `TokenMetadata::Initialize` processor
 /// rejects a metadata account that isn't the mint), initializes the mint,

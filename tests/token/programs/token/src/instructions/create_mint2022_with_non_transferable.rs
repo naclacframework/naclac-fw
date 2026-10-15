@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_non_transferable_mint`
-/// (`naclac-token/src/extensions/non_transferable.rs`) — this CPI had zero
+/// (`token/src/extensions/non_transferable.rs`) — this CPI had zero
 /// implementation and zero test coverage before this file: an earlier pass
 /// wrongly assumed `NonTransferable` had no dedicated init CPI at all.
 /// Allocates the mint PDA by hand (same reason as

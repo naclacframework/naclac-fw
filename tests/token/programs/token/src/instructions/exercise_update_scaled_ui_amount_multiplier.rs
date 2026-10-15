@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `update_scaled_ui_amount_multiplier`
-/// (`naclac-token/src/extensions/scaled_ui_amount.rs`) — updates an
+/// (`token/src/extensions/scaled_ui_amount.rs`) — updates an
 /// already-initialized mint's scheduled multiplier via CPI, signed by the
 /// mint's multiplier authority, then reads it back to confirm the on-chain
 /// `new_multiplier` field actually changed, not just that Token-2022

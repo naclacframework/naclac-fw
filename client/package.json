@@ -80,7 +80,7 @@
     }
   },
   "devDependencies": {
-    "@naclac-fw/litesvm": "link:../naclac-litesvm-node",
+    "@naclac-fw/litesvm": "link:../litesvm-node",
     "@solana/codecs-core": "^8",
     "@solana/codecs-data-structures": "^8",
     "@solana/codecs-numbers": "^8",

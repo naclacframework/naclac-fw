@@ -3,7 +3,7 @@ use crate::constants::SEED_EXTERNAL_PDA;
 
 // `seeds::program`: derives/validates a PDA against a *different* program's
 // ID than the current program — for cases like validating a PDA owned by an
-// external program (`naclac-macros/src/instruction/parser.rs`'s
+// external program (`macros/src/instruction/parser.rs`'s
 // `pda_program`, consumed in `security.rs`'s PDA derivation as
 // `pda_program_tokens`). Uses the real, well-known System Program ID as the
 // "external" program — a real, stable address that needs no separate

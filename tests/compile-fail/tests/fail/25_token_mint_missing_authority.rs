@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: naclac-macros/src/instruction/init_cpi.rs — `token::mint =` on an
+// Site: macros/src/instruction/init_cpi.rs — `token::mint =` on an
 // `init` field with no `token::authority =` alongside it. Previously a raw
 // proc-macro panic; now a spanned `syn::Error`.
 use naclac_lang::prelude::*;

@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 
-/// Real CPI-issued `Approve` (`naclac-token/src/token.rs`), signed by a real
+/// Real CPI-issued `Approve` (`token/src/token.rs`), signed by a real
 /// account owner (not a PDA) — used specifically to prove `CpiGuard`
 /// enforcement: real Token-2022 unconditionally rejects `Approve` via CPI
 /// once `CpiGuard` is enabled on the target account, regardless of who's

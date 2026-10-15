@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_default_account_state`
-/// (`naclac-token/src/extensions/default_account_state.rs`): allocates the
+/// (`token/src/extensions/default_account_state.rs`): allocates the
 /// mint PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs`
 /// — `InitializeDefaultAccountState` must run before `InitializeMint`, so
 /// the auto-`init` path used by `create_mint2022.rs` can't be used here).

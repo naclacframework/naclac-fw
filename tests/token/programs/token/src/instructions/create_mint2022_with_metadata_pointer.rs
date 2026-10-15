@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_metadata_pointer`
-/// (`naclac-token/src/extensions/metadata_pointer.rs`): allocates the mint
+/// (`token/src/extensions/metadata_pointer.rs`): allocates the mint
 /// PDA by hand (same reason as `create_mint2022_with_transfer_fee.rs` —
 /// `InitializeMetadataPointer` must run before `InitializeMint`).
 #[instruction_args]

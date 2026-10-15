@@ -17,10 +17,10 @@ default = ["borsh"]
 borsh = ["naclac-lang/borsh"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../naclac-lang" }
+naclac-lang = { version = "0.1.0", path = "../../../../lang" }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../naclac-client" }
+naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
 enums-borsh-client = { version = "0.1.0", path = "../../clients/rust/enums_borsh" }
 
 [lints]

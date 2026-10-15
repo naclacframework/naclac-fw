@@ -1,4 +1,4 @@
-//! Drives `trybuild` over the `naclac-macros/src/accounts.rs` stack-frame
+//! Drives `trybuild` over the `macros/src/accounts.rs` stack-frame
 //! size asserts (`tests/TEST_PLAN.md` section 9). This is a separate crate
 //! from `tests/compile-fail/` rather than added to it because these asserts
 //! only exist in solana-borsh mode (`is_zero_copy` gates them off entirely)

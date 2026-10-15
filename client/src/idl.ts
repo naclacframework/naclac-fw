@@ -153,7 +153,7 @@ export interface IdlDefinedType {
          * The enum's `#[repr(uN)]` discriminant type (e.g. `"u8"`,
          * `"u16"`), or absent if never written explicitly — absent means
          * the same `u8` default `#[defined_type]`'s zero-copy branch
-         * applies on-chain (`naclac-macros/src/lib.rs`).
+         * applies on-chain (`macros/src/lib.rs`).
          */
         repr?: string;
       };

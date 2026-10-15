@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `update_interest_bearing_mint_rate`
-/// (`naclac-token/src/extensions/interest_bearing_mint.rs`) — updates an
+/// (`token/src/extensions/interest_bearing_mint.rs`) — updates an
 /// already-initialized mint's interest rate via CPI, signed by the mint's
 /// rate authority, then reads it back to confirm the on-chain value
 /// actually changed, not just that Token-2022 accepted the instruction.

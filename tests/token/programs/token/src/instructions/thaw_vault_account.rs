@@ -2,7 +2,7 @@ use naclac_lang::prelude::*;
 use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
-// Real `thaw_account`/`thaw_account_signed` CPI (`naclac-token/src/token.rs`),
+// Real `thaw_account`/`thaw_account_signed` CPI (`token/src/token.rs`),
 // the counterpart to `freeze_vault_account.rs` — signed by the same
 // `mint_authority` PDA freeze authority.
 #[derive(Accounts)]

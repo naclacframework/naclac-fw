@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
 
 /// Real end-to-end proof of `enable_required_memo_transfers`
-/// (`naclac-token/src/extensions/memo_transfer.rs`): allocates a plain
+/// (`token/src/extensions/memo_transfer.rs`): allocates a plain
 /// (non-PDA) token account by hand with extra room for the `MemoTransfer`
 /// TLV entry, initializes it normally, then enables the extension — unlike
 /// `ImmutableOwner`, `Enable`/`Disable` run *after* `initialize_account`

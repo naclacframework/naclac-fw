@@ -3,7 +3,7 @@ use crate::components::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `update_default_account_state`
-/// (`naclac-token/src/extensions/default_account_state.rs`) — updates an
+/// (`token/src/extensions/default_account_state.rs`) — updates an
 /// already-initialized mint's default account state via CPI, signed by the
 /// mint's freeze authority, then reads it back to confirm the on-chain
 /// value actually changed, not just that Token-2022 accepted the

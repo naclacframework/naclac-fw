@@ -3,7 +3,7 @@ use naclac_lang::prelude::*;
 /// Mints a new Metaplex Core `Asset` via `naclac_metadata::create_asset_signed`,
 /// with `collection`/`authority`/`owner`/`update_authority`/`log_wrapper` all
 /// left at their real-program defaults (`owner`/`update_authority` default to
-/// `payer`, verified in `naclac-metadata/src/asset.rs`'s own header comment).
+/// `payer`, verified in `metadata/src/asset.rs`'s own header comment).
 #[derive(Accounts)]
 pub struct CreateAsset {
     #[account(mut)]
