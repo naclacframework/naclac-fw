@@ -4,10 +4,12 @@
 //! within an instruction via the `init` constraint. This includes calculating rent, deriving PDA
 //! signer seeds, and invoking the System Program to allocate memory.
 
-use crate::instruction::parser::ParsedField;
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::Type;
+use {
+    crate::instruction::parser::ParsedField,
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    syn::Type,
+};
 
 fn extract_inner_type(ty: &Type) -> TokenStream {
     let is_box =

@@ -1,7 +1,9 @@
-use super::shared::map_type_to_ts;
-use crate::{Idl, IdlInstruction, IdlPda, IdlSeed};
-use heck::{ToLowerCamelCase, ToUpperCamelCase};
-use std::fs;
+use {
+    super::shared::map_type_to_ts,
+    crate::{Idl, IdlInstruction, IdlPda, IdlSeed},
+    heck::{ToLowerCamelCase, ToUpperCamelCase},
+    std::fs,
+};
 
 pub fn generate_kit_client(
     idl: &Idl,

@@ -11,9 +11,10 @@
 //! entries), so reading requires a linear scan, same shape as
 //! `attributes.rs`'s walk.
 
-use crate::prelude::*;
-
-use crate::plugin_registry::{find_plugin_offset, plugin_type};
+use crate::{
+    plugin_registry::{find_plugin_offset, plugin_type},
+    prelude::*,
+};
 
 /// One entry of `Autograph.signatures` — backend-neutral, owned.
 #[derive(Clone, Debug, PartialEq, Eq)]

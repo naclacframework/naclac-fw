@@ -1,7 +1,8 @@
-use crate::Idl;
-use heck::{AsSnakeCase, ToUpperCamelCase};
-use std::fs;
-use std::path::Path;
+use {
+    crate::Idl,
+    heck::{AsSnakeCase, ToUpperCamelCase},
+    std::{fs, path::Path},
+};
 
 pub mod cpi;
 pub mod offchain;

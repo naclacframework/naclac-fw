@@ -1,5 +1,4 @@
-use crate::config::Config;
-use std::fs;
+use {crate::config::Config, std::fs};
 
 pub fn get_active_version(config: &Config) -> Option<String> {
     #[cfg(target_family = "unix")]

@@ -228,11 +228,13 @@ pub(crate) mod stable {
 
     #[cfg(test)]
     mod tests {
-        use super::*;
-        use alloc::vec;
-        use core::mem::{align_of, offset_of, size_of};
-        use solana_instruction::{AccountMeta, Instruction};
-        use solana_stable_layout::stable_instruction::StableInstruction as Official;
+        use {
+            super::*,
+            alloc::vec,
+            core::mem::{align_of, offset_of, size_of},
+            solana_instruction::{AccountMeta, Instruction},
+            solana_stable_layout::stable_instruction::StableInstruction as Official,
+        };
 
         fn bytes_of<T>(value: &T) -> &[u8] {
             unsafe { core::slice::from_raw_parts(value as *const T as *const u8, size_of::<T>()) }
@@ -383,12 +385,14 @@ pub(crate) mod stable {
 /// program calling these behaves as it would with that crate.
 #[cfg(not(feature = "pinocchio"))]
 pub mod sdk {
-    use super::stable::{invoke_signed_raw, StableInstruction};
-    use crate::prelude::Vec;
-    use solana_account_info::AccountInfo;
-    use solana_address::Address;
-    use solana_instruction::Instruction;
-    use solana_program_error::ProgramResult;
+    use {
+        super::stable::{invoke_signed_raw, StableInstruction},
+        crate::prelude::Vec,
+        solana_account_info::AccountInfo,
+        solana_address::Address,
+        solana_instruction::Instruction,
+        solana_program_error::ProgramResult,
+    };
 
     /// [`invoke_signed`] with no signer seeds.
     pub fn invoke(instruction: &Instruction, account_infos: &[AccountInfo]) -> ProgramResult {
@@ -493,10 +497,10 @@ pub mod sdk {
 
     #[cfg(test)]
     mod tests {
-        use super::*;
-        use alloc::vec;
-        use solana_instruction::AccountMeta;
-        use solana_program_error::ProgramError;
+        use {
+            super::*, alloc::vec, solana_instruction::AccountMeta,
+            solana_program_error::ProgramError,
+        };
 
         fn key(byte: u8) -> Address {
             Address::new_from_array([byte; 32])

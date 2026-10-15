@@ -7,9 +7,11 @@
 //! alignment, which is `Pod`; `get` validates the bytes and returns a copy of
 //! `E`, and `set` writes `E` without ever copying padding.
 
-use crate::prelude::{bytemuck, Address, Bool, Opt, ProgramError};
-use bytemuck::{Pod, Zeroable};
-use core::marker::PhantomData;
+use {
+    crate::prelude::{bytemuck, Address, Bool, Opt, ProgramError},
+    bytemuck::{Pod, Zeroable},
+    core::marker::PhantomData,
+};
 
 /// A type that can be a field of a zero-copy struct. Exactly the `Pod` types;
 /// the separate trait exists to give a precise error for the common mistakes.
@@ -286,9 +288,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use bytemuck::CheckedBitPattern;
-    use core::mem::{align_of, offset_of, size_of};
+    use {
+        super::*,
+        bytemuck::CheckedBitPattern,
+        core::mem::{align_of, offset_of, size_of},
+    };
 
     #[derive(Clone, Copy, PartialEq, Eq, Debug, CheckedBitPattern)]
     #[repr(u8)]

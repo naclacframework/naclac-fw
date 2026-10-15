@@ -13,13 +13,14 @@
 //! separate "initialize before `initialize_account`" step the way
 //! `ImmutableOwner` has.
 
-use super::Extension;
-use crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
-
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
+use {
+    super::Extension,
+    crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+};
 
 /// Raw Token-2022 `MemoTransfer` token-account extension (1 byte): whether
 /// inbound transfers to this account must carry a preceding memo. Layout

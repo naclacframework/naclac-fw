@@ -25,9 +25,7 @@
 //! `write_collection_external_adapter_signed` already funnels through the
 //! same real processor path.
 
-use crate::prelude::*;
-
-use crate::external_plugin_registry::external_plugin_type;
+use crate::{external_plugin_registry::external_plugin_type, prelude::*};
 
 /// Max encoded width of `ExternalPluginAdapterKeyArg::LinkedAppData`/
 /// `ExternalPluginAdapterInitInfo::LinkedAppData`'s tag (1 byte) + a

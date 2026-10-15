@@ -3,8 +3,7 @@
 //! Provides the `CpiHandle` and `CpiHandleMut` wrapper types which enforce
 //! Solana account lifetimes and Rust's aliasing rules at compile-time during CPIs.
 
-use crate::prelude::AccountInfo;
-use core::marker::PhantomData;
+use {crate::prelude::AccountInfo, core::marker::PhantomData};
 
 /// An immutable CPI handle representing a shared borrow of an account.
 #[repr(transparent)]
@@ -69,8 +68,7 @@ impl<'a> ToCpiHandleMut<'a> for AccountInfo {
     }
 }
 
-use crate::prelude::Address;
-use crate::wrappers::ToAddress;
+use crate::{prelude::Address, wrappers::ToAddress};
 
 impl<'a> ToAddress for CpiHandle<'a> {
     #[inline(always)]

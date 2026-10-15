@@ -22,8 +22,8 @@
 //! are plain O(1) slot reads with no re-validation. CPI instruction bytes
 //! (`CreateV2`'s discriminator + Borsh-encoded args) are likewise hand-built
 //! on both backends, verified against the real `mpl-core` crate's own
-//! generated `instructions/create_v2.rs` (cloned locally for reference at
-//! `naclac-metadata/mpl-core/`, not a runtime dependency).
+//! generated `instructions/create_v2.rs`, which is a reference only, never a
+//! runtime dependency.
 
 use crate::prelude::*;
 

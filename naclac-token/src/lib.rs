@@ -1,23 +1,20 @@
 #![no_std]
 
-pub(crate) use naclac_core::wrappers;
-
-#[cfg(any(feature = "solana", feature = "pinocchio"))]
-pub(crate) use naclac_core::cpi;
-
 #[cfg(all(
     feature = "borsh",
     not(feature = "pinocchio"),
     not(feature = "wincode")
 ))]
 pub(crate) use naclac_core::borsh;
-
+#[cfg(any(feature = "solana", feature = "pinocchio"))]
+pub(crate) use naclac_core::cpi;
 #[cfg(all(
     feature = "wincode",
     not(feature = "pinocchio"),
     not(feature = "borsh")
 ))]
 pub(crate) use naclac_core::wincode;
+pub(crate) use naclac_core::wrappers;
 
 extern crate alloc;
 
@@ -34,14 +31,8 @@ pub mod extensions;
 pub use token::*;
 
 pub mod prelude {
-    pub use naclac_core::prelude::*;
-
-    #[cfg(any(feature = "solana", feature = "pinocchio"))]
-    pub use crate::token::*;
-
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::associated_token::{AssociatedTokenCpi, CreateAtaAccounts};
-
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::extensions::{
         disable_required_memo_transfers, disable_required_memo_transfers_signed,
@@ -79,7 +70,6 @@ pub mod prelude {
         TokenInterfaceAccountExtensions, TransferCheckedWithFeeParams, TransferFeeAmount,
         TransferFeeConfig, TransferHook, TransferHookAccount, MAX_TRANSFER_FEE_SOURCE_ACCOUNTS,
     };
-
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::extensions::{
         emit_token_metadata, initialize_token_group, initialize_token_group_member,
@@ -92,24 +82,24 @@ pub mod prelude {
         update_token_metadata_field_signed, Field, TokenGroupMemberInitializeAccounts,
         TokenMetadataInitializeParams,
     };
-
     #[cfg(all(feature = "solana", not(feature = "pinocchio")))]
     pub use crate::extensions::{
         transfer_checked_with_hook, transfer_checked_with_hook_signed,
         TransferCheckedWithHookAccounts,
     };
-
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::token::*;
     #[cfg(feature = "pinocchio")]
     pub use crate::{
         pinocchio_associated_token_account, pinocchio_token, pinocchio_token_2022,
         spl_token_group_interface, spl_token_metadata_interface,
     };
-
     #[cfg(all(feature = "solana", not(feature = "pinocchio")))]
     pub use crate::{
         spl_associated_token_account, spl_token, spl_token_2022, spl_token_group_interface,
         spl_token_metadata_interface,
     };
+    pub use naclac_core::prelude::*;
 }
 
 #[cfg(feature = "pinocchio")]

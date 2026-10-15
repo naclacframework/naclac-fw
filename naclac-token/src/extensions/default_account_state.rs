@@ -8,13 +8,14 @@
 //! `token_2022_extensions::default_account_state` module as the parity
 //! target, which exposes exactly these two functions.
 
-use super::Extension;
-use crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
-
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
+use {
+    super::Extension,
+    crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+};
 
 /// Raw Token-2022 `DefaultAccountState` mint extension (1 byte): the
 /// `AccountState` every new token account of this mint is created in.

@@ -10,9 +10,10 @@
 //! fixed-width (unlike most other plugins' `Vec`s), so no per-element
 //! offset walking is needed here.
 
-use crate::prelude::*;
-
-use crate::plugin_registry::{find_plugin_offset, plugin_type};
+use crate::{
+    plugin_registry::{find_plugin_offset, plugin_type},
+    prelude::*,
+};
 
 /// Maximum `additional_delegates` entries `attach_update_delegate_signed`/
 /// `attach_collection_update_delegate_signed` accept on `pinocchio` — no

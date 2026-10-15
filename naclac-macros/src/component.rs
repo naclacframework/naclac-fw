@@ -5,9 +5,11 @@
 //! name, or the 1 to 8 bytes given by `#[component(discriminator = ..)]`) and handles
 //! the serialization/deserialization traits based on the active execution mode.
 
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, ItemStruct};
+use {
+    proc_macro::TokenStream,
+    quote::quote,
+    syn::{parse_macro_input, ItemStruct},
+};
 
 /// Builds `impl NaclacIdlBuild for #struct_name`, gated
 /// `#[cfg(feature = "idl-build")]` in the OUTPUT tokens. Built once, from

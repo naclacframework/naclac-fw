@@ -7,14 +7,20 @@
 //! a `rename`-based move would, and a Ctrl+C mid-clean just leaves some
 //! regenerable cache still on disk — never a risk to what was skipped.
 
-use indicatif::{ProgressBar, ProgressStyle};
-use std::fs;
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
+use {
+    indicatif::{ProgressBar, ProgressStyle},
+    std::{
+        fs,
+        io::{self, Write},
+        path::{Path, PathBuf},
+        sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        },
+        thread,
+        time::Duration,
+    },
+};
 
 pub fn execute(hard: bool) {
     let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));

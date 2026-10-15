@@ -13,8 +13,10 @@
 //! `idl_build::NaclacIdlBuild::create_type()` — resolves the subfield's real
 //! type by looking it up in that already-assembled map, via [`resolve`].
 
-use crate::{IdlAccount, IdlPda, IdlSeed, IdlTypeDef};
-use std::collections::BTreeMap;
+use {
+    crate::{IdlAccount, IdlPda, IdlSeed, IdlTypeDef},
+    std::collections::BTreeMap,
+};
 
 pub struct IdlAccountBuild {
     pub name: String,

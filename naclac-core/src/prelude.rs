@@ -11,18 +11,10 @@
 // solana_program symbol and replaces it with the pinocchio equivalents.
 // ===========================================================================
 
-pub use crate::context::{
-    Bumps, Context, EventCpiAccounts, EventCpiAuthority, EventCpiTag, LoadableAccounts,
-    ValidationResult,
-};
-pub use crate::cpi::{self, AccountMeta, ToAccountMetas};
 #[cfg(feature = "pinocchio")]
 pub use crate::cpi::{invoke_signed_pinocchio, invoke_signed_pinocchio_unchecked};
-pub use naclac_macros::*;
-
 // --- Wrappers: common types (shared by both backends) ---
 pub use crate::error::NaclacError;
-
 // These traits/types exist in wrappers for BOTH Solana and Pinocchio backends
 pub use crate::wrappers::{
     event_bytes_of, event_field_default, event_slice_bytes, AsRefByteSlice, AssociatedToken,
@@ -31,18 +23,24 @@ pub use crate::wrappers::{
     Token2022, TokenInterface, ValidateInterfaceLayout, ZcEnum, ZcEnumKind, ZcEventDefault,
     ZcEventField, ZcField, ZcFieldWrite, ZcStorage, ZcString, ZcVec, ZcVecIter, ZcWrite,
 };
-
 // `Account<T>`/`InterfaceAccount<T>` don't exist at all when `borsh` and
 // `wincode` are both active (see `wrappers/accounts/mod.rs`) — split out so
 // that invalid combination surfaces only the one `compile_error!` in
 // `lib.rs`, not a secondary "unresolved import" error here too.
 #[cfg(not(all(feature = "borsh", feature = "wincode")))]
 pub use crate::wrappers::{Account, InterfaceAccount};
-
-pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};
-
-pub use crate::realloc::const_rent_lamports;
-pub use crate::realloc::resize_with_rent;
+pub use {
+    crate::{
+        context::{
+            Bumps, Context, EventCpiAccounts, EventCpiAuthority, EventCpiTag, LoadableAccounts,
+            ValidationResult,
+        },
+        cpi::{self, AccountMeta, ToAccountMetas},
+        realloc::{const_rent_lamports, resize_with_rent},
+        system_program::{CreateAccountAccounts, SystemTransferAccounts},
+    },
+    naclac_macros::*,
+};
 
 // ---------------------------------------------------------------------------
 // CPI Stack-Allocation Limits
@@ -119,36 +117,37 @@ mod cpi_account_count_kani_proofs {
 // `ToAccountInfos` is implemented for both branches of `Account<T>`/
 // `InterfaceAccount<T>` — only absent under pinocchio, where the trait
 // itself has no `to_account_infos` method to begin with.
-#[cfg(not(feature = "pinocchio"))]
-pub use crate::wrappers::ToAccountInfos;
-
-// Pinocchio-only: AccountView is already exported from the pinocchio block below (line ~159)
-// Do NOT re-export it from wrappers here — that creates a circular private import
-
-pub use core::fmt;
-
-pub use alloc::{boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
-
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
-pub use borsh::io;
-
 // --- Bytemuck (both backends need this for zero-copy) ---
 pub use crate::bytemuck;
-pub use crate::bytemuck::{Pod, Zeroable};
-
 // ===========================================================================
 // SOLANA-PROGRAM BACKEND  (feature = "solana")
 // ===========================================================================
 #[cfg(not(feature = "pinocchio"))]
 pub use crate::cpi::sdk::{invoke, invoke_signed};
 #[cfg(not(feature = "pinocchio"))]
+pub use crate::wrappers::ToAccountInfos;
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
+pub use borsh::io;
+// Pinocchio-only: AccountView is already exported from the pinocchio block below (line ~159)
+// Do NOT re-export it from wrappers here — that creates a circular private import
+pub use core::fmt;
+#[cfg(not(feature = "pinocchio"))]
 pub use solana_clock::Clock;
 #[cfg(not(feature = "pinocchio"))]
 pub use solana_program_error::{ProgramError, ProgramResult};
+pub use {
+    crate::bytemuck::{Pod, Zeroable},
+    alloc::{
+        boxed::Box,
+        format,
+        string::{String, ToString},
+        vec::{self, Vec},
+    },
+};
 
 #[cfg(not(feature = "pinocchio"))]
 pub fn sol_log_data(data: &[&[u8]]) {
@@ -176,22 +175,20 @@ macro_rules! solana_declare_id {
     };
 }
 #[cfg(not(feature = "pinocchio"))]
-pub use solana_system_interface::program::ID as SYSTEM_PROGRAM_ID;
-
-#[cfg(not(feature = "pinocchio"))]
 pub use solana_instruction;
 #[cfg(not(feature = "pinocchio"))]
 pub use solana_msg;
+#[cfg(not(feature = "pinocchio"))]
+pub use solana_system_interface::program::ID as SYSTEM_PROGRAM_ID;
 
 #[cfg(not(feature = "pinocchio"))]
 pub type NaclacResult<T = (), E = solana_program_error::ProgramError> = core::result::Result<T, E>;
 #[cfg(not(feature = "pinocchio"))]
-pub use NaclacResult as Result;
-
-#[cfg(not(feature = "pinocchio"))]
 pub use solana_address;
 #[cfg(not(feature = "pinocchio"))]
 pub use solana_address::Address;
+#[cfg(not(feature = "pinocchio"))]
+pub use NaclacResult as Result;
 
 // --- OFFICIAL PROGRAM IDS ---
 #[cfg(not(feature = "pinocchio"))]
@@ -207,13 +204,16 @@ pub const TOKEN_2022_PROGRAM_ID: Address =
 pub const RENT_SYSVAR_ID: Address =
     solana_address::address!("SysvarRent111111111111111111111111111111111");
 
+#[cfg(not(feature = "pinocchio"))]
+pub use crate::base58;
 #[cfg(all(
     feature = "borsh",
     not(feature = "pinocchio"),
     not(feature = "wincode")
 ))]
 pub use crate::borsh;
-
+#[cfg(not(feature = "pinocchio"))]
+pub use crate::system_program;
 #[cfg(all(
     feature = "wincode",
     not(feature = "pinocchio"),
@@ -226,11 +226,6 @@ pub use crate::wincode;
     not(feature = "borsh")
 ))]
 pub use crate::wincode_config;
-
-#[cfg(not(feature = "pinocchio"))]
-pub use crate::base58;
-#[cfg(not(feature = "pinocchio"))]
-pub use crate::system_program;
 #[cfg(not(feature = "pinocchio"))]
 #[cfg(not(feature = "pinocchio"))]
 pub use solana_system_interface;
@@ -395,7 +390,6 @@ impl AccountInfo {
     not(feature = "wincode")
 ))]
 pub use crate::borsh::{BorshDeserialize, BorshSerialize};
-
 #[cfg(all(
     feature = "wincode",
     not(feature = "pinocchio"),
@@ -424,16 +418,15 @@ pub fn unix_timestamp() -> Result<i64> {
 pub extern crate pinocchio;
 
 #[cfg(feature = "pinocchio")]
+pub use crate::cursor::{account_count_error, parse_ix_context, AccountCursor};
+pub use crate::cursor::{account_header_check, mut_mask_set_bit, AccountBitvec};
+#[cfg(feature = "pinocchio")]
 pub use pinocchio::{
     error::ProgramError,
     instruction,
     sysvars::{clock::Clock, rent::Rent, Sysvar},
     AccountView, Address as PinocchioAddress, ProgramResult,
 };
-
-#[cfg(feature = "pinocchio")]
-pub use crate::cursor::{account_count_error, parse_ix_context, AccountCursor};
-pub use crate::cursor::{account_header_check, mut_mask_set_bit, AccountBitvec};
 
 /// Converts an instruction's result into the value the entrypoint returns to
 /// the runtime. Inlined into each dispatch arm so a successful arm returns
@@ -1442,10 +1435,9 @@ macro_rules! msg {
 }
 
 #[cfg(feature = "pinocchio")]
-pub use crate::system_program;
-
-#[cfg(feature = "pinocchio")]
 pub use crate::base58;
+#[cfg(feature = "pinocchio")]
+pub use crate::system_program;
 
 // ===========================================================================
 // Shared macros (both backends)
@@ -1462,8 +1454,7 @@ macro_rules! require {
     };
 }
 
-pub use crate::event::EventCpiPayload;
-pub use crate::{address, declare_id, emit, emit_cpi, require};
+pub use crate::{address, declare_id, emit, emit_cpi, event::EventCpiPayload, require};
 
 /// Declares the program's static ID constant.
 ///

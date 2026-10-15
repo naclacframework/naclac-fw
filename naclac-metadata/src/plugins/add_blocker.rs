@@ -8,9 +8,10 @@
 //! zero bytes). Provided for both `Asset` and `Collection` since nothing in
 //! the real crate's generated code pins it to one level.
 
-use crate::prelude::*;
-
-use crate::plugin_registry::{find_plugin_offset, plugin_type};
+use crate::{
+    plugin_registry::{find_plugin_offset, plugin_type},
+    prelude::*,
+};
 
 /// Attaches `AddBlocker` to an `Asset` via `add_plugin`.
 pub fn attach_add_blocker_signed(

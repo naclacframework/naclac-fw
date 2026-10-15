@@ -1,8 +1,8 @@
-use crate::config::Config;
-use crate::utils::router;
-use colored::*;
-use std::env;
-use std::fs;
+use {
+    crate::{config::Config, utils::router},
+    colored::*,
+    std::{env, fs},
+};
 
 fn get_active_version(config: &Config) -> Option<String> {
     let os = std::env::consts::OS;

@@ -9,11 +9,13 @@
 
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, Discriminator, NaclacError, Result};
-use crate::wrappers::{
-    Interface, Program, ToAddress, ToCpiHandle, ToCpiHandleMut, Token, Token2022, TokenInterface,
+use crate::{
+    prelude::{Address, CpiHandle, CpiHandleMut, Discriminator, NaclacError, Result},
+    wrappers::{
+        Interface, Program, ToAddress, ToCpiHandle, ToCpiHandleMut, Token, Token2022,
+        TokenInterface,
+    },
 };
-
 #[cfg(all(feature = "solana", not(feature = "pinocchio")))]
 use spl_token;
 #[cfg(all(feature = "solana", not(feature = "pinocchio")))]

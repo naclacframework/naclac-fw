@@ -1,11 +1,12 @@
-use colored::*;
-use std::path::Path;
+use {colored::*, std::path::Path};
 
 #[cfg(target_family = "unix")]
 pub fn ensure_in_path(bin_dir: &Path) {
-    use std::env;
-    use std::fs::OpenOptions;
-    use std::io::{Read, Write};
+    use std::{
+        env,
+        fs::OpenOptions,
+        io::{Read, Write},
+    };
 
     let home_dir = match dirs::home_dir() {
         Some(dir) => dir,
@@ -63,8 +64,10 @@ pub fn ensure_in_path(bin_dir: &Path) {
 
 #[cfg(target_family = "windows")]
 pub fn ensure_in_path(bin_dir: &Path) {
-    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::RegKey;
+    use winreg::{
+        enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE},
+        RegKey,
+    };
 
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let env_key = match hkcu.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE) {

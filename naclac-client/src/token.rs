@@ -1,6 +1,10 @@
-use crate::error::NaclacClientError;
-use crate::fetcher::{decode_pod_unchecked, NaclacDecode};
-use solana_address::Address;
+use {
+    crate::{
+        error::NaclacClientError,
+        fetcher::{decode_pod_unchecked, NaclacDecode},
+    },
+    solana_address::Address,
+};
 
 #[derive(Copy, Clone, Debug)]
 #[repr(transparent)]

@@ -11,13 +11,14 @@
 //! authority plus a current/scheduled value pair), the closest real
 //! precedent in this crate for a scheduled-value mint extension.
 
-use super::{read_optional_address, Extension};
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable};
-
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
+use {
+    super::{read_optional_address, Extension},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+};
 
 /// Raw Token-2022 `ScaledUiAmountConfig` mint extension (56 bytes): the
 /// authority allowed to change the multiplier, the current multiplier, and

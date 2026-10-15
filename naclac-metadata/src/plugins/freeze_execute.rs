@@ -10,9 +10,10 @@
 //! `FreezeDelegate` — not separately verified against a real `execute`-CPI
 //! usage example.
 
-use crate::prelude::*;
-
-use crate::plugin_registry::{find_plugin_offset, plugin_type};
+use crate::{
+    plugin_registry::{find_plugin_offset, plugin_type},
+    prelude::*,
+};
 
 /// Attaches `FreezeExecute` to an `Asset` via `add_plugin`.
 pub fn attach_freeze_execute_signed(

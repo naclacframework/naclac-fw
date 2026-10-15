@@ -11,9 +11,10 @@
 //! linear scan, one entry at a time, same shape as `plugin_registry.rs`'s
 //! `RegistryRecord` walk.
 
-use crate::prelude::*;
-
-use crate::plugin_registry::{find_plugin_offset, plugin_type};
+use crate::{
+    plugin_registry::{find_plugin_offset, plugin_type},
+    prelude::*,
+};
 
 /// One `key`/`value` entry — backend-neutral, owned (borrowed from the
 /// account's own byte buffer on `pinocchio`, allocated by the real crate's

@@ -9,17 +9,23 @@
 //! without needing type-specific conversion code, since that's the same
 //! boundary every real Solana SDK already targets.
 
-use naclac_client::{NaclacClientError, NaclacProvider, NaclacTransactionMetadata};
-use napi::bindgen_prelude::{BigInt, Buffer, Env, Error, FnArgs, FunctionRef, Result};
-use napi_derive::napi;
-use solana_address::Address;
-use solana_keypair::Keypair;
-use solana_signature::Signature;
-use solana_transaction::versioned::VersionedTransaction;
-use std::collections::HashMap;
-use std::str::FromStr;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Mutex;
+use {
+    naclac_client::{NaclacClientError, NaclacProvider, NaclacTransactionMetadata},
+    napi::bindgen_prelude::{BigInt, Buffer, Env, Error, FnArgs, FunctionRef, Result},
+    napi_derive::napi,
+    solana_address::Address,
+    solana_keypair::Keypair,
+    solana_signature::Signature,
+    solana_transaction::versioned::VersionedTransaction,
+    std::{
+        collections::HashMap,
+        str::FromStr,
+        sync::{
+            atomic::{AtomicU32, Ordering},
+            Mutex,
+        },
+    },
+};
 
 /// `(programId, logs, signature, slot)` — the same raw shape a real
 /// `onLogs`/`logsSubscribe` push notification already hands to

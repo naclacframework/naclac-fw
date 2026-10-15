@@ -1,8 +1,9 @@
-use super::map_type_to_rust;
-use crate::{Idl, IdlInstruction, IdlPda, IdlSeed};
-use heck::{AsSnakeCase, ToUpperCamelCase};
-use std::fs;
-use std::path::Path;
+use {
+    super::map_type_to_rust,
+    crate::{Idl, IdlInstruction, IdlPda, IdlSeed},
+    heck::{AsSnakeCase, ToUpperCamelCase},
+    std::{fs, path::Path},
+};
 
 pub fn generate_lib(
     idl: &Idl,

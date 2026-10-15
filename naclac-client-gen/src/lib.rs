@@ -11,11 +11,13 @@ pub mod paths;
 pub mod rust;
 pub mod typescript;
 
-pub use paths::{
-    find_naclac_framework_root, naclac_dep_path_fragments, naclac_dep_paths, naclac_ts_dep_specs,
-    relative_path, resolve_target_dir,
+pub use {
+    paths::{
+        find_naclac_framework_root, naclac_dep_path_fragments, naclac_dep_paths,
+        naclac_ts_dep_specs, relative_path, resolve_target_dir,
+    },
+    typescript::generate_ts,
 };
-pub use typescript::generate_ts;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Idl {

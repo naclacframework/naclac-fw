@@ -17,9 +17,10 @@
 //! is inherited by every member asset that doesn't set its own (verified in
 //! `utils/mod.rs`'s `validate_asset_permissions`).
 
-use crate::prelude::*;
-
-use crate::plugin_registry::{find_plugin_offset, plugin_type};
+use crate::{
+    plugin_registry::{find_plugin_offset, plugin_type},
+    prelude::*,
+};
 
 /// One entry of `VerifiedCreators.signatures` — backend-neutral, since the
 /// real `mpl-core` `VerifiedCreatorsSignature` type isn't available on

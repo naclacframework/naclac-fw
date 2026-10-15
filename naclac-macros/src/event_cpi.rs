@@ -10,9 +10,7 @@
 //! `lang/syn/src/parser/accounts/event_cpi.rs`'s `add_event_cpi_accounts`),
 //! confirmed via reading that source directly rather than assumed.
 
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::parse_macro_input;
+use {proc_macro::TokenStream, quote::quote, syn::parse_macro_input};
 
 pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(err) = crate::reject_nonempty_attr(&attr, "event_cpi") {

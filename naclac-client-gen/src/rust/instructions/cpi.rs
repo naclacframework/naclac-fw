@@ -1,5 +1,7 @@
-use crate::{Idl, IdlInstruction};
-use heck::{AsSnakeCase, ToUpperCamelCase};
+use {
+    crate::{Idl, IdlInstruction},
+    heck::{AsSnakeCase, ToUpperCamelCase},
+};
 
 pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     let mut cpi_content = String::new();

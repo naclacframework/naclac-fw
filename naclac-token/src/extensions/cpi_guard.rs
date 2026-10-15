@@ -18,8 +18,10 @@
 //! genuinely be used from on-chain code: reading whether the extension is
 //! present, which a program might reasonably want to check.
 
-use super::Extension;
-use crate::prelude::{Pod, Zeroable};
+use {
+    super::Extension,
+    crate::prelude::{Pod, Zeroable},
+};
 
 /// Raw Token-2022 `CpiGuard` token-account extension (1 byte): whether
 /// certain operations (`Transfer`/`Burn` without a delegate, `Approve`,

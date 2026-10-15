@@ -23,9 +23,10 @@
 //! "Groups as accounts") — writing to this plugin will be exposed through
 //! them once they exist, not through this file.
 
-use crate::prelude::*;
-
-use crate::plugin_registry::{find_plugin_offset, plugin_type};
+use crate::{
+    plugin_registry::{find_plugin_offset, plugin_type},
+    prelude::*,
+};
 
 /// Reads an `Asset`'s `Groups` plugin, if attached. Callable identically on
 /// both backends.
