@@ -154,10 +154,7 @@ pub fn permissioned_burn_signed(
                     permissioned_burn_authority.info.address(),
                     true,
                 ),
-                solana_instruction::AccountMeta::new_readonly(
-                    authority.info.address(),
-                    true,
-                ),
+                solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
             ],
             data,
         };
@@ -197,7 +194,12 @@ pub fn permissioned_burn_signed(
             accounts: &ix_accounts,
             data: &data,
         };
-        let handles = [source_handle, mint_handle, permissioned_burn_authority, authority];
+        let handles = [
+            source_handle,
+            mint_handle,
+            permissioned_burn_authority,
+            authority,
+        ];
         crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
     }
 }
@@ -266,10 +268,7 @@ pub fn permissioned_burn_checked_signed(
                     permissioned_burn_authority.info.address(),
                     true,
                 ),
-                solana_instruction::AccountMeta::new_readonly(
-                    authority.info.address(),
-                    true,
-                ),
+                solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
             ],
             data,
         };
@@ -310,7 +309,12 @@ pub fn permissioned_burn_checked_signed(
             accounts: &ix_accounts,
             data: &data,
         };
-        let handles = [source_handle, mint_handle, permissioned_burn_authority, authority];
+        let handles = [
+            source_handle,
+            mint_handle,
+            permissioned_burn_authority,
+            authority,
+        ];
         crate::cpi::invoke_signed_pinocchio_handles(&instruction, &handles, signer_seeds)
     }
 }

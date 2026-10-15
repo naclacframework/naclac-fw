@@ -173,10 +173,7 @@ pub fn transfer_hook_update_signed(
             program_id: program.address(),
             accounts: vec![
                 solana_instruction::AccountMeta::new(mint.info.address(), false),
-                solana_instruction::AccountMeta::new_readonly(
-                    authority.info.address(),
-                    true,
-                ),
+                solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
             ],
             data,
         };
@@ -255,12 +252,7 @@ pub fn transfer_checked_with_hook(
     amount: u64,
     decimals: u8,
 ) -> Result<()> {
-    transfer_checked_with_hook_signed(
-        accounts,
-        amount,
-        decimals,
-        &[],
-    )
+    transfer_checked_with_hook_signed(accounts, amount, decimals, &[])
 }
 
 #[cfg(not(feature = "pinocchio"))]
@@ -298,7 +290,8 @@ pub fn transfer_checked_with_hook_signed(
         authority_info.clone(),
     ];
 
-    let additional_account_infos: Vec<_> = accounts.extra_accounts
+    let additional_account_infos: Vec<_> = accounts
+        .extra_accounts
         .iter()
         .map(|handle| unsafe { handle.info.to_lifetime() })
         .collect();

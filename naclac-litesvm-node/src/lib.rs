@@ -9,9 +9,9 @@
 //! without needing type-specific conversion code, since that's the same
 //! boundary every real Solana SDK already targets.
 
+use naclac_client::{NaclacClientError, NaclacProvider, NaclacTransactionMetadata};
 use napi::bindgen_prelude::{BigInt, Buffer, Env, Error, FnArgs, FunctionRef, Result};
 use napi_derive::napi;
-use naclac_client::{NaclacClientError, NaclacProvider, NaclacTransactionMetadata};
 use solana_address::Address;
 use solana_keypair::Keypair;
 use solana_signature::Signature;
@@ -187,12 +187,20 @@ impl LiteSvm {
         let signature = meta.signature.to_string();
         for (program_id, callback) in listeners.values() {
             let invoke_prefix = format!("Program {} invoke", program_id);
-            let mentioned = meta.logs.iter().any(|line| line.starts_with(&invoke_prefix));
+            let mentioned = meta
+                .logs
+                .iter()
+                .any(|line| line.starts_with(&invoke_prefix));
             if !mentioned {
                 continue;
             }
             let function = callback.borrow_back(env)?;
-            function.call(FnArgs::from((program_id.clone(), meta.logs.clone(), signature.clone(), 0u32)))?;
+            function.call(FnArgs::from((
+                program_id.clone(),
+                meta.logs.clone(),
+                signature.clone(),
+                0u32,
+            )))?;
         }
         Ok(())
     }
@@ -248,7 +256,10 @@ impl LiteSvm {
         let bytes: &[u8] = wire_bytes.as_ref();
         let vtx: VersionedTransaction = wincode::deserialize_exact(bytes)
             .map_err(|e| to_napi_err(format!("Failed to deserialize transaction: {}", e)))?;
-        let meta = self.inner.send_transaction(&vtx, None).map_err(to_napi_err)?;
+        let meta = self
+            .inner
+            .send_transaction(&vtx, None)
+            .map_err(to_napi_err)?;
         self.notify_logs_listeners(&env, &meta)?;
         Ok(to_send_transaction_result(meta))
     }
@@ -352,7 +363,9 @@ impl LiteSvm {
     #[napi]
     pub fn add_program(&self, program_id: String, so_path: String) -> Result<()> {
         let addr = parse_address(&program_id)?;
-        self.inner.add_program(&addr, &so_path).map_err(to_napi_err)?;
+        self.inner
+            .add_program(&addr, &so_path)
+            .map_err(to_napi_err)?;
         Ok(())
     }
 
@@ -385,9 +398,9 @@ impl LiteSvm {
 
         match &self.inner.backend {
             ClientBackend::LiteSVM(svm_lock) => {
-                let svm = svm_lock.lock().map_err(|e| {
-                    to_napi_err(format!("Failed to lock LiteSVM: {}", e))
-                })?;
+                let svm = svm_lock
+                    .lock()
+                    .map_err(|e| to_napi_err(format!("Failed to lock LiteSVM: {}", e)))?;
                 Ok(svm
                     .get_program_accounts(&addr)
                     .into_iter()

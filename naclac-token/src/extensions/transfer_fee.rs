@@ -378,10 +378,7 @@ pub fn set_transfer_fee_signed(
             program_id: program.address(),
             accounts: vec![
                 solana_instruction::AccountMeta::new(mint.info.address(), false),
-                solana_instruction::AccountMeta::new_readonly(
-                    authority.info.address(),
-                    true,
-                ),
+                solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
             ],
             data,
         };
@@ -456,7 +453,11 @@ pub fn transfer_checked_with_fee_signed(
     params: TransferCheckedWithFeeParams,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
-    let TransferCheckedWithFeeParams { amount, decimals, fee } = params;
+    let TransferCheckedWithFeeParams {
+        amount,
+        decimals,
+        fee,
+    } = params;
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -471,10 +472,7 @@ pub fn transfer_checked_with_fee_signed(
                 solana_instruction::AccountMeta::new(source.info.address(), false),
                 solana_instruction::AccountMeta::new_readonly(mint.info.address(), false),
                 solana_instruction::AccountMeta::new(destination.info.address(), false),
-                solana_instruction::AccountMeta::new_readonly(
-                    authority.info.address(),
-                    true,
-                ),
+                solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
             ],
             data,
         };
@@ -554,9 +552,9 @@ pub fn harvest_withheld_tokens_to_mint_signed(
             false,
         )];
         accounts.extend(
-            sources.iter().map(|source| {
-                solana_instruction::AccountMeta::new(source.address(), false)
-            }),
+            sources
+                .iter()
+                .map(|source| solana_instruction::AccountMeta::new(source.address(), false)),
         );
         let ix = solana_instruction::Instruction {
             program_id: program.address(),
@@ -628,10 +626,7 @@ pub fn withdraw_withheld_tokens_from_mint_signed(
             accounts: vec![
                 solana_instruction::AccountMeta::new(mint.info.address(), false),
                 solana_instruction::AccountMeta::new(destination.info.address(), false),
-                solana_instruction::AccountMeta::new_readonly(
-                    authority.info.address(),
-                    true,
-                ),
+                solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
             ],
             data: vec![26u8, 2u8],
         };
@@ -715,9 +710,9 @@ pub fn withdraw_withheld_tokens_from_accounts_signed(
             solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
         ];
         accounts.extend(
-            sources.iter().map(|source| {
-                solana_instruction::AccountMeta::new(source.address(), false)
-            }),
+            sources
+                .iter()
+                .map(|source| solana_instruction::AccountMeta::new(source.address(), false)),
         );
         let ix = solana_instruction::Instruction {
             program_id: program.address(),

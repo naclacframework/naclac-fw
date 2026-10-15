@@ -950,7 +950,8 @@ fn field_deserialize_stmt(
             // `Vec<Vec<u8>>`/`Vec<String>`: the prefix is an element count and each element
             // carries its own length, so the shared reader advances the offset itself.
             if type_classify::first_generic_type(field_ty).is_some_and(|inner| {
-                type_classify::is_exactly(inner, "Vec") || type_classify::is_exactly(inner, "String")
+                type_classify::is_exactly(inner, "Vec")
+                    || type_classify::is_exactly(inner, "String")
             }) {
                 return quote::quote! {
                     let #field_name = {

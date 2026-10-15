@@ -40,7 +40,7 @@
 //!
 //! ## Attribute Syntax
 //!
-//! ```rust
+//! ```text
 //! #[system]                                         // basic: float ban + safe math
 //! #[system(no_rewrite)]                             // disable math rewriting only
 //! #[system(rounding = "up")]                        // ceiling division everywhere

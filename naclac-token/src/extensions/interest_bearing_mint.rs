@@ -170,10 +170,7 @@ pub fn update_interest_bearing_mint_rate_signed(
             program_id: program.address(),
             accounts: vec![
                 solana_instruction::AccountMeta::new(mint.info.address(), false),
-                solana_instruction::AccountMeta::new_readonly(
-                    rate_authority.info.address(),
-                    true,
-                ),
+                solana_instruction::AccountMeta::new_readonly(rate_authority.info.address(), true),
             ],
             data,
         };

@@ -93,8 +93,7 @@ pub fn initialize_token_group_signed(
         update_authority: maybe_update_authority,
         max_size: max_size.into(),
     };
-    let mut ix_data =
-        crate::prelude::Vec::with_capacity(8 + core::mem::size_of_val(&data));
+    let mut ix_data = crate::prelude::Vec::with_capacity(8 + core::mem::size_of_val(&data));
     ix_data.extend_from_slice(
         <spl_token_group_interface::instruction::InitializeGroup as spl_discriminator::SplDiscriminate>::SPL_DISCRIMINATOR_SLICE,
     );
@@ -169,8 +168,7 @@ pub fn update_token_group_authority_signed(
     let data = spl_token_group_interface::instruction::UpdateGroupAuthority {
         new_authority: maybe_new_authority,
     };
-    let mut ix_data =
-        crate::prelude::Vec::with_capacity(8 + core::mem::size_of_val(&data));
+    let mut ix_data = crate::prelude::Vec::with_capacity(8 + core::mem::size_of_val(&data));
     ix_data.extend_from_slice(
         <spl_token_group_interface::instruction::UpdateGroupAuthority as spl_discriminator::SplDiscriminate>::SPL_DISCRIMINATOR_SLICE,
     );

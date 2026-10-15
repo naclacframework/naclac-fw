@@ -1082,19 +1082,35 @@ pub fn set_authority_signed(
 // ===========================================================================
 
 #[cfg_attr(
-    all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")),
+    all(
+        feature = "borsh",
+        not(feature = "pinocchio"),
+        not(feature = "wincode")
+    ),
     derive(crate::borsh::BorshSerialize, crate::borsh::BorshDeserialize)
 )]
 #[cfg_attr(
-    all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")),
+    all(
+        feature = "borsh",
+        not(feature = "pinocchio"),
+        not(feature = "wincode")
+    ),
     borsh(crate = "crate::borsh")
 )]
 #[cfg_attr(
-    all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")),
+    all(
+        feature = "wincode",
+        not(feature = "pinocchio"),
+        not(feature = "borsh")
+    ),
     derive(crate::wincode::SchemaRead, crate::wincode::SchemaWrite)
 )]
 #[cfg_attr(
-    all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")),
+    all(
+        feature = "wincode",
+        not(feature = "pinocchio"),
+        not(feature = "borsh")
+    ),
     wincode(crate = "crate::wincode")
 )]
 #[repr(transparent)]
@@ -1102,19 +1118,35 @@ pub fn set_authority_signed(
 pub struct TokenAccount(pub [u8; 165]);
 
 #[cfg_attr(
-    all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")),
+    all(
+        feature = "borsh",
+        not(feature = "pinocchio"),
+        not(feature = "wincode")
+    ),
     derive(crate::borsh::BorshSerialize, crate::borsh::BorshDeserialize)
 )]
 #[cfg_attr(
-    all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")),
+    all(
+        feature = "borsh",
+        not(feature = "pinocchio"),
+        not(feature = "wincode")
+    ),
     borsh(crate = "crate::borsh")
 )]
 #[cfg_attr(
-    all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")),
+    all(
+        feature = "wincode",
+        not(feature = "pinocchio"),
+        not(feature = "borsh")
+    ),
     derive(crate::wincode::SchemaRead, crate::wincode::SchemaWrite)
 )]
 #[cfg_attr(
-    all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")),
+    all(
+        feature = "wincode",
+        not(feature = "pinocchio"),
+        not(feature = "borsh")
+    ),
     wincode(crate = "crate::wincode")
 )]
 #[repr(transparent)]

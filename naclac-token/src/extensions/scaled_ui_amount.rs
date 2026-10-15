@@ -176,10 +176,7 @@ pub fn update_scaled_ui_amount_multiplier_signed(
             program_id: program.address(),
             accounts: vec![
                 solana_instruction::AccountMeta::new(mint.info.address(), false),
-                solana_instruction::AccountMeta::new_readonly(
-                    authority.info.address(),
-                    true,
-                ),
+                solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
             ],
             data,
         };

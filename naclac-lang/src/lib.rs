@@ -2,12 +2,12 @@
 
 pub mod prelude;
 
-pub use naclac_core::*;
-pub use naclac_core::{context, cpi, cursor, error, event, system_program, wrappers};
 #[cfg(not(feature = "pinocchio"))]
 pub use naclac_core::naclac_solana_entrypoint;
+pub use naclac_core::*;
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
 pub use naclac_core::{__naclac_panic_handler, __naclac_panic_hook};
+pub use naclac_core::{context, cpi, cursor, error, event, system_program, wrappers};
 
 /// Panic support for a program whose own crate is `no_std`. On the Solana
 /// backend `token` links the SPL crates, which use `std`, so std's panic
@@ -38,7 +38,10 @@ compile_error!("the `token` feature requires `solana` or `pinocchio` to also be 
 #[cfg(feature = "token")]
 pub use naclac_token::{associated_token, token};
 
-#[cfg(all(feature = "metadata", not(any(feature = "solana", feature = "pinocchio"))))]
+#[cfg(all(
+    feature = "metadata",
+    not(any(feature = "solana", feature = "pinocchio"))
+))]
 compile_error!("the `metadata` feature requires `solana` or `pinocchio` to also be enabled");
 
 #[cfg(feature = "metadata")]

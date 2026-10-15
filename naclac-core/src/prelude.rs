@@ -25,11 +25,11 @@ pub use crate::error::NaclacError;
 
 // These traits/types exist in wrappers for BOTH Solana and Pinocchio backends
 pub use crate::wrappers::{
-    AsRefByteSlice, AssociatedToken, CpiHandle, CpiHandleMut, Discriminator, Id, Ids, Interface,
-    NaclacAccount, NaclacZeroCopy, Owner, Program, Signer, System, ToAccountInfo, ToAddress,
-    ToCpiHandle, ToCpiHandleMut, Token, Token2022, TokenInterface, ValidateInterfaceLayout, ZcEnum,
-    ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcFieldWrite, ZcStorage, ZcString, ZcVec,
-    ZcVecIter, ZcWrite, event_bytes_of, event_field_default, event_slice_bytes,
+    event_bytes_of, event_field_default, event_slice_bytes, AsRefByteSlice, AssociatedToken,
+    CpiHandle, CpiHandleMut, Discriminator, Id, Ids, Interface, NaclacAccount, NaclacZeroCopy,
+    Owner, Program, Signer, System, ToAccountInfo, ToAddress, ToCpiHandle, ToCpiHandleMut, Token,
+    Token2022, TokenInterface, ValidateInterfaceLayout, ZcEnum, ZcEnumKind, ZcEventDefault,
+    ZcEventField, ZcField, ZcFieldWrite, ZcStorage, ZcString, ZcVec, ZcVecIter, ZcWrite,
 };
 
 // `Account<T>`/`InterfaceAccount<T>` don't exist at all when `borsh` and

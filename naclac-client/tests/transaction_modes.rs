@@ -29,7 +29,7 @@ fn test_send_v1_transaction_default() {
         .send_and_confirm()
         .expect("v1 default transaction must succeed");
 
-    assert_eq!(meta.signature.to_string().is_empty(), false);
+    assert!(!meta.signature.to_string().is_empty());
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn test_send_v1_transaction_with_config() {
         .send_and_confirm()
         .expect("v1 transaction with custom config must succeed");
 
-    assert_eq!(meta.signature.to_string().is_empty(), false);
+    assert!(!meta.signature.to_string().is_empty());
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn test_send_v0_transaction() {
         .send_and_confirm()
         .expect("v0 transaction must succeed");
 
-    assert_eq!(meta.signature.to_string().is_empty(), false);
+    assert!(!meta.signature.to_string().is_empty());
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn test_send_legacy_transaction() {
         .send_and_confirm()
         .expect("legacy transaction must succeed");
 
-    assert_eq!(meta.signature.to_string().is_empty(), false);
+    assert!(!meta.signature.to_string().is_empty());
 }
 
 #[test]
@@ -92,7 +92,7 @@ fn test_provider_default_switch() {
         .send_and_confirm()
         .expect("inherited v0 transaction must succeed");
 
-    assert_eq!(meta.signature.to_string().is_empty(), false);
+    assert!(!meta.signature.to_string().is_empty());
 }
 
 #[test]
@@ -174,7 +174,7 @@ fn test_v1_priority_fee_deduction() {
         .send_and_confirm()
         .expect("v1 transaction must succeed");
 
-    assert_eq!(meta.signature.to_string().is_empty(), false);
+    assert!(!meta.signature.to_string().is_empty());
 
     let final_balance = provider.get_balance(&payer_addr).expect("get balance");
     assert_eq!(

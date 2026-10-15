@@ -139,10 +139,7 @@ pub fn update_group_member_pointer_signed(
             program_id: program.address(),
             accounts: vec![
                 solana_instruction::AccountMeta::new(mint.info.address(), false),
-                solana_instruction::AccountMeta::new_readonly(
-                    authority.info.address(),
-                    true,
-                ),
+                solana_instruction::AccountMeta::new_readonly(authority.info.address(), true),
             ],
             data,
         };

@@ -5,10 +5,18 @@ pub(crate) use naclac_core::wrappers;
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
 pub(crate) use naclac_core::cpi;
 
-#[cfg(all(feature = "borsh", not(feature = "pinocchio"), not(feature = "wincode")))]
+#[cfg(all(
+    feature = "borsh",
+    not(feature = "pinocchio"),
+    not(feature = "wincode")
+))]
 pub(crate) use naclac_core::borsh;
 
-#[cfg(all(feature = "wincode", not(feature = "pinocchio"), not(feature = "borsh")))]
+#[cfg(all(
+    feature = "wincode",
+    not(feature = "pinocchio"),
+    not(feature = "borsh")
+))]
 pub(crate) use naclac_core::wincode;
 
 extern crate alloc;
@@ -52,10 +60,9 @@ pub mod prelude {
         initialize_permissioned_burn_signed, initialize_scaled_ui_amount_config,
         initialize_scaled_ui_amount_config_signed, initialize_transfer_fee_config,
         initialize_transfer_fee_config_signed, initialize_transfer_hook,
-        initialize_transfer_hook_signed, pause_mint, pause_mint_signed,
-        permissioned_burn, permissioned_burn_checked, permissioned_burn_checked_signed,
-        permissioned_burn_signed, resume_mint,
-        resume_mint_signed, set_transfer_fee, set_transfer_fee_signed,
+        initialize_transfer_hook_signed, pause_mint, pause_mint_signed, permissioned_burn,
+        permissioned_burn_checked, permissioned_burn_checked_signed, permissioned_burn_signed,
+        resume_mint, resume_mint_signed, set_transfer_fee, set_transfer_fee_signed,
         transfer_checked_with_fee, transfer_checked_with_fee_signed, transfer_hook_update,
         transfer_hook_update_signed, update_default_account_state,
         update_default_account_state_signed, update_group_member_pointer,
@@ -64,16 +71,13 @@ pub mod prelude {
         update_metadata_pointer, update_metadata_pointer_signed,
         update_scaled_ui_amount_multiplier, update_scaled_ui_amount_multiplier_signed,
         withdraw_withheld_tokens_from_accounts, withdraw_withheld_tokens_from_accounts_signed,
-        withdraw_withheld_tokens_from_mint, withdraw_withheld_tokens_from_mint_signed,
-        CpiGuard, DefaultAccountState, Extension, GroupMemberPointer, GroupPointer, ImmutableOwner,
-        InterestBearingConfig, MemoTransfer, MetadataPointer, MintCloseAuthority,
-        NonTransferable,
+        withdraw_withheld_tokens_from_mint, withdraw_withheld_tokens_from_mint_signed, CpiGuard,
+        DefaultAccountState, Extension, GroupMemberPointer, GroupPointer, ImmutableOwner,
+        InterestBearingConfig, MemoTransfer, MetadataPointer, MintCloseAuthority, NonTransferable,
         NonTransferableAccount, PausableAccount, PausableConfig, PermanentDelegate,
         PermissionedBurnCheckedParams, PermissionedBurnConfig, ScaledUiAmountConfig,
-        TokenInterfaceAccountExtensions,
-        TransferCheckedWithFeeParams,
-        TransferFeeAmount, TransferFeeConfig, TransferHook, TransferHookAccount,
-        MAX_TRANSFER_FEE_SOURCE_ACCOUNTS,
+        TokenInterfaceAccountExtensions, TransferCheckedWithFeeParams, TransferFeeAmount,
+        TransferFeeConfig, TransferHook, TransferHookAccount, MAX_TRANSFER_FEE_SOURCE_ACCOUNTS,
     };
 
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
