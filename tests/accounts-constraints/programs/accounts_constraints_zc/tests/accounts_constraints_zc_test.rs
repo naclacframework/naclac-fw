@@ -61,7 +61,8 @@ fn init_creates_discriminator_and_rent_exempt_account() {
     .expect("init_vault should succeed");
 
     let vault = fetch_vault(&provider, &vault_pda).expect("vault should be readable after init");
-    assert_eq!(vault.value, 0);
+    let value = vault.value;
+    assert_eq!(value, 0);
     assert_eq!(vault.admin, provider.payer.address());
 
     let account = provider.get_account(&vault_pda).expect("vault account should exist");
@@ -104,8 +105,9 @@ fn init_if_needed_second_call_does_not_overwrite() {
     .expect("second init_if_needed_ledger call must succeed as a no-op, not error");
 
     let ledger = fetch_ledger(&provider, &ledger_pda).expect("ledger should be readable");
+    let ledger_value = ledger.value;
     assert_eq!(
-        ledger.value, 42,
+        ledger_value, 42,
         "second init_if_needed call must not re-initialize/overwrite existing data"
     );
 }

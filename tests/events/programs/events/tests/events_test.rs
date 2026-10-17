@@ -49,7 +49,8 @@ fn event_round_trips_correctly_across_multiple_emissions() {
         .parse_events_zero_copy()
         .expect("failed to parse CounterIncremented from the first transaction's logs");
     assert_eq!(events_1.len(), 1, "exactly one event must be captured per transaction");
-    assert_eq!(events_1[0].new_count, 1);
+    let first_count = events_1[0].new_count;
+    assert_eq!(first_count, 1);
 
     // `increment_counter` takes no args and hits the same account both
     // times, so without a fresh blockhash the second call would be a
@@ -71,8 +72,9 @@ fn event_round_trips_correctly_across_multiple_emissions() {
         .parse_events_zero_copy()
         .expect("failed to parse CounterIncremented from the second transaction's logs");
     assert_eq!(events_2.len(), 1);
+    let second_count = events_2[0].new_count;
     assert_eq!(
-        events_2[0].new_count, 2,
+        second_count, 2,
         "the event payload must reflect the account's actual updated state, not a stale/cached value"
     );
 }

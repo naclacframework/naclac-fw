@@ -343,7 +343,7 @@ fn bare_bump_verify_with_account_info_seed_reference() {
         &PROGRAM_ID,
     );
 
-    let fixture = ConfigEntry { bump, value: 5, ..Default::default() };
+    let fixture = ConfigEntry { bump, value: 5 };
     let data = discriminated_bytes(CONFIGENTRY_DISCRIMINATOR, &fixture);
     provider
         .set_account(&config_entry_pda, data, &PROGRAM_ID, 10_000_000)
@@ -367,7 +367,8 @@ fn bare_bump_verify_with_account_info_seed_reference() {
         .get_account_data(&config_entry_pda)
         .expect("config_entry should be readable after touch");
     let updated: ConfigEntry = *bytemuck::from_bytes(&raw[8..]);
-    assert_eq!(updated.value, 6, "touch should have incremented value");
+    let updated_value = updated.value;
+    assert_eq!(updated_value, 6, "touch should have incremented value");
 }
 
 /// Same seed shape as `bare_bump_verify_with_account_info_seed_reference`,
@@ -389,7 +390,7 @@ fn bare_bump_verify_with_account_info_seed_reference_and_ix_args() {
         &PROGRAM_ID,
     );
 
-    let fixture = ConfigEntry { bump, value: 5, ..Default::default() };
+    let fixture = ConfigEntry { bump, value: 5 };
     let data = discriminated_bytes(CONFIGENTRY_DISCRIMINATOR, &fixture);
     provider
         .set_account(&config_entry_pda, data, &PROGRAM_ID, 10_000_000)
@@ -417,7 +418,8 @@ fn bare_bump_verify_with_account_info_seed_reference_and_ix_args() {
         .get_account_data(&config_entry_pda)
         .expect("config_entry should be readable after touch");
     let updated: ConfigEntry = *bytemuck::from_bytes(&raw[8..]);
-    assert_eq!(updated.value, 6, "touch should have incremented value");
+    let updated_value = updated.value;
+    assert_eq!(updated_value, 6, "touch should have incremented value");
 }
 
 /// The one remaining structural difference from `get_fees.rs`: that
@@ -437,7 +439,7 @@ fn read_only_bare_bump_verify_with_account_info_seed_reference() {
         &PROGRAM_ID,
     );
 
-    let fixture = ConfigEntry { bump, value: 42, ..Default::default() };
+    let fixture = ConfigEntry { bump, value: 42 };
     let data = discriminated_bytes(CONFIGENTRY_DISCRIMINATOR, &fixture);
     provider
         .set_account(&config_entry_pda, data, &PROGRAM_ID, 10_000_000)

@@ -275,7 +275,7 @@ fn a_string_is_stored_by_bytes_and_a_shorter_one_leaves_no_tail() {
     let bytes = raw(&provider, &profile);
     assert_eq!(&bytes[name_at..name_at + 4], &[2, 0, b'h', b'i']);
     assert!(bytes[name_at + 4..name_at + 18].iter().all(|b| *b == 0));
-    assert_eq!(read(&provider, &profile).name.as_str().unwrap(), "hi");
+    assert_eq!(read(&provider, &profile).name.as_str().ok(), Some("hi"));
 }
 
 #[test]
@@ -283,9 +283,10 @@ fn capacity_counts_bytes_not_characters() {
     let (provider, profile) = setup();
     set_name(&provider, profile, &"é".repeat(8)).expect("16 bytes fit");
     assert_custom(set_name(&provider, profile, &"é".repeat(9)), CAPACITY_EXCEEDED);
+    let expected = "é".repeat(8);
     assert_eq!(
-        read(&provider, &profile).name.as_str().unwrap(),
-        "é".repeat(8)
+        read(&provider, &profile).name.as_str().ok(),
+        Some(expected.as_str())
     );
 }
 

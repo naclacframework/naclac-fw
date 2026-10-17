@@ -67,7 +67,8 @@ fn touch_optional_increments_when_present() {
     .expect("touch_optional with a real account should succeed");
 
     let thing = fetch_thing(&provider, &thing_a_pda).expect("thing_a should be readable");
-    assert_eq!(thing.value, 1);
+    let value = thing.value;
+    assert_eq!(value, 1);
 }
 
 /// The absent case: passing `None` must produce the sentinel (the program's
@@ -131,8 +132,10 @@ fn touch_two_optional_both_present_increments_both() {
 
     let thing_a = fetch_thing(&provider, &thing_a_pda).expect("thing_a should be readable");
     let thing_b = fetch_thing(&provider, &thing_b_pda).expect("thing_b should be readable");
-    assert_eq!(thing_a.value, 1);
-    assert_eq!(thing_b.value, 1);
+    let value_a = thing_a.value;
+    let value_b = thing_b.value;
+    assert_eq!(value_a, 1);
+    assert_eq!(value_b, 1);
 }
 
 /// Two optional `mut` fields both omitted in the same call carry the identical
@@ -205,7 +208,8 @@ fn touch_two_optional_mixed_presence_only_touches_the_present_one() {
     .expect("touch_two_optional with only thing_a present should succeed");
 
     let thing_a = fetch_thing(&provider, &thing_a_pda).expect("thing_a should be readable");
-    assert_eq!(thing_a.value, 1);
+    let value_a = thing_a.value;
+    assert_eq!(value_a, 1);
 }
 
 /// `init` on a seeded `Option<T>` field: a caller passing a real,
@@ -232,7 +236,8 @@ fn init_optional_thing_creates_when_present() {
 
     let optional_thing =
         fetch_thing(&provider, &optional_thing_pda).expect("optional_thing should be readable");
-    assert_eq!(optional_thing.value, 42);
+    let optional_value = optional_thing.value;
+    assert_eq!(optional_value, 42);
 }
 
 /// `init` on an absent optional field: the sentinel check gates everything,

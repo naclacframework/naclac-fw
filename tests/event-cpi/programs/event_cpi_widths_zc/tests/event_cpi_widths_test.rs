@@ -59,7 +59,8 @@ fn the_tag_and_the_event_discriminator_each_use_their_own_width() {
         .parse_events_zero_copy()
         .expect("parse_events_zero_copy must not fail");
     assert_eq!(events.len(), 1);
-    assert_eq!(events[0].n, 11);
+    let ticked = events[0].n;
+    assert_eq!(ticked, 11);
 }
 
 #[test]

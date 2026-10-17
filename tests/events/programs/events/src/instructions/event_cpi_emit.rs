@@ -18,12 +18,10 @@ pub fn event_cpi_emit_nested(ctx: Context<EventCpiEmit>) -> Result {
     let inner = PaddedInner {
         kind: 3,
         amount: 0x1122_3344_5566_7788,
-        ..PaddedInner::default()
     };
     let second = PaddedInner {
         kind: 9,
         amount: 42,
-        ..PaddedInner::default()
     };
     let event = NestedPadded {
         head: 5,

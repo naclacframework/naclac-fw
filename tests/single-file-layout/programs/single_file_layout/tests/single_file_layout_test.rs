@@ -39,7 +39,8 @@ fn single_file_program_generates_a_working_sdk() {
 
     let counter = fetch_counter(&provider, &counter_pda)
         .expect("counter should be readable after init");
-    assert_eq!(counter.value, 0);
+    let initial_value = counter.value;
+    assert_eq!(initial_value, 0);
 
     build_increment_counter(
         &provider,
@@ -51,5 +52,6 @@ fn single_file_program_generates_a_working_sdk() {
 
     let counter = fetch_counter(&provider, &counter_pda)
         .expect("counter should be readable after increment");
-    assert_eq!(counter.value, 1);
+    let incremented_value = counter.value;
+    assert_eq!(incremented_value, 1);
 }

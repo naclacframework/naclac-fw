@@ -60,7 +60,8 @@ fn emit_cpi_records_both_event_encodings_in_the_inner_instruction_trace() {
         .parse_events_zero_copy()
         .expect("parse_events_zero_copy must not fail");
     assert_eq!(counters.len(), 1);
-    assert_eq!(counters[0].new_count, 7);
+    let counted = counters[0].new_count;
+    assert_eq!(counted, 7);
 
     let payloads: Vec<SizedPayload> = meta
         .parse_events_alloc()
@@ -116,10 +117,13 @@ fn emit_cpi_alloc_event_carries_a_padded_defined_type_in_c_layout() {
     assert_eq!(decoded.len(), 1);
     assert_eq!(decoded[0].head, 5);
     assert_eq!(decoded[0].inner.kind, 3);
-    assert_eq!(decoded[0].inner.amount, 0x1122_3344_5566_7788);
+    let inner_amount = decoded[0].inner.amount;
+    assert_eq!(inner_amount, 0x1122_3344_5566_7788);
     assert_eq!(decoded[0].many.len(), 2);
     assert_eq!(decoded[0].many[0].kind, 9);
-    assert_eq!(decoded[0].many[0].amount, 42);
-    assert_eq!(decoded[0].many[1].amount, 0x1122_3344_5566_7788);
+    let first_amount = decoded[0].many[0].amount;
+    let second_amount = decoded[0].many[1].amount;
+    assert_eq!(first_amount, 42);
+    assert_eq!(second_amount, 0x1122_3344_5566_7788);
     assert_eq!(decoded[0].note, "hi");
 }

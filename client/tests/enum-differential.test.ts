@@ -1,24 +1,15 @@
 /**
  * @naclac/client — Zero-copy enum differential test
  *
- * Cross-checks the hand-ported TS zero-copy enum codec (`computeEnumCLayout`
- * / `getZeroCopyEnumCodec`, `src/coder/types.ts`) against real bytes
- * produced by the actual on-chain Rust macro (`macros/src/
- * checked_enum.rs`), not hand-computed expected values — a hand-derived
- * expectation would only prove the test author's arithmetic matches the
- * implementation's arithmetic, which proves nothing about whether either
- * matches the real on-chain layout.
+ * Cross-checks the TS zero-copy enum codec (`computeEnumLayout` /
+ * `getZeroCopyEnumCodec`, `src/coder/types.ts`) against fixed byte strings
+ * that the Rust side pins as well: `pod/tests/enum_fixtures.rs` encodes the
+ * same enums and asserts the identical hex, so the two codecs are tied to one
+ * set of bytes instead of each to its own arithmetic.
  *
- * Fixture provenance: captured verbatim from a real run of
- * `cargo test -p counter_zc dump_enum_bytes_fixtures -- --nocapture`
- * (`examples/counter/programs/counter_zc/src/components/counter.rs`) on
- * 2026-09-04. `StepMode`/`InnerMode`'s IDL shape below is copied verbatim
- * from the real generated `examples/counter/clients/typescript/src/
- * generated/counter_zc/idl/counter_zc.json`. `WideMode` isn't reachable
- * from any real instruction/account/event (it's only used in on-chain unit
- * tests), so naclac's IDL reachability walker prunes it — its entry below
- * is hand-written to match the real Rust definition (`#[repr(u16)] enum
- * WideMode { Alpha, Beta(u32) }`), not extracted.
+ * Layout: the tag (the enum's `repr`, little-endian), the active variant's
+ * fields in declaration order with no padding, then zeros up to the size of
+ * the largest variant. `StepMode` is 1 + 8 = 9 bytes, `WideMode` 2 + 4 = 6.
  *
  * Run: pnpm test
  */
@@ -86,29 +77,28 @@ const definedTypes = [
   },
 ];
 
-// Real bytes, captured verbatim — see module doc comment for provenance.
+// The same strings are asserted in pod/tests/enum_fixtures.rs.
 const FIXTURES = {
-  // 16 bytes, all zero (tag 0 = Simple, no fields) — using .repeat rather
-  // than a long literal so its length is self-evidently exact, not
-  // eyeballed from a wall of repeated zeros.
-  stepModeSimple: "0".repeat(32),
-  stepModeStepped42: "01000000000000002a00000000000000",
-  stepModeNamedRate7ModeB: "0a000000070000000100000000000000",
-  stepModeNamedRateMaxModeA: "0a000000ffffffff0000000000000000",
-  wideModeAlpha: "0000000000000000",
-  wideModeBeta99: "0100000063000000",
-  wideModeBetaMax: "01000000ffffffff",
+  // tag 0 = Simple, no fields: the tag and eight zero bytes
+  stepModeSimple: "0".repeat(18),
+  stepModeStepped42: "012a00000000000000",
+  // tag 10, rate 7 (u32), mode B (1), then three zero bytes up to the size
+  stepModeNamedRate7ModeB: "0a0700000001000000",
+  stepModeNamedRateMaxModeA: "0affffffff00000000",
+  wideModeAlpha: "000000000000",
+  wideModeBeta99: "010063000000",
+  wideModeBetaMax: "0100ffffffff",
 };
 
-describe("Zero-copy enum codec — differential test against real Rust bytes", () => {
-  it("all fixtures are the exact byte length Rust's own size_of reported (16 for StepMode, 8 for WideMode)", () => {
-    assert.equal(hexToBytes(FIXTURES.stepModeSimple).length, 16);
-    assert.equal(hexToBytes(FIXTURES.stepModeStepped42).length, 16);
-    assert.equal(hexToBytes(FIXTURES.stepModeNamedRate7ModeB).length, 16);
-    assert.equal(hexToBytes(FIXTURES.stepModeNamedRateMaxModeA).length, 16);
-    assert.equal(hexToBytes(FIXTURES.wideModeAlpha).length, 8);
-    assert.equal(hexToBytes(FIXTURES.wideModeBeta99).length, 8);
-    assert.equal(hexToBytes(FIXTURES.wideModeBetaMax).length, 8);
+describe("Zero-copy enum codec — differential test against the byte strings Rust pins", () => {
+  it("all fixtures have the packed size (9 for StepMode, 6 for WideMode)", () => {
+    assert.equal(hexToBytes(FIXTURES.stepModeSimple).length, 9);
+    assert.equal(hexToBytes(FIXTURES.stepModeStepped42).length, 9);
+    assert.equal(hexToBytes(FIXTURES.stepModeNamedRate7ModeB).length, 9);
+    assert.equal(hexToBytes(FIXTURES.stepModeNamedRateMaxModeA).length, 9);
+    assert.equal(hexToBytes(FIXTURES.wideModeAlpha).length, 6);
+    assert.equal(hexToBytes(FIXTURES.wideModeBeta99).length, 6);
+    assert.equal(hexToBytes(FIXTURES.wideModeBetaMax).length, 6);
   });
 
   describe("StepMode", () => {
@@ -156,17 +146,17 @@ describe("Zero-copy enum codec — differential test against real Rust bytes", (
 
     it("rejects a corrupted *nested* InnerMode discriminant, proving recursive validation actually inspects the inner byte (mirrors the on-chain nested_enum_invalid_discriminant_is_rejected Miri test)", () => {
       const bytes = hexToBytes(FIXTURES.stepModeNamedRate7ModeB);
-      // Byte 8 is InnerMode's own tag within the Named payload (verified via
-      // this same fixture's byte-for-byte breakdown, not assumed) — 5 is not
-      // a valid InnerMode discriminant (only 0/A and 1/B exist).
-      bytes[8] = 5;
+      // Byte 5 is InnerMode's own tag within the Named payload (tag at 0,
+      // `rate` at 1..5) — 5 is not a valid InnerMode discriminant (only 0/A
+      // and 1/B exist).
+      bytes[5] = 5;
       assert.throws(() => codec.read(bytes, 0));
     });
 
     it("every possible u8 tag value (0..255) is accepted iff it's a real discriminant (0, 1, or 10) — exhaustive, not sampled", () => {
       const validTags = new Set([0, 1, 10]);
       for (let tag = 0; tag < 256; tag++) {
-        const buf = new Uint8Array(16);
+        const buf = new Uint8Array(9);
         buf[0] = tag;
         let threw = false;
         try {
@@ -219,7 +209,7 @@ describe("Zero-copy enum codec — differential test against real Rust bytes", (
     it("every possible u16 tag value (0..65535) is accepted iff it's a real discriminant (0 or 1) — exhaustive, proves the u16-width tag read/compare itself is correct, not just u8", () => {
       const validTags = new Set([0, 1]);
       for (let tag = 0; tag < 65536; tag++) {
-        const buf = new Uint8Array(8);
+        const buf = new Uint8Array(6);
         buf[0] = tag & 0xff;
         buf[1] = (tag >> 8) & 0xff;
         let threw = false;

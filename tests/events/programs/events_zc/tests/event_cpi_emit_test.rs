@@ -57,7 +57,8 @@ fn emit_cpi_records_both_event_encodings_in_the_inner_instruction_trace() {
         .parse_events_zero_copy()
         .expect("parse_events_zero_copy must not fail");
     assert_eq!(counters.len(), 1);
-    assert_eq!(counters[0].new_count, 7);
+    let counted = counters[0].new_count;
+    assert_eq!(counted, 7);
 
     let payloads: Vec<SizedPayload> = meta
         .parse_events_alloc()

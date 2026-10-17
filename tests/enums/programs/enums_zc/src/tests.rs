@@ -175,8 +175,8 @@ fn the_account_reads_the_same_at_every_address() {
 fn derived_comparison_works_on_a_value_read_back() {
     let mut state = fresh();
     state.color.set(Color::Blue);
-    assert!(state.color.get().unwrap() == Color::Blue);
-    assert!(state.color.get().unwrap() != Color::Green);
+    assert!(state.color.get().ok() == Some(Color::Blue));
+    assert!(state.color.get().ok() != Some(Color::Green));
 }
 
 #[test]

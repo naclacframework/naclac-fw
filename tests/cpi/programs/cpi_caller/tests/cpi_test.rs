@@ -84,7 +84,8 @@ fn cross_program_cpi_works_end_to_end() {
 
     let counter_after_setup =
         fetch_counter(&provider, &counter_pda).expect("counter should be readable after setup");
-    assert_eq!(counter_after_setup.value, 0);
+    let setup_value = counter_after_setup.value;
+    assert_eq!(setup_value, 0);
     assert_eq!(counter_after_setup.authority, caller_authority_pda.into());
 
     // 3. Real cross-program CPI, signed with cpi_caller's own PDA seeds.
@@ -104,8 +105,9 @@ fn cross_program_cpi_works_end_to_end() {
 
     let counter_after_increment = fetch_counter(&provider, &counter_pda)
         .expect("counter should be readable after the signed CPI");
+    let incremented_value = counter_after_increment.value;
     assert_eq!(
-        counter_after_increment.value, 1,
+        incremented_value, 1,
         "the signed cross-program CPI must have actually run cpi_callee's authorized_increment"
     );
 }

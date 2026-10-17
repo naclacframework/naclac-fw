@@ -74,7 +74,7 @@ fn init_writes_the_chosen_variants_and_zero_tags_elsewhere() {
     for slot in s.history {
         assert!(matches!(slot.get(), Ok(Color::Red)));
     }
-    assert!(s.maybe_color.is_none());
+    assert_eq!(s.maybe_color.tag, 0);
     assert!(matches!(s.limits.mode.get(), Ok(Color::Red)));
     assert_eq!(s.counter, 0);
 }
@@ -90,7 +90,7 @@ fn set_action_round_trips_every_variant_shape() {
             assert_eq!(amount, 777);
             assert_eq!(got, to);
         }
-        other => panic!("expected Transfer, got {other:?}"),
+        _ => panic!("expected the Transfer variant"),
     }
 
     set_action(&provider, state, Action::Paint(Color::Blue));
@@ -199,7 +199,6 @@ fn an_enum_in_instruction_args_reaches_the_program_intact() {
     let args = ModeArgs {
         mode: Color::Blue.into(),
         amount: 9,
-        ..Default::default()
     };
     build_set_mode_with_args(
         &provider,
@@ -253,7 +252,7 @@ fn an_event_carrying_enums_decodes_to_the_emitted_values() {
             assert_eq!(amount, 42);
             assert_eq!(to, Address::new_from_array([3; 32]));
         }
-        other => panic!("expected Transfer, got {other:?}"),
+        _ => panic!("expected the Transfer variant"),
     }
 }
 
@@ -540,7 +539,8 @@ fn a_fixed_event_of_mixed_field_sizes_is_packed_on_the_wire_and_decodes() {
         .expect("events should parse");
     assert_eq!(events.len(), 1, "exactly one MixedEvent expected");
     assert_eq!(events[0].tag, 9);
-    assert_eq!(events[0].amount, 123_456_789);
+    let amount = events[0].amount;
+    assert_eq!(amount, 123_456_789);
     assert!(matches!(events[0].color.get(), Ok(Color::Blue)));
 }
 
