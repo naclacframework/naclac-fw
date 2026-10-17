@@ -51,7 +51,8 @@ fn emit_cpi_events_decode_from_a_real_rpc_node() {
             .parse_events_zero_copy()
             .expect("parse_events_zero_copy must not fail");
         assert_eq!(counters.len(), 1, "{label}");
-        assert_eq!(counters[0].new_count, 7, "{label}");
+        let counted = counters[0].new_count;
+        assert_eq!(counted, 7, "{label}");
 
         let payloads: Vec<SizedPayload> = meta
             .parse_events_alloc()

@@ -148,11 +148,19 @@ enum Commands {
     },
     /// Runs `cargo clippy` against each program in the workspace, one by one,
     /// automatically using each program's own correct feature flags (e.g.
-    /// pinocchio programs get --no-default-features --features pinocchio)
+    /// pinocchio programs get --no-default-features --features pinocchio).
+    /// With --test, lints each program's tests (unit and integration) instead
+    /// of the program; run `naclac build` first so the generated client exists
     Check {
         program_id: Option<String>,
         #[arg(short, long)]
         features: Vec<String>,
+        /// Lint the tests instead of the program
+        #[arg(long)]
+        test: bool,
+        /// Fail on any clippy warning, not only on errors
+        #[arg(long)]
+        deny_warnings: bool,
     },
 }
 
@@ -428,6 +436,10 @@ fn main() {
         Commands::Check {
             program_id,
             features,
-        } => commands::check::execute(program_id.as_deref(), features.clone()),
+            test,
+            deny_warnings,
+        } => {
+            commands::check::execute(program_id.as_deref(), features.clone(), *test, *deny_warnings)
+        }
     }
 }

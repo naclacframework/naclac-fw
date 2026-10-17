@@ -64,7 +64,16 @@ fn push_score(provider: &NaclacProvider, profile: Address, value: u64) -> Outcom
     .send_and_confirm()
 }
 
+/// A fresh blockhash, so a call repeated with the same arguments is not a
+/// byte-identical transaction, which LiteSVM rejects as already processed.
+fn fresh_blockhash(provider: &NaclacProvider) {
+    provider
+        .expire_blockhash()
+        .expect("the litesvm backend can expire its blockhash");
+}
+
 fn pop_score(provider: &NaclacProvider, profile: Address) -> Outcome {
+    fresh_blockhash(provider);
     build_pop_score(
         provider,
         PROGRAM_ID,
@@ -129,6 +138,7 @@ fn remove_member(provider: &NaclacProvider, profile: Address, index: u8) -> Outc
 }
 
 fn push_flag(provider: &NaclacProvider, profile: Address, value: u8) -> Outcome {
+    fresh_blockhash(provider);
     build_push_flag(
         provider,
         PROGRAM_ID,
@@ -142,6 +152,7 @@ fn push_flag(provider: &NaclacProvider, profile: Address, value: u8) -> Outcome 
 }
 
 fn bump_counter(provider: &NaclacProvider, profile: Address) -> Outcome {
+    fresh_blockhash(provider);
     build_bump_counter(
         provider,
         PROGRAM_ID,
@@ -154,6 +165,7 @@ fn bump_counter(provider: &NaclacProvider, profile: Address) -> Outcome {
 }
 
 fn clear_all(provider: &NaclacProvider, profile: Address) -> Outcome {
+    fresh_blockhash(provider);
     build_clear_all(
         provider,
         PROGRAM_ID,

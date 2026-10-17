@@ -446,11 +446,25 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
             }
         }
     } else {
+        // `target/idl` can be shared by several workspaces (a redirected
+        // `CARGO_TARGET_DIR`), so only the IDLs of this workspace's own
+        // programs are used.
+        let workspace_programs: Vec<String> = fs::read_dir(workspace_root.join("programs"))
+            .map(|entries| {
+                entries
+                    .flatten()
+                    .filter(|entry| entry.path().join("src/lib.rs").exists())
+                    .map(|entry| entry.file_name().to_string_lossy().to_string())
+                    .collect()
+            })
+            .unwrap_or_default();
         for entry in fs::read_dir(&target_idl_dir).unwrap().flatten() {
             let path = entry.path();
             if path.extension().unwrap_or_default() == "json" {
                 let file_stem = path.file_stem().unwrap().to_string_lossy().to_string();
-                target_json_paths.push((path, file_stem));
+                if workspace_programs.contains(&file_stem) {
+                    target_json_paths.push((path, file_stem));
+                }
             }
         }
     }

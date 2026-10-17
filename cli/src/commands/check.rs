@@ -6,7 +6,13 @@ use std::{fs, path::PathBuf, process::Command};
 /// --features pinocchio` flags it's actually built with), rather than asking
 /// users to remember and re-type each program's correct feature combination
 /// by hand every time.
-pub fn execute(program_id: Option<&str>, features: Vec<String>) {
+///
+/// With `tests` set, each program's test targets (its unit tests and the
+/// integration tests under `tests/`) are linted instead of the program itself.
+/// Those need the program's generated client, so run `naclac build` first.
+///
+/// With `deny_warnings` set, any clippy warning fails the check like an error.
+pub fn execute(program_id: Option<&str>, features: Vec<String>, tests: bool, deny_warnings: bool) {
     let current_dir = std::env::current_dir().unwrap();
 
     let workspace_root = if current_dir.join("Naclac.toml").exists() {
@@ -72,13 +78,20 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
             }
         }
 
-        eprintln!("🔍 Checking '{}' with clippy...", prog_name);
+        if tests {
+            eprintln!("🔍 Checking the tests of '{}' with clippy...", prog_name);
+        } else {
+            eprintln!("🔍 Checking '{}' with clippy...", prog_name);
+        }
 
         let mut cmd = Command::new("cargo");
         cmd.arg("clippy")
             .arg("--manifest-path")
             .arg(cargo_toml_path.to_str().unwrap())
             .current_dir(&workspace_root);
+        if tests {
+            cmd.arg("--tests");
+        }
 
         let mut all_features = features.clone();
         if use_pinocchio {
@@ -87,6 +100,9 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
         }
         if !all_features.is_empty() {
             cmd.arg("--features").arg(all_features.join(","));
+        }
+        if deny_warnings {
+            cmd.args(["--", "-D", "warnings"]);
         }
 
         let mut child = cmd
@@ -98,14 +114,26 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
         let status = child.wait().expect("Failed to wait on cargo clippy");
 
         if !status.success() {
-            eprintln!("❌ Clippy check failed for '{}'.", prog_name);
+            if tests {
+                eprintln!(
+                    "❌ Clippy check failed for the tests of '{}'. If it could not resolve the \
+                     generated client, run `naclac build` first.",
+                    prog_name
+                );
+            } else {
+                eprintln!("❌ Clippy check failed for '{}'.", prog_name);
+            }
             overall_success = false;
             break;
         }
     }
 
     if overall_success {
-        eprintln!("✅ All programs passed clippy checks!");
+        if tests {
+            eprintln!("✅ All program tests passed clippy checks!");
+        } else {
+            eprintln!("✅ All programs passed clippy checks!");
+        }
     } else {
         std::process::exit(1);
     }
