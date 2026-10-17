@@ -1,0 +1,5 @@
+error: Naclac Error: 'ZcString' cannot be a field of an #[event]. It is a view (pointer + length) into the current instruction's bytes and owns no bytes of its own. An event is written out, not read from an instruction: use a fixed-size array in a plain #[event], or 'Vec<T>'/'String' in #[event(alloc)].
+ --> tests/fail/52_event_zc_view_field.rs:6:15
+  |
+6 |     pub note: ZcString,
+  |               ^^^^^^^^

@@ -16,11 +16,7 @@ pub fn generate_legacy_client(
     let mut client_content = header.to_string();
 
     client_content.push_str("import * as naclac from \"@naclac-fw/client/legacy\";\n");
-    client_content.push_str(&format!(
-        "import rawIDL from \"./idl/{program_name}.json\";\n\
-         import type {{ {type_name} }} from \"./idl/{program_name}\";\n\
-         const IDL = rawIDL as unknown as {type_name};\n"
-    ));
+    client_content.push_str("import { IDL } from \"./program-idl\";\n");
 
     if !idl.instructions.is_empty() {
         client_content.push_str("import * as instructions from \"./instructions\";\n");
@@ -59,13 +55,7 @@ pub fn generate_legacy_client(
     // of sync with (as it previously did).
     client_content.push_str("      provider = naclac.createProvider(providerOrCluster, payer);\n");
     client_content.push_str("    } else {\n      provider = providerOrCluster;\n    }\n");
-    // See `kit.rs`'s equivalent line: `idl.is_zero_copy` is codegen-time-only
-    // and never written into the IDL data itself — baked in here as a literal.
-    client_content.push_str(&format!(
-        "    this.program = new naclac.LegacyProgram(IDL, provider, {}, {});\n",
-        idl.is_zero_copy,
-        super::shared::alloc_events_literal(idl)?
-    ));
+    client_content.push_str("    this.program = new naclac.LegacyProgram(IDL, provider);\n");
     client_content.push_str("  }\n\n");
 
     // ── Instruction methods ───────────────────────────────────────────────────

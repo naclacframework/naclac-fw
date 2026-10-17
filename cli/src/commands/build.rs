@@ -273,8 +273,6 @@ pub fn execute(
         // implementation of "what does regenerating a program's IDL mean."
         let prog_features = crate::commands::generate::detect_program_features(build_dir);
         let use_pinocchio = prog_features.use_pinocchio;
-        let is_zero_copy = prog_features.is_zero_copy;
-        let use_wincode = prog_features.use_wincode;
 
         let mode_label = if use_pinocchio {
             "pinocchio"
@@ -419,19 +417,14 @@ pub fn execute(
             )))
         };
 
-        // Shared with `naclac generate idl` — see generate.rs. Writes the
-        // zero-copy marker (if any) with the real alloc-event names, and the
-        // wincode marker (if any); both left in place deliberately so the
-        // client-gen call below sees them unmodified.
-        let (idl_json_pretty, _alloc_event_names) =
-            crate::commands::generate::generate_idl_for_program(
-                &workspace_root,
-                build_dir,
-                prog_name,
-                is_zero_copy,
-                use_wincode,
-                show_output,
-            );
+        // Shared with `naclac generate idl` — see generate.rs.
+        let idl_json_pretty = crate::commands::generate::generate_idl_for_program(
+            &workspace_root,
+            build_dir,
+            prog_name,
+            &prog_features,
+            show_output,
+        );
 
         let target_types_dir = target_dir.join("types");
         fs::create_dir_all(&target_types_dir).unwrap();
@@ -439,14 +432,6 @@ pub fn execute(
         let ts_content = match naclac_client_gen::generate_ts(&idl_json_pretty) {
             Ok(code) => code,
             Err(e) => {
-                if is_zero_copy {
-                    let marker_path = target_dir.join(format!(".{}-zero-copy", prog_name));
-                    let _ = fs::remove_file(marker_path);
-                }
-                if use_wincode {
-                    let marker_path = target_dir.join(format!(".{}-wincode", prog_name));
-                    let _ = fs::remove_file(marker_path);
-                }
                 let msg = format!("Failed to generate TS types for '{}': {}", prog_name, e);
                 match idl_step {
                     Some(step) => step.fail(msg),
@@ -462,15 +447,6 @@ pub fn execute(
             None => ui::success(format!("IDL + TS types written ({})", prog_name)),
         }
         crate::commands::generate::execute_client(Some(prog_name), None);
-
-        if is_zero_copy {
-            let marker_path = target_dir.join(format!(".{}-zero-copy", prog_name));
-            let _ = fs::remove_file(marker_path);
-        }
-        if use_wincode {
-            let marker_path = target_dir.join(format!(".{}-wincode", prog_name));
-            let _ = fs::remove_file(marker_path);
-        }
     }
 
     ui::milestone(format!(

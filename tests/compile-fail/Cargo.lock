@@ -599,6 +599,7 @@ dependencies = [
  "bytemuck",
  "five8",
  "naclac-macros",
+ "naclac-pod",
  "solana-account-info",
  "solana-address 2.6.1",
  "solana-clock",
@@ -643,6 +644,15 @@ version = "0.1.0"
 dependencies = [
  "naclac-core",
  "solana-instruction",
+]
+
+[[package]]
+name = "naclac-pod"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "solana-address 2.6.1",
+ "solana-program-error",
 ]
 
 [[package]]

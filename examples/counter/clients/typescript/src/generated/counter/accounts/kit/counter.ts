@@ -2,6 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/kit";
+import { IDL } from "../../program-idl";
 import type { Counter } from "../../types";
 
 /** On-chain discriminator for `Counter` accounts. */
@@ -15,26 +16,16 @@ function stripCounterDiscriminator(data: Uint8Array): Uint8Array {
   return data.slice(disc.length);
 }
 
-/** Gets the encoder for {@link Counter} account data. */
-export function getCounterEncoder(): naclac.FixedSizeEncoder<Counter> {
-  return naclac.getStructEncoder([
-    ["count", naclac.getU64Encoder()],
-    ["authority", naclac.getAddressEncoder()],
-  ]) as naclac.FixedSizeEncoder<Counter>;
+/** Gets the codec (encoder + decoder) for {@link Counter} account data, discriminator excluded. */
+export function getCounterCodec(): naclac.AccountCodec<Counter> {
+  return naclac.getAccountCodec<Counter>(IDL, "Counter");
 }
+
+/** Gets the encoder for {@link Counter} account data. */
+export const getCounterEncoder = getCounterCodec;
 
 /** Gets the decoder for {@link Counter} account data. */
-export function getCounterDecoder(): naclac.FixedSizeDecoder<Counter> {
-  return naclac.getStructDecoder([
-    ["count", naclac.getU64Decoder()],
-    ["authority", naclac.getAddressDecoder()],
-  ]) as naclac.FixedSizeDecoder<Counter>;
-}
-
-/** Gets the codec (encoder + decoder) for {@link Counter} account data. */
-export function getCounterCodec(): naclac.FixedSizeCodec<Counter> {
-  return naclac.combineCodec(getCounterEncoder(), getCounterDecoder());
-}
+export const getCounterDecoder = getCounterCodec;
 
 export function decodeCounter<TAddress extends string = string>(
   encodedAccount: naclac.EncodedAccount<TAddress>,
@@ -49,7 +40,7 @@ export function decodeCounter<TAddress extends string = string>(
     ('data' in encodedAccount
       ? { ...encodedAccount, data: stripCounterDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
-    getCounterDecoder(),
+    getCounterDecoder() as unknown as naclac.Decoder<Counter>,
   );
 }
 

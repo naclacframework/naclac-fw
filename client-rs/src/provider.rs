@@ -260,11 +260,9 @@ impl NaclacTransactionMetadata {
         let mut events = Vec::new();
         for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
             if disc_bytes == T::DISCRIMINATOR && payload_bytes.len() >= std::mem::size_of::<T>() {
-                if let Ok(casted) =
-                    bytemuck::try_from_bytes(&payload_bytes[0..std::mem::size_of::<T>()])
-                {
-                    events.push(*casted);
-                }
+                events.push(bytemuck::pod_read_unaligned(
+                    &payload_bytes[0..std::mem::size_of::<T>()],
+                ));
             }
         }
         Ok(events)

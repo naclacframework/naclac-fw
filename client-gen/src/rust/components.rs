@@ -83,17 +83,6 @@ pub fn generate_components(
                 })
                 .collect();
 
-            // Borsh mode and zero-copy mode can no longer share one body via
-            // `cfg_attr` — the zero-copy declaration below gets real,
-            // verified padding fields spliced in (via the same copied
-            // `pod_struct_checks::generate` `types/typedefs.rs`'s struct
-            // branch uses), which the Borsh derive must never see (Borsh has
-            // no padding, ever). Two fully separate, mutually-exclusive
-            // (`feature = "borsh"` vs `not(feature = "borsh")`) struct
-            // declarations instead — same rationale as `types/typedefs.rs`.
-
-            // --- Borsh-mode declaration: original fields, no padding, no
-            // Pod concept at all.
             comp_content.push_str(cfg);
             comp_content.push_str("#[cfg(any(feature = \"borsh\", feature = \"wincode\"))]\n");
             comp_content.push_str(&render_docs(&acc.docs, ""));
@@ -113,13 +102,6 @@ pub fn generate_components(
             }
             comp_content.push_str("}\n\n");
 
-            // --- Zero-copy-mode declaration: real, verified padding. Every
-            // `#[component]` zero-copy account is assumed Pod-eligible by
-            // construction (on-chain, the macro's own real `#[derive(Pod,
-            // Zeroable)]` on the struct enforces this at compile time — a
-            // heap-owning/dynamic field simply couldn't compile there), so
-            // — unlike `types/typedefs.rs`'s struct branch — there's no
-            // `is_pod` check needed here; this path is unconditional.
             let zero_copy_field_tys: Vec<String> = acc
                 .ty
                 .fields
@@ -149,16 +131,19 @@ pub fn generate_components(
             });
             let struct_ident: syn::Ident = syn::parse_str(&struct_name)
                 .expect("component: account struct name must be a valid identifier");
-            let (padded_fields, extra_items) =
-                crate::rust::pod_codegen::pod_struct_checks::generate(
-                    &struct_ident,
-                    &parsed_struct.fields,
-                    sdk_core,
-                );
+            let core: syn::Path =
+                syn::parse_str(sdk_core).expect("component: sdk_core alias must be a valid path");
+            let layout_checks = naclac_syn::zc_codegen::struct_checks::generate(
+                &struct_ident,
+                &parsed_struct.fields,
+                &crate::rust::zero_copy_gate(for_cpi),
+                &core,
+            );
+            let struct_fields = &parsed_struct.fields;
             let struct_item_tokens = quote::quote! {
                 #[derive(Copy, Clone, Debug)]
-                #[repr(C)]
-                pub struct #struct_ident #padded_fields
+                #[repr(C, packed)]
+                pub struct #struct_ident #struct_fields
             };
             let struct_file: syn::File = syn::parse2(struct_item_tokens)
                 .expect("component: generated account struct item must parse as a syn::File");
@@ -169,34 +154,9 @@ pub fn generate_components(
             comp_content.push_str(&prettyplease::unparse(&struct_file));
             comp_content.push('\n');
 
-            // Same multi-item cfg-gating requirement `types/typedefs.rs`'s
-            // struct branch already documents: `#[cfg(...)]` only gates the
-            // single item directly below it, so each of `extra_items`'
-            // several top-level `const` items needs both gates attached
-            // individually.
-            let mut extra_file: syn::File = syn::parse2(extra_items)
-                .expect("component: pod_struct_checks::generate output must parse as a syn::File");
-            let offchain_cpi_cfg: syn::Attribute = if for_cpi {
-                syn::parse_quote!(#[cfg(feature = "cpi")])
-            } else {
-                syn::parse_quote!(#[cfg(feature = "offchain")])
-            };
-            let not_borsh_cfg: syn::Attribute =
-                syn::parse_quote!(#[cfg(not(any(feature = "borsh", feature = "wincode")))]);
-            for item in &mut extra_file.items {
-                let attrs = match item {
-                    syn::Item::Const(c) => &mut c.attrs,
-                    syn::Item::Fn(f) => &mut f.attrs,
-                    other => panic!(
-                        "component: pod_struct_checks::generate produced an unexpected item \
-                         kind that this cfg-gating pass doesn't handle: {:?}",
-                        other
-                    ),
-                };
-                attrs.insert(0, not_borsh_cfg.clone());
-                attrs.insert(0, offchain_cpi_cfg.clone());
-            }
-            comp_content.push_str(&prettyplease::unparse(&extra_file));
+            let layout_file: syn::File = syn::parse2(layout_checks)
+                .expect("component: struct_checks::generate output must parse as a syn::File");
+            comp_content.push_str(&prettyplease::unparse(&layout_file));
             comp_content.push('\n');
 
             comp_content.push_str(cfg);
@@ -211,11 +171,6 @@ pub fn generate_components(
                 "unsafe impl {}::bytemuck::Pod for {} {{}}\n",
                 sdk_core, struct_name
             ));
-            // Matches `types/typedefs.rs`'s struct branch and the real
-            // on-chain `#[component]` macro (`macros/src/
-            // component.rs`) — needed so a construction site like
-            // `Struct { field: v, ..Default::default() }` keeps working
-            // without knowing the auto-inserted padding field's name.
             comp_content.push_str(cfg);
             comp_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
             comp_content.push_str(&format!(

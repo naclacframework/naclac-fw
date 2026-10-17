@@ -50,13 +50,13 @@ const UPDATE_LINKED_APP_DATA_IX_LEN: usize = 1 + LINKED_APP_DATA_KEY_ENCODED_LEN
 /// On `pinocchio`, `data` is a zero-copy `ZcVec<u8>` view into the
 /// account's own live bytes — see `AppDataInfo`'s doc comment for why.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LinkedAppDataInfo {
+pub struct LinkedAppDataInfo<#[cfg(feature = "pinocchio")] 'a> {
     pub data_authority: PluginAuthorityArg,
     pub schema: ExternalPluginAdapterSchemaArg,
     #[cfg(not(feature = "pinocchio"))]
     pub data: crate::prelude::Vec<u8>,
     #[cfg(feature = "pinocchio")]
-    pub data: ZcVec<u8>,
+    pub data: ZcVec<'a, u8>,
 }
 
 /// Attaches `LinkedAppData` to a `Collection` via
@@ -237,7 +237,7 @@ pub fn fetch_collection_linked_app_data(
 pub fn fetch_collection_linked_app_data(
     info: &AccountInfo,
     data_authority: PluginAuthorityArg,
-) -> Result<Option<LinkedAppDataInfo>> {
+) -> Result<Option<LinkedAppDataInfo<'_>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);

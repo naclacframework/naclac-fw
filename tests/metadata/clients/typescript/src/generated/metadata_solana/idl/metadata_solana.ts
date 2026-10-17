@@ -1070,7 +1070,7 @@ export const IDL = {
         }
       ],
       "args": [
-        { "name": "expected_frozen", "type": { "defined": "Bool" } }
+        { "name": "expected_frozen", "type": "bool" }
       ]
     },
     {

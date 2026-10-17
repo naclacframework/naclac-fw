@@ -2,9 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/legacy";
-import rawIDL from "./idl/counter_wincode.json";
-import type { CounterWincode } from "./idl/counter_wincode";
-const IDL = rawIDL as unknown as CounterWincode;
+import { IDL } from "./program-idl";
 import * as instructions from "./instructions";
 import * as accounts from "./accounts/legacy";
 import * as types from "./types";
@@ -39,7 +37,7 @@ export class CounterWincodeClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider, false, []);
+    this.program = new naclac.LegacyProgram(IDL, provider);
   }
 
   /**

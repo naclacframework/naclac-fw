@@ -6,6 +6,7 @@ import { address, getProgramDerivedAddress, type Address } from "@solana/kit";
 
 import { resolveDiscriminator } from "../utils/hash";
 import { resolvePdas } from "../utils/pda";
+import { resolveSlots } from "../slots";
 import {
   tryDecodeEventLog,
   parseEventsFromLogs,
@@ -25,9 +26,9 @@ export type IdlAccountName<T extends NaclacIdl> = T["accounts"][number]["name"];
 export class Program<TIdl extends NaclacIdl = NaclacIdl> {
   readonly idl: TIdl;
   readonly provider: NaclacProvider;
-  /** See the constructor's own doc comment — a codegen-time-only fact, never part of `idl`. */
+  /** True when the IDL's `metadata.serialization` is `bytemuck`. */
   readonly isZeroCopy: boolean;
-  /** Names of this program's `#[event(alloc)]` events — also a codegen-time-only fact. */
+  /** Names of this program's `alloc` events. */
   readonly allocEvents: readonly string[];
 
   readonly methods: {
@@ -117,28 +118,20 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
   }
 
   /**
-   * `isZeroCopy` is a generation-time fact (was this program built with the
-   * `pinocchio` feature, or without `borsh`?), never part of the IDL itself
-   * — the generated `client.ts` passes it as a literal here, the same way
-   * `naclac-client-gen`'s own `idl.is_zero_copy` only ever conditions what
-   * source code gets written (Cargo feature defaults, `cfg_attr` branches),
-   * never round-tripped through IDL data. Determines whether a
-   * `definedTypes` struct/enum's wire layout is real C-layout-with-padding
-   * or tightly-packed Borsh — see `client/src/coder/types.ts`'s
-   * `getIdlCodec`. `allocEvents` is the same kind of fact: which events are
-   * `#[event(alloc)]` (sequentially encoded, not a fixed struct) in a
-   * zero-copy program.
+   * The wire layout comes from the IDL itself: `metadata.serialization` says
+   * whether a `definedTypes` struct or enum is the packed zero-copy layout
+   * (`bytemuck`) or Borsh/Wincode, each event's `alloc`
+   * flag says whether it is sequentially encoded, and a field's `slots` is its
+   * fixed capacity. See `client/src/coder/types.ts`'s `getIdlCodec`.
    */
-  constructor(
-    idl: TIdl,
-    provider: NaclacProvider,
-    isZeroCopy = false,
-    allocEvents: readonly string[] = [],
-  ) {
+  constructor(rawIdl: TIdl, provider: NaclacProvider) {
+    const idl = resolveSlots(rawIdl);
     this.idl = idl;
     this.provider = provider;
-    this.isZeroCopy = isZeroCopy;
-    this.allocEvents = allocEvents;
+    this.isZeroCopy = idl.metadata.serialization === "bytemuck";
+    const isZeroCopy = this.isZeroCopy;
+    this.allocEvents = idl.events.filter((e) => e.alloc).map((e) => e.name);
+    const allocEvents = this.allocEvents;
 
     this.methods = {} as any;
     for (const ixDef of idl.instructions) {

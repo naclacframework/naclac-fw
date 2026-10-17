@@ -1,52 +1,4 @@
-const NATIVE_SOLANA_ERRORS: Record<string, string> = {
-  "0x0": "Generic Instruction Error / Invalid Account Data",
-  "0x1": "Insufficient Funds (Not enough SOL to pay for transaction or rent)",
-  "0x2": "Invalid Account Data Format",
-  "0x3": "Missing Required Signature",
-  "0x4": "Account Data Too Small",
-  "0x5": "Insufficient Funds For Rent",
-};
-
-const NACLAC_FRAMEWORK_ERROR_TYPES: Record<number, string> = {
-  1: "Mutability mismatch",
-  2: "Missing required signature",
-  3: "Address mismatch",
-  4: "Owner mismatch",
-  5: "Account is not rent exempt",
-  6: "PDA derivation failed (Seeds mismatch)",
-  7: "Account is not executable",
-  8: "Account is None (Expected initialized account)",
-  9: "Program ID mismatch (Missing required program in accounts array)",
-  10: "Account data too small (Missing discriminator or insufficient size)",
-  11: "Account borrow failed (Already borrowed)",
-  12: "Invalid instruction data",
-  13: "Insufficient funds for transaction",
-  14: "Account already initialized",
-  15: "Account not initialized",
-  16: "Not enough account keys provided",
-  17: "Max seed length exceeded",
-  18: "Unsupported sysvar",
-  19: "Invalid reallocation",
-  20: "Arithmetic overflow",
-  21: "Unauthorized access (Authority mismatch)",
-  22: "Account type mismatch (Invalid discriminator)",
-  23: "Account deserialization failed",
-  24: "Account serialization failed",
-  25: "Duplicate mutable account detected in instruction",
-  26: "Cannot close account to itself",
-  27: "Too many PDA signers in one CPI call (exceeds MAX_CPI_SIGNERS)",
-  28: "Too many seeds for one PDA signer in a CPI call (exceeds MAX_CPI_SEEDS_PER_SIGNER)",
-  29: "Too many extra accounts appended to a CPI (exceeds its fixed maximum)",
-  30: "Too many accounts in one CPI call",
-  31: "Instruction carries more than 64 account entries",
-};
-
-/** A decoded program error from the IDL. */
-export interface NaclacProgramError {
-  code: number;
-  name: string;
-  msg?: string;
-}
+import { decodeFrameworkError, NATIVE_SOLANA_ERRORS } from "./errors";
 
 /**
  * Depth of the last "Program X invoke [N]" line in `text` — the stack depth
@@ -134,13 +86,10 @@ export function translateRpcError(
 
     // Naclac framework errors: 10000 + accountIndex * 100 + type, for account
     // indices 0..=255. User-defined error codes (6000+) always stay below 10000.
-    if (errorCode >= 10000 && errorCode < 10000 + 256 * 100) {
-      const offset = errorCode - 10000;
-      const errorType = offset % 100;
-      const accountIndex = Math.floor(offset / 100);
-
-      const typeName =
-        NACLAC_FRAMEWORK_ERROR_TYPES[errorType] ?? "Unknown framework error";
+    const framework = decodeFrameworkError(errorCode);
+    if (framework) {
+      const { accountIndex } = framework;
+      const typeName = framework.error?.message ?? "Unknown framework error";
       const depth = lastInvokeDepth(combinedLogsAndMessages);
       const isTopLevel = depth === null || depth === 1;
       const accountName = isTopLevel

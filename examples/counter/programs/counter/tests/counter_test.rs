@@ -56,7 +56,8 @@ fn test_counter_integration() {
         // Verify account initialized using the generated Counter component
         let counter_state: Counter = fetch_counter(&provider, &counter_pda)
             .expect("Failed to fetch initialized counter account");
-        assert_eq!(counter_state.count, 0);
+        let count = counter_state.count;
+        assert_eq!(count, 0);
         assert_eq!(counter_state.authority, provider.payer.address());
         println!("   ✅ Initialized state verified: count = 0, authority matches payer.");
     }
@@ -79,16 +80,18 @@ fn test_counter_integration() {
     // 5. Verify Increment using the generated Counter component
     let counter_state_after: Counter = fetch_counter(&provider, &counter_pda)
         .expect("Failed to fetch incremented counter account");
-    assert_eq!(counter_state_after.count, start_count + 1);
-    println!("   ✅ State verified: count = {}.", counter_state_after.count);
+    let count_after = counter_state_after.count;
+    assert_eq!(count_after, start_count + 1);
+    println!("   ✅ State verified: count = {}.", count_after);
 
     // 6. Verify Event using the generated CounterIncremented event type (zero-copy / POD)
     let captured_events: Vec<CounterIncremented> = tx_meta.parse_events_zero_copy()
         .expect("Failed to parse events");
     assert!(!captured_events.is_empty(), "❌ Event was not captured!");
     let captured_event = &captured_events[0];
-    assert_eq!(captured_event.new_count, start_count + 1);
-    println!("      🔔 Event Fired! New Count: {}", captured_event.new_count);
+    let new_count = captured_event.new_count;
+    assert_eq!(new_count, start_count + 1);
+    println!("      🔔 Event Fired! New Count: {}", new_count);
 
     println!("\n✨ Integration test completed successfully!\n");
 }

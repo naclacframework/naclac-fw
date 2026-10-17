@@ -165,6 +165,10 @@ pub struct NaclacAccountStruct {
 pub struct NaclacField {
     pub name: String,
     pub ty: serde_json::Value,
+    /// The `N` of the `FixedVec<T, N>` or `FixedString<N>` the field's type
+    /// holds, if any. `ty` is then the plain `vec` or `string`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slots: Option<u64>,
     #[serde(default)]
     pub docs: Vec<String>,
 }
@@ -185,7 +189,6 @@ pub struct NaclacEvent {
 pub struct NaclacEventField {
     pub name: String,
     pub ty: serde_json::Value,
-    pub index: bool,
     #[serde(default)]
     pub docs: Vec<String>,
 }

@@ -4,6 +4,7 @@ members = [
     "client-gen",
     "idl",
     "core",
+    "pod",
     "token",
     "metadata",
     "lang",
@@ -35,8 +36,8 @@ naclac-syn = { version = "0.1.0", path = "syn" }
 naclac-idl = { version = "0.1.0", path = "idl" }
 naclac-client-gen = { version = "0.1.0", path = "client-gen" }
 naclac-macros = { version = "0.1.0", path = "macros", default-features = false }
-naclac-lang = { version = "0.1.0", path = "lang" }
 naclac-core = { version = "0.1.0", path = "core", default-features = false }
+naclac-pod = { version = "0.1.0", path = "pod", default-features = false }
 naclac-token = { version = "0.1.0", path = "token", default-features = false }
 naclac-metadata = { version = "0.1.0", path = "metadata", default-features = false }
 naclac-client = { version = "0.1.0", path = "client-rs" }

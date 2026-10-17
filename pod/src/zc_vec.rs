@@ -4,7 +4,8 @@
 //! to parse slices and strings out of instruction data in Pinocchio/Zero-Copy environments.
 
 use {
-    crate::prelude::{bytemuck, NaclacError, NaclacPod, Pod, Result},
+    crate::error::PodError,
+    bytemuck::Pod,
     core::{marker::PhantomData, ops::Deref},
 };
 
@@ -18,8 +19,7 @@ use {
 /// call. NOT valid for persisted `#[component]` account storage: a pointer
 /// written into on-chain bytes in one transaction is meaningless (or
 /// attacker-controlled) when read back in a later one, so the `#[component]`
-/// macro rejects `Vec<T>`/`String` fields outright rather than rewriting them
-/// to this type.
+/// macro rejects `ZcVec<T>`/`ZcString` fields outright.
 ///
 /// Element access always goes through an unaligned read
 /// (`bytemuck::pod_read_unaligned`), never a real `&T`/`&[T]` reference: an
@@ -29,38 +29,41 @@ use {
 /// one byte is not guaranteed to land on a `T`-aligned address. Building a
 /// real `&[T]` there via `core::slice::from_raw_parts` would be undefined
 /// behavior regardless of whether the bytes happen to be valid.
+///
+/// `'a` is the lifetime of the bytes the view was built from; a view, and
+/// everything it hands out, cannot outlive them.
 #[derive(Clone, Copy)]
-pub struct ZcVec<T: Pod> {
+pub struct ZcVec<'a, T: Pod> {
     ptr: *const u8,
     len: usize,
-    _phantom: PhantomData<T>,
+    _borrow: PhantomData<&'a [T]>,
 }
 
-impl<T: Pod> ZcVec<T> {
+impl<'a, T: Pod> ZcVec<'a, T> {
     /// Creates a new ZcVec from a raw slice.
-    pub fn new(data: &[T]) -> Self {
+    pub fn new(data: &'a [T]) -> Self {
         Self {
             ptr: data.as_ptr() as *const u8,
             len: data.len(),
-            _phantom: PhantomData,
+            _borrow: PhantomData,
         }
     }
 
     /// Creates a ZcVec from raw bytes, performing a bounds check only — no
     /// alignment check, since element access never requires `T`-alignment
     /// (see this type's own doc comment).
-    pub fn from_bytes(data: &[u8]) -> Result<Self> {
+    pub fn from_bytes(data: &'a [u8]) -> Result<Self, PodError> {
         let len = data.len();
         let item_size = core::mem::size_of::<T>();
 
         if item_size == 0 || !len.is_multiple_of(item_size) {
-            return Err(NaclacError::InvalidInstructionData.err(0));
+            return Err(PodError::InvalidInstructionData);
         }
 
         Ok(Self {
             ptr: data.as_ptr(),
             len: len / item_size,
-            _phantom: PhantomData,
+            _borrow: PhantomData,
         })
     }
 
@@ -85,13 +88,13 @@ impl<T: Pod> ZcVec<T> {
         Some(bytemuck::pod_read_unaligned(bytes))
     }
 
-    pub fn iter(&self) -> ZcVecIter<'_, T> {
-        ZcVecIter { vec: self, idx: 0 }
+    pub fn iter(&self) -> ZcVecIter<'a, T> {
+        ZcVecIter { vec: *self, idx: 0 }
     }
 
     /// Explicitly convert to a heap-allocated Vec (Borsh-compatibility).
-    #[cfg(not(feature = "pinocchio"))]
-    pub fn to_vec(&self) -> crate::prelude::Vec<T> {
+    #[cfg(feature = "alloc")]
+    pub fn to_vec(&self) -> alloc::vec::Vec<T> {
         self.iter().collect()
     }
 }
@@ -100,7 +103,7 @@ impl<T: Pod> ZcVec<T> {
 /// not by reference: unlike a real slice iterator, there is no `&T` to hand
 /// out without first materializing a properly aligned copy.
 pub struct ZcVecIter<'a, T: Pod> {
-    vec: &'a ZcVec<T>,
+    vec: ZcVec<'a, T>,
     idx: usize,
 }
 
@@ -118,27 +121,27 @@ impl<T: Pod> Iterator for ZcVecIter<'_, T> {
 /// `u8` has no alignment requirement — any pointer is valid for a `&[u8]`
 /// reference regardless of how this `ZcVec` was constructed, so this one
 /// element type gets a real zero-copy byte-slice accessor.
-impl ZcVec<u8> {
-    pub fn as_bytes(&self) -> &'static [u8] {
+impl<'a> ZcVec<'a, u8> {
+    pub fn as_bytes(&self) -> &'a [u8] {
         // SAFETY: u8's alignment requirement is 1, always satisfied; `ptr`
-        // covers `len` bytes (see `get`'s SAFETY note).
+        // covers `len` bytes (see `get`'s SAFETY note), borrowed for `'a`.
         unsafe { core::slice::from_raw_parts(self.ptr, self.len) }
     }
 }
 
-impl<T: Pod + core::fmt::Debug> core::fmt::Debug for ZcVec<T> {
+impl<T: Pod + core::fmt::Debug> core::fmt::Debug for ZcVec<'_, T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_list().entries(self.iter()).finish()
     }
 }
 
-impl<T: Pod + PartialEq> PartialEq for ZcVec<T> {
+impl<T: Pod + PartialEq> PartialEq for ZcVec<'_, T> {
     fn eq(&self, other: &Self) -> bool {
         self.len == other.len && self.iter().eq(other.iter())
     }
 }
 
-impl<T: Pod + Eq> Eq for ZcVec<T> {}
+impl<T: Pod + Eq> Eq for ZcVec<'_, T> {}
 
 /// A zero-copy view into a UTF-8 string.
 ///
@@ -147,28 +150,30 @@ impl<T: Pod + Eq> Eq for ZcVec<T> {}
 /// of the current instruction's byte buffer and discarded at the end of the
 /// call. It is never valid for persisted `#[component]` storage: a
 /// `ZcVec`/`ZcString` is a raw pointer + length, sound only for data that
-/// lives entirely within one instruction's call frame, so the `#[component]`
-/// macro rejects `String`/`Vec<T>` fields and points authors at a fixed-size
-/// array like `[u8; 64]` instead.
+/// lives entirely within one instruction's call frame; use `FixedString<N>`
+/// for stored text.
 /// Backed by a `ZcVec<u8>` into the instruction data — no heap allocation or
 /// copying.
 #[derive(Clone, Copy)]
-pub struct ZcString {
-    inner: ZcVec<u8>,
+pub struct ZcString<'a> {
+    inner: ZcVec<'a, u8>,
 }
 
-impl ZcString {
-    pub fn from_bytes(data: &[u8]) -> Result<Self> {
-        // Validate UTF-8
-        core::str::from_utf8(data).map_err(|_| NaclacError::InvalidInstructionData.err(0))?;
+impl<'a> ZcString<'a> {
+    pub fn from_bytes(data: &'a [u8]) -> Result<Self, PodError> {
+        core::str::from_utf8(data).map_err(|_| PodError::InvalidInstructionData)?;
         Ok(Self {
             inner: ZcVec::new(data),
         })
     }
 
-    pub fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'a str {
         // SAFETY: The bytes were validated as correct UTF-8 strings upon struct initialization.
         unsafe { core::str::from_utf8_unchecked(self.inner.as_bytes()) }
+    }
+
+    pub fn as_bytes(&self) -> &'a [u8] {
+        self.inner.as_bytes()
     }
 
     pub fn len(&self) -> usize {
@@ -180,36 +185,22 @@ impl ZcString {
     }
 }
 
-impl Deref for ZcString {
+impl Deref for ZcString<'_> {
     type Target = str;
     fn deref(&self) -> &Self::Target {
         self.as_str()
     }
 }
 
-impl core::fmt::Display for ZcString {
+impl core::fmt::Display for ZcString<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self.as_str())
+        core::fmt::Display::fmt(self.as_str(), f)
     }
 }
 
-impl core::fmt::Debug for ZcString {
+impl core::fmt::Debug for ZcString<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:?}", self.as_str())
-    }
-}
-
-// NaclacPod implementation for automated deserialization
-impl<T: Pod> NaclacPod for ZcVec<T> {
-    fn naclac_from_bytes(data: &[u8]) -> Self {
-        Self::from_bytes(data).unwrap_or(Self {
-            ptr: core::ptr::null(),
-            len: 0,
-            _phantom: PhantomData,
-        })
-    }
-    fn naclac_size() -> usize {
-        0 // Dynamic size
+        core::fmt::Debug::fmt(self.as_str(), f)
     }
 }
 
@@ -220,11 +211,11 @@ mod tests {
     #[test]
     fn zc_vec_from_bytes_round_trips_exact_values() {
         let values: [u32; 4] = [1, 2, 3, 4_000_000_000];
-        let bytes = crate::prelude::bytemuck::cast_slice::<u32, u8>(&values);
+        let bytes = bytemuck::cast_slice::<u32, u8>(&values);
         let view = ZcVec::<u32>::from_bytes(bytes).expect("well-sized bytes must parse");
         assert_eq!(view.len(), 4);
         assert!(!view.is_empty());
-        let collected: crate::prelude::Vec<u32> = view.iter().collect();
+        let collected: std::vec::Vec<u32> = view.iter().collect();
         assert_eq!(collected, values);
         for (i, v) in values.iter().enumerate() {
             assert_eq!(view.get(i), Some(*v));
@@ -235,7 +226,7 @@ mod tests {
     #[test]
     fn zc_vec_partial_eq_compares_by_value_not_by_pointer() {
         let values: [u32; 3] = [7, 8, 9];
-        let bytes = crate::prelude::bytemuck::cast_slice::<u32, u8>(&values);
+        let bytes = bytemuck::cast_slice::<u32, u8>(&values);
         let mut other_backing = [0u8; 12];
         other_backing.copy_from_slice(bytes);
 
@@ -248,33 +239,24 @@ mod tests {
         assert_eq!(a, b);
 
         let different: [u32; 3] = [7, 8, 10];
-        let c =
-            ZcVec::<u32>::from_bytes(crate::prelude::bytemuck::cast_slice::<u32, u8>(&different))
-                .expect("well-sized bytes must parse");
+        let c = ZcVec::<u32>::from_bytes(bytemuck::cast_slice::<u32, u8>(&different))
+            .expect("well-sized bytes must parse");
         assert_ne!(a, c);
 
         let shorter: [u32; 2] = [7, 8];
-        let d = ZcVec::<u32>::from_bytes(crate::prelude::bytemuck::cast_slice::<u32, u8>(&shorter))
+        let d = ZcVec::<u32>::from_bytes(bytemuck::cast_slice::<u32, u8>(&shorter))
             .expect("well-sized bytes must parse");
         assert_ne!(a, d, "different lengths must not compare equal");
     }
 
     #[test]
     fn zc_vec_from_bytes_rejects_size_not_a_multiple_of_item_size() {
-        // 5 raw bytes can't divide evenly into any whole number of `u32`s (4
-        // bytes each) — must be rejected, not silently truncated.
         let bytes: [u8; 5] = [0, 1, 2, 3, 4];
-        let result = ZcVec::<u32>::from_bytes(&bytes);
-        assert!(
-            result.is_err(),
-            "a non-multiple byte length must be rejected"
-        );
+        assert!(ZcVec::<u32>::from_bytes(&bytes).err() == Some(PodError::InvalidInstructionData));
     }
 
     #[test]
     fn zc_vec_from_bytes_accepts_and_reads_correctly_regardless_of_alignment() {
-        // The backing buffer is 4-aligned, so the 1-byte offset makes the
-        // slice's pointer misaligned for `u32` by construction.
         #[repr(align(4))]
         struct Aligned([u8; 12]);
 
@@ -294,25 +276,35 @@ mod tests {
     }
 
     #[test]
+    fn zc_vec_of_packed_structs_reads_back() {
+        #[derive(Clone, Copy, PartialEq, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+        #[repr(C, packed)]
+        struct Entry {
+            id: u64,
+            weight: u16,
+        }
+        let entries = [Entry { id: 5, weight: 1 }, Entry { id: 6, weight: 2 }];
+        let view = ZcVec::new(&entries);
+        assert_eq!(view.get(1), Some(Entry { id: 6, weight: 2 }));
+        assert_eq!(view.iter().count(), 2);
+    }
+
+    #[test]
     fn zc_string_round_trips_exact_utf8_bytes() {
-        let original = "hello zero-copy world! \u{1F980}"; // includes a multi-byte codepoint
+        let original = "hello zero-copy world! \u{1F980}";
         let s = ZcString::from_bytes(original.as_bytes()).expect("valid UTF-8 must parse");
         assert_eq!(s.len(), original.len());
         assert!(!s.is_empty());
         assert_eq!(s.as_str(), original);
         assert_eq!(&*s, original);
-        assert_eq!(crate::prelude::format!("{}", s), original);
+        assert_eq!(s.as_bytes(), original.as_bytes());
+        assert_eq!(std::format!("{s}"), original);
     }
 
     #[test]
     fn zc_string_rejects_invalid_utf8() {
-        // 0xFF is never valid as a UTF-8 lead byte.
         let invalid: [u8; 3] = [0xFF, 0x00, 0x01];
-        let result = ZcString::from_bytes(&invalid);
-        assert!(
-            result.is_err(),
-            "invalid UTF-8 bytes must be rejected, not passed through"
-        );
+        assert!(ZcString::from_bytes(&invalid).err() == Some(PodError::InvalidInstructionData));
     }
 
     #[test]
@@ -328,12 +320,6 @@ mod tests {
 mod kani_proofs {
     use super::*;
 
-    /// Proves `ZcVec::<T>::get` never reads out of bounds for a small bounded
-    /// backing buffer and any index, for every element size naclac actually
-    /// ships (1/2/4/8-byte types) — not just one. The `i * item_size`
-    /// pointer-arithmetic step in `get` is the one place a wrong
-    /// length/index could turn into real out-of-bounds memory access, since
-    /// it bypasses the bounds check only for `i < self.len`.
     macro_rules! zc_vec_get_never_panics_harness {
         ($name:ident, $ty:ty, $buf_len:expr) => {
             #[kani::proof]
@@ -351,11 +337,6 @@ mod kani_proofs {
     zc_vec_get_never_panics_harness!(prove_zc_vec_u32_get_never_panics, u32, 16);
     zc_vec_get_never_panics_harness!(prove_zc_vec_u64_get_never_panics, u64, 24);
 
-    /// Correctness, not just panic-freedom: for any in-bounds index, `get`
-    /// must return exactly the bytes actually stored at that offset — an
-    /// off-by-one in the `i * item_size` step would still "not panic", it
-    /// would just silently hand back the wrong element. For an out-of-range
-    /// index, must return `None`, not a stale or garbage value.
     #[kani::proof]
     fn prove_zc_vec_u32_get_reads_correct_bytes() {
         let data: [u8; 16] = kani::any();
@@ -364,86 +345,53 @@ mod kani_proofs {
             if i < view.len() {
                 let got = view.get(i).unwrap();
                 let expected = bytemuck::pod_read_unaligned::<u32>(&data[i * 4..i * 4 + 4]);
-                assert_eq!(
-                    got, expected,
-                    "get(i) must return the real bytes at offset i * size_of::<T>()"
-                );
+                assert!(got == expected);
             } else {
-                assert!(
-                    view.get(i).is_none(),
-                    "an out-of-range index must return None"
-                );
+                assert!(view.get(i).is_none());
             }
         }
     }
 
-    /// `from_bytes` must reject any length that isn't an exact multiple of
-    /// the element size — accepting one would silently truncate the last
-    /// partial element instead of erroring.
     #[kani::proof]
     fn prove_zc_vec_u32_from_bytes_rejects_non_multiple_length() {
-        let data: [u8; 15] = kani::any(); // 15 is never a multiple of 4
+        let data: [u8; 15] = kani::any();
         assert!(ZcVec::<u32>::from_bytes(&data).is_err());
     }
 
-    /// `ZcVec<u8>::as_bytes` must return exactly the original bytes, not a
-    /// mis-sized or offset view — the one element type with a real
-    /// zero-copy `&[u8]` escape hatch (see this type's own doc comment).
     #[kani::proof]
     fn prove_zc_vec_u8_as_bytes_round_trips() {
         let data: [u8; 8] = kani::any();
         let view = ZcVec::<u8>::from_bytes(&data).unwrap();
-        assert_eq!(view.as_bytes(), &data);
+        assert!(view.as_bytes() == &data);
     }
 
-    /// `ZcVecIter` must yield exactly `len()` elements, each matching `get`
-    /// for its own index — an iterator that stopped early/late or skipped
-    /// an index would silently corrupt any code trusting `.iter().collect()`.
     #[kani::proof]
     fn prove_zc_vec_u32_iter_yields_exactly_len_elements() {
         let data: [u8; 16] = kani::any();
         if let Ok(view) = ZcVec::<u32>::from_bytes(&data) {
             let mut count = 0usize;
             for (i, v) in view.iter().enumerate() {
-                assert_eq!(Some(v), view.get(i));
+                assert!(Some(v) == view.get(i));
                 count += 1;
             }
-            assert_eq!(count, view.len());
+            assert!(count == view.len());
         }
     }
 
-    /// `ZcString::from_bytes` must reject anything that isn't valid UTF-8 —
-    /// Kani explores every byte pattern in the buffer, not just the
-    /// hand-picked invalid sequences the unit tests above use.
-    ///
-    /// `#[kani::unwind(8)]`: even though `data` is a fixed 6-byte array
-    /// (not a symbolic length), `core::str::from_utf8`'s internal
-    /// validation loop isn't a simple bounded counter — CBMC's automatic
-    /// unwind-bound inference can't derive a tight stopping point from it
-    /// and defaults to unwinding thousands of times before giving up. An
-    /// explicit bound above the real max (6 bytes, so 1 iteration/byte at
-    /// most) fixes this; Kani reports an "unwinding assertion" failure if 8
-    /// ever turns out insufficient, rather than silently under-proving.
     #[kani::proof]
     #[kani::unwind(8)]
     fn prove_zc_string_from_bytes_matches_str_validation() {
         let data: [u8; 6] = kani::any();
         let is_valid_utf8 = core::str::from_utf8(&data).is_ok();
-        assert_eq!(ZcString::from_bytes(&data).is_ok(), is_valid_utf8);
+        assert!(ZcString::from_bytes(&data).is_ok() == is_valid_utf8);
     }
 
-    /// When `ZcString::from_bytes` does succeed, `as_str` must return
-    /// exactly those bytes reinterpreted as `str` — proving the
-    /// `from_utf8_unchecked` inside `as_str` is sound given the validation
-    /// `from_bytes` already performed, not just "doesn't panic". See
-    /// `prove_zc_string_from_bytes_matches_str_validation`'s doc comment
-    /// for why the explicit unwind bound is needed here too.
     #[kani::proof]
     #[kani::unwind(8)]
     fn prove_zc_string_as_str_matches_input_bytes() {
         let data: [u8; 6] = kani::any();
         if let Ok(s) = ZcString::from_bytes(&data) {
-            assert_eq!(s.as_str().as_bytes(), &data);
+            assert!(s.as_str().as_bytes() == &data);
         }
     }
 }

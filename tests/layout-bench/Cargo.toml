@@ -1,0 +1,18 @@
+[package]
+name = "layout_bench"
+version = "0.1.0"
+edition = "2021"
+description = "Instruction-count comparison of native and alignment-1 account fields on SBF"
+
+[lib]
+crate-type = ["cdylib"]
+
+[workspace]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = false
+overflow-checks = false

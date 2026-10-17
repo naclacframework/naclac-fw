@@ -167,6 +167,177 @@ pub(crate) fn classify_dynamic(ty: &Type) -> DynamicKind {
     }
 }
 
+/// An error spanned at each `ZcVec<T>`/`ZcString` field in `fields`, or `None`
+/// when there is none. Those types are views into the current instruction's
+/// bytes and own no bytes themselves, so no stored or emitted type (`owner`)
+/// can hold one; `advice` names what to write instead.
+pub(crate) fn zc_view_field_error<'a>(
+    fields: impl Iterator<Item = &'a syn::Field>,
+    owner: &str,
+    advice: &str,
+) -> Option<syn::Error> {
+    let mut combined: Option<syn::Error> = None;
+    for field in fields {
+        let view = match classify_dynamic(&field.ty) {
+            DynamicKind::ZcVec => "ZcVec<T>",
+            DynamicKind::ZcString => "ZcString",
+            _ => continue,
+        };
+        let error = syn::Error::new_spanned(
+            &field.ty,
+            format!(
+                "Naclac Error: '{view}' cannot be a field of {owner}. It is a view (pointer + \
+                 length) into the current instruction's bytes and owns no bytes of its own. {advice}"
+            ),
+        );
+        match &mut combined {
+            Some(existing) => existing.combine(error),
+            None => combined = Some(error),
+        }
+    }
+    combined
+}
+
+/// True if `ty` is, or contains anywhere in its generic arguments, arrays or
+/// references, a `FixedVec<T, N>` or `FixedString<N>`.
+fn contains_fixed_capacity(ty: &Type) -> bool {
+    match ty {
+        Type::Path(type_path) => type_path.path.segments.iter().any(|segment| {
+            segment.ident == "FixedVec"
+                || segment.ident == "FixedString"
+                || matches!(
+                    &segment.arguments,
+                    PathArguments::AngleBracketed(args) if args.args.iter().any(|arg| {
+                        matches!(arg, GenericArgument::Type(inner) if contains_fixed_capacity(inner))
+                    })
+                )
+        }),
+        Type::Array(array) => contains_fixed_capacity(&array.elem),
+        Type::Reference(reference) => contains_fixed_capacity(&reference.elem),
+        Type::Slice(slice) => contains_fixed_capacity(&slice.elem),
+        _ => false,
+    }
+}
+
+/// True if `ty` is, or contains anywhere in its generic arguments, arrays or
+/// references, a `Vec<T>` or `String`: a type whose serialized size has no
+/// bound unless the field says one.
+pub(crate) fn contains_unbounded_collection(ty: &Type) -> bool {
+    match ty {
+        Type::Path(type_path) => type_path.path.segments.iter().any(|segment| {
+            segment.ident == "Vec"
+                || segment.ident == "String"
+                || matches!(
+                    &segment.arguments,
+                    PathArguments::AngleBracketed(args) if args.args.iter().any(|arg| {
+                        matches!(arg, GenericArgument::Type(inner) if contains_unbounded_collection(inner))
+                    })
+                )
+        }),
+        Type::Array(array) => contains_unbounded_collection(&array.elem),
+        Type::Reference(reference) => contains_unbounded_collection(&reference.elem),
+        Type::Slice(slice) => contains_unbounded_collection(&slice.elem),
+        _ => false,
+    }
+}
+
+/// An error spanned at each field of `fields` whose type holds a
+/// `FixedVec<T, N>` or `FixedString<N>`, or `None` when there is none. A
+/// client lays such a field out from the capacity recorded for the owning
+/// account, defined struct or instruction; `owner` is a place that has no such
+/// record, and `advice` names what to write instead.
+pub(crate) fn fixed_capacity_field_error<'a>(
+    fields: impl Iterator<Item = &'a syn::Field>,
+    owner: &str,
+    advice: &str,
+) -> Option<syn::Error> {
+    let mut combined: Option<syn::Error> = None;
+    for field in fields {
+        if !contains_fixed_capacity(&field.ty) {
+            continue;
+        }
+        let error = syn::Error::new_spanned(
+            &field.ty,
+            format!(
+                "Naclac Error: 'FixedVec'/'FixedString' cannot be a field of {owner}. Generated \
+                 clients know a fixed-capacity field's capacity only for account, defined struct \
+                 and instruction argument fields. {advice}"
+            ),
+        );
+        match &mut combined {
+            Some(existing) => existing.combine(error),
+            None => combined = Some(error),
+        }
+    }
+    combined
+}
+
+/// Gives the struct behind `input` a lifetime parameter and writes it into every
+/// direct `ZcVec<T>`/`ZcString` field, since Rust requires a struct field to
+/// spell out the lifetime of a borrowing type. Returns that lifetime, or
+/// `None` when no field needs one, in which case `input` is left untouched.
+/// A lifetime the struct already declares is reused, and a field that already
+/// names a lifetime keeps it.
+pub(crate) fn thread_view_lifetime(input: &mut syn::DeriveInput) -> Option<syn::Lifetime> {
+    let syn::Data::Struct(data) = &mut input.data else {
+        return None;
+    };
+    let syn::Fields::Named(fields) = &mut data.fields else {
+        return None;
+    };
+    let is_view = |ty: &Type| {
+        matches!(
+            classify_dynamic(ty),
+            DynamicKind::ZcVec | DynamicKind::ZcString
+        )
+    };
+    if !fields.named.iter().any(|f| is_view(&f.ty)) {
+        return None;
+    }
+
+    let lifetime = match input.generics.lifetimes().next() {
+        Some(param) => param.lifetime.clone(),
+        None => {
+            let lifetime = syn::Lifetime::new("'a", proc_macro2::Span::call_site());
+            input.generics.params.insert(
+                0,
+                syn::GenericParam::Lifetime(syn::LifetimeParam::new(lifetime.clone())),
+            );
+            lifetime
+        }
+    };
+
+    for field in fields.named.iter_mut() {
+        let Type::Path(type_path) = &mut field.ty else {
+            continue;
+        };
+        let Some(segment) = type_path.path.segments.last_mut() else {
+            continue;
+        };
+        let is_string = segment.ident == "ZcString";
+        if !is_string && segment.ident != "ZcVec" {
+            continue;
+        }
+        if matches!(segment.arguments, PathArguments::None) {
+            if is_string {
+                segment.arguments = PathArguments::AngleBracketed(syn::parse_quote!(<#lifetime>));
+            }
+            continue;
+        }
+        if let PathArguments::AngleBracketed(args) = &mut segment.arguments {
+            if !args
+                .args
+                .iter()
+                .any(|a| matches!(a, GenericArgument::Lifetime(_)))
+            {
+                args.args
+                    .insert(0, GenericArgument::Lifetime(lifetime.clone()));
+            }
+        }
+    }
+    Some(lifetime)
+}
+
 /// True if `ty`'s base ident is one of naclac's account-wrapper names
 /// (`Account<T>`, `InterfaceAccount<T>` — see `core/src/wrappers/accounts/`).
 /// Both cfg-route internally between the Borsh backend and the zero-copy

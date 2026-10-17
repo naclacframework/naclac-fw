@@ -50,6 +50,7 @@ jobs:
           - error-codes
           - event-cpi
           - events
+          - fixed-capacity
           - interface
           - metadata
           - optional-accounts

@@ -8,7 +8,7 @@ export const CHECK_FREEZE_DELEGATE_DISCRIMINATOR = new Uint8Array([227, 66, 85, 
 
 /** Instruction arguments for `checkFreezeDelegate`. */
 export interface CheckFreezeDelegateArgs {
-  expectedFrozen: naclac.Bool;
+  expectedFrozen: boolean;
 }
 
 /** Accounts for the `checkFreezeDelegate` instruction. */

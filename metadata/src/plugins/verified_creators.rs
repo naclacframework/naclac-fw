@@ -40,6 +40,11 @@ pub struct VerifiedCreatorSignature {
     pub verified: Bool,
 }
 
+const _: () = {
+    assert!(core::mem::size_of::<VerifiedCreatorSignature>() == 33);
+    assert!(core::mem::align_of::<VerifiedCreatorSignature>() == 1);
+};
+
 /// Maximum `signatures` entries `attach_verified_creators_signed`/
 /// `attach_collection_verified_creators_signed` accept on `pinocchio` — no
 /// real protocol maximum exists (verified: `mpl-core`'s processor enforces
@@ -215,7 +220,7 @@ fn read_verified_creators_owned(
 #[cfg(feature = "pinocchio")]
 pub fn fetch_asset_verified_creators(
     info: &AccountInfo,
-) -> Result<Option<ZcVec<VerifiedCreatorSignature>>> {
+) -> Result<Option<ZcVec<'_, VerifiedCreatorSignature>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -228,7 +233,7 @@ pub fn fetch_asset_verified_creators(
 #[cfg(feature = "pinocchio")]
 pub fn fetch_collection_verified_creators(
     info: &AccountInfo,
-) -> Result<Option<ZcVec<VerifiedCreatorSignature>>> {
+) -> Result<Option<ZcVec<'_, VerifiedCreatorSignature>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);
@@ -246,7 +251,7 @@ pub fn fetch_collection_verified_creators(
 pub fn read_verified_creators(
     data: &[u8],
     plugin_header_offset: usize,
-) -> Result<Option<ZcVec<VerifiedCreatorSignature>>> {
+) -> Result<Option<ZcVec<'_, VerifiedCreatorSignature>>> {
     let Some(offset) =
         find_plugin_offset(data, plugin_header_offset, plugin_type::VERIFIED_CREATORS)?
     else {

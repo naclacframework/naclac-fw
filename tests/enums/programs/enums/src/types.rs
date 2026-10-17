@@ -79,7 +79,7 @@ pub struct StateChanged {
 }
 
 #[event]
-pub struct PaddedEvent {
+pub struct MixedEvent {
     pub tag: u8,
     pub amount: u64,
     pub color: ZcEnum<Color>,

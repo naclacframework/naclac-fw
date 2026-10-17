@@ -50,13 +50,13 @@ const UPDATE_APP_DATA_IX_LEN: usize = 1 + APP_DATA_KEY_ENCODED_LEN + 3;
 /// no heap allocation, no artificial size cap, since it reflects however
 /// many bytes are actually stored on-chain.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct AppDataInfo {
+pub struct AppDataInfo<#[cfg(feature = "pinocchio")] 'a> {
     pub data_authority: PluginAuthorityArg,
     pub schema: ExternalPluginAdapterSchemaArg,
     #[cfg(not(feature = "pinocchio"))]
     pub data: crate::prelude::Vec<u8>,
     #[cfg(feature = "pinocchio")]
-    pub data: ZcVec<u8>,
+    pub data: ZcVec<'a, u8>,
 }
 
 /// Attaches an `AppData` adapter to an `Asset` via `AddExternalPluginAdapterV1`.
@@ -368,7 +368,7 @@ fn read_app_data(
 pub fn fetch_asset_app_data(
     info: &AccountInfo,
     data_authority: PluginAuthorityArg,
-) -> Result<Option<AppDataInfo>> {
+) -> Result<Option<AppDataInfo<'_>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -422,7 +422,7 @@ pub fn fetch_asset_app_data(
 pub fn fetch_collection_app_data(
     info: &AccountInfo,
     data_authority: PluginAuthorityArg,
-) -> Result<Option<AppDataInfo>> {
+) -> Result<Option<AppDataInfo<'_>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);

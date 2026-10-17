@@ -51,103 +51,12 @@ impl AccountMeta {
     }
 }
 
-// `ZcVec`/`ZcString` are pure `core`/`bytemuck` types with no `no_std`-only
-// dependency, so they're safe to re-export offchain too, for code that needs
-// to inspect a zero-copy program's CPI-mode types directly.
+// The plain-data types of a zero-copy layout are defined once, in
+// `naclac-pod`, and used unchanged by programs and clients.
 pub use naclac_core::wrappers::{
-    ZcEnum, ZcEnumKind, ZcFieldWrite, ZcStorage, ZcString, ZcVec, ZcWrite,
+    decode_pod, encode_pod, Bool, FixedString, FixedVec, Opt, Unaligned, ZcCodec, ZcEnum,
+    ZcEnumKind, ZcField, ZcStorage, ZcString, ZcVec,
 };
-
-/// A binary-stable wrapper for `bool` — mirrors `naclac-core`'s own
-/// `Bool(pub u8)` exactly (independent definition, not re-exported, to avoid
-/// pulling every `naclac-core` feature/cfg surface into offchain code that
-/// only needs this one type).
-#[repr(transparent)]
-#[derive(
-    Debug,
-    Default,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    bytemuck::Pod,
-    bytemuck::Zeroable,
-)]
-pub struct Bool(pub u8);
-
-impl From<u8> for Bool {
-    fn from(b: u8) -> Self {
-        Self(b)
-    }
-}
-
-impl From<bool> for Bool {
-    fn from(b: bool) -> Self {
-        Self(if b { 1 } else { 0 })
-    }
-}
-
-impl From<Bool> for bool {
-    fn from(b: Bool) -> Self {
-        b.0 != 0
-    }
-}
-
-impl ZcWrite for Bool {
-    fn write_into(&self, out: &mut [u8]) {
-        out[0] = self.0;
-    }
-}
-
-/// Reads a value's own in-memory bytes without requiring `bytemuck::Pod`.
-///
-/// `Pod` (and `bytemuck::bytes_of`) is required for the *reverse* direction
-/// — interpreting arbitrary, possibly-invalid bytes as a value — which is
-/// why a data-carrying zero-copy `#[defined_type]` enum's generated client
-/// type deliberately gets only `CheckedBitPattern`, not `Pod`. Going the
-/// other way — reading the bytes of a value that already exists and is
-/// therefore already valid — carries no such risk and is sound for any
-/// `Copy` type regardless of whether it's `Pod`, since no new value is ever
-/// constructed from unchecked bytes here. Used by generated instruction-arg
-/// encoding for exactly that case (`client-gen/src/rust/mod.rs`'s
-/// `write_field_bytes`).
-#[inline(always)]
-pub fn bytes_of_checked_bit_pattern<T: Copy>(value: &T) -> &[u8] {
-    // SAFETY: see the doc comment above — `value` is already a valid `T`,
-    // so reading its own bytes never constructs a `T` from unchecked bytes.
-    unsafe {
-        core::slice::from_raw_parts((value as *const T).cast::<u8>(), core::mem::size_of::<T>())
-    }
-}
-
-#[cfg(kani)]
-mod kani_proofs {
-    use super::*;
-
-    /// Proves `bytes_of_checked_bit_pattern` never panics and returns
-    /// exactly `size_of::<T>()` bytes matching `value`'s own representation
-    /// — for two representative `Copy` types (a small primitive and a
-    /// larger fixed-size struct), since the function's soundness doesn't
-    /// depend on which `T` is used, only that `T: Copy`.
-    #[kani::proof]
-    fn prove_bytes_of_checked_bit_pattern_u32_never_panics() {
-        let value: u32 = kani::any();
-        let bytes = bytes_of_checked_bit_pattern(&value);
-        assert_eq!(bytes.len(), core::mem::size_of::<u32>());
-        assert_eq!(bytes, &value.to_ne_bytes());
-    }
-
-    #[kani::proof]
-    fn prove_bytes_of_checked_bit_pattern_array_never_panics() {
-        let value: [u8; 32] = kani::any();
-        let bytes = bytes_of_checked_bit_pattern(&value);
-        assert_eq!(bytes.len(), 32);
-        assert_eq!(bytes, &value[..]);
-    }
-}
 
 // Standard Solana SDK Re-exports
 pub use {borsh, bytemuck, wincode};

@@ -186,9 +186,6 @@ fn generate_fixed_event(
         }
         events_content.push_str("}\n\n");
 
-        // Zero-copy: the on-chain `repr(C)` wire layout. Padding fields come
-        // from `pod_struct_checks`, computed by the compiler from the real
-        // field types, exactly as for components; the IDL carries none.
         let zero_copy_field_tys: Vec<String> = event
             .fields
             .iter()
@@ -211,15 +208,19 @@ fn generate_fixed_event(
         });
         let struct_ident: syn::Ident =
             syn::parse_str(&struct_name).expect("event: struct name must be a valid identifier");
-        let (padded_fields, extra_items) = crate::rust::pod_codegen::pod_struct_checks::generate(
+        let core: syn::Path =
+            syn::parse_str(sdk_core).expect("event: sdk_core alias must be a valid path");
+        let layout_checks = naclac_syn::zc_codegen::struct_checks::generate(
             &struct_ident,
             &parsed_struct.fields,
-            sdk_core,
+            &crate::rust::zero_copy_gate(for_cpi),
+            &core,
         );
+        let struct_fields = &parsed_struct.fields;
         let struct_file: syn::File = syn::parse2(quote::quote! {
             #[derive(Copy, Clone, Debug)]
-            #[repr(C)]
-            pub struct #struct_ident #padded_fields
+            #[repr(C, packed)]
+            pub struct #struct_ident #struct_fields
         })
         .expect("event: generated struct item must parse as a syn::File");
         events_content.push_str(cfg);
@@ -228,30 +229,9 @@ fn generate_fixed_event(
         events_content.push_str(&prettyplease::unparse(&struct_file));
         events_content.push('\n');
 
-        // `#[cfg]` gates only the item directly below it, so each of the
-        // check items needs both gates attached individually.
-        let mut extra_file: syn::File = syn::parse2(extra_items)
-            .expect("event: pod_struct_checks::generate output must parse as a syn::File");
-        let feature_cfg: syn::Attribute = if for_cpi {
-            syn::parse_quote!(#[cfg(feature = "cpi")])
-        } else {
-            syn::parse_quote!(#[cfg(feature = "offchain")])
-        };
-        let not_serde_cfg: syn::Attribute =
-            syn::parse_quote!(#[cfg(not(any(feature = "borsh", feature = "wincode")))]);
-        for item in &mut extra_file.items {
-            let attrs = match item {
-                syn::Item::Const(c) => &mut c.attrs,
-                syn::Item::Fn(f) => &mut f.attrs,
-                other => panic!(
-                    "event: pod_struct_checks::generate produced an unexpected item kind: {:?}",
-                    other
-                ),
-            };
-            attrs.insert(0, not_serde_cfg.clone());
-            attrs.insert(0, feature_cfg.clone());
-        }
-        events_content.push_str(&prettyplease::unparse(&extra_file));
+        let layout_file: syn::File = syn::parse2(layout_checks)
+            .expect("event: struct_checks::generate output must parse as a syn::File");
+        events_content.push_str(&prettyplease::unparse(&layout_file));
         events_content.push('\n');
 
         events_content.push_str(cfg);
@@ -274,12 +254,8 @@ fn generate_fixed_event(
 /// cast it gets a generated [`NaclacAllocEvent::decode`] that walks the
 /// buffer field-by-field in exactly the order `expand_alloc`'s `emit()`
 /// wrote them: u32 LE length prefix + bytes for `Vec`/`String`, 1-byte tag
-/// (+ bytes when present) for `Option`, a raw read otherwise. Every fixed
-/// read uses `checked::try_pod_read_unaligned` (so a zero-copy enum with an
-/// invalid tag decodes to `None`), not `try_from_bytes`: this is a tight
-/// byte-packed concat, so most field offsets aren't multiples of the
-/// field's own alignment (e.g. a `u64` sitting right after a 4-byte length
-/// prefix) — `try_from_bytes`'s alignment-checked cast would fail there.
+/// (+ bytes when present) for `Option`, and the type's `ZcCodec` stored form
+/// otherwise, so an invalid enum tag decodes to `None`.
 fn generate_alloc_event(
     events_content: &mut String,
     event: &IdlEventDef,
@@ -374,13 +350,13 @@ fn generate_alloc_event(
                 ));
                 events_content.push_str("        for _ in 0..__len {\n");
                 events_content.push_str(&format!(
-                    "            let __sz = core::mem::size_of::<{}>();\n",
+                    "            let __sz = <{} as crate::sdk_core_offchain::ZcCodec>::SIZE;\n",
                     inner_ty
                 ));
                 events_content
                     .push_str("            if bytes.len() < __offset + __sz { return None; }\n");
                 events_content.push_str(&format!(
-                    "            {}.push(crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<{}>(&bytes[__offset..__offset + __sz]).ok()?);\n",
+                    "            {}.push(<{} as crate::sdk_core_offchain::ZcCodec>::decode(&bytes[__offset..__offset + __sz])?);\n",
                     f_snake, inner_ty
                 ));
                 events_content.push_str("            __offset += __sz;\n");
@@ -393,13 +369,13 @@ fn generate_alloc_event(
                 events_content.push_str("        __offset += 1;\n");
                 events_content.push_str(&format!("        let {} = if __tag == 1 {{\n", f_snake));
                 events_content.push_str(&format!(
-                    "            let __sz = core::mem::size_of::<{}>();\n",
+                    "            let __sz = <{} as crate::sdk_core_offchain::ZcCodec>::SIZE;\n",
                     inner_ty
                 ));
                 events_content
                     .push_str("            if bytes.len() < __offset + __sz { return None; }\n");
                 events_content.push_str(&format!(
-                    "            let __v = crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<{}>(&bytes[__offset..__offset + __sz]).ok()?;\n",
+                    "            let __v = <{} as crate::sdk_core_offchain::ZcCodec>::decode(&bytes[__offset..__offset + __sz])?;\n",
                     inner_ty
                 ));
                 events_content.push_str("            __offset += __sz;\n");
@@ -411,13 +387,13 @@ fn generate_alloc_event(
             FieldKind::Fixed => {
                 let f_ty = map_type_to_rust(&field.ty, is_zero_copy);
                 events_content.push_str(&format!(
-                    "        let __sz = core::mem::size_of::<{}>();\n",
+                    "        let __sz = <{} as crate::sdk_core_offchain::ZcCodec>::SIZE;\n",
                     f_ty
                 ));
                 events_content
                     .push_str("        if bytes.len() < __offset + __sz { return None; }\n");
                 events_content.push_str(&format!(
-                    "        let {} = crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<{}>(&bytes[__offset..__offset + __sz]).ok()?;\n",
+                    "        let {} = <{} as crate::sdk_core_offchain::ZcCodec>::decode(&bytes[__offset..__offset + __sz])?;\n",
                     f_snake, f_ty
                 ));
                 events_content.push_str("        __offset += __sz;\n");

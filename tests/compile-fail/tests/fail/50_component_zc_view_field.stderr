@@ -1,0 +1,5 @@
+error: Naclac Error: 'ZcString' cannot be a field of a #[component]. It is a view (pointer + length) into the current instruction's bytes and owns no bytes of its own. Persisted account data is plain bytes: use 'FixedVec<T, N>', 'FixedString<N>' or a fixed-size array (e.g. '[u8; 64]') instead.
+ --> tests/fail/50_component_zc_view_field.rs:6:15
+  |
+6 |     pub name: ZcString,
+  |               ^^^^^^^^

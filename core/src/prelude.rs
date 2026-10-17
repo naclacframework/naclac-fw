@@ -29,11 +29,12 @@ pub use crate::error::NaclacError;
 
 // These traits/types exist in wrappers for BOTH Solana and Pinocchio backends
 pub use crate::wrappers::{
-    event_bytes_of, event_field_default, event_slice_bytes, AsRefByteSlice, AssociatedToken,
-    CpiHandle, CpiHandleMut, Discriminator, Id, Ids, Interface, NaclacAccount, NaclacZeroCopy,
-    Owner, Program, Signer, System, ToAccountInfo, ToAddress, ToCpiHandle, ToCpiHandleMut, Token,
-    Token2022, TokenInterface, ValidateInterfaceLayout, ZcEnum, ZcEnumKind, ZcEventDefault,
-    ZcEventField, ZcField, ZcFieldWrite, ZcStorage, ZcString, ZcVec, ZcVecIter, ZcWrite,
+    decode_pod, encode_pod, event_bytes_of, event_field_default, event_slice_bytes, AsRefByteSlice,
+    AssociatedToken, Bool, BoolField, CpiHandle, CpiHandleMut, Discriminator, FixedString,
+    FixedVec, FixedVecIter, Id, Ids, Interface, NaclacAccount, NaclacZeroCopy, Opt, Owner,
+    PodError, Program, Signer, System, ToAccountInfo, ToAddress, ToCpiHandle, ToCpiHandleMut,
+    Token, Token2022, TokenInterface, Unaligned, ValidateInterfaceLayout, ZcCodec, ZcEnum,
+    ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec, ZcVecIter,
 };
 
 // `Account<T>`/`InterfaceAccount<T>` don't exist at all when `borsh` and
@@ -488,6 +489,25 @@ unsafe impl bytemuck::Pod for Address {}
 unsafe impl bytemuck::ZeroableInOption for Address {}
 #[cfg(feature = "pinocchio")]
 unsafe impl bytemuck::PodInOption for Address {}
+#[cfg(feature = "pinocchio")]
+const _: () = assert!(core::mem::align_of::<Address>() == 1);
+// SAFETY: asserted just above.
+#[cfg(feature = "pinocchio")]
+unsafe impl naclac_pod::Unaligned for Address {}
+#[cfg(feature = "pinocchio")]
+impl naclac_pod::ZcCodec for Address {
+    const SIZE: usize = 32;
+
+    fn encode(&self, out: &mut [u8]) {
+        if let Some(target) = out.get_mut(..32) {
+            target.copy_from_slice(&self.0);
+        }
+    }
+
+    fn decode(bytes: &[u8]) -> Option<Self> {
+        Some(Self(bytes.get(..32)?.try_into().ok()?))
+    }
+}
 
 /// Real Solana protocol limit on the number of seeds a PDA derivation may
 /// use (`solana_address::MAX_SEEDS`) — mirrored here, not invented,
@@ -893,79 +913,6 @@ pub trait NaclacPod: Sized {
     }
 }
 
-/// Reads a value's own in-memory bytes without requiring `bytemuck::Pod`.
-///
-/// `Pod` (and `bytemuck::bytes_of`) is required for the *reverse* direction
-/// — interpreting arbitrary, possibly-invalid bytes as a value — which is
-/// why a data-carrying zero-copy `#[defined_type]` enum deliberately gets
-/// only `CheckedBitPattern`, not `Pod` (some byte patterns, like an unknown
-/// discriminant, aren't valid values of the type). Going the other way —
-/// reading the bytes of a value that already exists and is therefore
-/// already valid — carries no such risk and is sound for any `Copy` type
-/// regardless of whether it's `Pod`, since no new value is ever constructed
-/// from unchecked bytes here.
-#[inline(always)]
-pub fn bytes_of_checked_bit_pattern<T: Copy>(value: &T) -> &[u8] {
-    // SAFETY: `value` is a `&T` to an already-valid, already-constructed
-    // `T`, so viewing its own `size_of::<T>()` bytes as a `&[u8]` reads
-    // memory that unquestionably belongs to `value` and is already
-    // initialized — it doesn't construct a `T` from these bytes, only the
-    // reverse (an established `T` yielding its own bytes), so `T: Pod` is
-    // not required.
-    unsafe {
-        core::slice::from_raw_parts((value as *const T).cast::<u8>(), core::mem::size_of::<T>())
-    }
-}
-
-/// The padding gap needed after `offset` bytes to reach the next
-/// `align`-aligned boundary — `0` if already aligned. Real callers always
-/// pass a real `core::mem::align_of::<T>()` (a power of two, always `>= 1`
-/// for any real Rust type), never an arbitrary `align`; this proves the
-/// function is safe and correct within that actual contract, not merely
-/// assumed. Previously duplicated as identical generated tokens in two
-/// places in `macros/src/pod_struct_checks.rs` (the padding
-/// computation for every zero-copy `#[component]`/`defined_type` struct's
-/// generated layout) — extracted here so it's provable once instead of
-/// trusted identical twice over (see docs/plan/kani-audit.md).
-pub const fn compute_padding_gap(offset: usize, align: usize) -> usize {
-    let rem = offset % align;
-    if rem == 0 {
-        0
-    } else {
-        align - rem
-    }
-}
-
-#[cfg(kani)]
-mod padding_kani_proofs {
-    use super::*;
-
-    /// Proves `compute_padding_gap` never panics for any `align >= 1` (the
-    /// real contract — `align_of::<T>()` is never 0 for a real type) and
-    /// that the result is actually correct: `offset + gap` lands exactly on
-    /// an `align`-aligned boundary, and `gap` is the smallest such value
-    /// (`< align`) — not just "doesn't panic", since a wrong gap here would
-    /// silently corrupt the generated memory layout of every zero-copy
-    /// `#[component]`/`defined_type` struct in the framework.
-    #[kani::proof]
-    fn prove_compute_padding_gap_within_contract_is_correct() {
-        let offset: usize = kani::any();
-        let align: usize = kani::any();
-        kani::assume(align >= 1);
-        kani::assume(align <= 64); // real alignments are small powers of two
-
-        let gap = compute_padding_gap(offset, align);
-        assert!(gap < align, "gap must always be smaller than align");
-        if let Some(padded) = offset.checked_add(gap) {
-            assert_eq!(
-                padded % align,
-                0,
-                "offset + gap must land on an aligned boundary"
-            );
-        }
-    }
-}
-
 #[macro_export]
 macro_rules! impl_naclac_pod {
     ($($t:ty),*) => {
@@ -1040,13 +987,13 @@ impl<const N: usize> NaclacPod for [u8; N] {
 /// read via a single raw `size_of`-based byte cast). `program.rs`'s
 /// instruction dispatch calls this uniformly for every non-collection
 /// instruction argument, fixed- or dynamic-size alike.
-pub trait NaclacArgs: Sized {
-    fn naclac_deserialize(data: &[u8], offset: &mut usize) -> NaclacResult<Self>;
+pub trait NaclacArgs<'a>: Sized {
+    fn naclac_deserialize(data: &'a [u8], offset: &mut usize) -> NaclacResult<Self>;
 }
 
-impl<T: NaclacPod> NaclacArgs for T {
+impl<'a, T: NaclacPod> NaclacArgs<'a> for T {
     #[inline(always)]
-    fn naclac_deserialize(data: &[u8], offset: &mut usize) -> NaclacResult<Self> {
+    fn naclac_deserialize(data: &'a [u8], offset: &mut usize) -> NaclacResult<Self> {
         let sz = T::naclac_size();
         if data.len() < *offset + sz {
             return Err(NaclacError::InvalidInstructionData.err(0));
@@ -1443,11 +1390,23 @@ macro_rules! msg {
     }};
 }
 
-/// No-op msg! macro for non-pinocchio, non-debug builds to save space
+/// `msg!` for non-pinocchio, non-debug builds: logs nothing, and compiles to
+/// nothing, but still type-checks its arguments exactly as the logging version
+/// does, so an argument that only the logging build rejects (a reference to a
+/// packed field, say) fails in every build and not only under `debug-mode`.
 #[cfg(all(not(feature = "pinocchio"), not(feature = "debug-mode")))]
 #[macro_export]
 macro_rules! msg {
-    ($($arg:tt)*) => {{}};
+    ($msg:expr) => {{
+        if false {
+            let _: &str = $msg;
+        }
+    }};
+    ($($arg:tt)*) => {{
+        if false {
+            let _ = $crate::prelude::format!($($arg)*);
+        }
+    }};
 }
 
 #[cfg(feature = "pinocchio")]
@@ -1515,83 +1474,4 @@ macro_rules! address {
             __addr
         }
     }};
-}
-
-// --- Zero-Copy Helper Types ---
-
-/// A zero-copy compatible boolean wrapper.
-#[repr(transparent)]
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    bytemuck::Pod,
-    bytemuck::Zeroable,
-)]
-pub struct Bool(pub u8);
-
-impl From<u8> for Bool {
-    fn from(b: u8) -> Self {
-        Self(b)
-    }
-}
-
-impl From<bool> for Bool {
-    fn from(b: bool) -> Self {
-        Self(if b { 1 } else { 0 })
-    }
-}
-
-impl From<Bool> for bool {
-    fn from(b: Bool) -> Self {
-        b.0 != 0
-    }
-}
-
-/// A zero-copy compatible Option wrapper.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct Opt<T: bytemuck::Pod> {
-    pub value: T,
-    pub has_value: u8,
-    pub _padding: [u8; 7], // Ensure alignment for most types (u64, etc)
-}
-
-unsafe impl<T: bytemuck::Pod> bytemuck::Zeroable for Opt<T> {}
-unsafe impl<T: bytemuck::Pod> bytemuck::Pod for Opt<T> {}
-
-impl<T: bytemuck::Pod> Opt<T> {
-    pub fn new(value: T) -> Self {
-        Self {
-            value,
-            has_value: 1,
-            _padding: [0; 7],
-        }
-    }
-    pub fn none(default: T) -> Self {
-        Self {
-            value: default,
-            has_value: 0,
-            _padding: [0; 7],
-        }
-    }
-}
-
-impl<T: bytemuck::Pod> From<Option<T>> for Opt<T> {
-    fn from(opt: Option<T>) -> Self {
-        match opt {
-            Some(v) => Self::new(v),
-            None => Self {
-                value: unsafe { core::mem::zeroed() },
-                has_value: 0,
-                _padding: [0; 7],
-            },
-        }
-    }
 }

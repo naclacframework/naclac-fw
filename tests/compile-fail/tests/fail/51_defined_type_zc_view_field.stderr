@@ -1,0 +1,5 @@
+error: Naclac Error: 'ZcVec<T>' cannot be a field of a #[defined_type]. It is a view (pointer + length) into the current instruction's bytes and owns no bytes of its own. A #[defined_type] is a fixed-size value stored in accounts and events: use a fixed-size array (e.g. '[u8; 64]'). To group instruction arguments that need ZcVec/ZcString, use #[instruction_args].
+ --> tests/fail/51_defined_type_zc_view_field.rs:6:15
+  |
+6 |     pub tags: ZcVec<u8>,
+  |               ^^^^^^^^^

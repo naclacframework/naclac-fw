@@ -7,23 +7,21 @@ export interface Bool {
 }
 
 /**
- * A binary-stable wrapper for Option<Pubkey>.
- * Layout: [32 bytes pubkey, 1 byte hasValue, 7 bytes padding]
+ * A binary-stable wrapper for Opt<Address>.
+ * Layout: [1 byte tag (1 when set), 32 bytes address]
  */
 export interface OptPubkey {
+  tag: number;
   value: string;
-  hasValue: number;
-  padding: number[] | Uint8Array;
 }
 
 /**
- * A binary-stable wrapper for Option<u64>.
- * Layout: [8 bytes value, 1 byte hasValue, 7 bytes padding]
+ * A binary-stable wrapper for Opt<u64>.
+ * Layout: [1 byte tag (1 when set), 8 bytes value]
  */
 export interface OptU64 {
+  tag: number;
   value: bigint | number;
-  hasValue: number;
-  padding: number[] | Uint8Array;
 }
 
 /**

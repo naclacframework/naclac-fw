@@ -7,7 +7,7 @@ use enums_zc_client::{
     get_state_pda,
     instructions::*,
     types::{
-        Action, Color, DynArgs, ListArgs, ModeArgs, PaddedEvent, StateChanged, StateLog,
+        Action, Color, DynArgs, ListArgs, ModeArgs, MixedEvent, StateChanged, StateLog,
         PROGRAM_ID,
     },
     State, STATE_DISCRIMINATOR,
@@ -74,7 +74,7 @@ fn init_writes_the_chosen_variants_and_zero_tags_elsewhere() {
     for slot in s.history {
         assert!(matches!(slot.get(), Ok(Color::Red)));
     }
-    assert_eq!(s.maybe_color.has_value, 0);
+    assert!(s.maybe_color.is_none());
     assert!(matches!(s.limits.mode.get(), Ok(Color::Red)));
     assert_eq!(s.counter, 0);
 }
@@ -360,25 +360,25 @@ fn an_alloc_event_carrying_enums_decodes_to_the_emitted_values() {
 }
 
 #[test]
-fn an_event_with_a_gap_between_fields_is_padded_on_the_wire_and_decodes() {
+fn a_fixed_event_of_mixed_field_sizes_is_packed_on_the_wire_and_decodes() {
     let (provider, state) = setup();
     set_color(&provider, state, Color::Blue);
 
-    let meta = build_emit_padded_event(
+    let meta = build_emit_mixed_event(
         &provider,
         PROGRAM_ID,
-        EmitPaddedEventAccounts {
+        EmitMixedEventAccounts {
             signer: provider.payer.address(),
             state,
         },
     )
     .send_and_confirm()
-    .expect("emit_padded_event should succeed");
+    .expect("emit_mixed_event should succeed");
 
     let events = meta
-        .parse_events_zero_copy::<PaddedEvent>()
+        .parse_events_zero_copy::<MixedEvent>()
         .expect("events should parse");
-    assert_eq!(events.len(), 1, "exactly one PaddedEvent expected");
+    assert_eq!(events.len(), 1, "exactly one MixedEvent expected");
     assert_eq!(events[0].tag, 9);
     assert_eq!(events[0].amount, 123_456_789);
     assert!(matches!(events[0].color.get(), Ok(Color::Blue)));

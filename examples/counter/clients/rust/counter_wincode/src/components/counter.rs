@@ -20,58 +20,29 @@ pub struct Counter {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct Counter {
     pub count: u64,
-    pub __naclac_padding_0: [u8; __Counter_GAP_0],
     pub authority: crate::sdk_core_offchain::Address,
-    pub __naclac_padding_1: [u8; __Counter_GAP_1],
 }
 
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __Counter_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<u64>();
-    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __Counter_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<u64>() + __Counter_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < Counter > () == (::core::mem::size_of:: < u64 > () +
-        __Counter_GAP_0 + ::core::mem::size_of:: < crate ::sdk_core_offchain::Address >
-        () + __Counter_GAP_1),
-        "defined_type/#[component]: `Counter`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::core::mem::size_of:: < Counter > () == (0usize + ::core::mem::size_of:: < u64 >
+        () + ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > ()),
+        "defined_type/#[component]: `Counter` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < Counter > () == 1,
+        "defined_type/#[component]: `Counter` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_offchain::ZcField>() {}
     assert_impl::<u64>();
     assert_impl::<crate::sdk_core_offchain::Address>();
 };
@@ -104,58 +75,29 @@ pub struct CounterCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct CounterCpi {
     pub count: u64,
-    pub __naclac_padding_0: [u8; __CounterCpi_GAP_0],
     pub authority: crate::sdk_core_cpi::Address,
-    pub __naclac_padding_1: [u8; __CounterCpi_GAP_1],
 }
 
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __CounterCpi_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<u64>();
-    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __CounterCpi_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<u64>() + __CounterCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < CounterCpi > () == (::core::mem::size_of:: < u64 > () +
-        __CounterCpi_GAP_0 + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > ()
-        + __CounterCpi_GAP_1),
-        "defined_type/#[component]: `CounterCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::core::mem::size_of:: < CounterCpi > () == (0usize + ::core::mem::size_of:: <
+        u64 > () + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > ()),
+        "defined_type/#[component]: `CounterCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < CounterCpi > () == 1,
+        "defined_type/#[component]: `CounterCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_cpi::ZcField>() {}
     assert_impl::<u64>();
     assert_impl::<crate::sdk_core_cpi::Address>();
 };

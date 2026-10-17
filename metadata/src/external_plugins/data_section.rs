@@ -21,13 +21,13 @@ use crate::prelude::*;
 /// `data` is a zero-copy `ZcVec<u8>` view into the account's own live bytes
 /// — see `AppDataInfo`'s doc comment for why.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DataSectionInfo {
+pub struct DataSectionInfo<#[cfg(feature = "pinocchio")] 'a> {
     pub parent_key: LinkedDataKeyArg,
     pub schema: ExternalPluginAdapterSchemaArg,
     #[cfg(not(feature = "pinocchio"))]
     pub data: crate::prelude::Vec<u8>,
     #[cfg(feature = "pinocchio")]
-    pub data: ZcVec<u8>,
+    pub data: ZcVec<'a, u8>,
 }
 
 /// Reads an `Asset`'s `DataSection` adapter whose `parent_key` matches
@@ -132,7 +132,7 @@ fn read_data_section(
 pub fn fetch_asset_data_section(
     info: &AccountInfo,
     target_parent_key: LinkedDataKeyArg,
-) -> Result<Option<DataSectionInfo>> {
+) -> Result<Option<DataSectionInfo<'_>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -186,7 +186,7 @@ pub fn fetch_asset_data_section(
 pub fn fetch_collection_data_section(
     info: &AccountInfo,
     target_parent_key: LinkedDataKeyArg,
-) -> Result<Option<DataSectionInfo>> {
+) -> Result<Option<DataSectionInfo<'_>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);

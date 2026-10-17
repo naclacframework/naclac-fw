@@ -8,6 +8,7 @@ pub mod opt_type;
 pub mod parser;
 pub mod pda;
 pub mod types;
+pub mod zc_codegen;
 
 use {std::path::Path, types::NaclacProgram};
 

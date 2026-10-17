@@ -16,6 +16,7 @@ solana-get-sysvar = { workspace = true, optional = true }
 solana-sha256-hasher = { workspace = true, optional = true }
 solana-instruction = { workspace = true, optional = true }
 bytemuck = { workspace = true, features = ["derive"] }
+naclac-pod = { workspace = true, features = ["alloc"] }
 naclac-macros = { workspace = true }
 borsh = { workspace = true, features = ["derive"], optional = true }
 wincode = { version = "0.6.1", default-features = false, features = ["derive", "alloc"], optional = true }
@@ -32,10 +33,11 @@ solana-define-syscall = { workspace = true, optional = true }
 
 [features]
 default = ["solana"]
-solana = ["dep:solana-account-info", "dep:solana-msg", "dep:solana-program-error", "dep:solana-rent", "dep:solana-clock", "dep:solana-get-sysvar", "dep:solana-sha256-hasher", "dep:solana-instruction", "dep:solana-system-interface", "dep:solana-address", "solana-address?/bytemuck", "dep:solana-define-syscall"]
+solana = ["naclac-pod/solana", "dep:solana-account-info", "dep:solana-msg", "dep:solana-program-error", "dep:solana-rent", "dep:solana-clock", "dep:solana-get-sysvar", "dep:solana-sha256-hasher", "dep:solana-instruction", "dep:solana-system-interface", "dep:solana-address", "solana-address?/bytemuck", "dep:solana-define-syscall"]
 borsh = ["dep:borsh", "naclac-macros/borsh", "solana-address?/borsh"]
 wincode = ["dep:wincode", "naclac-macros/wincode", "solana-address?/wincode"]
 pinocchio = [
+    "naclac-pod/pinocchio",
     "dep:pinocchio",
     "dep:pinocchio-system",
     "dep:pinocchio-log",

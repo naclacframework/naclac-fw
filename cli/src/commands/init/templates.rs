@@ -8,7 +8,7 @@ use {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProgramMode {
     Pinocchio,
-    ZeroCopy,
+    Bytemuck,
     Wincode,
     Borsh,
 }
@@ -31,7 +31,7 @@ pub fn prompt_mode_selection() -> ProgramMode {
     }
 
     let serialization_selections = &[
-        "Zero-Copy (bytemuck / raw C-layout memory mapping, lowest compute units)",
+        "Bytemuck (zero-copy C-layout memory mapping, lowest compute units)",
         "Wincode (hyper-fast zero-allocation binary serialization)",
         "Borsh (standard Solana ecosystem binary serialization)",
     ];
@@ -44,19 +44,19 @@ pub fn prompt_mode_selection() -> ProgramMode {
         .unwrap_or(0);
 
     match serialization {
-        0 => ProgramMode::ZeroCopy,
+        0 => ProgramMode::Bytemuck,
         1 => ProgramMode::Wincode,
         2 => ProgramMode::Borsh,
-        _ => ProgramMode::ZeroCopy,
+        _ => ProgramMode::Bytemuck,
     }
 }
 
 pub fn parse_mode(flag: &str) -> Option<ProgramMode> {
     match flag.to_lowercase().as_str() {
         "pinocchio" => Some(ProgramMode::Pinocchio),
-        "zero-copy" | "zerocopy" | "zc" | "optimized" => Some(ProgramMode::ZeroCopy),
+        "bytemuck" => Some(ProgramMode::Bytemuck),
         "wincode" => Some(ProgramMode::Wincode),
-        "borsh" | "standard" => Some(ProgramMode::Borsh),
+        "borsh" => Some(ProgramMode::Borsh),
         _ => None,
     }
 }
@@ -157,7 +157,7 @@ pub fn generate_program(
             "default = [\"pinocchio\"]\npinocchio = [\"naclac-lang/pinocchio\"]",
             format!("naclac-lang = {{ version = \"0.1.0\", default-features = false{naclac_lang_path} }}"),
         ),
-        ProgramMode::ZeroCopy => (
+        ProgramMode::Bytemuck => (
             "",
             format!("naclac-lang = {{ version = \"0.1.0\"{naclac_lang_path} }}"),
         ),
@@ -381,7 +381,7 @@ pub fn increment(ctx: Context<Increment>) -> Result {
     let parse_events_call = match mode {
         ProgramMode::Wincode => "tx_meta.parse_events_wincode()",
         ProgramMode::Borsh => "tx_meta.parse_events_borsh()",
-        ProgramMode::Pinocchio | ProgramMode::ZeroCopy => "tx_meta.parse_events_zero_copy()",
+        ProgramMode::Pinocchio | ProgramMode::Bytemuck => "tx_meta.parse_events_zero_copy()",
     };
 
     let client_crate = format!("{snake_name}_client");

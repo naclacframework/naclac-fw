@@ -20,7 +20,7 @@ enum Commands {
     /// Initializes a new Naclac Workspace
     Init {
         name: String,
-        /// Program mode: pinocchio, zero-copy, wincode, or borsh
+        /// Program mode: pinocchio, bytemuck, wincode, or borsh
         #[arg(short, long)]
         mode: Option<String>,
         /// TypeScript SDK framework: kit or legacy
@@ -39,7 +39,7 @@ enum Commands {
     /// Adds a new program to an existing Naclac workspace
     Add {
         name: String,
-        /// Program mode: pinocchio, zero-copy, wincode, or borsh
+        /// Program mode: pinocchio, bytemuck, wincode, or borsh
         #[arg(short, long)]
         mode: Option<String>,
         /// TypeScript SDK framework: kit or legacy

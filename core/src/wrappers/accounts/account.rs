@@ -108,6 +108,9 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Acco
     /// exit keeps this symmetric with `try_from`'s validation and matches the
     /// macro-generated `try_serialize` for `#[component]` Borsh types.
     pub fn exit(&self) -> Result<()> {
+        if !self.data.within_max_len() {
+            return Err(NaclacError::CapacityExceeded.err(self.index));
+        }
         let mut data = self.info.try_borrow_mut_data()?;
         let disc_len = T::DISCRIMINATOR.len();
         let (discriminator, mut writer) = data
@@ -368,6 +371,9 @@ impl<
     }
 
     pub fn exit(&self) -> Result<()> {
+        if !self.data.within_max_len() {
+            return Err(NaclacError::CapacityExceeded.err(self.index));
+        }
         let mut data = self.info.try_borrow_mut_data()?;
         let disc_len = T::DISCRIMINATOR.len();
         let (discriminator, mut writer) = data

@@ -30,10 +30,12 @@ use {
 #[cfg(feature = "idl-build")]
 pub(crate) fn idl_build_impl(
     struct_name: &syn::Ident,
+    generics: &syn::Generics,
     struct_attrs: &[syn::Attribute],
     fields: &syn::Fields,
     account_disc: Option<&[u8]>,
 ) -> proc_macro2::TokenStream {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let struct_docs = naclac_syn::parser::extract_docs(struct_attrs);
     let account_disc_fn = match account_disc {
         Some(disc) => quote! {
@@ -57,6 +59,10 @@ pub(crate) fn idl_build_impl(
         let Ok(ty_json) = serde_json::to_string(&ty_value) else {
             continue;
         };
+        let slots = match naclac_syn::parser::rust_type_slots(&field.ty, &constants) {
+            Some(slots) => quote! { Some(#slots) },
+            None => quote! { None },
+        };
 
         idl_fields.push(quote! {
             naclac_lang::naclac_idl::IdlField {
@@ -64,6 +70,7 @@ pub(crate) fn idl_build_impl(
                 docs: vec![#(#docs.into()),*],
                 ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
                     .expect("naclac idl-build: generated field type JSON must parse"),
+                slots: #slots,
             }
         });
 
@@ -76,7 +83,7 @@ pub(crate) fn idl_build_impl(
 
     quote! {
         #[cfg(feature = "idl-build")]
-        impl naclac_lang::naclac_idl::idl_build::NaclacIdlBuild for #struct_name {
+        impl #impl_generics naclac_lang::naclac_idl::idl_build::NaclacIdlBuild for #struct_name #ty_generics #where_clause {
             fn create_type() -> Option<naclac_lang::naclac_idl::IdlTypeDef> {
                 Some(naclac_lang::naclac_idl::IdlTypeDef::Struct {
                     fields: vec![#(#idl_fields),*],
@@ -113,11 +120,32 @@ pub(crate) fn idl_build_impl(
 #[cfg(not(feature = "idl-build"))]
 pub(crate) fn idl_build_impl(
     _struct_name: &syn::Ident,
+    _generics: &syn::Generics,
     _struct_attrs: &[syn::Attribute],
     _fields: &syn::Fields,
     _account_disc: Option<&[u8]>,
 ) -> proc_macro2::TokenStream {
     quote! {}
+}
+
+/// Serialized byte size of one `ty` under Borsh/Wincode, as a const
+/// expression: exact for the primitives and `Address`, the in-memory size for
+/// any other type. `base_ident` only inspects the last path segment, so a
+/// bare and a fully-qualified `Address` take the same arm.
+fn borsh_size_expr(ty: &syn::Type) -> proc_macro2::TokenStream {
+    match crate::type_classify::base_ident(ty)
+        .as_ref()
+        .map(syn::Ident::to_string)
+        .as_deref()
+    {
+        Some("u8") | Some("i8") | Some("bool") => quote! { 1 },
+        Some("u16") | Some("i16") => quote! { 2 },
+        Some("u32") | Some("i32") | Some("f32") => quote! { 4 },
+        Some("u64") | Some("i64") | Some("f64") => quote! { 8 },
+        Some("u128") | Some("i128") => quote! { 16 },
+        Some("Address") => quote! { 32 },
+        _ => quote! { core::mem::size_of::<#ty>() },
+    }
 }
 
 /// Expands the `#[component]` macro.
@@ -129,7 +157,8 @@ pub(crate) fn idl_build_impl(
 /// three are always emitted, each gated by a real `#[cfg(...)]` in the output
 /// that the calling crate's own compiler resolves:
 /// - **Zero-Copy** (`#[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))]`):
-///   Forces `#[repr(C)]`, derives `Pod`/`Zeroable`. `pinocchio` is always
+///   Forces `#[repr(C, packed)]` (alignment 1, no padding) and implements
+///   `Pod`/`Zeroable`. `pinocchio` is always
 ///   zero-copy; otherwise it's the default when neither `borsh` nor
 ///   `wincode` is active.
 /// - **Borsh** (`#[cfg(all(not(feature = "pinocchio"), feature = "borsh"))]`):
@@ -164,18 +193,21 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
+    if let Some(error) = crate::type_classify::zc_view_field_error(
+        fields.iter(),
+        "a #[component]",
+        "Persisted account data is plain bytes: use 'FixedVec<T, N>', 'FixedString<N>' or a \
+         fixed-size array (e.g. '[u8; 64]') instead.",
+    ) {
+        return error.to_compile_error().into();
+    }
+
     let disc_bytes = naclac_syn::discriminator::resolve_discriminator(
         naclac_syn::discriminator::DiscriminatorKind::Account,
         &struct_name.to_string(),
         args.discriminator.as_deref(),
     );
     let disc_tokens = quote! { &[#(#disc_bytes),*] };
-    let disc_alignment_msg = format!(
-        "Naclac Error: `{struct_name}` is a zero-copy #[component] whose discriminator width is not \
-         a multiple of the struct's alignment, so its body would be misaligned inside the account \
-         data. Use a discriminator whose byte length is a multiple of the struct's alignment \
-         (8 bytes always works)."
-    );
 
     // Cleaned fields (strip `#[max_len]`) — shared by both representations.
     let mut cleaned_ast = ast.clone();
@@ -225,7 +257,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                     "Naclac Error: field '{}' uses a heap-allocated type ('Vec'/'String') in a zero-copy \
                      #[component]. Persisted zero-copy account data is read via raw byte-casting, and a \
                      heap pointer cannot survive being written to an account and read back in a later \
-                     transaction. Please use a fixed-size array (e.g. '[u8; 64]') instead.",
+                     transaction. Please use 'FixedVec<T, N>', 'FixedString<N>' or a fixed-size \
+                     array (e.g. '[u8; 64]') instead.",
                     field_name
                 );
                 Some(quote! {
@@ -238,13 +271,11 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         })
         .collect();
 
-    let (padded_fields, pod_checks) =
+    let pod_checks =
         crate::pod_struct_checks::generate(struct_name, cleaned_fields, &zero_copy_cfg);
-    // `pod_struct_checks::generate`'s output has no trailing `;` either way
-    // (a tuple struct's `;` isn't part of its `Fields`) — add it here for
-    // the tuple case, since this reconstructs the whole item by hand rather
-    // than splicing into an already-parsed `DeriveInput` that already has
-    // its own semicolon token.
+    // A tuple struct's `;` isn't part of its `Fields`, and this reconstructs
+    // the whole item by hand rather than splicing into an already-parsed
+    // `DeriveInput` that already has its own semicolon token.
     let struct_semi = if matches!(cleaned_fields, syn::Fields::Unnamed(_)) {
         quote! { ; }
     } else {
@@ -255,19 +286,16 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #(#heap_field_errors)*
 
         #zero_copy_cfg
-        #[repr(C)]
-        #vis struct #struct_name #padded_fields #struct_semi
+        #[repr(C, packed)]
+        #vis struct #struct_name #cleaned_fields #struct_semi
 
         #pod_checks
 
         // SAFETY: sound only because `pod_checks` (above) verifies at
-        // compile time that the struct has no internal padding gap and
-        // every declared field is itself Pod — catches an unsound field
-        // (padding, or a field type that isn't itself Pod, e.g. a
-        // `#[defined_type]` enum) as a compile error instead of
-        // silently miscompiling. The trailing `_padding` field
-        // `padded_fields` adds is auto-sized to close the one gap this
-        // check can safely account for on its own.
+        // compile time that the struct has no padding, alignment 1, and
+        // every declared field is itself Pod — catches a field type that
+        // isn't plain data (e.g. a bare `#[defined_type]` enum) as a compile
+        // error instead of silently miscompiling.
         #zero_copy_cfg
         unsafe impl naclac_lang::prelude::bytemuck::Pod for #struct_name {}
         #zero_copy_cfg
@@ -331,22 +359,6 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl naclac_lang::prelude::Discriminator for #struct_name {
             const DISCRIMINATOR: &'static [u8] = #disc_tokens;
         }
-
-        #zero_copy_cfg
-        const _: () = assert!(
-            <#struct_name as naclac_lang::prelude::Discriminator>::DISCRIMINATOR.len()
-                % core::mem::align_of::<#struct_name>() == 0,
-            #disc_alignment_msg
-        );
-
-        #zero_copy_cfg
-        const _: () = assert!(
-            core::mem::align_of::<#struct_name>() <= 8,
-            "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment \
-             (a u128 field, directly or nested inside another field's type) — Solana account \
-             buffers are only guaranteed 8-byte aligned, so Account's raw pointer cast \
-             would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128."
-        );
     };
 
     // ── Borsh branch ────────────────────────────────────────────────────
@@ -364,33 +376,84 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            Ok(if let Some(len) = max_len {
-                quote! { (4 + #len) }
-            } else {
-                // `base_ident` only inspects the last path segment, so this
-                // matches both a bare `Address` and a fully-qualified
-                // `naclac_lang::prelude::Address` with one arm — no need for
-                // the two spellings the old substring check had to list
-                // separately.
-                match crate::type_classify::base_ident(ty)
-                    .as_ref()
-                    .map(syn::Ident::to_string)
-                    .as_deref()
-                {
-                    Some("u8") | Some("i8") | Some("bool") => quote! { 1 },
-                    Some("u16") | Some("i16") => quote! { 2 },
-                    Some("u32") | Some("i32") | Some("f32") => quote! { 4 },
-                    Some("u64") | Some("i64") | Some("f64") => quote! { 8 },
-                    Some("u128") | Some("i128") => quote! { 16 },
-                    Some("Address") => quote! { 32 },
-                    _ => quote! { core::mem::size_of::<#ty>() },
-                }
-            })
+            Ok(
+                match (max_len, crate::type_classify::first_generic_type(ty)) {
+                    (Some(len), Some(element)) if crate::type_classify::is_exactly(ty, "Vec") => {
+                        let element_size = borsh_size_expr(element);
+                        quote! { (4 + #len * #element_size) }
+                    }
+                    (Some(len), _) => quote! { (4 + #len) },
+                    (None, _) => borsh_size_expr(ty),
+                },
+            )
         })
         .collect::<syn::Result<Vec<_>>>()
     {
         Ok(sizes) => sizes,
         Err(err) => return err.to_compile_error().into(),
+    };
+
+    // A `Vec`/`String` field with no `#[max_len]` has no serialized size to
+    // reserve. `SPACE` then fails to compile where it is used, which is every
+    // `init` that gives no explicit `space = ..`.
+    let unbounded_field = fields.iter().enumerate().find_map(|(position, field)| {
+        let bounded = field
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("max_len"));
+        (!bounded && crate::type_classify::contains_unbounded_collection(&field.ty)).then(|| {
+            field
+                .ident
+                .as_ref()
+                .map(syn::Ident::to_string)
+                .unwrap_or_else(|| position.to_string())
+        })
+    });
+    let space_value = match &unbounded_field {
+        Some(name) => {
+            let message = format!(
+                "`{struct_name}` has a `Vec`/`String` field `{name}` with no `#[max_len(N)]`, so \
+                 its space is unknown: add `#[max_len(N)]` to the field, or give the account an \
+                 explicit `space = ..` in `#[account(init, ..)]`"
+            );
+            quote! { panic!(#message) }
+        }
+        None => quote! { Self::DISCRIMINATOR.len() + #(#field_sizes)+* },
+    };
+
+    let max_len_checks: Vec<proc_macro2::TokenStream> = fields
+        .iter()
+        .enumerate()
+        .filter_map(|(position, field)| {
+            let limit = field
+                .attrs
+                .iter()
+                .find(|attr| attr.path().is_ident("max_len"))?
+                .parse_args::<syn::LitInt>()
+                .ok()?;
+            if !(crate::type_classify::is_exactly(&field.ty, "Vec")
+                || crate::type_classify::is_exactly(&field.ty, "String"))
+            {
+                return None;
+            }
+            let access = match &field.ident {
+                Some(ident) => quote! { self.#ident },
+                None => {
+                    let index = syn::Index::from(position);
+                    quote! { self.#index }
+                }
+            };
+            Some(quote! { #access.len() <= #limit })
+        })
+        .collect();
+    let max_len_method = if max_len_checks.is_empty() {
+        quote! {}
+    } else {
+        quote! {
+            fn within_max_len(&self) -> bool {
+                true #(&& #max_len_checks)*
+            }
+        }
     };
 
     let borsh_block = quote! {
@@ -402,7 +465,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #borsh_cfg
         impl #struct_name {
             pub const DISCRIMINATOR: &'static [u8] = #disc_tokens;
-            pub const SPACE: usize = Self::DISCRIMINATOR.len() + #(#field_sizes)+*;
+            pub const SPACE: usize = #space_value;
 
             pub fn try_deserialize(data: &mut &[u8]) -> naclac_lang::prelude::Result<Self> {
                 let disc_len = Self::DISCRIMINATOR.len();
@@ -428,6 +491,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #borsh_cfg
         impl naclac_lang::prelude::Discriminator for #struct_name {
             const DISCRIMINATOR: &'static [u8] = #disc_tokens;
+            #max_len_method
         }
     };
 
@@ -440,7 +504,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #wincode_cfg
         impl #struct_name {
             pub const DISCRIMINATOR: &'static [u8] = #disc_tokens;
-            pub const SPACE: usize = Self::DISCRIMINATOR.len() + #(#field_sizes)+*;
+            pub const SPACE: usize = #space_value;
 
             pub fn try_deserialize(data: &mut &[u8]) -> naclac_lang::prelude::Result<Self> {
                 let disc_len = Self::DISCRIMINATOR.len();
@@ -466,11 +530,13 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #wincode_cfg
         impl naclac_lang::prelude::Discriminator for #struct_name {
             const DISCRIMINATOR: &'static [u8] = #disc_tokens;
+            #max_len_method
         }
     };
 
     let idl_build_impl = idl_build_impl(
         struct_name,
+        &syn::Generics::default(),
         &cleaned_ast.attrs,
         cleaned_fields,
         Some(&disc_bytes),

@@ -31,8 +31,9 @@ export interface IdlAccount {
   /** Whether this account must sign the transaction. */
   signer?: boolean;
   /**
-   * Whether this account is optional and may be omitted by the caller.
-   * When omitted, the `optionalAccountStrategy` on the instruction determines the fill-in value.
+   * Whether this account is optional and may be omitted by the caller. An
+   * omitted optional account is filled with the program's own address, which
+   * the program reads as "not provided".
    */
   optional?: boolean;
   /** Legacy aliases — isMut/isSigner kept for backward compatibility with older IDLs. */
@@ -48,6 +49,12 @@ export interface IdlAccount {
 export interface IdlField {
   name: string;
   type: string | Record<string, unknown>;
+  /**
+   * Set only on a `FixedVec<T, N>` or `FixedString<N>` field: the `N`. The
+   * `type` is then the plain `vec` or `string`, possibly inside arrays; a
+   * `string`'s slots are bytes.
+   */
+  slots?: number;
 }
 
 /** A single instruction definition. */
@@ -56,12 +63,6 @@ export interface IdlInstruction {
   readonly discriminator: readonly number[];
   readonly accounts: readonly IdlAccount[];
   readonly args: readonly IdlField[];
-  /**
-   * Strategy for filling optional accounts that the caller did not provide.
-   * - "programId": use the current program's own address as a placeholder.
-   * - "omitted": omit the account from the account list entirely (advanced).
-   */
-  readonly optionalAccountStrategy?: "programId" | "omitted";
 }
 
 /** A named account type definition (on-chain data layout). */
@@ -82,7 +83,6 @@ export interface IdlAccountDef {
 export interface IdlEventField {
   name: string;
   type: string | Record<string, unknown>;
-  index: boolean;
 }
 
 /** An event definition. */
@@ -93,6 +93,8 @@ export interface IdlEventDef {
    * logs: `sha256("event:<EventName>")[0..8]` unless the event declares one.
    */
   readonly discriminator?: readonly number[];
+  /** True for an `#[event(alloc)]` event, whose fields are written back to back with no alignment gaps. */
+  readonly alloc?: boolean;
   readonly fields: readonly IdlEventField[];
 }
 
@@ -166,6 +168,11 @@ export interface NaclacIdl {
     readonly name: string;
     readonly version: string;
     readonly description: string;
+    /**
+     * How the program encodes account and instruction data. Every type has the
+     * same shape in each mode; this says which bytes they stand for.
+     */
+    readonly serialization: "borsh" | "wincode" | "bytemuck";
   };
   readonly instructions: readonly IdlInstruction[];
   readonly accounts: readonly IdlAccountDef[];

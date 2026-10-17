@@ -11,17 +11,8 @@ pub fn generate_typescript_sdk(
     program_name: &str,
     workspace_root: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut idl: Idl = serde_json::from_str(idl_json)?;
+    let idl = Idl::from_json(idl_json)?;
     let target_dir = crate::paths::resolve_target_dir(workspace_root);
-    let temp_marker = target_dir.join(format!(".{}-zero-copy", program_name));
-    if let Ok(marker_content) = fs::read_to_string(&temp_marker) {
-        idl.is_zero_copy = true;
-        idl.alloc_event_names = marker_content
-            .split(',')
-            .map(str::to_string)
-            .filter(|s| !s.is_empty())
-            .collect();
-    }
 
     let clients_dir =
         workspace_root.join(format!("clients/typescript/src/generated/{}", program_name));
@@ -53,6 +44,8 @@ pub fn generate_typescript_sdk(
         )
         .unwrap();
     }
+
+    shared::generate_program_idl(program_name, &clients_dir)?;
 
     // 1. Generate Shared Components (types, instructions, accounts, events, index barrel)
     shared::generate_shared_files(&idl, program_name, &clients_dir)?;

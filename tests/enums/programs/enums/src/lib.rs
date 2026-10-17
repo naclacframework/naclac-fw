@@ -87,7 +87,7 @@ pub mod enums {
         instructions::enum_lists(ctx, heap, view)
     }
 
-    pub fn emit_padded_event(ctx: Context<Mutate>) -> Result {
-        instructions::emit_padded_event(ctx)
+    pub fn emit_mixed_event(ctx: Context<Mutate>) -> Result {
+        instructions::emit_mixed_event(ctx)
     }
 }

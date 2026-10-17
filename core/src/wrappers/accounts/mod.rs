@@ -47,22 +47,17 @@ pub(crate) fn discard_error<E>(error: E) {
 pub trait NaclacZeroCopy:
     bytemuck::Pod + bytemuck::Zeroable + crate::wrappers::Discriminator
 {
-    /// Fails compilation when the account body would not be correctly
-    /// aligned for `Self`: the body starts at offset `DISCRIMINATOR.len()`
-    /// in a buffer that is 8-byte aligned, so `Self` must not need more than
-    /// 8-byte alignment and the discriminator width must be a multiple of
-    /// `Self`'s alignment. Every code path that casts account bytes to `Self`
-    /// must call this first.
+    /// Fails compilation unless `Self` has alignment 1. The body starts at
+    /// offset `DISCRIMINATOR.len()`, which is any width from 1 to 8 bytes, so
+    /// only a type that is valid at every address can be cast from it. Every
+    /// code path that casts account bytes to `Self` must call this first.
     #[inline(always)]
     fn assert_layout() {
         const {
             assert!(
-                core::mem::align_of::<Self>() <= 8,
-                "zero-copy account alignment exceeds the 8-byte alignment of Solana account data",
-            );
-            assert!(
-                Self::DISCRIMINATOR.len() % core::mem::align_of::<Self>() == 0,
-                "discriminator width is not a multiple of this zero-copy account's alignment; use a discriminator whose byte length is a multiple of the struct's alignment",
+                core::mem::align_of::<Self>() == 1,
+                "a zero-copy account must have alignment 1: build it from naclac-pod types and \
+                 plain integers in a `#[repr(C, packed)]` struct, which `#[component]` does",
             );
         }
     }
@@ -79,11 +74,10 @@ pub trait NaclacZeroCopy:
         if &data[..disc_len] != disc {
             return Err(NaclacError::InvalidAccountDiscriminator.err(0));
         }
-        // SAFETY: T: Pod guarantees any bit pattern is valid. Solana aligns
-        // account data buffers to 8 bytes and `assert_layout` proves
-        // `disc_len` is a multiple of `align_of::<Self>()`, so the body is
-        // aligned. The size check above guarantees `size_of::<Self>()` bytes
-        // are available at offset `disc_len`.
+        // SAFETY: T: Pod guarantees any bit pattern is valid, and
+        // `assert_layout` proves `align_of::<Self>() == 1`, so the body is
+        // aligned at any offset. The size check above guarantees
+        // `size_of::<Self>()` bytes are available at offset `disc_len`.
         Ok(unsafe { &*(data.as_ptr().add(disc_len) as *const Self) })
     }
 }

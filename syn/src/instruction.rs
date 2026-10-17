@@ -611,6 +611,7 @@ pub fn extract_instructions(
                             args.push(NaclacField {
                                 name: arg_name,
                                 ty: rust_type_to_idl(&pat_type.ty, &idl.constants),
+                                slots: crate::parser::rust_type_slots(&pat_type.ty, &idl.constants),
                                 docs: Vec::new(),
                             });
                         }

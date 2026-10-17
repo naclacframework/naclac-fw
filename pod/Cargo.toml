@@ -1,0 +1,26 @@
+[package]
+name = "naclac-pod"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Alignment-1 plain-data types for zero-copy Solana account layouts."
+
+[dependencies]
+bytemuck = { workspace = true }
+solana-program-error = { workspace = true, optional = true }
+solana-address = { workspace = true, optional = true }
+pinocchio = { workspace = true, optional = true }
+
+[features]
+default = []
+solana = ["dep:solana-program-error", "dep:solana-address", "solana-address?/bytemuck"]
+pinocchio = ["dep:pinocchio", "dep:solana-program-error"]
+alloc = []
+debug = []
+
+[dev-dependencies]
+naclac-pod = { path = ".", features = ["debug"] }
+
+[lints]
+workspace = true

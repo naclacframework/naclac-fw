@@ -7,8 +7,17 @@ use {
 pub mod components;
 pub mod instructions;
 pub mod lib_generator;
-pub mod pod_codegen;
 pub mod types;
+
+/// The attributes gating an item that exists only for the zero-copy
+/// representation of the offchain or the cpi flavour of a generated client.
+pub fn zero_copy_gate(for_cpi: bool) -> proc_macro2::TokenStream {
+    let flavour = if for_cpi { "cpi" } else { "offchain" };
+    quote::quote! {
+        #[cfg(feature = #flavour)]
+        #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+    }
+}
 
 // Map IDL type to Rust type
 pub fn map_type_to_rust_with_prefix(
@@ -66,6 +75,17 @@ pub fn map_zero_copy_field_type(
                 "[{}; {}]",
                 map_zero_copy_field_type(inner, defined_prefix, for_cpi, defined_types),
                 len
+            );
+        }
+    }
+    if let Some(fixed) = object.get("fixedVec") {
+        if let (Some(inner), Some(capacity)) = (fixed.get(0), fixed.get(1).and_then(|v| v.as_u64()))
+        {
+            return format!(
+                "{}::FixedVec<{}, {}>",
+                sdk_core_alias(for_cpi),
+                map_zero_copy_field_type(inner, defined_prefix, for_cpi, defined_types),
+                capacity
             );
         }
     }
@@ -149,6 +169,21 @@ fn map_type_to_rust_inner(
                     format!("{}::Vec<{}>", sdk_core, inner_ty)
                 };
             }
+            if let Some(fixed) = o.get("fixedVec") {
+                if let (Some(inner), Some(capacity)) =
+                    (fixed.get(0), fixed.get(1).and_then(|v| v.as_u64()))
+                {
+                    return format!(
+                        "{}::FixedVec<{}, {}>",
+                        sdk_core,
+                        map_type_to_rust_inner(inner, is_zero_copy, defined_prefix, for_cpi),
+                        capacity
+                    );
+                }
+            }
+            if let Some(capacity) = o.get("fixedString").and_then(|v| v.as_u64()) {
+                return format!("{}::FixedString<{}>", sdk_core, capacity);
+            }
             if let Some(arr) = o.get("array") {
                 if let Some(inner) = arr.get(0) {
                     if let Some(len) = arr.get(1).and_then(|v| v.as_u64()) {
@@ -188,9 +223,9 @@ fn map_type_to_rust_inner(
                 }
                 return name;
             }
-            "serde_json::Value".to_string()
+            crate::unsupported_type(idl_type, "serde_json::Value")
         }
-        _ => "serde_json::Value".to_string(),
+        _ => crate::unsupported_type(idl_type, "serde_json::Value"),
     }
 }
 
@@ -215,22 +250,9 @@ pub fn has_dynamic_args(ix: &crate::IdlInstruction, defined_types: &[crate::IdlT
 /// automatically Pod — a `#[instruction_args]`-grouped struct can contain a
 /// dynamic (`String`/`Vec`/`Option`) field just like a top-level arg can.
 ///
-/// `Option<T>` is never Pod, regardless of `T`: `NaclacPod`'s `Option<T>`
-/// impl (`core/src/prelude.rs`) defines a *custom* wire format
-/// (1-byte tag, then `T`'s bytes if `Some`) that generally does not match
-/// whatever in-memory layout the Rust compiler happens to choose for a
-/// native `Option<T>` value (typically padded/sized differently, and not
-/// something `repr(C, packed)` on a *containing* struct can fix — that only
-/// controls inter-field layout, not `Option<T>`'s own internal
-/// representation). Treating it as Pod let a raw `bytemuck::bytes_of`
-/// blob-cast silently send bytes the on-chain side's `NaclacArgs::naclac_deserialize`
-/// (which walks fields sequentially assuming `NaclacPod::naclac_size()`,
-/// i.e. 9 bytes for `Option<u64>`, not the native size) would decode wrong —
-/// confirmed empirically: a lone `Option<u64>` arg happened to decode
-/// correctly by coincidence (extra unread native padding bytes are
-/// harmless when nothing follows), but adding a second arg after it broke
-/// immediately, since the native and wire sizes disagree and every field
-/// after it lands at the wrong offset.
+/// `Option<T>` is never Pod, regardless of `T`: its wire form is a tag byte
+/// then `T`'s bytes, which a native `Option<T>` does not share, so it is
+/// always written field by field.
 pub fn is_type_pod(ty: &serde_json::Value, defined_types: &[crate::IdlType]) -> bool {
     is_type_pod_impl(ty, defined_types, false)
 }
@@ -258,7 +280,7 @@ fn is_type_pod_impl(
             if o.get("option").is_some() {
                 return false;
             }
-            if let Some(arr) = o.get("array") {
+            if let Some(arr) = o.get("array").or_else(|| o.get("fixedVec")) {
                 return arr
                     .get(0)
                     .is_none_or(|inner| is_type_pod_impl(inner, defined_types, enums_are_pod));
@@ -269,16 +291,6 @@ fn is_type_pod_impl(
                 }
                 return match defined_types.iter().find(|t| t.name == defined) {
                     Some(td) => match &td.ty {
-                        // Never `Pod` in the generated client, fieldless or
-                        // not: a fieldless `#[repr(uN)]` enum still has
-                        // out-of-range byte values with no corresponding
-                        // variant, so it gets the same `CheckedBitPattern`
-                        // machinery as a data-carrying one, never a bare
-                        // `unsafe impl Pod` (see `types/typedefs.rs`'s enum
-                        // branch). `write_field_bytes` below routes any
-                        // defined-type enum through `bytes_of_checked_bit_
-                        // pattern` instead of `bytemuck::bytes_of`
-                        // accordingly.
                         crate::IdlTypeDefVariants::Enum { .. } => enums_are_pod,
                         crate::IdlTypeDefVariants::Struct { fields } => fields
                             .iter()
@@ -347,6 +359,15 @@ pub fn is_pod_only_args(ix: &crate::IdlInstruction, defined_types: &[crate::IdlT
         .all(|arg| is_type_pod(&arg.ty, defined_types))
 }
 
+/// Statements appending the stored form of a `ZcCodec` value to `ix_data`:
+/// `value_ref` is a reference expression to a `ty`, written in exactly
+/// `<ty as ZcCodec>::SIZE` bytes.
+fn zc_codec_write(value_ref: &str, ty: &str, sdk_core: &str) -> String {
+    format!(
+        "        {{\n            let mut __stored = [0u8; <{ty} as {sdk_core}::ZcCodec>::SIZE];\n            {sdk_core}::ZcCodec::encode({value_ref}, &mut __stored);\n            ix_data.extend_from_slice(&__stored);\n        }}\n"
+    )
+}
+
 /// Statements that write a single field's bytes into `ix_data`, given a Rust
 /// access expression for it (e.g. `"args.amount"` or, for a field inside a
 /// `Defined`-typed arg, `"args.args.message"`). Recurses into a `Defined`
@@ -392,17 +413,19 @@ fn write_field_bytes(
                                     }
                                 }
                                 crate::IdlTypeDefVariants::Enum { .. } => {
-                                    // Never `Pod` in the generated client
-                                    // (see `is_type_pod`'s enum case) — a
-                                    // `CheckedBitPattern`-only value's own
-                                    // bytes are still safe to read directly,
-                                    // just not through `bytemuck::bytes_of`
-                                    // (which requires `Pod`, the reverse-
-                                    // direction guarantee this type doesn't
-                                    // have).
-                                    writes.push_str(&format!(
-                                        "        ix_data.extend_from_slice({}::bytes_of_checked_bit_pattern(&{}));\n",
-                                        sdk_core, expr
+                                    let enum_ty = if for_cpi {
+                                        map_type_to_rust_cpi(ty, is_zero_copy, "crate::types::")
+                                    } else {
+                                        map_type_to_rust_with_prefix(
+                                            ty,
+                                            is_zero_copy,
+                                            "crate::types::",
+                                        )
+                                    };
+                                    writes.push_str(&zc_codec_write(
+                                        &format!("&{expr}"),
+                                        &enum_ty,
+                                        sdk_core,
                                     ));
                                     return;
                                 }
@@ -428,15 +451,6 @@ fn write_field_bytes(
             } else {
                 map_type_to_rust_with_prefix(&inner_ty_json, is_zero_copy, "crate::types::")
             };
-            // Unlike a `Defined` struct (never `NaclacPod`, so `Option<
-            // Struct>` can't occur on-chain — see this variant's own doc
-            // comment), a zero-copy `#[defined_type]` enum *does* implement
-            // `NaclacPod`, so `Option<EnumType>` is a real, reachable case.
-            // Since no defined-type enum is ever `Pod` in the generated
-            // client (see `is_type_pod`'s enum case), the wrapped value's
-            // bytes must be read through `bytes_of_checked_bit_pattern`
-            // instead of `bytemuck::bytes_of` whenever the inner type is
-            // one — `bytemuck::bytes_of` would fail to compile against it.
             let inner_is_enum = match inner_ty_json
                 .as_object()
                 .and_then(|o| o.get("defined"))
@@ -448,14 +462,23 @@ fn write_field_bytes(
                     .is_some_and(|td| matches!(td.ty, crate::IdlTypeDefVariants::Enum { .. })),
                 None => false,
             };
-            let bytes_fn = if inner_is_enum {
-                "bytes_of_checked_bit_pattern"
+            let (some_write, none_size) = if inner_is_enum {
+                (
+                    zc_codec_write("__inner", &inner_ty_str, sdk_core),
+                    format!("<{} as {}::ZcCodec>::SIZE", inner_ty_str, sdk_core),
+                )
             } else {
-                "bytemuck::bytes_of"
+                (
+                    format!(
+                        "        ix_data.extend_from_slice({}::bytemuck::bytes_of(__inner));\n",
+                        sdk_core
+                    ),
+                    format!("core::mem::size_of::<{}>()", inner_ty_str),
+                )
             };
             writes.push_str(&format!(
-                "        match &{0} {{\n            Some(__inner) => {{\n                ix_data.push(1u8);\n                ix_data.extend_from_slice({1}::{3}(__inner));\n            }}\n            None => {{\n                ix_data.push(0u8);\n                ix_data.extend_from_slice(&[0u8; core::mem::size_of::<{2}>()]);\n            }}\n        }}\n",
-                expr, sdk_core, inner_ty_str, bytes_fn
+                "        match &{0} {{\n            Some(__inner) => {{\n                ix_data.push(1u8);\n{1}            }}\n            None => {{\n                ix_data.push(0u8);\n                ix_data.extend_from_slice(&[0u8; {2}]);\n            }}\n        }}\n",
+                expr, some_write, none_size
             ));
         }
         ArgWireKind::DynamicVec { inner_is_u8 } => {
@@ -506,18 +529,21 @@ fn write_field_bytes(
                                 matches!(td.ty, crate::IdlTypeDefVariants::Enum { .. })
                             })
                     });
-                // `.iter()` yields `&T`, which is what the checked-bytes helper takes; a
-                // client enum is `CheckedBitPattern` only, so `bytemuck::bytes_of` would not compile.
-                let element_bytes = if inner_is_enum {
-                    format!("{}::bytes_of_checked_bit_pattern(__elem)", sdk_core)
+                let elem_ref = if for_cpi { "&__elem" } else { "__elem" };
+                if inner_is_enum {
+                    writes.push_str(&format!(
+                        "        ix_data.extend_from_slice(&(({0}.len() * <{1} as {2}::ZcCodec>::SIZE) as u32).to_le_bytes());\n        for __elem in {0}.iter() {{\n{3}        }}\n",
+                        expr,
+                        inner_ty_str,
+                        sdk_core,
+                        zc_codec_write(elem_ref, &inner_ty_str, sdk_core)
+                    ));
                 } else {
-                    let elem_ref = if for_cpi { "&__elem" } else { "__elem" };
-                    format!("{}::bytemuck::bytes_of({})", sdk_core, elem_ref)
-                };
-                writes.push_str(&format!(
-                    "        ix_data.extend_from_slice(&(({0}.len() * core::mem::size_of::<{2}>()) as u32).to_le_bytes());\n        for __elem in {0}.iter() {{\n            ix_data.extend_from_slice({1});\n        }}\n",
-                    expr, element_bytes, inner_ty_str
-                ));
+                    writes.push_str(&format!(
+                        "        ix_data.extend_from_slice(&(({0}.len() * core::mem::size_of::<{2}>()) as u32).to_le_bytes());\n        for __elem in {0}.iter() {{\n            ix_data.extend_from_slice({3}::bytemuck::bytes_of({1}));\n        }}\n",
+                        expr, elem_ref, inner_ty_str, sdk_core
+                    ));
+                }
             }
         }
     }
@@ -578,9 +604,10 @@ pub fn references_defined_type(ty: &serde_json::Value) -> bool {
                 .iter()
                 .filter_map(|key| o.get(*key))
                 .any(references_defined_type)
-                || o.get("array")
-                    .and_then(|arr| arr.get(0))
-                    .is_some_and(references_defined_type)
+                || ["array", "fixedVec"]
+                    .iter()
+                    .filter_map(|key| o.get(*key).and_then(|arr| arr.get(0)))
+                    .any(references_defined_type)
         }
         _ => false,
     }
@@ -607,8 +634,10 @@ pub fn collect_defined_type_names(ty: &serde_json::Value, out: &mut Vec<String>)
             collect_defined_type_names(inner, out);
         }
     }
-    if let Some(inner) = o.get("array").and_then(|arr| arr.get(0)) {
-        collect_defined_type_names(inner, out);
+    for key in ["array", "fixedVec"] {
+        if let Some(inner) = o.get(key).and_then(|arr| arr.get(0)) {
+            collect_defined_type_names(inner, out);
+        }
     }
 }
 
@@ -617,23 +646,7 @@ pub fn generate_rust_sdk(
     program_name: &str,
     workspace_root: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut idl: Idl = serde_json::from_str(idl_json)?;
-    let temp_marker = crate::paths::resolve_target_dir(workspace_root)
-        .join(format!(".{}-zero-copy", program_name));
-    if let Ok(marker_content) = fs::read_to_string(&temp_marker) {
-        idl.is_zero_copy = true;
-        idl.alloc_event_names = marker_content
-            .split(',')
-            .map(str::to_string)
-            .filter(|s| !s.is_empty())
-            .collect();
-    }
-    let wincode_marker =
-        crate::paths::resolve_target_dir(workspace_root).join(format!(".{}-wincode", program_name));
-    if wincode_marker.exists() {
-        idl.is_wincode = true;
-        idl.is_zero_copy = false;
-    }
+    let idl = Idl::from_json(idl_json)?;
 
     let program_name_snake = AsSnakeCase(program_name).to_string();
     let program_name_kebab = program_name.replace("_", "-");

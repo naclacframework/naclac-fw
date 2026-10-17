@@ -16,11 +16,7 @@ pub fn generate_kit_client(
     let mut client_content = header.to_string();
 
     client_content.push_str("import * as naclac from \"@naclac-fw/client/kit\";\n");
-    client_content.push_str(&format!(
-        "import rawIDL from \"./idl/{program_name}.json\";\n\
-         import type {{ {type_name} }} from \"./idl/{program_name}\";\n\
-         const IDL = rawIDL as unknown as {type_name};\n"
-    ));
+    client_content.push_str("import { IDL } from \"./program-idl\";\n");
 
     if !idl.instructions.is_empty() {
         client_content.push_str("import * as instructions from \"./instructions\";\n");
@@ -56,16 +52,7 @@ pub fn generate_kit_client(
     client_content.push_str("      if (!payer) throw new Error(\"[Naclac] A payer KeyPairSigner is required when specifying a cluster string.\");\n");
     client_content.push_str("      provider = naclac.createProvider(providerOrCluster, payer);\n");
     client_content.push_str("    } else {\n      provider = providerOrCluster;\n    }\n");
-    // `idl.is_zero_copy` is a codegen-time-only fact (see `client-gen/
-    // src/typescript/shared.rs::generate_ts`'s doc comment for why it's
-    // never written into the IDL itself) — baked in here as a literal so
-    // the runtime `Program` knows which wire layout (`defined_types`)
-    // to use without needing it in the IDL data.
-    client_content.push_str(&format!(
-        "    this.program = new naclac.Program(IDL, provider, {}, {});\n",
-        idl.is_zero_copy,
-        super::shared::alloc_events_literal(idl)?
-    ));
+    client_content.push_str("    this.program = new naclac.Program(IDL, provider);\n");
     client_content.push_str("  }\n\n");
 
     // ── Instruction methods ───────────────────────────────────────────────────
@@ -399,6 +386,7 @@ pub fn generate_kit_client(
 
         let mut f = header.to_string();
         f.push_str("import * as naclac from \"@naclac-fw/client/kit\";\n");
+        f.push_str("import { IDL } from \"../../program-idl\";\n");
         f.push_str(&format!(
             "import type {{ {acct_name} }} from \"../../types\";\n\n"
         ));
@@ -420,196 +408,9 @@ pub fn generate_kit_client(
             ));
         }
 
-        // Field → encoder/decoder helper (shared closure for codec symmetry)
-        let codec_for = |ty: &serde_json::Value, side: &str| -> String {
-            let enc = side == "enc";
-            match ty {
-                serde_json::Value::String(s) => match s.as_str() {
-                    "u8" => if enc {
-                        "naclac.getU8Encoder()"
-                    } else {
-                        "naclac.getU8Decoder()"
-                    }
-                    .into(),
-                    "u16" => if enc {
-                        "naclac.getU16Encoder()"
-                    } else {
-                        "naclac.getU16Decoder()"
-                    }
-                    .into(),
-                    "u32" => if enc {
-                        "naclac.getU32Encoder()"
-                    } else {
-                        "naclac.getU32Decoder()"
-                    }
-                    .into(),
-                    "u64" => if enc {
-                        "naclac.getU64Encoder()"
-                    } else {
-                        "naclac.getU64Decoder()"
-                    }
-                    .into(),
-                    "u128" => if enc {
-                        "naclac.getU128Encoder()"
-                    } else {
-                        "naclac.getU128Decoder()"
-                    }
-                    .into(),
-                    "i8" => if enc {
-                        "naclac.getI8Encoder()"
-                    } else {
-                        "naclac.getI8Decoder()"
-                    }
-                    .into(),
-                    "i16" => if enc {
-                        "naclac.getI16Encoder()"
-                    } else {
-                        "naclac.getI16Decoder()"
-                    }
-                    .into(),
-                    "i32" => if enc {
-                        "naclac.getI32Encoder()"
-                    } else {
-                        "naclac.getI32Decoder()"
-                    }
-                    .into(),
-                    "i64" => if enc {
-                        "naclac.getI64Encoder()"
-                    } else {
-                        "naclac.getI64Decoder()"
-                    }
-                    .into(),
-                    "i128" => if enc {
-                        "naclac.getI128Encoder()"
-                    } else {
-                        "naclac.getI128Decoder()"
-                    }
-                    .into(),
-                    "bool" => if enc {
-                        "naclac.getBooleanEncoder()"
-                    } else {
-                        "naclac.getBooleanDecoder()"
-                    }
-                    .into(),
-                    "publicKey" => if enc {
-                        "naclac.getAddressEncoder()"
-                    } else {
-                        "naclac.getAddressDecoder()"
-                    }
-                    .into(),
-                    "string" | "String" => if enc {
-                        "naclac.getUtf8Encoder()"
-                    } else {
-                        "naclac.getUtf8Decoder()"
-                    }
-                    .into(),
-                    "bytes" | "&[u8]" => if enc {
-                        "naclac.getBytesEncoder()"
-                    } else {
-                        "naclac.getBytesDecoder()"
-                    }
-                    .into(),
-                    other => format!(
-                        "naclac.getU8{}() /* TODO: {other} */",
-                        if enc { "Encoder" } else { "Decoder" }
-                    ),
-                },
-                serde_json::Value::Object(o) => {
-                    if let Some(inner) = o.get("option") {
-                        let inner_fn = match inner {
-                            serde_json::Value::String(s) => match s.as_str() {
-                                "publicKey" => if enc {
-                                    "naclac.getAddressEncoder()"
-                                } else {
-                                    "naclac.getAddressDecoder()"
-                                }
-                                .to_string(),
-                                "u64" => if enc {
-                                    "naclac.getU64Encoder()"
-                                } else {
-                                    "naclac.getU64Decoder()"
-                                }
-                                .to_string(),
-                                other => format!(
-                                    "naclac.getU8{}() /* TODO: option<{other}> */",
-                                    if enc { "Encoder" } else { "Decoder" }
-                                ),
-                            },
-                            _ => if enc {
-                                "naclac.getU8Encoder()"
-                            } else {
-                                "naclac.getU8Decoder()"
-                            }
-                            .to_string(),
-                        };
-                        format!(
-                            "naclac.getOption{}({inner_fn})",
-                            if enc { "Encoder" } else { "Decoder" }
-                        )
-                    } else if let Some(inner) = o.get("vec") {
-                        let inner_fn = match inner {
-                            serde_json::Value::String(s) => match s.as_str() {
-                                "u8" => if enc {
-                                    "naclac.getU8Encoder()"
-                                } else {
-                                    "naclac.getU8Decoder()"
-                                }
-                                .to_string(),
-                                other => format!(
-                                    "naclac.getU8{}() /* TODO: vec<{other}> */",
-                                    if enc { "Encoder" } else { "Decoder" }
-                                ),
-                            },
-                            _ => if enc {
-                                "naclac.getU8Encoder()"
-                            } else {
-                                "naclac.getU8Decoder()"
-                            }
-                            .to_string(),
-                        };
-                        format!(
-                            "naclac.getArray{}({inner_fn})",
-                            if enc { "Encoder" } else { "Decoder" }
-                        )
-                    } else {
-                        format!(
-                            "naclac.getU8{}() /* TODO: complex type */",
-                            if enc { "Encoder" } else { "Decoder" }
-                        )
-                    }
-                }
-                _ => format!("naclac.getU8{}()", if enc { "Encoder" } else { "Decoder" }),
-            }
-        };
-
-        // getXxxEncoder()
-        f.push_str(&format!("/** Gets the encoder for {{@link {acct_name}}} account data. */\nexport function get{acct_name}Encoder(): naclac.FixedSizeEncoder<{acct_name}> {{\n  return naclac.getStructEncoder([\n"));
-        for field in &acct.ty.fields {
-            f.push_str(&format!(
-                "    [\"{}\", {}],\n",
-                field.name.to_lower_camel_case(),
-                codec_for(&field.ty, "enc")
-            ));
-        }
-        f.push_str(&format!(
-            "  ]) as naclac.FixedSizeEncoder<{acct_name}>;\n}}\n\n"
-        ));
-
-        // getXxxDecoder()
-        f.push_str(&format!("/** Gets the decoder for {{@link {acct_name}}} account data. */\nexport function get{acct_name}Decoder(): naclac.FixedSizeDecoder<{acct_name}> {{\n  return naclac.getStructDecoder([\n"));
-        for field in &acct.ty.fields {
-            f.push_str(&format!(
-                "    [\"{}\", {}],\n",
-                field.name.to_lower_camel_case(),
-                codec_for(&field.ty, "dec")
-            ));
-        }
-        f.push_str(&format!(
-            "  ]) as naclac.FixedSizeDecoder<{acct_name}>;\n}}\n\n"
-        ));
-
-        // getXxxCodec()
-        f.push_str(&format!("/** Gets the codec (encoder + decoder) for {{@link {acct_name}}} account data. */\nexport function get{acct_name}Codec(): naclac.FixedSizeCodec<{acct_name}> {{\n  return naclac.combineCodec(get{acct_name}Encoder(), get{acct_name}Decoder());\n}}\n\n"));
+        f.push_str(&format!("/** Gets the codec (encoder + decoder) for {{@link {acct_name}}} account data, discriminator excluded. */\nexport function get{acct_name}Codec(): naclac.AccountCodec<{acct_name}> {{\n  return naclac.getAccountCodec<{acct_name}>(IDL, \"{acct_name}\");\n}}\n\n"));
+        f.push_str(&format!("/** Gets the encoder for {{@link {acct_name}}} account data. */\nexport const get{acct_name}Encoder = get{acct_name}Codec;\n\n"));
+        f.push_str(&format!("/** Gets the decoder for {{@link {acct_name}}} account data. */\nexport const get{acct_name}Decoder = get{acct_name}Codec;\n\n"));
 
         // decodeXxx() overloads
         let data_slice = if acct.discriminator.is_some() {
@@ -617,7 +418,7 @@ pub fn generate_kit_client(
         } else {
             "encodedAccount.data.slice(8)".to_string()
         };
-        f.push_str(&format!("export function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.EncodedAccount<TAddress>,\n): naclac.Account<{acct_name}, TAddress>;\nexport function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.MaybeEncodedAccount<TAddress>,\n): naclac.MaybeAccount<{acct_name}, TAddress>;\nexport function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.EncodedAccount<TAddress> | naclac.MaybeEncodedAccount<TAddress>,\n): naclac.Account<{acct_name}, TAddress> | naclac.MaybeAccount<{acct_name}, TAddress> {{\n  return naclac.decodeAccount(\n    ('data' in encodedAccount\n      ? {{ ...encodedAccount, data: {data_slice} }}\n      : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,\n    get{acct_name}Decoder(),\n  );\n}}\n\n"));
+        f.push_str(&format!("export function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.EncodedAccount<TAddress>,\n): naclac.Account<{acct_name}, TAddress>;\nexport function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.MaybeEncodedAccount<TAddress>,\n): naclac.MaybeAccount<{acct_name}, TAddress>;\nexport function decode{acct_name}<TAddress extends string = string>(\n  encodedAccount: naclac.EncodedAccount<TAddress> | naclac.MaybeEncodedAccount<TAddress>,\n): naclac.Account<{acct_name}, TAddress> | naclac.MaybeAccount<{acct_name}, TAddress> {{\n  return naclac.decodeAccount(\n    ('data' in encodedAccount\n      ? {{ ...encodedAccount, data: {data_slice} }}\n      : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,\n    get{acct_name}Decoder() as unknown as naclac.Decoder<{acct_name}>,\n  );\n}}\n\n"));
 
         // fetchXxx() — throws if missing
         f.push_str(&format!("/** Fetches a `{acct_name}` account. Throws if it does not exist. */\nexport async function fetch{acct_name}<TAddress extends string = string>(\n  rpc: Parameters<typeof naclac.fetchEncodedAccount>[0],\n  address: naclac.Address<TAddress>,\n  config?: naclac.FetchAccountConfig,\n): Promise<naclac.Account<{acct_name}, TAddress>> {{\n  const maybeAccount = await fetchMaybe{acct_name}(rpc, address, config);\n  naclac.assertAccountExists(maybeAccount);\n  return maybeAccount;\n}}\n\n"));
@@ -650,9 +451,8 @@ pub fn generate_kit_client(
     let type_name = program_name.to_upper_camel_case();
     let mut barrel = header.to_string();
     barrel.push_str(&format!(
-        "import rawIDL from \"./idl/{program_name}.json\";\n\
-         import type {{ {type_name} }} from \"./idl/{program_name}\";\n\
-         export const IDL = rawIDL as unknown as {type_name};\n\
+        "import type {{ {type_name} }} from \"./idl/{program_name}\";\n\
+         export {{ IDL }} from \"./program-idl\";\n\
          export type {{ {type_name} }};\n"
     ));
     barrel.push_str("export * as types from \"./types\";\n");

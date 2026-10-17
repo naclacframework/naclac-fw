@@ -125,7 +125,53 @@ pub(crate) fn resolve_array_len(
     );
 }
 
+fn fixed_arguments(ty: &syn::Type) -> Vec<&syn::GenericArgument> {
+    let syn::Type::Path(type_path) = ty else {
+        return Vec::new();
+    };
+    match type_path.path.segments.last().map(|s| &s.arguments) {
+        Some(syn::PathArguments::AngleBracketed(args)) => args.args.iter().collect(),
+        _ => Vec::new(),
+    }
+}
+
+fn fixed_syntax_error(ty: &syn::Type) -> String {
+    format!(
+        "Naclac Error: `{}` must be written `FixedVec<T, N>` or `FixedString<N>`.",
+        ty.to_token_stream()
+    )
+}
+
+/// The `N` of the `FixedVec<T, N>` or `FixedString<N>` that `ty` is, or is an
+/// array or reference of, or `None` when it holds neither. A field has at most
+/// one such type, so one number says every slot count in it.
+pub fn rust_type_slots(ty: &syn::Type, constants: &[crate::types::NaclacConstant]) -> Option<u64> {
+    match ty {
+        syn::Type::Path(type_path) => {
+            let name = type_path.path.segments.last()?.ident.to_string();
+            let args = fixed_arguments(ty);
+            let capacity = match (name.as_str(), args.as_slice()) {
+                ("FixedVec", [syn::GenericArgument::Type(_), capacity]) => capacity,
+                ("FixedString", [capacity]) => capacity,
+                ("FixedVec" | "FixedString", _) => panic!("{}", fixed_syntax_error(ty)),
+                _ => return None,
+            };
+            let slots = resolve_array_len(
+                &capacity.to_token_stream().to_string().replace(" ", ""),
+                constants,
+            );
+            Some(slots as u64)
+        }
+        syn::Type::Array(array) => rust_type_slots(&array.elem, constants),
+        syn::Type::Reference(reference) => rust_type_slots(&reference.elem, constants),
+        _ => None,
+    }
+}
+
+/// The IDL type of `ty`. `FixedVec<T, N>` and `FixedString<N>` are the plain
+/// `vec` and `string`, so the IDL is the same in every mode.
 pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstant]) -> Value {
+    let recurse = |inner: &syn::Type| rust_type_to_idl(inner, constants);
     match ty {
         syn::Type::Path(type_path) => {
             let last_segment = type_path.path.segments.last().unwrap();
@@ -134,7 +180,7 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
             if ident_str == "Option" {
                 if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                     if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                        return json!({ "option": rust_type_to_idl(inner_ty, constants) });
+                        return json!({ "option": recurse(inner_ty) });
                     }
                 }
             }
@@ -144,8 +190,20 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
             if ident_str == "ZcEnum" {
                 if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                     if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                        return rust_type_to_idl(inner_ty, constants);
+                        return recurse(inner_ty);
                     }
+                }
+            }
+
+            // `FixedVec<T, N>` and `FixedString<N>` are the plain `vec` and
+            // `string` here; `N` is the field's `slots` (see `rust_type_slots`).
+            if ident_str == "FixedVec" || ident_str == "FixedString" {
+                match (ident_str.as_str(), fixed_arguments(ty).as_slice()) {
+                    ("FixedVec", [syn::GenericArgument::Type(inner_ty), _]) => {
+                        return json!({ "vec": recurse(inner_ty) });
+                    }
+                    ("FixedString", [_]) => return json!("string"),
+                    _ => panic!("{}", fixed_syntax_error(ty)),
                 }
             }
 
@@ -155,7 +213,7 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
             if ident_str == "Vec" || ident_str == "ZcVec" {
                 if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                     if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                        return json!({ "vec": rust_type_to_idl(inner_ty, constants) });
+                        return json!({ "vec": recurse(inner_ty) });
                     }
                 }
             }
@@ -172,9 +230,7 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
                 "Opt" => {
                     let inner = match &last_segment.arguments {
                         syn::PathArguments::AngleBracketed(args) => match args.args.first() {
-                            Some(syn::GenericArgument::Type(inner_ty)) => {
-                                Some(rust_type_to_idl(inner_ty, constants))
-                            }
+                            Some(syn::GenericArgument::Type(inner_ty)) => Some(recurse(inner_ty)),
                             _ => None,
                         },
                         _ => None,
@@ -193,14 +249,14 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
             }
         }
         syn::Type::Slice(type_slice) => {
-            let inner = rust_type_to_idl(&type_slice.elem, constants);
+            let inner = recurse(&type_slice.elem);
             if inner == json!("u8") {
                 return json!("bytes");
             }
             json!({ "vec": inner })
         }
         syn::Type::Array(type_array) => {
-            let inner_ty = rust_type_to_idl(&type_array.elem, constants);
+            let inner_ty = recurse(&type_array.elem);
             let len_str = type_array
                 .len
                 .to_token_stream()
@@ -215,7 +271,7 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
                     return json!("string");
                 }
             }
-            rust_type_to_idl(&type_ref.elem, constants)
+            recurse(&type_ref.elem)
         }
         _ => {
             let raw = ty.to_token_stream().to_string().replace(" ", "");
@@ -249,6 +305,7 @@ pub fn defined_type_leaf(ty: &syn::Type) -> Option<syn::Type> {
                 || ident_str == "ZcVec"
                 || ident_str == "Opt"
                 || ident_str == "ZcEnum"
+                || ident_str == "FixedVec"
             {
                 if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                     if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
@@ -261,7 +318,7 @@ pub fn defined_type_leaf(ty: &syn::Type) -> Option<syn::Type> {
             match ident_str.as_str() {
                 "Address" | "u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32"
                 | "i64" | "i128" | "f32" | "f64" | "usize" | "isize" | "bool" | "Bool"
-                | "String" | "ZcString" | "str" => None,
+                | "String" | "ZcString" | "FixedString" | "str" => None,
                 _ => Some(ty.clone()),
             }
         }
@@ -384,6 +441,7 @@ pub fn parse_module_items(idl: &mut NaclacProgram, items: &[Item]) {
                         fields.push(NaclacField {
                             name: field_name,
                             ty: rust_type_to_idl(&field.ty, &idl.constants),
+                            slots: rust_type_slots(&field.ty, &idl.constants),
                             docs: extract_docs(&field.attrs),
                         });
                     }
@@ -419,7 +477,6 @@ pub fn parse_module_items(idl: &mut NaclacProgram, items: &[Item]) {
                         fields.push(NaclacEventField {
                             name: idl_name(&field.ident.as_ref().unwrap().to_string()),
                             ty: rust_type_to_idl(&field.ty, &idl.constants),
-                            index: false,
                             docs: extract_docs(&field.attrs),
                         });
                     }
@@ -473,6 +530,7 @@ pub fn parse_module_items(idl: &mut NaclacProgram, items: &[Item]) {
                         fields.push(NaclacField {
                             name: field_name,
                             ty: rust_type_to_idl(&field.ty, &idl.constants),
+                            slots: rust_type_slots(&field.ty, &idl.constants),
                             docs: extract_docs(&field.attrs),
                         });
                     }
@@ -536,6 +594,7 @@ pub fn parse_module_items(idl: &mut NaclacProgram, items: &[Item]) {
                                     fs.push(NaclacField {
                                         name: field_name,
                                         ty: rust_type_to_idl(&field.ty, &idl.constants),
+                                        slots: None,
                                         docs: extract_docs(&field.attrs),
                                     });
                                 }

@@ -10,7 +10,7 @@ help: the trait `Pod` is not implemented for `Mode`
  6 | pub enum Mode {
    | ^^^^^^^^^^^^^
    = note: a `#[defined_type]` enum field must be written `ZcEnum<EnumName>`
-   = note: `bool` fields must be `Bool`; `Vec` and `String` need the Borsh or Wincode representation
+   = note: `bool` fields must be `Bool`; `Vec` and `String` need the Borsh or Wincode representation, or `FixedVec`/`FixedString`
    = help: the following other types implement trait `Pod`:
              ()
              Address

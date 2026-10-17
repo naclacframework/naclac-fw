@@ -13,8 +13,6 @@ pub mod cpi_handle;
 pub mod interface;
 pub mod program;
 pub mod signer;
-pub mod zc_enum;
-pub mod zc_vec;
 
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::AccountInfo;
@@ -25,13 +23,13 @@ pub use {
     accounts::*,
     cpi_handle::*,
     interface::*,
+    naclac_pod::{
+        decode_pod, encode_pod, event_bytes_of, event_field_default, event_slice_bytes, Bool,
+        BoolField, FixedString, FixedVec, FixedVecIter, Opt, PodError, Unaligned, ZcCodec, ZcEnum,
+        ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec, ZcVecIter,
+    },
     program::*,
     signer::*,
-    zc_enum::{
-        event_bytes_of, event_field_default, event_slice_bytes, Align, AlignTo, ZcEnum, ZcEnumKind,
-        ZcEventDefault, ZcEventField, ZcField, ZcFieldWrite, ZcStorage, ZcWrite,
-    },
-    zc_vec::*,
 };
 
 /// Trait to convert a type into an Address.
@@ -66,6 +64,16 @@ pub trait Discriminator {
     #[inline(always)]
     fn validate_account(_info: &AccountInfo, _index: usize) -> crate::prelude::Result<()> {
         Ok(())
+    }
+
+    /// Whether every `Vec`/`String` field is within the `#[max_len]` it was
+    /// declared with. A Borsh or Wincode account checks this before it is
+    /// written back, so a field cannot outgrow its declared length by using
+    /// room another field left unused. True by default; `#[component]`
+    /// overrides it for a type that declares any `#[max_len]`.
+    #[inline(always)]
+    fn within_max_len(&self) -> bool {
+        true
     }
 }
 
@@ -370,7 +378,7 @@ impl AsRefByteSlice for &str {
 }
 
 #[cfg(feature = "pinocchio")]
-impl AsRefByteSlice for crate::wrappers::ZcString {
+impl AsRefByteSlice for crate::wrappers::ZcString<'_> {
     #[inline(always)]
     fn as_ref_byte_slice(&self) -> &[u8] {
         self.as_bytes()

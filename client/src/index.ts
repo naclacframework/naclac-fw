@@ -20,13 +20,16 @@ export type {
   IdlDefinedType,
 } from "./idl";
 
+export { resolveSlots } from "./slots";
+
 export {
   encodeInstructionData,
   decodeAccountData,
   decodeDiscriminatedAccountData,
+  getAccountCodec,
   getIdlCodec,
 } from "./coder/index";
-export type { NaclacCodec } from "./coder/index";
+export type { AccountCodec, NaclacCodec } from "./coder/index";
 
 export {
   parseEventsFromLogs,

@@ -140,6 +140,11 @@ export const IDL = {
   "errors": [],
   "constants": [
     {
+      "name": "SEED_NOTE",
+      "type": "bytes",
+      "value": "[110, 111, 116, 101]"
+    },
+    {
       "name": "SEED_VAULT_A",
       "type": "bytes",
       "value": "[118, 97, 117, 108, 116, 95, 97]"
@@ -153,11 +158,6 @@ export const IDL = {
       "name": "SEED_VAULT_C",
       "type": "bytes",
       "value": "[118, 97, 117, 108, 116, 95, 99]"
-    },
-    {
-      "name": "SEED_NOTE",
-      "type": "bytes",
-      "value": "[110, 111, 116, 101]"
     }
   ],
   "definedTypes": [],

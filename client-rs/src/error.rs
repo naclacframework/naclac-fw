@@ -36,9 +36,48 @@ pub enum NaclacError {
     TooManyExtraAccounts = 29,
     TooManyCpiAccounts = 30,
     TooManyAccountEntries = 31,
+    CapacityExceeded = 32,
+    InvalidUtf8 = 33,
 }
 
 impl NaclacError {
+    /// Every framework error, in code order.
+    pub const ALL: [NaclacError; 33] = [
+        NaclacError::ConstraintMut,
+        NaclacError::ConstraintSigner,
+        NaclacError::ConstraintAddress,
+        NaclacError::ConstraintOwner,
+        NaclacError::ConstraintRentExempt,
+        NaclacError::ConstraintSeeds,
+        NaclacError::ConstraintExecutable,
+        NaclacError::ConstraintAccountIsNone,
+        NaclacError::ProgramIdMismatch,
+        NaclacError::AccountDataTooSmall,
+        NaclacError::AccountBorrowFailed,
+        NaclacError::InvalidInstructionData,
+        NaclacError::InsufficientFunds,
+        NaclacError::AccountAlreadyInitialized,
+        NaclacError::AccountNotInitialized,
+        NaclacError::NotEnoughAccountKeys,
+        NaclacError::MaxSeedLengthExceeded,
+        NaclacError::UnsupportedSysvar,
+        NaclacError::InvalidRealloc,
+        NaclacError::ArithmeticOverflow,
+        NaclacError::Unauthorized,
+        NaclacError::InvalidAccountDiscriminator,
+        NaclacError::DeserializationFailed,
+        NaclacError::SerializationFailed,
+        NaclacError::ConstraintDuplicateMutableAccount,
+        NaclacError::ConstraintClose,
+        NaclacError::TooManyCpiSigners,
+        NaclacError::TooManyCpiSeeds,
+        NaclacError::TooManyExtraAccounts,
+        NaclacError::TooManyCpiAccounts,
+        NaclacError::TooManyAccountEntries,
+        NaclacError::CapacityExceeded,
+        NaclacError::InvalidUtf8,
+    ];
+
     pub fn description(&self) -> &'static str {
         match self {
             NaclacError::ConstraintMut => "Mutability mismatch",
@@ -90,6 +129,8 @@ impl NaclacError {
             NaclacError::TooManyAccountEntries => {
                 "Instruction carries more than 64 account entries"
             }
+            NaclacError::CapacityExceeded => "Fixed-capacity vector or string is full",
+            NaclacError::InvalidUtf8 => "Fixed-capacity string holds invalid UTF-8",
         }
     }
 }
@@ -138,6 +179,8 @@ pub fn decode_custom_error(code: u32) -> Option<(NaclacError, usize)> {
         29 => NaclacError::TooManyExtraAccounts,
         30 => NaclacError::TooManyCpiAccounts,
         31 => NaclacError::TooManyAccountEntries,
+        32 => NaclacError::CapacityExceeded,
+        33 => NaclacError::InvalidUtf8,
         _ => return None,
     };
     Some((error, index))
@@ -249,5 +292,95 @@ pub fn translate_error_code(code: u32, account_names: Option<&[&str]>, logs: &[S
         )
     } else {
         format!("Custom program error: {}", code)
+    }
+}
+
+#[cfg(test)]
+mod table_parity_tests {
+    use super::*;
+
+    const TYPESCRIPT_TABLE: &str = include_str!("../../client/src/utils/errors.ts");
+
+    /// `(code, name, message)` of every entry of `NACLAC_FRAMEWORK_ERRORS` in the
+    /// TypeScript client's `errors.ts`.
+    fn typescript_entries() -> Vec<(u32, String, String)> {
+        TYPESCRIPT_TABLE
+            .lines()
+            .filter_map(|line| {
+                let entry = line.trim().strip_prefix("{ code: ")?;
+                let (code, rest) = entry.split_once(", name: \"")?;
+                let (name, rest) = rest.split_once("\", message: \"")?;
+                let (message, _) = rest.split_once("\" }")?;
+                Some((code.parse().ok()?, name.to_string(), message.to_string()))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_typescript_table_matches_this_enum_entry_for_entry() {
+        let rust: Vec<(u32, String, String)> = NaclacError::ALL
+            .iter()
+            .map(|e| (*e as u32, format!("{e:?}"), e.description().to_string()))
+            .collect();
+        assert_eq!(typescript_entries(), rust);
+    }
+
+    macro_rules! assert_matches_core {
+        ($($variant:ident),* $(,)?) => {
+            $(assert_eq!(
+                NaclacError::$variant as u32,
+                naclac_core::error::NaclacError::$variant as u32,
+                stringify!($variant)
+            );)*
+            let listed = [$(NaclacError::$variant),*];
+            assert_eq!(listed, NaclacError::ALL);
+        };
+    }
+
+    #[test]
+    fn every_variant_has_the_same_code_as_naclac_core() {
+        assert_matches_core!(
+            ConstraintMut,
+            ConstraintSigner,
+            ConstraintAddress,
+            ConstraintOwner,
+            ConstraintRentExempt,
+            ConstraintSeeds,
+            ConstraintExecutable,
+            ConstraintAccountIsNone,
+            ProgramIdMismatch,
+            AccountDataTooSmall,
+            AccountBorrowFailed,
+            InvalidInstructionData,
+            InsufficientFunds,
+            AccountAlreadyInitialized,
+            AccountNotInitialized,
+            NotEnoughAccountKeys,
+            MaxSeedLengthExceeded,
+            UnsupportedSysvar,
+            InvalidRealloc,
+            ArithmeticOverflow,
+            Unauthorized,
+            InvalidAccountDiscriminator,
+            DeserializationFailed,
+            SerializationFailed,
+            ConstraintDuplicateMutableAccount,
+            ConstraintClose,
+            TooManyCpiSigners,
+            TooManyCpiSeeds,
+            TooManyExtraAccounts,
+            TooManyCpiAccounts,
+            TooManyAccountEntries,
+            CapacityExceeded,
+            InvalidUtf8,
+        );
+    }
+
+    #[test]
+    fn decoding_inverts_the_code_of_every_variant() {
+        for error in NaclacError::ALL {
+            let code = FRAMEWORK_ERROR_BASE + 7 * 100 + error as u32;
+            assert_eq!(decode_custom_error(code), Some((error, 7)));
+        }
     }
 }

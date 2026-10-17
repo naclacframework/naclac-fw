@@ -31,38 +31,53 @@ pub struct RoyaltyCreator {
     pub percentage: u8,
 }
 
+const _: () = {
+    assert!(core::mem::size_of::<RoyaltyCreator>() == 33);
+    assert!(core::mem::align_of::<RoyaltyCreator>() == 1);
+};
+
 /// `RoyaltiesData.creators`'s element list — a heap `Vec` on `solana`, a
 /// zero-copy `ZcVec` on `pinocchio` (no cap needed, reflects whatever's
-/// actually on-chain). A type alias rather than a per-backend struct field
-/// so `RoyaltiesData`/`RuleSetData` stay single, shared definitions instead
-/// of being duplicated one-per-backend.
+/// actually on-chain).
 #[cfg(not(feature = "pinocchio"))]
 pub type RoyaltyCreatorList = crate::prelude::Vec<RoyaltyCreator>;
 #[cfg(feature = "pinocchio")]
-pub type RoyaltyCreatorList = ZcVec<RoyaltyCreator>;
+pub type RoyaltyCreatorList<'a> = ZcVec<'a, RoyaltyCreator>;
 
-/// `RuleSetData::ProgramAllowList`/`ProgramDenyList`'s element list — same
-/// reasoning as `RoyaltyCreatorList`.
+/// `RuleSetData::ProgramAllowList`/`ProgramDenyList`'s element list, with the
+/// same per-backend shape as `RoyaltyCreatorList`.
 #[cfg(not(feature = "pinocchio"))]
 pub type RuleSetAddressList = crate::prelude::Vec<Address>;
 #[cfg(feature = "pinocchio")]
-pub type RuleSetAddressList = ZcVec<Address>;
+pub type RuleSetAddressList<'a> = ZcVec<'a, Address>;
 
 /// Backend-neutral mirror of the real `RuleSet` enum.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum RuleSetData {
+pub enum RuleSetData<#[cfg(feature = "pinocchio")] 'a> {
     None,
+    #[cfg(not(feature = "pinocchio"))]
     ProgramAllowList(RuleSetAddressList),
+    #[cfg(feature = "pinocchio")]
+    ProgramAllowList(RuleSetAddressList<'a>),
+    #[cfg(not(feature = "pinocchio"))]
     ProgramDenyList(RuleSetAddressList),
+    #[cfg(feature = "pinocchio")]
+    ProgramDenyList(RuleSetAddressList<'a>),
 }
 
 /// Backend-neutral `Royalties` payload — `fetch_asset_royalties`/
 /// `fetch_collection_royalties` return this on both backends.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RoyaltiesData {
+pub struct RoyaltiesData<#[cfg(feature = "pinocchio")] 'a> {
     pub basis_points: u16,
+    #[cfg(not(feature = "pinocchio"))]
     pub creators: RoyaltyCreatorList,
+    #[cfg(feature = "pinocchio")]
+    pub creators: RoyaltyCreatorList<'a>,
+    #[cfg(not(feature = "pinocchio"))]
     pub rule_set: RuleSetData,
+    #[cfg(feature = "pinocchio")]
+    pub rule_set: RuleSetData<'a>,
 }
 
 /// Argument form of `RuleSet` for `attach_royalties_signed` — borrows
@@ -278,7 +293,7 @@ pub fn fetch_collection_royalties(info: &AccountInfo) -> Result<Option<Royalties
 /// Reads an `Asset`'s `Royalties` plugin, if attached. Callable identically
 /// on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData>> {
+pub fn fetch_asset_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData<'_>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -289,7 +304,7 @@ pub fn fetch_asset_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData>
 /// Reads a `Collection`'s `Royalties` plugin, if attached. Callable
 /// identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_collection_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData>> {
+pub fn fetch_collection_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData<'_>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);
@@ -381,7 +396,10 @@ fn read_royalties_owned(data: &[u8], plugin_header_offset: usize) -> Result<Opti
 /// `edition.rs`'s `read_edition` for why this exists alongside the
 /// uniform-signature wrapper above.
 #[cfg(feature = "pinocchio")]
-pub fn read_royalties(data: &[u8], plugin_header_offset: usize) -> Result<Option<RoyaltiesData>> {
+pub fn read_royalties(
+    data: &[u8],
+    plugin_header_offset: usize,
+) -> Result<Option<RoyaltiesData<'_>>> {
     let Some(offset) = find_plugin_offset(data, plugin_header_offset, plugin_type::ROYALTIES)?
     else {
         return Ok(None);

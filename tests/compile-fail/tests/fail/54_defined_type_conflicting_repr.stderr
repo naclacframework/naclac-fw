@@ -1,0 +1,5 @@
+error: Naclac Error: a zero-copy `#[defined_type]` struct is stored as `#[repr(C, packed)]` in the zero-copy representation, which this macro adds itself: remove this `#[repr(..)]`.
+ --> tests/fail/54_defined_type_conflicting_repr.rs:4:1
+  |
+4 | #[repr(C)]
+  | ^^^^^^^^^^

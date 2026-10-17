@@ -51,7 +51,7 @@ pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<crate::prelude::V
 /// so `ZcVec<Address>` views directly into the account's own bytes, no cap
 /// needed.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<ZcVec<Address>>> {
+pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<ZcVec<'_, Address>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -62,7 +62,7 @@ pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<ZcVec<Address>>> 
 /// Lower-level variant of `fetch_asset_groups`, shared by both backends: see
 /// `edition.rs`'s `read_edition` for why this exists alongside the
 /// uniform-signature wrapper above.
-pub fn read_groups(data: &[u8], plugin_header_offset: usize) -> Result<Option<ZcVec<Address>>> {
+pub fn read_groups(data: &[u8], plugin_header_offset: usize) -> Result<Option<ZcVec<'_, Address>>> {
     let Some(offset) = find_plugin_offset(data, plugin_header_offset, plugin_type::GROUPS)? else {
         return Ok(None);
     };

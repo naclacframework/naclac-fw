@@ -64,13 +64,8 @@ export function encodeInstructionData(
  * Skips the leading `dataOffset` bytes (the discriminator; 8 unless the
  * program declares a custom one) and deserializes field by field.
  *
- * Uses `getStructFieldsCodec` rather than a naive sequential per-field walk
- * — a zero-copy account's own top-level fields can have real internal
- * alignment gaps (`#[repr(C)]`, closed on-chain by `pod_struct_checks`'s
- * auto-inserted padding, which never reaches the IDL — see
- * `getStructFieldsCodec`'s own doc comment) that a naive walk has no way to
- * know about. Borsh mode never has this concern, so it stays sequential
- * either way.
+ * Uses `getStructFieldsCodec`, which picks the packed zero-copy layout or the
+ * Borsh/Wincode layout from `isZeroCopy`.
  *
  * @param fields     - The IDL field definitions for the account type.
  * @param data       - Raw bytes from the RPC (the full account data, excluding length prefix).

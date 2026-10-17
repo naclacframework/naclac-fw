@@ -12,7 +12,6 @@
 extern crate proc_macro;
 
 mod accounts;
-mod checked_enum;
 mod component;
 mod emit;
 mod error_code;
@@ -23,6 +22,7 @@ mod pod_struct_checks;
 mod program;
 mod system;
 mod type_classify;
+mod zc_enum;
 
 use proc_macro::TokenStream;
 
@@ -275,16 +275,17 @@ pub fn derive_accounts(item: proc_macro::TokenStream) -> proc_macro::TokenStream
 /// non-event type (a struct/enum used as e.g. an instruction arg or a nested
 /// field) — matching the same automatic per-mode routing `#[component]`/
 /// `#[event]` already use: zero-copy mode gets `Pod`/`Zeroable` (structs) or
-/// `CheckedBitPattern` (enums) for byte-level casting; Borsh mode gets real
+/// `ZcCodec` (enums) for byte-level access; Borsh mode gets real
 /// `borsh::BorshSerialize`/`BorshDeserialize`.
 ///
 /// The zero-copy struct/enum split exists because every bit pattern of a
 /// fixed-size struct's bytes is a valid value (safe to declare unconditionally
 /// `Pod`), but an enum's discriminant only has as many valid values as it has
 /// variants — reinterpreting an out-of-range discriminant byte as the enum is
-/// undefined behavior. Enums therefore get bytemuck's own `CheckedBitPattern`
-/// (validated on read) instead of `Pod`/`Zeroable` (unconditional), and their
-/// `NaclacPod::naclac_try_from_bytes` validates the discriminant and returns
+/// undefined behavior. A struct is `#[repr(C, packed)]` (alignment 1, no
+/// padding); an enum is stored as its tag followed by the active variant's
+/// fields, packed, through a generated `ZcCodec` whose `decode` validates the
+/// tag and every nested value. `NaclacPod::naclac_try_from_bytes` returns
 /// `None` for an invalid one (instruction-argument readers turn that into
 /// `InvalidInstructionData`); `naclac_from_bytes` panics instead. Neither
 /// blindly transmutes bytes into an enum value with no corresponding variant.
@@ -306,6 +307,32 @@ pub fn defined_type(
     // shape reflects what the developer actually wrote, not the on-chain
     // zero-copy layout's auto-added padding field.
     let original_data = input.data.clone();
+
+    let declared_fields: Vec<&syn::Field> = match &original_data {
+        syn::Data::Struct(data) => data.fields.iter().collect(),
+        syn::Data::Enum(data) => data.variants.iter().flat_map(|v| v.fields.iter()).collect(),
+        syn::Data::Union(_) => Vec::new(),
+    };
+    if let Some(error) = type_classify::zc_view_field_error(
+        declared_fields.into_iter(),
+        "a #[defined_type]",
+        "A #[defined_type] is a fixed-size value stored in accounts and events: use a fixed-size \
+         array (e.g. '[u8; 64]'). To group instruction arguments that need ZcVec/ZcString, use \
+         #[instruction_args].",
+    ) {
+        return error.to_compile_error().into();
+    }
+
+    if let syn::Data::Enum(data) = &original_data {
+        if let Some(error) = type_classify::fixed_capacity_field_error(
+            data.variants.iter().flat_map(|v| v.fields.iter()),
+            "a #[defined_type] enum variant",
+            "Put the FixedVec/FixedString in a #[defined_type] struct and use that struct as the \
+             variant's field.",
+        ) {
+            return error.to_compile_error().into();
+        }
+    }
 
     // Checked here, before anything below mutates `input.attrs` (an earlier
     // version of this check ran deep inside the struct branch below, after
@@ -466,30 +493,26 @@ pub fn defined_type(
     };
 
     // --- Zero-copy variant ---
-    // Auto-add a deterministic layout repr when the caller hasn't picked one
-    // explicitly: #[repr(u8)] for enums, #[repr(C)] for structs.
+    // A struct is always `#[repr(C, packed)]` (a conflicting `repr` of its own
+    // is rejected). An enum gets `#[repr(u8)]` when it names no integer repr:
+    // the integer is the width of its stored tag, and Rust requires one for
+    // explicit discriminants on a variant with fields. The same detection
+    // (`naclac_syn::discriminator::detect_enum_repr`) is used for the tag type
+    // below and by the IDL walker, so they cannot drift apart.
+    let mut zero_copy_repr_conflict = proc_macro2::TokenStream::new();
     match &input.data {
-        // An enum's generated `bytemuck::CheckedBitPattern` layout below is
-        // sized to a concrete integer discriminant width — a bare
-        // `#[repr(C)]` (or no repr at all) doesn't commit to one, so
-        // `#[repr(u8)]` must be added whenever no *explicit integer* repr is
-        // present, not merely whenever no repr at all is present. Pushing
-        // `#[repr(u8)]` alongside an existing `#[repr(C)]` is valid Rust —
-        // multiple `#[repr(...)]` attributes on one item combine, same as
-        // writing `#[repr(C, u8)]` — so this is safe regardless of what
-        // other repr modifiers are already there. Must use the same
-        // detection `tag_ty` below uses, and that `naclac_syn::discriminator
-        // ::detect_enum_repr` (the IDL walker's own detector) uses — all
-        // three now share one function so they can't drift apart again.
         syn::Data::Enum(_) => {
             if naclac_syn::discriminator::detect_enum_repr(&input.attrs).is_none() {
                 input.attrs.push(syn::parse_quote!(#[repr(u8)]));
             }
         }
         syn::Data::Struct(_) => {
-            let has_repr = input.attrs.iter().any(|attr| attr.path().is_ident("repr"));
-            if !has_repr {
-                input.attrs.push(syn::parse_quote!(#[repr(C)]));
+            match pod_struct_checks::repr_error(
+                &input.attrs,
+                "a zero-copy `#[defined_type]` struct",
+            ) {
+                Some(error) => zero_copy_repr_conflict = error.to_compile_error(),
+                None => input.attrs.push(syn::parse_quote!(#[repr(C, packed)])),
             }
         }
         syn::Data::Union(_) => {}
@@ -531,9 +554,8 @@ pub fn defined_type(
     }
 
     let zero_copy_variant = if is_enum {
-        // No `derive(Copy)`/`derive(Clone)` re-added here — already pushed
-        // onto `input.attrs` above, and `bytemuck::CheckedBitPattern`
-        // requires `Copy` as a supertrait just like `Pod` does.
+        // `derive(Clone, Copy)` was already added to `input.attrs` above;
+        // `ZcEnumKind` requires `Copy`.
         let syn::Data::Enum(data_enum) = &input.data else {
             unreachable!("is_enum was computed from input.data being Data::Enum")
         };
@@ -541,50 +563,29 @@ pub fn defined_type(
             let named = naclac_syn::discriminator::detect_enum_repr(&input.attrs);
             syn::parse_str(named.as_deref().unwrap_or("u8")).unwrap()
         };
-        let (extra_items, checked_bit_pattern_impl) = checked_enum::generate(
-            &ident,
-            &input.vis,
-            &data_enum.variants,
-            &tag_ty,
-            &zero_copy_cfg,
-        );
-        let zc_storage_items =
-            checked_enum::zc_storage_items(&ident, &data_enum.variants, &tag_ty, &zero_copy_cfg);
+        let codec_items = zc_enum::generate(&ident, &data_enum.variants, &tag_ty, &zero_copy_cfg);
         quote::quote! {
             #zero_copy_cfg
             #input
 
-            #extra_items
-            #checked_bit_pattern_impl
-            #zc_storage_items
+            #codec_items
 
             #zero_copy_cfg
             impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
                 #[inline(always)]
                 fn naclac_from_bytes(data: &[u8]) -> Self {
-                    // Unlike a struct (every byte pattern valid), an enum's
-                    // discriminant must be checked — see this macro's own
-                    // doc comment. `try_pod_read_unaligned` (unlike
-                    // `try_from_bytes`) validates the discriminant without
-                    // requiring proper alignment, which real Solana
-                    // account/instruction byte buffers don't guarantee.
-                    // An invalid discriminant panics instead of being
-                    // undefined behavior.
-                    naclac_lang::prelude::bytemuck::checked::try_pod_read_unaligned::<Self>(
-                        &data[..core::mem::size_of::<Self>()],
-                    )
-                    .unwrap_or_else(|_| panic!("defined_type: invalid enum discriminant in account/instruction bytes"))
+                    // An unknown tag or invalid nested value panics instead
+                    // of being undefined behaviour.
+                    <Self as naclac_lang::prelude::ZcCodec>::decode(data)
+                        .unwrap_or_else(|| panic!("defined_type: invalid enum discriminant in account/instruction bytes"))
                 }
                 #[inline(always)]
                 fn naclac_try_from_bytes(data: &[u8]) -> Option<Self> {
-                    naclac_lang::prelude::bytemuck::checked::try_pod_read_unaligned::<Self>(
-                        &data[..core::mem::size_of::<Self>()],
-                    )
-                    .ok()
+                    <Self as naclac_lang::prelude::ZcCodec>::decode(data)
                 }
                 #[inline(always)]
                 fn naclac_size() -> usize {
-                    core::mem::size_of::<Self>()
+                    <Self as naclac_lang::prelude::ZcCodec>::SIZE
                 }
             }
         }
@@ -592,44 +593,20 @@ pub fn defined_type(
         let syn::Data::Struct(data_struct) = &input.data else {
             unreachable!("is_enum was false, so input.data must be Data::Struct")
         };
-        let is_tuple = matches!(&data_struct.fields, syn::Fields::Unnamed(_));
-
-        let (padded_fields, pod_checks) =
-            pod_struct_checks::generate(&ident, &data_struct.fields, &zero_copy_cfg);
-        // Splice the auto-padded field list back into `input` itself (rather
-        // than re-declaring the struct by hand) so every other attribute on
-        // it (doc comments, other derives, etc.) survives unchanged. No
-        // trailing `;` to worry about either way — `input`'s own semicolon
-        // token (present only for a tuple struct) already survives
-        // untouched, since only `.fields` itself is being replaced here.
-        let syn::Data::Struct(data_struct) = &mut input.data else {
-            unreachable!("checked above")
-        };
-        data_struct.fields = if is_tuple {
-            syn::Fields::Unnamed(
-                syn::parse2(padded_fields)
-                    .expect("defined_type: generated padded tuple field list must parse"),
-            )
-        } else {
-            syn::Fields::Named(
-                syn::parse2(padded_fields)
-                    .expect("defined_type: generated padded named field list must parse"),
-            )
-        };
+        let pod_checks = pod_struct_checks::generate(&ident, &data_struct.fields, &zero_copy_cfg);
         quote::quote! {
+            #zero_copy_cfg
+            #zero_copy_repr_conflict
+
             #zero_copy_cfg
             #input
 
             #pod_checks
 
-            // SAFETY: sound only because the annotated type has a deterministic
-            // layout (#[repr(u8)]/#[repr(C)]) and is Copy, both auto-added above
-            // when the caller hasn't already provided them — and because
-            // `pod_checks` (above) verifies at compile time that the struct
-            // has no internal padding gap and every declared field is itself
-            // Pod. The auto-added trailing `_padding` field (spliced into
-            // `input` above) closes the one gap this check can safely
-            // account for on its own.
+            // SAFETY: sound only because the type is `#[repr(C, packed)]` and
+            // `Copy` (both added above) and because `pod_checks` (above)
+            // verifies at compile time that the struct has no padding,
+            // alignment 1, and every declared field is itself Pod.
             #zero_copy_cfg
             unsafe impl #impl_generics naclac_lang::prelude::Pod for #ident #ty_generics #where_clause {}
             // SAFETY: Zeroed memory is a valid initial state for Pod types.
@@ -638,12 +615,10 @@ pub fn defined_type(
 
             // Not `#[derive(Default)]` (rejected above if the caller wrote
             // it themselves) — `std`'s derive only implements `Default` for
-            // arrays up to length 32, which a `[u8; N]` padding field (or
-            // any other large fixed-size field) can easily exceed.
-            // `Zeroable` (already required above) has no such limit, and
-            // lets every existing `Struct { field: v, ..Default::default() }`
-            // construction site keep working without knowing about the
-            // auto-inserted padding field at all.
+            // arrays up to length 32, which a large fixed-size field can
+            // easily exceed. `Zeroable` (already required above) has no such
+            // limit, and lets every `Struct { field: v, ..Default::default() }`
+            // construction site work.
             #zero_copy_cfg
             impl #impl_generics core::default::Default for #ident #ty_generics #where_clause {
                 fn default() -> Self {
@@ -652,9 +627,15 @@ pub fn defined_type(
             }
 
             #zero_copy_cfg
-            impl #impl_generics naclac_lang::prelude::ZcWrite for #ident #ty_generics #where_clause {
-                fn write_into(&self, out: &mut [u8]) {
-                    out.copy_from_slice(naclac_lang::prelude::bytemuck::bytes_of(self));
+            impl #impl_generics naclac_lang::prelude::ZcCodec for #ident #ty_generics #where_clause {
+                const SIZE: usize = core::mem::size_of::<Self>();
+
+                fn encode(&self, out: &mut [u8]) {
+                    naclac_lang::prelude::encode_pod(self, out);
+                }
+
+                fn decode(bytes: &[u8]) -> Option<Self> {
+                    naclac_lang::prelude::decode_pod(bytes)
                 }
             }
 
@@ -662,10 +643,10 @@ pub fn defined_type(
             impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
                 #[inline(always)]
                 fn naclac_from_bytes(data: &[u8]) -> Self {
-                    // SAFETY: We use `read_unaligned` to safely read the struct from the byte slice.
-                    // This is required because SBF instruction data streams may not align properly
-                    // to the struct's natural alignment boundaries, preventing standard bytemuck casting.
-                    unsafe { core::ptr::read_unaligned(data.as_ptr() as *const Self) }
+                    // A short slice panics instead of reading past it.
+                    naclac_lang::prelude::bytemuck::pod_read_unaligned(
+                        &data[..core::mem::size_of::<Self>()],
+                    )
                 }
                 #[inline(always)]
                 fn naclac_size() -> usize {
@@ -680,9 +661,13 @@ pub fn defined_type(
     // default above, matching the enum's real compiled discriminant width,
     // not just whatever the developer happened to write (or omit).
     let idl_build_variant = match &original_data {
-        syn::Data::Struct(s) => {
-            crate::component::idl_build_impl(&ident, &input.attrs, &s.fields, None)
-        }
+        syn::Data::Struct(s) => crate::component::idl_build_impl(
+            &ident,
+            &syn::Generics::default(),
+            &input.attrs,
+            &s.fields,
+            None,
+        ),
         syn::Data::Enum(e) => idl_build_impl_enum(&ident, &e.variants, &input.attrs),
         syn::Data::Union(_) => quote::quote! {},
     };
@@ -773,6 +758,7 @@ fn idl_build_impl_enum(
                             docs: vec![#(#field_docs.into()),*],
                             ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
                                 .expect("naclac idl-build: generated field type JSON must parse"),
+                            slots: None,
                         }
                     });
                     if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&f.ty) {
@@ -1043,6 +1029,9 @@ pub fn instruction_args(
         }
     }
 
+    let declared_input = input.clone();
+    let view_lifetime = type_classify::thread_view_lifetime(&mut input);
+
     let ident = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
@@ -1183,33 +1172,31 @@ pub fn instruction_args(
     // real program used `#[instruction_args]` under `idl-build`. Reuses
     // `component.rs`'s own `idl_build_impl` directly rather than
     // duplicating it — same named-fields shape, same per-field type mapping.
-    let idl_build_impl_tokens =
-        component::idl_build_impl(ident, &input.attrs, &data_struct.fields, None);
+    let syn::Data::Struct(declared_struct) = &declared_input.data else {
+        unreachable!("checked above: input is a struct")
+    };
+    let idl_build_impl_tokens = component::idl_build_impl(
+        ident,
+        &input.generics,
+        &input.attrs,
+        &declared_struct.fields,
+        None,
+    );
 
     if !has_dynamic_field {
-        // Zero-copy mode reads this struct as one `repr(C)` block, so its
-        // alignment gaps become explicit hidden fields (same machinery as
-        // `#[component]`), which is what makes the `Pod` impl below true. The
-        // IDL above was built from the declared fields only. Borsh and Wincode
-        // modes encode field by field and keep the struct as written.
-        let (padded_fields, pod_checks) =
-            pod_struct_checks::generate(ident, &data_struct.fields, &zero_copy_cfg);
-        let mut zero_copy_input = input.clone();
-        let syn::Data::Struct(zero_copy_struct) = &mut zero_copy_input.data else {
-            unreachable!("checked above: input is a struct")
-        };
-        zero_copy_struct.fields = syn::Fields::Named(
-            syn::parse2(padded_fields)
-                .expect("instruction_args: generated padded field list must parse"),
-        );
+        // Zero-copy mode reads this struct as one `repr(C, packed)` block
+        // (alignment 1, no padding), which is what makes the `Pod` impl below
+        // true. Borsh and Wincode modes encode field by field and keep the
+        // struct as written.
+        let pod_checks = pod_struct_checks::generate(ident, &data_struct.fields, &zero_copy_cfg);
 
         let expanded = quote::quote! {
             #default_derive_error
 
             #zero_copy_cfg
-            #[repr(C)]
+            #[repr(C, packed)]
             #[derive(Clone, Copy)]
-            #zero_copy_input
+            #input
 
             #pod_checks
 
@@ -1220,8 +1207,7 @@ pub fn instruction_args(
 
             // `Zeroable` rather than `#[derive(Default)]` — consistent with
             // `defined_type`'s own `Default` impl, and it keeps every
-            // `Struct { field: v, ..Default::default() }` call site working
-            // without knowing about the hidden padding fields.
+            // `Struct { field: v, ..Default::default() }` call site working.
             #zero_copy_cfg
             impl #impl_generics core::default::Default for #ident #ty_generics #where_clause {
                 fn default() -> Self {
@@ -1233,10 +1219,10 @@ pub fn instruction_args(
             impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
                 #[inline(always)]
                 fn naclac_from_bytes(data: &[u8]) -> Self {
-                    // SAFETY: `read_unaligned` copies out of the instruction
-                    // data without requiring the struct's alignment, and
-                    // every byte pattern is a valid value (`Pod`).
-                    unsafe { core::ptr::read_unaligned(data.as_ptr() as *const Self) }
+                    // A short slice panics instead of reading past it.
+                    naclac_lang::prelude::bytemuck::pod_read_unaligned(
+                        &data[..core::mem::size_of::<Self>()],
+                    )
                 }
                 #[inline(always)]
                 fn naclac_size() -> usize {
@@ -1290,11 +1276,23 @@ pub fn instruction_args(
             })
             .collect();
 
+        let args_lifetime = view_lifetime.clone().unwrap_or_else(|| {
+            syn::Lifetime::new("'__naclac_data", proc_macro2::Span::call_site())
+        });
+        let mut args_generics = input.generics.clone();
+        if view_lifetime.is_none() {
+            args_generics.params.insert(
+                0,
+                syn::GenericParam::Lifetime(syn::LifetimeParam::new(args_lifetime.clone())),
+            );
+        }
+        let (args_impl_generics, _, _) = args_generics.split_for_impl();
+
         quote::quote! {
             #zero_copy_cfg
-            impl #impl_generics naclac_lang::prelude::NaclacArgs for #ident #ty_generics #where_clause {
+            impl #args_impl_generics naclac_lang::prelude::NaclacArgs<#args_lifetime> for #ident #ty_generics #where_clause {
                 fn naclac_deserialize(
-                    data: &[u8],
+                    data: &#args_lifetime [u8],
                     offset: &mut usize,
                 ) -> naclac_lang::prelude::Result<Self> {
                     #( #field_reads )*

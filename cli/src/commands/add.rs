@@ -35,7 +35,7 @@ pub fn execute(name: &str, mode_flag: Option<&str>, ts_flag: Option<&str>) {
             Some(mode) => mode,
             None => {
                 eprintln!(
-                    "❌ Error: Invalid mode '{}'. Available: pinocchio, zero-copy, wincode, borsh",
+                    "❌ Error: Invalid mode '{}'. Available: pinocchio, bytemuck, wincode, borsh",
                     m
                 );
                 std::process::exit(1);

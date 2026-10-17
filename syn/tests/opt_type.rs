@@ -2,9 +2,17 @@
 //! are exact inverses.
 
 use {
-    naclac_syn::opt_type::{opt_inner_type, opt_type_name},
+    naclac_syn::opt_type::{opt_fields, opt_inner_type, opt_type_name},
     serde_json::{json, Value},
 };
+
+#[test]
+fn the_idl_struct_is_a_tag_byte_then_the_value() {
+    assert_eq!(
+        opt_fields(json!("u64")).to_vec(),
+        vec![("tag", json!("u8")), ("value", json!("u64"))]
+    );
+}
 
 fn defined(name: &str) -> bool {
     matches!(name, "Pair" | "Box2x3")

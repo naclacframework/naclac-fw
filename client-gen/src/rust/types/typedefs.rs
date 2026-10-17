@@ -1,7 +1,7 @@
 use {
     super::super::{
         is_type_pod, is_zero_copy_struct_pod, map_type_to_rust_cpi, map_type_to_rust_with_prefix,
-        render_docs, sdk_core_alias,
+        render_docs, sdk_core_alias, zero_copy_gate,
     },
     crate::{Idl, IdlEnumFields, IdlTypeDefVariants},
     heck::{AsSnakeCase, ToUpperCamelCase},
@@ -37,26 +37,8 @@ pub fn generate(
         let name_camel = t.name.to_upper_camel_case();
         match &t.ty {
             IdlTypeDefVariants::Enum { variants, repr } => {
-                // Always duplicated per offchain/cpi, fieldless or not —
-                // matches the struct branch below and, unlike an earlier
-                // version of this codegen, avoids two real bugs a "shared
-                // body via cfg_attr" form ran into for a *fieldless* enum
-                // specifically: (1) a fieldless `#[repr(uN)]` enum is not
-                // actually `Pod`-safe (an out-of-range byte value has no
-                // corresponding variant — the exact class of bug this whole
-                // framework's on-chain `#[defined_type]` macro moved away
-                // from; giving the client an `unsafe impl Pod` here would
-                // reintroduce it client-side), so it needs the same
-                // `CheckedBitPattern` machinery as a data-carrying enum, not
-                // a shortcut; (2) that machinery's generated helper type
-                // names (e.g. `NameBits`) are derived from the enum's own
-                // name, so sharing one enum body between offchain/cpi while
-                // still needing two differently-`sdk_core`-qualified copies
-                // of the generated helpers would collide under Cargo
-                // feature unification (both `offchain` and `cpi` active at
-                // once) unless the helper names differ too — simplest to
-                // just always duplicate, matching the struct branch's own
-                // established convention.
+                // An enum is never `Pod` (a byte can name no variant); the
+                // zero-copy form is stored through `ZcCodec`, which validates.
                 {
                     let tag_repr = repr.clone().unwrap_or_else(|| "u8".to_string());
                     for for_cpi in [false, true] {
@@ -72,44 +54,10 @@ pub fn generate(
                             name_camel.clone()
                         };
 
-                        // The variant *text* itself, not just the derive
-                        // stack above it, has to differ between Borsh and
-                        // zero-copy now that a variant can have an explicit
-                        // discriminant: zero-copy's `CheckedBitPattern`
-                        // machinery needs the real on-chain discriminant
-                        // (`v.discriminant`) rendered as `= N`, or the
-                        // client's compiler-assigned discriminants silently
-                        // diverge from on-chain's (confirmed as a real bug:
-                        // wrong bytes on encode, wrong accept/reject on
-                        // decode). But real Borsh serialization always uses
-                        // positional declaration order, never the actual
-                        // Rust discriminant, unless a crate opts into
-                        // `#[borsh(use_discriminant = true)]` — which
-                        // naclac's on-chain Borsh branch never does — so
-                        // writing `= N` into the Borsh copy would be not just
-                        // unnecessary but a compile error for any non-unit
-                        // variant (`#[repr(inttype)]` is required for that,
-                        // and the Borsh branch deliberately has no repr at
-                        // all) and would still force an explicit
-                        // `use_discriminant` choice besides. So this can no
-                        // longer be one shared body with `cfg_attr`-only
-                        // derive switching — two full, separately-built
-                        // copies, matching the struct branch's own
-                        // established per-branch-duplication pattern.
-                        // `= N` on every variant, using the IDL's real,
-                        // fully-resolved discriminant (`v.discriminant` —
-                        // explicit if the on-chain enum wrote one, else the
-                        // same positional fallback Rust itself would assign)
-                        // — used for both the Borsh and zero-copy bodies now
-                        // that naclac's on-chain `#[defined_type]` macro
-                        // emits `#[borsh(use_discriminant = true)]`
-                        // unconditionally: Borsh's own discriminant algorithm
-                        // reconstructs the identical value from this same
-                        // `= N` syntax, so writing it explicitly here for
-                        // every variant (not just ones the source explicitly
-                        // annotated) keeps client and on-chain byte-for-byte
-                        // identical regardless of which variants were
-                        // explicit on-chain.
+                        // Every variant carries its IDL discriminant as `= N`,
+                        // which the zero-copy `ZcCodec` and the Borsh
+                        // `use_discriminant` form both read, so client and
+                        // program tags cannot differ.
                         let mut zc_variants = String::new();
                         // Wincode's own discriminant, by contrast, is never
                         // read from this native `= N` syntax at all — only
@@ -245,13 +193,6 @@ pub fn generate(
                             "#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n",
                         );
                         typedefs_content.push_str(&type_docs);
-                        // Every field of a zero-copy `#[defined_type]` enum is
-                        // guaranteed `CheckedBitPattern`-eligible on-chain
-                        // already (the macro's own generated impl requires
-                        // it, so a non-eligible field wouldn't have compiled
-                        // in the first place) — safe to derive `Copy`
-                        // unconditionally, mirroring the struct branch's
-                        // `is_pod == true` case exactly.
                         typedefs_content.push_str(&format!(
                             "#[derive(Clone, Copy, Debug)]\n\
                              #[repr({tag_repr})]\n\
@@ -262,16 +203,6 @@ pub fn generate(
                         ));
                         let variants_src = zc_variants;
 
-                        // Zero-copy mode only: generate the same
-                        // `bytemuck::CheckedBitPattern` machinery
-                        // `macros/src/checked_enum.rs` emits
-                        // on-chain, so the client can validate/decode a
-                        // real instance of this enum from raw bytes with a
-                        // layout that's byte-identical to the program's own
-                        // — gated `not(feature = "borsh")` since Borsh mode
-                        // has no C-layout/Pod concept at all (real
-                        // `#[derive(Borsh...)]` above already handles that
-                        // path completely).
                         if idl.is_zero_copy {
                             let parsed_enum: syn::ItemEnum = syn::parse_str(&format!(
                                 "enum {} {{ {} }}",
@@ -287,60 +218,20 @@ pub fn generate(
                             });
                             let ident: syn::Ident = syn::parse_str(&enum_name)
                                 .expect("defined_type: enum name must be a valid identifier");
-                            let vis: syn::Visibility = syn::parse_quote!(pub);
                             let tag_ty: syn::Type = syn::parse_str(&tag_repr)
                                 .expect("defined_type: repr must be a valid Rust integer type");
-                            let (extra_items, checked_bit_pattern_impl) =
-                                crate::rust::pod_codegen::checked_enum::generate(
-                                    &ident,
-                                    &vis,
-                                    &parsed_enum.variants,
-                                    &tag_ty,
-                                    sdk_core,
-                                );
-                            let zc_storage_items =
-                                crate::rust::pod_codegen::checked_enum::zc_storage_items(
-                                    &ident,
-                                    &parsed_enum.variants,
-                                    &tag_ty,
-                                    sdk_core,
-                                );
-                            let generated = quote::quote! {
-                                #extra_items #checked_bit_pattern_impl #zc_storage_items
-                            };
-                            let mut file: syn::File = syn::parse2(generated).expect(
-                                "defined_type: checked_enum::generate output must parse as a syn::File",
+                            let core: syn::Path = syn::parse_str(sdk_core)
+                                .expect("defined_type: sdk_core alias must be a valid path");
+                            let generated = naclac_syn::zc_codegen::enum_codec::generate(
+                                &ident,
+                                &parsed_enum.variants,
+                                &tag_ty,
+                                &zero_copy_gate(for_cpi),
+                                &core,
                             );
-
-                            // `#[cfg(...)]` only gates the single item it's
-                            // written directly above — pretty-printing the
-                            // whole multi-item block behind one shared `cfg`
-                            // line would leave every item after the first
-                            // always-compiled regardless of feature flags.
-                            // So the two gates this block needs (offchain vs
-                            // cpi, and not(borsh)) are attached to every
-                            // generated item individually instead.
-                            let offchain_cpi_cfg: syn::Attribute = if for_cpi {
-                                syn::parse_quote!(#[cfg(feature = "cpi")])
-                            } else {
-                                syn::parse_quote!(#[cfg(feature = "offchain")])
-                            };
-                            let not_borsh_cfg: syn::Attribute = syn::parse_quote!(#[cfg(not(any(feature = "borsh", feature = "wincode")))]);
-                            for item in &mut file.items {
-                                let attrs = match item {
-                                    syn::Item::Struct(s) => &mut s.attrs,
-                                    syn::Item::Union(u) => &mut u.attrs,
-                                    syn::Item::Impl(i) => &mut i.attrs,
-                                    other => panic!(
-                                        "defined_type: checked_enum::generate produced an \
-                                         unexpected item kind that this cfg-gating pass doesn't \
-                                         handle: {:?}",
-                                        other
-                                    ),
-                                };
-                                attrs.insert(0, not_borsh_cfg.clone());
-                                attrs.insert(0, offchain_cpi_cfg.clone());
-                            }
+                            let file: syn::File = syn::parse2(generated).expect(
+                                "defined_type: enum_codec::generate output must parse as a syn::File",
+                            );
 
                             typedefs_content.push_str(&prettyplease::unparse(&file));
                             typedefs_content.push('\n');
@@ -432,10 +323,6 @@ pub fn generate(
                         .collect();
 
                     if !is_pod {
-                        // No Pod/padding concept applies at all (a String/Vec/
-                        // nested-non-pod field makes bytemuck casting unsafe
-                        // regardless) — unchanged from before: one shared body,
-                        // Borsh derive only, no repr forcing.
                         typedefs_content.push_str(cfg);
                         typedefs_content.push_str(&render_docs(&t.docs, ""));
                         typedefs_content.push_str(&format!(
@@ -463,18 +350,6 @@ pub fn generate(
                         continue;
                     }
 
-                    // `is_pod`: Borsh mode and zero-copy mode now need
-                    // genuinely different field lists (the latter gets real,
-                    // verified padding fields spliced in — see below), so
-                    // they can no longer share one body via `cfg_attr` the
-                    // way the `!is_pod` case above still can. Two fully
-                    // separate, mutually-exclusive (`feature = "borsh"` vs
-                    // `not(feature = "borsh")`) struct declarations instead.
-
-                    // --- Borsh-mode declaration: original fields, no padding,
-                    // no Pod concept at all — matches the on-chain Borsh
-                    // branch exactly (`macros/src/lib.rs`'s `!is_zero_copy`
-                    // path is a bare pass-through with zero layout machinery).
                     typedefs_content.push_str(cfg);
                     typedefs_content
                         .push_str("#[cfg(any(feature = \"borsh\", feature = \"wincode\"))]\n");
@@ -500,16 +375,6 @@ pub fn generate(
                     }
                     typedefs_content.push_str(if is_tuple_struct { ");\n\n" } else { "}\n\n" });
 
-                    // --- Zero-copy-mode declaration: real, verified padding.
-                    // Reconstructs the field list as a real `syn::Fields` (via
-                    // the same source-string round-trip the enum branch uses)
-                    // so the copied `pod_struct_checks::generate` — a
-                    // deliberate duplicate of `macros/src/
-                    // pod_struct_checks.rs`, see that file's own doc comment
-                    // — can auto-insert the same verified padding fields the
-                    // on-chain struct gets, instead of a blind, unverified
-                    // `unsafe impl Pod` (the exact class of bug —
-                    // `Debouncer`/`EpochTracker` — that file exists to catch).
                     let zero_copy_field_tys: Vec<String> = fields
                         .iter()
                         .map(|f| {
@@ -546,12 +411,15 @@ pub fn generate(
                         });
                     let struct_ident: syn::Ident = syn::parse_str(&struct_name)
                         .expect("defined_type: struct name must be a valid identifier");
-                    let (padded_fields, extra_items) =
-                        crate::rust::pod_codegen::pod_struct_checks::generate(
-                            &struct_ident,
-                            &parsed_struct.fields,
-                            sdk_core,
-                        );
+                    let core: syn::Path = syn::parse_str(sdk_core)
+                        .expect("defined_type: sdk_core alias must be a valid path");
+                    let layout_checks = naclac_syn::zc_codegen::struct_checks::generate(
+                        &struct_ident,
+                        &parsed_struct.fields,
+                        &zero_copy_gate(for_cpi),
+                        &core,
+                    );
+                    let struct_fields = &parsed_struct.fields;
                     let semi = if is_tuple_struct {
                         quote::quote! { ; }
                     } else {
@@ -559,8 +427,8 @@ pub fn generate(
                     };
                     let struct_item_tokens = quote::quote! {
                         #[derive(Copy, Clone, Debug)]
-                        #[repr(C)]
-                        pub struct #struct_ident #padded_fields #semi
+                        #[repr(C, packed)]
+                        pub struct #struct_ident #struct_fields #semi
                     };
                     let struct_file: syn::File = syn::parse2(struct_item_tokens)
                         .expect("defined_type: generated struct item must parse as a syn::File");
@@ -573,36 +441,10 @@ pub fn generate(
                     typedefs_content.push_str(&pretty_struct);
                     typedefs_content.push('\n');
 
-                    // Same multi-item cfg-gating problem the enum branch
-                    // already solves: `#[cfg(...)]` only gates the single
-                    // item directly below it, so `extra_items` (the gap
-                    // consts, the size assertion, the Pod-bound assertion —
-                    // several top-level items) each need both gates attached
-                    // individually rather than one shared prefix.
-                    let mut extra_file: syn::File = syn::parse2(extra_items).expect(
-                        "defined_type: pod_struct_checks::generate output must parse as a syn::File",
+                    let layout_file: syn::File = syn::parse2(layout_checks).expect(
+                        "defined_type: struct_checks::generate output must parse as a syn::File",
                     );
-                    let offchain_cpi_cfg: syn::Attribute = if for_cpi {
-                        syn::parse_quote!(#[cfg(feature = "cpi")])
-                    } else {
-                        syn::parse_quote!(#[cfg(feature = "offchain")])
-                    };
-                    let not_borsh_cfg: syn::Attribute =
-                        syn::parse_quote!(#[cfg(not(any(feature = "borsh", feature = "wincode")))]);
-                    for item in &mut extra_file.items {
-                        let attrs = match item {
-                            syn::Item::Const(c) => &mut c.attrs,
-                            syn::Item::Fn(f) => &mut f.attrs,
-                            other => panic!(
-                                "defined_type: pod_struct_checks::generate produced an unexpected \
-                                 item kind that this cfg-gating pass doesn't handle: {:?}",
-                                other
-                            ),
-                        };
-                        attrs.insert(0, not_borsh_cfg.clone());
-                        attrs.insert(0, offchain_cpi_cfg.clone());
-                    }
-                    typedefs_content.push_str(&prettyplease::unparse(&extra_file));
+                    typedefs_content.push_str(&prettyplease::unparse(&layout_file));
                     typedefs_content.push('\n');
 
                     typedefs_content.push_str(cfg);
@@ -619,14 +461,13 @@ pub fn generate(
                         "unsafe impl {}::bytemuck::Pod for {} {{}}\n",
                         sdk_core, struct_name
                     ));
-                    // Matches the on-chain macro exactly (`macros/
-                    // src/lib.rs`'s `defined_type` struct branch): not
-                    // `#[derive(Default)]` (arrays past length 32 aren't
-                    // supported by `std`'s own derive), and needed so a
-                    // construction site like `Struct { field: v,
-                    // ..Default::default() }` keeps working without the
-                    // caller needing to know the auto-inserted padding
-                    // field's name.
+                    typedefs_content.push_str(cfg);
+                    typedefs_content
+                        .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
+                    typedefs_content.push_str(&format!(
+                        "impl {0}::ZcCodec for {1} {{\n    const SIZE: usize = core::mem::size_of::<{1}>();\n    fn encode(&self, out: &mut [u8]) {{\n        {0}::encode_pod(self, out);\n    }}\n    fn decode(bytes: &[u8]) -> Option<Self> {{\n        {0}::decode_pod(bytes)\n    }}\n}}\n\n",
+                        sdk_core, struct_name
+                    ));
                     typedefs_content.push_str(cfg);
                     typedefs_content
                         .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");

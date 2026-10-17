@@ -142,7 +142,7 @@ pub fn fetch_collection_update_delegate(
 /// Reads an `Asset`'s `UpdateDelegate` plugin's `additional_delegates`, if
 /// attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<Address>>> {
+pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<'_, Address>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -153,7 +153,7 @@ pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<Ad
 /// Reads a `Collection`'s `UpdateDelegate` plugin's `additional_delegates`,
 /// if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_collection_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<Address>>> {
+pub fn fetch_collection_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<'_, Address>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);
@@ -170,7 +170,7 @@ pub fn fetch_collection_update_delegate(info: &AccountInfo) -> Result<Option<ZcV
 pub fn read_additional_delegates(
     data: &[u8],
     plugin_header_offset: usize,
-) -> Result<Option<ZcVec<Address>>> {
+) -> Result<Option<ZcVec<'_, Address>>> {
     let Some(offset) =
         find_plugin_offset(data, plugin_header_offset, plugin_type::UPDATE_DELEGATE)?
     else {

@@ -40,28 +40,28 @@ export interface NaclacCodec {
  * Supported primitives: u8, u16, u32, u64, u128, i8, i16, i32, i64, i128,
  *                       f32, f64, bool, string, publicKey, bytes
  */
-function getPrimitiveLayout(typeStr: string): { size: number; alignment: number } {
+function getPrimitiveLayout(typeStr: string): { size: number } {
   switch (typeStr) {
     case "u8":
     case "i8":
     case "bool":
-      return { size: 1, alignment: 1 };
+      return { size: 1 };
     case "u16":
     case "i16":
-      return { size: 2, alignment: 2 };
+      return { size: 2 };
     case "u32":
     case "i32":
     case "f32":
-      return { size: 4, alignment: 4 };
+      return { size: 4 };
     case "u64":
     case "i64":
     case "f64":
-      return { size: 8, alignment: 8 };
+      return { size: 8 };
     case "u128":
     case "i128":
-      return { size: 16, alignment: 8 }; // On SBF/BPF target, alignment of u128 is 8 bytes
+      return { size: 16 };
     case "publicKey":
-      return { size: 32, alignment: 1 }; // Pubkey wraps [u8; 32], alignment is 1
+      return { size: 32 };
     case "string":
     case "String":
       throw new Error("Dynamic types like string are not supported in instruction_args / Pod structs.");
@@ -73,20 +73,26 @@ function getPrimitiveLayout(typeStr: string): { size: number; alignment: number 
 }
 
 /**
- * A zero-copy type's real C-layout size/alignment — used only on the
- * zero-copy path (real `#[repr(C)]`/`#[repr(uN)]` layout with alignment
- * padding). Never valid for a Borsh-mode type, which is tightly packed with
- * no alignment concept at all — see `getIdlCodec`'s `isZeroCopy` branch.
+ * The stored size of a zero-copy type. Every zero-copy layout is packed:
+ * fields follow one another with no padding, so a size is the sum of its
+ * parts. Never valid for a Borsh-mode type — see `getIdlCodec`'s `isZeroCopy`
+ * branch.
  */
-function getTypeLayout(type: any, definedTypes?: readonly any[]): { size: number; alignment: number } {
+function getTypeLayout(type: any, definedTypes?: readonly any[]): { size: number } {
   if (typeof type === "string") {
     return getPrimitiveLayout(type);
   }
   if (typeof type === "object" && type !== null) {
     if ("array" in type) {
       const [innerType, count] = type.array;
-      const innerLayout = getTypeLayout(innerType, definedTypes);
-      return { size: innerLayout.size * count, alignment: innerLayout.alignment };
+      return { size: getTypeLayout(innerType, definedTypes).size * count };
+    }
+    if ("fixedVec" in type) {
+      const [innerType, capacity] = type.fixedVec;
+      return { size: FIXED_LEN_WIDTH + getTypeLayout(innerType, definedTypes).size * capacity };
+    }
+    if ("fixedString" in type) {
+      return { size: FIXED_LEN_WIDTH + type.fixedString };
     }
     if ("defined" in type) {
       const typeName = type.defined;
@@ -95,8 +101,7 @@ function getTypeLayout(type: any, definedTypes?: readonly any[]): { size: number
         if (def.type.kind === "struct") {
           return computeStructLayout(def.type.fields, definedTypes);
         } else if (def.type.kind === "enum") {
-          const { totalSize, unionAlignment } = computeEnumCLayout(def.type, definedTypes);
-          return { size: totalSize, alignment: unionAlignment };
+          return { size: computeEnumLayout(def.type, definedTypes).totalSize };
         }
       }
       throw new Error(`[Naclac] The IDL references type "${typeName}" but does not define it.`);
@@ -108,45 +113,25 @@ function getTypeLayout(type: any, definedTypes?: readonly any[]): { size: number
 function computeStructLayout(
   fields: any[],
   definedTypes?: readonly any[]
-): { size: number; alignment: number; fieldsWithLayout: any[] } {
+): { size: number; fieldsWithLayout: any[] } {
   let currentOffset = 0;
-  let maxAlign = 1;
   const fieldsWithLayout: any[] = [];
 
   for (const field of fields) {
     const layout = getTypeLayout(field.type, definedTypes);
-    const align = layout.alignment;
-
-    // C-layout alignment: offset must be a multiple of the field's alignment
-    const paddingNeeded = (align - (currentOffset % align)) % align;
-    currentOffset += paddingNeeded;
-
     fieldsWithLayout.push({
       name: field.name,
       type: field.type,
       offset: currentOffset,
       size: layout.size,
-      alignment: align,
     });
-
     currentOffset += layout.size;
-    if (align > maxAlign) {
-      maxAlign = align;
-    }
   }
 
-  // C-layout padding: struct size must be a multiple of its overall alignment
-  const tailPaddingNeeded = (maxAlign - (currentOffset % maxAlign)) % maxAlign;
-  const totalSize = currentOffset + tailPaddingNeeded;
-
-  return {
-    size: totalSize,
-    alignment: maxAlign,
-    fieldsWithLayout,
-  };
+  return { size: currentOffset, fieldsWithLayout };
 }
 
-/** Zero-copy-mode struct codec — real C-layout, alignment padding included. */
+/** Zero-copy-mode struct codec — fields packed in declaration order. */
 function getStructCodec(fields: any[], definedTypes?: readonly any[]): NaclacCodec {
   const { size: totalSize, fieldsWithLayout } = computeStructLayout(fields, definedTypes);
 
@@ -230,8 +215,8 @@ export type StructLayout = boolean | "alloc";
  * Codec for an `#[event(alloc)]` event's fields: the fields themselves are
  * written back to back with no alignment gaps (`String`/`Vec` u32
  * length-prefixed, `Option` u8-tagged), but every value inside them —
- * a plain field, a `Vec` element, an `Option` payload — is a raw `Pod` value
- * in its C layout, so a nested `defined` type keeps its internal padding.
+ * a plain field, a `Vec` element, an `Option` payload — is a packed `Pod`
+ * value in its zero-copy layout.
  */
 function getAllocStructCodec(fields: any[], definedTypes?: readonly any[]): NaclacCodec {
   const fieldCodec = (type: any): NaclacCodec => {
@@ -282,18 +267,8 @@ function getAllocStructCodec(fields: any[], definedTypes?: readonly any[]): Nacl
  * A named field list's own codec — for a *top-level* struct-shaped field
  * list (an account's own fields, an event's own fields), not a nested
  * `{"defined": X}` reference. Exported so callers like `decodeAccountData`
- * (`coder/instruction.ts`) can reuse the exact same alignment-aware layout
- * logic `getIdlCodec`'s `"defined"` struct branch already uses for a
- * *nested* struct, instead of a naive sequential walk that has no way to
- * know about a zero-copy account's own internal alignment gaps (real,
- * `#[repr(C)]`-driven gaps between the account's own top-level fields —
- * `naclac-syn`'s IDL never lists them by name, since `pod_struct_checks`'s
- * auto-inserted padding only exists in the macro-expanded on-chain code,
- * never in the source text `naclac-syn` parses; see
- * `docs/plan/anchor-idl-conversion-and-enum-pod-audit.md`'s Gap #2 final
- * status for the full reasoning). Borsh mode has no such concern (no
- * alignment gaps ever), so it stays the same tightly-sequential codec
- * either way.
+ * (`coder/instruction.ts`) use the same layout logic as `getIdlCodec`'s
+ * `"defined"` struct branch.
  */
 export function getStructFieldsCodec(
   fields: any[],
@@ -395,30 +370,19 @@ interface EnumVariantCLayout {
 }
 
 /**
- * Computes a zero-copy enum's real on-chain layout: tag first (sized per
- * `repr`, defaulting to `u8` exactly like `#[defined_type]`'s own default —
- * `macros/src/lib.rs`), then each variant's own fields laid out
- * exactly like a struct whose first field is the tag (the same trick
- * `macros/src/checked_enum.rs`'s payload structs use, and the same
- * reason it's sound — see that file's own comment citing the Rust
- * reference on primitive representation of enums with fields), and an
- * overall union size/alignment = the max over every variant's own
- * (already self-padded) size/alignment, itself rounded up to that overall
- * alignment (standard `#[repr(C)]` union sizing). This mirrors
- * `naclac-pod-codegen`'s — the Rust client's copy of `macros/src/
- * checked_enum.rs` — own algorithm field-for-field; both must agree, since
- * both are independent implementations of what the real Rust compiler
- * computes for the on-chain enum, not derived from each other.
+ * A zero-copy enum's stored layout (naclac-pod's `ZcCodec`): the tag (sized
+ * per `repr`, `u8` by default), then the active variant's fields one after
+ * another with no padding, then zeros up to the size of the largest variant.
+ * The total size is the tag plus the largest variant's fields.
  */
-function computeEnumCLayout(
+function computeEnumLayout(
   enumDef: { variants: any[]; repr?: string },
   definedTypes?: readonly any[]
-): { tagType: string; tagSize: number; totalSize: number; unionAlignment: number; variantLayouts: Map<string, EnumVariantCLayout> } {
+): { tagType: string; tagSize: number; totalSize: number; variantLayouts: Map<string, EnumVariantCLayout> } {
   const tagType = enumDef.repr ?? "u8";
   const tagLayout = getPrimitiveLayout(tagType);
 
   let unionSize = tagLayout.size;
-  let unionAlignment = tagLayout.alignment;
   const variantLayouts = new Map<string, EnumVariantCLayout>();
 
   for (const v of enumDef.variants) {
@@ -442,13 +406,9 @@ function computeEnumCLayout(
       fieldsWithLayout: layout.fieldsWithLayout.slice(1),
     });
     if (layout.size > unionSize) unionSize = layout.size;
-    if (layout.alignment > unionAlignment) unionAlignment = layout.alignment;
   }
 
-  const rem = unionSize % unionAlignment;
-  const totalSize = rem === 0 ? unionSize : unionSize + (unionAlignment - rem);
-
-  return { tagType, tagSize: tagLayout.size, totalSize, unionAlignment, variantLayouts };
+  return { tagType, tagSize: tagLayout.size, totalSize: unionSize, variantLayouts };
 }
 
 /**
@@ -490,6 +450,92 @@ function getFixedArrayOfLayoutCodec(inner: NaclacCodec, count: number): NaclacCo
   };
 }
 
+/** Width in bytes of the little-endian length field of a `FixedVec` or `FixedString`. */
+const FIXED_LEN_WIDTH = 2;
+
+function readFixedLen(bytes: Uint8Array, offset: number, width: number): number {
+  let len = 0n;
+  for (let i = width - 1; i >= 0; i--) {
+    len = (len << 8n) | BigInt(bytes[offset + i]);
+  }
+  return len > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(len);
+}
+
+function writeFixedLen(out: Uint8Array, width: number, len: number): void {
+  let rest = BigInt(len);
+  for (let i = 0; i < width; i++) {
+    out[i] = Number(rest & 0xffn);
+    rest >>= 8n;
+  }
+}
+
+/**
+ * Codec for the account-storage `FixedVec<T, N>`: a little-endian length
+ * followed by all `N` element slots. Decoding yields the first `len` items,
+ * with a stored length above `N` read as `N`, as the program does.
+ */
+function getFixedVecCodec(inner: NaclacCodec, innerLayout: { size: number }, capacity: number): NaclacCodec {
+  const lenWidth = FIXED_LEN_WIDTH;
+  const totalSize = lenWidth + capacity * innerLayout.size;
+  return {
+    encode(value: any): Uint8Array {
+      const items = value as unknown[];
+      if (!Array.isArray(items) || items.length > capacity) {
+        throw new Error(`[Naclac] Expected an array of at most ${capacity} elements.`);
+      }
+      const out = new Uint8Array(totalSize);
+      writeFixedLen(out, lenWidth, items.length);
+      items.forEach((item, i) => {
+        const part = inner.encode(item) as Uint8Array;
+        out.set(part.slice(0, innerLayout.size), lenWidth + i * innerLayout.size);
+      });
+      return out;
+    },
+    decode(bytes: Uint8Array): any {
+      const [val] = this.read(bytes, 0);
+      return val;
+    },
+    read(bytes: Uint8Array, offset: number): [any, number] {
+      const len = Math.min(readFixedLen(bytes, offset, lenWidth), capacity);
+      const items: unknown[] = [];
+      for (let i = 0; i < len; i++) {
+        const [item] = inner.read(bytes, offset + lenWidth + i * innerLayout.size);
+        items.push(item);
+      }
+      return [items, offset + totalSize];
+    },
+  };
+}
+
+/** Codec for the account-storage `FixedString<N>`: a two-byte length followed by `N` UTF-8 byte slots. */
+function getFixedStringCodec(capacity: number): NaclacCodec {
+  const totalSize = FIXED_LEN_WIDTH + capacity;
+  return {
+    encode(value: any): Uint8Array {
+      if (typeof value !== "string") {
+        throw new Error("[Naclac] Expected a string.");
+      }
+      const bytes = new TextEncoder().encode(value);
+      if (bytes.length > capacity) {
+        throw new Error(`[Naclac] String is ${bytes.length} bytes; the field holds at most ${capacity}.`);
+      }
+      const out = new Uint8Array(totalSize);
+      writeFixedLen(out, 2, bytes.length);
+      out.set(bytes, 2);
+      return out;
+    },
+    decode(bytes: Uint8Array): any {
+      const [val] = this.read(bytes, 0);
+      return val;
+    },
+    read(bytes: Uint8Array, offset: number): [any, number] {
+      const len = Math.min(readFixedLen(bytes, offset, 2), capacity);
+      const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes.slice(offset + 2, offset + 2 + len));
+      return [text, offset + totalSize];
+    },
+  };
+}
+
 function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
   const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
   let at = 0;
@@ -499,6 +545,13 @@ function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
   }
   return out;
 }
+
+/** `Bool` in a zero-copy layout: written as 0 or 1, read as true for any non-zero byte. */
+const zeroCopyBoolCodec: NaclacCodec = {
+  encode: (value: unknown) => Uint8Array.of(value ? 1 : 0),
+  decode: (bytes) => bytes[0] !== 0,
+  read: (bytes, offset) => [bytes[offset] !== 0, offset + 1],
+};
 
 /** True for an IDL type the zero-copy program reads with a length prefix or a tag instead of a fixed layout. */
 function isVariableArgType(type: any): boolean {
@@ -516,8 +569,8 @@ function isVariableArgType(type: any): boolean {
  * - `Option<T>`: a one-byte tag, then `T`'s bytes — zeroes of `T`'s size when
  *   `None`, so the argument always occupies `1 + size_of::<T>()` bytes.
  * - A `#[instruction_args]` struct holding any of the above is read field by
- *   field in declaration order; a struct of fixed fields only is one
- *   `repr(C)` block with alignment padding, which `getIdlCodec` already writes.
+ *   field in declaration order; a struct of fixed fields only is one packed
+ *   block, which `getIdlCodec` already writes.
  */
 export function getZeroCopyArgCodec(type: any, definedTypes: readonly any[] | undefined): NaclacCodec {
   if (typeof type === "object" && type !== null) {
@@ -653,21 +706,17 @@ function getZeroCopyArgStructCodec(fields: any[], definedTypes: readonly any[] |
 }
 
 /**
- * Zero-copy-mode enum codec — real C-layout (tag + per-variant fields with
- * alignment padding, see `computeEnumCLayout`), and the tag byte(s) written/
- * matched are the variant's *real* discriminant (`variant.discriminant`),
- * not its positional index — the opposite convention from
- * `getBorshEnumCodec`, and correct for zero-copy mode specifically because
- * `macros/src/checked_enum.rs`'s `variant_discriminants` mirrors
- * Rust's own real compiler discriminant rule (explicit `= N` respected),
- * unlike Borsh's derive default.
+ * Zero-copy-mode enum codec — tag plus the active variant's packed fields
+ * (see `computeEnumLayout`). The tag written and matched is the variant's
+ * real discriminant (`variant.discriminant`), not its positional index, the
+ * opposite of `getBorshEnumCodec`.
  */
 function getZeroCopyEnumCodec(
   enumDef: { variants: any[]; repr?: string },
   definedTypes?: readonly any[],
   enumName?: string
 ): NaclacCodec {
-  const { tagType, totalSize, variantLayouts } = computeEnumCLayout(enumDef, definedTypes);
+  const { tagType, totalSize, variantLayouts } = computeEnumLayout(enumDef, definedTypes);
   const tagCodec = getIdlCodec(tagType, definedTypes, true);
 
   function fieldValueFor(layout: EnumVariantCLayout, field: any, valObj: Record<string, any>): unknown {
@@ -741,14 +790,12 @@ function getZeroCopyEnumCodec(
 /**
  * Maps an IDL type to its corresponding codec. `isZeroCopy` (from the
  * program's own `NaclacIdl.isZeroCopy`) selects the wire layout for any
- * `{"defined": X}` reference: real C-layout with alignment padding when
- * `true`, tightly-packed Borsh when `false` — the two are not
- * interchangeable (a zero-copy struct/enum with any internal padding gap
- * would encode/decode wrong bytes under the Borsh path, and vice versa for
- * a Borsh struct with a `String`/`Vec` field, which the zero-copy path
- * can't represent at all). Every primitive/array/vec/option case below is
- * identical in both modes — Rust's own on-chain representation of a bare
- * primitive doesn't depend on Borsh vs zero-copy either.
+ * `{"defined": X}` reference: the packed zero-copy layout when `true`,
+ * Borsh when `false`. The two are not interchangeable: a Borsh struct with a
+ * `String`/`Vec` field cannot be represented in the zero-copy layout, and a
+ * zero-copy enum stores its payload padded to a fixed size. The primitive
+ * cases below are the same in both modes, except `bool`, which a zero-copy
+ * layout reads as true for any non-zero byte.
  *
  * Supported primitives: u8, u16, u32, u64, u128, i8, i16, i32, i64, i128,
  *                       f32, f64, bool, string, publicKey, bytes
@@ -781,7 +828,7 @@ export function getIdlCodec(type: any, definedTypes: readonly any[] | undefined,
       case "f64":
         return getF64Codec() as unknown as NaclacCodec;
       case "bool":
-        return getBooleanCodec() as unknown as NaclacCodec;
+        return isZeroCopy ? zeroCopyBoolCodec : (getBooleanCodec() as unknown as NaclacCodec);
       case "string":
       case "String":
         // Borsh dynamic string: 4-byte LE length prefix + UTF-8 bytes
@@ -828,6 +875,17 @@ export function getIdlCodec(type: any, definedTypes: readonly any[] | undefined,
         return getFixedArrayOfLayoutCodec(innerCodec, size);
       }
       return getArrayCodec(innerCodec, { size }) as unknown as NaclacCodec;
+    }
+    if ("fixedVec" in type) {
+      const [innerType, capacity] = type.fixedVec;
+      return getFixedVecCodec(
+        getIdlCodec(innerType, definedTypes, true),
+        getTypeLayout(innerType, definedTypes),
+        capacity
+      );
+    }
+    if ("fixedString" in type) {
+      return getFixedStringCodec(type.fixedString);
     }
     if ("vec" in type) {
       const innerType = type.vec;

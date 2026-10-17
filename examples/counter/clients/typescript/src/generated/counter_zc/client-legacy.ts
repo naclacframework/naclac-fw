@@ -2,9 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/legacy";
-import rawIDL from "./idl/counter_zc.json";
-import type { CounterZc } from "./idl/counter_zc";
-const IDL = rawIDL as unknown as CounterZc;
+import { IDL } from "./program-idl";
 import * as instructions from "./instructions";
 import * as accounts from "./accounts/legacy";
 import * as types from "./types";
@@ -39,7 +37,7 @@ export class CounterZcClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.LegacyProgram(IDL, provider, true, []);
+    this.program = new naclac.LegacyProgram(IDL, provider);
   }
 
   /**

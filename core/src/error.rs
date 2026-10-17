@@ -49,6 +49,8 @@ pub enum NaclacError {
     TooManyExtraAccounts = 29,
     TooManyCpiAccounts = 30,
     TooManyAccountEntries = 31,
+    CapacityExceeded = 32,
+    InvalidUtf8 = 33,
 }
 
 /// Largest account index a framework error code can name. The runtime
@@ -60,7 +62,7 @@ impl NaclacError {
     /// `FRAMEWORK_ERROR_BASE + index * 100 + error_type`, with `index`
     /// clamped to [`MAX_ERROR_ACCOUNT_INDEX`] so the arithmetic cannot
     /// overflow.
-    pub fn to_code(self, index: usize) -> u32 {
+    pub const fn to_code(self, index: usize) -> u32 {
         let index = if index > MAX_ERROR_ACCOUNT_INDEX {
             MAX_ERROR_ACCOUNT_INDEX
         } else {
@@ -73,6 +75,15 @@ impl NaclacError {
         ProgramError::Custom(self.to_code(index))
     }
 }
+
+// The codes `naclac-pod` converts its errors to must be these variants' codes.
+const _: () = {
+    assert!(
+        NaclacError::InvalidInstructionData.to_code(0) == naclac_pod::INVALID_INSTRUCTION_DATA_CODE
+    );
+    assert!(NaclacError::CapacityExceeded.to_code(0) == naclac_pod::CAPACITY_EXCEEDED_CODE);
+    assert!(NaclacError::InvalidUtf8.to_code(0) == naclac_pod::INVALID_UTF8_CODE);
+};
 
 impl From<NaclacError> for ProgramError {
     fn from(e: NaclacError) -> Self {

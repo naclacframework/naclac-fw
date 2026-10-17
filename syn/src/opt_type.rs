@@ -69,12 +69,8 @@ fn parse_inner(name: &str, is_defined: &dyn Fn(&str) -> bool) -> Option<Value> {
     is_defined(name).then(|| json!({ "defined": name }))
 }
 
-/// The fields of `Opt<T>`'s `#[repr(C)]` layout in naclac-core:
-/// `value: T`, `has_value: u8` (1 when set), `padding: [u8; 7]`.
-pub fn opt_fields(inner: Value) -> [(&'static str, Value); 3] {
-    [
-        ("value", inner),
-        ("has_value", json!("u8")),
-        ("padding", json!({ "array": ["u8", 7] })),
-    ]
+/// The fields of `Opt<T>`'s `#[repr(C, packed)]` layout in naclac-pod:
+/// `tag: u8` (1 when set), then `value: T`.
+pub fn opt_fields(inner: Value) -> [(&'static str, Value); 2] {
+    [("tag", json!("u8")), ("value", inner)]
 }

@@ -167,19 +167,19 @@ impl<'a> GroupView<'a> {
         }
     }
 
-    pub fn collections(&self) -> ZcVec<Address> {
+    pub fn collections(&self) -> ZcVec<'_, Address> {
         read_pubkey_span(self.data, self.collections_offset)
     }
 
-    pub fn groups(&self) -> ZcVec<Address> {
+    pub fn groups(&self) -> ZcVec<'_, Address> {
         read_pubkey_span(self.data, self.groups_offset)
     }
 
-    pub fn parent_groups(&self) -> ZcVec<Address> {
+    pub fn parent_groups(&self) -> ZcVec<'_, Address> {
         read_pubkey_span(self.data, self.parent_groups_offset)
     }
 
-    pub fn assets(&self) -> ZcVec<Address> {
+    pub fn assets(&self) -> ZcVec<'_, Address> {
         read_pubkey_span(self.data, self.assets_offset)
     }
 }
@@ -226,13 +226,13 @@ fn skip_pubkey_vec(data: &[u8], offset: usize) -> Result<usize> {
 /// on `pinocchio`; the real `solana_address::Address`'s own impl on
 /// `solana`), so no heap collection is needed here (bounds already
 /// validated by `skip_pubkey_vec` during `GroupView::from_bytes`).
-fn read_pubkey_span(data: &[u8], offset: usize) -> ZcVec<Address> {
+fn read_pubkey_span(data: &[u8], offset: usize) -> ZcVec<'_, Address> {
     let count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
     // `skip_pubkey_vec` already validated this exact byte range during
     // `GroupView::from_bytes` — its length is guaranteed a multiple of 32,
     // so `ZcVec::from_bytes` cannot fail here.
     ZcVec::from_bytes(&data[offset + 4..offset + 4 + count * 32])
-        .expect("range pre-validated by skip_pubkey_vec")
+        .unwrap_or_else(|_| panic!("range pre-validated by skip_pubkey_vec"))
 }
 
 // ===========================================================================

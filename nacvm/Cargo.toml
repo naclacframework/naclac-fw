@@ -15,3 +15,6 @@ serde_json = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"
+
+[lints]
+workspace = true

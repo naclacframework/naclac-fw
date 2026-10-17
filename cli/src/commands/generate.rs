@@ -43,6 +43,18 @@ pub struct ProgramFeatures {
     pub use_wincode: bool,
 }
 
+impl ProgramFeatures {
+    pub fn serialization(&self) -> naclac_idl::Serialization {
+        if self.is_zero_copy {
+            naclac_idl::Serialization::Bytemuck
+        } else if self.use_wincode {
+            naclac_idl::Serialization::Wincode
+        } else {
+            naclac_idl::Serialization::Borsh
+        }
+    }
+}
+
 pub fn detect_program_features(program_dir: &Path) -> ProgramFeatures {
     let cargo_toml_path = program_dir.join("Cargo.toml");
     let mut use_pinocchio = false;
@@ -121,9 +133,8 @@ fn read_package_name(program_dir: &Path) -> Option<String> {
 }
 
 /// Runs the target program's real, compiled `idl-build` print function and
-/// returns the same `(idl_json_pretty, alloc_event_names)` shape the
-/// AST-walker path returns, so callers don't need to know which mechanism
-/// actually produced it.
+/// returns the same IDL JSON the AST-walker path returns, so callers don't
+/// need to know which mechanism actually produced it.
 ///
 /// The program is compiled in place, from its own manifest, as an `rlib`
 /// regardless of the `crate-type` it declares. It must be built from its real
@@ -136,7 +147,7 @@ fn generate_idl_via_idl_build(
     program_dir: &Path,
     prog_name: &str,
     show_output: bool,
-) -> Result<(String, Vec<String>), String> {
+) -> Result<String, String> {
     let crate_name = read_package_name(program_dir).unwrap_or_else(|| prog_name.to_string());
     let lib_ident = crate_name.replace('-', "_");
 
@@ -198,22 +209,11 @@ fn generate_idl_via_idl_build(
             &format!("idl-build print binary for '{prog_name}'"),
         )?;
 
-        let mut value: serde_json::Value = serde_json::from_str(stdout_buf.trim())
+        let value: serde_json::Value = serde_json::from_str(stdout_buf.trim())
             .map_err(|e| format!("idl-build output was not valid JSON: {e}"))?;
 
-        let alloc_event_names = value
-            .as_object_mut()
-            .and_then(|map| map.remove("__allocEvents"))
-            .and_then(|v| v.as_array().cloned())
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|v| v.as_str().map(str::to_string))
-            .collect();
-
-        let idl_json_pretty = naclac_idl::to_compact_pretty_json(&value)
-            .map_err(|e| format!("failed to re-serialize idl-build output: {e}"))?;
-
-        Ok((idl_json_pretty, alloc_event_names))
+        naclac_idl::to_compact_pretty_json(&value)
+            .map_err(|e| format!("failed to re-serialize idl-build output: {e}"))
     })();
 
     let _ = fs::remove_dir_all(&runner_dir);
@@ -295,35 +295,19 @@ fn target_program_dirs(workspace_root: &Path, program_id: Option<&str>) -> Vec<P
         .collect()
 }
 
-fn zero_copy_marker_path(workspace_root: &Path, prog_name: &str) -> PathBuf {
-    naclac_client_gen::resolve_target_dir(workspace_root).join(format!(".{}-zero-copy", prog_name))
-}
-
-/// Mirrors `zero_copy_marker_path` for the `wincode` backend — client-gen
-/// (`client-gen/src/rust/mod.rs`) only ever sees the IDL JSON, not the
-/// program's `Cargo.toml`, so which of the three backends (Borsh/Wincode/raw
-/// zero-copy) a program uses has to reach it the same way `is_zero_copy`
-/// already does: a marker file written here, checked there.
-fn wincode_marker_path(workspace_root: &Path, prog_name: &str) -> PathBuf {
-    naclac_client_gen::resolve_target_dir(workspace_root).join(format!(".{}-wincode", prog_name))
-}
-
 /// Regenerates and persists one program's IDL: resolves its deploy-keypair
-/// address, calls `naclac_idl::generate_idl`, writes `target/idl/<name>.json`,
-/// and — when `is_zero_copy`/`use_wincode` — writes the corresponding marker
-/// file (the zero-copy one carries the real `#[event(alloc)]` names, not a
-/// placeholder), consumed by client-gen afterward. Does **not** remove either
-/// marker; the caller owns that, since whether it should be removed
-/// immediately or kept around for a following client-gen step depends on the
-/// caller's own flow (see `execute_idl` vs `execute_all` below).
+/// address, builds the IDL (from the compiled program when it declares
+/// `idl-build`, from source otherwise), checks its `metadata.serialization`
+/// against the program's Cargo.toml features, and writes
+/// `target/idl/<name>.json`. Returns the IDL JSON.
 pub fn generate_idl_for_program(
     workspace_root: &Path,
     program_dir: &Path,
     prog_name: &str,
-    is_zero_copy: bool,
-    use_wincode: bool,
+    features: &ProgramFeatures,
     show_output: bool,
-) -> (String, Vec<String>) {
+) -> String {
+    let serialization = features.serialization();
     let target_dir = naclac_client_gen::resolve_target_dir(workspace_root);
     let keypair_path = target_dir
         .join("deploy")
@@ -343,7 +327,7 @@ pub fn generate_idl_for_program(
         .trim()
         .to_string();
 
-    let (idl_json_pretty, alloc_event_names) = if program_declares_idl_build(program_dir) {
+    let idl_json_pretty = if program_declares_idl_build(program_dir) {
         match generate_idl_via_idl_build(&target_dir, program_dir, prog_name, show_output) {
             Ok(result) => result,
             Err(e) => ui::error(format!("Failed to generate IDL for '{}': {}", prog_name, e)),
@@ -354,33 +338,33 @@ pub fn generate_idl_for_program(
             prog_name,
             &actual_address,
             env!("CARGO_PKG_VERSION"),
+            serialization,
         ) {
             Ok(result) => result,
             Err(e) => ui::error(format!("Failed to generate IDL for '{}': {}", prog_name, e)),
         }
     };
 
+    let written_serialization = serde_json::from_str::<serde_json::Value>(&idl_json_pretty)
+        .ok()
+        .and_then(|idl| idl.pointer("/metadata/serialization").cloned());
+    if written_serialization != serde_json::to_value(serialization).ok() {
+        ui::error(format!(
+            "The IDL for '{}' says its serialization is {:?} but its Cargo.toml features say {:?}. \
+             The features the program was compiled with and the ones in Cargo.toml must agree.",
+            prog_name, written_serialization, serialization
+        ));
+    }
+
     let target_idl_dir = target_dir.join("idl");
     fs::create_dir_all(&target_idl_dir).unwrap();
     let idl_path = target_idl_dir.join(format!("{}.json", prog_name));
     fs::write(&idl_path, &idl_json_pretty).unwrap();
-
-    if is_zero_copy {
-        let marker_path = zero_copy_marker_path(workspace_root, prog_name);
-        let _ = fs::write(&marker_path, alloc_event_names.join(","));
-    }
-    if use_wincode {
-        let marker_path = wincode_marker_path(workspace_root, prog_name);
-        let _ = fs::write(&marker_path, "");
-    }
-
-    (idl_json_pretty, alloc_event_names)
+    idl_json_pretty
 }
 
-/// `naclac generate idl` — regenerates the IDL JSON from source only. No
-/// `cargo build-sbf`, no client SDK regeneration. Self-contained: writes its
-/// own zero-copy/wincode markers (if any) and removes them again before
-/// returning, since nothing else runs in this same command to consume them.
+/// `naclac generate idl` — regenerates the IDL JSON only. No
+/// `cargo build-sbf`, no client SDK regeneration.
 pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
     let workspace_root = resolve_workspace_root();
     let program_dirs = target_program_dirs(&workspace_root, program_id);
@@ -414,16 +398,9 @@ pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
             &workspace_root,
             program_dir,
             &prog_name,
-            program_features.is_zero_copy,
-            program_features.use_wincode,
+            &program_features,
             show_output,
         );
-        if program_features.is_zero_copy {
-            let _ = fs::remove_file(zero_copy_marker_path(&workspace_root, &prog_name));
-        }
-        if program_features.use_wincode {
-            let _ = fs::remove_file(wincode_marker_path(&workspace_root, &prog_name));
-        }
         match step {
             Some(step) => step.done(format!("IDL written ({})", prog_name)),
             None => ui::success(format!("IDL written ({})", prog_name)),
@@ -434,14 +411,6 @@ pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
 /// Regenerates client SDK(s) from the IDL JSON already on disk
 /// (`target/idl/<name>.json`) — `target` selects Rust only, TypeScript only,
 /// or both when `None`.
-///
-/// Marker-file handling: if a zero-copy marker already exists for a program
-/// (written moments ago by `generate_idl_for_program`, e.g. via
-/// `execute_all` below), it is left completely alone — its real
-/// `#[event(alloc)]` names must reach client-gen unmodified. A marker is
-/// only created (and cleaned up again) here when none existed at all, as a
-/// same-run fallback for a standalone `naclac generate client` invocation
-/// with no preceding IDL step.
 pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
     let workspace_root = resolve_workspace_root();
     let target_idl_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("idl");
@@ -499,31 +468,6 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
     for (json_path, program_name) in target_json_paths {
         let content = fs::read_to_string(&json_path).unwrap();
 
-        let program_dir = workspace_root.join("programs").join(&program_name);
-        let marker_path = zero_copy_marker_path(&workspace_root, &program_name);
-        let wincode_marker_path = wincode_marker_path(&workspace_root, &program_name);
-        let marker_existed = marker_path.exists();
-        let wincode_marker_existed = wincode_marker_path.exists();
-        let program_features = program_dir
-            .exists()
-            .then(|| detect_program_features(&program_dir));
-
-        let created_placeholder =
-            if !marker_existed && program_features.as_ref().is_some_and(|f| f.is_zero_copy) {
-                let _ = fs::write(&marker_path, "");
-                true
-            } else {
-                false
-            };
-        let created_wincode_placeholder = if !wincode_marker_existed
-            && program_features.as_ref().is_some_and(|f| f.use_wincode)
-        {
-            let _ = fs::write(&wincode_marker_path, "");
-            true
-        } else {
-            false
-        };
-
         let step = ui::Step::start(format!("Generating {} ({})...", kind_label, program_name));
         let res: Result<(), Box<dyn std::error::Error>> = match target {
             Some(ClientKind::Rust) => {
@@ -537,13 +481,6 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
             None => naclac_client_gen::generate_sdk(&content, &program_name, &workspace_root),
         };
 
-        if created_placeholder {
-            let _ = fs::remove_file(&marker_path);
-        }
-        if created_wincode_placeholder {
-            let _ = fs::remove_file(&wincode_marker_path);
-        }
-
         match res {
             Ok(()) => step.done(format!("{} written ({})", kind_label, program_name)),
             Err(e) => step.fail(format!(
@@ -556,9 +493,7 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
 
 /// `naclac generate` with no subcommand — regenerates the IDL from source,
 /// then both client SDKs from the freshly-written IDL, all in one run (no
-/// on-chain build). The zero-copy markers written during the IDL step are
-/// kept alive across the client step (see `execute_client`'s doc comment)
-/// and only removed once both steps are done.
+/// on-chain build).
 pub fn execute_all(program_id: Option<&str>, show_output: bool) {
     let workspace_root = resolve_workspace_root();
     let program_dirs = target_program_dirs(&workspace_root, program_id);
@@ -566,8 +501,6 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
         ui::error("No matching program found.");
     }
 
-    let mut zero_copy_programs = Vec::new();
-    let mut wincode_programs = Vec::new();
     for program_dir in &program_dirs {
         let prog_name = program_dir
             .file_name()
@@ -589,28 +522,14 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
             &workspace_root,
             program_dir,
             &prog_name,
-            program_features.is_zero_copy,
-            program_features.use_wincode,
+            &program_features,
             show_output,
         );
         match step {
             Some(step) => step.done(format!("IDL written ({})", prog_name)),
             None => ui::success(format!("IDL written ({})", prog_name)),
         }
-        if program_features.is_zero_copy {
-            zero_copy_programs.push(prog_name.clone());
-        }
-        if program_features.use_wincode {
-            wincode_programs.push(prog_name);
-        }
     }
 
     execute_client(program_id, None);
-
-    for prog_name in zero_copy_programs {
-        let _ = fs::remove_file(zero_copy_marker_path(&workspace_root, &prog_name));
-    }
-    for prog_name in wincode_programs {
-        let _ = fs::remove_file(wincode_marker_path(&workspace_root, &prog_name));
-    }
 }

@@ -86,10 +86,9 @@ pub fn decode_pod_checked<T: Pod>(
                 .to_string(),
         ));
     }
-    let casted = bytemuck::try_from_bytes::<T>(&data[disc_len..disc_len + size]).map_err(|e| {
-        NaclacClientError::DeserializationError(format!("Zero-Copy cast failed: {:?}", e))
-    })?;
-    Ok(*casted)
+    Ok(bytemuck::pod_read_unaligned::<T>(
+        &data[disc_len..disc_len + size],
+    ))
 }
 
 /// Byte-casts `data` as `T` with no discriminator prefix at all — for foreign
@@ -103,10 +102,7 @@ pub fn decode_pod_unchecked<T: Pod>(data: &[u8]) -> Result<T, NaclacClientError>
             size
         )));
     }
-    let casted = bytemuck::try_from_bytes::<T>(&data[..size]).map_err(|e| {
-        NaclacClientError::DeserializationError(format!("Zero-Copy cast failed: {:?}", e))
-    })?;
-    Ok(*casted)
+    Ok(bytemuck::pod_read_unaligned::<T>(&data[..size]))
 }
 
 #[cfg(kani)]
@@ -118,7 +114,7 @@ mod kani_proofs {
     /// a compile-time constant here (unlike account-derived offsets
     /// elsewhere in this workspace), so `8 + size` can't realistically
     /// overflow, but this proves the length guard is actually sufficient
-    /// for the `bytemuck::try_from_bytes` cast that follows it, for any
+    /// for the `bytemuck::pod_read_unaligned` read that follows it, for any
     /// `data` length Kani can construct.
     #[kani::proof]
     fn prove_decode_pod_checked_never_panics() {

@@ -1,4 +1,4 @@
-error: Naclac Error: field 'bad' uses a heap-allocated type ('Vec'/'String') in a zero-copy #[component]. Persisted zero-copy account data is read via raw byte-casting, and a heap pointer cannot survive being written to an account and read back in a later transaction. Please use a fixed-size array (e.g. '[u8; 64]') instead.
+error: Naclac Error: field 'bad' uses a heap-allocated type ('Vec'/'String') in a zero-copy #[component]. Persisted zero-copy account data is read via raw byte-casting, and a heap pointer cannot survive being written to an account and read back in a later transaction. Please use 'FixedVec<T, N>', 'FixedString<N>' or a fixed-size array (e.g. '[u8; 64]') instead.
  --> tests/fail/06_component_zero_copy_heap_field.rs:9:1
   |
 9 | #[component]
@@ -22,7 +22,7 @@ error[E0277]: `std::vec::Vec<u8>` cannot be a field of a zero-copy struct
    |
    = help: the trait `Pod` is not implemented for `std::vec::Vec<u8>`
    = note: a `#[defined_type]` enum field must be written `ZcEnum<EnumName>`
-   = note: `bool` fields must be `Bool`; `Vec` and `String` need the Borsh or Wincode representation
+   = note: `bool` fields must be `Bool`; `Vec` and `String` need the Borsh or Wincode representation, or `FixedVec`/`FixedString`
    = help: the following other types implement trait `Pod`:
              ()
              Address

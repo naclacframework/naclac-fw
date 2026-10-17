@@ -14,6 +14,7 @@ import type { NaclacIdl, IdlInstruction, IdlAccountDef } from "../idl";
 import { type LegacyProvider, type TxVersion, normalizeTxVersion } from "./provider";
 import { encodeInstructionData, decodeDiscriminatedAccountData } from "../coder/instruction";
 import { resolvePdas } from "../utils/pda";
+import { resolveSlots } from "../slots";
 import { translateRpcError } from "../utils/rpc";
 import { resolveDiscriminator } from "../utils/hash";
 import { toCamelCase } from "../utils/case";
@@ -748,9 +749,9 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
   readonly idl: TIdl;
   readonly provider: LegacyProvider;
   readonly programId: PublicKey;
-  /** See the constructor's own doc comment — a codegen-time-only fact, never part of `idl`. */
+  /** True when the IDL's `metadata.serialization` is `bytemuck`. */
   readonly isZeroCopy: boolean;
-  /** Names of this program's `#[event(alloc)]` events — also a codegen-time-only fact. */
+  /** Names of this program's `alloc` events. */
   readonly allocEvents: readonly string[];
 
   readonly methods: {
@@ -839,23 +840,17 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
   }
 
   /**
-   * `isZeroCopy` is a generation-time fact, never part of the IDL itself —
-   * see `Program`'s (the @solana/kit equivalent) constructor doc comment
-   * for the full rationale. The generated `client_legacy.ts` passes it as
-   * a literal here. `allocEvents` is the same kind of fact: which events are
-   * `#[event(alloc)]` (sequentially encoded, not a fixed struct) in a
-   * zero-copy program.
+   * The wire layout comes from the IDL itself — see `Program`'s (the
+   * @solana/kit equivalent) constructor doc comment.
    */
-  constructor(
-    idl: TIdl,
-    provider: LegacyProvider,
-    isZeroCopy = false,
-    allocEvents: readonly string[] = [],
-  ) {
+  constructor(rawIdl: TIdl, provider: LegacyProvider) {
+    const idl = resolveSlots(rawIdl);
     this.idl = idl;
     this.provider = provider;
-    this.isZeroCopy = isZeroCopy;
-    this.allocEvents = allocEvents;
+    this.isZeroCopy = idl.metadata.serialization === "bytemuck";
+    const isZeroCopy = this.isZeroCopy;
+    this.allocEvents = idl.events.filter((e) => e.alloc).map((e) => e.name);
+    const allocEvents = this.allocEvents;
     this.programId = new PublicKey(idl.address);
 
     this.methods = {} as any;

@@ -58,14 +58,16 @@ fn classify_field_type(ty: &Type) -> FieldKind {
 /// `create_type()`), which both returns this event's shape and recursively
 /// chases `NaclacIdlBuild::create_type()` for every field that references a
 /// real defined type, inserting each into the shared `types` map the caller
-/// passes in. Shared by both the plain and `#[event(alloc)]` branches, since
-/// the IDL-visible shape doesn't depend on which wire encoding is active.
+/// passes in. Shared by both the plain and `#[event(alloc)]` branches: the
+/// field types are the same in either, and `alloc` becomes the event's
+/// `alloc` flag.
 #[cfg(feature = "idl-build")]
 fn idl_build_event_impl(
     struct_name: &syn::Ident,
     struct_attrs: &[syn::Attribute],
     fields: &syn::Fields,
     disc: &[u8],
+    alloc: bool,
 ) -> proc_macro2::TokenStream {
     let struct_docs = naclac_syn::parser::extract_docs(struct_attrs);
     let constants = crate::crate_constants();
@@ -88,7 +90,6 @@ fn idl_build_event_impl(
                 docs: vec![#(#docs.into()),*],
                 ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
                     .expect("naclac idl-build: generated field type JSON must parse"),
-                index: false,
             }
         });
         if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&f.ty) {
@@ -120,6 +121,7 @@ fn idl_build_event_impl(
                     name: #struct_name_str.into(),
                     docs: vec![#(#struct_docs.into()),*],
                     discriminator: vec![#(#disc),*],
+                    alloc: #alloc,
                     fields: vec![#(#field_ts_list),*],
                 }
             }
@@ -133,6 +135,7 @@ fn idl_build_event_impl(
     _struct_attrs: &[syn::Attribute],
     _fields: &syn::Fields,
     _disc: &[u8],
+    _alloc: bool,
 ) -> proc_macro2::TokenStream {
     quote! {}
 }
@@ -159,6 +162,23 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
+    if let Some(error) = crate::type_classify::zc_view_field_error(
+        ast.fields.iter(),
+        "an #[event]",
+        "An event is written out, not read from an instruction: use a fixed-size array in a plain \
+         #[event], or 'Vec<T>'/'String' in #[event(alloc)].",
+    ) {
+        return error.to_compile_error().into();
+    }
+
+    if let Some(error) = crate::type_classify::fixed_capacity_field_error(
+        ast.fields.iter(),
+        "an #[event]",
+        "Use a fixed-size array in a plain #[event], or 'Vec<T>'/'String' in #[event(alloc)].",
+    ) {
+        return error.to_compile_error().into();
+    }
+
     let disc_bytes = naclac_syn::discriminator::resolve_discriminator(
         naclac_syn::discriminator::DiscriminatorKind::Event,
         &struct_name.to_string(),
@@ -178,7 +198,13 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let borsh_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
     let wincode_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "wincode"))] };
 
-    let idl_build_impl = idl_build_event_impl(struct_name, &ast.attrs, &ast.fields, &disc_bytes);
+    let idl_build_impl = idl_build_event_impl(
+        struct_name,
+        &ast.attrs,
+        &ast.fields,
+        &disc_bytes,
+        args.alloc,
+    );
 
     if args.alloc {
         return expand_alloc(
@@ -192,16 +218,11 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         );
     }
 
-    // --- Size/alignment for automatic padding, computed by the COMPILER via
-    // size_of/align_of rather than a proc-macro-time string-matching guess.
-    // A string heuristic can only ever recognize types it was told about by
-    // name (primitives, Opt<T>, literal [u8; N]) — any custom struct field
-    // (including a caller's own newtype wrapper) would silently fall back to
-    // a wrong guess, corrupting the padding computation. size_of/align_of are
-    // always correct for any Sized type, resolved after macro expansion once
-    // the compiler has full type information.
+    if let Some(error) = crate::pod_struct_checks::repr_error(&ast.attrs, "a plain #[event]") {
+        return error.to_compile_error().into();
+    }
+
     let mut fields_list = quote! {};
-    let mut align_max = quote! { 1usize };
     let mut field_idents = Vec::new();
     let mut field_tys = Vec::new();
     for field in ast.fields.iter() {
@@ -209,138 +230,27 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         let f_ident = &field.ident;
         let f_ty = &field.ty;
         fields_list = quote! { #fields_list #f_vis #f_ident: #f_ty, };
-        align_max = quote! {{
-            let __a = #align_max;
-            let __b = core::mem::align_of::<#f_ty>();
-            if __a > __b { __a } else { __b }
-        }};
         field_idents.push(f_ident);
         field_tys.push(f_ty);
     }
-
-    let wire_name = syn::Ident::new(&format!("__{}Wire", struct_name), struct_name.span());
     let disc_len = disc_bytes.len();
-    let wire_field_idents: Vec<syn::Ident> = (0..field_idents.len())
-        .map(|i| quote::format_ident!("_f{}", i))
-        .collect();
-    let layout_mismatch_msg = format!(
-        "#[event] `{}`: the wire layout does not match the computed field offsets",
-        struct_name
-    );
+    let layout_checks =
+        crate::pod_struct_checks::generate(struct_name, &ast.fields, &zero_copy_cfg);
 
-    // Each field starts at the next multiple of its alignment, exactly like a
-    // `repr(C)` struct; the gap before field `i` is written into the wire as
-    // explicit zero bytes so the wire struct has no hidden padding.
-    let field_count = field_tys.len();
-    let end_names: Vec<syn::Ident> = (0..field_count)
-        .map(|i| quote::format_ident!("__NACLAC_END_{}", i))
-        .collect();
-    let gap_names: Vec<syn::Ident> = (0..field_count)
-        .map(|i| quote::format_ident!("__NACLAC_GAP_{}", i))
-        .collect();
-    let mut layout_consts = quote! {};
-    for i in 0..field_count {
-        let ty = field_tys[i];
-        let previous_end = if i == 0 {
-            quote! { 0usize }
-        } else {
-            let previous = &end_names[i - 1];
-            quote! { Self::#previous }
-        };
-        let gap = &gap_names[i];
-        let end = &end_names[i];
-        layout_consts = quote! {
-            #layout_consts
-            const #gap: usize = naclac_lang::prelude::compute_padding_gap(
-                #previous_end,
-                core::mem::align_of::<#ty>(),
-            );
-            const #end: usize = (#previous_end) + Self::#gap + core::mem::size_of::<#ty>();
-        };
-    }
-    let total_end = match end_names.last() {
-        Some(last) => quote! { Self::#last },
-        None => quote! { 0usize },
-    };
-    let total_end_outside = match end_names.last() {
-        Some(last) => quote! { #struct_name::#last },
-        None => quote! { 0usize },
-    };
-    let wire_gap_idents: Vec<syn::Ident> = (0..field_count)
-        .map(|i| quote::format_ident!("_g{}", i))
-        .collect();
-    let wire_fields = (0..field_count).map(|i| {
-        let field = &wire_field_idents[i];
-        let ty = field_tys[i];
-        if i == 0 {
-            quote! { #field: #ty, }
-        } else {
-            let gap_field = &wire_gap_idents[i];
-            let gap = &gap_names[i];
-            quote! { #gap_field: [u8; #struct_name::#gap], #field: #ty, }
-        }
-    });
-    let wire_gap_values = (1..field_count).map(|i| {
-        let gap_field = &wire_gap_idents[i];
-        let gap = &gap_names[i];
-        quote! { #gap_field: [0u8; #struct_name::#gap], }
-    });
-    let emit_pushes = (0..field_count).map(|i| {
-        let ident = field_idents[i];
-        let push_field =
-            quote! { __frame.push(naclac_lang::prelude::bytemuck::bytes_of(&self.#ident)); };
-        if i == 0 {
-            push_field
-        } else {
-            let gap = &gap_names[i];
-            quote! { __frame.push_zeros(Self::#gap); #push_field }
-        }
-    });
-
-    // The user-facing struct holds exactly the declared fields, so it can be
-    // built with a plain struct literal on every backend. The `__<Name>Wire`
-    // twin fixes the on-wire layout (same field types, same `repr(C)` order,
-    // explicit zero gap fields where alignment requires them, trailing
-    // `_padding`): `emit` writes exactly that
-    // layout field by field after the discriminator, and `emit_cpi!` sends the
-    // twin's own bytes.
+    // The event is `#[repr(C, packed)]`: its in-memory bytes are its wire
+    // bytes, so `emit` writes the discriminator and then the struct as it is,
+    // and `emit_cpi!` sends the same bytes.
     let expanded = quote! {
         #zero_copy_cfg
-        impl #struct_name {
-            #layout_consts
-            const __NACLAC_PADDING: usize =
-                naclac_lang::prelude::compute_padding_gap(#total_end, #align_max);
-        }
-
-        #zero_copy_cfg
-        const _: fn() = || {
-            fn assert_impl<T: naclac_lang::prelude::ZcField>() {}
-            #( assert_impl::<#field_tys>(); )*
-        };
-
-        #zero_copy_cfg
         #[cfg_attr(feature = "debug-mode", derive(Debug))]
-        #[derive(Clone, Copy)]
-        #[repr(C)]
+        #[derive(Clone, Copy, naclac_lang::prelude::Pod, naclac_lang::prelude::Zeroable)]
+        #[bytemuck(crate = "naclac_lang::bytemuck")]
+        #[repr(C, packed)]
         #vis struct #struct_name {
             #fields_list
         }
 
-        #zero_copy_cfg
-        #[doc(hidden)]
-        #[derive(Clone, Copy, naclac_lang::prelude::Pod, naclac_lang::prelude::Zeroable)]
-        #[bytemuck(crate = "naclac_lang::bytemuck")]
-        #[repr(C)]
-        struct #wire_name {
-            #( #wire_fields )*
-            _padding: [u8; #struct_name::__NACLAC_PADDING],
-        }
-
-        #zero_copy_cfg
-        const _: () = assert!(
-            core::mem::size_of::<#wire_name>() == #struct_name::__NACLAC_PADDING + (#total_end_outside),
-            #layout_mismatch_msg
-        );
+        #layout_checks
 
         #zero_copy_cfg
         impl Default for #struct_name {
@@ -353,22 +263,12 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #zero_copy_cfg
         impl #struct_name {
-            #[inline(always)]
-            fn __naclac_wire(&self) -> #wire_name {
-                #wire_name {
-                    #( #wire_field_idents: self.#field_idents, )*
-                    #( #wire_gap_values )*
-                    _padding: [0u8; Self::__NACLAC_PADDING],
-                }
-            }
-
             pub fn emit(&self) {
                 let mut __frame = naclac_lang::event::EventFrame::<
-                    { #disc_len + core::mem::size_of::<#wire_name>() },
+                    { #disc_len + core::mem::size_of::<#struct_name>() },
                 >::new();
                 __frame.push(#disc_tokens);
-                #( #emit_pushes )*
-                __frame.push_zeros(Self::__NACLAC_PADDING);
+                __frame.push(naclac_lang::prelude::bytemuck::bytes_of(self));
                 naclac_lang::prelude::sol_log_data(&[__frame.finish()]);
             }
         }
@@ -377,8 +277,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl naclac_lang::prelude::EventCpiPayload for #struct_name {
             fn with_cpi_payload<R>(&self, tag: &[u8], send: impl FnOnce(&[u8]) -> R) -> R {
                 let discriminator: &[u8] = #disc_tokens;
-                let wire = self.__naclac_wire();
-                let data = naclac_lang::prelude::bytemuck::bytes_of(&wire);
+                let data = naclac_lang::prelude::bytemuck::bytes_of(self);
                 naclac_lang::event::with_concat(&[tag, discriminator, data], send)
             }
         }

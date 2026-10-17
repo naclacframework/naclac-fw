@@ -2,7 +2,7 @@
 
 use crate::components::State;
 use crate::types::{
-    Action, Color, DynArgs, Level, ListArgs, ModeArgs, PaddedEvent, Signed, StateChanged,
+    Action, Color, DynArgs, Level, ListArgs, ModeArgs, MixedEvent, Signed, StateChanged,
     StateLog, Wide,
 };
 use naclac_lang::prelude::*;
@@ -207,8 +207,8 @@ pub fn measure_cu(ctx: Context<Mutate>) -> Result {
     Ok(())
 }
 
-pub fn emit_padded_event(ctx: Context<Mutate>) -> Result {
-    emit!(PaddedEvent {
+pub fn emit_mixed_event(ctx: Context<Mutate>) -> Result {
+    emit!(MixedEvent {
         tag: 9u8,
         amount: 123_456_789u64,
         color: ctx.accounts.state.color,
