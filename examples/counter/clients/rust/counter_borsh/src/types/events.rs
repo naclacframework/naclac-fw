@@ -30,8 +30,8 @@ pub struct CounterIncremented {
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < CounterIncremented > () == (0usize +
-        ::core::mem::size_of:: < u64 > () + ::core::mem::size_of:: < i64 > ()),
+        ::core::mem::size_of:: < CounterIncremented > () == (::core::mem::size_of:: < u64
+        > () + ::core::mem::size_of:: < i64 > ()),
         "defined_type/#[component]: `CounterIncremented` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
@@ -78,8 +78,8 @@ pub struct CounterIncrementedCpi {
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < CounterIncrementedCpi > () == (0usize +
-        ::core::mem::size_of:: < u64 > () + ::core::mem::size_of:: < i64 > ()),
+        ::core::mem::size_of:: < CounterIncrementedCpi > () == (::core::mem::size_of:: <
+        u64 > () + ::core::mem::size_of:: < i64 > ()),
         "defined_type/#[component]: `CounterIncrementedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(

@@ -70,10 +70,11 @@ fn emit_cpi_records_both_event_encodings_in_the_inner_instruction_trace() {
     assert_eq!(payloads[0].data, vec![1u8, 2, 3]);
 }
 
-/// A nested `defined_type` with internal padding keeps its C layout on the
-/// wire inside an `alloc` event, and the client decodes it back.
+/// A nested `defined_type` is written packed on the wire inside an `alloc`
+/// event (a `u8` then a `u64` is 9 bytes, with no padding), and the client
+/// decodes it back.
 #[test]
-fn emit_cpi_alloc_event_carries_a_padded_defined_type_in_c_layout() {
+fn emit_cpi_alloc_event_carries_a_nested_defined_type_packed() {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
     let provider =
         NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
@@ -96,16 +97,16 @@ fn emit_cpi_alloc_event_carries_a_padded_defined_type_in_c_layout() {
         .expect("litesvm must supply inner instructions");
     assert_eq!(inner.len(), 1);
 
-    let padded = |kind: u8, amount: u64| {
-        let mut bytes = vec![kind, 0, 0, 0, 0, 0, 0, 0];
+    let packed = |kind: u8, amount: u64| {
+        let mut bytes = vec![kind];
         bytes.extend_from_slice(&amount.to_le_bytes());
         bytes
     };
     let mut expected_fields = vec![5u8];
-    expected_fields.extend(padded(3, 0x1122_3344_5566_7788));
+    expected_fields.extend(packed(3, 0x1122_3344_5566_7788));
     expected_fields.extend(2u32.to_le_bytes());
-    expected_fields.extend(padded(9, 42));
-    expected_fields.extend(padded(3, 0x1122_3344_5566_7788));
+    expected_fields.extend(packed(9, 42));
+    expected_fields.extend(packed(3, 0x1122_3344_5566_7788));
     expected_fields.extend(2u32.to_le_bytes());
     expected_fields.extend(b"hi");
     let fields = &inner[0].data[EVENT_DISPATCH_TAG.len() + NestedPadded::DISCRIMINATOR.len()..];

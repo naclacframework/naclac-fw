@@ -250,22 +250,8 @@ pub mod metadata {
         )
     }
 
-    pub fn check_collection(
-        ctx: Context<CheckCollection>,
-        expected_update_authority: Address,
-        expected_name: ZcString,
-        expected_uri: ZcString,
-        expected_num_minted: u32,
-        expected_current_size: u32,
-    ) -> Result {
-        check_collection::check_collection(
-            ctx,
-            expected_update_authority,
-            expected_name,
-            expected_uri,
-            expected_num_minted,
-            expected_current_size,
-        )
+    pub fn check_collection(ctx: Context<CheckCollection>, args: CheckCollectionArgs) -> Result {
+        check_collection::check_collection(ctx, args)
     }
 
     pub fn check_group(

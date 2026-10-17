@@ -52,7 +52,7 @@ use metadata_client::{
         CheckAssetAccounts, CheckCollectionAccounts, CheckGroupAccounts,
         CheckFreezeDelegateAccounts, CheckMasterEditionAccounts, CheckAppDataAccounts,
     },
-    types::PROGRAM_ID,
+    types::{CheckCollectionArgs, PROGRAM_ID},
 };
 
 const MPL_CORE_PROGRAM_ID: Address = address!("CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d");
@@ -2494,11 +2494,13 @@ fn check_collection_matches_after_create_and_update_end_to_end() {
     build_check_collection(
         &provider,
         PROGRAM_ID,
-        payer_address,
-        "Test Collection".to_string(),
-        "https://example.com/collection.json".to_string(),
-        0,
-        0,
+        CheckCollectionArgs {
+            expected_update_authority: payer_address,
+            expected_name: "Test Collection".to_string(),
+            expected_uri: "https://example.com/collection.json".to_string(),
+            expected_num_minted: 0,
+            expected_current_size: 0,
+        },
         CheckCollectionAccounts {
             collection: collection.address(),
         },
@@ -2527,11 +2529,13 @@ fn check_collection_matches_after_create_and_update_end_to_end() {
     build_check_collection(
         &provider,
         PROGRAM_ID,
-        payer_address,
-        "Updated Collection".to_string(),
-        "https://example.com/collection-updated.json".to_string(),
-        0,
-        0,
+        CheckCollectionArgs {
+            expected_update_authority: payer_address,
+            expected_name: "Updated Collection".to_string(),
+            expected_uri: "https://example.com/collection-updated.json".to_string(),
+            expected_num_minted: 0,
+            expected_current_size: 0,
+        },
         CheckCollectionAccounts {
             collection: collection.address(),
         },

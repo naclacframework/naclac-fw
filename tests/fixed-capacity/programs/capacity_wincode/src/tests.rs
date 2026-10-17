@@ -7,18 +7,11 @@ const DISCRIMINATOR_LEN: usize = 8;
 const MEMBERS_MAX: usize = 5;
 const LABEL_MAX: usize = 12;
 
-#[test]
-fn space_holds_a_full_address_list_with_its_length_prefix() {
-    assert!(Roster::SPACE >= DISCRIMINATOR_LEN + 4 + MEMBERS_MAX * 32);
-}
+const _: () = assert!(Roster::SPACE >= DISCRIMINATOR_LEN + 4 + MEMBERS_MAX * 32);
 
-#[test]
-fn space_is_the_discriminator_plus_every_field_at_its_max_len() {
-    assert_eq!(
-        Roster::SPACE,
-        DISCRIMINATOR_LEN + 1 + (4 + MEMBERS_MAX * 32) + (4 + LABEL_MAX) + 4
-    );
-}
+const _: () = assert!(
+    Roster::SPACE == DISCRIMINATOR_LEN + 1 + (4 + MEMBERS_MAX * 32) + (4 + LABEL_MAX) + 4
+);
 
 fn roster(members: usize, label: usize) -> Roster {
     Roster {

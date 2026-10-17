@@ -30,8 +30,8 @@ pub struct Counter {
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < Counter > () == (0usize + ::core::mem::size_of:: < u64 >
-        () + ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > ()),
+        ::core::mem::size_of:: < Counter > () == (::core::mem::size_of:: < u64 > () +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > ()),
         "defined_type/#[component]: `Counter` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
@@ -85,8 +85,8 @@ pub struct CounterCpi {
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < CounterCpi > () == (0usize + ::core::mem::size_of:: <
-        u64 > () + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > ()),
+        ::core::mem::size_of:: < CounterCpi > () == (::core::mem::size_of:: < u64 > () +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > ()),
         "defined_type/#[component]: `CounterCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(

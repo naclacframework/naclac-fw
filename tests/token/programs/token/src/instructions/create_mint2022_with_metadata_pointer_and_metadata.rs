@@ -17,8 +17,11 @@ pub struct CreateMint2022WithMetadataPointerAndMetadataArgs {
     pub id: u64,
     pub mint_bump: u8,
     pub decimals: u8,
+    #[allow_heap]
     pub name: String,
+    #[allow_heap]
     pub symbol: String,
+    #[allow_heap]
     pub uri: String,
 }
 

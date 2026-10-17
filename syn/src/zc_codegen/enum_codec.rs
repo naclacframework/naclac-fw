@@ -87,10 +87,12 @@ pub fn generate(
 
         encode_arms.push(quote! {
             #pattern => {
-                <#tag_ty as #core::ZcCodec>::encode(&(#tag as #tag_ty), tag_slot);
+                let tag_value: #tag_ty = #tag;
+                <#tag_ty as #core::ZcCodec>::encode(&tag_value, tag_slot);
                 #(
+                    let start = #offsets;
                     if let Some(slot) = payload.get_mut(
-                        (#offsets)..(#offsets) + <#field_tys as #core::ZcCodec>::SIZE,
+                        start..start + <#field_tys as #core::ZcCodec>::SIZE,
                     ) {
                         <#field_tys as #core::ZcCodec>::encode(#bindings, slot);
                     }
@@ -101,9 +103,10 @@ pub fn generate(
         decode_arms.push(quote! {
             #tag => {
                 #(
+                    let start = #offsets;
                     let #bindings = <#field_tys as #core::ZcCodec>::decode(
                         payload.get(
-                            (#offsets)..(#offsets) + <#field_tys as #core::ZcCodec>::SIZE,
+                            start..start + <#field_tys as #core::ZcCodec>::SIZE,
                         )?,
                     )?;
                 )*
