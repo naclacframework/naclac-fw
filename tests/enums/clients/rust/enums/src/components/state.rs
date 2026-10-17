@@ -30,290 +30,46 @@ pub struct State {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct State {
     pub bump: u8,
-    pub __naclac_padding_0: [u8; __State_GAP_0],
     pub admin: crate::sdk_core_offchain::Address,
-    pub __naclac_padding_1: [u8; __State_GAP_1],
     pub color: crate::sdk_core_offchain::ZcEnum<Color>,
-    pub __naclac_padding_2: [u8; __State_GAP_2],
     pub action: crate::sdk_core_offchain::ZcEnum<Action>,
-    pub __naclac_padding_3: [u8; __State_GAP_3],
     pub history: [crate::sdk_core_offchain::ZcEnum<Color>; 4],
-    pub __naclac_padding_4: [u8; __State_GAP_4],
     pub maybe_color: OptColor,
-    pub __naclac_padding_5: [u8; __State_GAP_5],
     pub limits: Limits,
-    pub __naclac_padding_6: [u8; __State_GAP_6],
     pub level: crate::sdk_core_offchain::ZcEnum<Level>,
-    pub __naclac_padding_7: [u8; __State_GAP_7],
     pub signed: crate::sdk_core_offchain::ZcEnum<Signed>,
-    pub __naclac_padding_8: [u8; __State_GAP_8],
     pub wide: crate::sdk_core_offchain::ZcEnum<Wide>,
-    pub __naclac_padding_9: [u8; __State_GAP_9],
     pub counter: u8,
-    pub __naclac_padding_10: [u8; __State_GAP_10],
 }
 
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>();
-    let __align: usize = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_offchain::ZcEnum<Color>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>() + __State_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_offchain::ZcEnum<Action>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_3: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>() + __State_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>()
-        + __State_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Action>>();
-    let __align: usize = ::core::mem::align_of::<
-        [crate::sdk_core_offchain::ZcEnum<Color>; 4],
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_4: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>() + __State_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>()
-        + __State_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Action>>()
-        + __State_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_offchain::ZcEnum<Color>; 4]>();
-    let __align: usize = ::core::mem::align_of::<OptColor>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_5: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>() + __State_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>()
-        + __State_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Action>>()
-        + __State_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_offchain::ZcEnum<Color>; 4]>()
-        + __State_GAP_4 + ::core::mem::size_of::<OptColor>();
-    let __align: usize = ::core::mem::align_of::<Limits>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_6: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>() + __State_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>()
-        + __State_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Action>>()
-        + __State_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_offchain::ZcEnum<Color>; 4]>()
-        + __State_GAP_4 + ::core::mem::size_of::<OptColor>() + __State_GAP_5
-        + ::core::mem::size_of::<Limits>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_offchain::ZcEnum<Level>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_7: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>() + __State_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>()
-        + __State_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Action>>()
-        + __State_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_offchain::ZcEnum<Color>; 4]>()
-        + __State_GAP_4 + ::core::mem::size_of::<OptColor>() + __State_GAP_5
-        + ::core::mem::size_of::<Limits>() + __State_GAP_6
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Level>>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_offchain::ZcEnum<Signed>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_8: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>() + __State_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>()
-        + __State_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Action>>()
-        + __State_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_offchain::ZcEnum<Color>; 4]>()
-        + __State_GAP_4 + ::core::mem::size_of::<OptColor>() + __State_GAP_5
-        + ::core::mem::size_of::<Limits>() + __State_GAP_6
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Level>>()
-        + __State_GAP_7
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Signed>>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_offchain::ZcEnum<Wide>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_9: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>() + __State_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>()
-        + __State_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Action>>()
-        + __State_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_offchain::ZcEnum<Color>; 4]>()
-        + __State_GAP_4 + ::core::mem::size_of::<OptColor>() + __State_GAP_5
-        + ::core::mem::size_of::<Limits>() + __State_GAP_6
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Level>>()
-        + __State_GAP_7
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Signed>>()
-        + __State_GAP_8
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Wide>>();
-    let __align: usize = ::core::mem::align_of::<u8>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __State_GAP_10: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __State_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::Address>() + __State_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>()
-        + __State_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Action>>()
-        + __State_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_offchain::ZcEnum<Color>; 4]>()
-        + __State_GAP_4 + ::core::mem::size_of::<OptColor>() + __State_GAP_5
-        + ::core::mem::size_of::<Limits>() + __State_GAP_6
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Level>>()
-        + __State_GAP_7
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Signed>>()
-        + __State_GAP_8
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Wide>>()
-        + __State_GAP_9 + ::core::mem::size_of::<u8>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<u8>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::ZcEnum<Color>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::ZcEnum<Action>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<
-            [crate::sdk_core_offchain::ZcEnum<Color>; 4],
-        >();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<OptColor>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<Limits>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::ZcEnum<Level>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::ZcEnum<Signed>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::ZcEnum<Wide>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u8>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < State > () == (::core::mem::size_of:: < u8 > () +
-        __State_GAP_0 + ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > ()
-        + __State_GAP_1 + ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum <
-        Color > > () + __State_GAP_2 + ::core::mem::size_of:: < crate
-        ::sdk_core_offchain::ZcEnum < Action > > () + __State_GAP_3 +
+        ::core::mem::size_of:: < State > () == (0usize + ::core::mem::size_of:: < u8 > ()
+        + ::core::mem::size_of:: < crate ::sdk_core_offchain::Address > () +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum < Color > > () +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum < Action > > () +
         ::core::mem::size_of:: < [crate ::sdk_core_offchain::ZcEnum < Color >; 4] > () +
-        __State_GAP_4 + ::core::mem::size_of:: < OptColor > () + __State_GAP_5 +
-        ::core::mem::size_of:: < Limits > () + __State_GAP_6 + ::core::mem::size_of:: <
-        crate ::sdk_core_offchain::ZcEnum < Level > > () + __State_GAP_7 +
+        ::core::mem::size_of:: < OptColor > () + ::core::mem::size_of:: < Limits > () +
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum < Level > > () +
         ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum < Signed > > () +
-        __State_GAP_8 + ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum < Wide
-        > > () + __State_GAP_9 + ::core::mem::size_of:: < u8 > () + __State_GAP_10),
-        "defined_type/#[component]: `State`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum < Wide > > () +
+        ::core::mem::size_of:: < u8 > ()),
+        "defined_type/#[component]: `State` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < State > () == 1,
+        "defined_type/#[component]: `State` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_offchain::ZcField>() {}
     assert_impl::<u8>();
     assert_impl::<crate::sdk_core_offchain::Address>();
     assert_impl::<crate::sdk_core_offchain::ZcEnum<Color>>();
@@ -364,287 +120,46 @@ pub struct StateCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct StateCpi {
     pub bump: u8,
-    pub __naclac_padding_0: [u8; __StateCpi_GAP_0],
     pub admin: crate::sdk_core_cpi::Address,
-    pub __naclac_padding_1: [u8; __StateCpi_GAP_1],
     pub color: crate::sdk_core_cpi::ZcEnum<ColorCpi>,
-    pub __naclac_padding_2: [u8; __StateCpi_GAP_2],
     pub action: crate::sdk_core_cpi::ZcEnum<ActionCpi>,
-    pub __naclac_padding_3: [u8; __StateCpi_GAP_3],
     pub history: [crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4],
-    pub __naclac_padding_4: [u8; __StateCpi_GAP_4],
     pub maybe_color: OptColorCpi,
-    pub __naclac_padding_5: [u8; __StateCpi_GAP_5],
     pub limits: LimitsCpi,
-    pub __naclac_padding_6: [u8; __StateCpi_GAP_6],
     pub level: crate::sdk_core_cpi::ZcEnum<LevelCpi>,
-    pub __naclac_padding_7: [u8; __StateCpi_GAP_7],
     pub signed: crate::sdk_core_cpi::ZcEnum<SignedCpi>,
-    pub __naclac_padding_8: [u8; __StateCpi_GAP_8],
     pub wide: crate::sdk_core_cpi::ZcEnum<WideCpi>,
-    pub __naclac_padding_9: [u8; __StateCpi_GAP_9],
     pub counter: u8,
-    pub __naclac_padding_10: [u8; __StateCpi_GAP_10],
 }
 
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>();
-    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_cpi::ZcEnum<ColorCpi>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>() + __StateCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_cpi::ZcEnum<ActionCpi>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_3: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>() + __StateCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>()
-        + __StateCpi_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>();
-    let __align: usize = ::core::mem::align_of::<
-        [crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4],
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_4: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>() + __StateCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>()
-        + __StateCpi_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>()
-        + __StateCpi_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4]>();
-    let __align: usize = ::core::mem::align_of::<OptColorCpi>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_5: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>() + __StateCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>()
-        + __StateCpi_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>()
-        + __StateCpi_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4]>()
-        + __StateCpi_GAP_4 + ::core::mem::size_of::<OptColorCpi>();
-    let __align: usize = ::core::mem::align_of::<LimitsCpi>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_6: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>() + __StateCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>()
-        + __StateCpi_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>()
-        + __StateCpi_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4]>()
-        + __StateCpi_GAP_4 + ::core::mem::size_of::<OptColorCpi>() + __StateCpi_GAP_5
-        + ::core::mem::size_of::<LimitsCpi>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_cpi::ZcEnum<LevelCpi>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_7: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>() + __StateCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>()
-        + __StateCpi_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>()
-        + __StateCpi_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4]>()
-        + __StateCpi_GAP_4 + ::core::mem::size_of::<OptColorCpi>() + __StateCpi_GAP_5
-        + ::core::mem::size_of::<LimitsCpi>() + __StateCpi_GAP_6
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<LevelCpi>>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_cpi::ZcEnum<SignedCpi>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_8: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>() + __StateCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>()
-        + __StateCpi_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>()
-        + __StateCpi_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4]>()
-        + __StateCpi_GAP_4 + ::core::mem::size_of::<OptColorCpi>() + __StateCpi_GAP_5
-        + ::core::mem::size_of::<LimitsCpi>() + __StateCpi_GAP_6
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<LevelCpi>>()
-        + __StateCpi_GAP_7
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<SignedCpi>>();
-    let __align: usize = ::core::mem::align_of::<crate::sdk_core_cpi::ZcEnum<WideCpi>>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_9: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>() + __StateCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>()
-        + __StateCpi_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>()
-        + __StateCpi_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4]>()
-        + __StateCpi_GAP_4 + ::core::mem::size_of::<OptColorCpi>() + __StateCpi_GAP_5
-        + ::core::mem::size_of::<LimitsCpi>() + __StateCpi_GAP_6
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<LevelCpi>>()
-        + __StateCpi_GAP_7
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<SignedCpi>>()
-        + __StateCpi_GAP_8
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<WideCpi>>();
-    let __align: usize = ::core::mem::align_of::<u8>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateCpi_GAP_10: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __StateCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::Address>() + __StateCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>()
-        + __StateCpi_GAP_2
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>()
-        + __StateCpi_GAP_3
-        + ::core::mem::size_of::<[crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4]>()
-        + __StateCpi_GAP_4 + ::core::mem::size_of::<OptColorCpi>() + __StateCpi_GAP_5
-        + ::core::mem::size_of::<LimitsCpi>() + __StateCpi_GAP_6
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<LevelCpi>>()
-        + __StateCpi_GAP_7
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<SignedCpi>>()
-        + __StateCpi_GAP_8
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<WideCpi>>()
-        + __StateCpi_GAP_9 + ::core::mem::size_of::<u8>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<u8>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<[crate::sdk_core_cpi::ZcEnum<ColorCpi>; 4]>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<OptColorCpi>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<LimitsCpi>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::ZcEnum<LevelCpi>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::ZcEnum<SignedCpi>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::ZcEnum<WideCpi>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u8>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < StateCpi > () == (::core::mem::size_of:: < u8 > () +
-        __StateCpi_GAP_0 + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > () +
-        __StateCpi_GAP_1 + ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum <
-        ColorCpi > > () + __StateCpi_GAP_2 + ::core::mem::size_of:: < crate
-        ::sdk_core_cpi::ZcEnum < ActionCpi > > () + __StateCpi_GAP_3 +
+        ::core::mem::size_of:: < StateCpi > () == (0usize + ::core::mem::size_of:: < u8 >
+        () + ::core::mem::size_of:: < crate ::sdk_core_cpi::Address > () +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum < ColorCpi > > () +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum < ActionCpi > > () +
         ::core::mem::size_of:: < [crate ::sdk_core_cpi::ZcEnum < ColorCpi >; 4] > () +
-        __StateCpi_GAP_4 + ::core::mem::size_of:: < OptColorCpi > () + __StateCpi_GAP_5 +
-        ::core::mem::size_of:: < LimitsCpi > () + __StateCpi_GAP_6 +
-        ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum < LevelCpi > > () +
-        __StateCpi_GAP_7 + ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum <
-        SignedCpi > > () + __StateCpi_GAP_8 + ::core::mem::size_of:: < crate
-        ::sdk_core_cpi::ZcEnum < WideCpi > > () + __StateCpi_GAP_9 +
-        ::core::mem::size_of:: < u8 > () + __StateCpi_GAP_10),
-        "defined_type/#[component]: `StateCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::core::mem::size_of:: < OptColorCpi > () + ::core::mem::size_of:: < LimitsCpi >
+        () + ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum < LevelCpi > > () +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum < SignedCpi > > () +
+        ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum < WideCpi > > () +
+        ::core::mem::size_of:: < u8 > ()),
+        "defined_type/#[component]: `StateCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < StateCpi > () == 1,
+        "defined_type/#[component]: `StateCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_cpi::ZcField>() {}
     assert_impl::<u8>();
     assert_impl::<crate::sdk_core_cpi::Address>();
     assert_impl::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>();

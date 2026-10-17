@@ -46,7 +46,11 @@ pub fn build_set_action<'a>(
     };
     #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
-        ix_data.extend_from_slice(crate::sdk_core_offchain::bytes_of_checked_bit_pattern(&args.action));
+        {
+            let mut __stored = [0u8; <crate::types::Action as crate::sdk_core_offchain::ZcCodec>::SIZE];
+            crate::sdk_core_offchain::ZcCodec::encode(&args.action, &mut __stored);
+            ix_data.extend_from_slice(&__stored);
+        }
     }
     #[cfg(feature = "borsh")]
     {
@@ -125,7 +129,11 @@ impl<'info> SetActionCpi<'info> for crate::sdk_core_cpi::Program<crate::EnumsWin
         ix_data.extend_from_slice(&[133, 105, 183, 47, 183, 52, 130, 87]);
         #[cfg(not(any(feature = "borsh", feature = "wincode")))]
         {
-        ix_data.extend_from_slice(crate::sdk_core_cpi::bytes_of_checked_bit_pattern(&args.action));
+        {
+            let mut __stored = [0u8; <crate::types::ActionCpi as crate::sdk_core_cpi::ZcCodec>::SIZE];
+            crate::sdk_core_cpi::ZcCodec::encode(&args.action, &mut __stored);
+            ix_data.extend_from_slice(&__stored);
+        }
         }
         #[cfg(feature = "borsh")]
         {

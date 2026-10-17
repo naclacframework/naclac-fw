@@ -17,4 +17,4 @@ export * from "./dynArgs";
 export * from "./textLists";
 export * from "./enumLists";
 export * from "./measureCu";
-export * from "./emitPaddedEvent";
+export * from "./emitMixedEvent";

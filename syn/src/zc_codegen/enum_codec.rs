@@ -26,11 +26,16 @@ fn field_types(variant: &Variant) -> Vec<&Type> {
     variant.fields.iter().map(|field| &field.ty).collect()
 }
 
-/// `0 + SIZE_0 + SIZE_1 + ...` over the first `count` field types: the offset
-/// of field `count` inside the variant's payload.
+/// `SIZE_0 + SIZE_1 + ...` over the first `count` field types (`0usize` when
+/// there are none): the offset of field `count` inside the variant's payload.
 fn offset_expr(field_tys: &[&Type], count: usize, core: &syn::Path) -> TokenStream {
-    let preceding = &field_tys[..count];
-    quote! { 0usize #(+ <#preceding as #core::ZcCodec>::SIZE)* }
+    let mut sizes = field_tys[..count]
+        .iter()
+        .map(|ty| quote! { <#ty as #core::ZcCodec>::SIZE });
+    match sizes.next() {
+        None => quote! { 0usize },
+        Some(first) => sizes.fold(first, |sum, size| quote! { #sum + #size }),
+    }
 }
 
 /// Returns the `ZcCodec` and `ZcEnumKind` impls for `ident`, whose tag type is

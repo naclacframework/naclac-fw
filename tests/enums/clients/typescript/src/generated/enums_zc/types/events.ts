@@ -4,38 +4,38 @@
 import * as naclac from "@naclac-fw/client";
 import { Color, Action } from "./typedefs";
 
-/** Discriminator for `PaddedEvent` events in transaction logs. */
-export const PADDEDEVENT_EVENT_DISCRIMINATOR = new Uint8Array([14, 19, 85, 153, 14, 251, 153, 152]);
+/** Discriminator for `MixedEvent` events in transaction logs. */
+export const MIXEDEVENT_EVENT_DISCRIMINATOR = new Uint8Array([62, 139, 69, 98, 235, 75, 252, 237]);
 
 /** Auto-generated event interface from the program IDL. */
-export interface PaddedEvent {
+export interface MixedEvent {
   tag: number;
   amount: bigint | number;
   color: Color;
 }
 
-/** Subscribes to `PaddedEvent` events. Returns a listener ID for cleanup. */
-export function addPaddedEventListener(
+/** Subscribes to `MixedEvent` events. Returns a listener ID for cleanup. */
+export function addMixedEventListener(
   program: any,
-  callback: (event: PaddedEvent, slot: number, signature: string) => void
+  callback: (event: MixedEvent, slot: number, signature: string) => void
 ): number {
-  return program.addEventListener("PaddedEvent", callback);
+  return program.addEventListener("MixedEvent", callback);
 }
 
-/** Waits for the next `PaddedEvent` event. Resolves `null` if the timeout expires. */
-export async function waitForPaddedEvent(
+/** Waits for the next `MixedEvent` event. Resolves `null` if the timeout expires. */
+export async function waitForMixedEvent(
   program: any,
   options?: { timeoutMs?: number }
-): Promise<PaddedEvent | null> {
-  return program.waitForEvent("PaddedEvent", options) as Promise<PaddedEvent | null>;
+): Promise<MixedEvent | null> {
+  return program.waitForEvent("MixedEvent", options) as Promise<MixedEvent | null>;
 }
 
-/** Decodes every `PaddedEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForPaddedEvent`/`addPaddedEventListener` — prefer this when you already know which transaction you're checking. Logs only: events emitted via `emit_cpi!` never appear in logs, so use the client's own `parse...Events` method with the inner instructions for those. */
-export function parsePaddedEventEvents(
+/** Decodes every `MixedEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForMixedEvent`/`addMixedEventListener` — prefer this when you already know which transaction you're checking. Logs only: events emitted via `emit_cpi!` never appear in logs, so use the client's own `parse...Events` method with the inner instructions for those. */
+export function parseMixedEventEvents(
   program: any,
   logs: readonly string[]
-): PaddedEvent[] {
-  return program.parseEvents("PaddedEvent", logs) as PaddedEvent[];
+): MixedEvent[] {
+  return program.parseEvents("MixedEvent", logs) as MixedEvent[];
 }
 
 /** Discriminator for `StateChanged` events in transaction logs. */

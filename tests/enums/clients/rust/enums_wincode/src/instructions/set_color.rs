@@ -46,7 +46,11 @@ pub fn build_set_color<'a>(
     };
     #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
-        ix_data.extend_from_slice(crate::sdk_core_offchain::bytes_of_checked_bit_pattern(&args.color));
+        {
+            let mut __stored = [0u8; <crate::types::Color as crate::sdk_core_offchain::ZcCodec>::SIZE];
+            crate::sdk_core_offchain::ZcCodec::encode(&args.color, &mut __stored);
+            ix_data.extend_from_slice(&__stored);
+        }
     }
     #[cfg(feature = "borsh")]
     {
@@ -125,7 +129,11 @@ impl<'info> SetColorCpi<'info> for crate::sdk_core_cpi::Program<crate::EnumsWinc
         ix_data.extend_from_slice(&[198, 228, 75, 91, 242, 20, 189, 38]);
         #[cfg(not(any(feature = "borsh", feature = "wincode")))]
         {
-        ix_data.extend_from_slice(crate::sdk_core_cpi::bytes_of_checked_bit_pattern(&args.color));
+        {
+            let mut __stored = [0u8; <crate::types::ColorCpi as crate::sdk_core_cpi::ZcCodec>::SIZE];
+            crate::sdk_core_cpi::ZcCodec::encode(&args.color, &mut __stored);
+            ix_data.extend_from_slice(&__stored);
+        }
         }
         #[cfg(feature = "borsh")]
         {

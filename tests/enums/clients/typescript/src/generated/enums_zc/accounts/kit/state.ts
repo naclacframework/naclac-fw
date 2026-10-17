@@ -2,6 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/kit";
+import { IDL } from "../../program-idl";
 import type { State } from "../../types";
 
 /** On-chain discriminator for `State` accounts. */
@@ -15,44 +16,16 @@ function stripStateDiscriminator(data: Uint8Array): Uint8Array {
   return data.slice(disc.length);
 }
 
-/** Gets the encoder for {@link State} account data. */
-export function getStateEncoder(): naclac.FixedSizeEncoder<State> {
-  return naclac.getStructEncoder([
-    ["bump", naclac.getU8Encoder()],
-    ["admin", naclac.getAddressEncoder()],
-    ["color", naclac.getU8Encoder() /* TODO: complex type */],
-    ["action", naclac.getU8Encoder() /* TODO: complex type */],
-    ["history", naclac.getU8Encoder() /* TODO: complex type */],
-    ["maybeColor", naclac.getU8Encoder() /* TODO: complex type */],
-    ["limits", naclac.getU8Encoder() /* TODO: complex type */],
-    ["level", naclac.getU8Encoder() /* TODO: complex type */],
-    ["signed", naclac.getU8Encoder() /* TODO: complex type */],
-    ["wide", naclac.getU8Encoder() /* TODO: complex type */],
-    ["counter", naclac.getU8Encoder()],
-  ]) as naclac.FixedSizeEncoder<State>;
+/** Gets the codec (encoder + decoder) for {@link State} account data, discriminator excluded. */
+export function getStateCodec(): naclac.AccountCodec<State> {
+  return naclac.getAccountCodec<State>(IDL, "State");
 }
+
+/** Gets the encoder for {@link State} account data. */
+export const getStateEncoder = getStateCodec;
 
 /** Gets the decoder for {@link State} account data. */
-export function getStateDecoder(): naclac.FixedSizeDecoder<State> {
-  return naclac.getStructDecoder([
-    ["bump", naclac.getU8Decoder()],
-    ["admin", naclac.getAddressDecoder()],
-    ["color", naclac.getU8Decoder() /* TODO: complex type */],
-    ["action", naclac.getU8Decoder() /* TODO: complex type */],
-    ["history", naclac.getU8Decoder() /* TODO: complex type */],
-    ["maybeColor", naclac.getU8Decoder() /* TODO: complex type */],
-    ["limits", naclac.getU8Decoder() /* TODO: complex type */],
-    ["level", naclac.getU8Decoder() /* TODO: complex type */],
-    ["signed", naclac.getU8Decoder() /* TODO: complex type */],
-    ["wide", naclac.getU8Decoder() /* TODO: complex type */],
-    ["counter", naclac.getU8Decoder()],
-  ]) as naclac.FixedSizeDecoder<State>;
-}
-
-/** Gets the codec (encoder + decoder) for {@link State} account data. */
-export function getStateCodec(): naclac.FixedSizeCodec<State> {
-  return naclac.combineCodec(getStateEncoder(), getStateDecoder());
-}
+export const getStateDecoder = getStateCodec;
 
 export function decodeState<TAddress extends string = string>(
   encodedAccount: naclac.EncodedAccount<TAddress>,
@@ -67,7 +40,7 @@ export function decodeState<TAddress extends string = string>(
     ('data' in encodedAccount
       ? { ...encodedAccount, data: stripStateDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
-    getStateDecoder(),
+    getStateDecoder() as unknown as naclac.Decoder<State>,
   );
 }
 

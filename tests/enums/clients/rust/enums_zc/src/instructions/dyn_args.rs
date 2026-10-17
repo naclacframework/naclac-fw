@@ -60,7 +60,7 @@ pub fn build_dyn_args<'a>(
         match &args.args.maybe {
             Some(__inner) => {
                 ix_data.push(1u8);
-                ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(__inner));
+        ix_data.extend_from_slice(crate::sdk_core_offchain::bytemuck::bytes_of(__inner));
             }
             None => {
                 ix_data.push(0u8);
@@ -169,7 +169,7 @@ impl<'info> DynArgsCpi<'info> for crate::sdk_core_cpi::Program<crate::EnumsZc> {
         match &args.args.maybe {
             Some(__inner) => {
                 ix_data.push(1u8);
-                ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(__inner));
+        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(__inner));
             }
             None => {
                 ix_data.push(0u8);

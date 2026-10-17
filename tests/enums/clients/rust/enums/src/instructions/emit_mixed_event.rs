@@ -2,77 +2,77 @@
 // Re-run `naclac generate` to refresh this file.
 
 #[cfg(feature = "offchain")]
-pub struct EmitPaddedEventAccounts {
+pub struct EmitMixedEventAccounts {
     pub signer: naclac_client::Address,
     pub state: naclac_client::Address,
 }
 
 #[cfg(feature = "offchain")]
-pub fn build_emit_padded_event<'a>(
+pub fn build_emit_mixed_event<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
-    accounts: EmitPaddedEventAccounts,
+    accounts: EmitMixedEventAccounts,
 ) -> naclac_client::InstructionBuilder<'a> {
-    let ix_data = crate::sdk_core_offchain::vec![136, 3, 73, 55, 40, 168, 197, 164];
+    let ix_data = crate::sdk_core_offchain::vec![100, 115, 186, 248, 16, 116, 224, 49];
     naclac_client::InstructionBuilder::new(provider, program_id, ix_data)
         .account(naclac_client::AccountMeta { address: accounts.signer, is_signer: true, is_writable: false }, "signer")
         .account(naclac_client::AccountMeta { address: accounts.state, is_signer: false, is_writable: true }, "state")
 }
 
 #[cfg(feature = "cpi")]
-pub struct EmitPaddedEventCpiAccounts<'a> {
+pub struct EmitMixedEventCpiAccounts<'a> {
     pub signer: crate::sdk_core_cpi::CpiHandle<'a>,
     pub state: crate::sdk_core_cpi::CpiHandleMut<'a>,
 }
 
 #[cfg(feature = "cpi")]
-pub struct EmitPaddedEventCpiCall<'a> {
-    pub accounts: EmitPaddedEventCpiAccounts<'a>,
+pub struct EmitMixedEventCpiCall<'a> {
+    pub accounts: EmitMixedEventCpiAccounts<'a>,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]
-pub trait EmitPaddedEventCpi<'info> {
-    fn emit_padded_event<'a>(
+pub trait EmitMixedEventCpi<'info> {
+    fn emit_mixed_event<'a>(
         &self,
-        accounts: EmitPaddedEventCpiAccounts<'a>
+        accounts: EmitMixedEventCpiAccounts<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        self.emit_padded_event_with_remaining_accounts(EmitPaddedEventCpiCall {
+        self.emit_mixed_event_with_remaining_accounts(EmitMixedEventCpiCall {
         accounts,
         signer_seeds: &[],
         remaining_accounts: &[],
     })
     }
 
-    fn emit_padded_event_signed<'a>(
+    fn emit_mixed_event_signed<'a>(
         &self,
-        accounts: EmitPaddedEventCpiAccounts<'a>,
+        accounts: EmitMixedEventCpiAccounts<'a>,
         signer_seeds: &[&[&[u8]]]
     ) -> crate::sdk_core_cpi::Result<()> {
-        self.emit_padded_event_with_remaining_accounts(EmitPaddedEventCpiCall {
+        self.emit_mixed_event_with_remaining_accounts(EmitMixedEventCpiCall {
         accounts,
         signer_seeds,
         remaining_accounts: &[],
     })
     }
 
-    fn emit_padded_event_with_remaining_accounts<'a>(
+    fn emit_mixed_event_with_remaining_accounts<'a>(
         &self,
-        call: EmitPaddedEventCpiCall<'a>
+        call: EmitMixedEventCpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()>;
 
 }
 
 #[cfg(feature = "cpi")]
-impl<'info> EmitPaddedEventCpi<'info> for crate::sdk_core_cpi::Program<crate::EnumsZc> {
-    fn emit_padded_event_with_remaining_accounts<'a>(
+impl<'info> EmitMixedEventCpi<'info> for crate::sdk_core_cpi::Program<crate::Enums> {
+    fn emit_mixed_event_with_remaining_accounts<'a>(
         &self,
-        call: EmitPaddedEventCpiCall<'a>
+        call: EmitMixedEventCpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        let EmitPaddedEventCpiCall { accounts, signer_seeds, remaining_accounts } = call;
+        let EmitMixedEventCpiCall { accounts, signer_seeds, remaining_accounts } = call;
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
-        ix_data.extend_from_slice(&[136, 3, 73, 55, 40, 168, 197, 164]);
+        ix_data.extend_from_slice(&[100, 115, 186, 248, 16, 116, 224, 49]);
         #[cfg(feature = "pinocchio")]
         {
             let mut metas_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount>::uninit() }; 32];

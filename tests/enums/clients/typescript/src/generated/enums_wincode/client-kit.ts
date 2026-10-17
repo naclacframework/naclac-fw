@@ -2,9 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/kit";
-import rawIDL from "./idl/enums_wincode.json";
-import type { EnumsWincode } from "./idl/enums_wincode";
-const IDL = rawIDL as unknown as EnumsWincode;
+import { IDL } from "./program-idl";
 import * as instructions from "./instructions";
 import * as accounts from "./accounts/kit";
 import * as types from "./types";
@@ -40,7 +38,7 @@ export class EnumsWincodeClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider, false, []);
+    this.program = new naclac.Program(IDL, provider);
   }
 
   /**

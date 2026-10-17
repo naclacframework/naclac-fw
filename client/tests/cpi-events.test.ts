@@ -146,7 +146,7 @@ describe("eventFieldLayout", () => {
   });
 });
 
-describe("alloc event holding a padded defined type", () => {
+describe("alloc event holding a defined struct", () => {
   const paddedIdl = {
     ...idl,
     events: [
@@ -176,20 +176,20 @@ describe("alloc event holding a padded defined type", () => {
     ],
   } as unknown as NaclacIdl;
 
-  const padded = (kind: number, amount: bigint) => [kind, 0, 0, 0, 0, 0, 0, 0, ...u64(amount)];
+  const packed = (kind: number, amount: bigint) => [kind, ...u64(amount)];
   const u32 = (value: number) => [value, 0, 0, 0];
 
-  it("reads each nested value in its 16-byte C layout, not packed", () => {
+  it("reads each nested value in its packed 9-byte layout, with no padding", () => {
     const bytes = Uint8Array.from([
       ...TAG,
       ...DISCRIMINATOR,
       5,
-      ...padded(3, 0x1122334455667788n),
+      ...packed(3, 0x1122334455667788n),
       ...u32(2),
-      ...padded(9, 42n),
-      ...padded(3, 7n),
+      ...packed(9, 42n),
+      ...packed(3, 7n),
       1,
-      ...padded(4, 8n),
+      ...packed(4, 8n),
       ...u32(2),
       104,
       105,

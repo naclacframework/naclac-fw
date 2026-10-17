@@ -50,13 +50,21 @@ pub fn build_enum_lists<'a>(
     };
     #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
-        ix_data.extend_from_slice(&((args.heap.len() * core::mem::size_of::<crate::types::Color>()) as u32).to_le_bytes());
+        ix_data.extend_from_slice(&((args.heap.len() * <crate::types::Color as crate::sdk_core_offchain::ZcCodec>::SIZE) as u32).to_le_bytes());
         for __elem in args.heap.iter() {
-            ix_data.extend_from_slice(crate::sdk_core_offchain::bytes_of_checked_bit_pattern(__elem));
+        {
+            let mut __stored = [0u8; <crate::types::Color as crate::sdk_core_offchain::ZcCodec>::SIZE];
+            crate::sdk_core_offchain::ZcCodec::encode(__elem, &mut __stored);
+            ix_data.extend_from_slice(&__stored);
         }
-        ix_data.extend_from_slice(&((args.view.len() * core::mem::size_of::<crate::types::Color>()) as u32).to_le_bytes());
+        }
+        ix_data.extend_from_slice(&((args.view.len() * <crate::types::Color as crate::sdk_core_offchain::ZcCodec>::SIZE) as u32).to_le_bytes());
         for __elem in args.view.iter() {
-            ix_data.extend_from_slice(crate::sdk_core_offchain::bytes_of_checked_bit_pattern(__elem));
+        {
+            let mut __stored = [0u8; <crate::types::Color as crate::sdk_core_offchain::ZcCodec>::SIZE];
+            crate::sdk_core_offchain::ZcCodec::encode(__elem, &mut __stored);
+            ix_data.extend_from_slice(&__stored);
+        }
         }
     }
     #[cfg(feature = "borsh")]
@@ -142,13 +150,21 @@ impl<'info> EnumListsCpi<'info> for crate::sdk_core_cpi::Program<crate::Enums> {
         ix_data.extend_from_slice(&[83, 94, 11, 113, 99, 24, 155, 16]);
         #[cfg(not(any(feature = "borsh", feature = "wincode")))]
         {
-        ix_data.extend_from_slice(&((args.heap.len() * core::mem::size_of::<crate::types::ColorCpi>()) as u32).to_le_bytes());
+        ix_data.extend_from_slice(&((args.heap.len() * <crate::types::ColorCpi as crate::sdk_core_cpi::ZcCodec>::SIZE) as u32).to_le_bytes());
         for __elem in args.heap.iter() {
-            ix_data.extend_from_slice(crate::sdk_core_cpi::bytes_of_checked_bit_pattern(__elem));
+        {
+            let mut __stored = [0u8; <crate::types::ColorCpi as crate::sdk_core_cpi::ZcCodec>::SIZE];
+            crate::sdk_core_cpi::ZcCodec::encode(&__elem, &mut __stored);
+            ix_data.extend_from_slice(&__stored);
         }
-        ix_data.extend_from_slice(&((args.view.len() * core::mem::size_of::<crate::types::ColorCpi>()) as u32).to_le_bytes());
+        }
+        ix_data.extend_from_slice(&((args.view.len() * <crate::types::ColorCpi as crate::sdk_core_cpi::ZcCodec>::SIZE) as u32).to_le_bytes());
         for __elem in args.view.iter() {
-            ix_data.extend_from_slice(crate::sdk_core_cpi::bytes_of_checked_bit_pattern(__elem));
+        {
+            let mut __stored = [0u8; <crate::types::ColorCpi as crate::sdk_core_cpi::ZcCodec>::SIZE];
+            crate::sdk_core_cpi::ZcCodec::encode(&__elem, &mut __stored);
+            ix_data.extend_from_slice(&__stored);
+        }
         }
         }
         #[cfg(feature = "borsh")]

@@ -13,7 +13,7 @@ use crate::types::typedefs::*;
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
 #[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
 #[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
-pub struct PaddedEvent {
+pub struct MixedEvent {
     pub tag: u8,
     pub amount: u64,
     pub color: Color,
@@ -22,78 +22,31 @@ pub struct PaddedEvent {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
-pub struct PaddedEvent {
+#[repr(C, packed)]
+pub struct MixedEvent {
     pub tag: u8,
-    pub __naclac_padding_0: [u8; __PaddedEvent_GAP_0],
     pub amount: u64,
-    pub __naclac_padding_1: [u8; __PaddedEvent_GAP_1],
     pub color: crate::sdk_core_offchain::ZcEnum<Color>,
-    pub __naclac_padding_2: [u8; __PaddedEvent_GAP_2],
 }
 
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __PaddedEvent_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __PaddedEvent_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __PaddedEvent_GAP_0
-        + ::core::mem::size_of::<u64>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_offchain::ZcEnum<Color>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __PaddedEvent_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __PaddedEvent_GAP_0
-        + ::core::mem::size_of::<u64>() + __PaddedEvent_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<u8>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::ZcEnum<Color>>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < PaddedEvent > () == (::core::mem::size_of:: < u8 > () +
-        __PaddedEvent_GAP_0 + ::core::mem::size_of:: < u64 > () + __PaddedEvent_GAP_1 +
-        ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum < Color > > () +
-        __PaddedEvent_GAP_2),
-        "defined_type/#[component]: `PaddedEvent`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::core::mem::size_of:: < MixedEvent > () == (0usize + ::core::mem::size_of:: < u8
+        > () + ::core::mem::size_of:: < u64 > () + ::core::mem::size_of:: < crate
+        ::sdk_core_offchain::ZcEnum < Color > > ()),
+        "defined_type/#[component]: `MixedEvent` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < MixedEvent > () == 1,
+        "defined_type/#[component]: `MixedEvent` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_offchain::ZcField>() {}
     assert_impl::<u8>();
     assert_impl::<u64>();
     assert_impl::<crate::sdk_core_offchain::ZcEnum<Color>>();
@@ -101,10 +54,10 @@ const _: fn() = || {
 
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for PaddedEvent {}
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for MixedEvent {}
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-unsafe impl crate::sdk_core_offchain::bytemuck::Pod for PaddedEvent {}
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for MixedEvent {}
 
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
@@ -112,7 +65,7 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Pod for PaddedEvent {}
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
 #[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
 #[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
-pub struct PaddedEventCpi {
+pub struct MixedEventCpi {
     pub tag: u8,
     pub amount: u64,
     pub color: ColorCpi,
@@ -121,78 +74,31 @@ pub struct PaddedEventCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
-pub struct PaddedEventCpi {
+#[repr(C, packed)]
+pub struct MixedEventCpi {
     pub tag: u8,
-    pub __naclac_padding_0: [u8; __PaddedEventCpi_GAP_0],
     pub amount: u64,
-    pub __naclac_padding_1: [u8; __PaddedEventCpi_GAP_1],
     pub color: crate::sdk_core_cpi::ZcEnum<ColorCpi>,
-    pub __naclac_padding_2: [u8; __PaddedEventCpi_GAP_2],
 }
 
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __PaddedEventCpi_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __PaddedEventCpi_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __PaddedEventCpi_GAP_0
-        + ::core::mem::size_of::<u64>();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_cpi::ZcEnum<ColorCpi>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __PaddedEventCpi_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<u8>() + __PaddedEventCpi_GAP_0
-        + ::core::mem::size_of::<u64>() + __PaddedEventCpi_GAP_1
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<u8>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < PaddedEventCpi > () == (::core::mem::size_of:: < u8 > ()
-        + __PaddedEventCpi_GAP_0 + ::core::mem::size_of:: < u64 > () +
-        __PaddedEventCpi_GAP_1 + ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum <
-        ColorCpi > > () + __PaddedEventCpi_GAP_2),
-        "defined_type/#[component]: `PaddedEventCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::core::mem::size_of:: < MixedEventCpi > () == (0usize + ::core::mem::size_of:: <
+        u8 > () + ::core::mem::size_of:: < u64 > () + ::core::mem::size_of:: < crate
+        ::sdk_core_cpi::ZcEnum < ColorCpi > > ()),
+        "defined_type/#[component]: `MixedEventCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < MixedEventCpi > () == 1,
+        "defined_type/#[component]: `MixedEventCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_cpi::ZcField>() {}
     assert_impl::<u8>();
     assert_impl::<u64>();
     assert_impl::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>();
@@ -200,14 +106,14 @@ const _: fn() = || {
 
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for PaddedEventCpi {}
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for MixedEventCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-unsafe impl crate::sdk_core_cpi::bytemuck::Pod for PaddedEventCpi {}
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for MixedEventCpi {}
 
 #[cfg(feature = "offchain")]
-impl crate::sdk_core_offchain::NaclacEvent for PaddedEvent {
-    const DISCRIMINATOR: &'static [u8] = &[14, 19, 85, 153, 14, 251, 153, 152];
+impl crate::sdk_core_offchain::NaclacEvent for MixedEvent {
+    const DISCRIMINATOR: &'static [u8] = &[62, 139, 69, 98, 235, 75, 252, 237];
     const PROGRAM_ID: crate::sdk_core_offchain::Address = crate::types::PROGRAM_ID;
     const CPI_TAG: &'static [u8] = &[];
 }
@@ -227,84 +133,32 @@ pub struct StateChanged {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct StateChanged {
     pub action: crate::sdk_core_offchain::ZcEnum<Action>,
-    pub __naclac_padding_0: [u8; __StateChanged_GAP_0],
     pub color: crate::sdk_core_offchain::ZcEnum<Color>,
-    pub __naclac_padding_1: [u8; __StateChanged_GAP_1],
     pub counter: u8,
-    pub __naclac_padding_2: [u8; __StateChanged_GAP_2],
 }
 
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateChanged_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<
-        crate::sdk_core_offchain::ZcEnum<Action>,
-    >();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_offchain::ZcEnum<Color>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateChanged_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<
-        crate::sdk_core_offchain::ZcEnum<Action>,
-    >() + __StateChanged_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>();
-    let __align: usize = ::core::mem::align_of::<u8>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateChanged_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<
-        crate::sdk_core_offchain::ZcEnum<Action>,
-    >() + __StateChanged_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_offchain::ZcEnum<Color>>()
-        + __StateChanged_GAP_1 + ::core::mem::size_of::<u8>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::ZcEnum<Action>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::ZcEnum<Color>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u8>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < StateChanged > () == (::core::mem::size_of:: < crate
-        ::sdk_core_offchain::ZcEnum < Action > > () + __StateChanged_GAP_0 +
-        ::core::mem::size_of:: < crate ::sdk_core_offchain::ZcEnum < Color > > () +
-        __StateChanged_GAP_1 + ::core::mem::size_of:: < u8 > () + __StateChanged_GAP_2),
-        "defined_type/#[component]: `StateChanged`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::core::mem::size_of:: < StateChanged > () == (0usize + ::core::mem::size_of:: <
+        crate ::sdk_core_offchain::ZcEnum < Action > > () + ::core::mem::size_of:: <
+        crate ::sdk_core_offchain::ZcEnum < Color > > () + ::core::mem::size_of:: < u8 >
+        ()),
+        "defined_type/#[component]: `StateChanged` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < StateChanged > () == 1,
+        "defined_type/#[component]: `StateChanged` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_offchain::ZcField>() {}
     assert_impl::<crate::sdk_core_offchain::ZcEnum<Action>>();
     assert_impl::<crate::sdk_core_offchain::ZcEnum<Color>>();
     assert_impl::<u8>();
@@ -332,85 +186,32 @@ pub struct StateChangedCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct StateChangedCpi {
     pub action: crate::sdk_core_cpi::ZcEnum<ActionCpi>,
-    pub __naclac_padding_0: [u8; __StateChangedCpi_GAP_0],
     pub color: crate::sdk_core_cpi::ZcEnum<ColorCpi>,
-    pub __naclac_padding_1: [u8; __StateChangedCpi_GAP_1],
     pub counter: u8,
-    pub __naclac_padding_2: [u8; __StateChangedCpi_GAP_2],
 }
 
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateChangedCpi_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<
-        crate::sdk_core_cpi::ZcEnum<ActionCpi>,
-    >();
-    let __align: usize = ::core::mem::align_of::<
-        crate::sdk_core_cpi::ZcEnum<ColorCpi>,
-    >();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateChangedCpi_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<
-        crate::sdk_core_cpi::ZcEnum<ActionCpi>,
-    >() + __StateChangedCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>();
-    let __align: usize = ::core::mem::align_of::<u8>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __StateChangedCpi_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<
-        crate::sdk_core_cpi::ZcEnum<ActionCpi>,
-    >() + __StateChangedCpi_GAP_0
-        + ::core::mem::size_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>()
-        + __StateChangedCpi_GAP_1 + ::core::mem::size_of::<u8>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u8>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
-        ::core::mem::size_of:: < StateChangedCpi > () == (::core::mem::size_of:: < crate
-        ::sdk_core_cpi::ZcEnum < ActionCpi > > () + __StateChangedCpi_GAP_0 +
-        ::core::mem::size_of:: < crate ::sdk_core_cpi::ZcEnum < ColorCpi > > () +
-        __StateChangedCpi_GAP_1 + ::core::mem::size_of:: < u8 > () +
-        __StateChangedCpi_GAP_2),
-        "defined_type/#[component]: `StateChangedCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::core::mem::size_of:: < StateChangedCpi > () == (0usize + ::core::mem::size_of::
+        < crate ::sdk_core_cpi::ZcEnum < ActionCpi > > () + ::core::mem::size_of:: <
+        crate ::sdk_core_cpi::ZcEnum < ColorCpi > > () + ::core::mem::size_of:: < u8 >
+        ()),
+        "defined_type/#[component]: `StateChangedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < StateChangedCpi > () == 1,
+        "defined_type/#[component]: `StateChangedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_cpi::ZcField>() {}
     assert_impl::<crate::sdk_core_cpi::ZcEnum<ActionCpi>>();
     assert_impl::<crate::sdk_core_cpi::ZcEnum<ColorCpi>>();
     assert_impl::<u8>();
@@ -463,39 +264,39 @@ pub struct StateLogCpi {
 impl crate::sdk_core_offchain::NaclacAllocEvent for StateLog {
     fn decode(bytes: &[u8]) -> Option<Self> {
         let mut __offset: usize = 0;
-        let __sz = core::mem::size_of::<u8>();
+        let __sz = <u8 as crate::sdk_core_offchain::ZcCodec>::SIZE;
         if bytes.len() < __offset + __sz { return None; }
-        let head = crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<u8>(&bytes[__offset..__offset + __sz]).ok()?;
+        let head = <u8 as crate::sdk_core_offchain::ZcCodec>::decode(&bytes[__offset..__offset + __sz])?;
         __offset += __sz;
-        let __sz = core::mem::size_of::<Color>();
+        let __sz = <Color as crate::sdk_core_offchain::ZcCodec>::SIZE;
         if bytes.len() < __offset + __sz { return None; }
-        let color = crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<Color>(&bytes[__offset..__offset + __sz]).ok()?;
+        let color = <Color as crate::sdk_core_offchain::ZcCodec>::decode(&bytes[__offset..__offset + __sz])?;
         __offset += __sz;
         if bytes.len() < __offset + 4 { return None; }
         let __len = u32::from_le_bytes(bytes[__offset..__offset + 4].try_into().ok()?) as usize;
         __offset += 4;
         let mut colors = crate::sdk_core_offchain::Vec::<Color>::with_capacity(__len);
         for _ in 0..__len {
-            let __sz = core::mem::size_of::<Color>();
+            let __sz = <Color as crate::sdk_core_offchain::ZcCodec>::SIZE;
             if bytes.len() < __offset + __sz { return None; }
-            colors.push(crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<Color>(&bytes[__offset..__offset + __sz]).ok()?);
+            colors.push(<Color as crate::sdk_core_offchain::ZcCodec>::decode(&bytes[__offset..__offset + __sz])?);
             __offset += __sz;
         }
         if bytes.len() < __offset + 1 { return None; }
         let __tag = bytes[__offset];
         __offset += 1;
         let maybe = if __tag == 1 {
-            let __sz = core::mem::size_of::<Color>();
+            let __sz = <Color as crate::sdk_core_offchain::ZcCodec>::SIZE;
             if bytes.len() < __offset + __sz { return None; }
-            let __v = crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<Color>(&bytes[__offset..__offset + __sz]).ok()?;
+            let __v = <Color as crate::sdk_core_offchain::ZcCodec>::decode(&bytes[__offset..__offset + __sz])?;
             __offset += __sz;
             Some(__v)
         } else {
             None
         };
-        let __sz = core::mem::size_of::<Action>();
+        let __sz = <Action as crate::sdk_core_offchain::ZcCodec>::SIZE;
         if bytes.len() < __offset + __sz { return None; }
-        let action = crate::sdk_core_offchain::bytemuck::checked::try_pod_read_unaligned::<Action>(&bytes[__offset..__offset + __sz]).ok()?;
+        let action = <Action as crate::sdk_core_offchain::ZcCodec>::decode(&bytes[__offset..__offset + __sz])?;
         __offset += __sz;
         Some(Self { head, color, colors, maybe, action })
     }

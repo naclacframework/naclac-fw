@@ -2,9 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/kit";
-import rawIDL from "./idl/enums_zc.json";
-import type { EnumsZc } from "./idl/enums_zc";
-const IDL = rawIDL as unknown as EnumsZc;
+import { IDL } from "./program-idl";
 import * as instructions from "./instructions";
 import * as accounts from "./accounts/kit";
 import * as types from "./types";
@@ -40,7 +38,7 @@ export class EnumsZcClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider, true, ["StateLog"]);
+    this.program = new naclac.Program(IDL, provider);
   }
 
   /**
@@ -172,11 +170,11 @@ export class EnumsZcClient {
   }
 
   /**
-   * Builds the `emitPaddedEvent` instruction pipeline.
+   * Builds the `emitMixedEvent` instruction pipeline.
    * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
    */
-  public emitPaddedEvent(args?: Record<string, never>, accounts?: Partial<instructions.EmitPaddedEventAccounts>) {
-    return instructions.emitPaddedEvent(this.program, args ?? {}, accounts);
+  public emitMixedEvent(args?: Record<string, never>, accounts?: Partial<instructions.EmitMixedEventAccounts>) {
+    return instructions.emitMixedEvent(this.program, args ?? {}, accounts);
   }
 
   /** Derives the PDA for a `state` account. */
@@ -210,24 +208,24 @@ export class EnumsZcClient {
     return accounts.fetchAllMaybeState(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
   }
 
-  /** Subscribes to `PaddedEvent` events. Returns a listener ID. */
-  public onPaddedEvent(callback: (event: types.PaddedEvent, slot: number, signature: string) => void) {
-    return types.addPaddedEventListener(this.program, callback);
+  /** Subscribes to `MixedEvent` events. Returns a listener ID. */
+  public onMixedEvent(callback: (event: types.MixedEvent, slot: number, signature: string) => void) {
+    return types.addMixedEventListener(this.program, callback);
   }
 
-  /** Awaits the next `PaddedEvent` event. Resolves `null` on timeout. */
-  public waitForPaddedEvent(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.PaddedEvent>("PaddedEvent", options);
+  /** Awaits the next `MixedEvent` event. Resolves `null` on timeout. */
+  public waitForMixedEvent(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.MixedEvent>("MixedEvent", options);
   }
 
-  /** Decodes every `PaddedEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForPaddedEvent` — prefer this when you already know which transaction you're checking. */
-  public parsePaddedEventEvents(logs: readonly string[]) {
-    return this.program.parseEvents<types.PaddedEvent>("PaddedEvent", logs);
+  /** Decodes every `MixedEvent` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForMixedEvent` — prefer this when you already know which transaction you're checking. */
+  public parseMixedEventEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.MixedEvent>("MixedEvent", logs);
   }
 
-  /** Like `parsePaddedEventEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
-  public async parsePaddedEventEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.PaddedEvent[]> {
-    return this.program.parseEventsFromTransaction<types.PaddedEvent>("PaddedEvent", tx);
+  /** Like `parseMixedEventEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseMixedEventEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.MixedEvent[]> {
+    return this.program.parseEventsFromTransaction<types.MixedEvent>("MixedEvent", tx);
   }
 
   /** Subscribes to `StateChanged` events. Returns a listener ID. */

@@ -438,8 +438,11 @@ fn main() {
             features,
             test,
             deny_warnings,
-        } => {
-            commands::check::execute(program_id.as_deref(), features.clone(), *test, *deny_warnings)
-        }
+        } => commands::check::execute(
+            program_id.as_deref(),
+            features.clone(),
+            *test,
+            *deny_warnings,
+        ),
     }
 }

@@ -32,10 +32,13 @@ pub fn generate(
     core: &syn::Path,
 ) -> TokenStream {
     let field_tys: Vec<&syn::Type> = fields.iter().map(|f| &f.ty).collect();
-    let size_terms = field_tys
+    let mut size_terms = field_tys
         .iter()
         .map(|ty| quote! { ::core::mem::size_of::<#ty>() });
-    let size_sum = quote! { 0usize #(+ #size_terms)* };
+    let size_sum = match size_terms.next() {
+        None => quote! { 0usize },
+        Some(first) => size_terms.fold(first, |sum, term| quote! { #sum + #term }),
+    };
     let size_message = format!(
         "defined_type/#[component]: `{ident}` has a different size than its fields add up to; a \
          zero-copy struct is `#[repr(C, packed)]` and must have no padding"
