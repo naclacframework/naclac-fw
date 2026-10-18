@@ -1,3 +1,5 @@
+pub mod aliases;
+pub mod bounds;
 pub mod const_eval;
 pub mod discriminator;
 pub mod idl_items;
@@ -52,7 +54,8 @@ fn empty_program(name: &str) -> NaclacProgram {
 /// agree with the IDL generator on what `N` is.
 pub fn crate_constants(program_dir: &Path) -> Vec<types::NaclacConstant> {
     let mut idl = empty_program("");
-    let crate_modules = modules::crate_modules(program_dir);
+    let mut crate_modules = modules::crate_modules(program_dir);
+    aliases::Aliases::collect(&crate_modules).resolve_modules(&mut crate_modules);
     let mut env = const_eval::ConstEnv::default();
     for module in &crate_modules {
         env.collect(&module.items);
@@ -96,7 +99,8 @@ fn program_handlers(
 pub fn parse_workspace_program(program_dir: &Path, program_name: &str) -> NaclacProgram {
     let mut idl = empty_program(program_name);
     let features = modules::default_features(program_dir);
-    let crate_modules = modules::active_crate_modules(program_dir, &features);
+    let mut crate_modules = modules::active_crate_modules(program_dir, &features);
+    aliases::Aliases::collect(&crate_modules).resolve_modules(&mut crate_modules);
     let root = modules::crate_root(program_dir);
 
     let declarations = idl_items::declarations(&crate_modules)

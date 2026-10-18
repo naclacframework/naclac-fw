@@ -322,6 +322,9 @@ impl<
             + crate::wrappers::ValidateInterfaceLayout,
     > crate::wrappers::NaclacAccount for InterfaceAccount<T>
 {
+    const PROGRAM_OWNED: bool = <T as crate::wrappers::Discriminator>::PROGRAM_OWNED;
+    const OWNER_VALIDATED: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from(info, index)
@@ -666,6 +669,9 @@ impl<
             + crate::wrappers::ValidateInterfaceLayout,
     > crate::wrappers::NaclacAccount for InterfaceAccount<T>
 {
+    const PROGRAM_OWNED: bool = <T as crate::wrappers::Discriminator>::PROGRAM_OWNED;
+    const OWNER_VALIDATED: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from(info, index)
@@ -986,6 +992,9 @@ impl<T: NaclacZeroCopy> crate::wrappers::AsRefByteSlice for InterfaceAccount<T> 
 impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> crate::wrappers::NaclacAccount
     for InterfaceAccount<T>
 {
+    const PROGRAM_OWNED: bool = <T as crate::wrappers::Discriminator>::PROGRAM_OWNED;
+    const OWNER_VALIDATED: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         Self::try_from(info, index)

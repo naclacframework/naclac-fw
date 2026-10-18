@@ -1,12 +1,14 @@
-﻿use naclac_client::*;
-use counter_client::{
-    instructions::{
-        build_initialize, build_increment,
-        InitializeAccounts, IncrementAccounts,
+use {
+    counter_client::{
+        components::{fetch_counter, Counter},
+        get_counter_account_pda,
+        instructions::{
+            build_decrement, build_increment, build_initialize,
+            DecrementAccounts, IncrementAccounts, InitializeAccounts,
+        },
+        types::{CounterDecremented, CounterIncremented, PROGRAM_ID},
     },
-    components::{Counter, fetch_counter},
-    types::{PROGRAM_ID, CounterIncremented},
-    get_counter_account_pda,
+    naclac_client::*,
 };
 
 #[test]
@@ -92,6 +94,37 @@ fn test_counter_integration() {
     let new_count = captured_event.new_count;
     assert_eq!(new_count, start_count + 1);
     println!("      🔔 Event Fired! New Count: {}", new_count);
+
+    // 7. Decrement Account
+    println!("📉 Sending Decrement transaction...");
+
+    let tx_meta_dec = build_decrement(
+        &provider,
+        program_id,
+        DecrementAccounts {
+            authority: provider.payer.address(),
+            counter_account: counter_pda,
+        },
+    )
+    .log()
+    .send_and_confirm()
+    .unwrap();
+
+    // 8. Verify Decrement using the generated Counter component
+    let counter_state_dec: Counter = fetch_counter(&provider, &counter_pda)
+        .expect("Failed to fetch decremented counter account");
+    let count_dec = counter_state_dec.count;
+    assert_eq!(count_dec, count_after - 1);
+    println!("   ✅ State verified: count = {}.", count_dec);
+
+    // 9. Verify Event using the generated CounterDecremented event type (zero-copy / POD)
+    let dec_events: Vec<CounterDecremented> = tx_meta_dec.parse_events_zero_copy()
+        .expect("Failed to parse events");
+    assert!(!dec_events.is_empty(), "❌ Event was not captured!");
+    let dec_event = &dec_events[0];
+    let new_count_dec = dec_event.new_count;
+    assert_eq!(new_count_dec, count_after - 1);
+    println!("      🔔 Event Fired! New Count: {}", new_count_dec);
 
     println!("\n✨ Integration test completed successfully!\n");
 }

@@ -12,6 +12,23 @@ pub fn idl_name(raw: &str) -> String {
     raw.trim_start_matches('_').to_string()
 }
 
+/// True if any `#[derive(..)]` in `attrs` lists a path whose last segment is
+/// exactly `name`. A derive whose name merely contains `name` does not match.
+pub fn derives(attrs: &[syn::Attribute], name: &str) -> bool {
+    attrs.iter().any(|attr| {
+        attr.path().is_ident("derive")
+            && attr
+                .parse_args_with(
+                    syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
+                )
+                .is_ok_and(|paths| {
+                    paths
+                        .iter()
+                        .any(|path| path.segments.last().is_some_and(|s| s.ident == name))
+                })
+    })
+}
+
 /// Extracts `///`/`#[doc = "..."]` doc-comment lines from an attribute list,
 /// trimmed of leading whitespace, in source order.
 pub fn extract_docs(attrs: &[syn::Attribute]) -> Vec<String> {
@@ -491,18 +508,7 @@ pub fn parse_module_items(idl: &mut NaclacProgram, items: &[Item]) {
                     continue;
                 }
 
-                // Check if it derives Accounts (this also matches the legacy,
-                // now-removed `AccountsLoader` name, since "AccountsLoader"
-                // itself contains "Accounts" as a substring).
-                let is_accounts = item_struct.attrs.iter().any(|a| {
-                    if a.path().is_ident("derive") {
-                        let token_str = a.to_token_stream().to_string();
-                        token_str.contains("Accounts")
-                    } else {
-                        false
-                    }
-                });
-                if is_accounts {
+                if derives(&item_struct.attrs, "Accounts") {
                     continue;
                 }
 

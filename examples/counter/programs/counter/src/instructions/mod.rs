@@ -1,5 +1,9 @@
-pub mod initialize;
+pub mod decrement;
 pub mod increment;
+pub mod initialize;
 
-pub use initialize::*;
-pub use increment::*;
+pub use {
+    decrement::*,
+    increment::*,
+    initialize::*,
+};

@@ -20,58 +20,29 @@ pub struct EscrowCancelled {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct EscrowCancelled {
     pub maker: crate::sdk_core_offchain::Address,
-    pub __naclac_padding_0: [u8; __EscrowCancelled_GAP_0],
     pub amount_a: u64,
-    pub __naclac_padding_1: [u8; __EscrowCancelled_GAP_1],
 }
 
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCancelled_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCancelled_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
-        + __EscrowCancelled_GAP_0 + ::core::mem::size_of::<u64>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < EscrowCancelled > () == (::core::mem::size_of:: < crate
-        ::sdk_core_offchain::Address > () + __EscrowCancelled_GAP_0 +
-        ::core::mem::size_of:: < u64 > () + __EscrowCancelled_GAP_1),
-        "defined_type/#[component]: `EscrowCancelled`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::sdk_core_offchain::Address > () + ::core::mem::size_of:: < u64 > ()),
+        "defined_type/#[component]: `EscrowCancelled` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < EscrowCancelled > () == 1,
+        "defined_type/#[component]: `EscrowCancelled` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_offchain::ZcField>() {}
     assert_impl::<crate::sdk_core_offchain::Address>();
     assert_impl::<u64>();
 };
@@ -97,58 +68,29 @@ pub struct EscrowCancelledCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct EscrowCancelledCpi {
     pub maker: crate::sdk_core_cpi::Address,
-    pub __naclac_padding_0: [u8; __EscrowCancelledCpi_GAP_0],
     pub amount_a: u64,
-    pub __naclac_padding_1: [u8; __EscrowCancelledCpi_GAP_1],
 }
 
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCancelledCpi_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCancelledCpi_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
-        + __EscrowCancelledCpi_GAP_0 + ::core::mem::size_of::<u64>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < EscrowCancelledCpi > () == (::core::mem::size_of:: <
-        crate ::sdk_core_cpi::Address > () + __EscrowCancelledCpi_GAP_0 +
-        ::core::mem::size_of:: < u64 > () + __EscrowCancelledCpi_GAP_1),
-        "defined_type/#[component]: `EscrowCancelledCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        crate ::sdk_core_cpi::Address > () + ::core::mem::size_of:: < u64 > ()),
+        "defined_type/#[component]: `EscrowCancelledCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < EscrowCancelledCpi > () == 1,
+        "defined_type/#[component]: `EscrowCancelledCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_cpi::ZcField>() {}
     assert_impl::<crate::sdk_core_cpi::Address>();
     assert_impl::<u64>();
 };
@@ -182,76 +124,31 @@ pub struct EscrowCreated {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct EscrowCreated {
     pub maker: crate::sdk_core_offchain::Address,
-    pub __naclac_padding_0: [u8; __EscrowCreated_GAP_0],
     pub amount_a: u64,
-    pub __naclac_padding_1: [u8; __EscrowCreated_GAP_1],
     pub amount_b: u64,
-    pub __naclac_padding_2: [u8; __EscrowCreated_GAP_2],
 }
 
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCreated_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCreated_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
-        + __EscrowCreated_GAP_0 + ::core::mem::size_of::<u64>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCreated_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
-        + __EscrowCreated_GAP_0 + ::core::mem::size_of::<u64>() + __EscrowCreated_GAP_1
-        + ::core::mem::size_of::<u64>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < EscrowCreated > () == (::core::mem::size_of:: < crate
-        ::sdk_core_offchain::Address > () + __EscrowCreated_GAP_0 +
-        ::core::mem::size_of:: < u64 > () + __EscrowCreated_GAP_1 +
-        ::core::mem::size_of:: < u64 > () + __EscrowCreated_GAP_2),
-        "defined_type/#[component]: `EscrowCreated`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::sdk_core_offchain::Address > () + ::core::mem::size_of:: < u64 > () +
+        ::core::mem::size_of:: < u64 > ()),
+        "defined_type/#[component]: `EscrowCreated` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < EscrowCreated > () == 1,
+        "defined_type/#[component]: `EscrowCreated` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_offchain::ZcField>() {}
     assert_impl::<crate::sdk_core_offchain::Address>();
     assert_impl::<u64>();
     assert_impl::<u64>();
@@ -279,76 +176,31 @@ pub struct EscrowCreatedCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct EscrowCreatedCpi {
     pub maker: crate::sdk_core_cpi::Address,
-    pub __naclac_padding_0: [u8; __EscrowCreatedCpi_GAP_0],
     pub amount_a: u64,
-    pub __naclac_padding_1: [u8; __EscrowCreatedCpi_GAP_1],
     pub amount_b: u64,
-    pub __naclac_padding_2: [u8; __EscrowCreatedCpi_GAP_2],
 }
 
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCreatedCpi_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCreatedCpi_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
-        + __EscrowCreatedCpi_GAP_0 + ::core::mem::size_of::<u64>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowCreatedCpi_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
-        + __EscrowCreatedCpi_GAP_0 + ::core::mem::size_of::<u64>()
-        + __EscrowCreatedCpi_GAP_1 + ::core::mem::size_of::<u64>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < EscrowCreatedCpi > () == (::core::mem::size_of:: < crate
-        ::sdk_core_cpi::Address > () + __EscrowCreatedCpi_GAP_0 + ::core::mem::size_of::
-        < u64 > () + __EscrowCreatedCpi_GAP_1 + ::core::mem::size_of:: < u64 > () +
-        __EscrowCreatedCpi_GAP_2),
-        "defined_type/#[component]: `EscrowCreatedCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::sdk_core_cpi::Address > () + ::core::mem::size_of:: < u64 > () +
+        ::core::mem::size_of:: < u64 > ()),
+        "defined_type/#[component]: `EscrowCreatedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < EscrowCreatedCpi > () == 1,
+        "defined_type/#[component]: `EscrowCreatedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_cpi::ZcField>() {}
     assert_impl::<crate::sdk_core_cpi::Address>();
     assert_impl::<u64>();
     assert_impl::<u64>();
@@ -383,76 +235,31 @@ pub struct EscrowExchanged {
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct EscrowExchanged {
     pub taker: crate::sdk_core_offchain::Address,
-    pub __naclac_padding_0: [u8; __EscrowExchanged_GAP_0],
     pub amount_a: u64,
-    pub __naclac_padding_1: [u8; __EscrowExchanged_GAP_1],
     pub amount_b: u64,
-    pub __naclac_padding_2: [u8; __EscrowExchanged_GAP_2],
 }
 
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowExchanged_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowExchanged_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
-        + __EscrowExchanged_GAP_0 + ::core::mem::size_of::<u64>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "offchain")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowExchanged_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_offchain::Address>()
-        + __EscrowExchanged_GAP_0 + ::core::mem::size_of::<u64>()
-        + __EscrowExchanged_GAP_1 + ::core::mem::size_of::<u64>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<crate::sdk_core_offchain::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < EscrowExchanged > () == (::core::mem::size_of:: < crate
-        ::sdk_core_offchain::Address > () + __EscrowExchanged_GAP_0 +
-        ::core::mem::size_of:: < u64 > () + __EscrowExchanged_GAP_1 +
-        ::core::mem::size_of:: < u64 > () + __EscrowExchanged_GAP_2),
-        "defined_type/#[component]: `EscrowExchanged`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        ::sdk_core_offchain::Address > () + ::core::mem::size_of:: < u64 > () +
+        ::core::mem::size_of:: < u64 > ()),
+        "defined_type/#[component]: `EscrowExchanged` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < EscrowExchanged > () == 1,
+        "defined_type/#[component]: `EscrowExchanged` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_offchain::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_offchain::ZcField>() {}
     assert_impl::<crate::sdk_core_offchain::Address>();
     assert_impl::<u64>();
     assert_impl::<u64>();
@@ -480,76 +287,31 @@ pub struct EscrowExchangedCpi {
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 #[derive(Copy, Clone, Debug)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct EscrowExchangedCpi {
     pub taker: crate::sdk_core_cpi::Address,
-    pub __naclac_padding_0: [u8; __EscrowExchangedCpi_GAP_0],
     pub amount_a: u64,
-    pub __naclac_padding_1: [u8; __EscrowExchangedCpi_GAP_1],
     pub amount_b: u64,
-    pub __naclac_padding_2: [u8; __EscrowExchangedCpi_GAP_2],
 }
 
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowExchangedCpi_GAP_0: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowExchangedCpi_GAP_1: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
-        + __EscrowExchangedCpi_GAP_0 + ::core::mem::size_of::<u64>();
-    let __align: usize = ::core::mem::align_of::<u64>();
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
-#[cfg(feature = "cpi")]
-#[cfg(not(any(feature = "borsh", feature = "wincode")))]
-#[allow(non_upper_case_globals)]
-const __EscrowExchangedCpi_GAP_2: usize = {
-    let __offset: usize = ::core::mem::size_of::<crate::sdk_core_cpi::Address>()
-        + __EscrowExchangedCpi_GAP_0 + ::core::mem::size_of::<u64>()
-        + __EscrowExchangedCpi_GAP_1 + ::core::mem::size_of::<u64>();
-    let __align: usize = {
-        let mut __a = 1usize;
-        let __b = ::core::mem::align_of::<crate::sdk_core_cpi::Address>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        let __b = ::core::mem::align_of::<u64>();
-        if __b > __a {
-            __a = __b;
-        }
-        __a
-    };
-    let __rem = __offset % __align;
-    if __rem == 0 { 0 } else { __align - __rem }
-};
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: () = {
     assert!(
         ::core::mem::size_of:: < EscrowExchangedCpi > () == (::core::mem::size_of:: <
-        crate ::sdk_core_cpi::Address > () + __EscrowExchangedCpi_GAP_0 +
-        ::core::mem::size_of:: < u64 > () + __EscrowExchangedCpi_GAP_1 +
-        ::core::mem::size_of:: < u64 > () + __EscrowExchangedCpi_GAP_2),
-        "defined_type/#[component]: `EscrowExchangedCpi`'s auto-computed internal padding doesn't match the real compiler layout — this indicates a bug in naclac's own padding computation (naclac-client-gen's pod_struct_checks.rs / macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+        crate ::sdk_core_cpi::Address > () + ::core::mem::size_of:: < u64 > () +
+        ::core::mem::size_of:: < u64 > ()),
+        "defined_type/#[component]: `EscrowExchangedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < EscrowExchangedCpi > () == 1,
+        "defined_type/#[component]: `EscrowExchangedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 const _: fn() = || {
-    fn assert_impl<T: crate::sdk_core_cpi::bytemuck::Pod>() {}
+    fn assert_impl<T: crate::sdk_core_cpi::ZcField>() {}
     assert_impl::<crate::sdk_core_cpi::Address>();
     assert_impl::<u64>();
     assert_impl::<u64>();

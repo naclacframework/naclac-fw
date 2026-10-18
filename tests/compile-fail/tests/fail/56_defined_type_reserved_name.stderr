@@ -1,0 +1,5 @@
+error: Naclac Error: `Bool` is the name of naclac's one-byte boolean and of the IDL's `bool`; a type with this name would be read as that type. Rename it.
+ --> tests/fail/56_defined_type_reserved_name.rs:7:12
+  |
+7 | pub struct Bool {
+  |            ^^^^

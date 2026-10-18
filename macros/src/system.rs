@@ -211,11 +211,12 @@ fn parse_args(attr: TokenStream) -> Result<SystemArgs, Error> {
 
 struct FloatBanVisitor {
     errors: Vec<Error>,
+    aliases: naclac_syn::aliases::Aliases,
 }
 
 impl<'ast> Visit<'ast> for FloatBanVisitor {
     fn visit_type(&mut self, ty: &'ast Type) {
-        if let Type::Path(type_path) = ty {
+        if let Type::Path(type_path) = &self.aliases.resolve(ty) {
             if let Some(seg) = type_path.path.segments.last() {
                 let name = seg.ident.to_string();
                 if name == "f32" || name == "f64" {
@@ -989,7 +990,10 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // 1a. Float ban
     {
-        let mut v = FloatBanVisitor { errors: Vec::new() };
+        let mut v = FloatBanVisitor {
+            errors: Vec::new(),
+            aliases: crate::crate_aliases(),
+        };
         v.visit_item_fn(&input_fn);
         phase1_errors.extend(v.errors);
     }

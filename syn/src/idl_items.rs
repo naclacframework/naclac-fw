@@ -14,11 +14,14 @@ pub const DEFAULT_ERROR_OFFSET: u32 = 6000;
 
 /// Which IDL names an item competes with. Components, defined types and
 /// events all become named types in generated clients, so they share one.
+/// Accounts structs are found by name from an instruction's `Context<Name>`,
+/// so they form a namespace of their own.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Namespace {
     Type,
     Error,
     Constant,
+    Accounts,
 }
 
 impl Namespace {
@@ -27,6 +30,7 @@ impl Namespace {
             Namespace::Type => "type",
             Namespace::Error => "error",
             Namespace::Constant => "constant",
+            Namespace::Accounts => "accounts struct",
         }
     }
 }
@@ -115,7 +119,7 @@ pub fn declarations(modules: &[CrateModule]) -> syn::Result<Vec<Declaration>> {
                     } else if has_attr(attrs, "defined_type").is_some() {
                         Some((Some(Namespace::Type), "defined type"))
                     } else if is_accounts_struct(attrs) {
-                        Some((None, "accounts struct"))
+                        Some((Some(Namespace::Accounts), "accounts struct"))
                     } else {
                         None
                     };
@@ -177,18 +181,7 @@ pub fn declarations(modules: &[CrateModule]) -> syn::Result<Vec<Declaration>> {
 }
 
 fn is_accounts_struct(attrs: &[syn::Attribute]) -> bool {
-    attrs.iter().any(|attr| {
-        attr.path().is_ident("derive")
-            && attr
-                .parse_args_with(
-                    syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
-                )
-                .is_ok_and(|paths| {
-                    paths
-                        .iter()
-                        .any(|p| p.segments.last().is_some_and(|s| s.ident == "Accounts"))
-                })
-    })
+    crate::parser::derives(attrs, "Accounts")
 }
 
 fn joined_cfgs(a: &Declaration, b: &Declaration) -> Vec<syn::Attribute> {

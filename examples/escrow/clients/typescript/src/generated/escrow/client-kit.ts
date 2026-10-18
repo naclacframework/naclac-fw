@@ -2,9 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/kit";
-import rawIDL from "./idl/escrow.json";
-import type { Escrow } from "./idl/escrow";
-const IDL = rawIDL as unknown as Escrow;
+import { IDL } from "./program-idl";
 import * as instructions from "./instructions";
 import * as accounts from "./accounts/kit";
 import * as types from "./types";
@@ -40,7 +38,7 @@ export class EscrowClient {
     } else {
       provider = providerOrCluster;
     }
-    this.program = new naclac.Program(IDL, provider, true, []);
+    this.program = new naclac.Program(IDL, provider);
   }
 
   /**

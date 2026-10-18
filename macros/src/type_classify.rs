@@ -6,6 +6,13 @@
 //! (e.g. `AccountInfoWrapper<T>` matching `"Account"`), can't distinguish a
 //! trailing vs. buried occurrence, and isn't validated by the type system
 //! the way matching `Type::Path`'s real variants and segments is.
+//!
+//! A proc-macro sees only syntax, so a type is recognised here by its last
+//! path segment. That is only ever used to choose a code shape or a
+//! diagnostic, never to decide a size or a memory layout: those come from
+//! compiler-resolved traits (`SerializedBounds`, `Pod`, the generated layout
+//! assertions). A name that is not recognised must therefore either fail to
+//! compile or change only the generated IDL or an error message.
 
 use syn::{GenericArgument, PathArguments, Type};
 
@@ -105,6 +112,18 @@ pub(crate) fn option_inner_type(ty: &Type) -> Option<&Type> {
     } else {
         None
     }
+}
+
+/// An error when `ident` is a name that naclac's IDL and generated clients
+/// give to a framework type, so a user type with it would be read as that type.
+pub(crate) fn reserved_type_name_error(ident: &syn::Ident) -> Option<syn::Error> {
+    (ident == "Bool").then(|| {
+        syn::Error::new_spanned(
+            ident,
+            "Naclac Error: `Bool` is the name of naclac's one-byte boolean and of the IDL's \
+             `bool`; a type with this name would be read as that type. Rename it.",
+        )
+    })
 }
 
 /// True if `ty` is the deprecated `Address` type (replaced by `Address`).
@@ -215,28 +234,6 @@ fn contains_fixed_capacity(ty: &Type) -> bool {
         Type::Array(array) => contains_fixed_capacity(&array.elem),
         Type::Reference(reference) => contains_fixed_capacity(&reference.elem),
         Type::Slice(slice) => contains_fixed_capacity(&slice.elem),
-        _ => false,
-    }
-}
-
-/// True if `ty` is, or contains anywhere in its generic arguments, arrays or
-/// references, a `Vec<T>` or `String`: a type whose serialized size has no
-/// bound unless the field says one.
-pub(crate) fn contains_unbounded_collection(ty: &Type) -> bool {
-    match ty {
-        Type::Path(type_path) => type_path.path.segments.iter().any(|segment| {
-            segment.ident == "Vec"
-                || segment.ident == "String"
-                || matches!(
-                    &segment.arguments,
-                    PathArguments::AngleBracketed(args) if args.args.iter().any(|arg| {
-                        matches!(arg, GenericArgument::Type(inner) if contains_unbounded_collection(inner))
-                    })
-                )
-        }),
-        Type::Array(array) => contains_unbounded_collection(&array.elem),
-        Type::Reference(reference) => contains_unbounded_collection(&reference.elem),
-        Type::Slice(slice) => contains_unbounded_collection(&slice.elem),
         _ => false,
     }
 }

@@ -28,6 +28,8 @@ pub struct Pinned {
     pub system: AccountInfo,
     #[account(address = TOKEN_PROGRAM_ID)]
     pub token: AccountInfo,
+    pub system_program: Program<Custom>,
+    pub anything: Program<System>,
 }
 
 #[program]
@@ -116,6 +118,26 @@ fn address_paths_resolve_by_exact_name_and_unknown_ones_report_no_address() {
     // A variable, and a name that merely contains "token", must not become an address.
     assert_eq!(address("dynamic"), None);
     assert_eq!(address("metadata_program"), None);
+}
+
+#[test]
+fn a_program_account_address_comes_from_its_type_never_from_its_field_name() {
+    let program = sample_program();
+    let accounts = &program.instructions[0].accounts;
+    let address = |name: &str| {
+        accounts
+            .iter()
+            .find(|a| a.name == name)
+            .unwrap()
+            .address
+            .clone()
+    };
+
+    assert_eq!(address("system_program"), None);
+    assert_eq!(
+        address("anything").as_deref(),
+        Some("11111111111111111111111111111111")
+    );
 }
 
 #[test]

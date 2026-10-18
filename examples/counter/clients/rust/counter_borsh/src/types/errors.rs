@@ -5,12 +5,15 @@
 pub enum ProgramError {
     /// User is not authorized to perform this action.
     Unauthorized,
+    /// Counter value cannot be decremented below zero.
+    Underflow,
 }
 
 impl ProgramError {
     pub fn from_code(code: u32) -> Option<Self> {
         match code {
             6000 => Some(Self::Unauthorized),
+            6001 => Some(Self::Underflow),
             _ => None,
         }
     }
@@ -18,6 +21,7 @@ impl ProgramError {
     pub fn message(&self) -> &'static str {
         match self {
             Self::Unauthorized => "User is not authorized to perform this action.",
+            Self::Underflow => "Counter value cannot be decremented below zero.",
         }
     }
 }

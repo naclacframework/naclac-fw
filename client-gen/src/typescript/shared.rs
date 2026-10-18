@@ -28,9 +28,6 @@ pub fn map_type_to_ts_with_prefix(
             "bytes" | "&[u8]" | "[u8]" => "Uint8Array".to_string(),
             "Bool" if is_zero_copy => "naclac.Bool".to_string(),
             _ => {
-                if is_zero_copy && s.starts_with("Opt") {
-                    return format!("naclac.{}", s);
-                }
                 if !defined_prefix.is_empty() {
                     format!("{}{}", defined_prefix, s)
                 } else {
@@ -108,6 +105,79 @@ pub fn generate_program_idl(
 
 pub fn map_type_to_ts(idl_type: &serde_json::Value, is_zero_copy: bool) -> String {
     map_type_to_ts_with_prefix(idl_type, is_zero_copy, "")
+}
+
+/// True for a defined type that the naclac client library already provides:
+/// `Bool`, and an `Opt<T>` name that parses exactly as one (see
+/// `naclac_syn::opt_type`). A user type that merely starts with `Opt` is not.
+fn is_framework_type(name: &str, defined: &std::collections::HashSet<&str>) -> bool {
+    name == "Bool"
+        || naclac_syn::opt_type::opt_inner_type(name, |known| defined.contains(known)).is_some()
+}
+
+#[cfg(test)]
+mod framework_type_tests {
+    use {super::is_framework_type, std::collections::HashSet};
+
+    #[test]
+    fn only_exact_opt_names_are_framework_types() {
+        let defined: HashSet<&str> = ["OptU64", "Options", "OptimizerConfig"].into();
+        assert!(is_framework_type("Bool", &defined));
+        assert!(is_framework_type("OptU64", &defined));
+        assert!(!is_framework_type("Options", &defined));
+        assert!(!is_framework_type("OptimizerConfig", &defined));
+    }
+
+    #[test]
+    fn a_user_type_starting_with_opt_is_generated_and_the_framework_opt_is_not() {
+        let idl = crate::Idl::from_json(
+            &serde_json::json!({
+                "address": "11111111111111111111111111111111",
+                "metadata": {
+                    "name": "p",
+                    "version": "0.1.0",
+                    "description": "d",
+                    "serialization": "bytemuck"
+                },
+                "instructions": [],
+                "accounts": [],
+                "events": [],
+                "errors": [],
+                "constants": [],
+                "definedTypes": [
+                    {
+                        "name": "Options",
+                        "type": { "kind": "struct", "fields": [{ "name": "flag", "type": "u8" }] }
+                    },
+                    {
+                        "name": "OptU64",
+                        "type": {
+                            "kind": "struct",
+                            "fields": [
+                                { "name": "tag", "type": "u8" },
+                                { "name": "value", "type": "u64" }
+                            ]
+                        }
+                    }
+                ]
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let dir = std::env::temp_dir().join(format!(
+            "naclac-client-gen-opt-prefix-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("types")).unwrap();
+
+        super::generate_shared_files(&idl, "p", &dir).unwrap();
+        let typedefs = std::fs::read_to_string(dir.join("types/typedefs.ts")).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert!(typedefs.contains("export interface Options"), "{typedefs}");
+        assert!(!typedefs.contains("OptU64"), "{typedefs}");
+    }
 }
 
 /// Renders IDL `docs` lines as a JSDoc comment block, prefixed with `indent`.
@@ -200,8 +270,10 @@ pub fn generate_shared_files(
     let mut typedefs_content = header.to_string();
     typedefs_content.push_str("import * as naclac from \"@naclac-fw/client\";\n\n");
     if !idl.defined_types.is_empty() {
+        let defined_names: std::collections::HashSet<&str> =
+            idl.defined_types.iter().map(|t| t.name.as_str()).collect();
         for t in &idl.defined_types {
-            if t.name == "Bool" || t.name.starts_with("Opt") {
+            if is_framework_type(&t.name, &defined_names) {
                 continue;
             }
             let type_docs = if t.docs.is_empty() {

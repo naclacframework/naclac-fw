@@ -7,6 +7,25 @@
 use std::path::Path;
 use std::process::Command;
 
+fn check_passes(fixture: &str) {
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("crate-scan-fixtures")
+        .join(fixture)
+        .join("Cargo.toml");
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let output = Command::new(cargo)
+        .arg("check")
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .output()
+        .expect("failed to run cargo check");
+    assert!(
+        output.status.success(),
+        "{fixture} must compile, but cargo check failed:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
 fn check_fails(fixture: &str) -> String {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("crate-scan-fixtures")
@@ -24,6 +43,47 @@ fn check_fails(fixture: &str) -> String {
         "{fixture} must fail to compile, but cargo check succeeded"
     );
     String::from_utf8_lossy(&output.stderr).into_owned()
+}
+
+#[test]
+fn a_vec_field_without_max_len_fails_where_space_is_used() {
+    let stderr = check_fails("max_len_missing");
+    assert!(
+        stderr.contains("`Ledger` has a `Vec`/`String` field `entries` with no `#[max_len(N)]`"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn a_defined_type_with_an_unbounded_field_fails_where_its_size_is_used() {
+    let stderr = check_fails("max_len_nested_missing");
+    assert!(
+        stderr.contains("`Inner` has a `Vec`/`String` field `items` with no `#[max_len(N)]`"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn max_len_on_a_field_with_nothing_to_limit_is_rejected() {
+    let stderr = check_fails("max_len_without_collection");
+    assert!(
+        stderr.contains("has more limits than the field has `Vec` or `String` levels"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn a_type_alias_of_string_takes_the_max_len_like_string() {
+    check_passes("max_len_on_alias");
+}
+
+#[test]
+fn a_struct_without_defined_type_has_no_known_maximum_size() {
+    let stderr = check_fails("max_len_unknown_type");
+    assert!(
+        stderr.contains("has no known maximum serialized size"),
+        "{stderr}"
+    );
 }
 
 #[test]

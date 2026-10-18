@@ -2411,6 +2411,7 @@ dependencies = [
  "indicatif",
  "naclac-client-gen",
  "naclac-idl",
+ "naclac-syn",
  "quote",
  "serde",
  "serde_json",

@@ -25,9 +25,9 @@ enum FieldKind {
     Fixed,
 }
 
-/// Structural (not string-matching) detection of `String`/`Vec<T>`/`Option<T>` —
-/// reads the real parsed type via `syn`, so it can never misclassify a type
-/// the way a name-based heuristic could.
+/// Detects `String`/`Vec<T>`/`Option<T>` by the last path segment's name. A
+/// type alias of one is not recognised: it is classified `Fixed`, which
+/// requires `Pod` and so fails to compile.
 fn classify_field_type(ty: &Type) -> FieldKind {
     if let Type::Path(type_path) = ty {
         if let Some(seg) = type_path.path.segments.last() {
@@ -71,6 +71,7 @@ fn idl_build_event_impl(
 ) -> proc_macro2::TokenStream {
     let struct_docs = naclac_syn::parser::extract_docs(struct_attrs);
     let constants = crate::crate_constants();
+    let aliases = crate::crate_aliases();
     let mut field_ts_list = Vec::new();
     let mut defined_refs: Vec<Type> = Vec::new();
     for f in fields.iter() {
@@ -80,7 +81,8 @@ fn idl_build_event_impl(
             .map(|i| naclac_syn::parser::idl_name(&i.to_string()))
             .unwrap_or_default();
         let docs = naclac_syn::parser::extract_docs(&f.attrs);
-        let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &constants);
+        let field_ty = aliases.resolve(&f.ty);
+        let ty_value = naclac_syn::parser::rust_type_to_idl(&field_ty, &constants);
         let Ok(ty_json) = serde_json::to_string(&ty_value) else {
             continue;
         };
@@ -92,7 +94,7 @@ fn idl_build_event_impl(
                     .expect("naclac idl-build: generated field type JSON must parse"),
             }
         });
-        if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&f.ty) {
+        if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&field_ty) {
             defined_refs.push(defined_ty);
         }
     }
@@ -148,6 +150,10 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as ItemStruct);
     let struct_name = &ast.ident;
     let vis = &ast.vis;
+
+    if let Some(error) = crate::type_classify::reserved_type_name_error(struct_name) {
+        return error.to_compile_error().into();
+    }
 
     // Validate that no fields use the Pubkey type
     for field in ast.fields.iter() {

@@ -32,9 +32,10 @@ pub use crate::wrappers::{
     decode_pod, encode_pod, event_bytes_of, event_field_default, event_slice_bytes, AsRefByteSlice,
     AssociatedToken, Bool, BoolField, CpiHandle, CpiHandleMut, Discriminator, FixedString,
     FixedVec, FixedVecIter, Id, Ids, Interface, NaclacAccount, NaclacZeroCopy, Opt, Owner,
-    PodError, Program, Signer, System, ToAccountInfo, ToAddress, ToCpiHandle, ToCpiHandleMut,
-    Token, Token2022, TokenInterface, Unaligned, ValidateInterfaceLayout, ZcCodec, ZcEnum,
-    ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec, ZcVecIter,
+    PodError, Program, SerializedBounds, Signer, System, ToAccountInfo, ToAddress, ToCpiHandle,
+    ToCpiHandleMut, Token, Token2022, TokenInterface, Unaligned, ValidateInterfaceLayout, ZcCodec,
+    ZcEnum, ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec,
+    ZcVecIter,
 };
 
 // `Account<T>`/`InterfaceAccount<T>` don't exist at all when `borsh` and

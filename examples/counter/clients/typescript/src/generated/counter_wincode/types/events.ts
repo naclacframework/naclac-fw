@@ -3,6 +3,39 @@
 
 import * as naclac from "@naclac-fw/client";
 
+/** Discriminator for `CounterDecremented` events in transaction logs. */
+export const COUNTERDECREMENTED_EVENT_DISCRIMINATOR = new Uint8Array([226, 125, 172, 123, 14, 241, 63, 92]);
+
+/** Auto-generated event interface from the program IDL. */
+export interface CounterDecremented {
+  newCount: bigint | number;
+  timestamp: bigint | number;
+}
+
+/** Subscribes to `CounterDecremented` events. Returns a listener ID for cleanup. */
+export function addCounterDecrementedListener(
+  program: any,
+  callback: (event: CounterDecremented, slot: number, signature: string) => void
+): number {
+  return program.addEventListener("CounterDecremented", callback);
+}
+
+/** Waits for the next `CounterDecremented` event. Resolves `null` if the timeout expires. */
+export async function waitForCounterDecremented(
+  program: any,
+  options?: { timeoutMs?: number }
+): Promise<CounterDecremented | null> {
+  return program.waitForEvent("CounterDecremented", options) as Promise<CounterDecremented | null>;
+}
+
+/** Decodes every `CounterDecremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterDecremented`/`addCounterDecrementedListener` — prefer this when you already know which transaction you're checking. Logs only: events emitted via `emit_cpi!` never appear in logs, so use the client's own `parse...Events` method with the inner instructions for those. */
+export function parseCounterDecrementedEvents(
+  program: any,
+  logs: readonly string[]
+): CounterDecremented[] {
+  return program.parseEvents("CounterDecremented", logs) as CounterDecremented[];
+}
+
 /** Discriminator for `CounterIncremented` events in transaction logs. */
 export const COUNTERINCREMENTED_EVENT_DISCRIMINATOR = new Uint8Array([219, 181, 183, 220, 88, 58, 114, 198]);
 

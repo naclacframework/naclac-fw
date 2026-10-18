@@ -57,6 +57,14 @@ export class CounterWincodeClient {
     return instructions.increment(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `decrement` instruction pipeline.
+   * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+   */
+  public decrement(args?: Record<string, never>, accounts?: Partial<instructions.DecrementAccounts>) {
+    return instructions.decrement(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `counter_account` account. */
   public async getCounterAccountPda(seeds: {
   }): Promise<readonly [naclac.Address, number]> {
@@ -86,6 +94,26 @@ export class CounterWincodeClient {
   /** Fetches multiple `Counter` accounts. Missing accounts have `.exists = false`. */
   public fetchAllMaybeCounters(addresses: Array<naclac.Address | string>) {
     return accounts.fetchAllMaybeCounter(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
+  }
+
+  /** Subscribes to `CounterDecremented` events. Returns a listener ID. */
+  public onCounterDecremented(callback: (event: types.CounterDecremented, slot: number, signature: string) => void) {
+    return types.addCounterDecrementedListener(this.program, callback);
+  }
+
+  /** Awaits the next `CounterDecremented` event. Resolves `null` on timeout. */
+  public waitForCounterDecremented(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.CounterDecremented>("CounterDecremented", options);
+  }
+
+  /** Decodes every `CounterDecremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterDecremented` — prefer this when you already know which transaction you're checking. */
+  public parseCounterDecrementedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.CounterDecremented>("CounterDecremented", logs);
+  }
+
+  /** Like `parseCounterDecrementedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseCounterDecrementedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.CounterDecremented[]> {
+    return this.program.parseEventsFromTransaction<types.CounterDecremented>("CounterDecremented", tx);
   }
 
   /** Subscribes to `CounterIncremented` events. Returns a listener ID. */

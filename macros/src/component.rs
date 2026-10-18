@@ -46,6 +46,7 @@ pub(crate) fn idl_build_impl(
         None => quote! {},
     };
     let constants = crate::crate_constants();
+    let aliases = crate::crate_aliases();
     let mut idl_fields = Vec::new();
     let mut defined_refs: Vec<syn::Type> = Vec::new();
 
@@ -55,11 +56,12 @@ pub(crate) fn idl_build_impl(
             |ident| naclac_syn::parser::idl_name(&ident.to_string()),
         );
         let docs = naclac_syn::parser::extract_docs(&field.attrs);
-        let ty_value = naclac_syn::parser::rust_type_to_idl(&field.ty, &constants);
+        let field_ty = aliases.resolve(&field.ty);
+        let ty_value = naclac_syn::parser::rust_type_to_idl(&field_ty, &constants);
         let Ok(ty_json) = serde_json::to_string(&ty_value) else {
             continue;
         };
-        let slots = match naclac_syn::parser::rust_type_slots(&field.ty, &constants) {
+        let slots = match naclac_syn::parser::rust_type_slots(&field_ty, &constants) {
             Some(slots) => quote! { Some(#slots) },
             None => quote! { None },
         };
@@ -74,7 +76,7 @@ pub(crate) fn idl_build_impl(
             }
         });
 
-        if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&field.ty) {
+        if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&field_ty) {
             defined_refs.push(defined_ty);
         }
     }
@@ -128,26 +130,6 @@ pub(crate) fn idl_build_impl(
     quote! {}
 }
 
-/// Serialized byte size of one `ty` under Borsh/Wincode, as a const
-/// expression: exact for the primitives and `Address`, the in-memory size for
-/// any other type. `base_ident` only inspects the last path segment, so a
-/// bare and a fully-qualified `Address` take the same arm.
-fn borsh_size_expr(ty: &syn::Type) -> proc_macro2::TokenStream {
-    match crate::type_classify::base_ident(ty)
-        .as_ref()
-        .map(syn::Ident::to_string)
-        .as_deref()
-    {
-        Some("u8") | Some("i8") | Some("bool") => quote! { 1 },
-        Some("u16") | Some("i16") => quote! { 2 },
-        Some("u32") | Some("i32") | Some("f32") => quote! { 4 },
-        Some("u64") | Some("i64") | Some("f64") => quote! { 8 },
-        Some("u128") | Some("i128") => quote! { 16 },
-        Some("Address") => quote! { 32 },
-        _ => quote! { core::mem::size_of::<#ty>() },
-    }
-}
-
 /// Expands the `#[component]` macro.
 ///
 /// This generates the structural foundation for an on-chain account. Cargo
@@ -179,6 +161,10 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let struct_name = &ast.ident;
     let vis = &ast.vis;
     let fields = &ast.fields;
+
+    if let Some(error) = crate::type_classify::reserved_type_name_error(struct_name) {
+        return error.to_compile_error().into();
+    }
 
     // Validate that no fields use the Pubkey type — applies regardless of representation.
     for field in fields.iter() {
@@ -282,9 +268,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! {}
     };
 
-    let zero_copy_block = quote! {
-        #(#heap_field_errors)*
-
+    let full_zero_copy_block = quote! {
         #zero_copy_cfg
         #[repr(C, packed)]
         #vis struct #struct_name #cleaned_fields #struct_semi
@@ -361,54 +345,61 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
+    let zero_copy_block = if heap_field_errors.is_empty() {
+        full_zero_copy_block
+    } else {
+        quote! {
+            #(#heap_field_errors)*
+
+            #zero_copy_cfg
+            #vis struct #struct_name #cleaned_fields #struct_semi
+        }
+    };
+
     // ── Borsh branch ────────────────────────────────────────────────────
     // Emits dynamic heap-allocated serialization logic for standard Solana environments.
-    let field_sizes: Vec<proc_macro2::TokenStream> = match fields
-        .iter()
-        .map(|f| -> syn::Result<proc_macro2::TokenStream> {
-            let ty = &f.ty;
-            let mut max_len = None;
-
-            for attr in &f.attrs {
-                if attr.path().is_ident("max_len") {
-                    let lit = attr.parse_args::<syn::LitInt>()?;
-                    max_len = Some(lit.base10_parse::<usize>()?);
-                }
+    let core_path: syn::Path = syn::parse_quote!(naclac_lang::prelude);
+    let aliases = crate::crate_aliases();
+    let mut field_sizes: Vec<proc_macro2::TokenStream> = Vec::new();
+    let mut max_len_checks: Vec<proc_macro2::TokenStream> = Vec::new();
+    let mut unbounded_field: Option<String> = None;
+    for (position, field) in fields.iter().enumerate() {
+        let limits = match naclac_syn::bounds::max_len_values(&field.attrs) {
+            Ok(limits) => limits,
+            Err(err) => return err.to_compile_error().into(),
+        };
+        let access = match &field.ident {
+            Some(ident) => quote! { self.#ident },
+            None => {
+                let index = syn::Index::from(position);
+                quote! { self.#index }
             }
-
-            Ok(
-                match (max_len, crate::type_classify::first_generic_type(ty)) {
-                    (Some(len), Some(element)) if crate::type_classify::is_exactly(ty, "Vec") => {
-                        let element_size = borsh_size_expr(element);
-                        quote! { (4 + #len * #element_size) }
-                    }
-                    (Some(len), _) => quote! { (4 + #len) },
-                    (None, _) => borsh_size_expr(ty),
-                },
-            )
-        })
-        .collect::<syn::Result<Vec<_>>>()
-    {
-        Ok(sizes) => sizes,
-        Err(err) => return err.to_compile_error().into(),
-    };
+        };
+        let field_ty = aliases.resolve(&field.ty);
+        match naclac_syn::bounds::field_bound(&field_ty, &limits, &quote! { &#access }, &core_path)
+        {
+            Ok(bound) => {
+                field_sizes.push(bound.size);
+                max_len_checks.push(bound.check);
+            }
+            Err(naclac_syn::bounds::Problem::Unbounded) => {
+                unbounded_field.get_or_insert_with(|| {
+                    field
+                        .ident
+                        .as_ref()
+                        .map(syn::Ident::to_string)
+                        .unwrap_or_else(|| position.to_string())
+                });
+            }
+            Err(naclac_syn::bounds::Problem::Invalid(err)) => {
+                return err.to_compile_error().into();
+            }
+        }
+    }
 
     // A `Vec`/`String` field with no `#[max_len]` has no serialized size to
     // reserve. `SPACE` then fails to compile where it is used, which is every
     // `init` that gives no explicit `space = ..`.
-    let unbounded_field = fields.iter().enumerate().find_map(|(position, field)| {
-        let bounded = field
-            .attrs
-            .iter()
-            .any(|attr| attr.path().is_ident("max_len"));
-        (!bounded && crate::type_classify::contains_unbounded_collection(&field.ty)).then(|| {
-            field
-                .ident
-                .as_ref()
-                .map(syn::Ident::to_string)
-                .unwrap_or_else(|| position.to_string())
-        })
-    });
     let space_value = match &unbounded_field {
         Some(name) => {
             let message = format!(
@@ -418,41 +409,12 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             );
             quote! { panic!(#message) }
         }
-        None => quote! { Self::DISCRIMINATOR.len() + #(#field_sizes)+* },
+        None => quote! { Self::DISCRIMINATOR.len() #(+ #field_sizes)* },
     };
 
-    let max_len_checks: Vec<proc_macro2::TokenStream> = fields
-        .iter()
-        .enumerate()
-        .filter_map(|(position, field)| {
-            let limit = field
-                .attrs
-                .iter()
-                .find(|attr| attr.path().is_ident("max_len"))?
-                .parse_args::<syn::LitInt>()
-                .ok()?;
-            if !(crate::type_classify::is_exactly(&field.ty, "Vec")
-                || crate::type_classify::is_exactly(&field.ty, "String"))
-            {
-                return None;
-            }
-            let access = match &field.ident {
-                Some(ident) => quote! { self.#ident },
-                None => {
-                    let index = syn::Index::from(position);
-                    quote! { self.#index }
-                }
-            };
-            Some(quote! { #access.len() <= #limit })
-        })
-        .collect();
-    let max_len_method = if max_len_checks.is_empty() {
-        quote! {}
-    } else {
-        quote! {
-            fn within_max_len(&self) -> bool {
-                true #(&& #max_len_checks)*
-            }
+    let max_len_method = quote! {
+        fn within_max_len(&self) -> bool {
+            true #(&& #max_len_checks)*
         }
     };
 

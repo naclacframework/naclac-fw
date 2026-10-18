@@ -207,6 +207,8 @@ impl crate::wrappers::Ids for TokenInterface {
 }
 
 impl<T: crate::wrappers::Ids + Clone> crate::wrappers::NaclacAccount for Interface<T> {
+    const CHECKS_PROGRAM_ID: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from(info, T::ids(), index)

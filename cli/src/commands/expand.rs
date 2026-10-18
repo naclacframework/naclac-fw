@@ -45,19 +45,9 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
 
     eprintln!("🔍 Detecting features for '{}'...", program_name);
 
-    // Detect active features from Cargo.toml
     let mut active_features = Vec::new();
-    if cargo_toml_path.exists() {
-        let content = fs::read_to_string(&cargo_toml_path).unwrap_or_default();
-        for line in content.lines() {
-            let trimmed = line.trim();
-
-            if trimmed.starts_with("pinocchio")
-                || (trimmed.starts_with("default") && trimmed.contains("pinocchio"))
-            {
-                active_features.push("pinocchio");
-            }
-        }
+    if naclac_syn::modules::default_features(program_dir).contains("pinocchio") {
+        active_features.push("pinocchio");
     }
 
     eprintln!(

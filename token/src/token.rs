@@ -1168,6 +1168,7 @@ unsafe impl crate::prelude::Zeroable for Mint {}
 
 impl Discriminator for TokenAccount {
     const DISCRIMINATOR: &'static [u8] = &[];
+    const PROGRAM_OWNED: bool = false;
 
     /// A plain `TokenAccount` is always owned by the legacy Token program.
     /// `InterfaceAccount<TokenAccount>` (below) is the type to use for a
@@ -1187,6 +1188,7 @@ impl Discriminator for TokenAccount {
 
 impl Discriminator for Mint {
     const DISCRIMINATOR: &'static [u8] = &[];
+    const PROGRAM_OWNED: bool = false;
 
     /// See `TokenAccount::validate_account` above; validates the `Mint`
     /// layout via `validate_mint_bytes`.

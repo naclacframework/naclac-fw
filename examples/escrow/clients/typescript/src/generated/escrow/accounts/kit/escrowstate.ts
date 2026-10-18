@@ -2,6 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/kit";
+import { IDL } from "../../program-idl";
 import type { EscrowState } from "../../types";
 
 /** On-chain discriminator for `EscrowState` accounts. */
@@ -15,34 +16,16 @@ function stripEscrowStateDiscriminator(data: Uint8Array): Uint8Array {
   return data.slice(disc.length);
 }
 
-/** Gets the encoder for {@link EscrowState} account data. */
-export function getEscrowStateEncoder(): naclac.FixedSizeEncoder<EscrowState> {
-  return naclac.getStructEncoder([
-    ["maker", naclac.getAddressEncoder()],
-    ["mintA", naclac.getAddressEncoder()],
-    ["mintB", naclac.getAddressEncoder()],
-    ["amountA", naclac.getU64Encoder()],
-    ["amountB", naclac.getU64Encoder()],
-    ["bump", naclac.getU8Encoder()],
-  ]) as naclac.FixedSizeEncoder<EscrowState>;
+/** Gets the codec (encoder + decoder) for {@link EscrowState} account data, discriminator excluded. */
+export function getEscrowStateCodec(): naclac.AccountCodec<EscrowState> {
+  return naclac.getAccountCodec<EscrowState>(IDL, "EscrowState");
 }
+
+/** Gets the encoder for {@link EscrowState} account data. */
+export const getEscrowStateEncoder = getEscrowStateCodec;
 
 /** Gets the decoder for {@link EscrowState} account data. */
-export function getEscrowStateDecoder(): naclac.FixedSizeDecoder<EscrowState> {
-  return naclac.getStructDecoder([
-    ["maker", naclac.getAddressDecoder()],
-    ["mintA", naclac.getAddressDecoder()],
-    ["mintB", naclac.getAddressDecoder()],
-    ["amountA", naclac.getU64Decoder()],
-    ["amountB", naclac.getU64Decoder()],
-    ["bump", naclac.getU8Decoder()],
-  ]) as naclac.FixedSizeDecoder<EscrowState>;
-}
-
-/** Gets the codec (encoder + decoder) for {@link EscrowState} account data. */
-export function getEscrowStateCodec(): naclac.FixedSizeCodec<EscrowState> {
-  return naclac.combineCodec(getEscrowStateEncoder(), getEscrowStateDecoder());
-}
+export const getEscrowStateDecoder = getEscrowStateCodec;
 
 export function decodeEscrowState<TAddress extends string = string>(
   encodedAccount: naclac.EncodedAccount<TAddress>,
@@ -57,7 +40,7 @@ export function decodeEscrowState<TAddress extends string = string>(
     ('data' in encodedAccount
       ? { ...encodedAccount, data: stripEscrowStateDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
-    getEscrowStateDecoder(),
+    getEscrowStateDecoder() as unknown as naclac.Decoder<EscrowState>,
   );
 }
 

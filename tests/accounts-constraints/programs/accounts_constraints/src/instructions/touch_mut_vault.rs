@@ -9,10 +9,15 @@ use crate::components::Vault;
 // test instead takes the built `InstructionBuilder`, flips the raw
 // `AccountMeta.is_writable` for this account to `false` by hand, and sends
 // that, to prove the runtime check actually fires.
+//
+// The field is declared through an alias so the tests also pin that the
+// default owner check follows the field's type, not its spelling.
+type VaultAccount = Account<Vault>;
+
 #[derive(Accounts)]
 pub struct TouchMutVault {
     #[account(mut)]
-    pub vault: Account<Vault>,
+    pub vault: VaultAccount,
 }
 
 pub fn touch_mut_vault(ctx: Context<TouchMutVault>) -> Result {

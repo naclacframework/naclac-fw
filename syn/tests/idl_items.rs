@@ -72,6 +72,22 @@ fn two_types_with_one_name_clash_across_kinds_and_modules() {
 }
 
 #[test]
+fn two_accounts_structs_with_one_name_clash_but_an_accounts_struct_and_a_type_do_not() {
+    let found = messages(
+        "accounts-clash",
+        r#"
+        #[derive(Accounts)] pub struct Init { pub a: AccountInfo }
+        pub mod inner { #[derive(Accounts)] pub struct Init { pub b: AccountInfo } }
+        #[component] pub struct Shared { pub a: u64 }
+        #[derive(Accounts)] pub struct Shared2 { pub a: AccountInfo }
+        #[derive(Accounts)] pub struct Shared { pub a: AccountInfo }
+        "#,
+    );
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert!(found[0].contains("accounts struct") && found[0].contains("`Init`"));
+}
+
+#[test]
 fn two_constants_with_one_name_clash_but_a_constant_and_a_type_do_not() {
     let found = messages(
         "const-clash",

@@ -270,6 +270,9 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     crate::wrappers::NaclacAccount for Account<T>
 {
+    const PROGRAM_OWNED: bool = <T as crate::wrappers::Discriminator>::PROGRAM_OWNED;
+    const OWNER_VALIDATED: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from(info, index)
@@ -562,6 +565,9 @@ impl<
             + crate::wrappers::Discriminator,
     > crate::wrappers::NaclacAccount for Account<T>
 {
+    const PROGRAM_OWNED: bool = <T as crate::wrappers::Discriminator>::PROGRAM_OWNED;
+    const OWNER_VALIDATED: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from(info, index)
@@ -891,6 +897,9 @@ impl<T: NaclacZeroCopy> crate::wrappers::AsRefByteSlice for Account<T> {
     not(any(feature = "borsh", feature = "wincode"))
 ))]
 impl<T: NaclacZeroCopy> crate::wrappers::NaclacAccount for Account<T> {
+    const PROGRAM_OWNED: bool = <T as crate::wrappers::Discriminator>::PROGRAM_OWNED;
+    const OWNER_VALIDATED: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         Self::try_from(info, index)

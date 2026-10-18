@@ -109,6 +109,7 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
         .unwrap_or_default();
 
     let constants = crate::crate_constants();
+    let aliases = crate::crate_aliases();
     let mut insert_account_types_calls = Vec::new();
     let mut insert_defined_type_calls = Vec::new();
     let mut ix_tokens = Vec::new();
@@ -129,6 +130,7 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
 
         let mut arg_field_tokens = Vec::new();
         for (arg_name, arg_ty) in ix.arg_names.iter().zip(ix.arg_types.iter()) {
+            let arg_ty = &aliases.resolve(arg_ty);
             let arg_name_str = naclac_syn::parser::idl_name(&arg_name.to_string());
             let ty_value = naclac_syn::parser::rust_type_to_idl(arg_ty, &constants);
             let Ok(ty_json) = serde_json::to_string(&ty_value) else {
@@ -160,6 +162,7 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
 
         let returns_tokens = match &ix.return_ty {
             Some(return_ty) => {
+                let return_ty = &aliases.resolve(return_ty);
                 let return_json = serde_json::to_string(&naclac_syn::parser::rust_type_to_idl(
                     return_ty, &constants,
                 ));
@@ -274,7 +277,8 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
             });
         }
 
-        for item in naclac_syn::names::scan_untagged_pub_consts(program_dir) {
+        for mut item in naclac_syn::names::scan_untagged_pub_consts(program_dir) {
+            item.ty = aliases.resolve(&item.ty);
             if naclac_syn::parser::defined_type_leaf(&item.ty).is_some() || !item.visible_from_root
             {
                 continue;

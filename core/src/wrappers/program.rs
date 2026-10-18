@@ -240,6 +240,8 @@ impl crate::wrappers::Id for AssociatedToken {
 }
 
 impl<T: crate::wrappers::Id + Clone> crate::wrappers::NaclacAccount for Program<T> {
+    const CHECKS_PROGRAM_ID: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
         Self::try_from(info, &T::id(), index)

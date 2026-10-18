@@ -39,6 +39,22 @@ export const IDL = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "decrement",
+      "discriminator": [106,227,168,59,248,27,150,101],
+      "accounts": [
+        { "name": "authority", "writable": true, "signer": true },
+        {
+          "name": "counter_account", "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [99,111,117,110,116,101,114], "name": "SEED_COUNTER" }
+            ]
+          }
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -56,6 +72,14 @@ export const IDL = {
   ],
   "events": [
     {
+      "name": "CounterDecremented",
+      "discriminator": [226,125,172,123,14,241,63,92],
+      "fields": [
+        { "name": "new_count", "type": "u64" },
+        { "name": "timestamp", "type": "i64" }
+      ]
+    },
+    {
       "name": "CounterIncremented",
       "discriminator": [219,181,183,220,88,58,114,198],
       "fields": [
@@ -69,6 +93,11 @@ export const IDL = {
       "code": 6000,
       "name": "Unauthorized",
       "message": "User is not authorized to perform this action."
+    },
+    {
+      "code": 6001,
+      "name": "Underflow",
+      "message": "Counter value cannot be decremented below zero."
     }
   ],
   "constants": [

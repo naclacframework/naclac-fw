@@ -4,6 +4,7 @@
 /** All program errors keyed by their numeric error code. */
 export const ProgramErrors = {
   6000: { code: 6000, name: "Unauthorized", message: "User is not authorized to perform this action." },
+  6001: { code: 6001, name: "Underflow", message: "Counter value cannot be decremented below zero." },
 } as const;
 
 export type ProgramErrorCode = keyof typeof ProgramErrors;

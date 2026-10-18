@@ -1,0 +1,25 @@
+[workspace]
+
+[package]
+name = "max_len_nested_missing"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[features]
+default = ["borsh"]
+borsh = ["naclac-lang/borsh"]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { path = "../../../../lang" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
+] }

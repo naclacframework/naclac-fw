@@ -12,6 +12,7 @@ pub mod accounts;
 pub mod cpi_handle;
 pub mod interface;
 pub mod program;
+pub mod serialized_bounds;
 pub mod signer;
 
 #[cfg(not(feature = "pinocchio"))]
@@ -29,6 +30,7 @@ pub use {
         ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec, ZcVecIter,
     },
     program::*,
+    serialized_bounds::SerializedBounds,
     signer::*,
 };
 
@@ -52,6 +54,13 @@ pub trait Owner {
 /// can never silently inherit an all-zero discriminator.
 pub trait Discriminator {
     const DISCRIMINATOR: &'static [u8];
+
+    /// Whether an account of this type must be owned by the executing
+    /// program. False for a foreign type that validates its own owner in
+    /// `validate_account` (an SPL token account or mint). A discriminator
+    /// check does not establish ownership: any program can write the same
+    /// leading bytes into an account it owns.
+    const PROGRAM_OWNED: bool = true;
 
     /// Extra per-type validation run once at account-wrapper construction
     /// beyond what the discriminator/size check alone can verify from
@@ -121,6 +130,21 @@ pub trait NaclacAccount: Sized {
     /// Whether this account type is writable by default.
     const IS_WRITABLE: bool = false;
 
+    /// Whether `#[derive(Accounts)]` must check that the account is owned by
+    /// the executing program, because the wrapper's own `try_from` does not.
+    const PROGRAM_OWNED: bool = false;
+
+    /// Whether a field of this type is proven to be owned by the program that
+    /// created it: by the owner check `PROGRAM_OWNED` requests, or by the
+    /// type's own `validate_account`. Bump discovery that skips the curve
+    /// check is sound only for such a type.
+    const OWNER_VALIDATED: bool = false;
+
+    /// Whether the wrapper's `try_from` compares the account's address with
+    /// the program id(s) its type names, so `#[derive(Accounts)]` need not
+    /// emit an `address` check for it.
+    const CHECKS_PROGRAM_ID: bool = false;
+
     /// Hydrate and validate the account wrapper from an `AccountInfo`.
     fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self>;
 
@@ -170,6 +194,9 @@ use alloc::boxed::Box;
 impl<T: NaclacAccount> NaclacAccount for Box<T> {
     const IS_SIGNER: bool = T::IS_SIGNER;
     const IS_WRITABLE: bool = T::IS_WRITABLE;
+    const PROGRAM_OWNED: bool = T::PROGRAM_OWNED;
+    const OWNER_VALIDATED: bool = T::OWNER_VALIDATED;
+    const CHECKS_PROGRAM_ID: bool = T::CHECKS_PROGRAM_ID;
 
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {

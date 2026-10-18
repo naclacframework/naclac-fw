@@ -468,7 +468,6 @@ pub fn extract_instructions(
                     }
 
                     if address.is_none() {
-                        let name_lower = field_name.to_lowercase();
                         if is_program {
                             if inner_type == "Token2022" {
                                 address =
@@ -476,16 +475,14 @@ pub fn extract_instructions(
                             } else if inner_type == "Token" {
                                 address =
                                     Some("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA".to_string());
-                            } else if inner_type == "System" || name_lower == "system_program" {
+                            } else if inner_type == "System" {
                                 address = Some("11111111111111111111111111111111".to_string());
-                            } else if inner_type == "AssociatedToken"
-                                || name_lower == "associated_token_program"
-                            {
+                            } else if inner_type == "AssociatedToken" {
                                 address = Some(
                                     "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL".to_string(),
                                 );
                             }
-                        } else if is_sysvar && (inner_type == "Rent" || name_lower == "rent") {
+                        } else if is_sysvar && inner_type == "Rent" {
                             address =
                                 Some("SysvarRent111111111111111111111111111111111".to_string());
                         }

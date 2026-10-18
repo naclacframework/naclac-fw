@@ -56,6 +56,14 @@ export class CounterWincodeClient {
     return instructions.increment(this.program, args ?? {}, accounts);
   }
 
+  /**
+   * Builds the `decrement` instruction pipeline.
+   * Call `.rpc()` to send or `.transaction()` to get a `Transaction` object.
+   */
+  public decrement(args?: Record<string, never>, accounts?: Partial<instructions.DecrementAccounts>) {
+    return instructions.decrement(this.program, args ?? {}, accounts);
+  }
+
   /** Derives the PDA for a `counter_account` account. Returns `[PublicKey, bumpSeed]`. */
   public getCounterAccountPda(seeds: {
   }): [naclac.PublicKey, number] {
@@ -87,6 +95,21 @@ export class CounterWincodeClient {
   /** Fetches all on-chain `Counter` accounts owned by this program. */
   public fetchAllCounterByOwner(options?: { dropCorrupted?: boolean; filters?: any[] }) {
     return this.program.account['Counter'].all(options);
+  }
+
+  /** Subscribes to `CounterDecremented` events. Returns a listener ID. */
+  public onCounterDecremented(callback: (event: types.CounterDecremented, slot: number, signature: string) => void) {
+    return types.addCounterDecrementedListener(this.program, callback);
+  }
+
+  /** Awaits the next `CounterDecremented` event. Resolves `null` on timeout. */
+  public waitForCounterDecremented(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.CounterDecremented>("CounterDecremented", options);
+  }
+
+  /** Decodes every `CounterDecremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterDecremented` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
+  public parseCounterDecrementedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
+    return this.program.parseEvents<types.CounterDecremented>("CounterDecremented", logs, innerInstructions);
   }
 
   /** Subscribes to `CounterIncremented` events. Returns a listener ID. */

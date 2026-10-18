@@ -149,9 +149,10 @@ fn has_safety_doc_comment(attrs: &[syn::Attribute]) -> bool {
 /// rest of the struct — see `parse_one_field`'s doc and `ParsedField::parse_error`.
 pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>> {
     let mut parsed_fields = Vec::new();
+    let aliases = crate::crate_aliases();
 
     for (idx, field) in fields.named.iter().enumerate() {
-        let parsed = match parse_one_field(idx, field) {
+        let parsed = match parse_one_field(idx, field, &aliases) {
             Ok(parsed) => parsed,
             Err(err) => {
                 // Type-level Option<> unwrapping is independent of whether
@@ -160,7 +161,7 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                 // (which always reads `ty`/`is_optional`, even for a
                 // poisoned field) doesn't hit a second, unrelated "trait not
                 // implemented" error on top of the real one.
-                let raw_ty = field.ty.clone();
+                let raw_ty = aliases.resolve(&field.ty);
                 let is_optional = crate::type_classify::is_option_account(&raw_ty);
                 let ty = crate::type_classify::option_inner_type(&raw_ty)
                     .cloned()
@@ -238,9 +239,15 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
 /// (carrying the error in `parse_error`) for any field this returns `Err`
 /// for, rather than letting one field's mistake abort every other field's
 /// already-successfully-parsed data.
-fn parse_one_field(idx: usize, field: &syn::Field) -> syn::Result<ParsedField> {
+fn parse_one_field(
+    idx: usize,
+    field: &syn::Field,
+    aliases: &naclac_syn::aliases::Aliases,
+) -> syn::Result<ParsedField> {
     let ident = field.ident.clone().unwrap();
-    let raw_ty = field.ty.clone();
+    // Crate-local type aliases are replaced by their targets first, so the
+    // name-based checks below see the real type.
+    let raw_ty = aliases.resolve(&field.ty);
     // `Option<>` is unwrapped once, up front — every check/constraint below
     // reads `ty` as the *inner* type, so `is_option_account` need not be
     // threaded through the rest of this function.

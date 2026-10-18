@@ -1,13 +1,15 @@
-use counter_wincode_client::{
-    components::{Counter, fetch_counter},
-    instructions::{
-        build_increment, build_initialize,
-        InitializeAccounts, IncrementAccounts,
+use {
+    counter_wincode_client::{
+        components::{fetch_counter, Counter},
+        get_counter_account_pda,
+        instructions::{
+            build_decrement, build_increment, build_initialize,
+            DecrementAccounts, IncrementAccounts, InitializeAccounts,
+        },
+        types::{CounterDecremented, CounterIncremented, PROGRAM_ID},
     },
-    types::{CounterIncremented, PROGRAM_ID},
-    get_counter_account_pda,
+    naclac_client::*,
 };
-use naclac_client::*;
 
 #[test]
 fn test_counter_integration() {
@@ -79,10 +81,11 @@ fn test_counter_integration() {
     // 5. Verify Increment using the generated Counter component
     let counter_state_after: Counter = fetch_counter(&provider, &counter_pda)
         .expect("Failed to fetch incremented counter account");
-    assert_eq!(counter_state_after.count, start_count + 1);
+    let count_after = counter_state_after.count;
+    assert_eq!(count_after, start_count + 1);
     println!(
         "   ✅ State verified: count = {}.",
-        counter_state_after.count
+        count_after
     );
 
     // 6. Verify Event using the generated CounterIncremented event type
@@ -95,6 +98,43 @@ fn test_counter_integration() {
     println!(
         "      🔔 Event Fired! New Count: {}",
         captured_event.new_count
+    );
+
+    // 7. Decrement Account
+    println!("📉 Sending Decrement transaction...");
+
+    let tx_meta_dec = build_decrement(
+        &provider,
+        program_id,
+        DecrementAccounts {
+            authority: provider.payer.address(),
+            counter_account: counter_pda,
+        },
+    )
+    .log()
+    .send_and_confirm()
+    .unwrap();
+
+    // 8. Verify Decrement using the generated Counter component
+    let counter_state_dec: Counter = fetch_counter(&provider, &counter_pda)
+        .expect("Failed to fetch decremented counter account");
+    let count_dec = counter_state_dec.count;
+    assert_eq!(count_dec, count_after - 1);
+    println!(
+        "   ✅ State verified: count = {}.",
+        count_dec
+    );
+
+    // 9. Verify Event using the generated CounterDecremented event type
+    let dec_events: Vec<CounterDecremented> = tx_meta_dec
+        .parse_events_wincode()
+        .expect("Failed to parse events");
+    assert!(!dec_events.is_empty(), "❌ Event was not captured!");
+    let dec_event = &dec_events[0];
+    assert_eq!(dec_event.new_count, count_after - 1);
+    println!(
+        "      🔔 Event Fired! New Count: {}",
+        dec_event.new_count
     );
 
     println!("\n✨ Integration test completed successfully!\n");

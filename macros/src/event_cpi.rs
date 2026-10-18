@@ -33,19 +33,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     // is missing here) and would generate code for the struct *without* the
     // injected fields — surfacing as unrelated "no field"/"missing fields"
     // errors far from the real mistake.
-    let derives_accounts = item_struct.attrs.iter().any(|attr| {
-        attr.path().is_ident("derive")
-            && attr
-                .parse_args_with(
-                    syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
-                )
-                .is_ok_and(|paths| {
-                    paths
-                        .iter()
-                        .any(|path| path.segments.last().is_some_and(|s| s.ident == "Accounts"))
-                })
-    });
-    if !derives_accounts {
+    if !naclac_syn::parser::derives(&item_struct.attrs, "Accounts") {
         return syn::Error::new_spanned(
             &item_struct.ident,
             "Naclac Error: #[event_cpi] must be written directly above #[derive(Accounts)] on \

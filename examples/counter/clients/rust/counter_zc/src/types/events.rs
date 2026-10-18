@@ -12,6 +12,109 @@ use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};
 #[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
 #[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
 #[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
+pub struct CounterDecremented {
+    pub new_count: u64,
+    pub timestamp: i64,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+pub struct CounterDecremented {
+    pub new_count: u64,
+    pub timestamp: i64,
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CounterDecremented > () == (::core::mem::size_of:: < u64
+        > () + ::core::mem::size_of:: < i64 > ()),
+        "defined_type/#[component]: `CounterDecremented` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < CounterDecremented > () == 1,
+        "defined_type/#[component]: `CounterDecremented` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+    );
+};
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_offchain::ZcField>() {}
+    assert_impl::<u64>();
+    assert_impl::<i64>();
+};
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for CounterDecremented {}
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+unsafe impl crate::sdk_core_offchain::bytemuck::Pod for CounterDecremented {}
+
+#[cfg(feature = "cpi")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_cpi::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_cpi::wincode::SchemaWrite, crate::sdk_core_cpi::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_cpi::wincode"))]
+pub struct CounterDecrementedCpi {
+    pub new_count: u64,
+    pub timestamp: i64,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+pub struct CounterDecrementedCpi {
+    pub new_count: u64,
+    pub timestamp: i64,
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: () = {
+    assert!(
+        ::core::mem::size_of:: < CounterDecrementedCpi > () == (::core::mem::size_of:: <
+        u64 > () + ::core::mem::size_of:: < i64 > ()),
+        "defined_type/#[component]: `CounterDecrementedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+    );
+    assert!(
+        ::core::mem::align_of:: < CounterDecrementedCpi > () == 1,
+        "defined_type/#[component]: `CounterDecrementedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+    );
+};
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+const _: fn() = || {
+    fn assert_impl<T: crate::sdk_core_cpi::ZcField>() {}
+    assert_impl::<u64>();
+    assert_impl::<i64>();
+};
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for CounterDecrementedCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CounterDecrementedCpi {}
+
+#[cfg(feature = "offchain")]
+impl crate::sdk_core_offchain::NaclacEvent for CounterDecremented {
+    const DISCRIMINATOR: &'static [u8] = &[226, 125, 172, 123, 14, 241, 63, 92];
+    const PROGRAM_ID: crate::sdk_core_offchain::Address = crate::types::PROGRAM_ID;
+    const CPI_TAG: &'static [u8] = &[];
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
+#[cfg_attr(feature = "borsh", borsh(crate = "crate::sdk_core_offchain::borsh"))]
+#[cfg_attr(feature = "wincode", derive(Clone, Debug, crate::sdk_core_offchain::wincode::SchemaWrite, crate::sdk_core_offchain::wincode::SchemaRead))]
+#[cfg_attr(feature = "wincode", wincode(crate = "crate::sdk_core_offchain::wincode"))]
 pub struct CounterIncremented {
     pub new_count: u64,
     pub timestamp: i64,

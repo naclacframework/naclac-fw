@@ -109,7 +109,8 @@ fn test_escrow_lifecycle() {
     // Verify on-chain escrow state and vault balance
     let escrow_state: EscrowState = fetch_escrow_state(&provider, &escrow_pda_cancel)
         .expect("Failed to fetch escrow state");
-    assert_eq!(escrow_state.amount_a, amount_a_cancel);
+    let escrow_amount_a = escrow_state.amount_a;
+    assert_eq!(escrow_amount_a, amount_a_cancel);
 
     let vault_balance: TokenAccount = fetcher
         .fetch(&vault_token_account_cancel)
@@ -144,7 +145,8 @@ fn test_escrow_lifecycle() {
         .expect("Failed to parse cancel events");
     assert!(!cancel_events.is_empty(), "EscrowCancelled event not emitted");
     assert_eq!(cancel_events[0].maker, maker_address);
-    assert_eq!(cancel_events[0].amount_a, amount_a_cancel);
+    let cancel_amount_a = cancel_events[0].amount_a;
+    assert_eq!(cancel_amount_a, amount_a_cancel);
 
     // Verify balances after CANCEL
     let maker_a_balance: TokenAccount = fetcher
@@ -208,8 +210,10 @@ fn test_escrow_lifecycle() {
             .expect("Failed to parse events");
         assert!(!captured_events.is_empty(), "EscrowCreated event not emitted");
         assert_eq!(captured_events[0].maker, maker_address);
-        assert_eq!(captured_events[0].amount_a, amount_a_take);
-        assert_eq!(captured_events[0].amount_b, amount_b_take);
+        let captured_amount_a = captured_events[0].amount_a;
+        let captured_amount_b = captured_events[0].amount_b;
+        assert_eq!(captured_amount_a, amount_a_take);
+        assert_eq!(captured_amount_b, amount_b_take);
     }
 
     // Fetch and verify EscrowState PDA state
@@ -218,8 +222,10 @@ fn test_escrow_lifecycle() {
     assert_eq!(escrow_state_take.maker, maker_address);
     assert_eq!(escrow_state_take.mint_a, mint_a);
     assert_eq!(escrow_state_take.mint_b, mint_b);
-    assert_eq!(escrow_state_take.amount_a, amount_a_take);
-    assert_eq!(escrow_state_take.amount_b, amount_b_take);
+    let take_state_amount_a = escrow_state_take.amount_a;
+    let take_state_amount_b = escrow_state_take.amount_b;
+    assert_eq!(take_state_amount_a, amount_a_take);
+    assert_eq!(take_state_amount_b, amount_b_take);
 
     // Verify vault balance
     let vault_balance_take: TokenAccount = fetcher
@@ -260,8 +266,10 @@ fn test_escrow_lifecycle() {
         .expect("Failed to parse take events");
     assert!(!take_events.is_empty(), "EscrowExchanged event not emitted");
     assert_eq!(take_events[0].taker, taker_address);
-    assert_eq!(take_events[0].amount_a, amount_a_take);
-    assert_eq!(take_events[0].amount_b, amount_b_take);
+    let take_amount_a = take_events[0].amount_a;
+    let take_amount_b = take_events[0].amount_b;
+    assert_eq!(take_amount_a, amount_a_take);
+    assert_eq!(take_amount_b, amount_b_take);
 
     // Verify balances after TAKE
     let maker_b_balance: TokenAccount = fetcher

@@ -294,6 +294,14 @@ pub fn generate_security_checks(
                     }
                 });
             }
+        } else {
+            let ty = &field.ty;
+            metadata_checks.push(quote! {
+                const _: () = assert!(
+                    <#ty as naclac_lang::prelude::NaclacAccount>::CHECKS_PROGRAM_ID,
+                    "no address check is emitted for this field, so its type must check the program id"
+                );
+            });
         }
     }
 
@@ -363,19 +371,15 @@ pub fn generate_security_checks(
                 }
             }
         }
-    } else if crate::type_classify::is_account_wrapper(&field.ty)
-        && !crate::type_classify::inner_is(&field.ty, "Mint")
-        && !crate::type_classify::inner_is(&field.ty, "TokenAccount")
-        && field.init_config.is_none()
-    {
-        // DEFAULT OWNER CHECK: verify this account is owned by the current
-        // program, in every mode (Borsh and zero-copy alike). This overlaps
-        // with discriminator validation (`Account<T>::try_from` and its
-        // zero-copy branch's `load` both reject a mismatched discriminator),
-        // but is kept unconditionally as defense-in-depth and for a clearer,
-        // distinct error (`ConstraintOwner` vs. a discriminator-mismatch error).
+    } else if field.init_config.is_none() {
+        // DEFAULT OWNER CHECK, in every mode (Borsh and zero-copy alike). It is
+        // the only owner check a program-owned `Account<T>` gets: its
+        // `try_from` verifies the discriminator, which any program can write
+        // into an account it owns. Whether it applies is the field type's
+        // `NaclacAccount::PROGRAM_OWNED`, never its spelling.
+        let ty = &field.ty;
         metadata_checks.push(quote! {
-            {
+            if <#ty as naclac_lang::prelude::NaclacAccount>::PROGRAM_OWNED {
                 let __owner = naclac_lang::prelude::Owner::program_owner(info);
                 if __owner != naclac_lang::prelude::ToAddress::address(program_id) {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintOwner.err(#idx));
@@ -615,7 +619,12 @@ pub fn generate_security_checks(
                     compile_error!(#msg);
                 };
             } else if use_hash_only_search {
+                let ty = &field.ty;
                 pda_creation_logic = quote! {
+                    const _: () = assert!(
+                        <#ty as naclac_lang::prelude::NaclacAccount>::OWNER_VALIDATED,
+                        "bump discovery skips the curve check, which is sound only for a type whose owner is validated"
+                    );
                     #(#seed_bindings)*
                     #pda_program_ref
                     #actual_address_ref
@@ -1132,20 +1141,22 @@ fn find_const_expr(ident_str: &str) -> Option<(syn::Expr, String)> {
 /// `bump` field of its own has nothing to cache the derived bump into, and
 /// that's a legitimate, deliberate choice (nothing else in the program
 /// ever reads this account's bump back), not an error.
+///
+/// Several structs of the crate may share the name; the answer is true when
+/// any of them declares `bump`. A wrong true is a compile error at the
+/// write-back, whereas a wrong false would silently never store the bump.
 pub(crate) fn component_declares_bump_field(ident_str: &str) -> bool {
-    for module in current_crate_modules() {
-        for item in &module.items {
-            if let syn::Item::Struct(item_struct) = item {
-                if item_struct.ident == ident_str {
-                    return item_struct
+    current_crate_modules()
+        .iter()
+        .flat_map(|module| module.items.iter())
+        .any(|item| {
+            matches!(item, syn::Item::Struct(item_struct)
+                if item_struct.ident == ident_str
+                    && item_struct
                         .fields
                         .iter()
-                        .any(|f| f.ident.as_ref().is_some_and(|id| id == "bump"));
-                }
-            }
-        }
-    }
-    false
+                        .any(|f| f.ident.as_ref().is_some_and(|id| id == "bump")))
+        })
 }
 
 /// Searched the same way `find_const_expr`/`component_declares_bump_field`
@@ -1161,29 +1172,40 @@ pub(crate) fn component_declares_bump_field(ident_str: &str) -> bool {
 /// just now caught from the *call site* too, so a caller sees one clear
 /// error instead of `#[instruction_args]`'s error followed by an unrelated
 /// `BorshDeserialize` trait-bound cascade at the point of use.
+///
+/// When several structs of the crate share the name and disagree, there is no
+/// answer (`None`): the diagnostic is skipped rather than naming a field of a
+/// struct the argument may not use.
 pub(crate) fn dynamic_view_field_of(ident_str: &str) -> Option<String> {
-    for module in current_crate_modules() {
-        for item in &module.items {
-            if let syn::Item::Struct(item_struct) = item {
-                if item_struct.ident == ident_str {
-                    return item_struct.fields.iter().find_map(|f| {
-                        matches!(
-                            crate::type_classify::classify_dynamic(&f.ty),
-                            crate::type_classify::DynamicKind::ZcVec
-                                | crate::type_classify::DynamicKind::ZcString
-                        )
-                        .then(|| {
-                            f.ident
-                                .as_ref()
-                                .map(|id| id.to_string())
-                                .unwrap_or_default()
-                        })
-                    });
-                }
+    let modules = current_crate_modules();
+    let mut answers = modules
+        .iter()
+        .flat_map(|module| module.items.iter())
+        .filter_map(|item| match item {
+            syn::Item::Struct(item_struct) if item_struct.ident == ident_str => {
+                Some(item_struct.fields.iter().find_map(|f| {
+                    matches!(
+                        crate::type_classify::classify_dynamic(&f.ty),
+                        crate::type_classify::DynamicKind::ZcVec
+                            | crate::type_classify::DynamicKind::ZcString
+                    )
+                    .then(|| {
+                        f.ident
+                            .as_ref()
+                            .map(|id| id.to_string())
+                            .unwrap_or_default()
+                    })
+                }))
             }
-        }
+            _ => None,
+        });
+    let first = answers.next()?;
+    let agree = answers.all(|answer| answer == first);
+    if agree {
+        first
+    } else {
+        None
     }
-    None
 }
 
 /// Extracts raw bytes from a constant initializer expression: a byte-string,
@@ -1324,4 +1346,54 @@ fn set_span_recur(tokens: TokenStream, span: proc_macro2::Span) -> TokenStream {
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod lookup_tests {
+    use super::{component_declares_bump_field, dynamic_view_field_of};
+
+    fn in_crate<T>(source: &str, check: impl FnOnce() -> T) -> T {
+        let dir = std::env::temp_dir().join(format!(
+            "naclac-macros-security-lookups-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+        std::fs::write(dir.join("src/lib.rs"), source).unwrap();
+        let previous = std::env::var_os("CARGO_MANIFEST_DIR");
+        std::env::set_var("CARGO_MANIFEST_DIR", &dir);
+        let result = check();
+        match previous {
+            Some(value) => std::env::set_var("CARGO_MANIFEST_DIR", value),
+            None => std::env::remove_var("CARGO_MANIFEST_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+        result
+    }
+
+    #[test]
+    fn same_named_structs_are_resolved_without_picking_one_arbitrarily() {
+        in_crate(
+            r#"
+            pub mod a { pub struct Pool { pub bump: u8 } pub struct Args { pub v: ZcVec<u8> } }
+            pub mod b { pub struct Pool { pub x: u8 } pub struct Args { pub v: u8 } }
+            pub struct Alone { pub bump: u8, pub s: ZcString }
+            pub struct Plain { pub x: u8 }
+            pub mod c { pub struct Agreed { pub s: ZcString } }
+            pub mod d { pub struct Agreed { pub s: ZcString } }
+            "#,
+            || {
+                assert!(component_declares_bump_field("Pool"));
+                assert!(component_declares_bump_field("Alone"));
+                assert!(!component_declares_bump_field("Plain"));
+                assert!(!component_declares_bump_field("Missing"));
+
+                assert_eq!(dynamic_view_field_of("Args"), None);
+                assert_eq!(dynamic_view_field_of("Alone").as_deref(), Some("s"));
+                assert_eq!(dynamic_view_field_of("Agreed").as_deref(), Some("s"));
+                assert_eq!(dynamic_view_field_of("Plain"), None);
+                assert_eq!(dynamic_view_field_of("Missing"), None);
+            },
+        );
+    }
 }

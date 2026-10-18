@@ -20,6 +20,7 @@ mod event_cpi;
 mod instruction;
 mod pod_struct_checks;
 mod program;
+mod serialized_bounds;
 mod system;
 mod type_classify;
 mod zc_enum;
@@ -33,6 +34,18 @@ use proc_macro::TokenStream;
 pub(crate) fn crate_constants() -> Vec<naclac_syn::types::NaclacConstant> {
     std::env::var("CARGO_MANIFEST_DIR")
         .map(|dir| naclac_syn::crate_constants(std::path::Path::new(&dir)))
+        .unwrap_or_default()
+}
+
+/// The calling crate's type aliases, for the checks that match a field's type
+/// by name.
+pub(crate) fn crate_aliases() -> naclac_syn::aliases::Aliases {
+    std::env::var("CARGO_MANIFEST_DIR")
+        .map(|dir| {
+            naclac_syn::aliases::Aliases::collect(&naclac_syn::modules::crate_modules(
+                std::path::Path::new(&dir),
+            ))
+        })
         .unwrap_or_default()
 }
 
@@ -209,7 +222,8 @@ fn constant_idl_build_impl(item: &syn::ItemConst) -> proc_macro2::TokenStream {
     let name = item.ident.to_string();
     let expr = &item.expr;
     let docs = naclac_syn::parser::extract_docs(&item.attrs);
-    let ty_value = naclac_syn::parser::rust_type_to_idl(&item.ty, &crate_constants());
+    let item_ty = crate_aliases().resolve(&item.ty);
+    let ty_value = naclac_syn::parser::rust_type_to_idl(&item_ty, &crate_constants());
     let Ok(ty_json) = serde_json::to_string(&ty_value) else {
         return quote::quote! {};
     };
@@ -221,7 +235,7 @@ fn constant_idl_build_impl(item: &syn::ItemConst) -> proc_macro2::TokenStream {
         "__naclac_idl_print_const_{}",
         item.ident.to_string().to_lowercase()
     );
-    let value = constant_value_tokens(&item.ty, &quote::quote! { #expr });
+    let value = constant_value_tokens(&item_ty, &quote::quote! { #expr });
     quote::quote! {
         #[cfg(feature = "idl-build")]
         #[doc(hidden)]
@@ -301,12 +315,16 @@ pub fn defined_type(
     }
     let mut input = syn::parse_macro_input!(item as syn::DeriveInput);
     let ident = input.ident.clone();
+    if let Some(error) = type_classify::reserved_type_name_error(&ident) {
+        return error.to_compile_error().into();
+    }
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let is_enum = matches!(&input.data, syn::Data::Enum(_));
     // Captured before any field-padding mutation below — the IDL-visible
     // shape reflects what the developer actually wrote, not the on-chain
     // zero-copy layout's auto-added padding field.
     let original_data = input.data.clone();
+    serialized_bounds::strip_max_len(&mut input.data);
 
     let declared_fields: Vec<&syn::Field> = match &original_data {
         syn::Data::Struct(data) => data.fields.iter().collect(),
@@ -324,8 +342,18 @@ pub fn defined_type(
     }
 
     if let syn::Data::Enum(data) = &original_data {
+        let aliases = crate_aliases();
+        let variant_fields: Vec<syn::Field> = data
+            .variants
+            .iter()
+            .flat_map(|v| v.fields.iter())
+            .map(|field| syn::Field {
+                ty: aliases.resolve(&field.ty),
+                ..field.clone()
+            })
+            .collect();
         if let Some(error) = type_classify::fixed_capacity_field_error(
-            data.variants.iter().flat_map(|v| v.fields.iter()),
+            variant_fields.iter(),
             "a #[defined_type] enum variant",
             "Put the FixedVec/FixedString in a #[defined_type] struct and use that struct as the \
              variant's field.",
@@ -701,9 +729,24 @@ pub fn defined_type(
         _ => quote::quote! {},
     };
 
+    let bounds_cfg = quote::quote! {
+        #[cfg(all(not(feature = "pinocchio"), any(feature = "borsh", feature = "wincode")))]
+    };
+    let bounds_impl = match serialized_bounds::generate(
+        &syn::DeriveInput {
+            data: original_data.clone(),
+            ..input.clone()
+        },
+        &bounds_cfg,
+    ) {
+        Ok(tokens) => tokens,
+        Err(err) => err.to_compile_error(),
+    };
+
     quote::quote! {
         #discriminant_range_conflict
         #zero_copy_default_conflict
+        #bounds_impl
         #borsh_variant
         #wincode_variant
         #zero_copy_variant
@@ -732,6 +775,7 @@ fn idl_build_impl_enum(
 
     let discriminants = naclac_syn::discriminator::variant_discriminants(variants.iter());
     let constants = crate_constants();
+    let aliases = crate_aliases();
     let mut idl_variants = Vec::new();
     let mut defined_refs: Vec<syn::Type> = Vec::new();
 
@@ -748,7 +792,8 @@ fn idl_build_impl_enum(
                     let fname =
                         naclac_syn::parser::idl_name(&f.ident.as_ref().unwrap().to_string());
                     let field_docs = naclac_syn::parser::extract_docs(&f.attrs);
-                    let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &constants);
+                    let field_ty = aliases.resolve(&f.ty);
+                    let ty_value = naclac_syn::parser::rust_type_to_idl(&field_ty, &constants);
                     let Ok(ty_json) = serde_json::to_string(&ty_value) else {
                         continue;
                     };
@@ -761,7 +806,7 @@ fn idl_build_impl_enum(
                             slots: None,
                         }
                     });
-                    if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&f.ty) {
+                    if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&field_ty) {
                         defined_refs.push(defined_ty);
                     }
                 }
@@ -772,7 +817,8 @@ fn idl_build_impl_enum(
             syn::Fields::Unnamed(unnamed) => {
                 let mut ty_ts_list = Vec::new();
                 for f in &unnamed.unnamed {
-                    let ty_value = naclac_syn::parser::rust_type_to_idl(&f.ty, &constants);
+                    let field_ty = aliases.resolve(&f.ty);
+                    let ty_value = naclac_syn::parser::rust_type_to_idl(&field_ty, &constants);
                     let Ok(ty_json) = serde_json::to_string(&ty_value) else {
                         continue;
                     };
@@ -780,7 +826,7 @@ fn idl_build_impl_enum(
                         naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
                             .expect("naclac idl-build: generated field type JSON must parse")
                     });
-                    if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&f.ty) {
+                    if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&field_ty) {
                         defined_refs.push(defined_ty);
                     }
                 }
