@@ -1869,7 +1869,6 @@ fn check_transfer_fee_config_reads_extension_and_calculates_fee_correctly() {
         transfer_amount: 200_000,
         expected_fee: 2_000,
         expected_post_fee_amount: 198_000,
-        ..Default::default()
     };
 
     build_check_transfer_fee_config(
@@ -1889,7 +1888,6 @@ fn check_transfer_fee_config_reads_extension_and_calculates_fee_correctly() {
         transfer_amount: 200_000,
         expected_fee: 999_999, // deliberately wrong
         expected_post_fee_amount: 198_000,
-        ..Default::default()
     };
     let wrong_result = build_check_transfer_fee_config(
         &provider,
@@ -2254,7 +2252,6 @@ fn create_mint2022_with_transfer_fee_produces_a_real_readable_extension() {
             decimals: 6,
             transfer_fee_basis_points: 150, // 1.5%
             maximum_fee: 5_000,
-            ..Default::default()
         },
         CreateMint2022WithTransferFeeAccounts {
             payer: provider.payer.address(),
@@ -2290,7 +2287,6 @@ fn create_mint2022_with_transfer_fee_produces_a_real_readable_extension() {
             transfer_amount: 10_000,
             expected_fee: 150,
             expected_post_fee_amount: 9_850,
-            ..Default::default()
         },
         CheckTransferFeeConfigAccounts { mint: mint_pda },
     )
@@ -2337,7 +2333,6 @@ fn exercise_transfer_fee_cpis_moves_real_balances_and_fees() {
             decimals: 6,
             transfer_fee_basis_points: 1_000, // 10%, so fees below divide evenly
             maximum_fee: 1_000_000,           // high enough to never cap
-            ..Default::default()
         },
         CreateMint2022WithTransferFeeAccounts {
             payer: provider.payer.address(),
@@ -2401,7 +2396,6 @@ fn exercise_transfer_fee_cpis_moves_real_balances_and_fees() {
             fee2: 500,
             new_basis_points: 50,
             new_maximum_fee: 999_999,
-            ..Default::default()
         },
         ExerciseTransferFeeCpisAccounts {
             mint_authority: mint_authority_pda,
@@ -2438,7 +2432,6 @@ fn exercise_transfer_fee_cpis_moves_real_balances_and_fees() {
             transfer_amount: 10_000,
             expected_fee: 50, // 0.5% of 10_000 at the NEW rate
             expected_post_fee_amount: 9_950,
-            ..Default::default()
         },
         CheckTransferFeeConfigAccounts { mint: mint_pda },
     )
@@ -2480,7 +2473,6 @@ fn exercise_transfer_hook_update_changes_the_real_hook_program() {
             mint_bump,
             decimals: 6,
             hook_program_id: initial_hook_program,
-            ..Default::default()
         },
         CreateMint2022WithTransferHookAccounts {
             payer: provider.payer.address(),
@@ -2548,7 +2540,6 @@ fn default_account_state_controls_new_account_freeze_state_and_update_changes_it
             mint_bump,
             decimals: 6,
             initial_state: 2, // AccountState::Frozen
-            ..Default::default()
         },
         CreateMint2022WithDefaultAccountStateAccounts {
             payer: provider.payer.address(),
@@ -3449,7 +3440,6 @@ fn interest_bearing_mint_produces_a_real_readable_extension_and_update_changes_t
             mint_bump,
             decimals: 6,
             rate: 500,
-            ..Default::default()
         },
         CreateMint2022WithInterestBearingMintAccounts {
             payer: provider.payer.address(),
@@ -3537,7 +3527,6 @@ fn metadata_pointer_produces_a_real_readable_extension_and_update_changes_it() {
             mint_bump,
             decimals: 6,
             metadata_address: initial_metadata_address,
-            ..Default::default()
         },
         CreateMint2022WithMetadataPointerAccounts {
             payer: provider.payer.address(),
@@ -3620,7 +3609,6 @@ fn group_pointer_produces_a_real_readable_extension_and_update_changes_it() {
             mint_bump,
             decimals: 6,
             group_address: initial_group_address,
-            ..Default::default()
         },
         CreateMint2022WithGroupPointerAccounts {
             payer: provider.payer.address(),
@@ -3703,7 +3691,6 @@ fn group_member_pointer_produces_a_real_readable_extension_and_update_changes_it
             mint_bump,
             decimals: 6,
             member_address: initial_member_address,
-            ..Default::default()
         },
         CreateMint2022WithGroupMemberPointerAccounts {
             payer: provider.payer.address(),
@@ -3792,7 +3779,7 @@ fn permanent_delegate_lets_the_delegate_burn_from_an_account_it_does_not_own() {
     build_create_mint2022_with_permanent_delegate(
         &provider,
         PROGRAM_ID,
-        CreateMint2022WithPermanentDelegateArgs { id, mint_bump, decimals: 6, ..Default::default() },
+        CreateMint2022WithPermanentDelegateArgs { id, mint_bump, decimals: 6 },
         CreateMint2022WithPermanentDelegateAccounts {
             payer: provider.payer.address(),
             mint: mint_pda,
@@ -3950,7 +3937,7 @@ fn non_transferable_blocks_transfers_and_plain_mint_allows_it() {
     build_create_mint2022_with_non_transferable(
         &provider,
         PROGRAM_ID,
-        CreateMint2022WithNonTransferableArgs { id, mint_bump, decimals: 6, ..Default::default() },
+        CreateMint2022WithNonTransferableArgs { id, mint_bump, decimals: 6 },
         CreateMint2022WithNonTransferableAccounts {
             payer: provider.payer.address(),
             mint: mint_pda,
@@ -4238,7 +4225,6 @@ fn token_group_lifecycle_mutates_real_on_chain_state() {
             mint_bump,
             decimals: 6,
             max_size: 10,
-            ..Default::default()
         },
         CreateMint2022WithGroupPointerAndGroupAccounts {
             payer: provider.payer.address(),
@@ -4277,7 +4263,6 @@ fn token_group_lifecycle_mutates_real_on_chain_state() {
             member_seed,
             member_mint_bump,
             decimals: 6,
-            ..Default::default()
         },
         CreateMint2022WithGroupMemberPointerAndMemberAccounts {
             payer: provider.payer.address(),
