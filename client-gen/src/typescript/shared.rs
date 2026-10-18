@@ -115,71 +115,6 @@ fn is_framework_type(name: &str, defined: &std::collections::HashSet<&str>) -> b
         || naclac_syn::opt_type::opt_inner_type(name, |known| defined.contains(known)).is_some()
 }
 
-#[cfg(test)]
-mod framework_type_tests {
-    use {super::is_framework_type, std::collections::HashSet};
-
-    #[test]
-    fn only_exact_opt_names_are_framework_types() {
-        let defined: HashSet<&str> = ["OptU64", "Options", "OptimizerConfig"].into();
-        assert!(is_framework_type("Bool", &defined));
-        assert!(is_framework_type("OptU64", &defined));
-        assert!(!is_framework_type("Options", &defined));
-        assert!(!is_framework_type("OptimizerConfig", &defined));
-    }
-
-    #[test]
-    fn a_user_type_starting_with_opt_is_generated_and_the_framework_opt_is_not() {
-        let idl = crate::Idl::from_json(
-            &serde_json::json!({
-                "address": "11111111111111111111111111111111",
-                "metadata": {
-                    "name": "p",
-                    "version": "0.1.0",
-                    "description": "d",
-                    "serialization": "bytemuck"
-                },
-                "instructions": [],
-                "accounts": [],
-                "events": [],
-                "errors": [],
-                "constants": [],
-                "definedTypes": [
-                    {
-                        "name": "Options",
-                        "type": { "kind": "struct", "fields": [{ "name": "flag", "type": "u8" }] }
-                    },
-                    {
-                        "name": "OptU64",
-                        "type": {
-                            "kind": "struct",
-                            "fields": [
-                                { "name": "tag", "type": "u8" },
-                                { "name": "value", "type": "u64" }
-                            ]
-                        }
-                    }
-                ]
-            })
-            .to_string(),
-        )
-        .unwrap();
-        let dir = std::env::temp_dir().join(format!(
-            "naclac-client-gen-opt-prefix-{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(dir.join("types")).unwrap();
-
-        super::generate_shared_files(&idl, "p", &dir).unwrap();
-        let typedefs = std::fs::read_to_string(dir.join("types/typedefs.ts")).unwrap();
-        let _ = std::fs::remove_dir_all(&dir);
-
-        assert!(typedefs.contains("export interface Options"), "{typedefs}");
-        assert!(!typedefs.contains("OptU64"), "{typedefs}");
-    }
-}
-
 /// Renders IDL `docs` lines as a JSDoc comment block, prefixed with `indent`.
 /// A single line collapses to `/** line */`; multiple lines use a full
 /// `/** \n * ... \n */` block. Returns an empty string when there are no docs.
@@ -668,4 +603,69 @@ pub fn generate_shared_files(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod framework_type_tests {
+    use {super::is_framework_type, std::collections::HashSet};
+
+    #[test]
+    fn only_exact_opt_names_are_framework_types() {
+        let defined: HashSet<&str> = ["OptU64", "Options", "OptimizerConfig"].into();
+        assert!(is_framework_type("Bool", &defined));
+        assert!(is_framework_type("OptU64", &defined));
+        assert!(!is_framework_type("Options", &defined));
+        assert!(!is_framework_type("OptimizerConfig", &defined));
+    }
+
+    #[test]
+    fn a_user_type_starting_with_opt_is_generated_and_the_framework_opt_is_not() {
+        let idl = crate::Idl::from_json(
+            &serde_json::json!({
+                "address": "11111111111111111111111111111111",
+                "metadata": {
+                    "name": "p",
+                    "version": "0.1.0",
+                    "description": "d",
+                    "serialization": "bytemuck"
+                },
+                "instructions": [],
+                "accounts": [],
+                "events": [],
+                "errors": [],
+                "constants": [],
+                "definedTypes": [
+                    {
+                        "name": "Options",
+                        "type": { "kind": "struct", "fields": [{ "name": "flag", "type": "u8" }] }
+                    },
+                    {
+                        "name": "OptU64",
+                        "type": {
+                            "kind": "struct",
+                            "fields": [
+                                { "name": "tag", "type": "u8" },
+                                { "name": "value", "type": "u64" }
+                            ]
+                        }
+                    }
+                ]
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let dir = std::env::temp_dir().join(format!(
+            "naclac-client-gen-opt-prefix-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("types")).unwrap();
+
+        super::generate_shared_files(&idl, "p", &dir).unwrap();
+        let typedefs = std::fs::read_to_string(dir.join("types/typedefs.ts")).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert!(typedefs.contains("export interface Options"), "{typedefs}");
+        assert!(!typedefs.contains("OptU64"), "{typedefs}");
+    }
 }
