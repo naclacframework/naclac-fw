@@ -1,16 +1,20 @@
-use escrow_zc_client::{
-    components::{EscrowState, fetch_escrow_state},
-    instructions::{
-        build_make, build_take, build_cancel,
-        MakeAccounts, TakeAccounts, CancelAccounts,
+use {
+    escrow_zc_client::{
+        components::{fetch_escrow_state, EscrowState},
+        get_escrow_state_pda,
+        instructions::{
+            build_cancel, build_make, build_take,
+            CancelAccounts, MakeAccounts, TakeAccounts,
+        },
+        types::{EscrowCancelled, EscrowCreated, EscrowExchanged, PROGRAM_ID},
     },
-    types::{PROGRAM_ID, EscrowCreated, EscrowExchanged, EscrowCancelled},
-    get_escrow_state_pda,
-};
-use naclac_client::*;
-use naclac_client::utils::{
-    create_mint_with_program, create_ata_with_program, mint_to_with_program,
-    load_node_wallet, TOKEN_PROGRAM_ID, transfer_sol,
+    naclac_client::{
+        *,
+        utils::{
+            create_ata_with_program, create_mint_with_program, load_node_wallet,
+            mint_to_with_program, transfer_sol, TOKEN_PROGRAM_ID,
+        },
+    },
 };
 
 #[test]

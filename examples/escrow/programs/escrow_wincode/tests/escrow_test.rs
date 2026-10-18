@@ -1,16 +1,20 @@
-use escrow_wincode_client::{
-    components::{EscrowState, fetch_escrow_state},
-    instructions::{
-        build_make, build_take, build_cancel,
-        MakeAccounts, TakeAccounts, CancelAccounts,
+use {
+    escrow_wincode_client::{
+        components::{fetch_escrow_state, EscrowState},
+        get_escrow_state_pda,
+        instructions::{
+            build_cancel, build_make, build_take,
+            CancelAccounts, MakeAccounts, TakeAccounts,
+        },
+        types::{EscrowCancelled, EscrowCreated, EscrowExchanged, PROGRAM_ID},
     },
-    types::{PROGRAM_ID, EscrowCreated, EscrowExchanged, EscrowCancelled},
-    get_escrow_state_pda,
-};
-use naclac_client::*;
-use naclac_client::utils::{
-    create_mint_with_program, create_ata_with_program, mint_to_with_program,
-    load_node_wallet, TOKEN_PROGRAM_ID, transfer_sol,
+    naclac_client::{
+        *,
+        utils::{
+            create_ata_with_program, create_mint_with_program, load_node_wallet,
+            mint_to_with_program, transfer_sol, TOKEN_PROGRAM_ID,
+        },
+    },
 };
 
 #[test]
@@ -140,7 +144,7 @@ fn test_escrow_lifecycle() {
 
     // Parse and verify EscrowCancelled event
     let cancel_events: Vec<EscrowCancelled> = tx_meta_cancel
-        .parse_events_borsh()
+        .parse_events_wincode()
         .expect("Failed to parse cancel events");
     assert!(!cancel_events.is_empty(), "EscrowCancelled event not emitted");
     assert_eq!(cancel_events[0].maker, maker_address);
@@ -204,7 +208,7 @@ fn test_escrow_lifecycle() {
 
         // Parse and verify EscrowCreated event
         let captured_events: Vec<EscrowCreated> = tx_meta
-            .parse_events_borsh()
+            .parse_events_wincode()
             .expect("Failed to parse events");
         assert!(!captured_events.is_empty(), "EscrowCreated event not emitted");
         assert_eq!(captured_events[0].maker, maker_address);
@@ -256,7 +260,7 @@ fn test_escrow_lifecycle() {
 
     // Parse and verify EscrowExchanged event
     let take_events: Vec<EscrowExchanged> = tx_meta_take
-        .parse_events_borsh()
+        .parse_events_wincode()
         .expect("Failed to parse take events");
     assert!(!take_events.is_empty(), "EscrowExchanged event not emitted");
     assert_eq!(take_events[0].taker, taker_address);
