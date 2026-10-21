@@ -1,6 +1,7 @@
-#![cfg_attr(not(feature = "idl-build"), no_std)]
+#![no_std]
 use naclac_lang::prelude::*;
 #[cfg(test)]
+#[macro_use]
 extern crate std;
 #[cfg(test)]
 mod routing_test;

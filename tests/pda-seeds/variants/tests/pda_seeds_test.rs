@@ -12,7 +12,7 @@ use pda_seeds_client::{
         TouchRegistryExplicitBumpAccounts,
     },
     types::PROGRAM_ID,
-    ConfigEntry, CONFIGENTRY_DISCRIMINATOR,
+    CONFIGENTRY_DISCRIMINATOR,
 };
 
 const SEED_REGISTRY: &[u8] = b"registry";
@@ -22,11 +22,24 @@ const SEED_CHILD_SAFE: &[u8] = b"child_safe";
 const SEED_TAGGED_CHILD: &[u8] = b"tagged_child";
 const SEED_CONFIG_ENTRY: &[u8] = b"config_entry";
 
-fn discriminated_bytes<T: bytemuck::Pod>(disc: &[u8], value: &T) -> Vec<u8> {
-    let mut out = Vec::with_capacity(disc.len() + core::mem::size_of::<T>());
-    out.extend_from_slice(disc);
-    out.extend_from_slice(bytemuck::bytes_of(value));
+/// Wire bytes of a `ConfigEntry` account: discriminator, `bump`, then
+/// little-endian `value`. Packed and identical in every layout, so the
+/// fixture does not depend on the layout's serializer.
+fn config_entry_bytes(bump: u8, value: u64) -> Vec<u8> {
+    let mut out = Vec::with_capacity(CONFIGENTRY_DISCRIMINATOR.len() + 9);
+    out.extend_from_slice(CONFIGENTRY_DISCRIMINATOR);
+    out.push(bump);
+    out.extend_from_slice(&value.to_le_bytes());
     out
+}
+
+fn config_entry_value(raw: &[u8]) -> u64 {
+    let start = CONFIGENTRY_DISCRIMINATOR.len() + 1;
+    u64::from_le_bytes(
+        raw[start..start + 8]
+            .try_into()
+            .unwrap_or_else(|_| panic!("config_entry value bytes")),
+    )
 }
 
 /// Asserts a transaction failed with exactly the given `Custom` error code
@@ -348,8 +361,7 @@ fn bare_bump_verify_with_account_info_seed_reference() {
         &PROGRAM_ID,
     );
 
-    let fixture = ConfigEntry { bump, value: 5 };
-    let data = discriminated_bytes(CONFIGENTRY_DISCRIMINATOR, &fixture);
+    let data = config_entry_bytes(bump, 5);
     provider
         .set_account(&config_entry_pda, data, &PROGRAM_ID, 10_000_000)
         .expect("inject config_entry fixture");
@@ -371,9 +383,7 @@ fn bare_bump_verify_with_account_info_seed_reference() {
     let raw = provider
         .get_account_data(&config_entry_pda)
         .expect("config_entry should be readable after touch");
-    let updated: ConfigEntry = *bytemuck::from_bytes(&raw[8..]);
-    let updated_value = updated.value;
-    assert_eq!(updated_value, 6, "touch should have incremented value");
+    assert_eq!(config_entry_value(&raw), 6, "touch should have incremented value");
 }
 
 /// Same seed shape as `bare_bump_verify_with_account_info_seed_reference`,
@@ -395,8 +405,7 @@ fn bare_bump_verify_with_account_info_seed_reference_and_ix_args() {
         &PROGRAM_ID,
     );
 
-    let fixture = ConfigEntry { bump, value: 5 };
-    let data = discriminated_bytes(CONFIGENTRY_DISCRIMINATOR, &fixture);
+    let data = config_entry_bytes(bump, 5);
     provider
         .set_account(&config_entry_pda, data, &PROGRAM_ID, 10_000_000)
         .expect("inject config_entry fixture");
@@ -422,9 +431,7 @@ fn bare_bump_verify_with_account_info_seed_reference_and_ix_args() {
     let raw = provider
         .get_account_data(&config_entry_pda)
         .expect("config_entry should be readable after touch");
-    let updated: ConfigEntry = *bytemuck::from_bytes(&raw[8..]);
-    let updated_value = updated.value;
-    assert_eq!(updated_value, 6, "touch should have incremented value");
+    assert_eq!(config_entry_value(&raw), 6, "touch should have incremented value");
 }
 
 /// The one remaining structural difference from `get_fees.rs`: that
@@ -444,8 +451,7 @@ fn read_only_bare_bump_verify_with_account_info_seed_reference() {
         &PROGRAM_ID,
     );
 
-    let fixture = ConfigEntry { bump, value: 42 };
-    let data = discriminated_bytes(CONFIGENTRY_DISCRIMINATOR, &fixture);
+    let data = config_entry_bytes(bump, 42);
     provider
         .set_account(&config_entry_pda, data, &PROGRAM_ID, 10_000_000)
         .expect("inject config_entry fixture");
