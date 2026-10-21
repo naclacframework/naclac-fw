@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "idl-build"), no_std)]
+#![no_std]
 use naclac_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");

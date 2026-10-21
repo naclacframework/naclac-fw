@@ -12,9 +12,17 @@
 #   src/               the program source, identical in every mode
 #   tests/*.rs         the integration tests; every occurrence of the canonical
 #                      client crate name is renamed to the mode's own client crate
+# `idl_build=true` declares the `idl-build` feature in every generated manifest,
+# for suites whose source or tests use `cfg(feature = "idl-build")`; the CLI then
+# generates their IDL by compiling the program instead of walking its source.
+# `from.<family>=<dir>` makes a family reuse another source directory (`.` is the
+# variants root) so it can differ from it only by rewrite rules.
 # `base.<family>=<name>` names the program whose name has no mode suffix; the rest
 # of each program's name is its suffix. `rewrite.<family>=<sed -E expression>`
-# lines are applied to the family's copied .rs files. Rewrite expressions and
+# lines are applied to the family's copied .rs files. `overlay.<family>=<dir>` copies
+# <variants>/<dir>/src over the family's copied src (runtime-specific replacements),
+# and `remove.<family>=<path>` deletes a file, relative to the program crate, after
+# copying. Rewrite expressions and
 # the dependency fragments below may use %NAME%, %SUFFIX% (e.g. `_zc`),
 # %KEBAB_SUFFIX% (`-zc`), %CAMEL_SUFFIX% (`Zc`), %RUNTIME% and %LAYOUT%.
 # A family directory may also hold `dependencies.toml` and `dev-dependencies.toml`,
@@ -43,10 +51,14 @@ conf="$variants_dir/variants.conf"
 placeholder_id="11111111111111111111111111111111"
 description=""
 lang_features=""
+idl_build=""
 declare -A family_client=()
 declare -A family_module=()
 declare -A family_base=()
+declare -A family_from=()
 declare -A family_rewrites=()
+declare -A family_overlay=()
+declare -A family_removes=()
 
 camel() {
   local out="" part
@@ -67,10 +79,14 @@ while IFS= read -r line || [ -n "$line" ]; do
     ''|'#'*) continue ;;
     description=*) description=${line#description=} ;;
     lang_features=*) lang_features=${line#lang_features=} ;;
+    idl_build=*) idl_build=${line#idl_build=} ;;
     client=*) family_client[_]=${line#client=} ;;
     client.*=*) key=${line#client.}; family_client["${key%%=*}"]=${key#*=} ;;
     module=*) family_module[_]=${line#module=} ;;
+    from.*=*) key=${line#from.}; family_from["${key%%=*}"]=${key#*=} ;;
     base.*=*) key=${line#base.}; family_base["${key%%=*}"]=${key#*=} ;;
+    overlay.*=*) key=${line#overlay.}; family_overlay["${key%%=*}"]=${key#*=} ;;
+    remove.*=*) key=${line#remove.}; family_removes["${key%%=*}"]+="${key#*=}"$'\n' ;;
     rewrite.*=*) key=${line#rewrite.}; family_rewrites["${key%%=*}"]+="${key#*=}"$'\n' ;;
     module.*=*) key=${line#module.}; family_module["${key%%=*}"]=${key#*=} ;;
     *'|'*)
@@ -146,9 +162,16 @@ for i in "${!names[@]}"; do
 
   lang_dep_features=""
   [ -z "$lang_feature_list" ] || lang_dep_features=", features = [$lang_feature_list]"
+  if [ "$idl_build" = true ]; then
+    feature_lines+=$'\n'"idl-build = [\"naclac-lang/idl-build\"]"
+  fi
 
   family=${families[$i]}
   source_dir="$variants_dir${family:+/$family}"
+  source_from=${family_from[${family:-_}]:-}
+  if [ -n "$source_from" ]; then
+    if [ "$source_from" = . ]; then source_dir="$variants_dir"; else source_dir="$variants_dir/$source_from"; fi
+  fi
   [ -d "$source_dir/src" ] || { echo "gen-variants: $name: missing $source_dir/src" >&2; exit 1; }
   canonical_client=${family_client[${family:-_}]:-}
   if [ -d "$source_dir/tests" ] && [ -z "$canonical_client" ]; then
@@ -160,6 +183,10 @@ for i in "${!names[@]}"; do
   program_dir="$suite_dir/programs/$name"
   mkdir -p "$program_dir/tests"
   cp -r "$source_dir/src" "$program_dir/src"
+  overlay_dir=${family_overlay[${family:-_}]:-}
+  if [ -n "$overlay_dir" ]; then
+    cp -r "$variants_dir/$overlay_dir/src/." "$program_dir/src/"
+  fi
   if [ -n "$canonical_module" ]; then
     sed -i "s/^pub mod ${canonical_module} {/pub mod ${name} {/" "$program_dir/src/lib.rs"
   fi
@@ -169,6 +196,11 @@ for i in "${!names[@]}"; do
         >"$program_dir/tests/$(basename "$test_path")"
     done
   fi
+
+  while IFS= read -r removed_path; do
+    [ -n "$removed_path" ] || continue
+    rm -f "$program_dir/$removed_path"
+  done <<<"${family_removes[${family:-_}]:-}"
 
   client_dep="${name//_/-}-client"
   base_name=${family_base[${family:-_}]:-}

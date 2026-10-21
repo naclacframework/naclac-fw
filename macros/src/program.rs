@@ -486,7 +486,8 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
 
             __idl.canonicalize();
 
-            println!("{}", #idl::serde_json::to_string_pretty(&__idl).unwrap());
+            extern crate std;
+            std::println!("{}", #idl::serde_json::to_string_pretty(&__idl).unwrap());
         }
     }
 }

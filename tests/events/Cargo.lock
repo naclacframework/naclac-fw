@@ -1276,6 +1276,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "events-wincode-client"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+]
+
+[[package]]
+name = "events-wincode-pinocchio-client"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+]
+
+[[package]]
 name = "events-zc-client"
 version = "0.1.0"
 dependencies = [
@@ -1288,6 +1304,24 @@ name = "events_borsh"
 version = "0.1.0"
 dependencies = [
  "events-borsh-client",
+ "naclac-client",
+ "naclac-lang",
+]
+
+[[package]]
+name = "events_wincode"
+version = "0.1.0"
+dependencies = [
+ "events-wincode-client",
+ "naclac-client",
+ "naclac-lang",
+]
+
+[[package]]
+name = "events_wincode_pinocchio"
+version = "0.1.0"
+dependencies = [
+ "events-wincode-pinocchio-client",
  "naclac-client",
  "naclac-lang",
 ]
@@ -2242,6 +2276,7 @@ dependencies = [
  "hex",
  "litesvm",
  "naclac-core",
+ "naclac-pod",
  "serde_json",
  "solana-account 4.7.0",
  "solana-account-decoder",
@@ -2280,6 +2315,7 @@ dependencies = [
  "bytemuck",
  "five8",
  "naclac-macros",
+ "naclac-pod",
  "pinocchio 0.11.2",
  "pinocchio-log",
  "pinocchio-log-macro",
@@ -2346,10 +2382,19 @@ dependencies = [
 name = "naclac-metadata"
 version = "0.1.0"
 dependencies = [
- "bytemuck",
  "naclac-core",
  "pinocchio 0.11.2",
  "solana-instruction 3.5.1",
+]
+
+[[package]]
+name = "naclac-pod"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "pinocchio 0.11.2",
+ "solana-address 2.9.0",
+ "solana-program-error",
 ]
 
 [[package]]

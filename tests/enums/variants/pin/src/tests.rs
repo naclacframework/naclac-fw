@@ -3,7 +3,7 @@
 use crate::components::State;
 use crate::types::{Action, Color, Level, Signed, Wide};
 use core::mem::{align_of, offset_of, size_of};
-use naclac_lang::prelude::{bytemuck, Address, Opt, ZcEnum};
+use naclac_lang::prelude::{bytemuck, vec, Address, Opt, ZcEnum};
 
 fn fresh() -> State {
     bytemuck::Zeroable::zeroed()

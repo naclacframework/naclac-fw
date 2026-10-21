@@ -7,6 +7,11 @@ on:
       - pending
   pull_request:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Run only this suite (empty runs everything)
+        required: false
+        default: ""
 
 concurrency:
   group: suites-${{ github.event.pull_request.number || github.ref }}
@@ -16,6 +21,31 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    outputs:
+      suites: ${{ steps.pick.outputs.suites }}
+      full: ${{ steps.pick.outputs.full }}
+    steps:
+      - id: pick
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+          INPUT: ${{ inputs.suite }}
+        run: |
+          all='["accounts-constraints","cpi","custom-discriminators","discriminator","dup-mut","enums","error-codes","event-cpi","events","fixed-capacity","interface","metadata","optional-accounts","pda-seeds","realloc","representation-routing","single-file-layout","stack-safety","token"]'
+          only="$INPUT"
+          if [ -z "$only" ]; then
+            only=$(printf '%s' "$MESSAGE" | grep -oE '\[suite: *[a-z-]+\]' | head -n1 | sed -E 's/\[suite: *([a-z-]+)\]/\1/' || true)
+          fi
+          if [ -n "$only" ] && printf '%s' "$all" | grep -q "\"$only\""; then
+            echo "suites=[\"$only\"]" >> "$GITHUB_OUTPUT"
+            echo "full=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "suites=$all" >> "$GITHUB_OUTPUT"
+            echo "full=true" >> "$GITHUB_OUTPUT"
+          fi
+
   cli:
     name: naclac cli
     runs-on: ubuntu-latest
@@ -33,33 +63,14 @@ jobs:
 
   suite:
     name: suite (${{ matrix.suite }})
-    needs: cli
+    needs: [plan, cli]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       max-parallel: 6
       matrix:
-        suite:
-          - accounts-constraints
-          - cpi
-          - custom-discriminators
-          - discriminator
-          - dup-mut
-          - enums
-          - error-codes
-          - event-cpi
-          - events
-          - fixed-capacity
-          - interface
-          - metadata
-          - optional-accounts
-          - pda-seeds
-          - realloc
-          - representation-routing
-          - single-file-layout
-          - stack-safety
-          - token
+        suite: ${{ fromJSON(needs.plan.outputs.suites) }}
     steps:
       - name: Free runner disk
         run: |
@@ -131,7 +142,8 @@ jobs:
 
   client-ts:
     name: typescript client
-    needs: [cli, suite]
+    needs: [plan, cli, suite]
+    if: needs.plan.outputs.full == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -154,6 +166,8 @@ jobs:
 
   compile-fail:
     name: compile-fail
+    needs: plan
+    if: needs.plan.outputs.full == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -167,7 +181,8 @@ jobs:
 
   idl-parity:
     name: idl parity
-    needs: cli
+    needs: [plan, cli]
+    if: needs.plan.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

@@ -11,8 +11,7 @@ pub fn generate_lib(
     header: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut lib_content = header.to_string();
-    lib_content
-        .push_str("#![cfg_attr(all(feature = \"cpi\", feature = \"pinocchio\"), no_std)]\n\n");
+    lib_content.push_str("#![cfg_attr(feature = \"cpi\", no_std)]\n\n");
     lib_content.push_str(
         "#[cfg(all(feature = \"cpi\", feature = \"solana\", feature = \"pinocchio\"))]\n\
          compile_error!(\"the `solana` and `pinocchio` features are mutually exclusive\");\n\
