@@ -4,6 +4,8 @@ set -uo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 log_file="$repo_root/test-output-$(date +%Y%m%d-%H%M%S).log"
 
+build_first_suites="cpi"
+
 run_all() {
 fail=0
 ran_any=0
@@ -33,32 +35,29 @@ for case_dir in "${case_dirs[@]}"; do
     fi
 
     if [ -f "${case_dir}Naclac.toml" ]; then
-        echo "=== $case_name :: naclac build ==="
-        if ! (cd "$case_dir" && naclac build --show-output); then
-            echo "FAILED: $case_name :: naclac build"
-            fail=1
-            echo
-            continue
-        fi
-        echo
+        steps=(check build check-test)
+        case " $build_first_suites " in
+            *" $case_name "*) steps=(build check check-test) ;;
+        esac
 
-        echo "=== $case_name :: naclac check ==="
-        if ! (cd "$case_dir" && naclac check --deny-warnings); then
-            echo "FAILED: $case_name :: naclac check"
-            fail=1
+        step_failed=0
+        for step in "${steps[@]}"; do
+            case $step in
+                check) label="naclac check"; args=(check --deny-warnings) ;;
+                build) label="naclac build"; args=(build --show-output) ;;
+                check-test) label="naclac check --test"; args=(check --test --deny-warnings) ;;
+            esac
+            echo "=== $case_name :: $label ==="
+            if ! (cd "$case_dir" && naclac "${args[@]}"); then
+                echo "FAILED: $case_name :: $label"
+                fail=1
+                step_failed=1
+                echo
+                break
+            fi
             echo
-            continue
-        fi
-        echo
-
-        echo "=== $case_name :: naclac check --test ==="
-        if ! (cd "$case_dir" && naclac check --test --deny-warnings); then
-            echo "FAILED: $case_name :: naclac check --test"
-            fail=1
-            echo
-            continue
-        fi
-        echo
+        done
+        [ "$step_failed" -eq 0 ] || continue
     fi
 
     for pkg_toml in "$case_dir"programs/*/Cargo.toml; do
