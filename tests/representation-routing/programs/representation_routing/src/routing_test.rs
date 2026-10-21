@@ -25,15 +25,13 @@ const _: fn() = || {
     assert_pod::<Thing>();
     assert_pod::<InnerThing>();
 
-    // A zero-copy `#[event]` struct holds only its declared fields and is not
-    // Pod; its zero-copy signal is the Pod wire twin `__naclac_wire` builds,
-    // which the Borsh representation never generates.
-    fn assert_pod_wire<E, W: naclac_lang::prelude::bytemuck::Pod>(_: fn(&E) -> W) {}
-    assert_pod_wire(ThingEvent::__naclac_wire);
+    // A zero-copy `#[event]` is a packed plain-data struct, so it is `Pod`;
+    // the Borsh representation never derives that.
+    assert_pod::<ThingEvent>();
 
     // `DynamicArgs` has a `ZcVec<u8>` field — never Pod — so its zero-copy
     // signal is the `NaclacArgs` deserialization impl instead.
-    fn assert_naclac_args<T: naclac_lang::prelude::NaclacArgs>() {}
+    fn assert_naclac_args<'a, T: naclac_lang::prelude::NaclacArgs<'a>>() {}
     assert_naclac_args::<DynamicArgs>();
 };
 

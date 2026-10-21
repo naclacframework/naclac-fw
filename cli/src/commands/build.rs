@@ -119,6 +119,8 @@ pub fn execute(
     if all_program_dirs.is_empty() {
         ui::error("No valid Naclac programs found in workspace.");
     }
+    let mut all_program_dirs = all_program_dirs;
+    all_program_dirs.sort();
 
     let programs_to_build: Vec<PathBuf> = if let Some(tgt) = program_id {
         let matched: Vec<PathBuf> = all_program_dirs

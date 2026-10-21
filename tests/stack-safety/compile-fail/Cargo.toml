@@ -9,11 +9,13 @@ description = "Regression test: macros/src/accounts.rs's per-field/aggregate sta
 
 [features]
 default = ["solana", "borsh"]
-solana = ["naclac-lang/solana"]
-borsh = ["naclac-lang/borsh"]
+solana = []
+bytemuck = []
+borsh = []
+wincode = []
 
 [dependencies]
-naclac-lang = { path = "../../../lang", default-features = false }
+naclac-lang = { path = "../../../lang", default-features = false, features = ["solana", "borsh"] }
 
 [dev-dependencies]
 trybuild = "1"

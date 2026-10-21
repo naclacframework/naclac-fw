@@ -1241,7 +1241,6 @@ dependencies = [
  "solana-define-syscall 5.1.0",
  "solana-instruction-error",
  "solana-pubkey 4.2.0",
- "wincode",
 ]
 
 [[package]]
@@ -1557,7 +1556,6 @@ dependencies = [
  "solana-instruction",
  "solana-msg",
  "solana-program-error",
- "wincode",
 ]
 
 [[package]]

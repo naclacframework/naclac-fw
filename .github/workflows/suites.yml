@@ -110,6 +110,14 @@ jobs:
       - name: Run suite
         run: bash scripts/test-all.sh ${{ matrix.suite }}
 
+      - name: Keep the enums TypeScript output for the client tests
+        if: matrix.suite == 'enums'
+        uses: actions/upload-artifact@v7
+        with:
+          name: enums-typescript-client
+          path: tests/enums/clients/typescript
+          retention-days: 1
+
       - name: Disk after run
         if: always()
         run: df -h /
@@ -123,10 +131,14 @@ jobs:
 
   client-ts:
     name: typescript client
-    needs: cli
+    needs: [cli, suite]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: enums-typescript-client
+          path: tests/enums/clients/typescript
       - uses: pnpm/action-setup@v6
         with:
           package_json_file: client/package.json

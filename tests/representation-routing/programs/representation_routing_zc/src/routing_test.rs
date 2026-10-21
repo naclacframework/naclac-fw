@@ -13,10 +13,9 @@ const _: fn() = || {
     assert_pod::<Thing>();
     assert_pod::<InnerThing>();
 
-    fn assert_pod_wire<E, W: naclac_lang::prelude::bytemuck::Pod>(_: fn(&E) -> W) {}
-    assert_pod_wire(ThingEvent::__naclac_wire);
+    assert_pod::<ThingEvent>();
 
-    fn assert_naclac_args<T: naclac_lang::prelude::NaclacArgs>() {}
+    fn assert_naclac_args<'a, T: naclac_lang::prelude::NaclacArgs<'a>>() {}
     assert_naclac_args::<DynamicArgs>();
 };
 

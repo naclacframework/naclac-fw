@@ -22,18 +22,18 @@ for case_dir in "${case_dirs[@]}"; do
     case_name="$(basename "$case_dir")"
 
     if [ -f "${case_dir}Naclac.toml" ]; then
-        echo "=== $case_name :: naclac check ==="
-        if ! (cd "$case_dir" && naclac check --deny-warnings); then
-            echo "FAILED: $case_name :: naclac check"
+        echo "=== $case_name :: naclac build ==="
+        if ! (cd "$case_dir" && naclac build --show-output); then
+            echo "FAILED: $case_name :: naclac build"
             fail=1
             echo
             continue
         fi
         echo
 
-        echo "=== $case_name :: naclac build ==="
-        if ! (cd "$case_dir" && naclac build --show-output); then
-            echo "FAILED: $case_name :: naclac build"
+        echo "=== $case_name :: naclac check ==="
+        if ! (cd "$case_dir" && naclac check --deny-warnings); then
+            echo "FAILED: $case_name :: naclac check"
             fail=1
             echo
             continue
