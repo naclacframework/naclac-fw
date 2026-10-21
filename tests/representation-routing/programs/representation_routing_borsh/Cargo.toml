@@ -1,7 +1,7 @@
 [package]
 name = "representation_routing_borsh"
 version = "0.1.0"
-description = "Regression test: #[component]/#[event]/#[defined_type]/#[instruction_args]/#[derive(Accounts)]/#[program] all route to the representation this crate's own real Cargo features actually select, rather than a proc-macro-side guess (solana Borsh backend)"
+description = "Regression test: the macros route to the representation this crate's own Cargo features select (solana, borsh)"
 edition = "2021"
 
 [lib]
@@ -16,10 +16,13 @@ debug-mode = []
 default = ["solana", "borsh"]
 solana = ["naclac-lang/solana"]
 borsh = ["naclac-lang/borsh"]
-idl-build = ["naclac-lang/idl-build"]
 
 [dependencies]
 naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
+representation-routing-borsh-client = { version = "0.1.0", path = "../../clients/rust/representation_routing_borsh" }
 
 [lints]
 workspace = true

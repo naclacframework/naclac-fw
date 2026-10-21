@@ -60,7 +60,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Acco
             return Err(NaclacError::AccountDataTooSmall.err(index));
         }
         if &data[..disc_len] != T::DISCRIMINATOR {
-            return Err(NaclacError::AccountNotInitialized.err(index));
+            return Err(NaclacError::InvalidAccountDiscriminator.err(index));
         }
 
         let mut reader = &data[disc_len..];
@@ -267,7 +267,7 @@ impl<
             return Err(NaclacError::AccountDataTooSmall.err(index));
         }
         if &data[..disc_len] != T::DISCRIMINATOR {
-            return Err(NaclacError::AccountNotInitialized.err(index));
+            return Err(NaclacError::InvalidAccountDiscriminator.err(index));
         }
 
         let mut reader = &data[disc_len..];

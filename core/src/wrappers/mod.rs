@@ -185,10 +185,10 @@ impl NaclacAccount for AccountView {
     }
 }
 
-#[cfg(not(feature = "pinocchio"))]
+#[cfg(any(not(feature = "pinocchio"), feature = "wincode"))]
 use alloc::boxed::Box;
 
-#[cfg(not(feature = "pinocchio"))]
+#[cfg(any(not(feature = "pinocchio"), feature = "wincode"))]
 impl<T: NaclacAccount> NaclacAccount for Box<T> {
     const IS_SIGNER: bool = T::IS_SIGNER;
     const IS_WRITABLE: bool = T::IS_WRITABLE;
@@ -212,7 +212,7 @@ impl<T: NaclacAccount> NaclacAccount for Box<T> {
     }
 }
 
-#[cfg(not(feature = "pinocchio"))]
+#[cfg(any(not(feature = "pinocchio"), feature = "wincode"))]
 impl<T: Owner> Owner for Box<T> {
     #[inline(always)]
     fn program_owner(&self) -> Address {
@@ -220,7 +220,7 @@ impl<T: Owner> Owner for Box<T> {
     }
 }
 
-#[cfg(not(feature = "pinocchio"))]
+#[cfg(any(not(feature = "pinocchio"), feature = "wincode"))]
 impl<T: ToAddress> ToAddress for Box<T> {
     #[inline(always)]
     fn address(&self) -> Address {
@@ -228,7 +228,7 @@ impl<T: ToAddress> ToAddress for Box<T> {
     }
 }
 
-#[cfg(not(feature = "pinocchio"))]
+#[cfg(any(not(feature = "pinocchio"), feature = "wincode"))]
 impl<T: AsRefByteSlice> AsRefByteSlice for Box<T> {
     #[inline(always)]
     fn as_ref_byte_slice(&self) -> &[u8] {
@@ -236,7 +236,7 @@ impl<T: AsRefByteSlice> AsRefByteSlice for Box<T> {
     }
 }
 
-#[cfg(not(feature = "pinocchio"))]
+#[cfg(any(not(feature = "pinocchio"), feature = "wincode"))]
 impl<T: ToAccountInfo> ToAccountInfo for Box<T> {
     #[inline(always)]
     fn to_account_info(&self) -> AccountInfo {

@@ -2,10 +2,11 @@
 //! naclac-macros — see `representation_routing`'s copy of this file for the
 //! full explanation of why this check is meaningful and not circular.
 //!
-//! This crate builds with `solana` and `borsh` active (its own `default`) —
-//! every check below expects the real Borsh shape.
+//! This crate builds with `borsh` or `wincode` active (its own `default`) —
+//! every check below expects the heap shape of that layout.
 
 use crate::{DoThing, DynamicArgs, InnerThing, Thing, ThingEvent};
+use std::println;
 
 #[cfg(feature = "bytemuck")]
 const _: fn() = || {
@@ -28,6 +29,18 @@ const _: fn() = || {
     assert_borsh::<DynamicArgs>();
 };
 
+#[cfg(feature = "wincode")]
+const _: fn() = || {
+    fn assert_wincode<
+        T: naclac_lang::prelude::SchemaWrite<naclac_lang::wincode_config::Config, Src = T>,
+    >() {
+    }
+    assert_wincode::<Thing>();
+    assert_wincode::<ThingEvent>();
+    assert_wincode::<InnerThing>();
+    assert_wincode::<DynamicArgs>();
+};
+
 #[cfg(feature = "solana")]
 const _: fn() = || {
     fn assert_loadable<'a, T: naclac_lang::prelude::LoadableAccounts<'a>>() {}
@@ -37,9 +50,10 @@ const _: fn() = || {
 #[test]
 fn reports_actual_representation() {
     println!(
-        "representation_routing_borsh: solana={} bytemuck={} borsh={} -> Borsh",
+        "representation_routing: solana={} bytemuck={} borsh={} wincode={} -> heap",
         cfg!(feature = "solana"),
         cfg!(feature = "bytemuck"),
         cfg!(feature = "borsh"),
+        cfg!(feature = "wincode"),
     );
 }

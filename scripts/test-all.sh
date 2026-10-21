@@ -21,6 +21,17 @@ for case_dir in "${case_dirs[@]}"; do
     [ -f "${case_dir}Cargo.toml" ] || continue
     case_name="$(basename "$case_dir")"
 
+    if [ -f "${case_dir}variants/variants.conf" ]; then
+        echo "=== $case_name :: generate variants ==="
+        if ! bash "$repo_root/scripts/gen-variants.sh" "$case_dir"; then
+            echo "FAILED: $case_name :: generate variants"
+            fail=1
+            echo
+            continue
+        fi
+        echo
+    fi
+
     if [ -f "${case_dir}Naclac.toml" ]; then
         echo "=== $case_name :: naclac build ==="
         if ! (cd "$case_dir" && naclac build --show-output); then

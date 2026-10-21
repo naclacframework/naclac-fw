@@ -81,7 +81,7 @@ impl<
             return Err(NaclacError::AccountDataTooSmall.err(index));
         }
         if &raw[..disc_len] != T::DISCRIMINATOR {
-            return Err(NaclacError::AccountNotInitialized.err(index));
+            return Err(NaclacError::InvalidAccountDiscriminator.err(index));
         }
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(index))?;
 
@@ -120,7 +120,7 @@ impl<
             return Err(NaclacError::AccountDataTooSmall.err(self.index));
         }
         if &raw[..disc_len] != T::DISCRIMINATOR {
-            return Err(NaclacError::AccountNotInitialized.err(self.index));
+            return Err(NaclacError::InvalidAccountDiscriminator.err(self.index));
         }
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(self.index))?;
 
@@ -331,7 +331,7 @@ impl<
             return Err(NaclacError::AccountDataTooSmall.err(index));
         }
         if &raw[..disc_len] != T::DISCRIMINATOR {
-            return Err(NaclacError::AccountNotInitialized.err(index));
+            return Err(NaclacError::InvalidAccountDiscriminator.err(index));
         }
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(index))?;
 
@@ -362,7 +362,7 @@ impl<
             return Err(NaclacError::AccountDataTooSmall.err(self.index));
         }
         if &raw[..disc_len] != T::DISCRIMINATOR {
-            return Err(NaclacError::AccountNotInitialized.err(self.index));
+            return Err(NaclacError::InvalidAccountDiscriminator.err(self.index));
         }
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(self.index))?;
 

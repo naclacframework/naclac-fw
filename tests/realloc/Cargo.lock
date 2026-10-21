@@ -2191,6 +2191,7 @@ dependencies = [
  "hex",
  "litesvm",
  "naclac-core",
+ "naclac-pod",
  "serde_json",
  "solana-account 4.7.0",
  "solana-account-decoder",
@@ -2229,6 +2230,7 @@ dependencies = [
  "bytemuck",
  "five8",
  "naclac-macros",
+ "naclac-pod",
  "pinocchio 0.11.2",
  "pinocchio-log",
  "pinocchio-log-macro",
@@ -2278,10 +2280,19 @@ dependencies = [
 name = "naclac-metadata"
 version = "0.1.0"
 dependencies = [
- "bytemuck",
  "naclac-core",
  "pinocchio 0.11.2",
  "solana-instruction 3.5.1",
+]
+
+[[package]]
+name = "naclac-pod"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "pinocchio 0.11.2",
+ "solana-address 2.9.0",
+ "solana-program-error",
 ]
 
 [[package]]
@@ -2296,6 +2307,7 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "syn 3.0.3",
+ "toml",
 ]
 
 [[package]]
@@ -2902,12 +2914,63 @@ dependencies = [
 ]
 
 [[package]]
+name = "realloc-wincode-client"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+]
+
+[[package]]
+name = "realloc-wincode-pinocchio-client"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+]
+
+[[package]]
+name = "realloc-zc-client"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+]
+
+[[package]]
 name = "realloc_borsh"
 version = "0.1.0"
 dependencies = [
  "naclac-client",
  "naclac-lang",
  "realloc-borsh-client",
+]
+
+[[package]]
+name = "realloc_wincode"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+ "realloc-wincode-client",
+]
+
+[[package]]
+name = "realloc_wincode_pinocchio"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+ "realloc-wincode-pinocchio-client",
+]
+
+[[package]]
+name = "realloc_zc"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+ "realloc-zc-client",
 ]
 
 [[package]]

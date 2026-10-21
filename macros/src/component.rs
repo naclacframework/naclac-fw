@@ -318,7 +318,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                     return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(0));
                 }
                 if &data[..Self::DISCRIMINATOR.len()] != Self::DISCRIMINATOR {
-                    return Err(naclac_lang::prelude::NaclacError::AccountNotInitialized.err(0));
+                    return Err(naclac_lang::prelude::NaclacError::InvalidAccountDiscriminator.err(0));
                 }
                 Ok(naclac_lang::prelude::bytemuck::from_bytes(&data[Self::DISCRIMINATOR.len()..Self::SPACE]))
             }
@@ -330,7 +330,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                     return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(0));
                 }
                 if &data[..Self::DISCRIMINATOR.len()] != Self::DISCRIMINATOR {
-                    return Err(naclac_lang::prelude::NaclacError::AccountNotInitialized.err(0));
+                    return Err(naclac_lang::prelude::NaclacError::InvalidAccountDiscriminator.err(0));
                 }
                 Ok(naclac_lang::prelude::bytemuck::from_bytes_mut(&mut data[Self::DISCRIMINATOR.len()..Self::SPACE]))
             }
@@ -435,7 +435,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                     return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(0));
                 }
                 if &data[..disc_len] != Self::DISCRIMINATOR {
-                    return Err(naclac_lang::prelude::NaclacError::AccountNotInitialized.err(0));
+                    return Err(naclac_lang::prelude::NaclacError::InvalidAccountDiscriminator.err(0));
                 }
                 let mut reader = &data[disc_len..];
                 naclac_lang::prelude::BorshDeserialize::deserialize(&mut reader)
@@ -474,7 +474,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                     return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(0));
                 }
                 if &data[..disc_len] != Self::DISCRIMINATOR {
-                    return Err(naclac_lang::prelude::NaclacError::AccountNotInitialized.err(0));
+                    return Err(naclac_lang::prelude::NaclacError::InvalidAccountDiscriminator.err(0));
                 }
                 let mut reader = &data[disc_len..];
                 naclac_lang::prelude::wincode::config::deserialize(&mut reader, naclac_lang::prelude::wincode_config::CONFIG)
