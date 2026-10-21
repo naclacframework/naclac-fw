@@ -86,6 +86,23 @@ pub fn detect_program_features(program_dir: &Path) -> Result<ProgramFeatures, St
     }
 }
 
+/// Whether a program's own `Cargo.toml` lists `naclac-lang` under
+/// `[dependencies]`. A program without it (a plain Solana program kept in the
+/// workspace, such as a hook program a test loads) has no account-data layout,
+/// IDL or generated client; it is only compiled.
+pub fn depends_on_naclac_lang(program_dir: &Path) -> bool {
+    let Ok(content) = fs::read_to_string(program_dir.join("Cargo.toml")) else {
+        return false;
+    };
+    let Ok(parsed) = toml::from_str::<toml::Value>(&content) else {
+        return false;
+    };
+    parsed
+        .get("dependencies")
+        .and_then(|d| d.as_table())
+        .is_some_and(|deps| deps.contains_key("naclac-lang"))
+}
+
 /// Gives every program that has no generated Rust client yet a minimal valid
 /// stub one. `cargo` resolves every workspace member and every
 /// `[dev-dependencies]` path before it compiles anything, so a single missing
@@ -96,6 +113,9 @@ pub fn detect_program_features(program_dir: &Path) -> Result<ProgramFeatures, St
 /// program that requests one on its client dependency fails to resolve.
 pub fn ensure_client_stubs(workspace_root: &Path, program_dirs: &[PathBuf]) {
     for prog_dir in program_dirs {
+        if !depends_on_naclac_lang(prog_dir) {
+            continue;
+        }
         let Some(pname) = prog_dir.file_name().and_then(|n| n.to_str()) else {
             continue;
         };
@@ -410,6 +430,9 @@ pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
     }
 
     for program_dir in &program_dirs {
+        if !depends_on_naclac_lang(program_dir) {
+            continue;
+        }
         let prog_name = program_dir
             .file_name()
             .unwrap()
@@ -554,6 +577,9 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
     }
 
     for program_dir in &program_dirs {
+        if !depends_on_naclac_lang(program_dir) {
+            continue;
+        }
         let prog_name = program_dir
             .file_name()
             .unwrap()

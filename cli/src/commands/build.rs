@@ -220,9 +220,17 @@ pub fn execute(
 
         // Shared with `naclac generate idl` — see generate.rs, the single
         // implementation of "what does regenerating a program's IDL mean."
-        let prog_features = crate::commands::generate::detect_program_features(build_dir)
-            .unwrap_or_else(|e| ui::error(format!("Cannot build '{}': {}", prog_name, e)));
-        let mode_label = prog_features.label();
+        let prog_features = if crate::commands::generate::depends_on_naclac_lang(build_dir) {
+            Some(
+                crate::commands::generate::detect_program_features(build_dir)
+                    .unwrap_or_else(|e| ui::error(format!("Cannot build '{}': {}", prog_name, e))),
+            )
+        } else {
+            None
+        };
+        let mode_label = prog_features
+            .as_ref()
+            .map_or_else(|| "plain program".to_string(), |f| f.label());
 
         let mut cmd = Command::new("cargo");
         cmd.arg("build-sbf")
@@ -337,6 +345,10 @@ pub fn execute(
                 prog_name, compiled
             ));
         }
+
+        let Some(prog_features) = prog_features else {
+            continue;
+        };
 
         // A real `idl-build` compile can take well over a minute; with
         // `show_output` its cargo output is inherited straight to the
