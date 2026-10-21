@@ -13,10 +13,13 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
+default = ["solana", "bytemuck"]
+solana = ["naclac-lang/solana"]
+bytemuck = ["naclac-lang/bytemuck"]
 idl-build = ["naclac-lang/idl-build"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../lang" }
+naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false }
 
 [lints]
 workspace = true

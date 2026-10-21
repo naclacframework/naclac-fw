@@ -13,6 +13,12 @@ pub fn generate_lib(
     let mut lib_content = header.to_string();
     lib_content
         .push_str("#![cfg_attr(all(feature = \"cpi\", feature = \"pinocchio\"), no_std)]\n\n");
+    lib_content.push_str(
+        "#[cfg(all(feature = \"cpi\", feature = \"solana\", feature = \"pinocchio\"))]\n\
+         compile_error!(\"the `solana` and `pinocchio` features are mutually exclusive\");\n\
+         #[cfg(all(feature = \"cpi\", not(any(feature = \"solana\", feature = \"pinocchio\"))))]\n\
+         compile_error!(\"the `cpi` feature needs the caller's runtime: enable `solana` or `pinocchio`\");\n\n",
+    );
     // Two independent aliases, each resolved only by its own feature — never
     // by the absence of the other. `cpi` and `offchain` can both be active in
     // the same build (e.g. a downstream crate's own tests CPI-calling a

@@ -7,7 +7,8 @@ edition = "2021"
 publish = false
 
 [features]
-default = ["borsh"]
+default = ["solana", "borsh"]
+solana = ["naclac-lang/solana"]
 borsh = ["naclac-lang/borsh"]
 no-entrypoint = []
 cpi = ["no-entrypoint"]
@@ -16,10 +17,10 @@ custom-panic = []
 debug-mode = []
 
 [dependencies]
-naclac-lang = { path = "../../../../lang" }
+naclac-lang = { path = "../../../../lang", default-features = false }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))',
-    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
+    'cfg(feature, values("pinocchio", "solana", "bytemuck", "borsh", "wincode"))'
 ] }

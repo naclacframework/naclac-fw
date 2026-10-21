@@ -3,29 +3,26 @@
 // ===========================================================================
 
 //! naclac's account-wrapper types (`Account<T>`, `InterfaceAccount<T>`),
-//! each in its own file here, cfg-routing internally between the Borsh
-//! backend and the zero-copy backend (pinocchio, or solana without the
-//! `borsh` feature). Any future wrapper type follows the same pattern: its
-//! own file in this directory, reusing `NaclacZeroCopy` below as needed.
+//! each in its own file here, cfg-routing internally between the Borsh,
+//! Wincode and zero-copy (`bytemuck`) layouts. Any future wrapper type
+//! follows the same pattern: its own file in this directory, reusing
+//! `NaclacZeroCopy` below as needed.
 
 pub mod account;
 pub mod interface_account;
 
+#[cfg(feature = "bytemuck")]
 use crate::prelude::NaclacError;
-#[cfg(not(all(feature = "borsh", feature = "wincode")))]
+#[cfg(any(feature = "bytemuck", feature = "borsh", feature = "wincode"))]
 pub use account::Account;
-#[cfg(not(all(feature = "borsh", feature = "wincode")))]
+#[cfg(any(feature = "bytemuck", feature = "borsh", feature = "wincode"))]
 pub use interface_account::InterfaceAccount;
 
 /// Discards a Borsh serializer error without running its destructor. Callers
 /// replace the error with one that fails the transaction, so the leaked
 /// allocation is never observed, and the destructor code stays out of the
 /// program binary.
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 #[inline(always)]
 pub(crate) fn discard_error<E>(error: E) {
     core::mem::forget(error);
@@ -44,6 +41,7 @@ pub(crate) fn discard_error<E>(error: E) {
 /// in the repo is a separate, macro-generated *inherent* method
 /// (`macros/src/component.rs`) that duplicates this logic for
 /// off-chain use — it doesn't call this trait method either.
+#[cfg(feature = "bytemuck")]
 pub trait NaclacZeroCopy:
     bytemuck::Pod + bytemuck::Zeroable + crate::wrappers::Discriminator
 {

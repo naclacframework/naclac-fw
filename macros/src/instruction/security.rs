@@ -20,13 +20,13 @@ use {
 /// a typed zero-copy/Borsh account yet.
 fn borrow_field_data_tokens(field_ident: &syn::Ident) -> TokenStream {
     quote! {
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         let __data_info = #field_ident.to_account_info();
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         let data = __data_info.try_borrow_data()?;
-        #[cfg(feature = "pinocchio")]
+        #[cfg(not(feature = "solana"))]
         let __data_info = naclac_lang::prelude::ToAccountInfo::to_account_info(&#field_ident);
-        #[cfg(feature = "pinocchio")]
+        #[cfg(not(feature = "solana"))]
         let data = __data_info.data();
     }
 }
@@ -44,8 +44,8 @@ const HASH_ONLY_INELIGIBLE_MSG: &str =
 
 /// True if this field's declared type is an account wrapper
 /// (`Account<T>`/`InterfaceAccount<T>`) *and* the whole crate is compiled in
-/// zero-copy mode (`pinocchio`, or `solana` without `borsh` — the same
-/// condition both wrapper types themselves cfg-route on internally, see
+/// zero-copy mode (the `bytemuck` layout — the same condition both wrapper
+/// types themselves cfg-route on internally, see
 /// `core/src/wrappers/accounts/`). `program_is_zero_copy` is computed
 /// once by the caller from the crate's own feature flags and passed in.
 pub(crate) fn is_zero_copy_account_field(ty: &syn::Type, program_is_zero_copy: bool) -> bool {
@@ -194,12 +194,12 @@ pub fn generate_security_checks(
     // address. Pinocchio borrows it from the raw `info`; the other backends
     // copy it.
     let actual_address_ref = quote! {
-        #[cfg(feature = "pinocchio")]
+        #[cfg(not(feature = "solana"))]
         let __actual_address: &naclac_lang::prelude::Address =
             naclac_lang::prelude::Address::from_address_ref(info.view.address());
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         let __actual_address_owned: naclac_lang::prelude::Address = (info).address();
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         let __actual_address: &naclac_lang::prelude::Address = &__actual_address_owned;
     };
 
@@ -208,7 +208,7 @@ pub fn generate_security_checks(
     // any field loader runs, so only the other backends emit them here.
     if field.is_signer && !is_exact_signer_type(&field.ty) {
         metadata_checks.push(quote! {
-            #[cfg(not(feature = "pinocchio"))]
+            #[cfg(feature = "solana")]
             {
                 if !info.is_signer {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintSigner.err(#idx));
@@ -219,7 +219,7 @@ pub fn generate_security_checks(
 
     if field.is_mut {
         metadata_checks.push(quote! {
-            #[cfg(not(feature = "pinocchio"))]
+            #[cfg(feature = "solana")]
             {
                 if !info.is_writable {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintMut.err(#idx));
@@ -230,7 +230,7 @@ pub fn generate_security_checks(
 
     if field.is_executable {
         metadata_checks.push(quote! {
-            #[cfg(not(feature = "pinocchio"))]
+            #[cfg(feature = "solana")]
             {
                 if !info.executable {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintExecutable.err(#idx));
@@ -243,9 +243,9 @@ pub fn generate_security_checks(
     if field.is_rent_exempt {
         metadata_checks.push(quote! {
             let __rent_exempt_lamports = info.lamports();
-            #[cfg(not(feature = "pinocchio"))]
+            #[cfg(feature = "solana")]
             let __rent_exempt_data_len = info.try_borrow_data()?.len();
-            #[cfg(feature = "pinocchio")]
+            #[cfg(not(feature = "solana"))]
             let __rent_exempt_data_len = info.data().len();
 
             let __is_rent_exempt = __rent_exempt_lamports
@@ -403,11 +403,11 @@ pub fn generate_security_checks(
             }
         } else {
             quote! {
-                #[cfg(feature = "pinocchio")]
+                #[cfg(not(feature = "solana"))]
                 let __pda_program: &naclac_lang::prelude::Address = program_id;
-                #[cfg(not(feature = "pinocchio"))]
+                #[cfg(feature = "solana")]
                 let __pda_program_owned = naclac_lang::prelude::ToAddress::address(&program_id);
-                #[cfg(not(feature = "pinocchio"))]
+                #[cfg(feature = "solana")]
                 let __pda_program: &naclac_lang::prelude::Address = &__pda_program_owned;
             }
         };
@@ -555,15 +555,15 @@ pub fn generate_security_checks(
                         bump_expr = quote! { #field_ident.bump };
                     } else if crate::type_classify::is_exactly(&field.ty, "Account") && !is_spl_type
                     {
-                        // Only reachable for genuine Borsh `Account<T>` now — a
-                        // zero-copy `Account<T>` (pinocchio, or solana zero-copy
-                        // via the prelude alias) already took the branch above.
-                        // `is_zero_copy` is already known false here (the caller,
-                        // `accounts.rs`'s `build_variant`, calls this once per
-                        // representation and only ever passes `false` for the
-                        // variant emitted behind the Borsh `#[cfg(...)]`), but
-                        // branch on it explicitly rather than assume, matching
-                        // how `Account<T>`'s own shape is chosen elsewhere.
+                        // Only reachable for a heap-allocated (Borsh or Wincode)
+                        // `Account<T>`: a zero-copy `Account<T>` already took the
+                        // branch above. `is_zero_copy` is already known false here
+                        // (the caller, `accounts.rs`'s `build_variant`, calls this
+                        // once per representation and only ever passes `false` for
+                        // the variants emitted behind the Borsh and Wincode
+                        // `#[cfg(...)]`s), but branch on it explicitly rather than
+                        // assume, matching how `Account<T>`'s own shape is chosen
+                        // elsewhere.
                         bump_expr = if is_zero_copy {
                             quote! { #field_ident.bump }
                         } else {
@@ -684,14 +684,14 @@ pub fn generate_security_checks(
             } else {
                 constraint_checks.push(quote! {
                     #pda_creation_logic
-                    #[cfg(feature = "pinocchio")]
+                    #[cfg(not(feature = "solana"))]
                     {
                         #actual_address_ref
                         if *__actual_address != expected_pda {
                             return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
                         }
                     }
-                    #[cfg(not(feature = "pinocchio"))]
+                    #[cfg(feature = "solana")]
                     {
                         if (#field_ident).address() != naclac_lang::prelude::ToAddress::address(&expected_pda) {
                             return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
@@ -704,14 +704,14 @@ pub fn generate_security_checks(
         } else {
             metadata_checks.push(quote! {
                 #pda_creation_logic
-                #[cfg(feature = "pinocchio")]
+                #[cfg(not(feature = "solana"))]
                 {
                     #actual_address_ref
                     if *__actual_address != expected_pda {
                         return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
                     }
                 }
-                #[cfg(not(feature = "pinocchio"))]
+                #[cfg(feature = "solana")]
                 {
                     let __key = (info).address();
                     if __key != naclac_lang::prelude::ToAddress::address(&expected_pda) {

@@ -40,7 +40,7 @@ pub fn generate_close_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintClose.err(#idx));
                 }
 
-                #[cfg(not(feature = "pinocchio"))]
+                #[cfg(feature = "solana")]
                 {
                     let target_info = #target_info;
                     let dest_info = #dest_info;
@@ -56,7 +56,7 @@ pub fn generate_close_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
                     target_info.data.borrow_mut().fill(0);
                 }
 
-                #[cfg(feature = "pinocchio")]
+                #[cfg(not(feature = "solana"))]
                 {
                     let target_info = #target_info;
                     let dest_info = #dest_info;

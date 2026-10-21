@@ -1,0 +1,27 @@
+[package]
+name = "capacity_wincode_pinocchio"
+version = "0.1.0"
+description = "#[max_len] sizing of Vec and String fields in a Wincode account (pinocchio-wincode backend)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["wincode"]
+wincode = ["naclac-lang/wincode"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../lang" }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
+capacity-wincode-pinocchio-client = { version = "0.1.0", path = "../../clients/rust/capacity_wincode_pinocchio" }
+
+[lints]
+workspace = true

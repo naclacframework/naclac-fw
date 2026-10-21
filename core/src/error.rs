@@ -77,6 +77,7 @@ impl NaclacError {
 }
 
 // The codes `naclac-pod` converts its errors to must be these variants' codes.
+#[cfg(feature = "bytemuck")]
 const _: () = {
     assert!(
         NaclacError::InvalidInstructionData.to_code(0) == naclac_pod::INVALID_INSTRUCTION_DATA_CODE

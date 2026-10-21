@@ -1,42 +1,23 @@
 //! # Event Emission Routing
 //!
 //! Exposes a unified `emit_event` function that dynamically routes event logging
-//! to the appropriate backend (Borsh vs Zero-Copy) based on the active feature flags.
+//! to the backend selected by the runtime and layout features.
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 mod borsh;
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "bytemuck", feature = "pinocchio"))]
 mod pinocchio;
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 mod wincode;
-#[cfg(all(
-    not(feature = "pinocchio"),
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(all(feature = "bytemuck", not(feature = "pinocchio")))]
 mod zero_copy;
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 pub fn emit_event<T: crate::borsh::BorshSerialize>(event: &T, discriminator: &[u8]) {
     borsh::emit(event, discriminator);
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 pub fn emit_event<T: crate::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>>(
     event: &T,
     discriminator: &[u8],
@@ -44,15 +25,12 @@ pub fn emit_event<T: crate::wincode::SchemaWrite<crate::wincode_config::Config, 
     wincode::emit(event, discriminator);
 }
 
-#[cfg(all(
-    not(feature = "pinocchio"),
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(all(feature = "bytemuck", not(feature = "pinocchio")))]
 pub fn emit_event<T: bytemuck::Pod>(event: &T, discriminator: &[u8]) {
     zero_copy::emit(event, discriminator);
 }
 
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "bytemuck", feature = "pinocchio"))]
 pub fn emit_event<T: bytemuck::Pod>(event: &T, discriminator: &[u8]) {
     pinocchio::emit(event, discriminator);
 }

@@ -23,7 +23,7 @@ pub fn update_master_edition(ctx: Context<UpdateMasterEdition>) -> Result {
     let mut data = [7u8, plugin_type::MASTER_EDITION, 1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
     data[3..7].copy_from_slice(&100u32.to_le_bytes());
 
-    #[cfg(not(feature = "pinocchio"))]
+    #[cfg(feature = "solana")]
     update_collection_plugin_signed(
         ctx.accounts.mpl_core_program.to_cpi_handle(),
         AddCollectionPluginAccounts {
@@ -37,7 +37,7 @@ pub fn update_master_edition(ctx: Context<UpdateMasterEdition>) -> Result {
         &[],
     )?;
 
-    #[cfg(feature = "pinocchio")]
+    #[cfg(not(feature = "solana"))]
     update_collection_plugin_signed_pinocchio(
         ctx.accounts.mpl_core_program.to_cpi_handle(),
         AddCollectionPluginAccounts {

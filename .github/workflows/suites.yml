@@ -56,6 +56,7 @@ jobs:
           - optional-accounts
           - pda-seeds
           - realloc
+          - representation-routing
           - single-file-layout
           - stack-safety
           - token

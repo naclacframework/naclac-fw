@@ -134,60 +134,7 @@ pub fn execute(
         all_program_dirs.clone()
     };
 
-    // ── Pre-build stub pass ────────────────────────────────────────────────────
-    // cargo metadata (called by cargo build-sbf internally) resolves ALL workspace
-    // members — and their [dev-dependencies] — in a single pass before compilation
-    // starts. If ANY generated Rust client is missing, the ENTIRE workspace metadata
-    // resolution fails.
-    //
-    // Solution: ensure every program has a minimal valid generated-client stub BEFORE
-    // we invoke cargo build-sbf on any program. The real client overwrites the stub
-    // once `generate::execute_client` runs later in this loop.
-    for prog_dir in &all_program_dirs {
-        let pname = prog_dir.file_name().unwrap().to_str().unwrap();
-        let pname_kebab = pname.replace('_', "-");
-        let rust_client_dir = workspace_root.join("clients/rust").join(pname);
-        if !rust_client_dir.join("Cargo.toml").exists() {
-            let src_dir = rust_client_dir.join("src");
-            let mut result = fs::create_dir_all(&src_dir);
-            if result.is_err() {
-                for _ in 1..=5 {
-                    std::thread::sleep(std::time::Duration::from_millis(200));
-                    result = fs::create_dir_all(&src_dir);
-                    if result.is_ok() {
-                        break;
-                    }
-                }
-            }
-            if let Err(e) = result {
-                ui::error(format!(
-                    "Failed to create directory {:?}: {} — often a Windows/WSL 'delete pending' \
-                     lock from VS Code/rust-analyzer/a terminal; close anything touching the \
-                     clients folder and retry.",
-                    src_dir, e
-                ));
-            }
-            // Feature set here must stay in sync with the real generator's template
-            // in client-gen/src/rust/mod.rs (generate_rust_sdk) — that's what
-            // overwrites this stub once `naclac generate` runs. The real generator
-            // always declares `zero_copy`/`pinocchio`/`borsh` unconditionally (only
-            // `default` varies by mode), so the stub must too, or any program's
-            // Cargo.toml that requests e.g. `features = ["borsh"]` on its generated
-            // client dev-dependency fails `cargo metadata` during this bootstrap
-            // window, before the real client ever gets a chance to replace the stub.
-            let (naclac_lang_path, naclac_client_path) =
-                naclac_client_gen::naclac_dep_path_fragments(&workspace_root, &rust_client_dir);
-            let stub_cargo = format!(
-                "[package]\nname = \"{pname_kebab}-client\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[features]\ndefault = [\"offchain\"]\noffchain = [\"dep:naclac-client\"]\ncpi = [\"dep:naclac-lang\"]\nzero_copy = [\"naclac-lang/solana\"]\npinocchio = [\"naclac-lang/pinocchio\"]\nborsh = [\"naclac-lang/borsh\", \"zero_copy\"]\nwincode = [\"naclac-lang/wincode\", \"zero_copy\"]\n\n[dependencies]\nnaclac-client = {{ version = \"0.1.0\", optional = true{naclac_client_path} }}\nnaclac-lang = {{ version = \"0.1.0\", optional = true, default-features = false{naclac_lang_path} }}\n"
-            );
-            fs::write(rust_client_dir.join("Cargo.toml"), &stub_cargo).unwrap();
-            fs::write(
-                rust_client_dir.join("src/lib.rs"),
-                "// Stub — will be overwritten by naclac generate\n",
-            )
-            .unwrap();
-        }
-    }
+    crate::commands::generate::ensure_client_stubs(&workspace_root, &all_program_dirs);
 
     let target_dir = naclac_client_gen::resolve_target_dir(&workspace_root);
     let target_deploy_dir = target_dir.join("deploy");
@@ -271,18 +218,9 @@ pub fn execute(
 
         // Shared with `naclac generate idl` — see generate.rs, the single
         // implementation of "what does regenerating a program's IDL mean."
-        let prog_features = crate::commands::generate::detect_program_features(build_dir);
-        let use_pinocchio = prog_features.use_pinocchio;
-
-        let mode_label = if use_pinocchio {
-            "pinocchio"
-        } else {
-            "standard"
-        };
-        let mut all_features = features.clone();
-        if use_pinocchio {
-            all_features.push("pinocchio".to_string());
-        }
+        let prog_features = crate::commands::generate::detect_program_features(build_dir)
+            .unwrap_or_else(|e| ui::error(format!("Cannot build '{}': {}", prog_name, e)));
+        let mode_label = prog_features.label();
 
         let mut cmd = Command::new("cargo");
         cmd.arg("build-sbf")
@@ -295,11 +233,8 @@ pub fn execute(
             .env("CARGO_TERM_COLOR", "always")
             .current_dir(&workspace_root)
             .stdout(Stdio::inherit());
-        if use_pinocchio {
-            cmd.arg("--no-default-features");
-        }
-        if !all_features.is_empty() {
-            cmd.arg("--features").arg(all_features.join(","));
+        if !features.is_empty() {
+            cmd.arg("--features").arg(features.join(","));
         }
         cmd.args(&extra_args);
 

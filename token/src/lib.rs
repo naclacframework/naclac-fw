@@ -3,18 +3,10 @@
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
 pub(crate) use naclac_core::cpi;
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 pub(crate) use naclac_core::borsh;
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 pub(crate) use naclac_core::wincode;
 pub(crate) use naclac_core::wrappers;
 
@@ -108,6 +100,9 @@ pub mod prelude {
         spl_token_metadata_interface,
     };
     pub use naclac_core::prelude::*;
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use ::bytemuck::{Pod, Zeroable};
 }
 
 #[cfg(feature = "pinocchio")]

@@ -18,38 +18,39 @@ use crate::{
 };
 
 /// One entry of `Royalties.creators` — backend-neutral, since the real
-/// `mpl-core` `Creator` type isn't available on `pinocchio`. `#[repr(C)]`
-/// over `Address`(32, align 1) + `u8`(1, align 1) produces zero padding,
-/// matching the real on-chain Borsh layout exactly — so this is safely
-/// `ZcVec`-able for zero-copy reads on `pinocchio` (the `Pod`/`Zeroable`
-/// derive itself is `pinocchio`-only since `Address` is only `Pod` there).
+/// `mpl-core` `Creator` type isn't available on `pinocchio`. Stored on-chain
+/// as the address (32 bytes) followed by the percentage (1 byte).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "pinocchio", repr(C))]
-#[cfg_attr(feature = "pinocchio", derive(bytemuck::Pod, bytemuck::Zeroable))]
 pub struct RoyaltyCreator {
     pub address: Address,
     pub percentage: u8,
 }
 
-const _: () = {
-    assert!(core::mem::size_of::<RoyaltyCreator>() == 33);
-    assert!(core::mem::align_of::<RoyaltyCreator>() == 1);
-};
+impl Record for RoyaltyCreator {
+    const SIZE: usize = 33;
+
+    fn decode(bytes: &[u8]) -> Self {
+        Self {
+            address: <Address as Record>::decode(bytes.get(..32).unwrap_or(&[])),
+            percentage: bytes.get(32).copied().unwrap_or(0),
+        }
+    }
+}
 
 /// `RoyaltiesData.creators`'s element list — a heap `Vec` on `solana`, a
-/// zero-copy `ZcVec` on `pinocchio` (no cap needed, reflects whatever's
+/// borrowed `RecordList` on `pinocchio` (no cap needed, reflects whatever's
 /// actually on-chain).
 #[cfg(not(feature = "pinocchio"))]
 pub type RoyaltyCreatorList = crate::prelude::Vec<RoyaltyCreator>;
 #[cfg(feature = "pinocchio")]
-pub type RoyaltyCreatorList<'a> = ZcVec<'a, RoyaltyCreator>;
+pub type RoyaltyCreatorList<'a> = RecordList<'a, RoyaltyCreator>;
 
 /// `RuleSetData::ProgramAllowList`/`ProgramDenyList`'s element list, with the
 /// same per-backend shape as `RoyaltyCreatorList`.
 #[cfg(not(feature = "pinocchio"))]
 pub type RuleSetAddressList = crate::prelude::Vec<Address>;
 #[cfg(feature = "pinocchio")]
-pub type RuleSetAddressList<'a> = ZcVec<'a, Address>;
+pub type RuleSetAddressList<'a> = RecordList<'a, Address>;
 
 /// Backend-neutral mirror of the real `RuleSet` enum.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -312,11 +313,9 @@ pub fn fetch_collection_royalties(info: &AccountInfo) -> Result<Option<Royalties
     read_royalties(info.data(), plugin_header_offset)
 }
 
-/// `solana`-only: `RoyaltyCreator`/`Address` aren't `bytemuck::Pod` on this
-/// backend (see `RoyaltyCreator`'s own doc comment), so `RoyaltyCreatorList`/
-/// `RuleSetAddressList` resolve to `Vec`, not `ZcVec`, here — this walks the
-/// same layout `read_royalties` does, but collects owned `Vec`s instead of
-/// constructing `ZcVec`s.
+/// `solana`-only: `RoyaltyCreatorList`/`RuleSetAddressList` resolve to `Vec`,
+/// not `RecordList`, here — this walks the same layout `read_royalties` does,
+/// but collects owned `Vec`s instead of constructing `RecordList`s.
 #[cfg(not(feature = "pinocchio"))]
 fn read_royalties_owned(data: &[u8], plugin_header_offset: usize) -> Result<Option<RoyaltiesData>> {
     let Some(offset) = find_plugin_offset(data, plugin_header_offset, plugin_type::ROYALTIES)?
@@ -329,9 +328,8 @@ fn read_royalties_owned(data: &[u8], plugin_header_offset: usize) -> Result<Opti
     if data.len() < creators_start {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let basis_points = u16::from_le_bytes(data[offset..offset + 2].try_into().unwrap());
-    let creator_count =
-        u32::from_le_bytes(data[offset + 2..creators_start].try_into().unwrap()) as usize;
+    let basis_points = read_u16(data, offset)?;
+    let creator_count = read_u32(data, offset + 2)? as usize;
 
     let rule_set_offset = creator_count
         .checked_mul(33)
@@ -343,7 +341,7 @@ fn read_royalties_owned(data: &[u8], plugin_header_offset: usize) -> Result<Opti
     let mut creators = crate::prelude::Vec::with_capacity(creator_count);
     for i in 0..creator_count {
         let entry_start = creators_start + i * 33;
-        let bytes: [u8; 32] = data[entry_start..entry_start + 32].try_into().unwrap();
+        let bytes: [u8; 32] = read_array(data, entry_start)?;
         creators.push(RoyaltyCreator {
             address: Address::new_from_array(bytes),
             percentage: data[entry_start + 32],
@@ -361,8 +359,7 @@ fn read_royalties_owned(data: &[u8], plugin_header_offset: usize) -> Result<Opti
             if data.len() < list_start {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let count =
-                u32::from_le_bytes(data[count_offset..list_start].try_into().unwrap()) as usize;
+            let count = read_u32(data, count_offset)? as usize;
             let list_end = count
                 .checked_mul(32)
                 .and_then(|bytes| list_start.checked_add(bytes))
@@ -373,7 +370,7 @@ fn read_royalties_owned(data: &[u8], plugin_header_offset: usize) -> Result<Opti
             let mut list = crate::prelude::Vec::with_capacity(count);
             for i in 0..count {
                 let entry_start = list_start + i * 32;
-                let bytes: [u8; 32] = data[entry_start..entry_start + 32].try_into().unwrap();
+                let bytes: [u8; 32] = read_array(data, entry_start)?;
                 list.push(Address::new_from_array(bytes));
             }
             if tag == 1 {
@@ -410,9 +407,8 @@ pub fn read_royalties(
     if data.len() < creators_start {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let basis_points = u16::from_le_bytes(data[offset..offset + 2].try_into().unwrap());
-    let creator_count =
-        u32::from_le_bytes(data[offset + 2..creators_start].try_into().unwrap()) as usize;
+    let basis_points = read_u16(data, offset)?;
+    let creator_count = read_u32(data, offset + 2)? as usize;
 
     let rule_set_offset = creator_count
         .checked_mul(33)
@@ -421,8 +417,8 @@ pub fn read_royalties(
     if data.len() < rule_set_offset {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let creators: ZcVec<RoyaltyCreator> =
-        ZcVec::from_bytes(&data[creators_start..rule_set_offset])?;
+    let creators: RecordList<RoyaltyCreator> =
+        RecordList::from_bytes(&data[creators_start..rule_set_offset])?;
 
     if data.len() <= rule_set_offset {
         return Err(NaclacError::AccountDataTooSmall.err(0));
@@ -435,8 +431,7 @@ pub fn read_royalties(
             if data.len() < list_start {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let count =
-                u32::from_le_bytes(data[count_offset..list_start].try_into().unwrap()) as usize;
+            let count = read_u32(data, count_offset)? as usize;
             let list_end = count
                 .checked_mul(32)
                 .and_then(|bytes| list_start.checked_add(bytes))
@@ -444,7 +439,7 @@ pub fn read_royalties(
             if data.len() < list_end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let list: ZcVec<Address> = ZcVec::from_bytes(&data[list_start..list_end])?;
+            let list: RecordList<Address> = RecordList::from_bytes(&data[list_start..list_end])?;
             if tag == 1 {
                 RuleSetData::ProgramAllowList(list)
             } else {

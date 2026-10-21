@@ -67,11 +67,7 @@ pub fn find_plugin_offset(
     if data[plugin_header_offset] != KEY_PLUGIN_HEADER_V1 {
         return Err(NaclacError::InvalidAccountDiscriminator.err(0));
     }
-    let registry_offset = u64::from_le_bytes(
-        data[plugin_header_offset + 1..plugin_header_offset + 9]
-            .try_into()
-            .unwrap(),
-    ) as usize;
+    let registry_offset = read_u64(data, plugin_header_offset + 1)? as usize;
 
     // PluginRegistryV1: key(1) + registry: Vec<RegistryRecord> (4-byte
     // little-endian count, then that many variable-width records).
@@ -87,11 +83,7 @@ pub fn find_plugin_offset(
     if data[registry_offset] != KEY_PLUGIN_REGISTRY_V1 {
         return Err(NaclacError::InvalidAccountDiscriminator.err(0));
     }
-    let record_count = u32::from_le_bytes(
-        data[registry_offset + 1..registry_offset + 5]
-            .try_into()
-            .unwrap(),
-    );
+    let record_count = read_u32(data, registry_offset + 1)?;
 
     let mut cursor = registry_offset + 5;
     for _ in 0..record_count {
@@ -109,11 +101,7 @@ pub fn find_plugin_offset(
             return Err(NaclacError::AccountDataTooSmall.err(0));
         }
         if record_plugin_type == plugin_type {
-            let plugin_offset = u64::from_le_bytes(
-                data[offset_field_start..offset_field_start + 8]
-                    .try_into()
-                    .unwrap(),
-            );
+            let plugin_offset = read_u64(data, offset_field_start)?;
             // Skip the `Plugin` enum's own 1-byte variant tag — see this
             // function's doc comment. `checked_add`: `plugin_offset` is
             // also read directly from raw account bytes, so a crafted

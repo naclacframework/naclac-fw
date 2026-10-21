@@ -3,6 +3,11 @@
 
 #![cfg_attr(all(feature = "cpi", feature = "pinocchio"), no_std)]
 
+#[cfg(all(feature = "cpi", feature = "solana", feature = "pinocchio"))]
+compile_error!("the `solana` and `pinocchio` features are mutually exclusive");
+#[cfg(all(feature = "cpi", not(any(feature = "solana", feature = "pinocchio"))))]
+compile_error!("the `cpi` feature needs the caller's runtime: enable `solana` or `pinocchio`");
+
 #[cfg(feature = "cpi")]
 pub use naclac_lang::prelude as sdk_core_cpi;
 #[cfg(feature = "offchain")]

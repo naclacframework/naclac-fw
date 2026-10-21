@@ -24,26 +24,24 @@ use crate::{
 
 /// One entry of `VerifiedCreators.signatures` — backend-neutral, since the
 /// real `mpl-core` `VerifiedCreatorsSignature` type isn't available on
-/// `pinocchio`. `verified` is `Bool` (a `u8`-backed, `bytemuck::Pod`
-/// wrapper — plain `bool` isn't `Pod`, since not every byte pattern is a
-/// valid `bool`), so the whole struct is safely `ZcVec`-able for zero-copy
-/// reads on `pinocchio`: `#[repr(C)]` over `Address`(32, align 1) +
-/// `Bool`(1, align 1) produces zero padding, matching the real on-chain
-/// Borsh layout (32+1 bytes, no gaps) exactly. The `Pod`/`Zeroable` derive
-/// itself is `pinocchio`-only since `Address` is only `Pod` there (a
-/// different, non-`Pod` type on `solana`).
+/// `pinocchio`. Stored on-chain as the address (32 bytes) followed by one
+/// byte for `verified`; any nonzero byte reads as `true`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "pinocchio", repr(C))]
-#[cfg_attr(feature = "pinocchio", derive(bytemuck::Pod, bytemuck::Zeroable))]
 pub struct VerifiedCreatorSignature {
     pub address: Address,
-    pub verified: Bool,
+    pub verified: bool,
 }
 
-const _: () = {
-    assert!(core::mem::size_of::<VerifiedCreatorSignature>() == 33);
-    assert!(core::mem::align_of::<VerifiedCreatorSignature>() == 1);
-};
+impl Record for VerifiedCreatorSignature {
+    const SIZE: usize = 33;
+
+    fn decode(bytes: &[u8]) -> Self {
+        Self {
+            address: <Address as Record>::decode(bytes.get(..32).unwrap_or(&[])),
+            verified: bytes.get(32).copied().unwrap_or(0) != 0,
+        }
+    }
+}
 
 /// Maximum `signatures` entries `attach_verified_creators_signed`/
 /// `attach_collection_verified_creators_signed` accept on `pinocchio` — no
@@ -68,7 +66,7 @@ pub fn attach_verified_creators_signed(
         data.extend_from_slice(&(signatures.len() as u32).to_le_bytes());
         for sig in signatures {
             data.extend_from_slice(sig.address.as_ref());
-            data.push(sig.verified.0);
+            data.push(u8::from(sig.verified));
         }
         data.push(0u8); // init_authority: None
         add_asset_plugin_signed(program, accounts, &data, signer_seeds)
@@ -86,7 +84,7 @@ pub fn attach_verified_creators_signed(
         data.extend_from_slice(&(signatures.len() as u32).to_le_bytes());
         for sig in signatures {
             data.extend_from_slice(sig.address.as_ref());
-            data.push(sig.verified.0);
+            data.push(u8::from(sig.verified));
         }
         data.push(0u8); // init_authority: None
         add_asset_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
@@ -108,7 +106,7 @@ pub fn attach_collection_verified_creators_signed(
         data.extend_from_slice(&(signatures.len() as u32).to_le_bytes());
         for sig in signatures {
             data.extend_from_slice(sig.address.as_ref());
-            data.push(sig.verified.0);
+            data.push(u8::from(sig.verified));
         }
         data.push(0u8); // init_authority: None
         add_collection_plugin_signed(program, accounts, &data, signer_seeds)
@@ -126,7 +124,7 @@ pub fn attach_collection_verified_creators_signed(
         data.extend_from_slice(&(signatures.len() as u32).to_le_bytes());
         for sig in signatures {
             data.extend_from_slice(sig.address.as_ref());
-            data.push(sig.verified.0);
+            data.push(u8::from(sig.verified));
         }
         data.push(0u8); // init_authority: None
         add_collection_plugin_signed_pinocchio(program, accounts, data.as_slice(), signer_seeds)
@@ -173,11 +171,9 @@ pub fn fetch_collection_verified_creators(
     read_verified_creators_owned(&data, plugin_header_offset)
 }
 
-/// `solana`-only: `VerifiedCreatorSignature` isn't `bytemuck::Pod` on this
-/// backend (see the struct's own doc comment), so `ZcVec<VerifiedCreatorSignature>`
-/// can't be constructed here the way it can on `pinocchio` — this walks the
-/// same fixed 33-byte (32-byte `address` + 1-byte `verified`) records
-/// `read_verified_creators` does, but builds owned entries directly instead.
+/// `solana`-only: walks the same fixed 33-byte (32-byte `address` + 1-byte
+/// `verified`) records `read_verified_creators` does, but builds owned
+/// entries instead of a borrowed `RecordList`.
 #[cfg(not(feature = "pinocchio"))]
 fn read_verified_creators_owned(
     data: &[u8],
@@ -194,7 +190,7 @@ fn read_verified_creators_owned(
     if data.len() < list_start {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..list_start].try_into().unwrap()) as usize;
+    let count = read_u32(data, offset)? as usize;
     let list_end = count
         .checked_mul(33)
         .and_then(|bytes| list_start.checked_add(bytes))
@@ -206,10 +202,10 @@ fn read_verified_creators_owned(
     let mut entries = crate::prelude::Vec::with_capacity(count);
     for i in 0..count {
         let entry_start = list_start + i * 33;
-        let bytes: [u8; 32] = data[entry_start..entry_start + 32].try_into().unwrap();
+        let bytes: [u8; 32] = read_array(data, entry_start)?;
         entries.push(VerifiedCreatorSignature {
             address: Address::new_from_array(bytes),
-            verified: (data[entry_start + 32] != 0).into(),
+            verified: data[entry_start + 32] != 0,
         });
     }
     Ok(Some(entries))
@@ -220,7 +216,7 @@ fn read_verified_creators_owned(
 #[cfg(feature = "pinocchio")]
 pub fn fetch_asset_verified_creators(
     info: &AccountInfo,
-) -> Result<Option<ZcVec<'_, VerifiedCreatorSignature>>> {
+) -> Result<Option<RecordList<'_, VerifiedCreatorSignature>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -233,7 +229,7 @@ pub fn fetch_asset_verified_creators(
 #[cfg(feature = "pinocchio")]
 pub fn fetch_collection_verified_creators(
     info: &AccountInfo,
-) -> Result<Option<ZcVec<'_, VerifiedCreatorSignature>>> {
+) -> Result<Option<RecordList<'_, VerifiedCreatorSignature>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);
@@ -244,14 +240,14 @@ pub fn fetch_collection_verified_creators(
 /// Lower-level variant of `fetch_asset_verified_creators`/
 /// `fetch_collection_verified_creators`, `pinocchio`-only: see
 /// `edition.rs`'s `read_edition` for why this exists alongside the
-/// uniform-signature wrappers above. Zero-copy — `ZcVec<VerifiedCreatorSignature>`
-/// views directly into `data`, no heap allocation, no artificial cap
+/// uniform-signature wrappers above. Zero-copy — the `RecordList` views
+/// directly into `data`, no heap allocation, no artificial cap
 /// (reflects however many signatures are actually stored on-chain).
 #[cfg(feature = "pinocchio")]
 pub fn read_verified_creators(
     data: &[u8],
     plugin_header_offset: usize,
-) -> Result<Option<ZcVec<'_, VerifiedCreatorSignature>>> {
+) -> Result<Option<RecordList<'_, VerifiedCreatorSignature>>> {
     let Some(offset) =
         find_plugin_offset(data, plugin_header_offset, plugin_type::VERIFIED_CREATORS)?
     else {
@@ -263,7 +259,7 @@ pub fn read_verified_creators(
     if data.len() < list_start {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..list_start].try_into().unwrap()) as usize;
+    let count = read_u32(data, offset)? as usize;
     let list_end = count
         .checked_mul(33)
         .and_then(|bytes| list_start.checked_add(bytes))
@@ -271,7 +267,7 @@ pub fn read_verified_creators(
     if data.len() < list_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    Ok(Some(ZcVec::from_bytes(&data[list_start..list_end])?))
+    Ok(Some(RecordList::from_bytes(&data[list_start..list_end])?))
 }
 
 #[cfg(kani)]

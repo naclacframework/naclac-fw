@@ -26,83 +26,120 @@ pub enum ClientKind {
     Typescript,
 }
 
-/// A program's build-relevant feature flags, read once from its
-/// `Cargo.toml` — shared by `naclac build` (which needs `use_pinocchio`
-/// for its `cargo build-sbf` arguments) and IDL generation (which needs
-/// `is_zero_copy`), so the same file only gets parsed once.
+/// A program's runtime and account-data layout as its default features
+/// select them, read from its `Cargo.toml` — the layout decides what IDL and
+/// client are generated, the runtime only labels the build.
 pub struct ProgramFeatures {
-    pub use_pinocchio: bool,
-    /// True only for the program's *raw* zero-copy/bytemuck representation
-    /// (Pinocchio, or neither `borsh` nor `wincode` requested) — there are
-    /// three account-data representations in this framework (Borsh, Wincode,
-    /// raw zero-copy), not two, so this is `use_pinocchio || (!use_borsh &&
-    /// !use_wincode)`, not a plain `!use_borsh`.
-    pub is_zero_copy: bool,
-    /// True when the program requests the `wincode` feature (and isn't
-    /// Pinocchio, which is always raw zero-copy regardless of this flag).
-    pub use_wincode: bool,
+    solana_runtime: bool,
+    layout: naclac_idl::Serialization,
 }
 
 impl ProgramFeatures {
     pub fn serialization(&self) -> naclac_idl::Serialization {
-        if self.is_zero_copy {
-            naclac_idl::Serialization::Bytemuck
-        } else if self.use_wincode {
-            naclac_idl::Serialization::Wincode
+        self.layout
+    }
+
+    pub fn label(&self) -> String {
+        let runtime = if self.solana_runtime {
+            "solana"
         } else {
-            naclac_idl::Serialization::Borsh
-        }
+            "pinocchio"
+        };
+        let layout = match self.layout {
+            naclac_idl::Serialization::Bytemuck => "bytemuck",
+            naclac_idl::Serialization::Wincode => "wincode",
+            naclac_idl::Serialization::Borsh => "borsh",
+        };
+        format!("{runtime}, {layout}")
     }
 }
 
-pub fn detect_program_features(program_dir: &Path) -> ProgramFeatures {
-    let cargo_toml_path = program_dir.join("Cargo.toml");
-    let mut use_pinocchio = false;
-    let mut use_borsh = false;
-    let mut use_wincode = false;
-    let mut declares_pinocchio_feature = false;
-    if let Ok(content) = fs::read_to_string(&cargo_toml_path) {
-        if let Ok(parsed) = toml::from_str::<toml::Value>(&content) {
-            if let Some(features) = parsed.get("features").and_then(|f| f.as_table()) {
-                if let Some(default_feats) = features.get("default").and_then(|d| d.as_array()) {
-                    use_pinocchio = default_feats
-                        .iter()
-                        .any(|v| v.as_str() == Some("pinocchio"));
-                    use_borsh = default_feats.iter().any(|v| v.as_str() == Some("borsh"));
-                    use_wincode = default_feats.iter().any(|v| v.as_str() == Some("wincode"));
+/// Resolves which of `bytemuck`, `borsh` and `wincode` the program enables by
+/// default (following its feature table transitively), and whether it selects
+/// the `solana` runtime (absent means `pinocchio`). Errors when the program
+/// enables no layout or more than one, since `naclac-lang` accepts exactly one.
+pub fn detect_program_features(program_dir: &Path) -> Result<ProgramFeatures, String> {
+    let enabled = naclac_syn::modules::default_features(program_dir);
+    let layouts: Vec<(&str, naclac_idl::Serialization)> = [
+        ("bytemuck", naclac_idl::Serialization::Bytemuck),
+        ("borsh", naclac_idl::Serialization::Borsh),
+        ("wincode", naclac_idl::Serialization::Wincode),
+    ]
+    .into_iter()
+    .filter(|(name, _)| enabled.contains(*name))
+    .collect();
+    match layouts.as_slice() {
+        [(_, layout)] => Ok(ProgramFeatures {
+            solana_runtime: enabled.contains("solana"),
+            layout: *layout,
+        }),
+        [] => Err(
+            "its default features enable no account-data layout; add one of `bytemuck`, `borsh` \
+             or `wincode` to `default` in the program's Cargo.toml"
+                .to_string(),
+        ),
+        _ => Err(
+            "its default features enable more than one account-data layout; a program uses \
+             exactly one of `bytemuck`, `borsh` or `wincode`"
+                .to_string(),
+        ),
+    }
+}
+
+/// Gives every program that has no generated Rust client yet a minimal valid
+/// stub one. `cargo` resolves every workspace member and every
+/// `[dev-dependencies]` path before it compiles anything, so a single missing
+/// client manifest fails the whole workspace; `naclac build` and `naclac check`
+/// call this before invoking cargo. The real client replaces the stub when
+/// `naclac generate` runs. The stub's feature table must declare every feature
+/// the real generator's template declares (`client-gen/src/rust/mod.rs`), or a
+/// program that requests one on its client dependency fails to resolve.
+pub fn ensure_client_stubs(workspace_root: &Path, program_dirs: &[PathBuf]) {
+    for prog_dir in program_dirs {
+        let Some(pname) = prog_dir.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        let pname_kebab = pname.replace('_', "-");
+        let rust_client_dir = workspace_root.join("clients/rust").join(pname);
+        if rust_client_dir.join("Cargo.toml").exists() {
+            continue;
+        }
+        let src_dir = rust_client_dir.join("src");
+        let mut result = fs::create_dir_all(&src_dir);
+        if result.is_err() {
+            for _ in 1..=5 {
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                result = fs::create_dir_all(&src_dir);
+                if result.is_ok() {
+                    break;
                 }
-                declares_pinocchio_feature = features.contains_key("pinocchio");
-            }
-            // `borsh`/`wincode` may also be requested directly on the
-            // naclac-lang dependency rather than declared as the program's
-            // own default feature.
-            if !use_borsh {
-                use_borsh = parsed
-                    .get("dependencies")
-                    .and_then(|d| d.get("naclac-lang"))
-                    .and_then(|dep| dep.get("features"))
-                    .and_then(|f| f.as_array())
-                    .map(|arr| arr.iter().any(|v| v.as_str() == Some("borsh")))
-                    .unwrap_or(false);
-            }
-            if !use_wincode {
-                use_wincode = parsed
-                    .get("dependencies")
-                    .and_then(|d| d.get("naclac-lang"))
-                    .and_then(|dep| dep.get("features"))
-                    .and_then(|f| f.as_array())
-                    .map(|arr| arr.iter().any(|v| v.as_str() == Some("wincode")))
-                    .unwrap_or(false);
-            }
-            if !use_borsh && !use_wincode {
-                use_pinocchio |= declares_pinocchio_feature;
             }
         }
-    }
-    ProgramFeatures {
-        use_pinocchio,
-        is_zero_copy: use_pinocchio || (!use_borsh && !use_wincode),
-        use_wincode,
+        if let Err(e) = result {
+            ui::error(format!(
+                "Failed to create directory {:?}: {} — often a Windows/WSL 'delete pending' \
+                 lock from VS Code/rust-analyzer/a terminal; close anything touching the \
+                 clients folder and retry.",
+                src_dir, e
+            ));
+        }
+        let (naclac_lang_path, naclac_client_path) =
+            naclac_client_gen::naclac_dep_path_fragments(workspace_root, &rust_client_dir);
+        let stub_cargo = format!(
+            "[package]\nname = \"{pname_kebab}-client\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[features]\ndefault = [\"offchain\"]\noffchain = [\"dep:naclac-client\"]\ncpi = [\"dep:naclac-lang\"]\nsolana = [\"naclac-lang?/solana\"]\npinocchio = [\"naclac-lang?/pinocchio\"]\nbytemuck = [\"naclac-lang?/bytemuck\"]\nborsh = [\"naclac-lang?/borsh\"]\nwincode = [\"naclac-lang?/wincode\"]\n\n[dependencies]\nnaclac-client = {{ version = \"0.1.0\", optional = true{naclac_client_path} }}\nnaclac-lang = {{ version = \"0.1.0\", optional = true, default-features = false{naclac_lang_path} }}\n"
+        );
+        if fs::write(rust_client_dir.join("Cargo.toml"), &stub_cargo).is_err()
+            || fs::write(
+                rust_client_dir.join("src/lib.rs"),
+                "// Stub — will be overwritten by naclac generate\n",
+            )
+            .is_err()
+        {
+            ui::error(format!(
+                "Failed to write the stub client for '{}' under {:?}.",
+                pname, rust_client_dir
+            ));
+        }
     }
 }
 
@@ -393,7 +430,8 @@ pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
                 prog_name
             )))
         };
-        let program_features = detect_program_features(program_dir);
+        let program_features = detect_program_features(program_dir)
+            .unwrap_or_else(|e| ui::error(format!("Cannot generate '{}': {}", prog_name, e)));
         generate_idl_for_program(
             &workspace_root,
             program_dir,
@@ -531,7 +569,8 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
                 prog_name
             )))
         };
-        let program_features = detect_program_features(program_dir);
+        let program_features = detect_program_features(program_dir)
+            .unwrap_or_else(|e| ui::error(format!("Cannot generate '{}': {}", prog_name, e)));
         generate_idl_for_program(
             &workspace_root,
             program_dir,

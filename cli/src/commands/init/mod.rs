@@ -8,14 +8,15 @@ pub mod utils;
 
 use self::{
     templates::{
-        generate_program, parse_mode, parse_package_manager, parse_ts_framework,
-        prompt_mode_selection, prompt_ts_framework, TsFramework,
+        generate_program, parse_package_manager, parse_ts_framework, prompt_ts_framework,
+        resolve_mode, TsFramework,
     },
     utils::{ensure_dir, generate_keypair, write_file},
 };
 
 pub fn execute(
     name: &str,
+    runtime_flag: Option<&str>,
     mode_flag: Option<&str>,
     ts_flag: Option<&str>,
     pm_flag: Option<&str>,
@@ -31,20 +32,7 @@ pub fn execute(
 
     println!("🚀 Initializing Naclac Workspace: {}...", name);
 
-    let mode = if let Some(m) = mode_flag {
-        match parse_mode(m) {
-            Some(mode) => mode,
-            None => {
-                eprintln!(
-                    "❌ Error: Invalid mode '{}'. Available: pinocchio, bytemuck, wincode, borsh",
-                    m
-                );
-                std::process::exit(1);
-            }
-        }
-    } else {
-        prompt_mode_selection()
-    };
+    let mode = resolve_mode(runtime_flag, mode_flag);
 
     let ts_framework = if let Some(t) = ts_flag {
         match parse_ts_framework(t) {
@@ -107,7 +95,7 @@ overflow-checks = true
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))',
-    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
+    'cfg(feature, values("pinocchio", "solana", "bytemuck", "borsh", "wincode"))'
 ] }
 "#;
     write_file(&root.join("Cargo.toml"), root_cargo);

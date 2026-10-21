@@ -144,7 +144,8 @@ impl<'a> GroupView<'a> {
     }
 
     pub fn update_authority(&self) -> Address {
-        let bytes: [u8; 32] = self.data[1..33].try_into().unwrap();
+        let bytes: [u8; 32] = read_array(self.data, 1)
+            .unwrap_or_else(|_| panic!("authority range pre-validated by from_bytes"));
         Address::new_from_array(bytes)
     }
 
@@ -167,19 +168,19 @@ impl<'a> GroupView<'a> {
         }
     }
 
-    pub fn collections(&self) -> ZcVec<'_, Address> {
+    pub fn collections(&self) -> RecordList<'_, Address> {
         read_pubkey_span(self.data, self.collections_offset)
     }
 
-    pub fn groups(&self) -> ZcVec<'_, Address> {
+    pub fn groups(&self) -> RecordList<'_, Address> {
         read_pubkey_span(self.data, self.groups_offset)
     }
 
-    pub fn parent_groups(&self) -> ZcVec<'_, Address> {
+    pub fn parent_groups(&self) -> RecordList<'_, Address> {
         read_pubkey_span(self.data, self.parent_groups_offset)
     }
 
-    pub fn assets(&self) -> ZcVec<'_, Address> {
+    pub fn assets(&self) -> RecordList<'_, Address> {
         read_pubkey_span(self.data, self.assets_offset)
     }
 }
@@ -191,7 +192,7 @@ fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
     if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let len = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let len = read_u32(data, offset)? as usize;
     let payload_end = prefix_end
         .checked_add(len)
         .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
@@ -210,7 +211,7 @@ fn skip_pubkey_vec(data: &[u8], offset: usize) -> Result<usize> {
     if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let count = read_u32(data, offset)? as usize;
     let end = count
         .checked_mul(32)
         .and_then(|bytes| prefix_end.checked_add(bytes))
@@ -221,17 +222,17 @@ fn skip_pubkey_vec(data: &[u8], offset: usize) -> Result<usize> {
     Ok(end)
 }
 
-/// Zero-copy `ZcVec<Address>` view of a `Vec<Address>` field at `offset` —
-/// `Address` is `bytemuck::Pod` on both backends (naclac-core's own newtype
-/// on `pinocchio`; the real `solana_address::Address`'s own impl on
-/// `solana`), so no heap collection is needed here (bounds already
-/// validated by `skip_pubkey_vec` during `GroupView::from_bytes`).
-fn read_pubkey_span(data: &[u8], offset: usize) -> ZcVec<'_, Address> {
-    let count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+/// Zero-copy `RecordList<Address>` view of a `Vec<Address>` field at
+/// `offset`, so no heap collection is needed here (bounds already validated
+/// by `skip_pubkey_vec` during `GroupView::from_bytes`).
+fn read_pubkey_span(data: &[u8], offset: usize) -> RecordList<'_, Address> {
+    let count = read_u32(data, offset)
+        .unwrap_or_else(|_| panic!("range pre-validated by skip_pubkey_vec"))
+        as usize;
     // `skip_pubkey_vec` already validated this exact byte range during
     // `GroupView::from_bytes` — its length is guaranteed a multiple of 32,
-    // so `ZcVec::from_bytes` cannot fail here.
-    ZcVec::from_bytes(&data[offset + 4..offset + 4 + count * 32])
+    // so `RecordList::from_bytes` cannot fail here.
+    RecordList::from_bytes(&data[offset + 4..offset + 4 + count * 32])
         .unwrap_or_else(|_| panic!("range pre-validated by skip_pubkey_vec"))
 }
 

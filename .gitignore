@@ -16,5 +16,6 @@
 .cargo/
 target
 node_modules/
+/tests/*/clients/
 
 !/client/README.md

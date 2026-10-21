@@ -13,11 +13,12 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
-default = ["borsh"]
+default = ["solana", "borsh"]
+solana = ["naclac-lang/solana"]
 borsh = ["naclac-lang/borsh"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../lang", features = ["token"]  }
+naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false, features = ["token"]  }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
@@ -26,5 +27,5 @@ token-vault-borsh-client = { version = "0.1.0", path = "../../clients/rust/token
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
+    'cfg(feature, values("pinocchio", "solana", "bytemuck", "borsh", "wincode"))'
 ] }

@@ -167,7 +167,7 @@ pub fn read_attributes(
     if data.len() < count_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..count_end].try_into().unwrap());
+    let count = read_u32(data, offset)?;
 
     let mut entries = crate::prelude::Vec::with_capacity(count as usize);
     let mut cursor = count_end;
@@ -199,7 +199,7 @@ fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
     if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let len = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let len = read_u32(data, offset)? as usize;
     let payload_end = checked_end(prefix_end, len)?;
     if data.len() < payload_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));

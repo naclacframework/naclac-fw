@@ -671,7 +671,7 @@ pub fn generate_rust_sdk(
     let default_features = if idl.is_wincode {
         r#"default = ["offchain", "wincode"]"#
     } else if idl.is_zero_copy {
-        r#"default = ["offchain"]"#
+        r#"default = ["offchain", "bytemuck"]"#
     } else {
         r#"default = ["offchain", "borsh"]"#
     };
@@ -689,10 +689,11 @@ edition = "2021"
 {}
 offchain = ["dep:naclac-client"]
 cpi = ["dep:naclac-lang"]
-zero_copy = ["naclac-lang/solana"]
-pinocchio = ["naclac-lang/pinocchio"]
-borsh = ["naclac-lang/borsh", "zero_copy"]
-wincode = ["naclac-lang/wincode", "zero_copy"]
+solana = ["naclac-lang?/solana"]
+pinocchio = ["naclac-lang?/pinocchio"]
+bytemuck = ["naclac-lang?/bytemuck"]
+borsh = ["naclac-lang?/borsh"]
+wincode = ["naclac-lang?/wincode"]
 
 [dependencies]
 naclac-client = {{ version = "0.1.0", optional = true{naclac_client_path} }}

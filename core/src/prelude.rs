@@ -28,22 +28,23 @@ pub use {
 pub use crate::error::NaclacError;
 
 // These traits/types exist in wrappers for BOTH Solana and Pinocchio backends
+#[cfg(any(feature = "bytemuck", feature = "borsh", feature = "wincode"))]
+pub use crate::wrappers::{Account, InterfaceAccount};
 pub use crate::wrappers::{
-    decode_pod, encode_pod, event_bytes_of, event_field_default, event_slice_bytes, AsRefByteSlice,
-    AssociatedToken, Bool, BoolField, CpiHandle, CpiHandleMut, Discriminator, FixedString,
-    FixedVec, FixedVecIter, Id, Ids, Interface, NaclacAccount, NaclacZeroCopy, Opt, Owner,
-    PodError, Program, SerializedBounds, Signer, System, ToAccountInfo, ToAddress, ToCpiHandle,
-    ToCpiHandleMut, Token, Token2022, TokenInterface, Unaligned, ValidateInterfaceLayout, ZcCodec,
-    ZcEnum, ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec,
-    ZcVecIter,
+    AsRefByteSlice, AssociatedToken, CpiHandle, CpiHandleMut, Discriminator, Id, Ids, Interface,
+    NaclacAccount, Owner, Program, SerializedBounds, Signer, System, ToAccountInfo, ToAddress,
+    ToCpiHandle, ToCpiHandleMut, Token, Token2022, TokenInterface, ValidateInterfaceLayout,
 };
 
-// `Account<T>`/`InterfaceAccount<T>` don't exist at all when `borsh` and
-// `wincode` are both active (see `wrappers/accounts/mod.rs`) — split out so
-// that invalid combination surfaces only the one `compile_error!` in
-// `lib.rs`, not a secondary "unresolved import" error here too.
-#[cfg(not(all(feature = "borsh", feature = "wincode")))]
-pub use crate::wrappers::{Account, InterfaceAccount};
+// The zero-copy layout's plain-data types, from `naclac-pod`; they exist only
+// with the `bytemuck` feature.
+#[cfg(feature = "bytemuck")]
+pub use crate::wrappers::{
+    decode_pod, encode_pod, event_bytes_of, event_field_default, event_slice_bytes, Bool,
+    BoolField, FixedString, FixedVec, FixedVecIter, NaclacZeroCopy, Opt, PodError, Unaligned,
+    ZcCodec, ZcEnum, ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec,
+    ZcVecIter,
+};
 
 pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};
 
@@ -141,14 +142,11 @@ pub use {
     core::fmt,
 };
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 pub use borsh::io;
 
-// --- Bytemuck (both backends need this for zero-copy) ---
+// --- Bytemuck (zero-copy layout) ---
+#[cfg(feature = "bytemuck")]
 pub use crate::bytemuck::{self, Pod, Zeroable};
 
 // ===========================================================================
@@ -218,24 +216,12 @@ pub const TOKEN_2022_PROGRAM_ID: Address =
 pub const RENT_SYSVAR_ID: Address =
     solana_address::address!("SysvarRent111111111111111111111111111111111");
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 pub use crate::borsh;
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 pub use crate::wincode;
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 pub use crate::wincode_config;
 
 #[cfg(not(feature = "pinocchio"))]
@@ -400,18 +386,10 @@ impl AccountInfo {
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 pub use crate::borsh::{BorshDeserialize, BorshSerialize};
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 pub use crate::wincode::{SchemaRead, SchemaWrite};
 
 /// Helper: get unix timestamp from the Clock sysvar (solana_program only)
@@ -467,6 +445,7 @@ fn program_error_to_u64(error: ProgramError) -> u64 {
 }
 
 #[cfg(feature = "pinocchio")]
+#[cfg_attr(feature = "wincode", derive(wincode::SchemaWrite, wincode::SchemaRead))]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub struct Address(pub [u8; 32]);
@@ -482,20 +461,20 @@ impl From<PinocchioAddress> for Address {
     }
 }
 
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 unsafe impl bytemuck::Zeroable for Address {}
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 unsafe impl bytemuck::Pod for Address {}
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 unsafe impl bytemuck::ZeroableInOption for Address {}
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 unsafe impl bytemuck::PodInOption for Address {}
 #[cfg(feature = "pinocchio")]
 const _: () = assert!(core::mem::align_of::<Address>() == 1);
 // SAFETY: asserted just above.
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 unsafe impl naclac_pod::Unaligned for Address {}
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 impl naclac_pod::ZcCodec for Address {
     const SIZE: usize = 32;
 
@@ -597,6 +576,13 @@ fn pda_hash(inputs: &[&[u8]]) -> [u8; 32] {
     }
 }
 
+/// The 32 bytes of an address as four native-endian words.
+#[inline(always)]
+fn address_words(bytes: [u8; 32]) -> [u64; 4] {
+    // SAFETY: both types are 32 bytes, and every bit pattern is a valid `[u64; 4]`.
+    unsafe { core::mem::transmute::<[u8; 32], [u64; 4]>(bytes) }
+}
+
 /// Whether the PDA hash of `inputs` equals `expected`, where `expected` is
 /// the 32-byte address reinterpreted as four native-endian words. Compares
 /// word by word, stopping at the first mismatch; not constant-time, so only
@@ -605,7 +591,7 @@ fn pda_hash(inputs: &[&[u8]]) -> [u8; 32] {
 fn pda_hash_matches(inputs: &[&[u8]], expected: &[u64; 4]) -> bool {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let hash: [u64; 4] = bytemuck::cast(pda_hash(inputs));
+        let hash: [u64; 4] = address_words(pda_hash(inputs));
         hash == *expected
     }
 
@@ -633,10 +619,24 @@ fn pda_hash_matches(inputs: &[&[u8]], expected: &[u64; 4]) -> bool {
 
 #[cfg(all(test, not(feature = "pinocchio")))]
 mod pda_hash_matches_tests {
-    use super::{pda_hash, pda_hash_matches};
+    use super::{address_words, pda_hash, pda_hash_matches};
 
     fn words(bytes: [u8; 32]) -> [u64; 4] {
-        bytemuck::cast(bytes)
+        address_words(bytes)
+    }
+
+    #[test]
+    fn address_words_are_the_native_endian_words_of_the_bytes() {
+        let mut bytes = [0u8; 32];
+        for (index, byte) in bytes.iter_mut().enumerate() {
+            *byte = (index as u8).wrapping_mul(37).wrapping_add(11);
+        }
+        let expected = core::array::from_fn(|word| {
+            let mut chunk = [0u8; 8];
+            chunk.copy_from_slice(&bytes[word * 8..word * 8 + 8]);
+            u64::from_ne_bytes(chunk)
+        });
+        assert_eq!(address_words(bytes), expected);
     }
 
     #[test]
@@ -767,7 +767,7 @@ pub fn find_bump_for_address(
         "find_bump_for_address: too many seeds (max {MAX_PDA_SEEDS})"
     );
 
-    let expected_words: [u64; 4] = bytemuck::cast(expected.to_bytes());
+    let expected_words: [u64; 4] = address_words(expected.to_bytes());
 
     let mut bump_arr = [255u8];
     // SAFETY: same invariant as `find_program_address`'s `bump_slice`: the
@@ -958,7 +958,9 @@ impl<T: NaclacPod> NaclacPod for Option<T> {
     }
 }
 
-impl_naclac_pod!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, Bool, Address);
+impl_naclac_pod!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, Address);
+#[cfg(feature = "bytemuck")]
+impl_naclac_pod!(Bool);
 
 // Generic over `N` rather than hand-listed sizes (the macro above only
 // covers exact types) — any `[u8; N]` fixed-size instruction arg or event
@@ -1260,36 +1262,47 @@ pub use NaclacResult as Result;
 /// trait impl here, since a blanket `impl<T: Pod> for T` and a blanket
 /// `impl<T: NaclacReturnData> for Option<T>` are rejected by Rust's coherence
 /// checker as potentially overlapping.
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(feature = "bytemuck")]
 pub trait NaclacReturnData {
     fn to_return_data(&self) -> Vec<u8>;
 }
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(feature = "bytemuck")]
 impl<T: crate::bytemuck::Pod> NaclacReturnData for T {
     fn to_return_data(&self) -> Vec<u8> {
         crate::bytemuck::bytes_of(self).to_vec()
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 pub trait NaclacReturnData {
     fn to_return_data(&self) -> Vec<u8>;
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<T: crate::borsh::BorshSerialize> NaclacReturnData for T {
     fn to_return_data(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         T::serialize(self, &mut buf).unwrap_or_else(|_| panic!("return data serialization failed"));
+        buf
+    }
+}
+
+#[cfg(feature = "wincode")]
+pub trait NaclacReturnData {
+    fn to_return_data(&self) -> Vec<u8>;
+}
+
+#[cfg(feature = "wincode")]
+impl<T: crate::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>> NaclacReturnData
+    for T
+{
+    fn to_return_data(&self) -> Vec<u8> {
+        let size = crate::wincode::config::serialized_size(self, crate::wincode_config::CONFIG)
+            .unwrap_or_else(|_| panic!("return data serialization failed"));
+        let mut buf = Vec::with_capacity(size as usize);
+        crate::wincode::config::serialize_into(&mut buf, self, crate::wincode_config::CONFIG)
+            .unwrap_or_else(|_| panic!("return data serialization failed"));
         buf
     }
 }
@@ -1442,13 +1455,13 @@ pub use crate::{address, declare_id, emit, emit_cpi, require};
 #[macro_export]
 macro_rules! declare_id {
     ($id:expr) => {
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         $crate::solana_declare_id!($id);
 
-        #[cfg(feature = "pinocchio")]
+        #[cfg(not(feature = "solana"))]
         pub const ID: $crate::prelude::Address =
             unsafe { core::mem::transmute($crate::pinocchio::address::address!($id)) };
-        #[cfg(feature = "pinocchio")]
+        #[cfg(not(feature = "solana"))]
         pub fn id() -> $crate::prelude::Address {
             ID
         }
@@ -1464,11 +1477,11 @@ macro_rules! declare_id {
 #[macro_export]
 macro_rules! address {
     ($id:expr) => {{
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         {
             $crate::solana_address::address!($id)
         }
-        #[cfg(feature = "pinocchio")]
+        #[cfg(not(feature = "solana"))]
         {
             let __addr: $crate::prelude::Address =
                 unsafe { core::mem::transmute($crate::pinocchio::address::address!($id)) };

@@ -27,33 +27,17 @@
 // Borsh branch — owns a deserialized copy of T
 // ===========================================================================
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 use crate::prelude::{
     AccountInfo, Address, BorshDeserialize, BorshSerialize, NaclacError, Owner, Result,
     TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
 };
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 use crate::wrappers::{ToAccountInfo, ToAddress};
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 use core::ops::{Deref, DerefMut};
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 fn check_interface_owner(
     info: &AccountInfo,
     index: usize,
@@ -71,11 +55,7 @@ fn check_interface_owner(
 /// every method here mirror `Account<T>`'s Borsh branch exactly, except
 /// `try_from`/`try_from_mut` check the owner directly instead of calling
 /// `T::validate_account`.
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 #[derive(Clone)]
 pub struct InterfaceAccount<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> {
     pub info: AccountInfo,
@@ -85,11 +65,7 @@ pub struct InterfaceAccount<T: BorshDeserialize + BorshSerialize + crate::wrappe
     index: usize,
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<
         T: BorshDeserialize
             + BorshSerialize
@@ -171,11 +147,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> crate::wrappers::Owner
     for InterfaceAccount<T>
 {
@@ -184,11 +156,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> crat
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Deref
     for InterfaceAccount<T>
 {
@@ -198,11 +166,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Dere
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> DerefMut
     for InterfaceAccount<T>
 {
@@ -211,11 +175,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Dere
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> ToAccountInfo
     for InterfaceAccount<T>
 {
@@ -224,11 +184,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> ToAc
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     crate::wrappers::ToAccountInfos for InterfaceAccount<T>
 {
@@ -237,11 +193,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> ToAddress
     for InterfaceAccount<T>
 {
@@ -250,11 +202,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> ToAd
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> InterfaceAccount<T> {
     pub fn sub_lamports(&self, amount: u64) -> Result<()> {
         self.info.sub_lamports(amount)
@@ -269,11 +217,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Inte
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<'a, T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     crate::wrappers::cpi_handle::ToCpiHandle<'a> for InterfaceAccount<T>
 {
@@ -283,11 +227,7 @@ impl<'a, T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<'a, T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     crate::wrappers::cpi_handle::ToCpiHandleMut<'a> for InterfaceAccount<T>
 {
@@ -297,11 +237,7 @@ impl<'a, T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     crate::wrappers::AsRefByteSlice for InterfaceAccount<T>
 {
@@ -310,11 +246,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
     }
 }
 
-#[cfg(all(
-    feature = "borsh",
-    not(feature = "pinocchio"),
-    not(feature = "wincode")
-))]
+#[cfg(feature = "borsh")]
 impl<
         T: BorshDeserialize
             + BorshSerialize
@@ -349,32 +281,16 @@ impl<
 // Wincode branch
 // ===========================================================================
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 use crate::prelude::{
     AccountInfo, Address, NaclacError, Owner, Result, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
 };
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 use crate::wrappers::{ToAccountInfo, ToAddress};
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 use core::ops::{Deref, DerefMut};
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 fn check_interface_owner_wincode(
     info: &AccountInfo,
     index: usize,
@@ -387,11 +303,7 @@ fn check_interface_owner_wincode(
     Ok(())
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 #[derive(Clone)]
 pub struct InterfaceAccount<
     T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
@@ -403,11 +315,7 @@ pub struct InterfaceAccount<
     index: usize,
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -484,11 +392,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -496,15 +400,11 @@ impl<
     > crate::wrappers::Owner for InterfaceAccount<T>
 {
     fn program_owner(&self) -> Address {
-        *self.info.owner
+        crate::wrappers::Owner::program_owner(&self.info)
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -517,11 +417,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -533,11 +429,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -549,11 +441,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(all(feature = "wincode", not(feature = "pinocchio")))]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -565,11 +453,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -581,11 +465,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -605,11 +485,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         'a,
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
@@ -623,11 +499,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         'a,
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
@@ -641,11 +513,7 @@ impl<
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -653,15 +521,18 @@ impl<
     > crate::wrappers::AsRefByteSlice for InterfaceAccount<T>
 {
     fn as_ref_byte_slice(&self) -> &[u8] {
-        self.info.key.as_ref()
+        #[cfg(feature = "pinocchio")]
+        {
+            self.info.view.address().as_ref()
+        }
+        #[cfg(not(feature = "pinocchio"))]
+        {
+            self.info.key.as_ref()
+        }
     }
 }
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
@@ -684,7 +555,7 @@ impl<
 
     #[inline(always)]
     fn exit(&self, program_id: &crate::prelude::Address) -> Result<()> {
-        if *self.info.owner == *program_id {
+        if crate::wrappers::Owner::program_owner(&self.info) == *program_id {
             self.exit()
         } else {
             Ok(())
@@ -696,38 +567,20 @@ impl<
 // Zero-copy branch — caches a raw pointer into the account's own buffer
 // ===========================================================================
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 use crate::prelude::{
     AccountInfo, Address, NaclacError, Owner, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
 };
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 use crate::wrappers::accounts::NaclacZeroCopy;
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 use crate::wrappers::ToAccountInfo;
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 use core::marker::PhantomData;
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 use core::ops::{Deref, DerefMut};
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 fn check_interface_owner_zc(
     info: &AccountInfo,
     index: usize,
@@ -744,28 +597,19 @@ fn check_interface_owner_zc(
 /// every method here mirror `Account<T>`'s zero-copy branch
 /// (`accounts/account.rs`) exactly, except `try_from`/`try_from_mut` check
 /// the owner directly instead of calling `T::validate_account`.
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 pub struct InterfaceAccount<T: NaclacZeroCopy> {
     pub info: AccountInfo,
     header_ptr: *mut T,
     pub _phantom: PhantomData<T>,
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 unsafe impl<T: NaclacZeroCopy + Send> Send for InterfaceAccount<T> {}
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 unsafe impl<T: NaclacZeroCopy + Sync> Sync for InterfaceAccount<T> {}
 
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "bytemuck", feature = "pinocchio"))]
 impl<T: NaclacZeroCopy> Clone for InterfaceAccount<T> {
     #[inline(always)]
     fn clone(&self) -> Self {
@@ -773,10 +617,7 @@ impl<T: NaclacZeroCopy> Clone for InterfaceAccount<T> {
     }
 }
 
-#[cfg(all(
-    not(feature = "pinocchio"),
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(all(feature = "bytemuck", not(feature = "pinocchio")))]
 impl<T: NaclacZeroCopy> Clone for InterfaceAccount<T> {
     #[inline(always)]
     fn clone(&self) -> Self {
@@ -788,13 +629,10 @@ impl<T: NaclacZeroCopy> Clone for InterfaceAccount<T> {
     }
 }
 
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "bytemuck", feature = "pinocchio"))]
 impl<T: NaclacZeroCopy> Copy for InterfaceAccount<T> {}
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAccount<T> {
     pub fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         check_interface_owner_zc(info, index).map_err(|e| e.err(index))?;
@@ -856,10 +694,7 @@ impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAcco
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy> Deref for InterfaceAccount<T> {
     type Target = T;
 
@@ -871,10 +706,7 @@ impl<T: NaclacZeroCopy> Deref for InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy> DerefMut for InterfaceAccount<T> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut T {
@@ -883,10 +715,7 @@ impl<T: NaclacZeroCopy> DerefMut for InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy> ToAccountInfo for InterfaceAccount<T> {
     #[inline(always)]
     fn to_account_info(&self) -> AccountInfo {
@@ -894,20 +723,14 @@ impl<T: NaclacZeroCopy> ToAccountInfo for InterfaceAccount<T> {
     }
 }
 
-#[cfg(all(
-    not(feature = "pinocchio"),
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(all(feature = "bytemuck", not(feature = "pinocchio")))]
 impl<T: NaclacZeroCopy> crate::wrappers::ToAccountInfos for InterfaceAccount<T> {
     fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
         crate::prelude::vec![self.info]
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy> Owner for InterfaceAccount<T> {
     #[inline(always)]
     fn program_owner(&self) -> Address {
@@ -915,10 +738,7 @@ impl<T: NaclacZeroCopy> Owner for InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy> crate::wrappers::ToAddress for InterfaceAccount<T> {
     #[inline(always)]
     fn address(&self) -> Address {
@@ -926,10 +746,7 @@ impl<T: NaclacZeroCopy> crate::wrappers::ToAddress for InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy> InterfaceAccount<T> {
     pub fn sub_lamports(&self, amount: u64) -> crate::prelude::Result<()> {
         self.info.sub_lamports(amount)
@@ -944,10 +761,7 @@ impl<T: NaclacZeroCopy> InterfaceAccount<T> {
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<'a, T: NaclacZeroCopy> crate::wrappers::cpi_handle::ToCpiHandle<'a> for InterfaceAccount<T> {
     #[inline(always)]
     fn to_cpi_handle(&'a self) -> crate::wrappers::cpi_handle::CpiHandle<'a> {
@@ -955,10 +769,7 @@ impl<'a, T: NaclacZeroCopy> crate::wrappers::cpi_handle::ToCpiHandle<'a> for Int
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<'a, T: NaclacZeroCopy> crate::wrappers::cpi_handle::ToCpiHandleMut<'a>
     for InterfaceAccount<T>
 {
@@ -968,10 +779,7 @@ impl<'a, T: NaclacZeroCopy> crate::wrappers::cpi_handle::ToCpiHandleMut<'a>
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy> crate::wrappers::AsRefByteSlice for InterfaceAccount<T> {
     fn as_ref_byte_slice(&self) -> &[u8] {
         #[cfg(feature = "pinocchio")]
@@ -985,10 +793,7 @@ impl<T: NaclacZeroCopy> crate::wrappers::AsRefByteSlice for InterfaceAccount<T> 
     }
 }
 
-#[cfg(any(
-    feature = "pinocchio",
-    not(any(feature = "borsh", feature = "wincode"))
-))]
+#[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> crate::wrappers::NaclacAccount
     for InterfaceAccount<T>
 {

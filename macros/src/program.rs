@@ -453,11 +453,11 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
                 }
             }
 
-            #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))]
+            #[cfg(feature = "bytemuck")]
             let __serialization = #idl::Serialization::Bytemuck;
-            #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))]
+            #[cfg(feature = "borsh")]
             let __serialization = #idl::Serialization::Borsh;
-            #[cfg(all(not(feature = "pinocchio"), feature = "wincode", not(feature = "borsh")))]
+            #[cfg(feature = "wincode")]
             let __serialization = #idl::Serialization::Wincode;
 
             let mut __idl = #idl::Idl {
@@ -770,10 +770,10 @@ fn extract_context_struct(ty: &Type) -> Option<syn::Path> {
 ///
 /// This macro traverses the module items, finds public functions representing instructions,
 /// and generates a highly optimized `match` dispatcher. It handles routing and signature
-/// rewrites across three distinct execution modes:
-/// 1. **Solana Program + Borsh**: Emits `BorshDeserialize` logic.
-/// 2. **Solana Program + Zero-Copy**: Emits native slicing logic alongside heap allocation for dynamic types.
-/// 3. **Pinocchio + Zero-Copy**: Fully zero-copy slicing strictly for `no_std`.
+/// rewrites for the program's layout and runtime:
+/// - **`borsh`** (`solana` runtime): Emits `BorshDeserialize` logic.
+/// - **`wincode`**: Emits Wincode argument decoding, on either runtime.
+/// - **`bytemuck`**: Emits native zero-copy slicing logic, on either runtime.
 pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let module = parse_macro_input!(item as ItemMod);
     let mod_name = &module.ident;
@@ -803,9 +803,9 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // story), so per-argument deserialization below emits both
     // representations, each gated by a real `#[cfg(...)]` in the output
     // that the calling crate's own compiler resolves.
-    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
-    let borsh_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
-    let wincode_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "wincode"))] };
+    let zero_copy_cfg = quote! { #[cfg(feature = "bytemuck")] };
+    let borsh_cfg = quote! { #[cfg(feature = "borsh")] };
+    let wincode_cfg = quote! { #[cfg(feature = "wincode")] };
 
     let mut ix_disc_by_name: std::collections::HashMap<String, Vec<u8>> =
         std::collections::HashMap::new();
@@ -1354,7 +1354,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 // Pinocchio path: takes pre-walked &[AccountType] slice.
                 // load_and_validate returns (accounts, remaining_slice, bumps).
                 processed_content_items.push(syn::parse_quote! {
-                    #[cfg(feature = "pinocchio")]
+                    #[cfg(not(feature = "solana"))]
                     pub(crate) fn #dispatch_func_name(
                         program_id: &'static naclac_lang::prelude::Address,
                         __input: *mut u8,
@@ -1393,7 +1393,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
                 // Standard Solana path: takes pre-built &[AccountInfo].
                 processed_content_items.push(syn::parse_quote! {
-                    #[cfg(not(feature = "pinocchio"))]
+                    #[cfg(feature = "solana")]
                     pub(crate) fn #dispatch_func_name(
                         program_id: &naclac_lang::prelude::Address,
                         accounts: &[naclac_lang::prelude::AccountInfo],
@@ -1441,9 +1441,9 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 dispatch_arms.push((
                     quote! { #disc_literal },
                     quote! {
-                        #[cfg(feature = "pinocchio")]
+                        #[cfg(not(feature = "solana"))]
                         { #mod_name::#dispatch_func_name(program_id, input, num_accounts, __lookup, instruction_data) }
-                        #[cfg(not(feature = "pinocchio"))]
+                        #[cfg(feature = "solana")]
                         { #mod_name::#dispatch_func_name(program_id, accounts, instruction_data, __dups_opt) }
                     },
                 ));
@@ -1548,16 +1548,16 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     dispatch_arms.push((
         quote! { #event_tag_literal if #mod_name::__NACLAC_NEEDS_EVENT_CPI },
         quote! {
-            #[cfg(feature = "pinocchio")]
+            #[cfg(not(feature = "solana"))]
             { __naclac_receive_event_cpi(input, num_accounts) }
-            #[cfg(not(feature = "pinocchio"))]
+            #[cfg(feature = "solana")]
             { __naclac_receive_event_cpi(accounts) }
         },
     ));
     let event_cpi_receive_fns = quote! {
         /// Handles an `emit_cpi!` self-invocation: succeeds only when the
         /// first account is the program's event authority PDA and signed.
-        #[cfg(feature = "pinocchio")]
+        #[cfg(not(feature = "solana"))]
         #[inline(always)]
         fn __naclac_receive_event_cpi(input: *mut u8, num_accounts: usize) -> naclac_lang::prelude::ProgramResult {
             #track_program_id
@@ -1585,7 +1585,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         /// Handles an `emit_cpi!` self-invocation: succeeds only when the
         /// first account is the program's event authority PDA and signed.
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         #[inline(always)]
         fn __naclac_receive_event_cpi(accounts: &[naclac_lang::prelude::AccountType]) -> naclac_lang::prelude::Result {
             #track_program_id
@@ -1628,12 +1628,30 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let expanded = quote! {
         #idl_rule_errors
 
+        #[cfg(not(any(feature = "bytemuck", feature = "borsh", feature = "wincode")))]
+        compile_error!(
+            "naclac: this program declares no account-data layout. Add one of the `bytemuck`, \
+             `borsh` or `wincode` features to its Cargo.toml, forwarded to `naclac-lang` \
+             (for example `bytemuck = [\"naclac-lang/bytemuck\"]`), and enable it by default."
+        );
+
+        #[cfg(feature = "solana")]
+        const _: bool = naclac_lang::__NACLAC_LANG_HAS_SOLANA_RUNTIME;
+        #[cfg(not(feature = "solana"))]
+        const _: bool = naclac_lang::__NACLAC_LANG_HAS_PINOCCHIO_RUNTIME;
+        #[cfg(feature = "bytemuck")]
+        const _: bool = naclac_lang::__NACLAC_LANG_HAS_BYTEMUCK_LAYOUT;
+        #[cfg(feature = "borsh")]
+        const _: bool = naclac_lang::__NACLAC_LANG_HAS_BORSH_LAYOUT;
+        #[cfg(feature = "wincode")]
+        const _: bool = naclac_lang::__NACLAC_LANG_HAS_WINCODE_LAYOUT;
+
         #[doc(hidden)]
         pub const __NACLAC_EVENT_DISPATCH_TAG: &[u8] = &[#(#event_tag_bytes),*];
         #[doc(hidden)]
         pub const __NACLAC_EVENT_CPI_IN_USE: bool = #mod_name::__NACLAC_NEEDS_EVENT_CPI;
 
-        #[cfg(all(not(feature = "no-entrypoint"), not(feature = "pinocchio")))]
+        #[cfg(all(not(feature = "no-entrypoint"), feature = "solana"))]
         naclac_lang::naclac_solana_entrypoint!(process_instruction);
 
         #panic_support
@@ -1641,7 +1659,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
         // Pinocchio SIMD-0321 entrypoint — two-parameter form.
         // The BPF loader passes r1=input (accounts), r2=ix_data_ptr (instruction data).
         // This eliminates parse_ix_context: we get ix_data directly without scanning accounts.
-        #[cfg(all(not(feature = "no-entrypoint"), feature = "pinocchio"))]
+        #[cfg(all(not(feature = "no-entrypoint"), not(feature = "solana")))]
         #[no_mangle]
         pub unsafe extern "C" fn entrypoint(input: *mut u8, ix_data_ptr: *const u8) -> u64 {
             let num_accounts = unsafe { *(input as *const u64) } as usize;
@@ -1659,7 +1677,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         /// Same dispatch as `process_instruction_inner`, but each arm converts
         /// its own result, so a successful arm returns `SUCCESS` directly.
-        #[cfg(all(not(feature = "no-entrypoint"), feature = "pinocchio"))]
+        #[cfg(all(not(feature = "no-entrypoint"), not(feature = "solana")))]
         #[inline(always)]
         fn __naclac_dispatch_to_u64(
             program_id: &'static naclac_lang::prelude::Address,
@@ -1688,11 +1706,11 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
 
         #event_cpi_receive_fns
-        #[cfg(all(not(feature = "no-entrypoint"), feature = "pinocchio"))]
+        #[cfg(all(not(feature = "no-entrypoint"), not(feature = "solana")))]
         naclac_lang::pinocchio::default_allocator!();
 
         // Unified Entrypoint — standard signature required by solana/pinocchio entrypoint! macro
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         pub fn process_instruction(
             program_id: &naclac_lang::solana_address::Address,
             accounts: &[naclac_lang::solana_account_info::AccountInfo<'_>],
@@ -1716,7 +1734,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
         // SIMD-0321: BPF loader passes r2 = pointer to instruction data bytes.
         // Layout: [u64 ix_data_len][ix_data bytes...][program_id: 32 bytes]
         // ix_data_ptr points to ix_data[0]; len at ix_data_ptr-8; program_id at ix_data_ptr+len.
-        #[cfg(feature = "pinocchio")]
+        #[cfg(not(feature = "solana"))]
         /// Unified Entrypoint for Pinocchio — parses raw runtime inputs.
         ///
         /// # Safety
@@ -1740,7 +1758,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
             process_instruction_inner(program_id, input, num_accounts, instruction_data)
         }
 
-        #[cfg(feature = "pinocchio")]
+        #[cfg(not(feature = "solana"))]
         #[inline(always)]
         fn process_instruction_inner(
             program_id: &'static naclac_lang::prelude::Address,
@@ -1766,7 +1784,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
 
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         #[inline(always)]
         fn process_instruction_inner(
             program_id: &'static naclac_lang::prelude::Address,

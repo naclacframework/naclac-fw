@@ -1,24 +1,28 @@
 counter 
 
-initialize: 1482 1472 1475 1396 1791 1768 1749 1628 1292
-increment: 700 641 1518 627 1473 1701 857 726 708 598 441 1284
+initialize: 1292
+increment: 441
 decrement: 445
 
 counter_borsh 
 
-initialize: 3635 3754 3788 3829 3833 3792 3229 3230 3629 3598 2113 2109 2110
-increment: 1845 1924 1982 4050 1668 3518 2452 1038
+initialize: 2110
+increment: 1038
 decrement: 1042
 
 counter_wincode 
 
-initialize: 3707 3703 3662 3647 3120 3127 3526 3495 1977
-increment: 1865 3933 1850 1559 3425 2371 954 949
+initialize: 1977
+increment: 949
 decrement: 952
 
-counter_zc
+counter_wincode_pinocchio 
 
-initialize: 3517 3603 3605 3564 3562 3019 3020 3414 3383 1925 1926
-increment: 1729 1698 1681 3794 1371 3300 3289 2238 833
+initialize: 1319
+increment: 524
+decrement: 527
+
+counter_zc: 1926
+increment: 833
 decrement: 835
 

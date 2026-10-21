@@ -47,11 +47,10 @@ pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<crate::prelude::V
 }
 
 /// Reads an `Asset`'s `Groups` plugin, if attached. Callable identically on
-/// both backends. Zero-copy on `pinocchio` — `Address` is `bytemuck::Pod`,
-/// so `ZcVec<Address>` views directly into the account's own bytes, no cap
-/// needed.
+/// both backends. Zero-copy on `pinocchio` — the `RecordList<Address>` views
+/// directly into the account's own bytes, no cap needed.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<ZcVec<'_, Address>>> {
+pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<RecordList<'_, Address>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -62,7 +61,10 @@ pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<ZcVec<'_, Address
 /// Lower-level variant of `fetch_asset_groups`, shared by both backends: see
 /// `edition.rs`'s `read_edition` for why this exists alongside the
 /// uniform-signature wrapper above.
-pub fn read_groups(data: &[u8], plugin_header_offset: usize) -> Result<Option<ZcVec<'_, Address>>> {
+pub fn read_groups(
+    data: &[u8],
+    plugin_header_offset: usize,
+) -> Result<Option<RecordList<'_, Address>>> {
     let Some(offset) = find_plugin_offset(data, plugin_header_offset, plugin_type::GROUPS)? else {
         return Ok(None);
     };
@@ -74,7 +76,7 @@ pub fn read_groups(data: &[u8], plugin_header_offset: usize) -> Result<Option<Zc
     if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let count = read_u32(data, offset)? as usize;
     let end = count
         .checked_mul(32)
         .and_then(|bytes| prefix_end.checked_add(bytes))
@@ -82,7 +84,7 @@ pub fn read_groups(data: &[u8], plugin_header_offset: usize) -> Result<Option<Zc
     if data.len() < end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    Ok(Some(ZcVec::from_bytes(&data[prefix_end..end])?))
+    Ok(Some(RecordList::from_bytes(&data[prefix_end..end])?))
 }
 
 #[cfg(kani)]

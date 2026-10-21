@@ -53,7 +53,7 @@ impl AccountMeta {
 
 // The plain-data types of a zero-copy layout are defined once, in
 // `naclac-pod`, and used unchanged by programs and clients.
-pub use naclac_core::wrappers::{
+pub use naclac_pod::{
     decode_pod, encode_pod, Bool, FixedString, FixedVec, Opt, Unaligned, ZcCodec, ZcEnum,
     ZcEnumKind, ZcField, ZcStorage, ZcString, ZcVec,
 };
@@ -62,18 +62,12 @@ pub use naclac_core::wrappers::{
 pub use {borsh, bytemuck, wincode};
 
 /// Off-chain mirror of `naclac_core::wincode_config` — deliberately a
-/// separate definition, not a re-export. `naclac-client` is a shared
-/// dev-dependency of every example program's test suite, including
-/// pinocchio-mode ones, whose own on-chain `naclac-core` edge enables the
-/// `pinocchio` feature. `naclac-core`'s `wincode_config` module is gated
-/// `not(feature = "pinocchio")` (wincode and pinocchio are mutually
-/// exclusive on-chain by design), so under Cargo's feature unification a
-/// re-export here would silently disappear whenever `naclac-client` is
-/// built alongside a pinocchio-mode sibling program in the same build.
-/// `naclac-client` itself is never pinocchio-mode and always depends on
-/// `wincode` directly, so defining this locally sidesteps that collision
-/// entirely. Must stay byte-identical to `naclac_core::wincode_config`, or
-/// on-chain and off-chain wire formats will silently disagree.
+/// separate definition, not a re-export. `naclac_core::wincode_config` exists
+/// only when `naclac-core` is built with its `wincode` layout feature, which
+/// `naclac-client` never enables, so a re-export would be absent whenever the
+/// program under test uses another layout. Must stay byte-identical to
+/// `naclac_core::wincode_config`, or on-chain and off-chain wire formats will
+/// silently disagree.
 pub mod wincode_config {
     pub type Config = wincode::config::Configuration<
         true,

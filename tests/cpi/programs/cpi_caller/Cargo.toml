@@ -12,12 +12,12 @@ no-entrypoint = []
 custom-heap = []
 custom-panic = []
 debug-mode = []
-default = ["pinocchio"]
-pinocchio = ["naclac-lang/pinocchio", "cpi-callee-client/pinocchio"]
+default = ["bytemuck"]
+bytemuck = ["naclac-lang/bytemuck", "cpi-callee-client/bytemuck"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false }
-cpi-callee-client = { path = "../../clients/rust/cpi_callee", default-features = false, features = ["cpi"] }
+naclac-lang = { version = "0.1.0", path = "../../../../lang" }
+cpi-callee-client = { path = "../../clients/rust/cpi_callee", default-features = false, features = ["cpi", "pinocchio"] }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }

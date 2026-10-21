@@ -17,7 +17,7 @@ pub struct RemoveMasterEdition {
 }
 
 pub fn remove_master_edition(ctx: Context<RemoveMasterEdition>) -> Result {
-    #[cfg(not(feature = "pinocchio"))]
+    #[cfg(feature = "solana")]
     remove_collection_plugin_signed(
         ctx.accounts.mpl_core_program.to_cpi_handle(),
         AddCollectionPluginAccounts {
@@ -31,7 +31,7 @@ pub fn remove_master_edition(ctx: Context<RemoveMasterEdition>) -> Result {
         &[],
     )?;
 
-    #[cfg(feature = "pinocchio")]
+    #[cfg(not(feature = "solana"))]
     remove_collection_plugin_signed_pinocchio(
         ctx.accounts.mpl_core_program.to_cpi_handle(),
         AddCollectionPluginAccounts {

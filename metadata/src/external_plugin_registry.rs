@@ -89,11 +89,7 @@ pub fn find_external_registry_match(
     if data[plugin_header_offset] != KEY_PLUGIN_HEADER_V1 {
         return Err(NaclacError::InvalidAccountDiscriminator.err(0));
     }
-    let registry_offset = u64::from_le_bytes(
-        data[plugin_header_offset + 1..plugin_header_offset + 9]
-            .try_into()
-            .unwrap(),
-    ) as usize;
+    let registry_offset = read_u64(data, plugin_header_offset + 1)? as usize;
 
     // PluginRegistryV1: key(1) + registry: Vec<RegistryRecord>(4-byte count,
     // N variable-width records) + external_registry: Vec<ExternalRegistryRecord>
@@ -110,11 +106,7 @@ pub fn find_external_registry_match(
     if data[registry_offset] != KEY_PLUGIN_REGISTRY_V1 {
         return Err(NaclacError::InvalidAccountDiscriminator.err(0));
     }
-    let internal_count = u32::from_le_bytes(
-        data[registry_offset + 1..registry_offset + 5]
-            .try_into()
-            .unwrap(),
-    );
+    let internal_count = read_u32(data, registry_offset + 1)?;
 
     // The remaining offset arithmetic below builds on `registry_end`/
     // `header_end` above, both already `checked_end`-guarded — see this
@@ -142,7 +134,7 @@ pub fn find_external_registry_match(
     if data.len() < count_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let external_count = u32::from_le_bytes(data[cursor..count_end].try_into().unwrap());
+    let external_count = read_u32(data, cursor)?;
     cursor = count_end;
 
     for _ in 0..external_count {
@@ -169,9 +161,7 @@ pub fn find_external_registry_match(
             if data.len() < checks_count_end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let checks_count =
-                u32::from_le_bytes(data[field_cursor..checks_count_end].try_into().unwrap())
-                    as usize;
+            let checks_count = read_u32(data, field_cursor)? as usize;
             // (1-byte event tag + 4-byte flags) each
             let checks_bytes = checks_count
                 .checked_mul(5)
@@ -183,8 +173,7 @@ pub fn find_external_registry_match(
         if data.len() < header_offset_end {
             return Err(NaclacError::AccountDataTooSmall.err(0));
         }
-        let header_offset =
-            u64::from_le_bytes(data[field_cursor..header_offset_end].try_into().unwrap()) as usize;
+        let header_offset = read_u64(data, field_cursor)? as usize;
         field_cursor = header_offset_end;
 
         if data.len() <= field_cursor {
@@ -196,7 +185,7 @@ pub fn find_external_registry_match(
             if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let v = u64::from_le_bytes(data[field_cursor..end].try_into().unwrap());
+            let v = read_u64(data, field_cursor)?;
             field_cursor = end;
             Some(v as usize)
         } else {
@@ -213,7 +202,7 @@ pub fn find_external_registry_match(
             if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let v = u64::from_le_bytes(data[field_cursor..end].try_into().unwrap());
+            let v = read_u64(data, field_cursor)?;
             field_cursor = end;
             Some(v as usize)
         } else {

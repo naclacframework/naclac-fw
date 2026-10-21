@@ -904,9 +904,7 @@ fn read_oracle(
             if data.len() < candidate.header_offset + 32 {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let bytes: [u8; 32] = data[candidate.header_offset..candidate.header_offset + 32]
-                .try_into()
-                .unwrap();
+            let bytes: [u8; 32] = read_array(data, candidate.header_offset)?;
             Ok(Address::new_from_array(bytes) == base_address)
         },
     )?
@@ -933,7 +931,7 @@ fn read_seed(data: &[u8], offset: usize) -> Result<(SeedOwned, usize)> {
             if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let bytes: [u8; 32] = data[offset + 1..end].try_into().unwrap();
+            let bytes: [u8; 32] = read_array(data, offset + 1)?;
             Ok((SeedOwned::Address(Address::new_from_array(bytes)), 33))
         }
         5 => {
@@ -941,7 +939,7 @@ fn read_seed(data: &[u8], offset: usize) -> Result<(SeedOwned, usize)> {
             if data.len() < prefix_end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let len = u32::from_le_bytes(data[offset + 1..prefix_end].try_into().unwrap()) as usize;
+            let len = read_u32(data, offset + 1)? as usize;
             let payload_end = checked_end(prefix_end, len)?;
             if data.len() < payload_end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
@@ -1025,7 +1023,7 @@ fn read_extra_account(data: &[u8], offset: usize) -> Result<(ExtraAccountOwned, 
             if data.len() < count_end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let count = u32::from_le_bytes(data[cursor..count_end].try_into().unwrap()) as usize;
+            let count = read_u32(data, cursor)? as usize;
             cursor = count_end;
             let mut seeds = crate::prelude::Vec::with_capacity(count);
             for _ in 0..count {
@@ -1042,7 +1040,7 @@ fn read_extra_account(data: &[u8], offset: usize) -> Result<(ExtraAccountOwned, 
                 if data.len() < end {
                     return Err(NaclacError::AccountDataTooSmall.err(0));
                 }
-                let bytes: [u8; 32] = data[cursor..end].try_into().unwrap();
+                let bytes: [u8; 32] = read_array(data, cursor)?;
                 cursor = end;
                 Some(Address::new_from_array(bytes))
             } else {
@@ -1066,7 +1064,7 @@ fn read_extra_account(data: &[u8], offset: usize) -> Result<(ExtraAccountOwned, 
             if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let bytes: [u8; 32] = data[offset + 1..end].try_into().unwrap();
+            let bytes: [u8; 32] = read_array(data, offset + 1)?;
             let (is_signer, is_writable) = read_bools(checked_end(offset, 33)?)?;
             Ok((
                 ExtraAccountOwned::Address {
@@ -1098,7 +1096,7 @@ fn read_validation_results_offset(
             if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let n = u64::from_le_bytes(data[offset + 1..end].try_into().unwrap());
+            let n = read_u64(data, offset + 1)?;
             Ok((ValidationResultsOffsetArg::Custom(n), 9))
         }
         _ => Err(NaclacError::InvalidInstructionData.err(0)),
@@ -1113,7 +1111,7 @@ fn read_oracle_header(data: &[u8], offset: usize) -> Result<OracleInfo> {
     if data.len() < end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let bytes: [u8; 32] = data[offset..end].try_into().unwrap();
+    let bytes: [u8; 32] = read_array(data, offset)?;
     let base_address = Address::new_from_array(bytes);
     let mut cursor = end;
 

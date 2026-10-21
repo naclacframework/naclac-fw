@@ -7,13 +7,15 @@ edition = "2021"
 publish = false
 
 [features]
+default = ["solana", "bytemuck"]
 debug-mode = []
-pinocchio = []
-borsh = []
-wincode = []
+solana = ["naclac-lang/solana"]
+bytemuck = ["naclac-lang/bytemuck"]
+borsh = ["naclac-lang/borsh"]
+wincode = ["naclac-lang/wincode"]
 
 [dependencies]
-naclac-lang = { path = "../../lang", features = ["token"] }
+naclac-lang = { path = "../../lang", default-features = false, features = ["token"] }
 
 [dev-dependencies]
 trybuild = "1"

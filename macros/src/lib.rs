@@ -4,10 +4,11 @@
 //! necessary to build high-performance smart contracts.
 //!
 //! ## Supported Execution Modes
-//! The macros dynamically generate code optimized for three distinct execution environments:
-//! 1. **Solana Program + Borsh**: Traditional `std` mode using standard Borsh serialization.
-//! 2. **Solana Program + Zero-Copy**: Highly optimized `std` mode utilizing native, zero-copy instruction parsing and custom heap allocation for dynamic types.
-//! 3. **Pinocchio + Zero-Copy**: Strictly `no_std` mode built entirely on zero-copy principles for peak SBF performance and minimal compute.
+//! A program picks a runtime (`solana` or `pinocchio`) and one account-data layout
+//! (`bytemuck`, `wincode` or `borsh`), independently of each other:
+//! - **`bytemuck`** (zero-copy): native, zero-copy instruction parsing and account access, on either runtime.
+//! - **`wincode`**: heap-allocated accounts and arguments serialized with Wincode, on either runtime.
+//! - **`borsh`**: heap-allocated accounts and arguments serialized with Borsh, on the `solana` runtime only.
 
 extern crate proc_macro;
 
@@ -119,7 +120,7 @@ pub(crate) fn heap_collection_warning(
 
 /// Defines an on-chain account data structure.
 ///
-/// In zero-copy mode (Solana zero-copy or Pinocchio), generates a `#[repr(C)]`
+/// In zero-copy mode (the `bytemuck` layout, on either runtime), generates a `#[repr(C)]`
 /// struct with `Pod`/`Zeroable`/`NaclacPod` impls for raw byte-cast access. In
 /// Borsh mode, generates standard `BorshSerialize`/`BorshDeserialize` impls instead.
 ///
@@ -427,10 +428,9 @@ pub fn defined_type(
     // story), so both representations are always emitted below, each gated
     // by a real `#[cfg(...)]` in the output that the calling crate's own
     // compiler resolves — same as `#[component]`/`#[event]`/`#[derive(Accounts)]`.
-    let zero_copy_cfg = quote::quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
-    let borsh_cfg = quote::quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
-    let wincode_cfg =
-        quote::quote! { #[cfg(all(not(feature = "pinocchio"), feature = "wincode"))] };
+    let zero_copy_cfg = quote::quote! { #[cfg(feature = "bytemuck")] };
+    let borsh_cfg = quote::quote! { #[cfg(feature = "borsh")] };
+    let wincode_cfg = quote::quote! { #[cfg(feature = "wincode")] };
 
     // --- Borsh variant ---
     // No repr/Copy forcing, no Pod-family traits at all — real Borsh's own
@@ -730,7 +730,7 @@ pub fn defined_type(
     };
 
     let bounds_cfg = quote::quote! {
-        #[cfg(all(not(feature = "pinocchio"), any(feature = "borsh", feature = "wincode")))]
+        #[cfg(any(feature = "borsh", feature = "wincode"))]
     };
     let bounds_impl = match serialized_bounds::generate(
         &syn::DeriveInput {
@@ -1046,7 +1046,7 @@ fn field_deserialize_stmt(
 }
 
 /// Proc macro attribute for grouping instruction arguments.
-/// Zero-copy and Pinocchio, fixed-size struct: `repr(C)` with explicit hidden padding fields, `Clone`, `Copy`,
+/// Zero-copy (`bytemuck`), fixed-size struct: `repr(C)` with explicit hidden padding fields, `Clone`, `Copy`,
 /// `Pod`, `Zeroable`, `Default` and `NaclacPod`. Borsh and Wincode, fixed-size struct: `Clone` plus the Borsh or
 /// Wincode derives only. A struct with a `String`/`Vec`/`Option`/`ZcVec`/`ZcString` field is read field by field
 /// through `NaclacArgs` in zero-copy mode.
@@ -1093,8 +1093,8 @@ pub fn instruction_args(
             type_classify::DynamicKind::Fixed
         )
     });
-    let zero_copy_cfg = quote::quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
-    let not_zero_copy_cfg = quote::quote! { #[cfg(not(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode")))))] };
+    let zero_copy_cfg = quote::quote! { #[cfg(feature = "bytemuck")] };
+    let not_zero_copy_cfg = quote::quote! { #[cfg(not(feature = "bytemuck"))] };
 
     // In zero-copy mode a fixed-field struct gets a generated `Default` impl
     // (below, via `Zeroable::zeroed()`) — a user-written `#[derive(Default)]`

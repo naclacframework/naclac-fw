@@ -15,12 +15,12 @@ solana-clock = { workspace = true, optional = true, features = ["sysvar"] }
 solana-get-sysvar = { workspace = true, optional = true }
 solana-sha256-hasher = { workspace = true, optional = true }
 solana-instruction = { workspace = true, optional = true }
-bytemuck = { workspace = true, features = ["derive"] }
-naclac-pod = { workspace = true, features = ["alloc"] }
+bytemuck = { workspace = true, features = ["derive"], optional = true }
+naclac-pod = { workspace = true, features = ["alloc"], optional = true }
 naclac-macros = { workspace = true }
 borsh = { workspace = true, features = ["derive"], optional = true }
 wincode = { version = "0.6.1", default-features = false, features = ["derive", "alloc"], optional = true }
-solana-system-interface = { version = "^3", default-features = false, features = ["wincode"], optional = true }
+solana-system-interface = { version = "^3", default-features = false, optional = true }
 pinocchio = { workspace = true, optional = true }
 pinocchio-system = { workspace = true, optional = true }
 pinocchio-log = { workspace = true, optional = true }
@@ -32,12 +32,35 @@ five8 = { workspace = true }
 solana-define-syscall = { workspace = true, optional = true }
 
 [features]
-default = ["solana"]
-solana = ["naclac-pod/solana", "dep:solana-account-info", "dep:solana-msg", "dep:solana-program-error", "dep:solana-rent", "dep:solana-clock", "dep:solana-get-sysvar", "dep:solana-sha256-hasher", "dep:solana-instruction", "dep:solana-system-interface", "dep:solana-address", "solana-address?/bytemuck", "dep:solana-define-syscall"]
-borsh = ["dep:borsh", "naclac-macros/borsh", "solana-address?/borsh"]
-wincode = ["dep:wincode", "naclac-macros/wincode", "solana-address?/wincode"]
+solana = [
+    "naclac-pod?/solana", 
+    "dep:solana-account-info", 
+    "dep:solana-msg", 
+    "dep:solana-program-error", 
+    "dep:solana-rent", 
+    "dep:solana-clock", 
+    "dep:solana-get-sysvar", 
+    "dep:solana-sha256-hasher", 
+    "dep:solana-instruction", 
+    "dep:solana-system-interface", 
+    "dep:solana-address", 
+    "dep:solana-define-syscall"
+]
+bytemuck = [
+    "dep:bytemuck", 
+    "dep:naclac-pod", 
+    "solana-address?/bytemuck"
+]
+borsh = [
+    "dep:borsh", 
+    "solana-address?/borsh"
+]
+wincode = [
+    "dep:wincode", 
+    "solana-address?/wincode"
+]
 pinocchio = [
-    "naclac-pod/pinocchio",
+    "naclac-pod?/pinocchio",
     "dep:pinocchio",
     "dep:pinocchio-system",
     "dep:pinocchio-log",
@@ -45,7 +68,6 @@ pinocchio = [
     "dep:pinocchio-log-macro",
     "dep:pinocchio-memo",
     "dep:solana-define-syscall",
-    "naclac-macros/pinocchio"
 ]
 debug-mode = ["naclac-macros/debug-mode"]
 idl-build = []

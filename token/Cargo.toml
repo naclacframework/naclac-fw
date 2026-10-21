@@ -29,6 +29,7 @@ pinocchio = { workspace = true, optional = true }
 default = ["solana"]
 solana = ["dep:spl-token", "dep:spl-token-2022", "dep:spl-associated-token-account", "dep:spl-transfer-hook-interface", "dep:spl-token-metadata-interface", "dep:spl-token-group-interface", "dep:spl-discriminator", "dep:bytemuck", "dep:borsh", "dep:solana-nullable", "dep:solana-instruction", "naclac-core/solana"]
 pinocchio = ["dep:pinocchio-token", "dep:pinocchio-token-2022", "dep:pinocchio-associated-token-account", "dep:pinocchio", "dep:spl-token-metadata-interface", "dep:spl-token-group-interface", "dep:spl-discriminator", "dep:bytemuck", "dep:borsh", "dep:solana-nullable", "dep:solana-instruction", "naclac-core/pinocchio"]
+bytemuck = ["naclac-core/bytemuck"]
 borsh = ["naclac-core/borsh"]
 wincode = ["naclac-core/wincode"]
 idl-build = ["dep:naclac-idl"]

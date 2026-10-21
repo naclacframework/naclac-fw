@@ -22,8 +22,8 @@ fn setup() -> NaclacProvider {
 }
 
 /// Same three cases as `programs/interface`'s test — see that file for the
-/// full rationale. `interface.rs`'s only branch is
-/// `#[cfg(feature = "pinocchio")]` vs. not, so this solana-borsh run
+/// full rationale. `interface.rs`'s only branch is the runtime
+/// (`pinocchio` vs. `solana`), so this solana-borsh run
 /// exercises the exact same code path a solana-zerocopy run would (hence no
 /// dedicated `interface_zc` variant — see TEST_PLAN.md).
 #[test]

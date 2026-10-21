@@ -6,7 +6,7 @@
 #   ./run.sh                            all trees, all representations
 #   ./run.sh --tree zc                  one tree          (zc | serde | zc_custom | serde_custom | modules,
 #                                                          or a probe tree such as probe_accounts)
-#   ./run.sh --rep pinocchio            one representation (zc | pinocchio | borsh | wincode)
+#   ./run.sh --rep pinocchio            one representation (zc | pinocchio | borsh | wincode | pinocchio_wincode)
 #   ./run.sh --check-only               only `cargo check` the idl-build copy (compile errors, fast)
 #   ./run.sh --ast-only                 only the AST side (seconds, no compilation of the program)
 #   ./run.sh --verbose                  stream all cargo / naclac output live (it is always saved in .work/logs/)
@@ -24,9 +24,9 @@ NACLAC=${NACLAC:-naclac}
 declare -A REPS_OF=(
   [zc]="zc pinocchio"
   [zc_custom]="zc pinocchio"
-  [serde]="borsh wincode"
-  [serde_custom]="borsh wincode"
-  [modules]="zc pinocchio borsh wincode"
+  [serde]="borsh wincode pinocchio_wincode"
+  [serde_custom]="borsh wincode pinocchio_wincode"
+  [modules]="zc pinocchio borsh wincode pinocchio_wincode"
   [probe_accounts]="zc"
 )
 ALL_TREES=(zc serde zc_custom serde_custom modules)
@@ -77,16 +77,17 @@ resolver = "2"
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))',
-    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
+    'cfg(feature, values("pinocchio", "solana", "bytemuck", "borsh", "wincode"))'
 ] }
 EOF
 
   local default_line="" dep_flags='features = ["token", "metadata"]' idl_line=""
   case $rep in
-    pinocchio) default_line='default = ["pinocchio"]'; dep_flags='default-features = false, features = ["token", "metadata"]' ;;
-    borsh) default_line='default = ["borsh"]' ;;
-    wincode) default_line='default = ["wincode"]' ;;
-    zc) ;;
+    pinocchio) default_line='default = ["bytemuck"]' ;;
+    pinocchio_wincode) default_line='default = ["wincode"]' ;;
+    borsh) default_line='default = ["solana", "borsh"]'; dep_flags='default-features = false, features = ["token", "metadata"]' ;;
+    wincode) default_line='default = ["solana", "wincode"]'; dep_flags='default-features = false, features = ["token", "metadata"]' ;;
+    zc) default_line='default = ["solana", "bytemuck"]'; dep_flags='default-features = false, features = ["token", "metadata"]' ;;
   esac
   [ "$mode" = ib ] && idl_line='idl-build = ["naclac-lang/idl-build"]'
   local fw_rel
@@ -109,7 +110,8 @@ custom-heap = []
 custom-panic = []
 debug-mode = []
 $default_line
-pinocchio = ["naclac-lang/pinocchio"]
+solana = ["naclac-lang/solana"]
+bytemuck = ["naclac-lang/bytemuck"]
 borsh = ["naclac-lang/borsh"]
 wincode = ["naclac-lang/wincode"]
 $idl_line

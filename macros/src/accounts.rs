@@ -498,11 +498,9 @@ fn idl_insert_account_types_impl(
 /// macro-expansion time — everything that depends on the choice is computed
 /// once per representation (`build_variant(true)`/`build_variant(false)`
 /// below) and spliced into real `#[cfg(...)]`-gated output, resolved by the
-/// calling crate's own compiler. `pinocchio` is always zero-copy; otherwise
-/// it depends on whether `borsh` is active (there is no third representation
-/// for account data) — there used to be a separate `#[derive(AccountsLoader)]`
-/// to force zero-copy mode, but it did nothing besides that, and is now fully
-/// subsumed by this.
+/// calling crate's own compiler. The representation is the layout feature
+/// the calling crate enables (`bytemuck`, `borsh` or `wincode`), independent of
+/// the runtime (`solana` or `pinocchio`).
 pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as DeriveInput);
     let struct_name = &ast.ident;
@@ -608,14 +606,13 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         }
     }
 
-    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
-    let borsh_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
-    let wincode_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "wincode"))] };
-    // The non-pinocchio `LoadableAccounts` impl needs its own two-way split
-    // (pinocchio's `load_and_validate` fn is separately, reliably gated by
-    // the pre-existing `#[cfg(feature = "pinocchio")]` and always uses the
-    // zero-copy variant, since `pinocchio` implies zero-copy unconditionally).
-    let non_pinocchio_zero_copy_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), not(any(feature = "borsh", feature = "wincode"))))] };
+    let zero_copy_cfg = quote! { #[cfg(feature = "bytemuck")] };
+    let borsh_cfg = quote! { #[cfg(feature = "borsh")] };
+    let wincode_cfg = quote! { #[cfg(feature = "wincode")] };
+    // The Solana-runtime `LoadableAccounts` impl is split per layout; the
+    // pinocchio runtime's `load_and_validate` fn is gated separately.
+    let solana_zero_copy_cfg = quote! { #[cfg(all(feature = "solana", feature = "bytemuck"))] };
+    let solana_wincode_cfg = quote! { #[cfg(all(feature = "solana", feature = "wincode"))] };
 
     // Field names only — identical regardless of representation (only *how*
     // each field is loaded differs, not which fields exist), so this is
@@ -878,11 +875,11 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                         <#ty as naclac_lang::prelude::NaclacAccount>::IS_SIGNER,
                         "a signer slot built without a signer check must be a type with IS_SIGNER"
                     );
-                    #[cfg(feature = "pinocchio")]
+                    #[cfg(not(feature = "solana"))]
                     // SAFETY: the declared-account walk rejected this slot
                     // unless its account is a signer.
                     let __loaded = unsafe { <#ty>::from_verified_signer(info) };
-                    #[cfg(not(feature = "pinocchio"))]
+                    #[cfg(feature = "solana")]
                     let __loaded = #loader_fn(info, #idx)?;
                     __loaded
                 }}
@@ -1048,8 +1045,8 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         // `.data`, so that's `.data.bump`) so later reads of this same account
         // — including from a *different* later instruction, which has no access
         // to this call's in-memory `bumps` struct — see its bump. Applies
-        // identically regardless of which of naclac's account-storage modes
-        // (pinocchio zero-copy, default zero-copy, or Borsh) the field uses, and
+        // identically regardless of which of naclac's account layouts
+        // (zero-copy, Borsh or Wincode) the field uses, on either runtime, and
         // regardless of whether this field's own PDA was compile-time-precomputed:
         // precomputation only means the *program* already knows the bump value at
         // compile time, not that it's been persisted into this specific account's
@@ -1322,19 +1319,13 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
     };
 
     let loadable_accounts_impl_zero_copy =
-        make_loadable_accounts_impl(&non_pinocchio_zero_copy_cfg, &zero_copy_variant);
+        make_loadable_accounts_impl(&solana_zero_copy_cfg, &zero_copy_variant);
     let loadable_accounts_impl_borsh = make_loadable_accounts_impl(&borsh_cfg, &borsh_variant);
     let loadable_accounts_impl_wincode =
-        make_loadable_accounts_impl(&wincode_cfg, &wincode_variant);
+        make_loadable_accounts_impl(&solana_wincode_cfg, &wincode_variant);
 
-    // `pinocchio` always implies zero-copy, so this path unconditionally uses
-    // `zero_copy_variant` — no further representation cfg needed beyond the
-    // pre-existing `#[cfg(feature = "pinocchio")]` on the function itself.
-    let zc_ix_deserializer = &zero_copy_variant.ix_deserializer;
-    let zc_field_loaders = &zero_copy_variant.field_loaders;
-
-    // `teardown` is shared across every representation (no `#[cfg(feature =
-    // "pinocchio")]` of its own) — `mut_bump_writeback`/`save_logic` from
+    // `teardown` is shared across every representation (no runtime cfg of its
+    // own) — `mut_bump_writeback`/`save_logic` from
     // variants are spliced in together, each statement individually
     // `#[cfg(...)]`-gated (set inside `build_variant` above), so exactly one
     // side is ever actually compiled for the calling crate.
@@ -1446,54 +1437,74 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         };
     };
 
-    let load_and_validate_def = quote! {
-        /// Loads and validates the accounts provided to the instruction.
-        ///
-        /// Walks the serialized accounts at `__input` itself: each declared
-        /// field's signer/writable/executable requirement is checked as the
-        /// account is walked, then any trailing accounts are walked into the
-        /// remaining-accounts slice. Rejects more than 64 account entries
-        /// (the capacity of `__lookup`) and fewer than this struct declares.
-        ///
-        /// # Safety
-        ///
-        /// `__input` must be the runtime-provided entrypoint input buffer and
-        /// `__num_accounts` the account count stored at its start.
-        #[cfg(feature = "pinocchio")]
-        pub unsafe fn load_and_validate<const __NACLAC_IX_DISC_LEN: usize>(
-            program_id: &'static naclac_lang::prelude::Address,
-            __input: *mut u8,
-            __num_accounts: usize,
-            __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::prelude::AccountView>; 64],
-            instruction_data: &[u8],
-        ) -> Result<(Self, &'static [naclac_lang::prelude::AccountType], #bumps_struct_name), naclac_lang::prelude::ProgramError> {
-            #account_count_check
-            let __lookup_ptr = __lookup.as_mut_ptr() as *mut naclac_lang::prelude::AccountView;
-            // SAFETY: `__input` is the entrypoint buffer (caller contract) and
-            // `__lookup` holds 64 slots, at least `__num_accounts` (checked above).
-            #cursor_binding = unsafe {
-                naclac_lang::prelude::AccountCursor::new(__input, __lookup_ptr, program_id)
-            };
-            #account_walk
-            let __views = &__declared_infos;
-            // Alias for compatibility with init_cpi generated code.
-            let accounts = __views;
-            #zc_ix_deserializer
-            #(#zc_field_loaders)*
-            // SAFETY: trailing accounts exist only when `__num_accounts > N`,
-            // in which case the slow walk filled `__lookup[N..__num_accounts]`;
-            // otherwise the slice is empty. `AccountInfo` is
-            // `#[repr(transparent)]` over `AccountView`.
-            let __remaining: &'static [naclac_lang::prelude::AccountType] = unsafe {
-                core::slice::from_raw_parts(
-                    (__lookup_ptr as *const naclac_lang::prelude::AccountType).add(#n_declared_accounts),
-                    __num_accounts.wrapping_sub(#n_declared_accounts),
-                )
-            };
-            let mut __me = Self { #(#struct_instantiation),* };
-            #(#relational_checks_me)*
-            Ok((__me, __remaining, #bumps_instantiation_logic))
+    // The pinocchio runtime's entry point: one function per layout, each
+    // built from that layout's own argument deserializer and field loaders;
+    // the account walk is the same for all of them.
+    let pinocchio_load_and_validate = |cfg: proc_macro2::TokenStream, variant: &Variant| {
+        let ix_deserializer = &variant.ix_deserializer;
+        let field_loaders = &variant.field_loaders;
+        quote! {
+            /// Loads and validates the accounts provided to the instruction.
+            ///
+            /// Walks the serialized accounts at `__input` itself: each declared
+            /// field's signer/writable/executable requirement is checked as the
+            /// account is walked, then any trailing accounts are walked into the
+            /// remaining-accounts slice. Rejects more than 64 account entries
+            /// (the capacity of `__lookup`) and fewer than this struct declares.
+            ///
+            /// # Safety
+            ///
+            /// `__input` must be the runtime-provided entrypoint input buffer and
+            /// `__num_accounts` the account count stored at its start.
+            #cfg
+            pub unsafe fn load_and_validate<const __NACLAC_IX_DISC_LEN: usize>(
+                program_id: &'static naclac_lang::prelude::Address,
+                __input: *mut u8,
+                __num_accounts: usize,
+                __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::prelude::AccountView>; 64],
+                instruction_data: &[u8],
+            ) -> Result<(Self, &'static [naclac_lang::prelude::AccountType], #bumps_struct_name), naclac_lang::prelude::ProgramError> {
+                #account_count_check
+                let __lookup_ptr = __lookup.as_mut_ptr() as *mut naclac_lang::prelude::AccountView;
+                // SAFETY: `__input` is the entrypoint buffer (caller contract) and
+                // `__lookup` holds 64 slots, at least `__num_accounts` (checked above).
+                #cursor_binding = unsafe {
+                    naclac_lang::prelude::AccountCursor::new(__input, __lookup_ptr, program_id)
+                };
+                #account_walk
+                let __views = &__declared_infos;
+                // Alias for compatibility with init_cpi generated code.
+                let accounts = __views;
+                #ix_deserializer
+                #(#field_loaders)*
+                // SAFETY: trailing accounts exist only when `__num_accounts > N`,
+                // in which case the slow walk filled `__lookup[N..__num_accounts]`;
+                // otherwise the slice is empty. `AccountInfo` is
+                // `#[repr(transparent)]` over `AccountView`.
+                let __remaining: &'static [naclac_lang::prelude::AccountType] = unsafe {
+                    core::slice::from_raw_parts(
+                        (__lookup_ptr as *const naclac_lang::prelude::AccountType).add(#n_declared_accounts),
+                        __num_accounts.wrapping_sub(#n_declared_accounts),
+                    )
+                };
+                let mut __me = Self { #(#struct_instantiation),* };
+                #(#relational_checks_me)*
+                Ok((__me, __remaining, #bumps_instantiation_logic))
+            }
         }
+    };
+    let pinocchio_zero_copy_load_and_validate = pinocchio_load_and_validate(
+        quote! { #[cfg(all(not(feature = "solana"), feature = "bytemuck"))] },
+        &zero_copy_variant,
+    );
+    let pinocchio_wincode_load_and_validate = pinocchio_load_and_validate(
+        quote! { #[cfg(all(not(feature = "solana"), feature = "wincode"))] },
+        &wincode_variant,
+    );
+
+    let load_and_validate_def = quote! {
+        #pinocchio_zero_copy_load_and_validate
+        #pinocchio_wincode_load_and_validate
 
         /// Persists mutations and handles cleanup.
         ///

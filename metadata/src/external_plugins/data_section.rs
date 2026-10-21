@@ -18,7 +18,7 @@ use crate::prelude::*;
 
 /// A fully-read `DataSection` instance — header fields plus the actual data
 /// bytes. On `solana`, `data` is a heap-copied `Vec<u8>`. On `pinocchio`,
-/// `data` is a zero-copy `ZcVec<u8>` view into the account's own live bytes
+/// `data` is a zero-copy `RecordList<u8>` view into the account's own live bytes
 /// — see `AppDataInfo`'s doc comment for why.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DataSectionInfo<#[cfg(feature = "pinocchio")] 'a> {
@@ -27,7 +27,7 @@ pub struct DataSectionInfo<#[cfg(feature = "pinocchio")] 'a> {
     #[cfg(not(feature = "pinocchio"))]
     pub data: crate::prelude::Vec<u8>,
     #[cfg(feature = "pinocchio")]
-    pub data: ZcVec<'a, u8>,
+    pub data: RecordList<'a, u8>,
 }
 
 /// Reads an `Asset`'s `DataSection` adapter whose `parent_key` matches
@@ -77,7 +77,7 @@ pub fn fetch_collection_data_section(
 /// backend (see the struct's own doc comment), so this walks the same
 /// external registry `find_external_registry_match` does on `pinocchio`,
 /// but copies the matched data bytes into an owned `Vec` instead of a
-/// `ZcVec`.
+/// `RecordList`.
 #[cfg(not(feature = "pinocchio"))]
 fn read_data_section(
     data: &[u8],
@@ -166,7 +166,7 @@ pub fn fetch_asset_data_section(
         return Ok(Some(DataSectionInfo {
             parent_key: target_parent_key,
             schema,
-            data: ZcVec::new(&[]),
+            data: RecordList::new(&[]),
         }));
     };
     let end = checked_end(data_offset, data_len)?;
@@ -176,7 +176,7 @@ pub fn fetch_asset_data_section(
     Ok(Some(DataSectionInfo {
         parent_key: target_parent_key,
         schema,
-        data: ZcVec::new(&data[data_offset..end]),
+        data: RecordList::new(&data[data_offset..end]),
     }))
 }
 
@@ -220,7 +220,7 @@ pub fn fetch_collection_data_section(
         return Ok(Some(DataSectionInfo {
             parent_key: target_parent_key,
             schema,
-            data: ZcVec::new(&[]),
+            data: RecordList::new(&[]),
         }));
     };
     let end = checked_end(data_offset, data_len)?;
@@ -230,7 +230,7 @@ pub fn fetch_collection_data_section(
     Ok(Some(DataSectionInfo {
         parent_key: target_parent_key,
         schema,
-        data: ZcVec::new(&data[data_offset..end]),
+        data: RecordList::new(&data[data_offset..end]),
     }))
 }
 
@@ -246,7 +246,7 @@ fn read_linked_data_key(data: &[u8], offset: usize) -> Result<(LinkedDataKeyArg,
             if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            let bytes: [u8; 32] = data[offset + 1..end].try_into().unwrap();
+            let bytes: [u8; 32] = read_array(data, offset + 1)?;
             Ok((
                 LinkedDataKeyArg::LinkedLifecycleHook(Address::new_from_array(bytes)),
                 33,

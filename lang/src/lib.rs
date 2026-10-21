@@ -1,5 +1,12 @@
 #![no_std]
 
+#[cfg(all(feature = "solana", feature = "pinocchio"))]
+compile_error!(
+    "naclac-lang: the `solana` and `pinocchio` runtimes are mutually exclusive. `pinocchio` is \
+     the default; a program that selects `solana` must set `default-features = false` on its \
+     `naclac-lang` dependency."
+);
+
 pub mod prelude;
 
 #[cfg(not(feature = "pinocchio"))]

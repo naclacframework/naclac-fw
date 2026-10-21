@@ -47,7 +47,7 @@ const UPDATE_LINKED_APP_DATA_IX_LEN: usize = 1 + LINKED_APP_DATA_KEY_ENCODED_LEN
 /// data bytes, fetched from its linked `DataSection`. `data` is empty if
 /// the adapter is attached but nothing has been written to it yet (no
 /// `DataSection` exists). On `solana`, `data` is a heap-copied `Vec<u8>`.
-/// On `pinocchio`, `data` is a zero-copy `ZcVec<u8>` view into the
+/// On `pinocchio`, `data` is a zero-copy `RecordList<u8>` view into the
 /// account's own live bytes — see `AppDataInfo`'s doc comment for why.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LinkedAppDataInfo<#[cfg(feature = "pinocchio")] 'a> {
@@ -56,7 +56,7 @@ pub struct LinkedAppDataInfo<#[cfg(feature = "pinocchio")] 'a> {
     #[cfg(not(feature = "pinocchio"))]
     pub data: crate::prelude::Vec<u8>,
     #[cfg(feature = "pinocchio")]
-    pub data: ZcVec<'a, u8>,
+    pub data: RecordList<'a, u8>,
 }
 
 /// Attaches `LinkedAppData` to a `Collection` via
@@ -278,7 +278,7 @@ pub fn fetch_collection_linked_app_data(
         info, parent_key,
     )? {
         Some(section) => section.data,
-        None => ZcVec::new(&[]),
+        None => RecordList::new(&[]),
     };
     Ok(Some(LinkedAppDataInfo {
         data_authority,

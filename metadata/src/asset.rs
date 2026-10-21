@@ -15,8 +15,8 @@
 //! overflow errors resulted (`docs/07-solana-backend-stack-overflow-fix.md`),
 //! not a hypothetical. `AssetView` hand-walks the real Borsh layout directly
 //! off the account's raw bytes on **both** backends instead — necessarily a
-//! sequential offset walk, not the fixed-stride `ZcVec<T>`/`bytemuck::Pod`
-//! shape naclac-token's TLV extensions use, since `name`/`uri` are
+//! sequential offset walk, not the fixed-stride `RecordList<T>` shape
+//! the fixed-size plugin payloads use, since `name`/`uri` are
 //! variable-length; per-field offsets are computed once in
 //! `AssetView::try_from`/`from_bytes` and cached, so later accessor calls
 //! are plain O(1) slot reads with no re-validation. CPI instruction bytes
@@ -264,9 +264,10 @@ impl<'a> AssetLike for AssetView<'a> {
             return None;
         }
         let start = self.seq_tag_offset + 1;
-        Some(u64::from_le_bytes(
-            self.data[start..start + 8].try_into().unwrap(),
-        ))
+        Some(
+            read_u64(self.data, start)
+                .unwrap_or_else(|_| panic!("sequence range pre-validated by from_bytes")),
+        )
     }
 }
 
@@ -278,10 +279,7 @@ fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
     let prefix_end = offset
         .checked_add(4)
         .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
-    if data.len() < prefix_end {
-        return Err(NaclacError::AccountDataTooSmall.err(0));
-    }
-    let len = u32::from_le_bytes(data[offset..prefix_end].try_into().unwrap()) as usize;
+    let len = read_u32(data, offset)? as usize;
     let payload_end = prefix_end
         .checked_add(len)
         .ok_or_else(|| NaclacError::AccountDataTooSmall.err(0))?;
@@ -292,8 +290,8 @@ fn read_borsh_string_len(data: &[u8], offset: usize) -> Result<usize> {
 }
 
 fn read_pubkey(data: &[u8], offset: usize) -> Address {
-    let bytes: [u8; 32] = data[offset..offset + 32].try_into().unwrap();
-    Address::new_from_array(bytes)
+    read_address(data, offset)
+        .unwrap_or_else(|_| panic!("address range pre-validated by from_bytes"))
 }
 
 // ===========================================================================

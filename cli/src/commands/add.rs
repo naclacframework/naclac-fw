@@ -1,8 +1,7 @@
 use {
     crate::commands::init::{
         templates::{
-            generate_program, parse_mode, parse_ts_framework, prompt_mode_selection,
-            prompt_ts_framework, TsFramework,
+            generate_program, parse_ts_framework, prompt_ts_framework, resolve_mode, TsFramework,
         },
         utils::generate_keypair,
     },
@@ -10,7 +9,12 @@ use {
     std::fs,
 };
 
-pub fn execute(name: &str, mode_flag: Option<&str>, ts_flag: Option<&str>) {
+pub fn execute(
+    name: &str,
+    runtime_flag: Option<&str>,
+    mode_flag: Option<&str>,
+    ts_flag: Option<&str>,
+) {
     let current_dir = std::env::current_dir().unwrap();
 
     let workspace_root = if current_dir.join("Naclac.toml").exists() {
@@ -30,20 +34,7 @@ pub fn execute(name: &str, mode_flag: Option<&str>, ts_flag: Option<&str>) {
         std::process::exit(1);
     }
 
-    let mode = if let Some(m) = mode_flag {
-        match parse_mode(m) {
-            Some(mode) => mode,
-            None => {
-                eprintln!(
-                    "❌ Error: Invalid mode '{}'. Available: pinocchio, bytemuck, wincode, borsh",
-                    m
-                );
-                std::process::exit(1);
-            }
-        }
-    } else {
-        prompt_mode_selection()
-    };
+    let mode = resolve_mode(runtime_flag, mode_flag);
 
     let ts_framework = if let Some(t) = ts_flag {
         match parse_ts_framework(t) {

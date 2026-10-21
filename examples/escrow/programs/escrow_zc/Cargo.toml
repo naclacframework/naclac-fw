@@ -13,9 +13,12 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
+default = ["solana", "bytemuck"]
+solana = ["naclac-lang/solana"]
+bytemuck = ["naclac-lang/bytemuck"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../lang", features = ["token"]  }
+naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false, features = ["token"]  }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }

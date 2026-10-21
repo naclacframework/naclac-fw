@@ -120,7 +120,7 @@ impl<'info> IncrementCpi<'info> for crate::sdk_core_cpi::Program<crate::Counter>
             let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
             crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_handles(&instruction, account_handles, signer_seeds)
         }
-        #[cfg(not(feature = "pinocchio"))]
+        #[cfg(feature = "solana")]
         {
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![

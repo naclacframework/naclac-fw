@@ -12,13 +12,13 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
-default = ["pinocchio"]
-pinocchio = ["naclac-lang/pinocchio", "pump-fees-client/pinocchio", "pump-amm-client/pinocchio"]
+default = ["bytemuck"]
+bytemuck = ["naclac-lang/bytemuck", "pump-fees-client/bytemuck", "pump-amm-client/bytemuck"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../../lang", default-features = false, features = ["token"] }
-pump-fees-client = { path = "../../../pump-fees/clients/rust/pump_fees", default-features = false, features = ["cpi"] }
-pump-amm-client = { path = "../../../pump-amm/clients/rust/pump_amm", default-features = false, features = ["cpi"] }
+naclac-lang = { version = "0.1.0", path = "../../../../../lang", features = ["token"] }
+pump-fees-client = { path = "../../../pump-fees/clients/rust/pump_fees", default-features = false, features = ["cpi", "pinocchio"] }
+pump-amm-client = { path = "../../../pump-amm/clients/rust/pump_amm", default-features = false, features = ["cpi", "pinocchio"] }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../../client-rs" }

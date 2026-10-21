@@ -2,16 +2,12 @@
 //! naclac-macros — see `representation_routing`'s copy of this file for the
 //! full explanation of why this check is meaningful and not circular.
 //!
-//! This crate builds with `borsh` active (its own `default`) and no
-//! `pinocchio` — every check below expects the real Borsh shape. This is
-//! the one combination that was silently broken before the fix: the old
-//! `caller_has_feature`-based detection could never see `borsh` was active,
-//! so every one of these types would previously have compiled with the
-//! zero-copy shape instead.
+//! This crate builds with `solana` and `borsh` active (its own `default`) —
+//! every check below expects the real Borsh shape.
 
 use crate::{DoThing, DynamicArgs, InnerThing, Thing, ThingEvent};
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(feature = "bytemuck")]
 const _: fn() = || {
     fn assert_pod<T: naclac_lang::prelude::bytemuck::Pod>() {}
     assert_pod::<Thing>();
@@ -24,7 +20,7 @@ const _: fn() = || {
     assert_naclac_args::<DynamicArgs>();
 };
 
-#[cfg(all(not(feature = "pinocchio"), feature = "borsh"))]
+#[cfg(feature = "borsh")]
 const _: fn() = || {
     fn assert_borsh<T: naclac_lang::prelude::BorshSerialize>() {}
     assert_borsh::<Thing>();
@@ -33,7 +29,7 @@ const _: fn() = || {
     assert_borsh::<DynamicArgs>();
 };
 
-#[cfg(not(feature = "pinocchio"))]
+#[cfg(feature = "solana")]
 const _: fn() = || {
     fn assert_loadable<'a, T: naclac_lang::prelude::LoadableAccounts<'a>>() {}
     assert_loadable::<DoThing>();
@@ -42,8 +38,9 @@ const _: fn() = || {
 #[test]
 fn reports_actual_representation() {
     println!(
-        "representation_routing_borsh: pinocchio={} borsh={} -> Borsh",
-        cfg!(feature = "pinocchio"),
+        "representation_routing_borsh: solana={} bytemuck={} borsh={} -> Borsh",
+        cfg!(feature = "solana"),
+        cfg!(feature = "bytemuck"),
         cfg!(feature = "borsh"),
     );
 }

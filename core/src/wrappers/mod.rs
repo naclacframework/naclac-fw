@@ -21,17 +21,15 @@ use crate::prelude::Address;
 #[cfg(feature = "pinocchio")]
 use crate::prelude::{AccountInfo, AccountView, PinocchioAddress};
 pub use {
-    accounts::*,
-    cpi_handle::*,
-    interface::*,
-    naclac_pod::{
-        decode_pod, encode_pod, event_bytes_of, event_field_default, event_slice_bytes, Bool,
-        BoolField, FixedString, FixedVec, FixedVecIter, Opt, PodError, Unaligned, ZcCodec, ZcEnum,
-        ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec, ZcVecIter,
-    },
-    program::*,
-    serialized_bounds::SerializedBounds,
+    accounts::*, cpi_handle::*, interface::*, program::*, serialized_bounds::SerializedBounds,
     signer::*,
+};
+
+#[cfg(feature = "bytemuck")]
+pub use naclac_pod::{
+    decode_pod, encode_pod, event_bytes_of, event_field_default, event_slice_bytes, Bool,
+    BoolField, FixedString, FixedVec, FixedVecIter, Opt, PodError, Unaligned, ZcCodec, ZcEnum,
+    ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec, ZcVecIter,
 };
 
 /// Trait to convert a type into an Address.
@@ -404,7 +402,7 @@ impl AsRefByteSlice for &str {
     }
 }
 
-#[cfg(feature = "pinocchio")]
+#[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 impl AsRefByteSlice for crate::wrappers::ZcString<'_> {
     #[inline(always)]
     fn as_ref_byte_slice(&self) -> &[u8] {

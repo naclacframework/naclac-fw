@@ -14,11 +14,12 @@ custom-panic = []
 debug-mode = []
 # Enable to build IDL via real cargo compilation instead of AST parsing:
 # idl-build = ["naclac-lang/idl-build"]
-default = ["wincode"]
+default = ["solana", "wincode"]
+solana = ["naclac-lang/solana"]
 wincode = ["naclac-lang/wincode"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../lang", features = ["token"] }
+naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false, features = ["token"] }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }

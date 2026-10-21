@@ -17,7 +17,7 @@ pub struct RemoveFreezeDelegate {
 }
 
 pub fn remove_freeze_delegate(ctx: Context<RemoveFreezeDelegate>) -> Result {
-    #[cfg(not(feature = "pinocchio"))]
+    #[cfg(feature = "solana")]
     remove_asset_plugin_signed(
         ctx.accounts.mpl_core_program.to_cpi_handle(),
         AddAssetPluginAccounts {
@@ -32,7 +32,7 @@ pub fn remove_freeze_delegate(ctx: Context<RemoveFreezeDelegate>) -> Result {
         &[],
     )?;
 
-    #[cfg(feature = "pinocchio")]
+    #[cfg(not(feature = "solana"))]
     remove_asset_plugin_signed_pinocchio(
         ctx.accounts.mpl_core_program.to_cpi_handle(),
         AddAssetPluginAccounts {

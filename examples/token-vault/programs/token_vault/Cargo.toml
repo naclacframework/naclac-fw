@@ -12,11 +12,11 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
-default = ["pinocchio"]
-pinocchio = ["naclac-lang/pinocchio"]
+default = ["bytemuck"]
+bytemuck = ["naclac-lang/bytemuck"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false, features = ["token"]  }
+naclac-lang = { version = "0.1.0", path = "../../../../lang", features = ["token"]  }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
@@ -25,5 +25,5 @@ token-vault-client = { version = "0.1.0", path = "../../clients/rust/token_vault
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
+    'cfg(feature, values("pinocchio", "solana", "bytemuck", "borsh", "wincode"))'
 ] }

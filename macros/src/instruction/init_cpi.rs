@@ -133,27 +133,27 @@ fn signer_seeds_tokens(
 
             // signer_seeds (Solana-program format) is only needed on the non-pinocchio path.
             // In pinocchio mode we use pinocchio_seeds / pinocchio_signer_seeds exclusively.
-            #[cfg(not(feature = "pinocchio"))]
+            #[cfg(feature = "solana")]
             let signer_seeds: &[&[&[u8]]] = &[&[
                 #(#seed_refs),*,
                 &__expected_bump_arr
             ]];
 
-            #[cfg(feature = "pinocchio")]
+            #[cfg(not(feature = "solana"))]
             let pinocchio_seeds = [
                 #(naclac_lang::prelude::pinocchio::cpi::Seed::from(#seed_refs)),*,
                 naclac_lang::prelude::pinocchio::cpi::Seed::from(&__expected_bump_arr[..])
             ];
-            #[cfg(feature = "pinocchio")]
+            #[cfg(not(feature = "solana"))]
             let __pinocchio_signer = naclac_lang::prelude::pinocchio::cpi::Signer::from(&pinocchio_seeds);
-            #[cfg(feature = "pinocchio")]
+            #[cfg(not(feature = "solana"))]
             let pinocchio_signer_seeds: &[naclac_lang::prelude::pinocchio::cpi::Signer] = &[__pinocchio_signer];
         }
     } else {
         quote! {
-            #[cfg(not(feature = "pinocchio"))]
+            #[cfg(feature = "solana")]
             let signer_seeds: &[&[&[u8]]] = &[];
-            #[cfg(feature = "pinocchio")]
+            #[cfg(not(feature = "solana"))]
             let pinocchio_signer_seeds: &[naclac_lang::prelude::pinocchio::cpi::Signer] = &[];
         }
     }
@@ -336,7 +336,7 @@ pub fn generate_init_cpi(
             #existence_check
             if info.data_is_empty() {
                 #signer_seeds_logic
-                #[cfg(feature = "pinocchio")]
+                #[cfg(not(feature = "solana"))]
                 let signer_seeds: &[&[&[u8]]] = &[];
 
                 let __sys_info = &accounts[#system_program_idx];
@@ -355,7 +355,7 @@ pub fn generate_init_cpi(
                 let __authority_key = naclac_lang::prelude::ToAddress::address(&__authority_info);
                 let __freeze_authority: Option<naclac_lang::prelude::Address> = #freeze_authority_tokens;
 
-                #[cfg(not(feature = "pinocchio"))]
+                #[cfg(feature = "solana")]
                 {
                     let lamports = naclac_lang::prelude::const_rent_lamports(82);
 
@@ -369,7 +369,7 @@ pub fn generate_init_cpi(
                         signer_seeds,
                     )?;
                 }
-                #[cfg(feature = "pinocchio")]
+                #[cfg(not(feature = "solana"))]
                 {
                     let __lamports = naclac_lang::prelude::const_rent_lamports(82);
                     #create_call_pinocchio(
@@ -438,7 +438,7 @@ pub fn generate_init_cpi(
             #existence_check
             if info.data_is_empty() {
                 #signer_seeds_logic
-                #[cfg(feature = "pinocchio")]
+                #[cfg(not(feature = "solana"))]
                 let signer_seeds: &[&[&[u8]]] = &[];
 
                 let __sys_info = &accounts[#system_program_idx];
@@ -456,7 +456,7 @@ pub fn generate_init_cpi(
                 let __mint_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#mint_ref);
                 let __authority_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#authority_ref);
 
-                #[cfg(not(feature = "pinocchio"))]
+                #[cfg(feature = "solana")]
                 {
                     let lamports = naclac_lang::prelude::const_rent_lamports(165);
 
@@ -470,7 +470,7 @@ pub fn generate_init_cpi(
                         signer_seeds,
                     )?;
                 }
-                #[cfg(feature = "pinocchio")]
+                #[cfg(not(feature = "solana"))]
                 {
                     let __lamports = naclac_lang::prelude::const_rent_lamports(165);
                     #create_call_pinocchio(
@@ -536,7 +536,7 @@ pub fn generate_init_cpi(
         // per backend, since there's no shared CreateAccount+InitializeMint
         // helper), ATA creation already has a single dual-backend function —
         // `naclac_lang::associated_token::create`/`create_idempotent` internally
-        // branch on `#[cfg(feature = "pinocchio")]` themselves (confirmed by
+        // branch on `#[cfg(not(feature = "solana"))]` themselves (confirmed by
         // reading `token/src/associated_token.rs` directly) — so this
         // codegen needs no cfg branches of its own, mirroring the same
         // already-unified-at-the-call-site pattern `realloc.rs` uses for
@@ -734,7 +734,7 @@ pub fn generate_init_cpi(
         let __needs_init = if info.data_is_empty() {
             true
         } else {
-            #[cfg(not(feature = "pinocchio"))]
+            #[cfg(feature = "solana")]
             {
                 let __data = info.try_borrow_data()?;
                 if __disc_len == 8 {
@@ -745,7 +745,7 @@ pub fn generate_init_cpi(
                         && __data[..__disc_len].iter().all(|__b| *__b == 0)
                 }
             }
-            #[cfg(feature = "pinocchio")]
+            #[cfg(not(feature = "solana"))]
             {
                 // An account whose first `__disc_len` bytes are all zero is uninitialized:
                 // no real discriminator is all-zero (enforced at compile time).
@@ -765,7 +765,7 @@ pub fn generate_init_cpi(
         #check_init_tokens
 
         if __needs_init {
-            #[cfg(not(feature = "pinocchio"))]
+            #[cfg(feature = "solana")]
             {
                 let lamports = naclac_lang::prelude::const_rent_lamports((#space_tokens) as usize);
 
@@ -797,7 +797,7 @@ pub fn generate_init_cpi(
                     .copy_from_slice(<#inner_type as naclac_lang::prelude::Discriminator>::DISCRIMINATOR);
             }
 
-            #[cfg(feature = "pinocchio")]
+            #[cfg(not(feature = "solana"))]
             {
                 #signer_seeds_logic
 

@@ -138,19 +138,19 @@ pub(crate) fn idl_build_impl(
 /// representations below can't be made here at macro-expansion time — all
 /// three are always emitted, each gated by a real `#[cfg(...)]` in the output
 /// that the calling crate's own compiler resolves:
-/// - **Zero-Copy** (`#[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))]`):
+/// - **Zero-Copy** (`#[cfg(feature = "bytemuck")]`):
 ///   Forces `#[repr(C, packed)]` (alignment 1, no padding) and implements
-///   `Pod`/`Zeroable`. `pinocchio` is always
-///   zero-copy; otherwise it's the default when neither `borsh` nor
-///   `wincode` is active.
-/// - **Borsh** (`#[cfg(all(not(feature = "pinocchio"), feature = "borsh"))]`):
+///   `Pod`/`Zeroable`.
+/// - **Borsh** (`#[cfg(feature = "borsh")]`):
 ///   Derives `BorshSerialize`/`BorshDeserialize` for heap-allocated SBF execution.
-/// - **Wincode** (`#[cfg(all(not(feature = "pinocchio"), feature = "wincode"))]`):
+/// - **Wincode** (`#[cfg(feature = "wincode")]`):
 ///   Derives `SchemaRead`/`SchemaWrite` for heap-allocated SBF execution.
 ///
-/// For this to resolve correctly, the calling crate must declare `pinocchio`,
-/// `borsh`, and `wincode` as features of its own (mirroring `naclac-lang`'s)
-/// — `#[cfg(feature = "X")]` only ever sees the crate currently being
+/// Exactly one of the three layout features is enabled; `naclac-lang` rejects
+/// any other combination. For this to resolve correctly, the calling crate
+/// must declare its layout feature (and `solana`, when it targets the Solana
+/// runtime) as a feature of its own, forwarded to `naclac-lang` —
+/// `#[cfg(feature = "X")]` only ever sees the crate currently being
 /// compiled's own declared features, never a dependency's.
 pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = match naclac_syn::discriminator::parse_macro_args(attr.into(), false) {
@@ -204,9 +204,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     let cleaned_fields = &cleaned_ast.fields;
 
-    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
-    let borsh_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
-    let wincode_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "wincode"))] };
+    let zero_copy_cfg = quote! { #[cfg(feature = "bytemuck")] };
+    let borsh_cfg = quote! { #[cfg(feature = "borsh")] };
+    let wincode_cfg = quote! { #[cfg(feature = "wincode")] };
 
     // ── Zero-copy branch ────────────────────────────────────────────────
     //

@@ -11,12 +11,12 @@ no-entrypoint = []
 custom-heap = []
 custom-panic = []
 debug-mode = []
-default = ["pinocchio"]
-pinocchio = ["naclac-lang/pinocchio", "amm-client/pinocchio"]
+default = ["bytemuck"]
+bytemuck = ["naclac-lang/bytemuck", "amm-client/bytemuck"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../../lang", default-features = false, features = ["token"] }
-amm-client = { path = "../../clients/rust/amm", default-features = false, features = ["cpi"] }
+naclac-lang = { version = "0.1.0", path = "../../../../../lang", features = ["token"] }
+amm-client = { path = "../../clients/rust/amm", default-features = false, features = ["cpi", "pinocchio"] }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../../client-rs" }
@@ -26,5 +26,5 @@ amm-client = { path = "../../clients/rust/amm" }
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
+    'cfg(feature, values("pinocchio", "solana", "bytemuck", "borsh", "wincode"))'
 ] }

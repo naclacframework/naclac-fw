@@ -13,13 +13,13 @@
 //! macros' emitted `#[cfg(...)]` actually tracks reality, not a restatement
 //! of their own logic.
 //!
-//! This crate builds with `pinocchio` (default feature) — always zero-copy,
-//! regardless of `borsh` — so every check below expects the zero-copy shape.
+//! This crate builds with `bytemuck` (default feature) on the pinocchio
+//! runtime, so every check below expects the zero-copy shape.
 
 use crate::{DynamicArgs, InnerThing, Thing, ThingEvent};
 use std::println;
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(feature = "bytemuck")]
 const _: fn() = || {
     fn assert_pod<T: naclac_lang::prelude::bytemuck::Pod>() {}
     assert_pod::<Thing>();
@@ -37,7 +37,7 @@ const _: fn() = || {
     assert_naclac_args::<DynamicArgs>();
 };
 
-#[cfg(all(not(feature = "pinocchio"), feature = "borsh"))]
+#[cfg(feature = "borsh")]
 const _: fn() = || {
     fn assert_borsh<T: naclac_lang::prelude::BorshSerialize>() {}
     assert_borsh::<Thing>();
@@ -49,8 +49,9 @@ const _: fn() = || {
 #[test]
 fn reports_actual_representation() {
     println!(
-        "representation_routing: pinocchio={} borsh={} -> zero-copy (pinocchio always wins)",
-        cfg!(feature = "pinocchio"),
+        "representation_routing: solana={} bytemuck={} borsh={} -> zero-copy",
+        cfg!(feature = "solana"),
+        cfg!(feature = "bytemuck"),
         cfg!(feature = "borsh"),
     );
 }

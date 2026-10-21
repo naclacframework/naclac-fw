@@ -197,9 +197,10 @@ impl<'a> MasterEditionView<'a> {
             return None;
         }
         let start = self.max_supply_offset + 1;
-        Some(u32::from_le_bytes(
-            self.data[start..start + 4].try_into().unwrap(),
-        ))
+        Some(
+            read_u32(self.data, start)
+                .unwrap_or_else(|_| panic!("supply range pre-validated by from_bytes")),
+        )
     }
 
     pub fn name(&self) -> Option<&str> {
@@ -236,7 +237,7 @@ fn read_option_string_len(data: &[u8], offset: usize) -> Result<Option<usize>> {
     if data.len() < prefix_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let len = u32::from_le_bytes(data[offset + 1..prefix_end].try_into().unwrap()) as usize;
+    let len = read_u32(data, offset + 1)? as usize;
     let payload_end = checked_end(prefix_end, len)?;
     if data.len() < payload_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));

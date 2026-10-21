@@ -49,6 +49,11 @@ pub mod collection;
 
 pub mod plugin_type;
 
+pub mod view;
+
+#[cfg(any(feature = "solana", feature = "pinocchio"))]
+pub(crate) mod read;
+
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
 pub mod plugin_registry;
 
@@ -94,6 +99,11 @@ pub mod prelude {
 
     #[cfg(feature = "pinocchio")]
     pub(crate) use crate::fixed_buf::ByteSink;
+
+    pub use crate::view::{Record, RecordIter, RecordList};
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub(crate) use crate::read::{read_address, read_array, read_u16, read_u32, read_u64};
 
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::plugin_registry::*;

@@ -1,11 +1,9 @@
 use std::{fs, path::PathBuf, process::Command};
 
-/// Runs `cargo clippy` against each program in the workspace, one at a time —
-/// mirroring `build.rs`'s program discovery and feature detection (so a
-/// pinocchio program is checked with the exact same `--no-default-features
-/// --features pinocchio` flags it's actually built with), rather than asking
-/// users to remember and re-type each program's correct feature combination
-/// by hand every time.
+/// Runs `cargo clippy` against each program in the workspace, one at a time,
+/// mirroring `build.rs`'s program discovery. Each program is checked with its
+/// own default features, so the runtime and layout it declares are the ones
+/// linted.
 ///
 /// With `tests` set, each program's test targets (its unit tests and the
 /// integration tests under `tests/`) are linted instead of the program itself.
@@ -50,33 +48,22 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>, tests: bool, den
         std::process::exit(1);
     }
 
+    let every_program_dir: Vec<PathBuf> = fs::read_dir(&programs_dir)
+        .map(|entries| {
+            entries
+                .flatten()
+                .map(|entry| entry.path())
+                .filter(|path| path.is_dir() && path.join("src/lib.rs").exists())
+                .collect()
+        })
+        .unwrap_or_default();
+    crate::commands::generate::ensure_client_stubs(&workspace_root, &every_program_dir);
+
     let mut overall_success = true;
 
     for program_dir in &program_dirs {
         let prog_name = program_dir.file_name().unwrap().to_str().unwrap();
         let cargo_toml_path = program_dir.join("Cargo.toml");
-
-        // Same detection as build.rs: read the program's own Cargo.toml to
-        // decide whether it's a pinocchio program (--no-default-features
-        // --features pinocchio) or a standard one, rather than guessing.
-        let mut use_pinocchio = false;
-        if cargo_toml_path.exists() {
-            if let Ok(content) = fs::read_to_string(&cargo_toml_path) {
-                if let Ok(parsed) = toml::from_str::<toml::Value>(&content) {
-                    if let Some(feats) = parsed.get("features").and_then(|f| f.as_table()) {
-                        if let Some(default_feats) = feats.get("default").and_then(|d| d.as_array())
-                        {
-                            use_pinocchio = default_feats
-                                .iter()
-                                .any(|v| v.as_str() == Some("pinocchio"));
-                        }
-                        if !use_pinocchio {
-                            use_pinocchio = feats.contains_key("pinocchio");
-                        }
-                    }
-                }
-            }
-        }
 
         if tests {
             eprintln!("🔍 Checking the tests of '{}' with clippy...", prog_name);
@@ -93,13 +80,8 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>, tests: bool, den
             cmd.arg("--tests");
         }
 
-        let mut all_features = features.clone();
-        if use_pinocchio {
-            all_features.push("pinocchio".to_string());
-            cmd.arg("--no-default-features");
-        }
-        if !all_features.is_empty() {
-            cmd.arg("--features").arg(all_features.join(","));
+        if !features.is_empty() {
+            cmd.arg("--features").arg(features.join(","));
         }
         if deny_warnings {
             cmd.args(["--", "-D", "warnings"]);

@@ -83,9 +83,7 @@ pub fn read_edition(data: &[u8], plugin_header_offset: usize) -> Result<Option<u
             if data.len() < end {
                 return Err(NaclacError::AccountDataTooSmall.err(0));
             }
-            Ok(Some(u32::from_le_bytes(
-                data[offset..end].try_into().unwrap(),
-            )))
+            Ok(Some(read_u32(data, offset)?))
         }
         None => Ok(None),
     }

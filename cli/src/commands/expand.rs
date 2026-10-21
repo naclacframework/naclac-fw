@@ -43,17 +43,7 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
     let program_name = program_dir.file_name().unwrap().to_str().unwrap();
     let cargo_toml_path = program_dir.join("Cargo.toml");
 
-    eprintln!("🔍 Detecting features for '{}'...", program_name);
-
-    let mut active_features = Vec::new();
-    if naclac_syn::modules::default_features(program_dir).contains("pinocchio") {
-        active_features.push("pinocchio");
-    }
-
-    eprintln!(
-        "⚡ Expanding macros with features: {:?}...",
-        active_features
-    );
+    eprintln!("⚡ Expanding macros for '{}'...", program_name);
 
     let mut cmd = Command::new("cargo");
     cmd.arg("expand")
@@ -61,21 +51,8 @@ pub fn execute(program_id: Option<&str>, features: Vec<String>) {
         .arg(cargo_toml_path.to_str().unwrap())
         .current_dir(&workspace_root);
 
-    let mut final_features = active_features
-        .iter()
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>();
-    for f in features {
-        if !final_features.contains(&f) {
-            final_features.push(f);
-        }
-    }
-
-    if !final_features.is_empty() {
-        cmd.arg("--features").arg(final_features.join(","));
-        if final_features.contains(&"pinocchio".to_string()) {
-            cmd.arg("--no-default-features");
-        }
+    if !features.is_empty() {
+        cmd.arg("--features").arg(features.join(","));
     }
 
     let mut child = cmd

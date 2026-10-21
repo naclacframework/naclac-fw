@@ -382,7 +382,7 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     );
 
     // Solana CPI
-    impl_body.push_str("        #[cfg(not(feature = \"pinocchio\"))]\n        {\n");
+    impl_body.push_str("        #[cfg(feature = \"solana\")]\n        {\n");
     impl_body.push_str("            use crate::sdk_core_cpi::ToAddress;\n");
     // Every declared account gets exactly one meta, in declared order — same
     // sentinel-scheme requirement as the offchain builder above: an absent

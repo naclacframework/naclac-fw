@@ -2,12 +2,12 @@
 //! naclac-macros — see `representation_routing`'s copy of this file for the
 //! full explanation of why this check is meaningful and not circular.
 //!
-//! This crate builds with neither `pinocchio` nor `borsh` active — the
-//! documented default representation (zero-copy) applies here.
+//! This crate builds with `solana` and `bytemuck` active, so every check
+//! below expects the zero-copy shape on the Solana runtime.
 
 use crate::{DoThing, DynamicArgs, InnerThing, Thing, ThingEvent};
 
-#[cfg(any(feature = "pinocchio", not(feature = "borsh")))]
+#[cfg(feature = "bytemuck")]
 const _: fn() = || {
     fn assert_pod<T: naclac_lang::prelude::bytemuck::Pod>() {}
     assert_pod::<Thing>();
@@ -20,7 +20,7 @@ const _: fn() = || {
     assert_naclac_args::<DynamicArgs>();
 };
 
-#[cfg(all(not(feature = "pinocchio"), feature = "borsh"))]
+#[cfg(feature = "borsh")]
 const _: fn() = || {
     fn assert_borsh<T: naclac_lang::prelude::BorshSerialize>() {}
     assert_borsh::<Thing>();
@@ -29,7 +29,7 @@ const _: fn() = || {
     assert_borsh::<DynamicArgs>();
 };
 
-#[cfg(not(feature = "pinocchio"))]
+#[cfg(feature = "solana")]
 const _: fn() = || {
     fn assert_loadable<'a, T: naclac_lang::prelude::LoadableAccounts<'a>>() {}
     assert_loadable::<DoThing>();
@@ -38,8 +38,9 @@ const _: fn() = || {
 #[test]
 fn reports_actual_representation() {
     println!(
-        "representation_routing_zc: pinocchio={} borsh={} -> zero-copy (default)",
-        cfg!(feature = "pinocchio"),
+        "representation_routing_zc: solana={} bytemuck={} borsh={} -> zero-copy",
+        cfg!(feature = "solana"),
+        cfg!(feature = "bytemuck"),
         cfg!(feature = "borsh"),
     );
 }

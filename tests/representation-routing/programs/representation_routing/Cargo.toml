@@ -13,12 +13,12 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
-default = ["pinocchio"]
-pinocchio = ["naclac-lang/pinocchio"]
+default = ["bytemuck"]
+bytemuck = ["naclac-lang/bytemuck"]
 idl-build = ["naclac-lang/idl-build"]
 
 [dependencies]
-naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false }
+naclac-lang = { version = "0.1.0", path = "../../../../lang" }
 
 [lints]
 workspace = true

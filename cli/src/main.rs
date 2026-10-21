@@ -20,7 +20,10 @@ enum Commands {
     /// Initializes a new Naclac Workspace
     Init {
         name: String,
-        /// Program mode: pinocchio, bytemuck, wincode, or borsh
+        /// Execution runtime: pinocchio or solana
+        #[arg(short, long)]
+        runtime: Option<String>,
+        /// Account data layout: bytemuck, wincode, or borsh (solana runtime only)
         #[arg(short, long)]
         mode: Option<String>,
         /// TypeScript SDK framework: kit or legacy
@@ -39,7 +42,10 @@ enum Commands {
     /// Adds a new program to an existing Naclac workspace
     Add {
         name: String,
-        /// Program mode: pinocchio, bytemuck, wincode, or borsh
+        /// Execution runtime: pinocchio or solana
+        #[arg(short, long)]
+        runtime: Option<String>,
+        /// Account data layout: bytemuck, wincode, or borsh (solana runtime only)
         #[arg(short, long)]
         mode: Option<String>,
         /// TypeScript SDK framework: kit or legacy
@@ -147,8 +153,7 @@ enum Commands {
         run_order: bool,
     },
     /// Runs `cargo clippy` against each program in the workspace, one by one,
-    /// automatically using each program's own correct feature flags (e.g.
-    /// pinocchio programs get --no-default-features --features pinocchio).
+    /// with each program's own default features.
     /// With --test, lints each program's tests (unit and integration) instead
     /// of the program; run `naclac build` first so the generated client exists
     Check {
@@ -299,6 +304,7 @@ fn main() {
     match &cli.command {
         Commands::Init {
             name,
+            runtime,
             mode,
             ts,
             pm,
@@ -306,15 +312,19 @@ fn main() {
             no_git,
         } => crate::commands::init::execute(
             name,
+            runtime.as_deref(),
             mode.as_deref(),
             ts.as_deref(),
             pm.as_deref(),
             *no_install,
             *no_git,
         ),
-        Commands::Add { name, mode, ts } => {
-            commands::add::execute(name, mode.as_deref(), ts.as_deref())
-        }
+        Commands::Add {
+            name,
+            runtime,
+            mode,
+            ts,
+        } => commands::add::execute(name, runtime.as_deref(), mode.as_deref(), ts.as_deref()),
         Commands::Build {
             program_id,
             features,

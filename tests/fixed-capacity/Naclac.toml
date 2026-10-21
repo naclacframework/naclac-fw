@@ -9,6 +9,7 @@ skip-lint = false
 fixed_capacity = "AEmyquGKuV3TakmdV7EAkXZoNZDovz4W5ApGe1ZbB8vF"
 capacity_borsh = "JCM3V2nXTZiWWGZ71wr6dMqbVHHHX9ZCp9JZGtjaUN8T"
 capacity_wincode = "JyQhx5xWE75GB3U4qwh3fNvc4zQxrxwfNhrfxv33WHn"
+capacity_wincode_pinocchio = "JyQhx5xWE75GB3U4qwh3fNvc4zQxrxwfNhrfxv33WHn"
 
 [provider]
 cluster = "localnet"

@@ -12,11 +12,7 @@
 //! `DefaultConfig`-bound crate-root functions, or the two config surfaces
 //! will silently disagree on wire format.
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 pub type Config = wincode::config::Configuration<
     true,
     { wincode::config::DEFAULT_PREALLOCATION_SIZE_LIMIT },
@@ -26,11 +22,7 @@ pub type Config = wincode::config::Configuration<
     u8,
 >;
 
-#[cfg(all(
-    feature = "wincode",
-    not(feature = "pinocchio"),
-    not(feature = "borsh")
-))]
+#[cfg(feature = "wincode")]
 pub const CONFIG: Config = wincode::config::Configuration::default()
     .with_length_encoding::<wincode::len::FixIntLen<u32>>()
     .with_tag_encoding::<u8>();

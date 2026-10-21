@@ -197,12 +197,12 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     // story), so both representations are always emitted below, each gated
     // by a real `#[cfg(...)]` in the output that the calling crate's own
     // compiler resolves — same as `#[component]`/`#[derive(Accounts)]`. This
-    // requires the calling crate to declare `pinocchio`/`borsh` as features
-    // of its own (mirroring `naclac-lang`'s), which is now the enforced
+    // requires the calling crate to declare its layout feature as a feature
+    // of its own (mirroring `naclac-lang`'s), which is the enforced
     // convention for every naclac program crate.
-    let zero_copy_cfg = quote! { #[cfg(any(feature = "pinocchio", not(any(feature = "borsh", feature = "wincode"))))] };
-    let borsh_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "borsh"))] };
-    let wincode_cfg = quote! { #[cfg(all(not(feature = "pinocchio"), feature = "wincode"))] };
+    let zero_copy_cfg = quote! { #[cfg(feature = "bytemuck")] };
+    let borsh_cfg = quote! { #[cfg(feature = "borsh")] };
+    let wincode_cfg = quote! { #[cfg(feature = "wincode")] };
 
     let idl_build_impl = idl_build_event_impl(
         struct_name,
@@ -358,8 +358,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 /// `#[event(alloc)]` — for events needing `Vec`/`String`/`Option` fields.
-/// Only meaningful under a zero-copy backend (Pinocchio, or Solana Program +
-/// Zero-Copy): under Borsh mode, plain `#[event]` already serializes these
+/// Only meaningful under the zero-copy (`bytemuck`) layout, on either runtime:
+/// under Borsh mode, plain `#[event]` already serializes these
 /// types natively via real Borsh, so `alloc` mode is redundant there — kept
 /// as a hard compile error rather than silently falling back, so a caller
 /// never mistakenly believes they got the single-allocation buffer path.
@@ -386,15 +386,15 @@ fn expand_alloc(
     let borsh_error = quote! {
         #borsh_cfg
         compile_error!(
-            "Naclac Error: #[event(alloc)] is only for zero-copy backends (Pinocchio, or \
-             Solana Program + Zero-Copy). Under Borsh mode, plain #[event] already supports \
+            "Naclac Error: #[event(alloc)] is only for the zero-copy (`bytemuck`) layout. \
+             Under Borsh mode, plain #[event] already supports \
              Vec/String/Option natively via real Borsh, so #[event(alloc)] is unnecessary \
              there — use plain #[event] instead."
         );
         #wincode_cfg
         compile_error!(
-            "Naclac Error: #[event(alloc)] is only for zero-copy backends (Pinocchio, or \
-             Solana Program + Zero-Copy). Under Wincode mode, plain #[event] already supports \
+            "Naclac Error: #[event(alloc)] is only for the zero-copy (`bytemuck`) layout. \
+             Under Wincode mode, plain #[event] already supports \
              dynamic types natively via Wincode, so #[event(alloc)] is unnecessary \
              there — use plain #[event] instead."
         );

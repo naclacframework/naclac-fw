@@ -25,13 +25,20 @@ naclac-idl = { workspace = true, optional = true }
 naclac-syn = { workspace = true, optional = true }
 
 [features]
-default = ["solana"]
+# The default runtime; the account-data layout is always chosen explicitly.
+default = ["pinocchio"]
 
-# Backend selection — forwards to naclac-core, and (via weak `?/` features)
+# Runtime selection — forwards to naclac-core, and (via weak `?/` features)
 # to token/naclac-metadata IF they're already active via their own
-# feature toggle.
+# feature toggle. Exactly one of `pinocchio` (the default) and `solana`; a
+# program that selects `solana` turns off this crate's default features.
 solana = ["naclac-core/solana", "naclac-token?/solana", "naclac-metadata?/solana"]
-pinocchio = ["naclac-core/pinocchio", "naclac-macros/pinocchio", "naclac-token?/pinocchio", "naclac-metadata?/pinocchio"]
+pinocchio = ["naclac-core/pinocchio", "naclac-token?/pinocchio", "naclac-metadata?/pinocchio"]
+
+# Account-data layout — exactly one of `bytemuck` (zero-copy), `borsh`
+# (`solana` runtime only) and `wincode`, declared by the program as a feature
+# of its own that forwards here.
+bytemuck = ["naclac-core/bytemuck", "naclac-token?/bytemuck"]
 
 # Single unified token toggle — ATA is always included with token support now, not a separate opt-in.
 token = ["dep:naclac-token"]
@@ -40,8 +47,8 @@ token = ["dep:naclac-token"]
 metadata = ["dep:naclac-metadata"]
 
 debug-mode = ["naclac-core/debug-mode", "naclac-macros/debug-mode"]
-borsh = ["naclac-core/borsh", "naclac-token?/borsh", "naclac-macros/borsh"]
-wincode = ["naclac-core/wincode", "naclac-token?/wincode", "naclac-macros/wincode"]
+borsh = ["naclac-core/borsh", "naclac-token?/borsh"]
+wincode = ["naclac-core/wincode", "naclac-token?/wincode"]
 idl-build = ["naclac-macros/idl-build", "dep:naclac-idl", "dep:naclac-syn", "naclac-core/idl-build", "naclac-token?/idl-build"]
 
 [lints.rust]

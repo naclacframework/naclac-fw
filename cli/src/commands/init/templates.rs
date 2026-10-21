@@ -6,59 +6,135 @@ use {
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProgramMode {
+pub enum Runtime {
     Pinocchio,
+    Solana,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Layout {
     Bytemuck,
     Wincode,
     Borsh,
 }
 
-pub fn prompt_mode_selection() -> ProgramMode {
-    let backend_selections = &[
-        "Solana Backend (Standard Solana runtime)",
-        "Pinocchio Backend (no-std, zero-copy, hyper-optimized compute units)",
-    ];
-
-    let backend = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Choose execution backend")
-        .default(0)
-        .items(&backend_selections[..])
-        .interact()
-        .unwrap_or(0);
-
-    if backend == 1 {
-        return ProgramMode::Pinocchio;
-    }
-
-    let serialization_selections = &[
-        "Bytemuck (zero-copy C-layout memory mapping, lowest compute units)",
-        "Wincode (hyper-fast zero-allocation binary serialization)",
-        "Borsh (standard Solana ecosystem binary serialization)",
-    ];
-
-    let serialization = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Choose account data layout & serialization")
-        .default(0)
-        .items(&serialization_selections[..])
-        .interact()
-        .unwrap_or(0);
-
-    match serialization {
-        0 => ProgramMode::Bytemuck,
-        1 => ProgramMode::Wincode,
-        2 => ProgramMode::Borsh,
-        _ => ProgramMode::Bytemuck,
+impl Layout {
+    fn feature(self) -> &'static str {
+        match self {
+            Layout::Bytemuck => "bytemuck",
+            Layout::Wincode => "wincode",
+            Layout::Borsh => "borsh",
+        }
     }
 }
 
-pub fn parse_mode(flag: &str) -> Option<ProgramMode> {
+/// A new program's runtime and account-data layout. `Borsh` is only valid on
+/// the `Solana` runtime.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProgramMode {
+    pub runtime: Runtime,
+    pub layout: Layout,
+}
+
+fn prompt_runtime() -> Runtime {
+    let selections = &[
+        "Pinocchio (no-std, hyper-optimized compute units)",
+        "Solana (standard Solana SDK runtime)",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Choose execution runtime")
+        .default(0)
+        .items(&selections[..])
+        .interact()
+        .unwrap_or(0);
+
+    match choice {
+        1 => Runtime::Solana,
+        _ => Runtime::Pinocchio,
+    }
+}
+
+fn prompt_layout(runtime: Runtime) -> Layout {
+    let mut layouts = vec![
+        (
+            Layout::Bytemuck,
+            "Bytemuck (zero-copy C-layout memory mapping, lowest compute units)",
+        ),
+        (
+            Layout::Wincode,
+            "Wincode (hyper-fast zero-allocation binary serialization)",
+        ),
+    ];
+    if runtime == Runtime::Solana {
+        layouts.push((
+            Layout::Borsh,
+            "Borsh (standard Solana ecosystem binary serialization)",
+        ));
+    }
+    let labels: Vec<&str> = layouts.iter().map(|(_, label)| *label).collect();
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Choose account data layout & serialization")
+        .default(0)
+        .items(&labels[..])
+        .interact()
+        .unwrap_or(0);
+
+    layouts
+        .get(choice)
+        .map_or(Layout::Bytemuck, |(layout, _)| *layout)
+}
+
+fn parse_runtime(flag: &str) -> Option<Runtime> {
     match flag.to_lowercase().as_str() {
-        "pinocchio" => Some(ProgramMode::Pinocchio),
-        "bytemuck" => Some(ProgramMode::Bytemuck),
-        "wincode" => Some(ProgramMode::Wincode),
-        "borsh" => Some(ProgramMode::Borsh),
+        "pinocchio" => Some(Runtime::Pinocchio),
+        "solana" => Some(Runtime::Solana),
         _ => None,
     }
+}
+
+fn parse_layout(flag: &str) -> Option<Layout> {
+    match flag.to_lowercase().as_str() {
+        "bytemuck" => Some(Layout::Bytemuck),
+        "wincode" => Some(Layout::Wincode),
+        "borsh" => Some(Layout::Borsh),
+        _ => None,
+    }
+}
+
+/// Resolves the runtime and layout from the `--runtime` / `--mode` flags,
+/// prompting for whichever is absent. Exits with an error on an unknown value
+/// or on `borsh` with the `pinocchio` runtime.
+pub fn resolve_mode(runtime_flag: Option<&str>, layout_flag: Option<&str>) -> ProgramMode {
+    let runtime = match runtime_flag {
+        Some(flag) => parse_runtime(flag).unwrap_or_else(|| {
+            eprintln!(
+                "❌ Error: Invalid runtime '{}'. Available: pinocchio, solana",
+                flag
+            );
+            std::process::exit(1);
+        }),
+        None => prompt_runtime(),
+    };
+    let layout = match layout_flag {
+        Some(flag) => parse_layout(flag).unwrap_or_else(|| {
+            eprintln!(
+                "❌ Error: Invalid mode '{}'. Available: bytemuck, wincode, borsh",
+                flag
+            );
+            std::process::exit(1);
+        }),
+        None => prompt_layout(runtime),
+    };
+    if runtime == Runtime::Pinocchio && layout == Layout::Borsh {
+        eprintln!(
+            "❌ Error: borsh is not available with the pinocchio runtime. Use wincode or bytemuck, \
+             or pass --runtime solana."
+        );
+        std::process::exit(1);
+    }
+    ProgramMode { runtime, layout }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -152,29 +228,18 @@ pub fn generate_program(
     let (naclac_lang_path, naclac_client_path) =
         naclac_client_gen::naclac_dep_path_fragments(root_path, &program_dir);
 
-    let (features_snippet, deps_snippet) = match mode {
-        ProgramMode::Pinocchio => (
-            "default = [\"pinocchio\"]\npinocchio = [\"naclac-lang/pinocchio\"]",
+    let layout_feature = mode.layout.feature();
+    let (features_block, deps_snippet) = match mode.runtime {
+        Runtime::Pinocchio => (
+            format!("default = [\"{layout_feature}\"]\n{layout_feature} = [\"naclac-lang/{layout_feature}\"]\n"),
+            format!("naclac-lang = {{ version = \"0.1.0\"{naclac_lang_path} }}"),
+        ),
+        Runtime::Solana => (
+            format!(
+                "default = [\"solana\", \"{layout_feature}\"]\nsolana = [\"naclac-lang/solana\"]\n{layout_feature} = [\"naclac-lang/{layout_feature}\"]\n"
+            ),
             format!("naclac-lang = {{ version = \"0.1.0\", default-features = false{naclac_lang_path} }}"),
         ),
-        ProgramMode::Bytemuck => (
-            "",
-            format!("naclac-lang = {{ version = \"0.1.0\"{naclac_lang_path} }}"),
-        ),
-        ProgramMode::Wincode => (
-            "default = [\"wincode\"]\nwincode = [\"naclac-lang/wincode\"]",
-            format!("naclac-lang = {{ version = \"0.1.0\"{naclac_lang_path} }}"),
-        ),
-        ProgramMode::Borsh => (
-            "default = [\"borsh\"]\nborsh = [\"naclac-lang/borsh\"]",
-            format!("naclac-lang = {{ version = \"0.1.0\"{naclac_lang_path} }}"),
-        ),
-    };
-
-    let features_block = if features_snippet.is_empty() {
-        String::new()
-    } else {
-        format!("{}\n", features_snippet)
     };
 
     let cargo_toml = format!(
@@ -208,7 +273,7 @@ workspace = true
     );
     write_file(&program_dir.join("Cargo.toml"), &cargo_toml);
 
-    let lib_header = if mode == ProgramMode::Pinocchio {
+    let lib_header = if mode.runtime == Runtime::Pinocchio && mode.layout == Layout::Bytemuck {
         "#![no_std]\n"
     } else {
         ""
@@ -378,10 +443,10 @@ pub fn increment(ctx: Context<Increment>) -> Result {
         increment_rs,
     );
 
-    let parse_events_call = match mode {
-        ProgramMode::Wincode => "tx_meta.parse_events_wincode()",
-        ProgramMode::Borsh => "tx_meta.parse_events_borsh()",
-        ProgramMode::Pinocchio | ProgramMode::Bytemuck => "tx_meta.parse_events_zero_copy()",
+    let parse_events_call = match mode.layout {
+        Layout::Wincode => "tx_meta.parse_events_wincode()",
+        Layout::Borsh => "tx_meta.parse_events_borsh()",
+        Layout::Bytemuck => "tx_meta.parse_events_zero_copy()",
     };
 
     let client_crate = format!("{snake_name}_client");

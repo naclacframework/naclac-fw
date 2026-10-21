@@ -142,7 +142,7 @@ pub fn fetch_collection_update_delegate(
 /// Reads an `Asset`'s `UpdateDelegate` plugin's `additional_delegates`, if
 /// attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<'_, Address>>> {
+pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<RecordList<'_, Address>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -153,7 +153,9 @@ pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<'_
 /// Reads a `Collection`'s `UpdateDelegate` plugin's `additional_delegates`,
 /// if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_collection_update_delegate(info: &AccountInfo) -> Result<Option<ZcVec<'_, Address>>> {
+pub fn fetch_collection_update_delegate(
+    info: &AccountInfo,
+) -> Result<Option<RecordList<'_, Address>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);
@@ -163,14 +165,14 @@ pub fn fetch_collection_update_delegate(info: &AccountInfo) -> Result<Option<ZcV
 
 /// Lower-level variant of `fetch_asset_update_delegate`, shared by both
 /// backends: see `edition.rs`'s `read_edition` for why this exists alongside
-/// the uniform-signature wrapper above. Zero-copy — `ZcVec<Address>` views
-/// directly into `data`, no heap allocation, no artificial cap (reflects
+/// the uniform-signature wrapper above. Zero-copy — the `RecordList<Address>`
+/// views directly into `data`, no heap allocation, no artificial cap (reflects
 /// however many delegates are actually stored on-chain); `solana`-side
 /// callers collect it into an owned `Vec` to keep their existing signature.
 pub fn read_additional_delegates(
     data: &[u8],
     plugin_header_offset: usize,
-) -> Result<Option<ZcVec<'_, Address>>> {
+) -> Result<Option<RecordList<'_, Address>>> {
     let Some(offset) =
         find_plugin_offset(data, plugin_header_offset, plugin_type::UPDATE_DELEGATE)?
     else {
@@ -181,7 +183,7 @@ pub fn read_additional_delegates(
     if data.len() < list_start {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    let count = u32::from_le_bytes(data[offset..list_start].try_into().unwrap()) as usize;
+    let count = read_u32(data, offset)? as usize;
     let list_end = count
         .checked_mul(32)
         .and_then(|bytes| list_start.checked_add(bytes))
@@ -189,7 +191,7 @@ pub fn read_additional_delegates(
     if data.len() < list_end {
         return Err(NaclacError::AccountDataTooSmall.err(0));
     }
-    Ok(Some(ZcVec::from_bytes(&data[list_start..list_end])?))
+    Ok(Some(RecordList::from_bytes(&data[list_start..list_end])?))
 }
 
 #[cfg(kani)]

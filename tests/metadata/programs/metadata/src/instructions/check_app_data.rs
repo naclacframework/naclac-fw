@@ -15,9 +15,9 @@ pub fn check_app_data(ctx: Context<CheckAppData>) -> Result {
     let info = fetch_asset_app_data(&ctx.accounts.asset, PluginAuthorityArg::UpdateAuthority)?
         .ok_or(NaclacError::InvalidInstructionData)?;
 
-    #[cfg(not(feature = "pinocchio"))]
+    #[cfg(feature = "solana")]
     let bytes: &[u8] = &info.data;
-    #[cfg(feature = "pinocchio")]
+    #[cfg(not(feature = "solana"))]
     let bytes: &[u8] = info.data.as_bytes();
 
     if bytes != b"hello" {

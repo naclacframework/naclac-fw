@@ -21,7 +21,7 @@ pub fn update_freeze_delegate(ctx: Context<UpdateFreezeDelegate>) -> Result {
     // no trailing `init_authority` byte (see `plugin.rs::update_asset_plugin_signed`).
     let data = [6u8, plugin_type::FREEZE_DELEGATE, 1u8];
 
-    #[cfg(not(feature = "pinocchio"))]
+    #[cfg(feature = "solana")]
     update_asset_plugin_signed(
         ctx.accounts.mpl_core_program.to_cpi_handle(),
         AddAssetPluginAccounts {
@@ -36,7 +36,7 @@ pub fn update_freeze_delegate(ctx: Context<UpdateFreezeDelegate>) -> Result {
         &[],
     )?;
 
-    #[cfg(feature = "pinocchio")]
+    #[cfg(not(feature = "solana"))]
     update_asset_plugin_signed_pinocchio(
         ctx.accounts.mpl_core_program.to_cpi_handle(),
         AddAssetPluginAccounts {
