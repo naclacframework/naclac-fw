@@ -13,5 +13,5 @@ overflow-checks = true
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(target_os, values("solana"))',
-    'cfg(feature, values("pinocchio", "solana", "wincode"))'
+    'cfg(feature, values("pinocchio", "solana", "bytemuck", "borsh", "wincode"))'
 ] }

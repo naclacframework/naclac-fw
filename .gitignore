@@ -53,3 +53,7 @@ node_modules/
 /tests/event-cpi/Naclac.toml
 /tests/cpi/programs/
 /tests/cpi/Naclac.toml
+/tests/token/programs/
+/tests/token/Naclac.toml
+/tests/metadata/programs/
+/tests/metadata/Naclac.toml

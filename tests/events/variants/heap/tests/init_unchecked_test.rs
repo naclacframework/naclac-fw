@@ -4,8 +4,6 @@ use events_borsh_client::{
     types::PROGRAM_ID,
 };
 
-/// `init_unchecked` creates its account through naclac-core's raw
-/// `sol_invoke_signed_rust` `CreateAccount` CPI on the Solana backend.
 #[test]
 fn init_unchecked_creates_the_account_through_the_raw_create_account_cpi() {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");

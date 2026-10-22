@@ -16,6 +16,10 @@ pub mod events_prog {
         init_counter::init_counter(ctx)
     }
 
+    pub fn init_counter_unchecked(ctx: Context<InitCounterUnchecked>) -> Result {
+        init_counter_unchecked::init_counter_unchecked(ctx)
+    }
+
     pub fn increment_counter(ctx: Context<IncrementCounter>) -> Result {
         increment_counter::increment_counter(ctx)
     }

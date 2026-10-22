@@ -2,8 +2,6 @@ use naclac_lang::prelude::*;
 use crate::components::Counter;
 use crate::constants::SEED_COUNTER;
 
-/// Creates the counter through `init_unchecked`, which calls naclac-core's
-/// raw `sol_invoke_signed_rust`-based `CreateAccount` on the Solana backend.
 #[derive(Accounts)]
 pub struct InitCounterUnchecked {
     #[account(mut)]

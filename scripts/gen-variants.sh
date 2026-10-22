@@ -27,7 +27,8 @@
 # %KEBAB_SUFFIX% (`-zc`), %CAMEL_SUFFIX% (`Zc`), %RUNTIME% and %LAYOUT%.
 # A family directory may also hold `dependencies.toml` and `dev-dependencies.toml`,
 # whose lines are appended to the generated [dependencies] / [dev-dependencies]
-# tables. `<suite>/variants/static/<program>/` holds plain programs that are copied
+# tables, and `dependencies.<runtime>.toml` / `dev-dependencies.<runtime>.toml`
+# appended only for programs on that runtime. `<suite>/variants/static/<program>/` holds plain programs that are copied
 # into programs/ unchanged (for example a hook program a test loads).
 # A suite whose modes need different sources (for example zero-copy and heap
 # layouts) keeps one directory per family, <suite>/variants/<family>/{src,tests},
@@ -227,6 +228,8 @@ for i in "${!names[@]}"; do
   extra_dev_dependencies=""
   [ ! -f "$source_dir/dependencies.toml" ] || extra_dependencies=$'\n'"$(expand "$(tr -d '\r' <"$source_dir/dependencies.toml")")"
   [ ! -f "$source_dir/dev-dependencies.toml" ] || extra_dev_dependencies=$'\n'"$(expand "$(tr -d '\r' <"$source_dir/dev-dependencies.toml")")"
+  [ ! -f "$source_dir/dependencies.$runtime.toml" ] || extra_dependencies+=$'\n'"$(expand "$(tr -d '\r' <"$source_dir/dependencies.$runtime.toml")")"
+  [ ! -f "$source_dir/dev-dependencies.$runtime.toml" ] || extra_dev_dependencies+=$'\n'"$(expand "$(tr -d '\r' <"$source_dir/dev-dependencies.$runtime.toml")")"
 
   cat >"$program_dir/Cargo.toml" <<EOF
 [package]
