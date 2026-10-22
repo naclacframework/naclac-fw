@@ -34,12 +34,18 @@ jobs:
           INPUT: ${{ inputs.suite }}
         run: |
           all='["accounts-constraints","cpi","custom-discriminators","discriminator","dup-mut","enums","error-codes","event-cpi","events","fixed-capacity","interface","metadata","optional-accounts","pda-seeds","realloc","representation-routing","single-file-layout","stack-safety","token"]'
-          only="$INPUT"
-          if [ -z "$only" ]; then
-            only=$(printf '%s' "$MESSAGE" | grep -oE '\[suite: *[a-z-]+\]' | head -n1 | sed -E 's/\[suite: *([a-z-]+)\]/\1/' || true)
+          requested="$INPUT"
+          if [ -z "$requested" ]; then
+            requested=$(printf '%s' "$MESSAGE" | grep -oE '\[suite: *[a-z, -]+\]' | head -n1 | sed -E 's/\[suite: *([a-z, -]+)\]/\1/' || true)
           fi
-          if [ -n "$only" ] && printf '%s' "$all" | grep -q "\"$only\""; then
-            echo "suites=[\"$only\"]" >> "$GITHUB_OUTPUT"
+          picked=""
+          for name in $(printf '%s' "$requested" | tr ',' ' '); do
+            if printf '%s' "$all" | grep -q "\"$name\""; then
+              picked="${picked:+$picked,}\"$name\""
+            fi
+          done
+          if [ -n "$picked" ]; then
+            echo "suites=[$picked]" >> "$GITHUB_OUTPUT"
             echo "full=false" >> "$GITHUB_OUTPUT"
           else
             echo "suites=$all" >> "$GITHUB_OUTPUT"
