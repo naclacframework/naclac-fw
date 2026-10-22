@@ -1,0 +1,27 @@
+[package]
+name = "escrow_wincode_pinocchio"
+version = "0.1.0"
+description = "Escrow built with Naclac (pinocchio, wincode)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["wincode"]
+wincode = ["naclac-lang/wincode"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../lang", features = ["token"] }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
+escrow-wincode-pinocchio-client = { version = "0.1.0", path = "../../clients/rust/escrow_wincode_pinocchio" }
+
+[lints]
+workspace = true

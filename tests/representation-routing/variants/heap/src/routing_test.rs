@@ -32,7 +32,7 @@ const _: fn() = || {
 #[cfg(feature = "wincode")]
 const _: fn() = || {
     fn assert_wincode<
-        T: naclac_lang::prelude::SchemaWrite<naclac_lang::wincode_config::Config, Src = T>,
+        T: naclac_lang::prelude::wincode::SchemaWrite<naclac_lang::wincode_config::Config, Src = T>,
     >() {
     }
     assert_wincode::<Thing>();

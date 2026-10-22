@@ -390,7 +390,7 @@ impl AccountInfo {
 pub use crate::borsh::{BorshDeserialize, BorshSerialize};
 
 #[cfg(feature = "wincode")]
-pub use crate::wincode::{SchemaRead, SchemaWrite};
+pub use wincode_derive::{SchemaRead, SchemaWrite};
 
 /// Helper: get unix timestamp from the Clock sysvar (solana_program only)
 #[inline(always)]

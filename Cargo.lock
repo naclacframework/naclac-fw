@@ -2521,6 +2521,7 @@ dependencies = [
  "solana-stable-layout",
  "solana-system-interface 3.3.0",
  "wincode",
+ "wincode-derive",
 ]
 
 [[package]]
