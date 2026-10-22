@@ -16,7 +16,7 @@
 //! This crate builds with `bytemuck` (default feature) on the pinocchio
 //! runtime, so every check below expects the zero-copy shape.
 
-use crate::{DoThing, DynamicArgs, InnerThing, Thing, ThingEvent};
+use crate::{DynamicArgs, InnerThing, Thing, ThingEvent};
 use std::println;
 
 #[cfg(feature = "bytemuck")]
@@ -47,7 +47,7 @@ const _: fn() = || {
 #[cfg(feature = "solana")]
 const _: fn() = || {
     fn assert_loadable<'a, T: naclac_lang::prelude::LoadableAccounts<'a>>() {}
-    assert_loadable::<DoThing>();
+    assert_loadable::<crate::DoThing>();
 };
 
 #[test]

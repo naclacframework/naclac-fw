@@ -5,7 +5,7 @@
 //! This crate builds with `borsh` or `wincode` active (its own `default`) —
 //! every check below expects the heap shape of that layout.
 
-use crate::{DoThing, DynamicArgs, InnerThing, Thing, ThingEvent};
+use crate::{DynamicArgs, InnerThing, Thing, ThingEvent};
 use std::println;
 
 #[cfg(feature = "bytemuck")]
@@ -44,7 +44,7 @@ const _: fn() = || {
 #[cfg(feature = "solana")]
 const _: fn() = || {
     fn assert_loadable<'a, T: naclac_lang::prelude::LoadableAccounts<'a>>() {}
-    assert_loadable::<DoThing>();
+    assert_loadable::<crate::DoThing>();
 };
 
 #[test]
