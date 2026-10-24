@@ -6,10 +6,9 @@ use naclac_lang::prelude::*;
 // `generate_relational_checks` (`security.rs`), which runs post
 // account-load, not as part of the per-account metadata checks:
 // `Owner::program_owner(&vault) == ToAddress::address(&token_program)`.
-// Mismatch is `NaclacError::ProgramIdMismatch` — a genuinely different
-// error variant from `token::mint`'s `ConstraintAccountIsNone` and
-// `token::authority`'s `ConstraintAddress`, confirmed by reading the
-// codegen directly rather than assumed. Uses a bare `AccountInfo` for
+// Mismatch is `NaclacError::ProgramIdMismatch`, a different error variant
+// from the `ConstraintAddress` that `token::mint`/`token::authority` return.
+// Uses a bare `AccountInfo` for
 // `vault` (not `Account<TokenAccount>`) since only the owning-program
 // metadata is inspected here, never the account's data.
 #[derive(Accounts)]

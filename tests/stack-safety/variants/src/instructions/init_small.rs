@@ -21,7 +21,6 @@ pub struct InitSmall {
 
 pub fn init_small(ctx: Context<InitSmall>) -> Result {
     let small = &mut ctx.accounts.small;
-    small.bump = ctx.bumps.small;
     small.value = 0;
     Ok(())
 }

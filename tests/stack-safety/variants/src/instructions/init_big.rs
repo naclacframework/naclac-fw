@@ -21,7 +21,6 @@ pub struct InitBig {
 
 pub fn init_big(ctx: Context<InitBig>) -> Result {
     let big = &mut ctx.accounts.big;
-    big.bump = ctx.bumps.big;
     big.payload = [0u8; 300];
     Ok(())
 }

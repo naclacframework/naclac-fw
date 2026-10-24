@@ -648,28 +648,28 @@ macro_rules! cpi_signers_from_seeds {
         let mut __seeds_buffer: [::pinocchio::cpi::Seed;
             $crate::prelude::MAX_CPI_SEEDS_PER_SIGNER * $crate::prelude::MAX_CPI_SIGNERS] =
             unsafe { core::mem::zeroed() };
-        let mut __seed_ranges = [(0usize, 0usize); $crate::prelude::MAX_CPI_SIGNERS];
 
-        let mut __seed_idx = 0;
-
-        for (i, seed_parts) in $seeds.iter().enumerate() {
+        let mut __remaining: &mut [::pinocchio::cpi::Seed] = &mut __seeds_buffer;
+        for (__slot, seed_parts) in __signers.iter_mut().zip($seeds.iter()) {
             if seed_parts.len() > $crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
                 return Err($crate::prelude::NaclacError::TooManyCpiSeeds.into());
             }
-            let start_seed = __seed_idx;
-            for part in seed_parts.iter() {
-                __seeds_buffer[__seed_idx] = ::pinocchio::cpi::Seed::from(*part);
-                __seed_idx += 1;
+            let Some((__mine, __tail)) =
+                core::mem::take(&mut __remaining).split_at_mut_checked(seed_parts.len())
+            else {
+                return Err($crate::prelude::NaclacError::TooManyCpiSeeds.into());
+            };
+            for (__dst, part) in __mine.iter_mut().zip(seed_parts.iter()) {
+                *__dst = ::pinocchio::cpi::Seed::from(*part);
             }
-            __seed_ranges[i] = (start_seed, __seed_idx);
+            *__slot = ::pinocchio::cpi::Signer::from(&*__mine);
+            __remaining = __tail;
         }
 
-        for i in 0..$seeds.len() {
-            let (start, end) = __seed_ranges[i];
-            __signers[i] = ::pinocchio::cpi::Signer::from(&__seeds_buffer[start..end]);
-        }
-
-        let $signers_var: &[::pinocchio::cpi::Signer] = &__signers[..$seeds.len()];
+        let $signers_var: &[::pinocchio::cpi::Signer] = match __signers.get(..$seeds.len()) {
+            Some(signers) => signers,
+            None => return Err($crate::prelude::NaclacError::TooManyCpiSigners.into()),
+        };
     };
 }
 
@@ -896,5 +896,54 @@ mod kani_proofs {
             "must produce exactly one Signer per input signer group"
         );
         Ok(())
+    }
+}
+
+#[cfg(all(test, feature = "pinocchio"))]
+mod signer_seed_tests {
+    use crate::prelude::{MAX_CPI_SEEDS_PER_SIGNER, MAX_CPI_SIGNERS};
+
+    fn signer_count(signer_seeds: &[&[&[u8]]]) -> crate::prelude::Result<usize> {
+        cpi_signers_from_seeds!(signer_seeds, signers);
+        Ok(signers.len())
+    }
+
+    #[test]
+    fn accepts_no_signers() {
+        assert_eq!(signer_count(&[]).ok(), Some(0));
+    }
+
+    #[test]
+    fn accepts_the_maximum_shape() {
+        let seed: &[u8] = &[7u8];
+        let group: [&[u8]; MAX_CPI_SEEDS_PER_SIGNER] = [seed; MAX_CPI_SEEDS_PER_SIGNER];
+        let group_ref: &[&[u8]] = &group;
+        let all: [&[&[u8]]; MAX_CPI_SIGNERS] = [group_ref; MAX_CPI_SIGNERS];
+        assert_eq!(signer_count(&all).ok(), Some(MAX_CPI_SIGNERS));
+    }
+
+    #[test]
+    fn accepts_groups_of_different_lengths() {
+        let seed: &[u8] = &[1u8];
+        let short: [&[u8]; 1] = [seed];
+        let long: [&[u8]; 3] = [seed; 3];
+        let empty: [&[u8]; 0] = [];
+        let all: [&[&[u8]]; 3] = [&short, &empty, &long];
+        assert_eq!(signer_count(&all).ok(), Some(3));
+    }
+
+    #[test]
+    fn rejects_too_many_signers() {
+        let empty: &[&[u8]] = &[];
+        let all: [&[&[u8]]; MAX_CPI_SIGNERS + 1] = [empty; MAX_CPI_SIGNERS + 1];
+        assert!(signer_count(&all).is_err());
+    }
+
+    #[test]
+    fn rejects_too_many_seeds_in_one_group() {
+        let seed: &[u8] = &[0u8];
+        let group: [&[u8]; MAX_CPI_SEEDS_PER_SIGNER + 1] = [seed; MAX_CPI_SEEDS_PER_SIGNER + 1];
+        let group_ref: &[&[u8]] = &group;
+        assert!(signer_count(&[group_ref]).is_err());
     }
 }

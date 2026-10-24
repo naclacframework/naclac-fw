@@ -1302,7 +1302,7 @@ impl TokenAccount {
     /// Compares the account's mint field (offset 0..32) to `expected`.
     pub fn check_mint(data: &[u8], expected: &Address) -> core::result::Result<(), NaclacError> {
         if data.len() < 32 {
-            return Err(NaclacError::ConstraintAccountIsNone);
+            return Err(NaclacError::AccountDataTooSmall);
         }
         let actual = Address::new_from_array(
             data[0..32]
@@ -1310,7 +1310,7 @@ impl TokenAccount {
                 .unwrap_or_else(|_| panic!("slice length mismatch")),
         );
         if &actual != expected {
-            return Err(NaclacError::ConstraintAccountIsNone);
+            return Err(NaclacError::ConstraintAddress);
         }
         Ok(())
     }
@@ -1321,7 +1321,7 @@ impl TokenAccount {
         expected: &Address,
     ) -> core::result::Result<(), NaclacError> {
         if data.len() < 64 {
-            return Err(NaclacError::ConstraintAccountIsNone);
+            return Err(NaclacError::AccountDataTooSmall);
         }
         let actual = Address::new_from_array(
             data[32..64]
@@ -1339,7 +1339,7 @@ impl Mint {
     /// Compares the mint's decimals byte (offset 44) to `expected`.
     pub fn check_decimals(data: &[u8], expected: u8) -> core::result::Result<(), NaclacError> {
         if data.len() < 82 {
-            return Err(NaclacError::ConstraintAccountIsNone);
+            return Err(NaclacError::AccountDataTooSmall);
         }
         if data[44] != expected {
             return Err(NaclacError::Unauthorized);
@@ -1354,7 +1354,7 @@ impl Mint {
         expected: &Address,
     ) -> core::result::Result<(), NaclacError> {
         if data.len() < 82 {
-            return Err(NaclacError::ConstraintAccountIsNone);
+            return Err(NaclacError::AccountDataTooSmall);
         }
         if data[0..4] != [1u8, 0, 0, 0] {
             return Err(NaclacError::Unauthorized);
@@ -1377,7 +1377,7 @@ impl Mint {
         expected: &Address,
     ) -> core::result::Result<(), NaclacError> {
         if data.len() < 82 {
-            return Err(NaclacError::ConstraintAccountIsNone);
+            return Err(NaclacError::AccountDataTooSmall);
         }
         if data[46..50] != [1u8, 0, 0, 0] {
             return Err(NaclacError::Unauthorized);

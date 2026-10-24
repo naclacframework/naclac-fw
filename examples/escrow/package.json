@@ -10,11 +10,12 @@
   },
   "dependencies": {
     "@naclac-fw/client": "link:../../client",
-    "@solana/kit": "^6.9.0",
-    "@solana-program/system": "^0.12.1",
-    "@solana-program/token-2022": "^0.9.0",
-    "@solana/web3.js": "^1.98.4",
-    "@solana/spl-token": "^0.4.14"
+    "@naclac-fw/litesvm": "link:../../litesvm-node",
+    "@solana/kit": "^8",
+    "@solana-program/system": "^0.15",
+    "@solana-program/token-2022": "^0.15.0",
+    "@solana/web3.js": "^1.99",
+    "@solana/spl-token": "^0.4"
   },
   "devDependencies": {
     "@types/node": "^22.13.1",

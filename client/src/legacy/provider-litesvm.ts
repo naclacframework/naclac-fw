@@ -105,6 +105,20 @@ function wrapNativeConnection(svm: import("@naclac-fw/litesvm").LiteSvm): Connec
       }));
     },
 
+    getTokenAccountBalance: async (pubkey: PublicKey, _commitment?: any) => {
+      const bal = svm.getTokenAccountBalance(pubkey.toBase58());
+      const uiAmount = Number(bal.amount) / Math.pow(10, bal.decimals);
+      return {
+        context: { slot: 0 },
+        value: {
+          amount: bal.amount.toString(),
+          decimals: bal.decimals,
+          uiAmount,
+          uiAmountString: uiAmount.toString(),
+        },
+      };
+    },
+
     getLatestBlockhash: async (_commitment?: any) => {
       const bh = svm.getLatestBlockhash();
       // litesvm mode's confirm path never reads `lastValidBlockHeight` (it

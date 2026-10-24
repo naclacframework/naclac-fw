@@ -552,9 +552,8 @@ duplicated). Two real bugs found and fixed while first running this:
   the real Token program) is accepted against a `Program<Token>` field
   pointed at the real Token program. Negative case: the `mint_authority` PDA
   (owned by our own program, not the Token program) is passed as `vault`
-  instead, expecting `NaclacError::ProgramIdMismatch` — confirmed distinct
-  from `token::mint`'s `ConstraintAccountIsNone` and `token::authority`'s
-  `ConstraintAddress` by reading the codegen directly. Avoids needing a
+  instead, expecting `NaclacError::ProgramIdMismatch`, distinct from the
+  `ConstraintAddress` that `token::mint` and `token::authority` return. Avoids needing a
   second, separately-deployed token program (e.g. Token-2022) in `litesvm`
   for the negative case — any non-Token-owned account reaches the relational
   check the same way, since `Account<TokenAccount>`'s own `try_from`

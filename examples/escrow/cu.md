@@ -2,9 +2,9 @@ make is listed as take-flow / cancel-flow.
 
 escrow (pinocchio, bytemuck)
 
-make: 3598/4284
-cancel: 3511
-take: 5031
+make: 3500/4276
+cancel: 3464
+take: 4958
 
 
 escrow_zc (solana, bytemuck)

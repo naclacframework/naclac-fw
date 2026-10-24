@@ -548,13 +548,12 @@ pub fn generate_security_checks(
 
             match &field.pda_bump {
                 Some(PdaBump::Auto) if field.init_config.is_none() => {
-                    let is_spl_type = crate::type_classify::inner_is(&field.ty, "TokenAccount")
-                        || crate::type_classify::inner_is(&field.ty, "Mint");
-                    if is_zero_copy_account_field(&field.ty, is_zero_copy) && !is_spl_type {
+                    let stores_bump = crate::type_classify::wrapped_data_ident(&field.ty)
+                        .is_some_and(|ident| component_declares_bump_field(&ident.to_string()));
+                    if is_zero_copy_account_field(&field.ty, is_zero_copy) && stores_bump {
                         // Account<T>'s zero-copy branch implements Deref<Target=T>: access .bump directly.
                         bump_expr = quote! { #field_ident.bump };
-                    } else if crate::type_classify::is_exactly(&field.ty, "Account") && !is_spl_type
-                    {
+                    } else if crate::type_classify::is_exactly(&field.ty, "Account") && stores_bump {
                         // Only reachable for a heap-allocated (Borsh or Wincode)
                         // `Account<T>`: a zero-copy `Account<T>` already took the
                         // branch above. `is_zero_copy` is already known false here

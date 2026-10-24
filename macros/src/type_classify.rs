@@ -60,6 +60,29 @@ pub(crate) fn first_generic_type(ty: &Type) -> Option<&Type> {
     })
 }
 
+/// The base ident of the data type an account wrapper holds (the `T` of
+/// `Account<T>`), looking through any `Box<...>` layers around the wrapper.
+pub(crate) fn wrapped_data_ident(ty: &Type) -> Option<syn::Ident> {
+    let mut ty = ty;
+    loop {
+        let Type::Path(type_path) = ty else {
+            return None;
+        };
+        let segment = type_path.path.segments.last()?;
+        let PathArguments::AngleBracketed(args) = &segment.arguments else {
+            return None;
+        };
+        let inner = args.args.iter().find_map(|a| match a {
+            GenericArgument::Type(t) => Some(t),
+            _ => None,
+        })?;
+        if segment.ident != "Box" {
+            return base_ident(inner);
+        }
+        ty = inner;
+    }
+}
+
 /// True if `ty`'s first generic argument's base ident is exactly `name` —
 /// e.g. `inner_is(Account<TokenAccount>, "TokenAccount")`,
 /// `inner_is(Program<System>, "System")`.

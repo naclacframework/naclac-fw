@@ -294,28 +294,29 @@ mod pinocchio_system {
             let mut __seeds_buffer: [::pinocchio::cpi::Seed;
                 crate::prelude::MAX_CPI_SEEDS_PER_SIGNER * crate::prelude::MAX_CPI_SIGNERS] =
                 unsafe { core::mem::zeroed() };
-            let mut __seed_ranges = [(0usize, 0usize); crate::prelude::MAX_CPI_SIGNERS];
 
-            let mut __seed_idx = 0;
-
-            for (i, seed_parts) in $seeds.iter().enumerate() {
+            let mut __remaining: &mut [::pinocchio::cpi::Seed] = &mut __seeds_buffer;
+            for (__slot, seed_parts) in __signers.iter_mut().zip($seeds.iter()) {
                 if seed_parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
                     return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
                 }
-                let start_seed = __seed_idx;
-                for part in seed_parts.iter() {
-                    __seeds_buffer[__seed_idx] = ::pinocchio::cpi::Seed::from(*part);
-                    __seed_idx += 1;
+                let Some((__mine, __tail)) =
+                    core::mem::take(&mut __remaining).split_at_mut_checked(seed_parts.len())
+                else {
+                    return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
+                };
+                for (__dst, part) in __mine.iter_mut().zip(seed_parts.iter()) {
+                    *__dst = ::pinocchio::cpi::Seed::from(*part);
                 }
-                __seed_ranges[i] = (start_seed, __seed_idx);
+                *__slot = ::pinocchio::cpi::Signer::from(&*__mine);
+                __remaining = __tail;
             }
 
-            for i in 0..$seeds.len() {
-                let (start, end) = __seed_ranges[i];
-                __signers[i] = ::pinocchio::cpi::Signer::from(&__seeds_buffer[start..end]);
-            }
-
-            let $signers_var: &[::pinocchio::cpi::Signer] = &__signers[..$seeds.len()];
+            let $signers_var: &[::pinocchio::cpi::Signer] =
+                match __signers.get(..$seeds.len()) {
+                    Some(signers) => signers,
+                    None => return Err(crate::prelude::NaclacError::TooManyCpiSigners.into()),
+                };
         };
     }
 

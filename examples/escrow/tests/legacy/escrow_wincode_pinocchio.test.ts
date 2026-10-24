@@ -19,7 +19,7 @@ describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
     makerAddress = payer.publicKey.toBase58();
 
     // Use "localnet" to construct the client
-    client = new EscrowWincodePinocchioClient("localnet", payer);
+    client = new EscrowWincodePinocchioClient("litesvm", payer);
 
     console.log("🚀 Starting EscrowWincodePinocchio TypeScript Integration Test Setup (Legacy)...");
 
@@ -249,6 +249,22 @@ describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
       throw new Error(`Expected vault balance to be ${storedAmountA}, got ${vaultTakeRes.value.amount}`);
     }
 
+    // The taker must be a distinct account from the maker: the program rejects
+    // a transaction that passes the same account in two mutable positions.
+    const takerKeypair = naclac.Keypair.generate();
+    await naclac.transferSol(client.program.provider, takerKeypair.publicKey, 1_000_000_000n);
+    const takerTokenAccountA = (await naclac.createAta(
+      client.program.provider,
+      new naclac.PublicKey(effectiveMintA),
+      takerKeypair.publicKey
+    )).toBase58();
+    const takerTokenAccountB = (await naclac.createAta(
+      client.program.provider,
+      new naclac.PublicKey(effectiveMintB),
+      takerKeypair.publicKey
+    )).toBase58();
+    await naclac.mintTo(client.program.provider, new naclac.PublicKey(effectiveMintB), takerKeypair.publicKey, initialTakerB);
+
     console.log("      🎬 Sending TAKE transaction...");
     const exchangedEventPromise = client.waitForEscrowExchanged({ timeoutMs: 10000 });
 
@@ -256,17 +272,18 @@ describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
       .take(
         { seed: seedTake },
         {
-          taker: makerAddress,
+          taker: takerKeypair.publicKey.toBase58(),
           maker: makerAddress,
           mintA: effectiveMintA,
           mintB: effectiveMintB,
           escrowState: escrowPdaTake,
           vaultTokenAccount: vaultTokenAccountTake,
-          takerTokenAccountA: effectiveMakerTokenAccountA,
-          takerTokenAccountB: effectiveMakerTokenAccountB,
+          takerTokenAccountA,
+          takerTokenAccountB,
           makerTokenAccountB: effectiveMakerTokenAccountB,
         }
       )
+      .signers([takerKeypair])
       .rpc()
       .catch((e: any) => { console.error(e); throw e; });
 

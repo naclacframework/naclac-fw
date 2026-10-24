@@ -137,10 +137,8 @@ fn mint_creation_and_token_cpis_work_end_to_end() {
 }
 
 /// `token::mint`/`token::authority` on an existing (non-`init`) account:
-/// a vault backed by the wrong mint is rejected (`ConstraintAccountIsNone`),
-/// a vault owned by the wrong authority is rejected (`ConstraintAddress`) —
-/// deliberately distinct error variants, confirmed from `security.rs`
-/// directly rather than assumed. A correctly-matching vault is accepted.
+/// a vault backed by the wrong mint or owned by the wrong authority is
+/// rejected (`ConstraintAddress`). A correctly-matching vault is accepted.
 #[test]
 fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     let provider = setup();
@@ -233,10 +231,9 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     )
     .send_and_confirm();
     // `CheckVaultConstraints { mint, mint_authority, vault }` — `vault` is
-    // field index 2; `token::mint` mismatch emits `ConstraintAccountIsNone`
-    // (8), not `ConstraintAddress` (confirmed in `security.rs`'s
-    // `token::mint` codegen branch) -> 10000 + 2*100 + 8 = 10208.
-    assert_custom_code(wrong_mint_result, 10208);
+    // field index 2; `token::mint` mismatch emits `ConstraintAddress`
+    // (3) -> 10000 + 2*100 + 3 = 10203.
+    assert_custom_code(wrong_mint_result, 10203);
 
     let wrong_authority_result = build_check_vault_constraints(
         &provider,
@@ -309,9 +306,8 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
 /// (`generate_relational_checks`/`security.rs`, post account-load). A real
 /// SPL token account genuinely owned by the Token program is accepted; an
 /// account owned by our own program (the `mint_authority` PDA) is rejected
-/// with `NaclacError::ProgramIdMismatch` — a distinct error variant from
-/// `token::mint`'s `ConstraintAccountIsNone` and `token::authority`'s
-/// `ConstraintAddress`, confirmed by reading the codegen directly.
+/// with `NaclacError::ProgramIdMismatch`, a different error variant from the
+/// `ConstraintAddress` that `token::mint` and `token::authority` return.
 #[test]
 fn token_program_constraint_rejects_wrong_owning_program() {
     let provider = setup();

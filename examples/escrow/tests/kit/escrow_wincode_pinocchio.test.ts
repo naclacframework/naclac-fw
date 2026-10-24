@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { EscrowWincodePinocchioClient } from "../../clients/typescript/src/generated/escrow_wincode_pinocchio";
+import { EscrowWincodePinocchioClient } from "../../clients/typescript/src/generated/escrow_wincode_pinocchio/client-kit";
 
 describe("Naclac EscrowWincodePinocchio Test Suite", () => {
   let client: EscrowWincodePinocchioClient;
@@ -19,7 +19,7 @@ describe("Naclac EscrowWincodePinocchio Test Suite", () => {
     makerAddress = payer.address;
 
     // Use "localnet" to construct the client
-    client = new EscrowWincodePinocchioClient("localnet", payer);
+    client = new EscrowWincodePinocchioClient("litesvm", payer);
 
     console.log("🚀 Starting EscrowWincodePinocchio TypeScript Integration Test Setup...");
 
@@ -259,6 +259,23 @@ describe("Naclac EscrowWincodePinocchio Test Suite", () => {
       throw new Error(`Expected vault balance to be ${storedAmountA}, got ${vaultTakeRes.value.amount}`);
     }
 
+    // The taker must be a distinct account from the maker: the program rejects
+    // a transaction that passes the same account in two mutable positions.
+    const takerSigner = await naclac.generateKeyPairSigner();
+    await naclac.transferSol(client.program.provider, takerSigner.address, 1_000_000_000n);
+    const takerTokenAccountA = await naclac.createAta(
+      client.program.provider,
+      effectiveMintA,
+      takerSigner.address,
+      naclac.TOKEN_PROGRAM_ID
+    );
+    await naclac.mintTo(client.program.provider, effectiveMintB, takerSigner.address, initialTakerB, naclac.TOKEN_PROGRAM_ID);
+    const [takerTokenAccountB] = await naclac.getAssociatedTokenAddress(
+      effectiveMintB,
+      takerSigner.address,
+      naclac.TOKEN_PROGRAM_ID
+    );
+
     console.log("      🎬 Sending TAKE transaction...");
     const exchangedEventPromise = client.waitForEscrowExchanged({ timeoutMs: 10000 });
 
@@ -266,19 +283,20 @@ describe("Naclac EscrowWincodePinocchio Test Suite", () => {
       .take(
         { seed: seedTake },
         {
-          taker: makerAddress,
+          taker: takerSigner.address,
           maker: makerAddress,
           mintA: effectiveMintA,
           mintB: effectiveMintB,
           escrowState: escrowPdaTake,
           vaultTokenAccount: vaultTokenAccountTake,
-          takerTokenAccountA: effectiveMakerTokenAccountA,
-          takerTokenAccountB: effectiveMakerTokenAccountB,
+          takerTokenAccountA,
+          takerTokenAccountB,
           makerTokenAccountB: effectiveMakerTokenAccountB,
           tokenProgram: naclac.TOKEN_PROGRAM_ID,
           systemProgram: naclac.SYSTEM_PROGRAM_ID,
         }
       )
+      .signers([takerSigner])
       .rpc()
       .catch(naclac.logError);
 

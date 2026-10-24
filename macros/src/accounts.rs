@@ -1061,19 +1061,15 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
 
         for field in &parsed_fields {
             let name = &field.ident;
-            let is_spl_type = crate::type_classify::inner_is(&field.ty, "TokenAccount")
-                || crate::type_classify::inner_is(&field.ty, "Mint");
             let is_zero_copy_field = security::is_zero_copy_account_field(&field.ty, is_zero_copy);
             let is_borsh_field =
                 variant_type == 1 && crate::type_classify::is_exactly(&field.ty, "Account");
             let is_wincode_field =
                 variant_type == 2 && crate::type_classify::is_exactly(&field.ty, "Account");
-            let has_bump_field = crate::type_classify::first_generic_type(&field.ty)
-                .and_then(crate::type_classify::base_ident)
+            let has_bump_field = crate::type_classify::wrapped_data_ident(&field.ty)
                 .is_some_and(|ident| security::component_declares_bump_field(&ident.to_string()));
 
             if (is_zero_copy_field || is_borsh_field || is_wincode_field)
-                && !is_spl_type
                 && field.is_mut
                 && field.pda_seed.is_some()
                 && matches!(field.pda_bump, Some(parser::PdaBump::Auto))

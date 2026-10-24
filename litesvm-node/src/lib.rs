@@ -19,7 +19,7 @@ use solana_transaction::versioned::VersionedTransaction;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 /// `(programId, logs, signature, slot)` — the same raw shape a real
 /// `onLogs`/`logsSubscribe` push notification already hands to
@@ -121,7 +121,7 @@ pub struct TokenBalanceResult {
 #[napi(js_name = "LiteSvm")]
 pub struct LiteSvm {
     inner: NaclacProvider,
-    listeners: Mutex<HashMap<u32, (String, LogsCallback)>>,
+    listeners: Mutex<HashMap<u32, (String, Arc<LogsCallback>)>>,
     next_listener_id: AtomicU32,
 }
 
@@ -159,7 +159,7 @@ impl LiteSvm {
         self.listeners
             .lock()
             .map_err(|e| to_napi_err(format!("Failed to lock listener registry: {}", e)))?
-            .insert(id, (program_id, callback));
+            .insert(id, (program_id, Arc::new(callback)));
         Ok(id)
     }
 
@@ -177,26 +177,33 @@ impl LiteSvm {
     /// `logsSubscribe({ mentions: [...] })` semantics (top-level or via
     /// CPI), not just the top-level instruction.
     fn notify_logs_listeners(&self, env: &Env, meta: &NaclacTransactionMetadata) -> Result<()> {
-        let listeners = self
-            .listeners
-            .lock()
-            .map_err(|e| to_napi_err(format!("Failed to lock listener registry: {}", e)))?;
-        if listeners.is_empty() {
+        let matching: Vec<(String, Arc<LogsCallback>)> = {
+            let listeners = self
+                .listeners
+                .lock()
+                .map_err(|e| to_napi_err(format!("Failed to lock listener registry: {}", e)))?;
+            listeners
+                .values()
+                .filter(|(program_id, _)| {
+                    let invoke_prefix = format!("Program {} invoke", program_id);
+                    meta.logs
+                        .iter()
+                        .any(|line| line.starts_with(&invoke_prefix))
+                })
+                .map(|(program_id, callback)| (program_id.clone(), Arc::clone(callback)))
+                .collect()
+        };
+        if matching.is_empty() {
             return Ok(());
         }
+        // The registry lock is released before any callback runs: a callback
+        // may call `addLogsListener`/`removeLogsListener` (e.g. a one-shot
+        // listener unsubscribing itself), which would deadlock on a held lock.
         let signature = meta.signature.to_string();
-        for (program_id, callback) in listeners.values() {
-            let invoke_prefix = format!("Program {} invoke", program_id);
-            let mentioned = meta
-                .logs
-                .iter()
-                .any(|line| line.starts_with(&invoke_prefix));
-            if !mentioned {
-                continue;
-            }
+        for (program_id, callback) in matching {
             let function = callback.borrow_back(env)?;
             function.call(FnArgs::from((
-                program_id.clone(),
+                program_id,
                 meta.logs.clone(),
                 signature.clone(),
                 0u32,

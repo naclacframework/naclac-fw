@@ -20,7 +20,7 @@ fn setup() -> NaclacProvider {
 #[test]
 fn small_unboxed_field_inits_and_mutates() {
     let provider = setup();
-    let (small_pda, _bump) = get_small_pda(&PROGRAM_ID);
+    let (small_pda, small_bump) = get_small_pda(&PROGRAM_ID);
 
     build_init_small(
         &provider,
@@ -36,6 +36,10 @@ fn small_unboxed_field_inits_and_mutates() {
 
     let before = fetch_small_data(&provider, &small_pda).expect("small should be readable after init");
     assert_eq!(before.value, 0);
+    assert_eq!(
+        before.bump, small_bump,
+        "init with a bare `bump` must store the canonical bump without the handler setting it"
+    );
 
     build_touch_small(
         &provider,
@@ -58,7 +62,7 @@ fn small_unboxed_field_inits_and_mutates() {
 #[test]
 fn big_boxed_field_inits_and_mutates_and_address_works() {
     let provider = setup();
-    let (big_pda, _bump) = get_big_pda(&PROGRAM_ID);
+    let (big_pda, big_bump) = get_big_pda(&PROGRAM_ID);
 
     build_init_big(
         &provider,
@@ -74,6 +78,10 @@ fn big_boxed_field_inits_and_mutates_and_address_works() {
 
     let before = fetch_big_data(&provider, &big_pda).expect("big should be readable after init");
     assert_eq!(before.payload[0], 0);
+    assert_eq!(
+        before.bump, big_bump,
+        "init with a bare `bump` must store the canonical bump through Box<Account<T>> too"
+    );
 
     build_touch_big(&provider, PROGRAM_ID, TouchBigAccounts { big: big_pda })
         .send_and_confirm()
