@@ -164,7 +164,7 @@ export interface LiteSvmProvider extends NaclacProvider {
 /**
  * Creates a `NaclacProvider` backed by an in-process litesvm instance
  * instead of a real cluster — auto-loads this workspace's own program(s)
- * from `target/deploy/` (same as the Rust `NaclacProvider::new("litesvm", ...)`),
+ * from `artifacts/deploy/` (same as the Rust `NaclacProvider::new("litesvm", ...)`),
  * with `addProgram`/`addProgramFromCluster` available on `.litesvm` for
  * anything external.
  *

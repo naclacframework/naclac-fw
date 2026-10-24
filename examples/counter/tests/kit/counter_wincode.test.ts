@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { CounterWincodeClient } from "../../clients/typescript/src/generated/counter_wincode/client-kit";
+import { CounterWincodeClient } from "../../artifacts/clients/typescript/src/generated/counter_wincode/client-kit";
 
 describe("Naclac CounterBorsh Test Suite (Kit)", () => {
   let client: CounterWincodeClient;
@@ -8,7 +8,7 @@ describe("Naclac CounterBorsh Test Suite (Kit)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterWincodeClient("devnet", payer);
+    client = new CounterWincodeClient("litesvm", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 

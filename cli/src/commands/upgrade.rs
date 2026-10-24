@@ -89,7 +89,7 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
             ui::error("Upgrade deployment failed.");
         }
     } else {
-        let deploy_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("deploy");
+        let deploy_dir = naclac_client_gen::deploy_dir(&workspace_root);
 
         let so_file_path = if let Some(path) = filepath {
             path.to_string()
@@ -144,7 +144,7 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
                         resolved_so = Some(so_files[0].to_string_lossy().into_owned());
                     } else if resolved_so.is_none() && so_files.len() > 1 {
                         ui::error(format!(
-                            "Multiple .so files found in target/deploy/ without matching \
+                            "Multiple .so files found in artifacts/deploy/ without matching \
                              keypairs — specify the filepath manually for program {}",
                             program_id
                         ));

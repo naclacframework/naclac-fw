@@ -50,17 +50,7 @@ done
 
 contains() { local needle=$1; shift; for x in "$@"; do [ "$x" = "$needle" ] && return 0; done; return 1; }
 
-target_dir_of() {
-  python3 - "$1" <<'PY'
-import json, subprocess, sys
-out = subprocess.check_output(
-    ["cargo", "metadata", "--no-deps", "--format-version", "1", "--manifest-path", sys.argv[1]]
-)
-print(json.loads(out)["target_directory"])
-PY
-}
-
-# materialize TREE REP MODE  -> sets WS, CRATE, TARGET, PUBKEY
+# materialize TREE REP MODE  -> sets WS, CRATE, ARTIFACTS, PUBKEY
 materialize() {
   local tree=$1 rep=$2 mode=$3
   CRATE="idlp_${tree}_${rep}"
@@ -125,12 +115,12 @@ EOF
 
   cp -r "$HERE/sources/$tree/src" "$prog/src"
 
-  TARGET=$(target_dir_of "$WS/Cargo.toml") || return 1
-  mkdir -p "$TARGET/deploy"
+  ARTIFACTS="$WS/artifacts"
+  mkdir -p "$ARTIFACTS/deploy"
   mkdir -p "$WORK/keys"
   local keypair="$WORK/keys/${CRATE}-keypair.json"
   [ -f "$keypair" ] || solana-keygen new --no-bip39-passphrase --silent --force -o "$keypair" >/dev/null || return 1
-  cp "$keypair" "$TARGET/deploy/${CRATE}-keypair.json"
+  cp "$keypair" "$ARTIFACTS/deploy/${CRATE}-keypair.json"
   PUBKEY=$(solana-keygen pubkey "$keypair") || return 1
 
   find "$prog/src" -name '*.rs' -exec sed -i "s/__CRATE__/$CRATE/g; s/__PROGRAM_ID__/$PUBKEY/g" {} +
@@ -152,10 +142,10 @@ wallet = "~/.config/solana/id.json"
 EOF
 }
 
-# generate_idl OUT LOG  (uses WS CRATE TARGET from materialize)
+# generate_idl OUT LOG  (uses WS CRATE ARTIFACTS from materialize)
 generate_idl() {
   local out=$1 log=$2
-  rm -f "$TARGET/idl/$CRATE.json"
+  rm -f "$ARTIFACTS/idl/$CRATE.json"
   local rc
   if [ $verbose -eq 1 ]; then
     ( cd "$WS" && "$NACLAC" generate "$CRATE" --show-output idl ) 2>&1 | tee "$log"
@@ -165,8 +155,8 @@ generate_idl() {
     rc=$?
   fi
   [ $rc -eq 0 ] || return 1
-  [ -f "$TARGET/idl/$CRATE.json" ] || return 1
-  cp "$TARGET/idl/$CRATE.json" "$out"
+  [ -f "$ARTIFACTS/idl/$CRATE.json" ] || return 1
+  cp "$ARTIFACTS/idl/$CRATE.json" "$out"
 }
 
 mkdir -p "$WORK/out" "$WORK/logs"

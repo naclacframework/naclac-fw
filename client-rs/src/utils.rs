@@ -78,30 +78,12 @@ fn compile_provider_message(
     }
 }
 
-/// Resolves the real cargo target directory for the crate at `manifest_dir`
-/// (typically `env!("CARGO_MANIFEST_DIR")`), honoring `CARGO_TARGET_DIR` and
-/// `.cargo/config.toml`'s `target-dir` the same way `cargo` itself does — by
-/// asking `cargo metadata` directly rather than re-implementing cargo's own
-/// env-var/config-file resolution order. Falls back to `<manifest_dir>/target`
-/// if `cargo metadata` can't be run at all.
-pub fn resolve_cargo_target_dir(manifest_dir: &std::path::Path) -> std::path::PathBuf {
-    if let Ok(output) = std::process::Command::new("cargo")
-        .arg("metadata")
-        .arg("--no-deps")
-        .arg("--format-version")
-        .arg("1")
-        .current_dir(manifest_dir)
-        .output()
-    {
-        if output.status.success() {
-            if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
-                if let Some(dir) = json.get("target_directory").and_then(|v| v.as_str()) {
-                    return std::path::PathBuf::from(dir);
-                }
-            }
-        }
-    }
-    manifest_dir.join("target")
+/// Directory holding each program's `<name>.so` next to its
+/// `<name>-keypair.json` for the naclac workspace rooted at `workspace_root`
+/// (the directory containing `Naclac.toml`). Must stay identical to
+/// `naclac_client_gen::deploy_dir`, which `naclac build` writes to.
+pub fn workspace_deploy_dir(workspace_root: &std::path::Path) -> std::path::PathBuf {
+    workspace_root.join("artifacts").join("deploy")
 }
 
 pub fn load_node_wallet() -> Result<Keypair, NaclacClientError> {

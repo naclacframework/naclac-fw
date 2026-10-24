@@ -83,9 +83,9 @@ pub fn execute(address: &str) {
         return;
     };
 
-    let idl_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("idl");
+    let idl_dir = naclac_client_gen::idl_dir(&workspace_root);
     if !idl_dir.exists() {
-        eprintln!("❌ Error: No IDLs found in target/idl. Run `naclac build` first.");
+        eprintln!("❌ Error: No IDLs found in artifacts/idl. Run `naclac build` first.");
         return;
     }
 

@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { CounterClient } from "../../clients/typescript/src/generated/counter/client-kit";
+import { CounterClient } from "../../artifacts/clients/typescript/src/generated/counter/client-kit";
 
 describe("Naclac Counter Test Suite (Kit)", () => {
   let client: CounterClient;
@@ -9,7 +9,7 @@ describe("Naclac Counter Test Suite (Kit)", () => {
   before(async () => {
     payer = await naclac.loadNodeWallet();
     // Change this to "devnet" or an RPC URL to test against a live network!
-    client = new CounterClient("devnet", payer);
+    client = new CounterClient("litesvm", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 

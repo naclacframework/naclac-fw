@@ -70,6 +70,32 @@ pub fn resolve_target_dir(workspace_root: &Path) -> PathBuf {
         .unwrap_or_else(|| workspace_root.join("target"))
 }
 
+pub const ARTIFACTS_DIR_NAME: &str = "artifacts";
+
+/// Root of everything naclac generates or must keep for `workspace_root`;
+/// independent of cargo's target directory.
+pub fn artifacts_dir(workspace_root: &Path) -> PathBuf {
+    workspace_root.join(ARTIFACTS_DIR_NAME)
+}
+
+/// Holds `<name>.json` and `<name>.ts` for every program.
+pub fn idl_dir(workspace_root: &Path) -> PathBuf {
+    artifacts_dir(workspace_root).join("idl")
+}
+
+/// Holds the generated `rust/` and `typescript/` clients.
+pub fn clients_dir(workspace_root: &Path) -> PathBuf {
+    artifacts_dir(workspace_root).join("clients")
+}
+
+/// Holds each program's `<name>.so` next to its `<name>-keypair.json`. The two
+/// must stay co-located: `cargo build-sbf --sbf-out-dir`, `solana program
+/// deploy`, and `naclac-client`'s litesvm loader all derive the program ID
+/// from the keypair beside the `.so`.
+pub fn deploy_dir(workspace_root: &Path) -> PathBuf {
+    artifacts_dir(workspace_root).join("deploy")
+}
+
 pub fn find_naclac_framework_root(start_dir: &Path) -> Option<PathBuf> {
     let mut dir = start_dir.canonicalize().ok()?;
     for _ in 0..7 {

@@ -2470,7 +2470,6 @@ dependencies = [
  "spl-token",
  "spl-token-2022",
  "thiserror 2.0.21",
- "toml",
  "wincode",
 ]
 

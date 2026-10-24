@@ -63,8 +63,7 @@ pub fn execute(target_file: Option<&str>, run_order: bool) {
 
     // Load IDLs to match discriminators
     let mut idls = Vec::new();
-    let target_dir = naclac_client_gen::resolve_target_dir(workspace_root);
-    let idl_dir = target_dir.join("idl");
+    let idl_dir = naclac_client_gen::idl_dir(workspace_root);
     if idl_dir.exists() {
         for entry in fs::read_dir(&idl_dir).unwrap() {
             let entry = entry.unwrap();
@@ -112,7 +111,8 @@ pub fn execute(target_file: Option<&str>, run_order: bool) {
         return;
     }
 
-    let profile_file = target_dir.join("naclac_profile.jsonl");
+    let profile_file =
+        naclac_client_gen::artifacts_dir(workspace_root).join("naclac_profile.jsonl");
     let profile_file_str = profile_file.to_str().unwrap().to_string();
 
     let mut all_reports: Vec<(String, Vec<(String, u64)>)> = Vec::new();

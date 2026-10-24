@@ -265,7 +265,7 @@ debug-mode = []
 
 [dev-dependencies]
 naclac-client = {{ version = "0.1.0"{naclac_client_path} }}
-{pname_kebab}-client = {{ version = "0.1.0", path = "../../clients/rust/{snake_name}" }}
+{pname_kebab}-client = {{ version = "0.1.0", path = "../../artifacts/clients/rust/{snake_name}" }}
 
 [lints]
 workspace = true
@@ -548,7 +548,7 @@ fn test_{snake_name}_integration() {{
     let test_ts = match ts_framework {
         TsFramework::Kit => format!(
             r#"import * as naclac from "@naclac-fw/client/kit";
-import {{ {type_name}Client }} from "../clients/typescript/src/generated/{snake_name}/client-kit";
+import {{ {type_name}Client }} from "../artifacts/clients/typescript/src/generated/{snake_name}/client-kit";
 
 describe("Naclac {type_name} Test Suite (Kit)", () => {{
   let client: {type_name}Client;
@@ -608,7 +608,7 @@ describe("Naclac {type_name} Test Suite (Kit)", () => {{
         ),
         TsFramework::Legacy => format!(
             r#"import * as naclac from "@naclac-fw/client/legacy";
-import {{ {type_name}Client }} from "../clients/typescript/src/generated/{snake_name}/client-legacy";
+import {{ {type_name}Client }} from "../artifacts/clients/typescript/src/generated/{snake_name}/client-legacy";
 
 describe("Naclac {type_name} Test Suite (Legacy)", () => {{
   let client: {type_name}Client;

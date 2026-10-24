@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/legacy";
-import { CounterClient } from "../../clients/typescript/src/generated/counter/client-legacy";
+import { CounterClient } from "../../artifacts/clients/typescript/src/generated/counter/client-legacy";
 
 describe("Naclac Counter Test Suite (Legacy)", () => {
   let client: CounterClient;

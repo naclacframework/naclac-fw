@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { CounterZcClient } from "../../clients/typescript/src/generated/counter_zc/client-kit";
+import { CounterZcClient } from "../../artifacts/clients/typescript/src/generated/counter_zc/client-kit";
 
 describe("Naclac CounterZc Test Suite (Kit)", () => {
   let client: CounterZcClient;
@@ -8,7 +8,7 @@ describe("Naclac CounterZc Test Suite (Kit)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterZcClient("devnet", payer);
+    client = new CounterZcClient("litesvm", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 

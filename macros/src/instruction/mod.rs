@@ -6,6 +6,7 @@
 
 pub mod close_account;
 pub mod init_cpi;
+pub mod load_order;
 pub mod parser;
 pub mod realloc;
 pub mod security;

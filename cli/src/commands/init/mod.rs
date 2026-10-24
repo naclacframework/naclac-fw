@@ -72,11 +72,10 @@ pub fn execute(
 
     let snake_name = name.to_snake_case();
     ensure_dir(&root.join("tests"));
-    ensure_dir(&root.join("target/deploy"));
+    let deploy_dir = naclac_client_gen::deploy_dir(root);
+    ensure_dir(&deploy_dir);
 
-    let keypair_path = root
-        .join("target/deploy")
-        .join(format!("{}-keypair.json", snake_name));
+    let keypair_path = deploy_dir.join(format!("{}-keypair.json", snake_name));
     let program_id = generate_keypair(&keypair_path);
     println!("✅ Program ID generated: {}", program_id);
 
@@ -187,7 +186,7 @@ test-node = "{test_node_script}"
 "#,
     );
 
-    write_file(&root.join(".gitignore"), "target/\nCargo.lock\n**/*.rs.bk\nnode_modules/\ndist/\nyarn.lock\npackage-lock.json\npnpm-lock.yaml\ntest-ledger/\n.anchor/\n*.log\n.env\nkeys/\n*.json\n!package.json\n!tsconfig.json\n");
+    write_file(&root.join(".gitignore"), "target/\nCargo.lock\n**/*.rs.bk\nnode_modules/\ndist/\nyarn.lock\npackage-lock.json\npnpm-lock.yaml\ntest-ledger/\n.anchor/\n*.log\n.env\nartifacts/deploy/\n");
     write_file(
         &root.join(".prettierignore"),
         "node_modules/\ntarget/\ntest-ledger/\ndist/\n",

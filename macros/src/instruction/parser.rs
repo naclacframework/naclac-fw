@@ -1,7 +1,7 @@
 //! # Instruction Attribute Parser
 //!
 //! Parses `#[account(...)]` attributes defined in `#[derive(Accounts)]` structs.
-//! It extracts constraints (e.g., `init`, `mut`, `signer`, `has_one`) and builds a structured
+//! It extracts constraints (e.g., `init`, `mut`, `signer`, `field = target` relations) and builds a structured
 //! `ParsedField` representation for the code generators.
 
 use syn::{FieldsNamed, Ident, Type};

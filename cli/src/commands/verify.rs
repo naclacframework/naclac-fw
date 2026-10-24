@@ -93,7 +93,7 @@ pub fn execute(program_id_str: &String) {
     }
 
     // Find matching SO file bypassing simple string names
-    let deploy_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("deploy");
+    let deploy_dir = naclac_client_gen::deploy_dir(&workspace_root);
     let mut matching_so = None;
 
     let target_address = Address::from_str(program_id_str).unwrap();

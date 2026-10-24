@@ -22,7 +22,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../lang" }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
-counter-client = { version = "0.1.0", path = "../../clients/rust/counter" }
+counter-client = { version = "0.1.0", path = "../../artifacts/clients/rust/counter" }
 
 [lints]
 workspace = true

@@ -255,7 +255,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../lang"$default_features_of
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
-$client_dep = { version = "0.1.0", path = "../../clients/rust/$name" }$extra_dev_dependencies
+$client_dep = { version = "0.1.0", path = "../../artifacts/clients/rust/$name" }$extra_dev_dependencies
 
 [lints]
 workspace = true

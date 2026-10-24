@@ -3,7 +3,7 @@
 //! Generates the actual enforcement logic for `#[account(...)]` constraints.
 //! This module handles two phases of security checks:
 //! 1. **Immediate Metadata Checks**: Validates raw `AccountInfo` properties (signer, mut, owner, PDA seeds).
-//! 2. **Relational Checks**: Validates cross-account relationships (e.g., `has_one`) after all accounts are parsed.
+//! 2. **Relational Checks**: Validates cross-account relationships (`field = target` relations) after all accounts are parsed.
 
 use {
     crate::instruction::parser::{ParsedField, PdaBump},
@@ -50,35 +50,6 @@ const HASH_ONLY_INELIGIBLE_MSG: &str =
 /// once by the caller from the crate's own feature flags and passed in.
 pub(crate) fn is_zero_copy_account_field(ty: &syn::Type, program_is_zero_copy: bool) -> bool {
     crate::type_classify::is_account_wrapper(ty) && program_is_zero_copy
-}
-
-/// If `expr` is a chain of only `Expr::Field` accesses bottoming out at a
-/// bare `Expr::Path` (e.g. `pool_account.bump`, `pool_account.nested.field`
-/// — no method calls or other operations anywhere in it), returns that
-/// chain's root identifier. `None` for anything else, including a chain with
-/// a trailing method call (`pool_account.bump.as_ref()`), since such a call
-/// can only appear as the outermost node here and any other node shape means
-/// this isn't a plain field-access path at all.
-fn seed_field_chain_root(expr: &syn::Expr) -> Option<&syn::Ident> {
-    match expr {
-        syn::Expr::Path(p) => p.path.get_ident(),
-        syn::Expr::Field(f) => seed_field_chain_root(&f.base),
-        _ => None,
-    }
-}
-
-/// Rebuilds `expr`'s field chain with its root replaced by `replacement`,
-/// reusing the chain's original `.member` nodes directly via `quote`
-/// interpolation rather than stringifying and re-parsing it.
-fn substitute_seed_chain_root(expr: &syn::Expr, replacement: &TokenStream) -> TokenStream {
-    match expr {
-        syn::Expr::Field(f) => {
-            let base = substitute_seed_chain_root(&f.base, replacement);
-            let member = &f.member;
-            quote! { #base.#member }
-        }
-        _ => replacement.clone(),
-    }
 }
 
 /// The "real" trailing operation on a seed expression, once any wrapping
@@ -131,41 +102,13 @@ fn peel_seed_wrapper(expr: &syn::Expr) -> (syn::Expr, SeedTrailingOp) {
 /// silently drift from each other; this is now the one place that logic
 /// lives.
 ///
-/// Two cases:
-/// - The expression is a plain field-access path rooted at another
-///   zero-copy account field in the same `Accounts` struct: reached via
-///   that account's `Deref<Target = T>`, using either its already-bound
-///   local (if declared earlier) or a by-index reconstruction (if declared
-///   later — its local isn't in scope yet).
-/// - Anything else: peeled of a redundant `.as_ref()`/`.as_bytes()`
-///   wrapper, then either routed through `ToAddress::address` (if the
-///   trailing operation is `.address()`) or used directly via
-///   `AsRefByteSlice`.
-pub(crate) fn seed_binding_tokens(
-    expr: &syn::Expr,
-    ident: &syn::Ident,
-    current_field_index: usize,
-    all_fields: &[ParsedField],
-    is_zero_copy: bool,
-) -> TokenStream {
-    if let Some(root) = seed_field_chain_root(expr) {
-        if let Some(other_field) = all_fields
-            .iter()
-            .find(|f| &f.ident == root && is_zero_copy_account_field(&f.ty, is_zero_copy))
-        {
-            let replacement = if other_field.index < current_field_index {
-                let other_ident = &other_field.ident;
-                quote! { #other_ident }
-            } else {
-                let other_ty = &other_field.ty;
-                let other_idx = other_field.index;
-                quote! { <#other_ty as naclac_lang::prelude::NaclacAccount>::try_from(&accounts[#other_idx], #other_idx)? }
-            };
-            let rebuilt = substitute_seed_chain_root(expr, &replacement);
-            return quote! { let #ident = #rebuilt; };
-        }
-    }
-
+/// A seed naming another field of the struct refers to that field's loaded
+/// local; `load_order` loads every such field first, whatever the
+/// declaration order. The expression is peeled of a redundant
+/// `.as_ref()`/`.as_bytes()` wrapper, then either routed through
+/// `ToAddress::address` (if the trailing operation is `.address()`) or used
+/// directly via `AsRefByteSlice`.
+pub(crate) fn seed_binding_tokens(expr: &syn::Expr, ident: &syn::Ident) -> TokenStream {
     let (peeled, op) = peel_seed_wrapper(expr);
     match op {
         SeedTrailingOp::Address => quote! {
@@ -471,7 +414,7 @@ pub fn generate_security_checks(
             .enumerate()
             .map(|(i, expr)| {
                 let ident = format_ident!("__seed_{}_{}", field_ident, i);
-                seed_binding_tokens(expr, &ident, field.index, all_fields, is_zero_copy)
+                seed_binding_tokens(expr, &ident)
             })
             .collect();
 
@@ -958,7 +901,7 @@ fn resolve_smart_key(expr: &syn::Expr, all_fields: &[ParsedField]) -> TokenStrea
 /// PHASE 2: Relational Checks
 ///
 /// Generates validation logic that runs *after* all accounts have been loaded into the instruction struct.
-/// This is necessary for constraints like `has_one` where one account's data must be compared against
+/// This is necessary for `field = target` relations, where one account's data must be compared against
 /// the public key of another account in the struct.
 pub fn generate_relational_checks(fields: &[ParsedField], prefix: TokenStream) -> Vec<TokenStream> {
     let mut checks = Vec::new();

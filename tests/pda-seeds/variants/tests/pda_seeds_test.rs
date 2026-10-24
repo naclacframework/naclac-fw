@@ -2,8 +2,9 @@ use naclac_client::*;
 use pda_seeds_client::{
     get_child_pda, get_entry_pda, get_registry_pda,
     instructions::{
-        build_init_child, build_init_child_safe, build_init_entry, build_init_registry,
-        build_init_tagged_child, build_read_config_entry_bare_bump,
+        build_init_child, build_init_child_late, build_init_child_safe, build_init_entry,
+        build_init_entry_late, build_init_registry, build_init_tagged_child,
+        build_read_config_entry_bare_bump, InitChildLateAccounts, InitEntryLateAccounts,
         build_touch_config_entry_bare_bump, build_touch_config_entry_bare_bump_with_args,
         build_touch_entry_bare_bump, build_touch_registry_explicit_bump, InitChildAccounts,
         InitChildSafeAccounts, InitEntryAccounts, InitRegistryAccounts, InitTaggedChildAccounts,
@@ -21,6 +22,8 @@ const SEED_CHILD: &[u8] = b"child";
 const SEED_CHILD_SAFE: &[u8] = b"child_safe";
 const SEED_TAGGED_CHILD: &[u8] = b"tagged_child";
 const SEED_CONFIG_ENTRY: &[u8] = b"config_entry";
+const SEED_CHILD_LATE: &[u8] = b"child_late";
+const SEED_ENTRY_LATE: &[u8] = b"entry_late";
 
 /// Wire bytes of a `ConfigEntry` account: discriminator, `bump`, then
 /// little-endian `value`. Packed and identical in every layout, so the
@@ -543,4 +546,70 @@ fn dynamic_seeds_init_bare_bump_establishes_canonical_bump_on_chain() {
         "the framework's on-chain search must find the same canonical bump \
          real find_program_address would"
     );
+}
+
+/// A PDA field declared before the fields its constraints name: the seed reads
+/// `registry`'s data (`registry.bump`) and the `init` payer is `payer`, both
+/// declared after it, and a second case uses `registry`'s address. The derive
+/// loads the named fields first on every backend, so both inits succeed, each
+/// at the PDA the client derived from the same seeds, with the canonical bump
+/// stored.
+#[test]
+fn constraints_may_name_fields_declared_after_them() {
+    let payer = load_node_wallet().expect("Failed to load local Solana keypair");
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
+
+    let (registry_pda, registry_bump) = Address::find_program_address(&[SEED_REGISTRY], &PROGRAM_ID);
+    build_init_registry(
+        &provider,
+        PROGRAM_ID,
+        InitRegistryAccounts {
+            payer: provider.payer.address(),
+            registry: registry_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_registry should succeed");
+
+    let registry_bump_bytes = registry_bump.to_le_bytes();
+    let (child_late_pda, child_late_bump) = Address::find_program_address(
+        &[SEED_CHILD_LATE, registry_bump_bytes.as_ref()],
+        &PROGRAM_ID,
+    );
+    build_init_child_late(
+        &provider,
+        PROGRAM_ID,
+        InitChildLateAccounts {
+            child_late: child_late_pda,
+            payer: provider.payer.address(),
+            registry: registry_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_child_late should succeed: its seed reads registry.bump, declared after it");
+    let raw = provider
+        .get_account_data(&child_late_pda)
+        .expect("child_late should exist after init_child_late");
+    assert_eq!(raw[8], child_late_bump, "the canonical bump must be stored");
+
+    let (entry_late_pda, entry_late_bump) =
+        Address::find_program_address(&[SEED_ENTRY_LATE, registry_pda.as_ref()], &PROGRAM_ID);
+    build_init_entry_late(
+        &provider,
+        PROGRAM_ID,
+        InitEntryLateAccounts {
+            entry_late: entry_late_pda,
+            registry: registry_pda,
+            payer: provider.payer.address(),
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_entry_late should succeed: its seed uses registry's address, declared after it");
+    let raw = provider
+        .get_account_data(&entry_late_pda)
+        .expect("entry_late should exist after init_entry_late");
+    assert_eq!(raw[8], entry_late_bump, "the canonical bump must be stored");
 }

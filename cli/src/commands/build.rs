@@ -138,9 +138,9 @@ pub fn execute(
 
     crate::commands::generate::ensure_client_stubs(&workspace_root, &all_program_dirs);
 
-    let target_dir = naclac_client_gen::resolve_target_dir(&workspace_root);
-    let target_deploy_dir = target_dir.join("deploy");
-    fs::create_dir_all(&target_deploy_dir).unwrap();
+    let deploy_dir = naclac_client_gen::deploy_dir(&workspace_root);
+    fs::create_dir_all(&deploy_dir).unwrap();
+    let legacy_deploy_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("deploy");
 
     for program_dir in &programs_to_build {
         let program_name = program_dir
@@ -149,31 +149,56 @@ pub fn execute(
             .to_str()
             .unwrap()
             .to_string();
-        let keypair_path = target_deploy_dir.join(format!("{}-keypair.json", program_name));
+        let keypair_file_name = format!("{}-keypair.json", program_name);
+        let keypair_path = deploy_dir.join(&keypair_file_name);
 
         if !keypair_path.exists() {
+            let legacy_keypair_path = legacy_deploy_dir.join(&keypair_file_name);
+            if legacy_keypair_path.exists() {
+                ui::error(format!(
+                    "Keypair for '{}' found at {} but not at {} — move it there, or a new \
+                     keypair (and so a new program ID) would be generated.",
+                    program_name,
+                    legacy_keypair_path.display(),
+                    keypair_path.display()
+                ));
+            }
             ui::warn(format!(
                 "Keypair missing for '{}' — generated",
                 program_name
             ));
-            Command::new("solana-keygen")
+            let keygen = Command::new("solana-keygen")
                 .arg("new")
                 .arg("--no-bip39-passphrase")
                 .arg("-o")
                 .arg(&keypair_path)
                 .arg("--force")
                 .output()
-                .expect("Failed to generate keypair");
+                .unwrap_or_else(|e| ui::error(format!("Failed to run solana-keygen: {}", e)));
+            if !keygen.status.success() {
+                ui::error(format!(
+                    "solana-keygen failed to generate a keypair for '{}': {}",
+                    program_name,
+                    String::from_utf8_lossy(&keygen.stderr).trim()
+                ));
+            }
         }
 
         let address_output = Command::new("solana-keygen")
             .arg("pubkey")
             .arg(&keypair_path)
             .output()
-            .expect("Failed to get address");
+            .unwrap_or_else(|e| ui::error(format!("Failed to run solana-keygen: {}", e)));
         let actual_address = String::from_utf8_lossy(&address_output.stdout)
             .trim()
             .to_string();
+        if !address_output.status.success() || actual_address.is_empty() {
+            ui::error(format!(
+                "Could not read the program address from {}: {}",
+                keypair_path.display(),
+                String::from_utf8_lossy(&address_output.stderr).trim()
+            ));
+        }
 
         let lib_path = program_dir.join("src/lib.rs");
         if lib_path.exists() {
@@ -240,6 +265,8 @@ pub fn execute(
             .arg(&tools_version)
             .arg("--arch")
             .arg(&arch)
+            .arg("--sbf-out-dir")
+            .arg(&deploy_dir)
             .env("CARGO_TERM_COLOR", "always")
             .current_dir(&workspace_root)
             .stdout(Stdio::inherit());
@@ -375,8 +402,8 @@ pub fn execute(
             show_output,
         );
 
-        let target_types_dir = target_dir.join("types");
-        fs::create_dir_all(&target_types_dir).unwrap();
+        let idl_dir = naclac_client_gen::idl_dir(&workspace_root);
+        fs::create_dir_all(&idl_dir).unwrap();
 
         let ts_content = match naclac_client_gen::generate_ts(&idl_json_pretty) {
             Ok(code) => code,
@@ -389,7 +416,7 @@ pub fn execute(
             }
         };
 
-        let ts_path = target_types_dir.join(format!("{}.ts", prog_name));
+        let ts_path = idl_dir.join(format!("{}.ts", prog_name));
         fs::write(&ts_path, ts_content).unwrap();
         match idl_step {
             Some(step) => step.done(format!("IDL + TS types written ({})", prog_name)),

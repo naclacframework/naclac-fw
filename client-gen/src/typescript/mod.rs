@@ -12,10 +12,10 @@ pub fn generate_typescript_sdk(
     workspace_root: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let idl = Idl::from_json(idl_json)?;
-    let target_dir = crate::paths::resolve_target_dir(workspace_root);
+    let idl_dir = crate::paths::idl_dir(workspace_root);
 
-    let clients_dir =
-        workspace_root.join(format!("clients/typescript/src/generated/{}", program_name));
+    let clients_dir = crate::paths::clients_dir(workspace_root)
+        .join(format!("typescript/src/generated/{}", program_name));
     if clients_dir.exists() {
         fs::remove_dir_all(&clients_dir).unwrap();
     }
@@ -25,8 +25,7 @@ pub fn generate_typescript_sdk(
     fs::create_dir_all(clients_dir.join("types")).unwrap();
     fs::create_dir_all(clients_dir.join("idl")).unwrap();
 
-    let target_types_dir = target_dir.join("types");
-    let ts_idl_path = target_types_dir.join(format!("{}.ts", program_name));
+    let ts_idl_path = idl_dir.join(format!("{}.ts", program_name));
     if ts_idl_path.exists() {
         fs::copy(
             &ts_idl_path,
@@ -34,9 +33,7 @@ pub fn generate_typescript_sdk(
         )
         .unwrap();
     }
-    let json_idl_path = target_dir
-        .join("idl")
-        .join(format!("{}.json", program_name));
+    let json_idl_path = idl_dir.join(format!("{}.json", program_name));
     if json_idl_path.exists() {
         fs::copy(
             &json_idl_path,

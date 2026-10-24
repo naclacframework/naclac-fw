@@ -382,64 +382,7 @@ fn resolve_program_id_from_so(so_path: &std::path::Path) -> Result<Address, Nacl
         })
 }
 
-/// Resolves the real cargo target directory for `workspace_root`, honoring
-/// `CARGO_TARGET_DIR` and `.cargo/config.toml`'s `target-dir` the same way
-/// `cargo` itself does — by asking `cargo metadata` directly rather than
-/// re-implementing cargo's own env-var/config-file resolution order. Falls
-/// back to `workspace_root/target` if `cargo metadata` can't be run at all
-/// (e.g. no `Cargo.toml` present yet, cargo missing from `PATH`).
-fn resolve_target_dir(workspace_root: &std::path::Path) -> std::path::PathBuf {
-    let manifest_path = workspace_root.join("Cargo.toml");
-    if manifest_path.exists() {
-        if let Ok(output) = std::process::Command::new("cargo")
-            .arg("metadata")
-            .arg("--no-deps")
-            .arg("--format-version")
-            .arg("1")
-            .arg("--manifest-path")
-            .arg(&manifest_path)
-            .output()
-        {
-            if output.status.success() {
-                if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
-                    if let Some(dir) = json.get("target_directory").and_then(|v| v.as_str()) {
-                        return std::path::PathBuf::from(dir);
-                    }
-                }
-            }
-        }
-    }
-    workspace_root.join("target")
-}
-
-/// Reads `<workspace_root>/.cargo/config.toml`'s `[build] target-dir`
-/// directly, if present. This is the workspace's own persistent build
-/// configuration — unlike `resolve_target_dir` (which shells out to `cargo
-/// metadata` and so reflects whatever `CARGO_TARGET_DIR`
-/// happens to be set in the *current* process), reading the config file
-/// directly is immune to a `CARGO_TARGET_DIR` override made for an unrelated
-/// reason in the process that ends up calling this (e.g. a test runner
-/// redirecting target-dir purely to speed up compiling the test binary
-/// itself, which then gets inherited by any `cargo` subprocess spawned from
-/// inside that same test run). A relative `target-dir` is resolved against
-/// `workspace_root`, matching this codebase's own convention of using
-/// absolute paths for cross-drive redirection.
-fn read_target_dir_from_cargo_config(
-    workspace_root: &std::path::Path,
-) -> Option<std::path::PathBuf> {
-    let config_path = workspace_root.join(".cargo").join("config.toml");
-    let contents = std::fs::read_to_string(&config_path).ok()?;
-    let parsed: toml::Value = toml::from_str(&contents).ok()?;
-    let target_dir = parsed.get("build")?.get("target-dir")?.as_str()?;
-    let path = std::path::PathBuf::from(target_dir);
-    Some(if path.is_absolute() {
-        path
-    } else {
-        workspace_root.join(path)
-    })
-}
-
-/// Auto-loads every `.so` in `target/deploy/` into a fresh litesvm instance,
+/// Auto-loads every `.so` in `artifacts/deploy/` into a fresh litesvm instance,
 /// so `NaclacProvider::new("litesvm", payer)` is usable the same way
 /// `"localnet"` already is — no manual `add_program` call needed for the
 /// workspace's own program(s). A no-op outside a Naclac workspace or before
@@ -448,9 +391,7 @@ fn auto_load_workspace_programs(svm: &mut LiteSVM) -> Result<(), NaclacClientErr
     let Some(workspace_root) = find_workspace_root() else {
         return Ok(());
     };
-    let target_dir = read_target_dir_from_cargo_config(&workspace_root)
-        .unwrap_or_else(|| resolve_target_dir(&workspace_root));
-    let deploy_dir = target_dir.join("deploy");
+    let deploy_dir = crate::utils::workspace_deploy_dir(&workspace_root);
     if !deploy_dir.exists() {
         return Ok(());
     }

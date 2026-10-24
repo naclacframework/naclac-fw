@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/legacy";
-import { CounterBorshClient } from "../../clients/typescript/src/generated/counter_borsh/client-legacy";
+import { CounterBorshClient } from "../../artifacts/clients/typescript/src/generated/counter_borsh/client-legacy";
 
 describe("Naclac CounterBorsh Test Suite (Legacy)", () => {
   let client: CounterBorshClient;
@@ -8,7 +8,7 @@ describe("Naclac CounterBorsh Test Suite (Legacy)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterBorshClient("devnet", payer);
+    client = new CounterBorshClient("litesvm", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 

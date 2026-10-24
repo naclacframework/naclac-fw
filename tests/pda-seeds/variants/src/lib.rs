@@ -42,6 +42,14 @@ pub mod pda_seeds {
         init_tagged_child::init_tagged_child(ctx, bump)
     }
 
+    pub fn init_child_late(ctx: Context<InitChildLate>) -> Result {
+        init_child_late::init_child_late(ctx)
+    }
+
+    pub fn init_entry_late(ctx: Context<InitEntryLate>) -> Result {
+        init_entry_late::init_entry_late(ctx)
+    }
+
     pub fn touch_config_entry_bare_bump(ctx: Context<TouchConfigEntryBareBump>) -> Result {
         touch_config_entry_bare_bump::touch_config_entry_bare_bump(ctx)
     }

@@ -651,7 +651,8 @@ pub fn generate_rust_sdk(
     let program_name_snake = AsSnakeCase(program_name).to_string();
     let program_name_kebab = program_name.replace("_", "-");
 
-    let clients_dir = workspace_root.join(format!("clients/rust/{}", program_name_snake));
+    let clients_dir =
+        crate::paths::clients_dir(workspace_root).join(format!("rust/{}", program_name_snake));
 
     if clients_dir.exists() {
         fs::remove_dir_all(&clients_dir).unwrap();

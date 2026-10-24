@@ -1,6 +1,8 @@
 pub mod init_child;
+pub mod init_child_late;
 pub mod init_child_safe;
 pub mod init_entry;
+pub mod init_entry_late;
 pub mod init_registry;
 pub mod init_tagged_child;
 pub mod read_config_entry_bare_bump;
@@ -10,8 +12,10 @@ pub mod touch_entry_bare_bump;
 pub mod touch_registry_explicit_bump;
 
 pub use init_child::*;
+pub use init_child_late::*;
 pub use init_child_safe::*;
 pub use init_entry::*;
+pub use init_entry_late::*;
 pub use init_registry::*;
 pub use init_tagged_child::*;
 pub use read_config_entry_bare_bump::*;

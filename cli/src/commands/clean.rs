@@ -1,11 +1,10 @@
-//! `naclac clean` — deletes build artifacts directly in place. Never moves
-//! anything to a staging/trash location first: the only thing that must
-//! survive a clean (`target/deploy/*.json`, program keypairs — losing one
-//! changes that program's on-chain address) is simply skipped during the
-//! walk rather than relocated and restored, so cross-filesystem `target-dir`
-//! redirects (a different drive, a mounted vhd) can't silently fail the way
-//! a `rename`-based move would, and a Ctrl+C mid-clean just leaves some
-//! regenerable cache still on disk — never a risk to what was skipped.
+//! `naclac clean` — deletes cargo's `target/` directory in place. Never
+//! touches `artifacts/`, which holds the program keypairs (losing one changes
+//! that program's on-chain address). Deletes directly rather than moving
+//! anything to a staging/trash location first, so cross-filesystem
+//! `target-dir` redirects (a different drive, a mounted vhd) can't silently
+//! fail the way a `rename`-based move would, and a Ctrl+C mid-clean just
+//! leaves some regenerable cache still on disk.
 
 use {
     indicatif::{ProgressBar, ProgressStyle},
@@ -39,9 +38,8 @@ pub fn execute(hard: bool) {
         }
 
         println!("⚠️  WARNING: You are executing a HARD clean!");
-        println!("   This will permanently delete the entire 'target/' directory,");
         println!(
-            "   including your deployed program keypairs located in 'target/deploy/'.{}",
+            "   This will permanently delete the entire 'target/' directory.{}",
             extras
         );
         print!("   Are you entirely sure you want to proceed? [y/N]: ");
@@ -86,10 +84,9 @@ pub fn execute(hard: bool) {
     let handle = thread::spawn(move || {
         // One bulk `remove_dir_all`/`remove_file` per entry — the same
         // primitive `cargo clean` itself relies on — rather than a manual
-        // per-file walk, since nothing below a target-dir entry other than
-        // `deploy/` ever needs individual inspection. Cancellation is
-        // checked between entries, not within one; a bulk removal already
-        // in flight runs to completion rather than stopping mid-file.
+        // per-file walk. Cancellation is checked between entries, not within
+        // one; a bulk removal already in flight runs to completion rather
+        // than stopping mid-file.
         fn wipe_path(path: &Path) {
             if path.is_dir() {
                 let _ = fs::remove_dir_all(path);
@@ -98,31 +95,7 @@ pub fn execute(hard: bool) {
             }
         }
 
-        // Matches `build.rs`'s own `format!("{}-keypair.json", program_name)`
-        // — the only file `deploy/` is meant to survive a clean for.
-        fn is_keypair_json(path: &Path) -> bool {
-            path.extension().is_some_and(|ext| ext == "json")
-                && path
-                    .file_stem()
-                    .is_some_and(|stem| stem.to_string_lossy().contains("keypair"))
-        }
-
-        fn clean_deploy_dir(deploy_dir: &Path, c: &Arc<AtomicBool>) -> bool {
-            if let Ok(entries) = fs::read_dir(deploy_dir) {
-                for entry in entries.flatten() {
-                    if c.load(Ordering::SeqCst) {
-                        return false;
-                    }
-                    let path = entry.path();
-                    if !is_keypair_json(&path) {
-                        wipe_path(&path);
-                    }
-                }
-            }
-            true
-        }
-
-        fn clean_dir_entries(dir: &Path, preserve_deploy: bool, c: &Arc<AtomicBool>) -> bool {
+        fn clean_dir_entries(dir: &Path, c: &Arc<AtomicBool>) -> bool {
             let Ok(entries) = fs::read_dir(dir) else {
                 return true;
             };
@@ -130,21 +103,14 @@ pub fn execute(hard: bool) {
                 if c.load(Ordering::SeqCst) {
                     return false;
                 }
-                let path = entry.path();
-                if preserve_deploy && path.file_name().is_some_and(|n| n == "deploy") {
-                    if !clean_deploy_dir(&path, c) {
-                        return false;
-                    }
-                } else {
-                    wipe_path(&path);
-                }
+                wipe_path(&entry.path());
             }
             true
         }
 
         let mut completed = true;
         if target_dir.exists() {
-            completed = clean_dir_entries(&target_dir, !hard, &c);
+            completed = clean_dir_entries(&target_dir, &c);
             if completed && hard {
                 let _ = fs::remove_dir(&target_dir);
             }
@@ -177,6 +143,6 @@ pub fn execute(hard: bool) {
     } else if hard {
         pb.finish_with_message("✨ Workspace completely wiped!");
     } else {
-        pb.finish_with_message("✨ Workspace cleaned securely!\n🔒 (Program Deploy keys safely preserved in target/deploy).\n💡 Run `naclac clean --hard` to completely wipe everything.");
+        pb.finish_with_message("✨ Workspace cleaned securely!\n🔒 (Program keypairs in artifacts/deploy are never touched).\n💡 Run `naclac clean --hard` to also remove the target directory itself and node_modules/dist.");
     }
 }

@@ -14,10 +14,10 @@ pub fn execute(program_id: Option<&str>) {
         std::process::exit(1);
     };
 
-    let deploy_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("deploy");
+    let deploy_dir = naclac_client_gen::deploy_dir(&workspace_root);
     if !deploy_dir.exists() {
         eprintln!(
-            "❌ Error: 'target/deploy' directory not found. Please run `naclac build` first."
+            "❌ Error: 'artifacts/deploy' directory not found. Please run `naclac build` first."
         );
         std::process::exit(1);
     }

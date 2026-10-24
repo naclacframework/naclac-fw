@@ -95,11 +95,7 @@ fn get_account_reference(expr: &syn::Expr, all_fields: &[ParsedField]) -> TokenS
     quote! { &#expr }
 }
 
-fn signer_seeds_tokens(
-    field: &ParsedField,
-    all_fields: &[ParsedField],
-    is_zero_copy: bool,
-) -> TokenStream {
+fn signer_seeds_tokens(field: &ParsedField) -> TokenStream {
     if let Some(seed_array) = &field.pda_seed {
         let field_ident = &field.ident;
         let seed_bindings: Vec<TokenStream> = seed_array
@@ -108,13 +104,7 @@ fn signer_seeds_tokens(
             .enumerate()
             .map(|(i, expr)| {
                 let ident = format_ident!("__seed_{}_{}", field_ident, i);
-                crate::instruction::security::seed_binding_tokens(
-                    expr,
-                    &ident,
-                    field.index,
-                    all_fields,
-                    is_zero_copy,
-                )
+                crate::instruction::security::seed_binding_tokens(expr, &ident)
             })
             .collect();
         let seed_refs: Vec<TokenStream> = seed_array
@@ -175,11 +165,7 @@ fn signer_seeds_tokens(
 /// here — every real caller so far supplies an explicit bump anyway (naclac
 /// never runs an on-chain bump-search loop), so this isn't a regression
 /// against anything currently expressible.
-fn payer_signer_seeds_tokens(
-    payer_field: &ParsedField,
-    all_fields: &[ParsedField],
-    is_zero_copy: bool,
-) -> TokenStream {
+fn payer_signer_seeds_tokens(payer_field: &ParsedField) -> TokenStream {
     let seed_array = match &payer_field.pda_seed {
         Some(seed_array) => seed_array,
         None => {
@@ -206,13 +192,7 @@ fn payer_signer_seeds_tokens(
         .enumerate()
         .map(|(i, expr)| {
             let ident = format_ident!("__payer_seed_{}_{}", field_ident, i);
-            crate::instruction::security::seed_binding_tokens(
-                expr,
-                &ident,
-                payer_field.index,
-                all_fields,
-                is_zero_copy,
-            )
+            crate::instruction::security::seed_binding_tokens(expr, &ident)
         })
         .collect();
     let seed_refs: Vec<TokenStream> = seed_array
@@ -240,11 +220,7 @@ fn payer_signer_seeds_tokens(
 /// Automatically delegates to `pinocchio_system` or standard `solana_program` depending
 /// on the active compilation target. It handles space calculation, lamport transfers,
 /// and zero-copy discriminator injection.
-pub fn generate_init_cpi(
-    field: &ParsedField,
-    all_fields: &[ParsedField],
-    is_zero_copy: bool,
-) -> TokenStream {
+pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> TokenStream {
     let init_config = match &field.init_config {
         Some(config) => config,
         None => return quote! {},
@@ -267,7 +243,7 @@ pub fn generate_init_cpi(
     // order the real on-chain account list requires instead of forcing payer
     // to come first.
     let payer_ref = get_account_reference(&init_config.payer, all_fields);
-    let signer_seeds_logic = signer_seeds_tokens(field, all_fields, is_zero_copy);
+    let signer_seeds_logic = signer_seeds_tokens(field);
 
     // Compile-time static index lookup for system program
     let system_program_idx = match all_fields
@@ -610,9 +586,7 @@ pub fn generate_init_cpi(
         // (e.g. `pump_amm::create_pool`'s own `pool_base_token_account`).
         let payer_signer_seeds_logic = if field.extra_accounts.is_some() {
             match payer_field {
-                Some(pf) if pf.pda_seed.is_some() => {
-                    payer_signer_seeds_tokens(pf, all_fields, is_zero_copy)
-                }
+                Some(pf) if pf.pda_seed.is_some() => payer_signer_seeds_tokens(pf),
                 _ => quote! { let __payer_signer_seeds: &[&[&[u8]]] = &[]; },
             }
         } else {

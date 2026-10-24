@@ -633,6 +633,11 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         mut_bump_writeback: Vec<proc_macro2::TokenStream>,
     }
 
+    let load_order = match crate::instruction::load_order::load_order(&parsed_fields) {
+        Ok(order) => order,
+        Err(err) => return err.to_compile_error().into(),
+    };
+
     let build_variant = |variant_type: u8| -> Variant {
         let is_zero_copy = variant_type == 0;
         let cfg = if variant_type == 0 {
@@ -848,7 +853,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
             let init_logic = if field.parse_error.is_some() {
                 quote! {}
             } else {
-                init_cpi::generate_init_cpi(field, &parsed_fields, is_zero_copy)
+                init_cpi::generate_init_cpi(field, &parsed_fields)
             };
 
             let loader_fn =
@@ -1099,6 +1104,11 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                 }
             }
         }
+
+        let field_loaders = load_order
+            .iter()
+            .map(|&i| field_loaders[i].clone())
+            .collect();
 
         Variant {
             ix_deserializer,

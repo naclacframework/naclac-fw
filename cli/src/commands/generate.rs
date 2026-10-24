@@ -120,7 +120,9 @@ pub fn ensure_client_stubs(workspace_root: &Path, program_dirs: &[PathBuf]) {
             continue;
         };
         let pname_kebab = pname.replace('_', "-");
-        let rust_client_dir = workspace_root.join("clients/rust").join(pname);
+        let rust_client_dir = naclac_client_gen::clients_dir(workspace_root)
+            .join("rust")
+            .join(pname);
         if rust_client_dir.join("Cargo.toml").exists() {
             continue;
         }
@@ -356,7 +358,7 @@ fn target_program_dirs(workspace_root: &Path, program_id: Option<&str>) -> Vec<P
 /// address, builds the IDL (from the compiled program when it declares
 /// `idl-build`, from source otherwise), checks its `metadata.serialization`
 /// against the program's Cargo.toml features, and writes
-/// `target/idl/<name>.json`. Returns the IDL JSON.
+/// `artifacts/idl/<name>.json`. Returns the IDL JSON.
 pub fn generate_idl_for_program(
     workspace_root: &Path,
     program_dir: &Path,
@@ -366,8 +368,7 @@ pub fn generate_idl_for_program(
 ) -> String {
     let serialization = features.serialization();
     let target_dir = naclac_client_gen::resolve_target_dir(workspace_root);
-    let keypair_path = target_dir
-        .join("deploy")
+    let keypair_path = naclac_client_gen::deploy_dir(workspace_root)
         .join(format!("{}-keypair.json", prog_name));
     if !keypair_path.exists() {
         ui::error(format!(
@@ -379,10 +380,17 @@ pub fn generate_idl_for_program(
         .arg("pubkey")
         .arg(&keypair_path)
         .output()
-        .expect("Failed to run solana-keygen");
+        .unwrap_or_else(|e| ui::error(format!("Failed to run solana-keygen: {}", e)));
     let actual_address = String::from_utf8_lossy(&address_output.stdout)
         .trim()
         .to_string();
+    if !address_output.status.success() || actual_address.is_empty() {
+        ui::error(format!(
+            "Could not read the program address from {}: {}",
+            keypair_path.display(),
+            String::from_utf8_lossy(&address_output.stderr).trim()
+        ));
+    }
 
     let idl_json_pretty = if program_declares_idl_build(program_dir) {
         match generate_idl_via_idl_build(&target_dir, program_dir, prog_name, show_output) {
@@ -413,9 +421,9 @@ pub fn generate_idl_for_program(
         ));
     }
 
-    let target_idl_dir = target_dir.join("idl");
-    fs::create_dir_all(&target_idl_dir).unwrap();
-    let idl_path = target_idl_dir.join(format!("{}.json", prog_name));
+    let idl_dir = naclac_client_gen::idl_dir(workspace_root);
+    fs::create_dir_all(&idl_dir).unwrap();
+    let idl_path = idl_dir.join(format!("{}.json", prog_name));
     fs::write(&idl_path, &idl_json_pretty).unwrap();
     idl_json_pretty
 }
@@ -470,14 +478,14 @@ pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
 }
 
 /// Regenerates client SDK(s) from the IDL JSON already on disk
-/// (`target/idl/<name>.json`) — `target` selects Rust only, TypeScript only,
+/// (`artifacts/idl/<name>.json`) — `target` selects Rust only, TypeScript only,
 /// or both when `None`.
 pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
     let workspace_root = resolve_workspace_root();
-    let target_idl_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("idl");
+    let target_idl_dir = naclac_client_gen::idl_dir(&workspace_root);
     if !target_idl_dir.exists() {
         ui::error(
-            "target/idl does not exist — run `naclac generate idl` (or `naclac build`) first.",
+            "artifacts/idl does not exist — run `naclac generate idl` (or `naclac build`) first.",
         );
     }
 
@@ -507,9 +515,6 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
             }
         }
     } else {
-        // `target/idl` can be shared by several workspaces (a redirected
-        // `CARGO_TARGET_DIR`), so only the IDLs of this workspace's own
-        // programs are used.
         let workspace_programs: Vec<String> = fs::read_dir(workspace_root.join("programs"))
             .map(|entries| {
                 entries

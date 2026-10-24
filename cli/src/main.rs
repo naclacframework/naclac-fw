@@ -119,9 +119,9 @@ enum Commands {
     Verify { program_id: Option<String> },
     /// Checks the system environment for Naclac dependencies
     Doctor,
-    /// Cleans the workspace by safely preserving deploy keys, or totally wiping with --hard
+    /// Cleans cargo's target directory; artifacts/ (including deploy keys) is never touched
     Clean {
-        /// Performs a destructive clean, wiping deploy keys in target/deploy!
+        /// Also removes the target directory itself, node_modules and dist
         #[arg(long)]
         hard: bool,
     },

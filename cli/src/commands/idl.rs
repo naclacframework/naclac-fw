@@ -210,9 +210,7 @@ pub fn execute_upload(program_id_str: &str) {
         }
     };
 
-    let idl_path = naclac_client_gen::resolve_target_dir(&root)
-        .join("idl")
-        .join(format!("{}.json", program_name));
+    let idl_path = naclac_client_gen::idl_dir(&root).join(format!("{}.json", program_name));
     let idl_content = match fs::read_to_string(&idl_path) {
         Ok(c) => c,
         Err(_) => {
@@ -228,7 +226,7 @@ pub fn execute_upload(program_id_str: &str) {
     // shape (naclac_idl::converter) before uploading — see
     // docs/plan/anchor-idl-conversion-and-enum-pod-audit.md for how every
     // field-level rule here was verified against real, non-naclac Anchor
-    // IDLs. `target/idl/<name>.json` itself is untouched by this — the
+    // IDLs. `artifacts/idl/<name>.json` itself is untouched by this — the
     // conversion only ever exists in memory, right before compression.
     let idl: naclac_idl::Idl = match serde_json::from_str(&idl_content) {
         Ok(idl) => idl,
@@ -853,11 +851,7 @@ pub fn execute_fetch(program_id_str: &str, output: Option<&str>) {
     let default_path = || {
         let root = workspace_root();
         let name = find_program_name(&root, program_id_str, &config.cluster)?;
-        Some(
-            naclac_client_gen::resolve_target_dir(&root)
-                .join("idl")
-                .join(format!("{}.onchain.json", name)),
-        )
+        Some(naclac_client_gen::idl_dir(&root).join(format!("{}.onchain.json", name)))
     };
 
     match output.map(PathBuf::from).or_else(default_path) {
