@@ -553,7 +553,8 @@ pub fn generate_security_checks(
                     if is_zero_copy_account_field(&field.ty, is_zero_copy) && stores_bump {
                         // Account<T>'s zero-copy branch implements Deref<Target=T>: access .bump directly.
                         bump_expr = quote! { #field_ident.bump };
-                    } else if crate::type_classify::is_exactly(&field.ty, "Account") && stores_bump {
+                    } else if crate::type_classify::is_exactly(&field.ty, "Account") && stores_bump
+                    {
                         // Only reachable for a heap-allocated (Borsh or Wincode)
                         // `Account<T>`: a zero-copy `Account<T>` already took the
                         // branch above. `is_zero_copy` is already known false here

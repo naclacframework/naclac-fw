@@ -312,11 +312,10 @@ mod pinocchio_system {
                 __remaining = __tail;
             }
 
-            let $signers_var: &[::pinocchio::cpi::Signer] =
-                match __signers.get(..$seeds.len()) {
-                    Some(signers) => signers,
-                    None => return Err(crate::prelude::NaclacError::TooManyCpiSigners.into()),
-                };
+            let $signers_var: &[::pinocchio::cpi::Signer] = match __signers.get(..$seeds.len()) {
+                Some(signers) => signers,
+                None => return Err(crate::prelude::NaclacError::TooManyCpiSigners.into()),
+            };
         };
     }
 
