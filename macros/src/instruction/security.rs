@@ -131,11 +131,6 @@ pub fn generate_security_checks(
 ) -> (TokenStream, TokenStream) {
     let mut metadata_checks = Vec::new();
     let mut constraint_checks = Vec::new();
-    // Entries of `constraint_checks` that call a constraint plugin. They keep
-    // their generated spans instead of taking the attribute's, so lints treat
-    // the generated `Args` literal as macro output; the values inside still
-    // carry the user's own spans.
-    let mut plugin_check_positions: Vec<usize> = Vec::new();
     let idx = field.index;
 
     // Binds `__actual_address: &Address` to this field's own account
@@ -705,7 +700,6 @@ pub fn generate_security_checks(
         if !token_members.is_empty() {
             let namespace = quote! { naclac_lang::token_constraints::token };
             let call = plugin_call_tokens(&namespace, &token_members, field, all_fields);
-            plugin_check_positions.push(constraint_checks.len());
             constraint_checks.push(quote! { { #call } });
         }
 
@@ -722,7 +716,6 @@ pub fn generate_security_checks(
         if !mint_members.is_empty() {
             let namespace = quote! { naclac_lang::token_constraints::mint };
             let call = plugin_call_tokens(&namespace, &mint_members, field, all_fields);
-            plugin_check_positions.push(constraint_checks.len());
             constraint_checks.push(quote! { { #call } });
         }
     }
@@ -830,17 +823,7 @@ pub fn generate_security_checks(
         .or_else(|| field.token_mint.as_ref().map(|m| m.span()))
         .unwrap_or(field_span);
 
-    let core_checks = constraint_checks
-        .into_iter()
-        .enumerate()
-        .map(|(position, check)| {
-            if plugin_check_positions.contains(&position) {
-                check
-            } else {
-                set_span_recur(check, constraint_checks_span)
-            }
-        });
-    let core_checks = quote! { #(#core_checks)* };
+    let core_checks = set_span_recur(quote! { #(#constraint_checks)* }, constraint_checks_span);
     let plugin_checks = generate_plugin_checks(field, all_fields);
 
     (
@@ -880,7 +863,11 @@ fn generate_plugin_checks(field: &ParsedField, all_fields: &[ParsedField]) -> To
 /// on the loaded field with `Some(value)` for each key written and the
 /// namespace's `Args` default for the rest, its error mapped to the field's
 /// index. Each value goes through `ConstraintValue`, so its conversion is
-/// decided by the type of the key's `Args` field.
+/// decided by the type of the key's `Args` field. Values are evaluated in the
+/// order written, in the surrounding function (so `?` in a value works),
+/// before `Args` is built; `Args` is built by assignment rather than a struct
+/// literal with `..Default::default()`, which lints flag when every key is
+/// given.
 pub(crate) fn plugin_call_tokens(
     namespace: &TokenStream,
     members: &[(&Ident, &syn::Expr)],
@@ -896,6 +883,9 @@ pub(crate) fn plugin_call_tokens(
     let idx = field.index;
     let key_names = members.iter().map(|(key, _)| key.to_string());
     let keys = members.iter().map(|(key, _)| *key);
+    let value_bindings: Vec<Ident> = (0..members.len())
+        .map(|position| format_ident!("__constraint_value_{}", position))
+        .collect();
     let values = members.iter().map(|(_, value)| {
         let source = value_reference(value, all_fields);
         quote! { naclac_lang::prelude::ConstraintValue::into_value(#source) }
@@ -905,12 +895,14 @@ pub(crate) fn plugin_call_tokens(
             &[#(#key_names),*],
             naclac_lang::prelude::ConstraintPhase::#phase,
         );
+        #(let #value_bindings = ::core::option::Option::Some(#values);)*
         <#namespace::Constraint as naclac_lang::prelude::AccountConstraint<_>>::check(
             &#field_ident,
-            &#namespace::Args {
-                #(#keys: ::core::option::Option::Some(#values),)*
-                ..::core::default::Default::default()
-            },
+            &naclac_lang::prelude::build_constraint_args(
+                |__constraint_args: &mut #namespace::Args| {
+                    #(__constraint_args.#keys = #value_bindings;)*
+                },
+            ),
         )
         .map_err(|e| e.err(#idx))?;
     }
@@ -1439,8 +1431,16 @@ mod plugin_tests {
             .replace(' ', "")
     }
 
-    fn value(source: &str) -> String {
-        format!("naclac_lang::prelude::ConstraintValue::into_value({source})")
+    const INTO_VALUE: &str = "naclac_lang::prelude::ConstraintValue::into_value";
+
+    /// Whether `generated` assigns `key` from the value read through `source`.
+    fn sets(generated: &str, key: &str, source: &str) -> bool {
+        (0..8).any(|n| {
+            let binding = format!("let__constraint_value_{n}=::core::option::Option::Some(");
+            let value = format!("{binding}{INTO_VALUE}({source}));");
+            let assignment = format!("__constraint_args.{key}=__constraint_value_{n};");
+            generated.contains(&value) && generated.contains(&assignment)
+        })
     }
 
     #[test]
@@ -1458,21 +1458,33 @@ mod plugin_tests {
             "<my_vault::Constraintasnaclac_lang::prelude::",
             "AccountConstraint<_>>::check(&v,"
         );
-        let fee = format!("fee_bps:::core::option::Option::Some({})", value("&(30)"));
-        let admin = format!("admin:::core::option::Option::Some({})", value("&admin"));
-        let rest = "..::core::default::Default::default()";
+        let build = concat!(
+            "&naclac_lang::prelude::build_constraint_args(",
+            "|__constraint_args:&mutmy_vault::Args|"
+        );
 
         assert_eq!(generated.matches("my_vault::RULES.check").count(), 1);
         assert!(generated.contains(r#"&["fee_bps","admin"]"#), "{generated}");
         assert!(generated.contains("ConstraintPhase::Check"), "{generated}");
         assert_eq!(generated.matches(call).count(), 1, "{generated}");
-        assert!(generated.contains(&fee), "{generated}");
-        assert!(generated.contains(&admin), "{generated}");
-        assert!(generated.contains(rest), "{generated}");
+        assert_eq!(generated.matches(build).count(), 1, "{generated}");
+        assert!(sets(&generated, "fee_bps", "&(30)"), "{generated}");
+        assert!(sets(&generated, "admin", "&admin"), "{generated}");
+        assert!(!generated.contains("Default::default()"), "{generated}");
         assert!(
             generated.contains(".map_err(|e|e.err(0usize))?"),
             "{generated}"
         );
+    }
+
+    #[test]
+    fn values_are_bound_in_the_order_written() {
+        let generated = code("#[account(my_vault::b = 2, my_vault::a = 1)] v: Account<Vault>");
+        let first = generated.find("let__constraint_value_0").unwrap();
+        let second = generated.find("let__constraint_value_1").unwrap();
+        assert!(first < second, "{generated}");
+        assert!(sets(&generated, "b", "&(2)"), "{generated}");
+        assert!(sets(&generated, "a", "&(1)"), "{generated}");
     }
 
     #[test]
@@ -1481,10 +1493,7 @@ mod plugin_tests {
             "#[account(my_vault::pool = pool)] v: Account<Vault>,
              pool: Account<Pool>",
         );
-        assert!(
-            generated.contains(&value("&accounts[1usize]")),
-            "{generated}"
-        );
+        assert!(sets(&generated, "pool", "&accounts[1usize]"), "{generated}");
     }
 
     #[test]
@@ -1516,20 +1525,8 @@ mod plugin_tests {
             "naclac_lang::prelude::AccountConstraint<_>>::check(&vault,"
         );
         assert_eq!(generated.matches(call).count(), 1, "{generated}");
-        assert!(
-            generated.contains(&format!(
-                "mint:::core::option::Option::Some({})",
-                value("&accounts[1usize]")
-            )),
-            "{generated}"
-        );
-        assert!(
-            generated.contains(&format!(
-                "authority:::core::option::Option::Some({})",
-                value("&owner")
-            )),
-            "{generated}"
-        );
+        assert!(sets(&generated, "mint", "&accounts[1usize]"), "{generated}");
+        assert!(sets(&generated, "authority", "&owner"), "{generated}");
         assert!(!generated.contains("check_mint"), "{generated}");
         assert!(!generated.contains("check_authority"), "{generated}");
     }
@@ -1546,13 +1543,12 @@ mod plugin_tests {
             "naclac_lang::prelude::AccountConstraint<_>>::check(&mint,"
         );
         assert_eq!(generated.matches(call).count(), 1, "{generated}");
-        for expected in [
-            format!("decimals:::core::option::Option::Some({})", value("&(6)")),
-            format!("authority:::core::option::Option::Some({})", value("&owner")),
-            format!("freeze_authority:::core::option::Option::Some({})", value("&owner")),
-        ] {
-            assert!(generated.contains(&expected), "{generated}");
-        }
+        assert!(sets(&generated, "decimals", "&(6)"), "{generated}");
+        assert!(sets(&generated, "authority", "&owner"), "{generated}");
+        assert!(
+            sets(&generated, "freeze_authority", "&owner"),
+            "{generated}"
+        );
         assert!(!generated.contains("check_decimals"), "{generated}");
     }
 
@@ -1562,8 +1558,8 @@ mod plugin_tests {
             "#[account(token::authority = owner)] vault: Account<TokenAccount>,
              owner: Signer",
         );
-        assert!(generated.contains("authority:::core"), "{generated}");
-        assert!(!generated.contains("mint:::core"), "{generated}");
+        assert!(sets(&generated, "authority", "&owner"), "{generated}");
+        assert!(!generated.contains("args.mint"), "{generated}");
     }
 
     #[test]
