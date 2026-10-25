@@ -1,5 +1,5 @@
 error: Field 'does_not_exist' not found in struct for relation constraint on 'account'
- --> tests/fail/18_has_one_unknown_field.rs:7:10
+ --> tests/fail/18_relation_unknown_field.rs:7:10
   |
 7 | #[derive(Accounts)]
   |          ^^^^^^^^

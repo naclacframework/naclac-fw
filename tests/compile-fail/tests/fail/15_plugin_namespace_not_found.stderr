@@ -1,0 +1,7 @@
+error[E0433]: cannot find module or crate `foo` in this scope
+ --> tests/fail/15_plugin_namespace_not_found.rs:9:15
+  |
+9 |     #[account(foo::bar = owner)]
+  |               ^^^ use of unresolved module or unlinked crate `foo`
+  |
+  = help: if you wanted to use a crate named `foo`, use `cargo add foo` to add it to your `Cargo.toml`

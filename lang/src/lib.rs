@@ -43,7 +43,7 @@ macro_rules! __naclac_nostd_panic {
 compile_error!("the `token` feature requires `solana` or `pinocchio` to also be enabled");
 
 #[cfg(feature = "token")]
-pub use naclac_token::{associated_token, token};
+pub use naclac_token::{associated_token, constraints as token_constraints, token};
 
 #[cfg(all(
     feature = "metadata",

@@ -121,6 +121,7 @@ pub use pinocchio_system;
 // ===========================================================================
 
 pub mod base58;
+pub mod constraint;
 pub mod context;
 pub mod cpi;
 #[cfg(not(feature = "pinocchio"))]

@@ -3,6 +3,8 @@ use accounts_constraints_client::{
     fetch_ledger, fetch_vault,
     get_ledger_pda, get_seeded_pda, get_vault_pda,
     instructions::{
+        build_check_min_value, build_check_min_value_unmet, CheckMinValueAccounts,
+        CheckMinValueUnmetAccounts,
         build_check_address, build_check_address_relational, build_check_executable,
         build_check_external_pda, build_check_owner, build_check_owner_relational,
         build_check_rent_exempt, build_close_vault, build_close_vault_self,
@@ -731,4 +733,43 @@ fn init_succeeds_against_a_pre_funded_pda() {
     )
     .send_and_confirm()
     .expect("init should succeed against a pre-funded PDA, not fail with AccountAlreadyInUse");
+}
+
+/// A constraint defined outside the derive (`min_value::min = N`, in the
+/// program's own `min_value` module): it passes when the account's `value`
+/// is at least `N` and fails with `Unauthorized` otherwise.
+#[test]
+fn a_constraint_defined_outside_the_derive_is_enforced() {
+    let provider = setup();
+    let (seeded_pda, _bump) = get_seeded_pda(&PROGRAM_ID);
+
+    build_init_seeded(
+        &provider,
+        PROGRAM_ID,
+        InitSeededAccounts {
+            payer: provider.payer.address(),
+            seeded: seeded_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_seeded should succeed");
+
+    build_check_min_value(
+        &provider,
+        PROGRAM_ID,
+        CheckMinValueAccounts { seeded: seeded_pda },
+    )
+    .send_and_confirm()
+    .expect("a value of 7 satisfies min_value::min = 7");
+
+    let unmet = build_check_min_value_unmet(
+        &provider,
+        PROGRAM_ID,
+        CheckMinValueUnmetAccounts { seeded: seeded_pda },
+    )
+    .send_and_confirm();
+    // `seeded` is field index 0 and the constraint returns `Unauthorized` (21):
+    // 10000 + 0*100 + 21 = 10021.
+    assert_custom_code(unmet, 10021);
 }

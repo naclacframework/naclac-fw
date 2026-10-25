@@ -74,7 +74,7 @@ You do not need an auto-generated client to use `@naclac/client`. As long as you
 
 ```typescript
 import * as naclac from "@naclac/client";
-import { IDL } from "../target/types/my_program";
+import { IDL } from "../artifacts/idl/my_program";
 
 // 1. Create a provider
 const provider = naclac.createProvider("devnet", wallet);

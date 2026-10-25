@@ -590,7 +590,6 @@ name = "naclac-core"
 version = "0.1.0"
 dependencies = [
  "borsh",
- "bytemuck",
  "five8",
  "naclac-macros",
  "naclac-pod",
@@ -1264,7 +1263,6 @@ dependencies = [
  "serde",
  "solana-define-syscall 5.2.0",
  "solana-pubkey 4.4.0",
- "wincode",
 ]
 
 [[package]]
@@ -1580,7 +1578,6 @@ dependencies = [
  "solana-instruction 3.5.1",
  "solana-msg",
  "solana-program-error",
- "wincode",
 ]
 
 [[package]]

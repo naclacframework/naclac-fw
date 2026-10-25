@@ -25,6 +25,9 @@ pub use {
 };
 
 // --- Wrappers: common types (shared by both backends) ---
+pub use crate::constraint::{
+    AccountConstraint, ConstraintPhase, ConstraintRule, ConstraintRules, ConstraintValue,
+};
 pub use crate::error::NaclacError;
 
 // These traits/types exist in wrappers for BOTH Solana and Pinocchio backends

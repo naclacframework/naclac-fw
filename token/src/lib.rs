@@ -19,6 +19,9 @@ pub mod token;
 pub mod associated_token;
 
 #[cfg(any(feature = "solana", feature = "pinocchio"))]
+pub mod constraints;
+
+#[cfg(any(feature = "solana", feature = "pinocchio"))]
 pub mod extensions;
 
 #[cfg(any(feature = "solana", feature = "pinocchio"))]

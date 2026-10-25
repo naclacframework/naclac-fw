@@ -10,13 +10,10 @@ use {
 };
 
 // platform-tools versions naclac will use as-is if already cached locally,
-// newest first. v1.55 is the floor — it fixes a relocation-addends-under-SBPFv3
-// bug present in v1.54 (github.com/anza-xyz/platform-tools release notes).
-const ACCEPTED_PLATFORM_TOOLS: [&str; 3] = ["v1.57", "v1.56", "v1.55"];
+// newest first.
+const ACCEPTED_PLATFORM_TOOLS: [&str; 2] = ["v1.58", "v1.56"];
 // Downloaded automatically (via cargo-build-sbf's own fetch-by-version
-// support) only when none of the above are already cached — same Rust/LLVM
-// base as v1.55, so it carries the bugfixes without v1.57's larger toolchain
-// jump.
+// support) only when none of `ACCEPTED_PLATFORM_TOOLS` are already cached.
 const DEFAULT_PLATFORM_TOOLS_FALLBACK: &str = "v1.56";
 const DEFAULT_ARCH: &str = "v3";
 

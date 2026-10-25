@@ -7,7 +7,7 @@
 
 use {
     crate::instruction::parser::{ParsedField, PdaBump},
-    proc_macro2::TokenStream,
+    proc_macro2::{Ident, TokenStream},
     quote::{format_ident, quote},
     syn::spanned::Spanned,
 };
@@ -131,6 +131,11 @@ pub fn generate_security_checks(
 ) -> (TokenStream, TokenStream) {
     let mut metadata_checks = Vec::new();
     let mut constraint_checks = Vec::new();
+    // Entries of `constraint_checks` that call a constraint plugin. They keep
+    // their generated spans instead of taking the attribute's, so lints treat
+    // the generated `Args` literal as macro output; the values inside still
+    // carry the user's own spans.
+    let mut plugin_check_positions: Vec<usize> = Vec::new();
     let idx = field.index;
 
     // Binds `__actual_address: &Address` to this field's own account
@@ -685,82 +690,40 @@ pub fn generate_security_checks(
     // account the check trivially passes against the values just written: on
     // a pre-existing one it now actually verifies them.
     if field.init_config.is_none() || field.is_init_if_needed {
-        let field_ident = &field.ident;
-        let data_prelude = borrow_field_data_tokens(field_ident);
-        let mut token_checks = Vec::new();
+        let mint_key = format_ident!("mint");
+        let authority_key = format_ident!("authority");
+        let decimals_key = format_ident!("decimals");
+        let freeze_authority_key = format_ident!("freeze_authority");
 
-        if let Some(mint_expr) = &field.token_mint {
-            let actual_mint_access = resolve_smart_key(mint_expr, all_fields);
-            token_checks.push(quote! {
-                {
-                    #data_prelude
-                    let actual_mint: naclac_lang::prelude::Address = #actual_mint_access;
-                    naclac_lang::token::TokenAccount::check_mint(&data, &actual_mint)
-                        .map_err(|e| e.err(#idx))?;
-                }
-            });
+        let mut token_members: Vec<(&Ident, &syn::Expr)> = Vec::new();
+        if let Some(value) = &field.token_mint {
+            token_members.push((&mint_key, value));
+        }
+        if let Some(value) = &field.token_authority {
+            token_members.push((&authority_key, value));
+        }
+        if !token_members.is_empty() {
+            let namespace = quote! { naclac_lang::token_constraints::token };
+            let call = plugin_call_tokens(&namespace, &token_members, field, all_fields);
+            plugin_check_positions.push(constraint_checks.len());
+            constraint_checks.push(quote! { { #call } });
         }
 
-        if let Some(authority_expr) = &field.token_authority {
-            let actual_authority_access = resolve_smart_key(authority_expr, all_fields);
-            token_checks.push(quote! {
-                {
-                    #data_prelude
-                    let actual_authority: naclac_lang::prelude::Address = #actual_authority_access;
-                    naclac_lang::token::TokenAccount::check_authority(&data, &actual_authority)
-                        .map_err(|e| e.err(#idx))?;
-                }
-            });
+        let mut mint_members: Vec<(&Ident, &syn::Expr)> = Vec::new();
+        if let Some(value) = &field.mint_decimals {
+            mint_members.push((&decimals_key, value));
         }
-
-        if !token_checks.is_empty() {
-            constraint_checks.push(quote! {
-                { #(#token_checks)* }
-            });
+        if let Some(value) = &field.mint_authority {
+            mint_members.push((&authority_key, value));
         }
-
-        let mut mint_checks = Vec::new();
-
-        if let Some(decimals_expr) = &field.mint_decimals {
-            mint_checks.push(quote! {
-                {
-                    #data_prelude
-                    let actual_decimals: u8 = #decimals_expr;
-                    naclac_lang::token::Mint::check_decimals(&data, actual_decimals)
-                        .map_err(|e| e.err(#idx))?;
-                }
-            });
+        if let Some(value) = &field.mint_freeze_authority {
+            mint_members.push((&freeze_authority_key, value));
         }
-
-        if let Some(authority_expr) = &field.mint_authority {
-            let actual_authority_access = resolve_smart_key(authority_expr, all_fields);
-            mint_checks.push(quote! {
-                {
-                    #data_prelude
-                    let actual_authority: naclac_lang::prelude::Address = #actual_authority_access;
-                    naclac_lang::token::Mint::check_authority(&data, &actual_authority)
-                        .map_err(|e| e.err(#idx))?;
-                }
-            });
-        }
-
-        if let Some(freeze_authority_expr) = &field.mint_freeze_authority {
-            let actual_freeze_authority_access =
-                resolve_smart_key(freeze_authority_expr, all_fields);
-            mint_checks.push(quote! {
-                {
-                    #data_prelude
-                    let actual_freeze: naclac_lang::prelude::Address = #actual_freeze_authority_access;
-                    naclac_lang::token::Mint::check_freeze_authority(&data, &actual_freeze)
-                        .map_err(|e| e.err(#idx))?;
-                }
-            });
-        }
-
-        if !mint_checks.is_empty() {
-            constraint_checks.push(quote! {
-                { #(#mint_checks)* }
-            });
+        if !mint_members.is_empty() {
+            let namespace = quote! { naclac_lang::token_constraints::mint };
+            let call = plugin_call_tokens(&namespace, &mint_members, field, all_fields);
+            plugin_check_positions.push(constraint_checks.len());
+            constraint_checks.push(quote! { { #call } });
         }
     }
 
@@ -867,10 +830,120 @@ pub fn generate_security_checks(
         .or_else(|| field.token_mint.as_ref().map(|m| m.span()))
         .unwrap_or(field_span);
 
+    let core_checks = constraint_checks
+        .into_iter()
+        .enumerate()
+        .map(|(position, check)| {
+            if plugin_check_positions.contains(&position) {
+                check
+            } else {
+                set_span_recur(check, constraint_checks_span)
+            }
+        });
+    let core_checks = quote! { #(#core_checks)* };
+    let plugin_checks = generate_plugin_checks(field, all_fields);
+
     (
         set_span_recur(quote! { #(#metadata_checks)* }, metadata_checks_span),
-        set_span_recur(quote! { #(#constraint_checks)* }, constraint_checks_span),
+        quote! { #core_checks #plugin_checks },
     )
+}
+
+/// Code for a field's `namespace::key = value` constraints, one group per
+/// namespace. It sits after every core check of the field, so a constraint
+/// only ever adds a check. The tokens keep the user's own spans so a mistake
+/// points at the key.
+fn generate_plugin_checks(field: &ParsedField, all_fields: &[ParsedField]) -> TokenStream {
+    use quote::ToTokens;
+
+    let mut groups: Vec<(syn::Path, Vec<(&Ident, &syn::Expr)>)> = Vec::new();
+    for constraint in &field.plugin_constraints {
+        let written = constraint.namespace.to_token_stream().to_string();
+        let member = (&constraint.key, &constraint.value);
+        match groups
+            .iter_mut()
+            .find(|(namespace, _)| namespace.to_token_stream().to_string() == written)
+        {
+            Some((_, members)) => members.push(member),
+            None => groups.push((constraint.namespace.clone(), vec![member])),
+        }
+    }
+
+    let blocks = groups.iter().map(|(namespace, members)| {
+        plugin_call_tokens(&namespace.to_token_stream(), members, field, all_fields)
+    });
+    quote! { #(#blocks)* }
+}
+
+/// One namespace's constraint on `field`: the namespace's `RULES` evaluated
+/// while compiling (nothing is left in the program), then `Constraint::check`
+/// on the loaded field with `Some(value)` for each key written and the
+/// namespace's `Args` default for the rest, its error mapped to the field's
+/// index. Each value goes through `ConstraintValue`, so its conversion is
+/// decided by the type of the key's `Args` field.
+pub(crate) fn plugin_call_tokens(
+    namespace: &TokenStream,
+    members: &[(&Ident, &syn::Expr)],
+    field: &ParsedField,
+    all_fields: &[ParsedField],
+) -> TokenStream {
+    let phase = if field.init_config.is_some() {
+        quote! { Init }
+    } else {
+        quote! { Check }
+    };
+    let field_ident = &field.ident;
+    let idx = field.index;
+    let key_names = members.iter().map(|(key, _)| key.to_string());
+    let keys = members.iter().map(|(key, _)| *key);
+    let values = members.iter().map(|(_, value)| {
+        let source = value_reference(value, all_fields);
+        quote! { naclac_lang::prelude::ConstraintValue::into_value(#source) }
+    });
+    quote! {
+        const _: () = #namespace::RULES.check(
+            &[#(#key_names),*],
+            naclac_lang::prelude::ConstraintPhase::#phase,
+        );
+        <#namespace::Constraint as naclac_lang::prelude::AccountConstraint<_>>::check(
+            &#field_ident,
+            &#namespace::Args {
+                #(#keys: ::core::option::Option::Some(#values),)*
+                ..::core::default::Default::default()
+            },
+        )
+        .map_err(|e| e.err(#idx))?;
+    }
+}
+
+/// A reference to a constraint value: the raw account slot or the loaded
+/// local of the field it names (`field_reference`), else the expression as
+/// written.
+fn value_reference(expr: &syn::Expr, all_fields: &[ParsedField]) -> TokenStream {
+    if let syn::Expr::Path(expr_path) = expr {
+        if let Some(ident) = expr_path.path.get_ident() {
+            if let Some(reference) = field_reference(ident, all_fields) {
+                return reference;
+            }
+        }
+    }
+    quote! { &(#expr) }
+}
+
+/// A reference to the field named `ident`, from which its address can be
+/// read: the raw `accounts[idx]` slot for an account wrapper or `AccountInfo`
+/// (valid wherever the field is declared), else the field's loaded local.
+/// `None` when no field has that name.
+fn field_reference(ident: &Ident, all_fields: &[ParsedField]) -> Option<TokenStream> {
+    let pos = all_fields.iter().position(|f| &f.ident == ident)?;
+    let target_field = &all_fields[pos];
+    if crate::type_classify::is_account_wrapper(&target_field.ty)
+        || crate::type_classify::is_exactly(&target_field.ty, "AccountInfo")
+    {
+        Some(quote! { &accounts[#pos] })
+    } else {
+        Some(quote! { &#ident })
+    }
 }
 
 /// Resolves a constraint's target expression (e.g. the `mint_authority` in
@@ -885,13 +958,8 @@ pub fn generate_security_checks(
 fn resolve_smart_key(expr: &syn::Expr, all_fields: &[ParsedField]) -> TokenStream {
     if let syn::Expr::Path(expr_path) = expr {
         if let Some(ident) = expr_path.path.get_ident() {
-            if let Some(pos) = all_fields.iter().position(|f| &f.ident == ident) {
-                let target_field = &all_fields[pos];
-                if crate::type_classify::is_account_wrapper(&target_field.ty)
-                    || crate::type_classify::is_exactly(&target_field.ty, "AccountInfo")
-                {
-                    return quote! { naclac_lang::prelude::ToAddress::address(&accounts[#pos]) };
-                }
+            if let Some(reference) = field_reference(ident, all_fields) {
+                return quote! { naclac_lang::prelude::ToAddress::address(#reference) };
             }
         }
     }
@@ -1337,6 +1405,188 @@ mod lookup_tests {
                 assert_eq!(dynamic_view_field_of("Plain"), None);
                 assert_eq!(dynamic_view_field_of("Missing"), None);
             },
+        );
+    }
+}
+
+#[cfg(test)]
+mod plugin_tests {
+    use {
+        super::{generate_plugin_checks, generate_security_checks},
+        crate::instruction::parser::{parse_struct_fields, ParsedField},
+    };
+
+    fn parse(fields: &str) -> Vec<ParsedField> {
+        let item: syn::ItemStruct = syn::parse_str(&format!("struct S {{ {fields} }}")).unwrap();
+        let syn::Fields::Named(named) = &item.fields else {
+            panic!("a struct with named fields");
+        };
+        parse_struct_fields(named).unwrap()
+    }
+
+    fn code(fields: &str) -> String {
+        let parsed = parse(fields);
+        generate_plugin_checks(&parsed[0], &parsed)
+            .to_string()
+            .replace(' ', "")
+    }
+
+    fn constraint_code(fields: &str) -> String {
+        let parsed = parse(fields);
+        generate_security_checks(&parsed[0], &parsed, false)
+            .1
+            .to_string()
+            .replace(' ', "")
+    }
+
+    fn value(source: &str) -> String {
+        format!("naclac_lang::prelude::ConstraintValue::into_value({source})")
+    }
+
+    #[test]
+    fn a_field_without_plugin_keys_generates_nothing() {
+        assert_eq!(code("#[account(mut)] v: Account<Vault>"), "");
+    }
+
+    #[test]
+    fn keys_of_one_namespace_become_one_rules_check_and_one_call() {
+        let generated = code(
+            "#[account(my_vault::fee_bps = 30, my_vault::admin = admin)] v: Account<Vault>,
+             admin: Signer",
+        );
+        let call = concat!(
+            "<my_vault::Constraintasnaclac_lang::prelude::",
+            "AccountConstraint<_>>::check(&v,"
+        );
+        let fee = format!("fee_bps:::core::option::Option::Some({})", value("&(30)"));
+        let admin = format!("admin:::core::option::Option::Some({})", value("&admin"));
+        let rest = "..::core::default::Default::default()";
+
+        assert_eq!(generated.matches("my_vault::RULES.check").count(), 1);
+        assert!(generated.contains(r#"&["fee_bps","admin"]"#), "{generated}");
+        assert!(generated.contains("ConstraintPhase::Check"), "{generated}");
+        assert_eq!(generated.matches(call).count(), 1, "{generated}");
+        assert!(generated.contains(&fee), "{generated}");
+        assert!(generated.contains(&admin), "{generated}");
+        assert!(generated.contains(rest), "{generated}");
+        assert!(
+            generated.contains(".map_err(|e|e.err(0usize))?"),
+            "{generated}"
+        );
+    }
+
+    #[test]
+    fn a_value_naming_an_account_field_reads_its_raw_slot() {
+        let generated = code(
+            "#[account(my_vault::pool = pool)] v: Account<Vault>,
+             pool: Account<Pool>",
+        );
+        assert!(
+            generated.contains(&value("&accounts[1usize]")),
+            "{generated}"
+        );
+    }
+
+    #[test]
+    fn different_namespaces_are_checked_separately() {
+        let generated = code("#[account(a::x = 1, b::y = 2)] v: Account<Vault>");
+        assert_eq!(generated.matches("::RULES.check").count(), 2);
+        assert!(generated.contains("a::RULES.check"), "{generated}");
+        assert!(generated.contains("b::RULES.check"), "{generated}");
+    }
+
+    #[test]
+    fn a_field_being_created_is_checked_in_the_init_phase() {
+        let generated = code(
+            "#[account(init, payer = payer, my_vault::fee_bps = 1)] v: Account<Vault>,
+             #[account(mut)] payer: Signer",
+        );
+        assert!(generated.contains("ConstraintPhase::Init"), "{generated}");
+    }
+
+    #[test]
+    fn token_keys_on_an_existing_account_call_the_token_constraint() {
+        let generated = constraint_code(
+            "#[account(token::mint = mint, token::authority = owner)] vault: Account<TokenAccount>,
+             mint: Account<Mint>,
+             owner: Signer",
+        );
+        let call = concat!(
+            "<naclac_lang::token_constraints::token::Constraintas",
+            "naclac_lang::prelude::AccountConstraint<_>>::check(&vault,"
+        );
+        assert_eq!(generated.matches(call).count(), 1, "{generated}");
+        assert!(
+            generated.contains(&format!(
+                "mint:::core::option::Option::Some({})",
+                value("&accounts[1usize]")
+            )),
+            "{generated}"
+        );
+        assert!(
+            generated.contains(&format!(
+                "authority:::core::option::Option::Some({})",
+                value("&owner")
+            )),
+            "{generated}"
+        );
+        assert!(!generated.contains("check_mint"), "{generated}");
+        assert!(!generated.contains("check_authority"), "{generated}");
+    }
+
+    #[test]
+    fn mint_keys_on_an_existing_mint_call_the_mint_constraint() {
+        let generated = constraint_code(
+            "#[account(mint::decimals = 6, mint::authority = owner, mint::freeze_authority = owner)]
+             mint: Account<Mint>,
+             owner: Signer",
+        );
+        let call = concat!(
+            "<naclac_lang::token_constraints::mint::Constraintas",
+            "naclac_lang::prelude::AccountConstraint<_>>::check(&mint,"
+        );
+        assert_eq!(generated.matches(call).count(), 1, "{generated}");
+        for expected in [
+            format!("decimals:::core::option::Option::Some({})", value("&(6)")),
+            format!("authority:::core::option::Option::Some({})", value("&owner")),
+            format!("freeze_authority:::core::option::Option::Some({})", value("&owner")),
+        ] {
+            assert!(generated.contains(&expected), "{generated}");
+        }
+        assert!(!generated.contains("check_decimals"), "{generated}");
+    }
+
+    #[test]
+    fn one_token_key_is_passed_alone() {
+        let generated = constraint_code(
+            "#[account(token::authority = owner)] vault: Account<TokenAccount>,
+             owner: Signer",
+        );
+        assert!(generated.contains("authority:::core"), "{generated}");
+        assert!(!generated.contains("mint:::core"), "{generated}");
+    }
+
+    #[test]
+    fn token_keys_are_checked_on_init_if_needed_but_not_on_init() {
+        let created = constraint_code(
+            "#[account(init, payer = payer, token::mint = mint, token::authority = owner)]
+             vault: Account<TokenAccount>,
+             mint: Account<Mint>,
+             owner: Signer,
+             #[account(mut)] payer: Signer",
+        );
+        assert!(!created.contains("token_constraints"), "{created}");
+
+        let maybe_created = constraint_code(
+            "#[account(init_if_needed, payer = payer, token::mint = mint, token::authority = owner)]
+             vault: Account<TokenAccount>,
+             mint: Account<Mint>,
+             owner: Signer,
+             #[account(mut)] payer: Signer",
+        );
+        assert!(
+            maybe_created.contains("token_constraints::token::Constraint"),
+            "{maybe_created}"
         );
     }
 }

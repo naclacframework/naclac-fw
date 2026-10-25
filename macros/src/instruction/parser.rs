@@ -63,6 +63,9 @@ pub struct ParsedField {
     /// whatever CPI is entered next — see
     /// `naclac_token::associated_token::create_idempotent_with_extra_accounts_signed`.
     pub extra_accounts: Option<syn::ExprArray>,
+    /// `namespace::key = value` constraints whose namespace is provided by
+    /// another crate (see `naclac_core::constraint`), in the order written.
+    pub plugin_constraints: Vec<PluginConstraint>,
     pub index: usize,
     /// True if this field was declared `Option<T>` — `ty` above is always
     /// `T` (the `Option<>` layer is unwrapped in `parse_one_field` before
@@ -82,6 +85,20 @@ pub struct ParsedField {
     /// check this first and emit a single `compile_error!` in its place —
     /// see `accounts.rs`'s main per-field loop.
     pub parse_error: Option<syn::Error>,
+}
+
+/// Namespaces the derive itself defines. A path that starts with one of these
+/// but is not one of its keys is a mistake, never a plugin constraint.
+const CORE_NAMESPACES: [&str; 5] = ["token", "mint", "associated_token", "realloc", "seeds"];
+
+/// One `namespace::key = value` constraint. `namespace` is the path as
+/// written (everything before the last segment); the crate it names must
+/// export `Args`, `Constraint` and `RULES`.
+#[derive(Clone)]
+pub struct PluginConstraint {
+    pub namespace: syn::Path,
+    pub key: Ident,
+    pub value: syn::Expr,
 }
 
 #[derive(Clone)]
@@ -237,6 +254,7 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                     associated_token_authority: None,
                     associated_token_bump: None,
                     extra_accounts: None,
+                    plugin_constraints: Vec::new(),
                     index: idx,
                     parse_error: Some(err),
                 }
@@ -332,6 +350,7 @@ fn parse_one_field(
     let mut associated_token_authority: Option<syn::Expr> = None;
     let mut associated_token_bump: Option<syn::Expr> = None;
     let mut extra_accounts: Option<syn::ExprArray> = None;
+    let mut plugin_constraints: Vec<PluginConstraint> = Vec::new();
 
     for attr in &field.attrs {
         if attr.path().is_ident("account") {
@@ -409,10 +428,46 @@ fn parse_one_field(
                         || (path.segments.len() == 2 && path.segments[0].ident == "realloc")
                         || (path.segments.len() == 2 && path.segments[0].ident == "seeds" && path.segments[1].ident == "program");
 
+                    if !is_reserved && path.segments.len() >= 2 {
+                        let mut namespace = path.clone();
+                        let Some(last) = namespace.segments.pop() else {
+                            return Err(meta.error("expected a constraint name"));
+                        };
+                        let key = last.ident;
+                        namespace.segments.pop_punct();
+                        if CORE_NAMESPACES.iter().any(|n| namespace.segments[0].ident == n) {
+                            let written = path
+                                .segments
+                                .iter()
+                                .map(|segment| segment.ident.to_string())
+                                .collect::<Vec<_>>()
+                                .join("::");
+                            return Err(syn::Error::new_spanned(
+                                path,
+                                format!("Naclac Error: `{written}` is not a constraint."),
+                            ));
+                        }
+                        let value = meta.value()?.parse::<syn::Expr>()?;
+                        plugin_constraints.push(PluginConstraint {
+                            namespace,
+                            key,
+                            value,
+                        });
+                        return Ok(());
+                    }
+
                     if !is_reserved {
                         let field_ident = path.get_ident().cloned().ok_or_else(|| {
                             syn::Error::new_spanned(path, "Expected relation field name")
                         })?;
+                        if field_ident == "has_one" {
+                            return Err(syn::Error::new_spanned(
+                                path,
+                                "Naclac Error: `has_one` is not supported. To check that a field of \
+                                 this account equals another account, name the field itself, for \
+                                 example `#[account(maker = maker)]`.",
+                            ));
+                        }
                         let value = meta.value()?;
 
                         // Manually parse tokens until we hit a comma or the end of the attribute
@@ -822,6 +877,7 @@ fn parse_one_field(
         associated_token_authority,
         associated_token_bump,
         extra_accounts,
+        plugin_constraints,
         index: idx,
         parse_error: None,
     })
@@ -886,6 +942,76 @@ mod tests {
         assert!(message.contains("`token::token_program`"), "{message}");
         let message = error_of("#[account(mint::program = tp)] m: Account<Mint>");
         assert!(message.contains("`mint::token_program`"), "{message}");
+    }
+
+    fn plugin_keys(field: &ParsedField) -> Vec<(String, String)> {
+        use quote::ToTokens;
+        field
+            .plugin_constraints
+            .iter()
+            .map(|c| {
+                (
+                    c.namespace.to_token_stream().to_string().replace(' ', ""),
+                    c.key.to_string(),
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_namespace_this_crate_does_not_define_is_a_plugin_constraint() {
+        let fields = parse(
+            "#[account(mut, my_vault::fee_bps = 30, my_vault::admin = admin)] v: Account<Vault>,
+             admin: Signer",
+        );
+        assert!(fields[0].parse_error.is_none());
+        assert_eq!(
+            plugin_keys(&fields[0]),
+            [
+                ("my_vault".to_string(), "fee_bps".to_string()),
+                ("my_vault".to_string(), "admin".to_string()),
+            ]
+        );
+        assert!(fields[0].is_mut);
+    }
+
+    #[test]
+    fn a_qualified_namespace_keeps_its_whole_path() {
+        let fields = parse("#[account(defi::vault::fee_bps = 30)] v: Account<Vault>");
+        assert!(fields[0].parse_error.is_none());
+        assert_eq!(
+            plugin_keys(&fields[0]),
+            [("defi::vault".to_string(), "fee_bps".to_string())]
+        );
+    }
+
+    #[test]
+    fn a_path_under_a_namespace_the_derive_defines_is_not_a_plugin() {
+        let message = error_of("#[account(token::mint::extra = m)] a: Account<TokenAccount>");
+        assert!(
+            message.contains("`token::mint::extra` is not a constraint"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn has_one_is_rejected_with_the_naclac_spelling() {
+        let message = error_of("#[account(has_one = maker)] a: Account<A>, maker: Signer");
+        assert!(message.contains("`has_one` is not supported"), "{message}");
+        assert!(message.contains("`#[account(maker = maker)]`"), "{message}");
+    }
+
+    #[test]
+    fn a_named_field_relation_is_still_a_relation() {
+        let fields = parse("#[account(maker = maker)] a: Account<A>, maker: Signer");
+        assert!(fields[0].parse_error.is_none());
+        assert_eq!(fields[0].relations.len(), 1);
+    }
+
+    #[test]
+    fn a_field_without_plugin_keys_has_none() {
+        let fields = parse("#[account(mut)] a: Account<A>");
+        assert!(fields[0].plugin_constraints.is_empty());
     }
 
     #[test]

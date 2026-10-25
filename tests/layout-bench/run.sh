@@ -19,7 +19,7 @@ CACHE="$HOME/.cache/solana"
 
 TOOLS_VERSION=${TOOLS_VERSION:-}
 if [ -z "$TOOLS_VERSION" ]; then
-  for candidate in v1.57 v1.56 v1.55; do
+  for candidate in v1.58 v1.56; do
     if [ -d "$CACHE/$candidate/platform-tools" ]; then
       TOOLS_VERSION=$candidate
       break
@@ -27,7 +27,7 @@ if [ -z "$TOOLS_VERSION" ]; then
   done
 fi
 if [ -z "$TOOLS_VERSION" ] || [ ! -d "$CACHE/$TOOLS_VERSION/platform-tools" ]; then
-  echo "no cached platform-tools found under $CACHE (looked for v1.57, v1.56, v1.55)" >&2
+  echo "no cached platform-tools found under $CACHE (looked for v1.58, v1.56)" >&2
   echo "available: $(ls "$CACHE" 2>/dev/null | tr '\n' ' ')" >&2
   exit 1
 fi

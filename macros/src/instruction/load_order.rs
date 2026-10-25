@@ -43,6 +43,7 @@ fn load_time_exprs(field: &ParsedField) -> Vec<&syn::Expr> {
     if let Some(extra) = &field.extra_accounts {
         exprs.extend(extra.elems.iter());
     }
+    exprs.extend(field.plugin_constraints.iter().map(|c| &c.value));
     exprs.extend(
         [
             &field.pda_program,
@@ -191,6 +192,16 @@ mod tests {
         let order = order_of(
             "#[account(mut, token::mint = mint)] vault: Account<TokenAccount>,
              mint: Account<Mint>",
+        )
+        .unwrap();
+        assert_eq!(order, [1, 0]);
+    }
+
+    #[test]
+    fn a_plugin_constraint_loads_the_account_it_names_first() {
+        let order = order_of(
+            "#[account(my_vault::admin = admin)] vault: Account<Vault>,
+             admin: Signer",
         )
         .unwrap();
         assert_eq!(order, [1, 0]);

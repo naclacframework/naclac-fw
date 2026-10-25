@@ -7,6 +7,7 @@ pub mod components;
 pub mod constants;
 pub mod errors;
 pub mod instructions;
+pub mod min_value;
 
 use instructions::*;
 
@@ -62,6 +63,14 @@ pub mod accounts_constraints_borsh {
 
     pub fn touch_seeded(ctx: Context<TouchSeeded>, bump: u8) -> Result {
         touch_seeded::touch_seeded(ctx, bump)
+    }
+
+    pub fn check_min_value(ctx: Context<CheckMinValue>) -> Result {
+        check_min_value::check_min_value(ctx)
+    }
+
+    pub fn check_min_value_unmet(ctx: Context<CheckMinValueUnmet>) -> Result {
+        check_min_value_unmet::check_min_value_unmet(ctx)
     }
 
     pub fn close_vault(ctx: Context<CloseVault>) -> Result {

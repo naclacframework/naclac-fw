@@ -2191,6 +2191,7 @@ dependencies = [
  "hex",
  "litesvm",
  "naclac-core",
+ "naclac-pod",
  "serde_json",
  "solana-account 4.7.0",
  "solana-account-decoder",
@@ -2217,7 +2218,6 @@ dependencies = [
  "spl-token",
  "spl-token-2022",
  "thiserror 2.0.21",
- "toml",
  "wincode",
 ]
 
@@ -2229,6 +2229,7 @@ dependencies = [
  "bytemuck",
  "five8",
  "naclac-macros",
+ "naclac-pod",
  "pinocchio 0.11.2",
  "pinocchio-log",
  "pinocchio-log-macro",
@@ -2247,6 +2248,7 @@ dependencies = [
  "solana-sha256-hasher",
  "solana-system-interface 3.3.0",
  "wincode",
+ "wincode-derive",
 ]
 
 [[package]]
@@ -2278,10 +2280,19 @@ dependencies = [
 name = "naclac-metadata"
 version = "0.1.0"
 dependencies = [
- "bytemuck",
  "naclac-core",
  "pinocchio 0.11.2",
  "solana-instruction 3.5.1",
+]
+
+[[package]]
+name = "naclac-pod"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "pinocchio 0.11.2",
+ "solana-address 2.9.0",
+ "solana-program-error",
 ]
 
 [[package]]
@@ -2296,6 +2307,7 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "syn 3.0.3",
+ "toml",
 ]
 
 [[package]]
@@ -6220,6 +6232,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "token-wincode-client"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+]
+
+[[package]]
+name = "token-wincode-pinocchio-client"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+]
+
+[[package]]
 name = "token-zc-client"
 version = "0.1.0"
 dependencies = [
@@ -6241,6 +6269,38 @@ dependencies = [
  "spl-transfer-hook-interface",
  "spl-type-length-value",
  "token-borsh-client",
+]
+
+[[package]]
+name = "token_wincode"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+ "solana-message",
+ "spl-memo-interface",
+ "spl-tlv-account-resolution",
+ "spl-token-2022-interface 3.1.1",
+ "spl-token-metadata-interface 1.0.1",
+ "spl-transfer-hook-interface",
+ "spl-type-length-value",
+ "token-wincode-client",
+]
+
+[[package]]
+name = "token_wincode_pinocchio"
+version = "0.1.0"
+dependencies = [
+ "naclac-client",
+ "naclac-lang",
+ "pinocchio-memo",
+ "solana-message",
+ "spl-tlv-account-resolution",
+ "spl-token-2022-interface 3.1.1",
+ "spl-token-metadata-interface 1.0.1",
+ "spl-transfer-hook-interface",
+ "spl-type-length-value",
+ "token-wincode-pinocchio-client",
 ]
 
 [[package]]

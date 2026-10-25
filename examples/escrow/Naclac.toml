@@ -16,6 +16,9 @@ escrow_wincode_pinocchio = "GXHh7jtpFHtpvJRQWwgpU53diSw94MFoDTq2YeHmuDUu"
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
+[build]
+platform_tools_version = "v1.58"
+
 [scripts]
 test-rust = "cargo test -- --show-output"
 test-node = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
