@@ -35,7 +35,7 @@ fn run_case(label: &str, claim_rate_limit: u64, last_claimed: u64, now: i64) {
     let mut svm = LiteSVM::new();
     let so_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../pump-fees/target/deploy/pump_fees.so"
+        "/../../pump-fees/artifacts/deploy/pump_fees.so"
     );
     svm.add_program_from_file(fees_program, so_path)
         .expect("load OUR pump_fees.so");

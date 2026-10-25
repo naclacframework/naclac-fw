@@ -65,7 +65,7 @@ pub struct InitBoost {
         payer = creator,
         associated_token::mint = quote_mint,
         associated_token::authority = boost_vault_authority,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub boost_vault: AccountInfo,
 

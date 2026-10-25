@@ -17,12 +17,12 @@ bytemuck = ["naclac-lang/bytemuck", "amm-client/bytemuck"]
 
 [dependencies]
 naclac-lang = { version = "0.1.0", path = "../../../../../lang", default-features = false, features = ["token"]  }
-amm-client = { path = "../../clients/rust/amm", default-features = false, features = ["cpi", "solana"] }
+amm-client = { path = "../../artifacts/clients/rust/amm", default-features = false, features = ["cpi", "solana"] }
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../../client-rs" }
-token-creator-client = { version = "0.1.0", path = "../../clients/rust/token_creator" }
-amm-client = { path = "../../clients/rust/amm" }
+token-creator-client = { version = "0.1.0", path = "../../artifacts/clients/rust/token_creator" }
+amm-client = { path = "../../artifacts/clients/rust/amm" }
 
 [lints]
 workspace = true

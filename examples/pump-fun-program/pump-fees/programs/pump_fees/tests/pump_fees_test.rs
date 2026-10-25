@@ -51,7 +51,7 @@ fn load_pump_program(provider: &NaclacProvider) {
     pump_root.pop(); // pump-fees workspace root
     pump_root.pop(); // pump-fun-program
     pump_root.push("pump-bonding-curve");
-    let so_path = resolve_cargo_target_dir(&pump_root).join("deploy/pump.so");
+    let so_path = workspace_deploy_dir(&pump_root).join("pump.so");
 
     provider
         .add_program(&PUMP_PROGRAM_ID, so_path.to_str().unwrap())
@@ -82,7 +82,7 @@ fn load_pump_amm_program(provider: &NaclacProvider) {
     pump_amm_root.pop(); // pump-fees workspace root
     pump_amm_root.pop(); // pump-fun-program
     pump_amm_root.push("pump-amm");
-    let so_path = resolve_cargo_target_dir(&pump_amm_root).join("deploy/pump_amm.so");
+    let so_path = workspace_deploy_dir(&pump_amm_root).join("pump_amm.so");
 
     provider
         .add_program(&PUMP_AMM_PROGRAM_ID, so_path.to_str().unwrap())
@@ -104,7 +104,7 @@ fn load_donation_relay_program(provider: &NaclacProvider) {
     donation_relay_root.pop(); // pump-fun-program
     donation_relay_root.pop(); // examples
     donation_relay_root.push("donation-relay");
-    let so_path = resolve_cargo_target_dir(&donation_relay_root).join("deploy/donation_relay.so");
+    let so_path = workspace_deploy_dir(&donation_relay_root).join("donation_relay.so");
 
     provider
         .add_program(&DONATION_RELAY_PROGRAM_ID, so_path.to_str().unwrap())

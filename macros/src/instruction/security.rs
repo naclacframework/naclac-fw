@@ -973,7 +973,7 @@ pub fn generate_relational_checks(fields: &[ParsedField], prefix: TokenStream) -
             }
         }
 
-        // token::program Check
+        // `token_program` check (`token::`, `mint::` or `associated_token::`)
         if let Some(prog_expr) = &field.token_program {
             let idx = field.index;
             checks.push(quote! {

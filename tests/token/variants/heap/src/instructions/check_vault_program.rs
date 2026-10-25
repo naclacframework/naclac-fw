@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
 
-// `token::program`: validates an existing (non-`init`) account's owning
+// `token::token_program`: validates an existing (non-`init`) account's owning
 // program against an expected `Program<Token>` field expression
-// (`token::program = token_program`). Checked in
+// (`token::token_program = token_program`). Checked in
 // `generate_relational_checks` (`security.rs`), which runs post
 // account-load, not as part of the per-account metadata checks:
 // `Owner::program_owner(&vault) == ToAddress::address(&token_program)`.
@@ -16,9 +16,9 @@ pub struct CheckVaultProgram {
     pub token_program: Program<Token>,
 
     /// SAFETY: only the account's owning-program metadata is inspected via
-    /// the `token::program` constraint below; its data is never read or
+    /// the `token::token_program` constraint below; its data is never read or
     /// deserialized.
-    #[account(token::program = token_program)]
+    #[account(token::token_program = token_program)]
     pub vault: AccountInfo,
 }
 

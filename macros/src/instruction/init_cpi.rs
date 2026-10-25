@@ -47,7 +47,8 @@ pub(crate) fn program_marker_ident(ty: &Type) -> Option<String> {
 }
 
 /// Resolves which token-program field an `init`'d mint/token-account/ATA
-/// should CPI into. `token::program = <field>` (if present) always wins —
+/// should CPI into. A `token_program = <field>` key (`token::`, `mint::` or
+/// `associated_token::`) always wins —
 /// needed the moment a struct has more than one token-program-shaped field
 /// (e.g. a hardcoded `Program<Token2022>` for one account and a generic
 /// `Interface<TokenInterface>` for another), since without an explicit
@@ -78,7 +79,8 @@ pub(crate) fn resolve_token_program_idx(
             syn::Error::new_spanned(
                 &field.ident,
                 "Naclac Error: token_program must be defined in the Accounts struct for account \
-                 initialization (or point at one explicitly via `token::program = <field>`).",
+                 initialization (or point at one explicitly via `token::token_program`, \
+                 `mint::token_program` or `associated_token::token_program`).",
             )
             .to_compile_error()
         })

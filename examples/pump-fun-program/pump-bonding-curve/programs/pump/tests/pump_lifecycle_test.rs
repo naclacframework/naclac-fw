@@ -102,7 +102,7 @@ fn setup() -> NaclacProvider {
         pump_fees_root.pop(); // pump-bonding-curve workspace root
         pump_fees_root.pop(); // pump-fun-program
         pump_fees_root.push("pump-fees");
-        let pump_fees_so = resolve_cargo_target_dir(&pump_fees_root).join("deploy/pump_fees.so");
+        let pump_fees_so = workspace_deploy_dir(&pump_fees_root).join("pump_fees.so");
         provider
             .add_program(&PUMP_FEES_PROGRAM_ID, pump_fees_so.to_str().unwrap())
             .expect("Failed to load pump_fees.so");
@@ -112,7 +112,7 @@ fn setup() -> NaclacProvider {
         pump_amm_root.pop(); // pump-bonding-curve workspace root
         pump_amm_root.pop(); // pump-fun-program
         pump_amm_root.push("pump-amm");
-        let pump_amm_so = resolve_cargo_target_dir(&pump_amm_root).join("deploy/pump_amm.so");
+        let pump_amm_so = workspace_deploy_dir(&pump_amm_root).join("pump_amm.so");
         provider
             .add_program(&PUMP_AMM_PROGRAM_ID, pump_amm_so.to_str().unwrap())
             .expect("Failed to load pump_amm.so");

@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/legacy";
-import { TokenVaultBorshClient } from "../../clients/typescript/src/generated/token_vault_borsh/client-legacy";
+import { TokenVaultBorshClient } from "../../artifacts/clients/typescript/src/generated/token_vault_borsh/client-legacy";
 
 describe("Naclac Token Vault Borsh Test Suite (Legacy)", () => {
   describe("SPL Token Program", () => {

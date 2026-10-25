@@ -22,7 +22,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features =
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
-escrow-borsh-client = { version = "0.1.0", path = "../../clients/rust/escrow_borsh" }
+escrow-borsh-client = { version = "0.1.0", path = "../../artifacts/clients/rust/escrow_borsh" }
 
 [lints]
 workspace = true

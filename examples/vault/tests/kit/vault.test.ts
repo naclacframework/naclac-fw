@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { VaultClient } from "../../clients/typescript/src/generated/vault";
+import { VaultClient } from "../../artifacts/clients/typescript/src/generated/vault";
 
 describe("Naclac Vault Test Suite", () => {
   let client: VaultClient;

@@ -10,7 +10,4 @@ test-ledger/
 .anchor/
 *.log
 .env
-keys/
-*.json
-!package.json
-!tsconfig.json
+artifacts/deploy/

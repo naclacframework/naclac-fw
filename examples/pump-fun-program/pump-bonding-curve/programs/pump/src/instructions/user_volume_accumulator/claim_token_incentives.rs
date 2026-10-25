@@ -33,7 +33,7 @@ pub struct ClaimTokenIncentives {
         payer = payer,
         associated_token::mint = mint,
         associated_token::authority = user,
-        token::program = token_program,
+        associated_token::token_program =token_program,
     )]
     pub user_ata: InterfaceAccount<TokenAccount>,
 
@@ -45,7 +45,7 @@ pub struct ClaimTokenIncentives {
         associated_token::mint = mint,
         associated_token::authority = global_volume_accumulator,
         associated_token::bump = args.global_incentive_token_account_bump,
-        token::program = token_program,
+        associated_token::token_program =token_program,
     )]
     pub global_incentive_token_account: InterfaceAccount<TokenAccount>,
 

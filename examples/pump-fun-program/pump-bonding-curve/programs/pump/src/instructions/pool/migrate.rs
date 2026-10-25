@@ -102,7 +102,7 @@ pub struct Migrate {
         associated_token::mint = mint,
         associated_token::authority = bonding_curve,
         associated_token::bump = args.associated_bonding_curve_bump,
-        token::program = token_program,
+        associated_token::token_program =token_program,
     )]
     pub associated_bonding_curve: InterfaceAccount<TokenAccount>,
 

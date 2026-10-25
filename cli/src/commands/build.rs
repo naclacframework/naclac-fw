@@ -154,7 +154,14 @@ pub fn execute(
 
         if !keypair_path.exists() {
             let legacy_keypair_path = legacy_deploy_dir.join(&keypair_file_name);
-            if legacy_keypair_path.exists() {
+            let legacy_exists = legacy_keypair_path.try_exists().unwrap_or_else(|e| {
+                ui::error(format!(
+                    "Cannot check {} for an existing keypair: {}",
+                    legacy_keypair_path.display(),
+                    e
+                ))
+            });
+            if legacy_exists {
                 ui::error(format!(
                     "Keypair for '{}' found at {} but not at {} — move it there, or a new \
                      keypair (and so a new program ID) would be generated.",

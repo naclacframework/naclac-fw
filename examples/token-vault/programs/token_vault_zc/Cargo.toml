@@ -22,7 +22,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features =
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
-token-vault-zc-client = { version = "0.1.0", path = "../../clients/rust/token_vault_zc" }
+token-vault-zc-client = { version = "0.1.0", path = "../../artifacts/clients/rust/token_vault_zc" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

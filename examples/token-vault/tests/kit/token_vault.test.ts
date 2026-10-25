@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { TokenVaultClient } from "../../clients/typescript/src/generated/token_vault";
+import { TokenVaultClient } from "../../artifacts/clients/typescript/src/generated/token_vault";
 
 describe("Naclac Token Vault Test Suite (Kit)", () => {
   describe("SPL Token Program", () => {

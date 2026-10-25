@@ -240,8 +240,8 @@ fn transfer_creator_fees_to_pump_sweeps_wsol_balance() {
 /// deposit untouched (no fee on initial liquidity), and that `lp_mint` is
 /// genuinely created under Token-2022 with the real 9-decimals value
 /// (`probe14`-confirmed) despite `base_token_program`/`quote_token_program`
-/// both being classic Token in the same instruction — the `token::program = X`
-/// disambiguation fix this session added, exercised for real here.
+/// both being classic Token in the same instruction, because `lp_mint` names
+/// its program with `mint::token_program = token_2022_program`.
 #[test]
 fn create_pool_bootstraps_liquidity_and_mints_lp_tokens() {
     let provider = setup();
@@ -377,7 +377,7 @@ fn create_pool_bootstraps_liquidity_and_mints_lp_tokens() {
     assert_eq!(
         lp_mint_account.owner, TOKEN_2022_PROGRAM_ID,
         "lp_mint must be owned by Token-2022 even though base/quote_token_program are classic Token \
-         in this same instruction — the token::program disambiguation fix, exercised for real"
+         in this same instruction: it names token_2022_program with mint::token_program"
     );
     assert_eq!(lp_mint_account.data[44], 9, "lp_mint decimals must be 9 (probe14-confirmed real value)");
 

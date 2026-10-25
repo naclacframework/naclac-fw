@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { VaultBorshClient } from "../../clients/typescript/src/generated/vault_borsh";
+import { VaultBorshClient } from "../../artifacts/clients/typescript/src/generated/vault_borsh";
 
 describe("Naclac Vault Test Suite", () => {
   let client: VaultBorshClient;

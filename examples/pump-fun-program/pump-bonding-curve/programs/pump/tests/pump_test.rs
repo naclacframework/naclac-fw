@@ -1402,7 +1402,7 @@ fn load_pump_fees_program(provider: &NaclacProvider) {
     pump_fees_root.pop(); // pump-bonding-curve workspace root
     pump_fees_root.pop(); // pump-fun-program
     pump_fees_root.push("pump-fees");
-    let so_path = resolve_cargo_target_dir(&pump_fees_root).join("deploy/pump_fees.so");
+    let so_path = workspace_deploy_dir(&pump_fees_root).join("pump_fees.so");
 
     provider
         .add_program(&pump_fees_client::PROGRAM_ID, so_path.to_str().unwrap())
@@ -1415,7 +1415,7 @@ fn load_pump_amm_program(provider: &NaclacProvider) {
     pump_amm_root.pop(); // pump-bonding-curve workspace root
     pump_amm_root.pop(); // pump-fun-program
     pump_amm_root.push("pump-amm");
-    let so_path = resolve_cargo_target_dir(&pump_amm_root).join("deploy/pump_amm.so");
+    let so_path = workspace_deploy_dir(&pump_amm_root).join("pump_amm.so");
 
     provider
         .add_program(&PUMP_AMM_PROGRAM_ID, so_path.to_str().unwrap())

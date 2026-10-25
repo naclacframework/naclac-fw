@@ -46,7 +46,7 @@ pub struct ClaimCashbackV2 {
         associated_token::mint = quote_mint,
         associated_token::authority = user_volume_accumulator,
         associated_token::bump = args.associated_user_volume_accumulator_bump,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub associated_user_volume_accumulator: InterfaceAccount<TokenAccount>,
 
@@ -55,7 +55,7 @@ pub struct ClaimCashbackV2 {
         associated_token::mint = quote_mint,
         associated_token::authority = user,
         associated_token::bump = args.associated_quote_user_bump,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub associated_quote_user: InterfaceAccount<TokenAccount>,
 

@@ -86,7 +86,7 @@ fn read_token_account_amount(provider: &NaclacProvider, address: &Address) -> u6
 }
 
 /// `GlobalConfig`'s real discriminator, per the generated IDL
-/// (`target/idl/pump_amm.json`) — matches `reference/fee-tier-probe/src/bin/probe14.rs`'s
+/// (`artifacts/idl/pump_amm.json`) — matches `reference/fee-tier-probe/src/bin/probe14.rs`'s
 /// own `GLOBAL_CONFIG_DISCRIMINATOR` exactly (both are the same name-derived hash).
 fn global_config_account_data(disable_flags: u8, boost_enabled: bool, admin: &Address, boost_authority: &Address) -> Vec<u8> {
     let mut data = vec![149, 8, 156, 202, 160, 252, 176, 217];
@@ -253,8 +253,8 @@ fn transfer_creator_fees_to_pump_sweeps_wsol_balance() {
 /// deposit untouched (no fee on initial liquidity), and that `lp_mint` is
 /// genuinely created under Token-2022 with the real 9-decimals value
 /// (`probe14`-confirmed) despite `base_token_program`/`quote_token_program`
-/// both being classic Token in the same instruction — the `token::program = X`
-/// disambiguation fix this session added, exercised for real here.
+/// both being classic Token in the same instruction, because `lp_mint` names
+/// its program with `mint::token_program = token_2022_program`.
 #[test]
 fn create_pool_bootstraps_liquidity_and_mints_lp_tokens() {
     let provider = setup();
@@ -393,7 +393,7 @@ fn create_pool_bootstraps_liquidity_and_mints_lp_tokens() {
     assert_eq!(
         lp_mint_account.owner, TOKEN_2022_PROGRAM_ID,
         "lp_mint must be owned by Token-2022 even though base/quote_token_program are classic Token \
-         in this same instruction — the token::program disambiguation fix, exercised for real"
+         in this same instruction: it names token_2022_program with mint::token_program"
     );
     assert_eq!(lp_mint_account.data[44], 9, "lp_mint decimals must be 9 (probe14-confirmed real value)");
 

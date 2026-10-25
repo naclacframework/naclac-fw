@@ -22,7 +22,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features =
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
-vault-zc-client = { version = "0.1.0", path = "../../clients/rust/vault_zc" }
+vault-zc-client = { version = "0.1.0", path = "../../artifacts/clients/rust/vault_zc" }
 
 [lints]
 workspace = true

@@ -428,7 +428,7 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     assert_custom_code(uninitialized_result, 10215);
 }
 
-/// `token::program`: validates an existing account's owning program against
+/// `token::token_program`: validates an existing account's owning program against
 /// an expected `Program<Token>` field
 /// (`generate_relational_checks`/`security.rs`, post account-load). A real
 /// SPL token account genuinely owned by the Token program is accepted; an
@@ -498,7 +498,7 @@ fn token_program_constraint_rejects_wrong_owning_program() {
     )
     .send_and_confirm();
     // `CheckVaultProgram { token_program, vault }` — `vault` is field index
-    // 1; `token::program` mismatch emits `ProgramIdMismatch` (9), checked
+    // 1; `token::token_program` mismatch emits `ProgramIdMismatch` (9), checked
     // post-load in `generate_relational_checks` -> 10000 + 1*100 + 9 = 10109.
     assert_custom_code(wrong_program_result, 10109);
 }
@@ -1679,13 +1679,10 @@ fn token_2022_mint_creation_and_cpis_work_end_to_end() {
     assert_custom_code(wrong_owner_result, 10204);
 }
 
-/// Regression test for the `init_cpi.rs` fix: with two token-program-shaped
-/// fields in the same struct (`token_program: Program<Token>` declared
-/// *before* `token_2022_program: Program<Token2022>`), `mint`'s `init` is
-/// explicitly routed to `token_2022_program` via `token::program =
-/// token_2022_program`. Before the fix, `init`'s CPI-target scan ignored
-/// that pointer and always grabbed the first token-program field in struct
-/// order — silently creating the mint under classic Token instead.
+/// With two token-program fields (`token_program: Program<Token>` declared
+/// before `token_2022_program: Program<Token2022>`), `mint`'s `init` is routed
+/// by `mint::token_program = token_2022_program`, so the mint must be created
+/// under Token-2022, not under the first token-program field.
 #[test]
 fn create_mint2022_dual_token_program_targets_the_pointed_field() {
     let provider = setup();
@@ -1726,7 +1723,7 @@ fn create_mint2022_dual_token_program_targets_the_pointed_field() {
     let mint_account = provider.get_account(&mint_pda).expect("mint account should exist");
     assert_eq!(
         mint_account.owner, TOKEN_2022_PROGRAM_ID,
-        "mint must be owned by Token-2022 (the field `token::program` pointed at), \
+        "mint must be owned by Token-2022 (the field `mint::token_program` pointed at), \
          not classic Token (the field declared first in the struct)"
     );
 }

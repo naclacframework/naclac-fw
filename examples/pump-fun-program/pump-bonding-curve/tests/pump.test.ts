@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client";
-import { PumpClient } from "../clients/src/generated/pump";
+import { PumpClient } from "../artifacts/clients/typescript/src/generated/pump";
 
 describe("Naclac Pump Test Suite", () => {
   let client: PumpClient;

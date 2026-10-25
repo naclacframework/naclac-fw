@@ -293,9 +293,9 @@ variants, pre-existing, unrelated to `executable`) never imported
 sibling `init_seeded.rs` has it) — a plain missing-import bug that had
 apparently never been caught by an actual build of this exact file.
 
-`token::mint` / `token::authority` / `token::program` and
+`token::mint` / `token::authority` / `token::token_program` and
 `mint::decimals` / `mint::authority` / `mint::freeze_authority` were
-deferred to `tests/token/` (section 6 below), where `token::program` and
+deferred to `tests/token/` (section 6 below), where `token::token_program` and
 `mint::freeze_authority` are now built and passing too (`decimals`'s
 generic `Unauthorized` and `token::mint`/`token::authority`'s
 `ConstraintAccountIsNone`/`ConstraintAddress` split were already covered
@@ -539,11 +539,11 @@ duplicated). Two real bugs found and fixed while first running this:
   (`vault_token_account` has no `init` constraint at all; the account is
   pre-created off-chain before the instruction that checks it runs)
 
-**`token::program` and `mint::freeze_authority` — ✅ built and passing
+**`token::token_program` and `mint::freeze_authority` — ✅ built and passing
 (4/4, all 3 modes: `token`, `token_borsh`, `token_zc`).**
 
 - `check_vault_program` (`programs/*/src/instructions/check_vault_program.rs`,
-  all 3 modes) — `token::program = token_program` on an existing, bare
+  all 3 modes) — `token::token_program = token_program` on an existing, bare
   `AccountInfo` `vault` field, checked in `generate_relational_checks`
   (`security.rs`, ~lines 762-772, post account-load):
   `Owner::program_owner(&vault) == ToAddress::address(&token_program)`.

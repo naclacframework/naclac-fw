@@ -2,14 +2,9 @@ use naclac_lang::prelude::*;
 use crate::components::MintAuthority;
 use crate::constants::SEED_MINT;
 
-// Regression fixture for the `init_cpi.rs` bug where `init`'s CPI-target
-// scan always picked the *first* `Program<Token>`/`Program<Token2022>`/
-// `Interface<TokenInterface>` field in the struct, ignoring any explicit
-// `token::program = X` pointer. `token_program` (classic Token) is
-// deliberately declared *before* `token_2022_program`, and the mint is
-// explicitly routed to the second field via `token::program =
-// token_2022_program` — before the fix this would have silently created
-// the mint under classic Token instead.
+// Two token-program fields with classic Token declared first: the mint's
+// `mint::token_program = token_2022_program` must route its `init` CPI to
+// Token-2022, not to the first token-program field.
 #[derive(Accounts)]
 #[instruction(id: u64, mint_bump: u8, decimals: u8)]
 pub struct CreateMint2022DualTokenProgram {
@@ -19,7 +14,7 @@ pub struct CreateMint2022DualTokenProgram {
     /// SAFETY: `init` + `mint::decimals`/`mint::authority` below fully
     /// validate and construct this account via a real CPI — the target
     /// program is `token_2022_program`, selected explicitly via
-    /// `token::program`, not by field order.
+    /// `mint::token_program`, not by field order.
     #[account(
         init,
         payer = payer,
@@ -27,7 +22,7 @@ pub struct CreateMint2022DualTokenProgram {
         bump = mint_bump,
         mint::decimals = decimals,
         mint::authority = mint_authority,
-        token::program = token_2022_program,
+        mint::token_program = token_2022_program,
     )]
     pub mint: AccountInfo,
 

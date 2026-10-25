@@ -301,7 +301,7 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     assert_custom_code(uninitialized_result, 10215);
 }
 
-/// `token::program`: validates an existing account's owning program against
+/// `token::token_program`: validates an existing account's owning program against
 /// an expected `Program<Token>` field
 /// (`generate_relational_checks`/`security.rs`, post account-load). A real
 /// SPL token account genuinely owned by the Token program is accepted; an
@@ -371,7 +371,7 @@ fn token_program_constraint_rejects_wrong_owning_program() {
     )
     .send_and_confirm();
     // `CheckVaultProgram { token_program, vault }` — `vault` is field index
-    // 1; `token::program` mismatch emits `ProgramIdMismatch` (9), checked
+    // 1; `token::token_program` mismatch emits `ProgramIdMismatch` (9), checked
     // post-load in `generate_relational_checks` -> 10000 + 1*100 + 9 = 10109.
     assert_custom_code(wrong_program_result, 10109);
 }

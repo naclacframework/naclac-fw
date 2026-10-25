@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { TokenVaultClient } from "../../clients/typescript/src/generated/token_vault";
+import { TokenVaultClient } from "../../artifacts/clients/typescript/src/generated/token_vault";
 import assert from "assert";
 
 // Custom helper removed - using built-in SDK helpers

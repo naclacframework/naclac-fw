@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { EscrowClient } from "../../clients/typescript/src/generated/escrow/client-kit";
+import { EscrowClient } from "../../artifacts/clients/typescript/src/generated/escrow/client-kit";
 
 describe("Naclac Escrow Test Suite", () => {
   let client: EscrowClient;

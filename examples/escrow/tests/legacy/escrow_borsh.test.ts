@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/legacy";
-import { EscrowBorshClient } from "../../clients/typescript/src/generated/escrow_borsh/client-legacy";
+import { EscrowBorshClient } from "../../artifacts/clients/typescript/src/generated/escrow_borsh/client-legacy";
 
 describe("Naclac EscrowBorsh Test Suite (Legacy)", () => {
   let client: EscrowBorshClient;

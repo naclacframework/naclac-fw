@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client";
-import { DonationRelayClient } from "../clients/src/generated/donation_relay";
+import { DonationRelayClient } from "../artifacts/clients/typescript/src/generated/donation_relay";
 
 describe("Naclac DonationRelay Test Suite", () => {
   let client: DonationRelayClient;

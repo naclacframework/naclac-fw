@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client";
-import { LaunchpadBorshClient } from "../clients/src/generated/launchpad_borsh";
+import { LaunchpadBorshClient } from "../artifacts/clients/typescript/src/generated/launchpad_borsh";
 
 describe("Naclac LaunchpadBorsh Test Suite", () => {
   let client: LaunchpadBorshClient;

@@ -99,7 +99,7 @@ pub struct MigrateV2 {
         associated_token::mint = base_mint,
         associated_token::authority = bonding_curve,
         associated_token::bump = args.associated_base_bonding_curve_bump,
-        token::program = base_token_program,
+        associated_token::token_program =base_token_program,
     )]
     pub associated_base_bonding_curve: InterfaceAccount<TokenAccount>,
 
@@ -108,7 +108,7 @@ pub struct MigrateV2 {
         associated_token::mint = quote_mint,
         associated_token::authority = bonding_curve,
         associated_token::bump = args.associated_quote_bonding_curve_bump,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub associated_quote_bonding_curve: InterfaceAccount<TokenAccount>,
 

@@ -86,7 +86,7 @@ pub struct CrankDonationFeePda {
         payer = payer,
         associated_token::mint = quote_mint,
         associated_token::authority = donation_fee_pda,
-        token::program = token_program,
+        associated_token::token_program =token_program,
     )]
     pub donation_fee_pda_ata: Account<TokenAccount>,
 

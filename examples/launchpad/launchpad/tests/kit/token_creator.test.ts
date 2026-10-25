@@ -1,6 +1,6 @@
 import * as naclac from "@naclac-fw/client/kit";
-import { TokenCreatorClient } from "../../clients/typescript/src/generated/token_creator";
-import { AmmClient } from "../../clients/typescript/src/generated/amm";
+import { TokenCreatorClient } from "../../artifacts/clients/typescript/src/generated/token_creator";
+import { AmmClient } from "../../artifacts/clients/typescript/src/generated/amm";
 import assert from "assert";
 
 describe("Naclac TokenCreator Test Suite (Kit)", () => {

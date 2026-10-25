@@ -39,7 +39,7 @@ pub struct CollectCreatorFeeV2 {
         associated_token::mint = quote_mint,
         associated_token::authority = creator,
         associated_token::bump = args.creator_token_account_bump,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub creator_token_account: InterfaceAccount<TokenAccount>,
 
@@ -58,7 +58,7 @@ pub struct CollectCreatorFeeV2 {
         associated_token::mint = quote_mint,
         associated_token::authority = creator_vault,
         associated_token::bump = args.creator_vault_token_account_bump,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub creator_vault_token_account: InterfaceAccount<TokenAccount>,
 

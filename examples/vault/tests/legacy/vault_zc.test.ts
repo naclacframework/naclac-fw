@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/legacy";
-import { VaultZcClient } from "../../clients/typescript/src/generated/vault_zc/client-legacy";
+import { VaultZcClient } from "../../artifacts/clients/typescript/src/generated/vault_zc/client-legacy";
 
 describe("Naclac Vault Test Suite", () => {
   let client: VaultZcClient;

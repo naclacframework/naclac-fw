@@ -118,6 +118,47 @@ pub struct ReallocConfig {
     pub grow_only: bool,
 }
 
+/// Records the token program named by a field's `token::token_program`,
+/// `mint::token_program` or `associated_token::token_program` key. A field
+/// names at most one.
+fn set_token_program(
+    slot: &mut Option<syn::Expr>,
+    expr: syn::Expr,
+    path: &syn::Path,
+) -> syn::Result<()> {
+    if slot.is_some() {
+        return Err(syn::Error::new_spanned(
+            path,
+            "Naclac Error: this field names its token program more than once; keep a single \
+             `token_program` key.",
+        ));
+    }
+    *slot = Some(expr);
+    Ok(())
+}
+
+/// The error for a key that `namespace::` does not define. Every unknown key
+/// is rejected, so a misspelled constraint can never compile into a missing
+/// check.
+fn unknown_key_error(path: &syn::Path, namespace: &str, key: &str, valid: &[&str]) -> syn::Error {
+    let list = valid
+        .iter()
+        .map(|k| format!("`{namespace}::{k}`"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let hint = if key == "program" {
+        format!(" Write `{namespace}::token_program` to name the token program.")
+    } else {
+        String::new()
+    };
+    syn::Error::new_spanned(
+        path,
+        format!(
+            "Naclac Error: `{namespace}::{key}` is not a constraint. Valid keys: {list}.{hint}"
+        ),
+    )
+}
+
 /// True if any doc-comment line on this field (once desugared from `///`/`#[doc = "..."]`
 /// and trimmed of leading whitespace) starts with `SAFETY:`. Used to require an explicit,
 /// human-written justification on every unchecked `AccountInfo` field — mirroring the
@@ -443,42 +484,65 @@ fn parse_one_field(
 
                     if meta.path.segments.len() == 2 && meta.path.segments[0].ident == "token" {
                         let key = meta.path.segments[1].ident.to_string();
-                        let value = meta.value()?;
-                        let expr = value.parse::<syn::Expr>()?;
-                        if key == "mint" {
-                            token_mint = Some(expr);
-                        } else if key == "authority" {
-                            token_authority = Some(expr);
-                        } else if key == "program" {
-                            token_program = Some(expr);
+                        let expr = meta.value()?.parse::<syn::Expr>()?;
+                        match key.as_str() {
+                            "mint" => token_mint = Some(expr),
+                            "authority" => token_authority = Some(expr),
+                            "token_program" => {
+                                set_token_program(&mut token_program, expr, &meta.path)?
+                            }
+                            _ => {
+                                return Err(unknown_key_error(
+                                    &meta.path,
+                                    "token",
+                                    &key,
+                                    &["mint", "authority", "token_program"],
+                                ))
+                            }
                         }
                         return Ok(());
                     }
 
                     if meta.path.segments.len() == 2 && meta.path.segments[0].ident == "mint" {
                         let key = meta.path.segments[1].ident.to_string();
-                        let value = meta.value()?;
-                        let expr = value.parse::<syn::Expr>()?;
-                        if key == "decimals" {
-                            mint_decimals = Some(expr);
-                        } else if key == "authority" {
-                            mint_authority = Some(expr);
-                        } else if key == "freeze_authority" {
-                            mint_freeze_authority = Some(expr);
+                        let expr = meta.value()?.parse::<syn::Expr>()?;
+                        match key.as_str() {
+                            "decimals" => mint_decimals = Some(expr),
+                            "authority" => mint_authority = Some(expr),
+                            "freeze_authority" => mint_freeze_authority = Some(expr),
+                            "token_program" => {
+                                set_token_program(&mut token_program, expr, &meta.path)?
+                            }
+                            _ => {
+                                return Err(unknown_key_error(
+                                    &meta.path,
+                                    "mint",
+                                    &key,
+                                    &["decimals", "authority", "freeze_authority", "token_program"],
+                                ))
+                            }
                         }
                         return Ok(());
                     }
 
                     if meta.path.segments.len() == 2 && meta.path.segments[0].ident == "associated_token" {
                         let key = meta.path.segments[1].ident.to_string();
-                        let value = meta.value()?;
-                        let expr = value.parse::<syn::Expr>()?;
-                        if key == "mint" {
-                            associated_token_mint = Some(expr);
-                        } else if key == "authority" {
-                            associated_token_authority = Some(expr);
-                        } else if key == "bump" {
-                            associated_token_bump = Some(expr);
+                        let expr = meta.value()?.parse::<syn::Expr>()?;
+                        match key.as_str() {
+                            "mint" => associated_token_mint = Some(expr),
+                            "authority" => associated_token_authority = Some(expr),
+                            "bump" => associated_token_bump = Some(expr),
+                            "token_program" => {
+                                set_token_program(&mut token_program, expr, &meta.path)?
+                            }
+                            _ => {
+                                return Err(unknown_key_error(
+                                    &meta.path,
+                                    "associated_token",
+                                    &key,
+                                    &["mint", "authority", "bump", "token_program"],
+                                ))
+                            }
                         }
                         return Ok(());
                     }
@@ -761,4 +825,74 @@ fn parse_one_field(
         index: idx,
         parse_error: None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_struct_fields, ParsedField};
+
+    fn parse(fields: &str) -> Vec<ParsedField> {
+        let item: syn::ItemStruct = syn::parse_str(&format!("struct S {{ {fields} }}")).unwrap();
+        let syn::Fields::Named(named) = &item.fields else {
+            panic!("a struct with named fields");
+        };
+        parse_struct_fields(named).unwrap()
+    }
+
+    fn error_of(fields: &str) -> String {
+        parse(fields)[0]
+            .parse_error
+            .as_ref()
+            .expect("the attribute must be rejected")
+            .to_string()
+    }
+
+    #[test]
+    fn a_misspelled_key_is_rejected_instead_of_dropping_the_check() {
+        let message = error_of("#[account(mut, token::authorty = vault)] a: Account<TokenAccount>");
+        assert!(
+            message.contains("`token::authorty` is not a constraint"),
+            "{message}"
+        );
+        assert!(message.contains("`token::authority`"), "{message}");
+        let message = error_of("#[account(mint::decimal = 6)] m: Account<Mint>");
+        assert!(
+            message.contains("`mint::decimal` is not a constraint"),
+            "{message}"
+        );
+        let message = error_of("#[account(associated_token::owner = o)] t: Account<TokenAccount>");
+        assert!(
+            message.contains("`associated_token::owner` is not a constraint"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn each_namespace_names_its_token_program() {
+        for attr in [
+            "token::token_program = tp",
+            "mint::token_program = tp",
+            "associated_token::token_program = tp",
+        ] {
+            let fields = parse(&format!("#[account({attr})] a: Account<TokenAccount>"));
+            assert!(fields[0].parse_error.is_none(), "{attr}");
+            assert!(fields[0].token_program.is_some(), "{attr}");
+        }
+    }
+
+    #[test]
+    fn the_bare_program_key_points_to_token_program() {
+        let message = error_of("#[account(token::program = tp)] a: Account<TokenAccount>");
+        assert!(message.contains("`token::token_program`"), "{message}");
+        let message = error_of("#[account(mint::program = tp)] m: Account<Mint>");
+        assert!(message.contains("`mint::token_program`"), "{message}");
+    }
+
+    #[test]
+    fn a_field_names_its_token_program_once() {
+        let message = error_of(
+            "#[account(token::token_program = a, mint::token_program = b)] t: Account<TokenAccount>",
+        );
+        assert!(message.contains("more than once"), "{message}");
+    }
 }

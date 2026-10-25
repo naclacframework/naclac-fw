@@ -19,7 +19,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../../lang", features = ["to
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../../client-rs" }
-amm-client = { path = "../../clients/rust/amm" }
+amm-client = { path = "../../artifacts/clients/rust/amm" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

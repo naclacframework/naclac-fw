@@ -98,7 +98,7 @@ pub struct BuyV2 {
         payer = user,
         associated_token::mint = quote_mint,
         associated_token::authority = fee_recipient,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub associated_quote_fee_recipient: InterfaceAccount<TokenAccount>,
 
@@ -123,7 +123,7 @@ pub struct BuyV2 {
         associated_token::mint = quote_mint,
         associated_token::authority = buyback_fee_recipient,
         associated_token::bump = args.associated_quote_buyback_fee_recipient_bump,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub associated_quote_buyback_fee_recipient: InterfaceAccount<TokenAccount>,
 
@@ -139,7 +139,7 @@ pub struct BuyV2 {
         associated_token::mint = base_mint,
         associated_token::authority = bonding_curve,
         associated_token::bump = args.associated_base_bonding_curve_bump,
-        token::program = base_token_program,
+        associated_token::token_program =base_token_program,
     )]
     pub associated_base_bonding_curve: InterfaceAccount<TokenAccount>,
 
@@ -148,7 +148,7 @@ pub struct BuyV2 {
         associated_token::mint = quote_mint,
         associated_token::authority = bonding_curve,
         associated_token::bump = args.associated_quote_bonding_curve_bump,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub associated_quote_bonding_curve: InterfaceAccount<TokenAccount>,
 
@@ -162,7 +162,7 @@ pub struct BuyV2 {
         associated_token::mint = base_mint,
         associated_token::authority = user,
         associated_token::bump = args.associated_base_user_bump,
-        token::program = base_token_program,
+        associated_token::token_program =base_token_program,
     )]
     pub associated_base_user: InterfaceAccount<TokenAccount>,
 
@@ -175,7 +175,7 @@ pub struct BuyV2 {
         associated_token::mint = quote_mint,
         associated_token::authority = user,
         associated_token::bump = args.associated_quote_user_bump,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub associated_quote_user: InterfaceAccount<TokenAccount>,
 
@@ -198,7 +198,7 @@ pub struct BuyV2 {
         payer = user,
         associated_token::mint = quote_mint,
         associated_token::authority = creator_vault,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub associated_creator_vault: InterfaceAccount<TokenAccount>,
 
@@ -228,7 +228,7 @@ pub struct BuyV2 {
         payer = user,
         associated_token::mint = quote_mint,
         associated_token::authority = user_volume_accumulator,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub associated_user_volume_accumulator: InterfaceAccount<TokenAccount>,
 

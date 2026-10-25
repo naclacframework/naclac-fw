@@ -20,7 +20,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../lang", features = ["token
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
-token-vault-client = { version = "0.1.0", path = "../../clients/rust/token_vault" }
+token-vault-client = { version = "0.1.0", path = "../../artifacts/clients/rust/token_vault" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

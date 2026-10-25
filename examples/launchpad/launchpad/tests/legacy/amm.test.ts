@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/legacy";
-import { AmmClient } from "../../clients/typescript/src/generated/amm/client-legacy";
+import { AmmClient } from "../../artifacts/clients/typescript/src/generated/amm/client-legacy";
 import assert from "assert";
 
 describe("Naclac AMM Test Suite (Legacy)", () => {

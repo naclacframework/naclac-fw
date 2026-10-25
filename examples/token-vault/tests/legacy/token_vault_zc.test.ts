@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/legacy";
-import { TokenVaultZcClient } from "../../clients/typescript/src/generated/token_vault_zc/client-legacy";
+import { TokenVaultZcClient } from "../../artifacts/clients/typescript/src/generated/token_vault_zc/client-legacy";
 
 describe("Naclac Token Vault Zc Test Suite (Legacy)", () => {
   describe("SPL Token Program", () => {

@@ -20,7 +20,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../../lang", features = ["to
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../../client-rs" }
-pump-amm-client = { version = "0.1.0", path = "../../clients/rust/pump_amm" }
+pump-amm-client = { version = "0.1.0", path = "../../artifacts/clients/rust/pump_amm" }
 
 [lints]
 workspace = true

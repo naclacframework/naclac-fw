@@ -89,7 +89,7 @@ pub fn create_ata(_ctx: Context<CreateAta>) -> Result {
 pub struct CheckTokenProgram {
     pub token_program: Program<Token>,
     /// SAFETY: only its token program is checked.
-    #[account(token::program = token_program)]
+    #[account(token::token_program = token_program)]
     pub program_checked: AccountInfo,
 }
 

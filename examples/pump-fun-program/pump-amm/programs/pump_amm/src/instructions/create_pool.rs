@@ -59,7 +59,7 @@ pub struct CreatePool {
         bump = args.lp_mint_bump,
         mint::decimals = LP_MINT_DECIMALS,
         mint::authority = pool,
-        token::program = token_2022_program,
+        mint::token_program = token_2022_program,
     )]
     pub lp_mint: AccountInfo,
 
@@ -68,7 +68,7 @@ pub struct CreatePool {
         associated_token::mint = base_mint,
         associated_token::authority = creator,
         associated_token::bump = args.user_base_token_account_bump,
-        token::program = base_token_program,
+        associated_token::token_program =base_token_program,
     )]
     pub user_base_token_account: InterfaceAccount<TokenAccount>,
 
@@ -77,7 +77,7 @@ pub struct CreatePool {
         associated_token::mint = quote_mint,
         associated_token::authority = creator,
         associated_token::bump = args.user_quote_token_account_bump,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub user_quote_token_account: InterfaceAccount<TokenAccount>,
 
@@ -92,7 +92,7 @@ pub struct CreatePool {
         payer = creator,
         associated_token::mint = lp_mint,
         associated_token::authority = creator,
-        token::program = token_2022_program,
+        associated_token::token_program =token_2022_program,
     )]
     pub user_pool_token_account: AccountInfo,
 
@@ -108,7 +108,7 @@ pub struct CreatePool {
         payer = creator,
         associated_token::mint = base_mint,
         associated_token::authority = pool,
-        token::program = base_token_program,
+        associated_token::token_program =base_token_program,
     )]
     pub pool_base_token_account: AccountInfo,
 
@@ -118,7 +118,7 @@ pub struct CreatePool {
         payer = creator,
         associated_token::mint = quote_mint,
         associated_token::authority = pool,
-        token::program = quote_token_program,
+        associated_token::token_program =quote_token_program,
     )]
     pub pool_quote_token_account: AccountInfo,
 

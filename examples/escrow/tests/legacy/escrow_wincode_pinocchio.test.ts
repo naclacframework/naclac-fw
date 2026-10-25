@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client/legacy";
-import { EscrowWincodePinocchioClient } from "../../clients/typescript/src/generated/escrow_wincode_pinocchio/client-legacy";
+import { EscrowWincodePinocchioClient } from "../../artifacts/clients/typescript/src/generated/escrow_wincode_pinocchio/client-legacy";
 
 describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
   let client: EscrowWincodePinocchioClient;

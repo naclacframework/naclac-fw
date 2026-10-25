@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client";
-import { LaunchpadZcClient } from "../clients/src/generated/launchpad_zc";
+import { LaunchpadZcClient } from "../artifacts/clients/typescript/src/generated/launchpad_zc";
 
 describe("Naclac LaunchpadZc Test Suite", () => {
   let client: LaunchpadZcClient;

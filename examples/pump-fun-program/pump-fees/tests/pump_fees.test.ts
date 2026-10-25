@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client";
-import { PumpFeesClient } from "../clients/src/generated/pump_fees";
+import { PumpFeesClient } from "../artifacts/clients/typescript/src/generated/pump_fees";
 
 describe("Naclac PumpFees Test Suite", () => {
   let client: PumpFeesClient;
