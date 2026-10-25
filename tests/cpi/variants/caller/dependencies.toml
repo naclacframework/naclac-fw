@@ -1,1 +1,1 @@
-cpi-callee%KEBAB_SUFFIX%-client = { path = "../../clients/rust/cpi_callee%SUFFIX%", default-features = false, features = ["cpi", "%RUNTIME%", "%LAYOUT%"] }
+cpi-callee%KEBAB_SUFFIX%-client = { path = "../../artifacts/clients/rust/cpi_callee%SUFFIX%", default-features = false, features = ["cpi", "%RUNTIME%", "%LAYOUT%"] }

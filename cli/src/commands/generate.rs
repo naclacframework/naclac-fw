@@ -368,8 +368,8 @@ pub fn generate_idl_for_program(
 ) -> String {
     let serialization = features.serialization();
     let target_dir = naclac_client_gen::resolve_target_dir(workspace_root);
-    let keypair_path = naclac_client_gen::deploy_dir(workspace_root)
-        .join(format!("{}-keypair.json", prog_name));
+    let keypair_path =
+        naclac_client_gen::deploy_dir(workspace_root).join(format!("{}-keypair.json", prog_name));
     if !keypair_path.exists() {
         ui::error(format!(
             "No deploy keypair found for '{}' — run `naclac build` at least once first.",

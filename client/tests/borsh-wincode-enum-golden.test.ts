@@ -32,7 +32,7 @@ function hexToBytes(hex: string): Uint8Array {
 for (const mode of ["borsh", "wincode"] as const) {
   const idl = JSON.parse(
     readFileSync(
-      join(enumsDir, `clients/typescript/src/generated/enums_${mode}/idl/enums_${mode}.json`),
+      join(enumsDir, `artifacts/clients/typescript/src/generated/enums_${mode}/idl/enums_${mode}.json`),
       "utf8"
     )
   );

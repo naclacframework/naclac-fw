@@ -1,8 +1,8 @@
 import { strict as assert } from "assert";
 import * as naclac from "@naclac-fw/client/kit";
-import { EventsBorshClient } from "../../clients/typescript/src/generated/events_borsh";
-import { EventsClient } from "../../clients/typescript/src/generated/events";
-import { EventsZcClient } from "../../clients/typescript/src/generated/events_zc";
+import { EventsBorshClient } from "../../artifacts/clients/typescript/src/generated/events_borsh";
+import { EventsClient } from "../../artifacts/clients/typescript/src/generated/events";
+import { EventsZcClient } from "../../artifacts/clients/typescript/src/generated/events_zc";
 
 /**
  * `emit_cpi!` events never appear in a transaction's logs — they exist only

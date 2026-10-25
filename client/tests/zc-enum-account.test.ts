@@ -16,7 +16,7 @@ import { getIdlCodec } from "../src/coder/types";
 const enumsDir = join(__dirname, "../../tests/enums");
 const idl = JSON.parse(
   readFileSync(
-    join(enumsDir, "clients/typescript/src/generated/enums_zc/idl/enums_zc.json"),
+    join(enumsDir, "artifacts/clients/typescript/src/generated/enums_zc/idl/enums_zc.json"),
     "utf8"
   )
 );

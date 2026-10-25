@@ -1,1 +1,1 @@
-cpi-callee%KEBAB_SUFFIX%-client = { path = "../../clients/rust/cpi_callee%SUFFIX%" }
+cpi-callee%KEBAB_SUFFIX%-client = { path = "../../artifacts/clients/rust/cpi_callee%SUFFIX%" }

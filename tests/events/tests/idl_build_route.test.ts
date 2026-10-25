@@ -1,7 +1,7 @@
 import { strict as assert } from "assert";
-import eventsIdl from "../clients/typescript/src/generated/events/idl/events.json";
-import eventsBorshIdl from "../clients/typescript/src/generated/events_borsh/idl/events_borsh.json";
-import eventsZcIdl from "../clients/typescript/src/generated/events_zc/idl/events_zc.json";
+import eventsIdl from "../artifacts/clients/typescript/src/generated/events/idl/events.json";
+import eventsBorshIdl from "../artifacts/clients/typescript/src/generated/events_borsh/idl/events_borsh.json";
+import eventsZcIdl from "../artifacts/clients/typescript/src/generated/events_zc/idl/events_zc.json";
 
 /**
  * These three programs opt into the `idl-build` route (`naclac build` compiles

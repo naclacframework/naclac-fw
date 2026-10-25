@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client";
-import { MetadataClient } from "../clients/src/generated/metadata";
+import { MetadataClient } from "../artifacts/clients/typescript/src/generated/metadata";
 
 describe("Naclac Metadata Test Suite", () => {
   let client: MetadataClient;

@@ -1,5 +1,5 @@
 import * as naclac from "@naclac-fw/client";
-import { MetadataSolanaClient } from "../clients/src/generated/metadata_solana";
+import { MetadataSolanaClient } from "../artifacts/clients/typescript/src/generated/metadata_solana";
 
 describe("Naclac MetadataSolana Test Suite", () => {
   let client: MetadataSolanaClient;

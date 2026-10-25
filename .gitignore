@@ -17,6 +17,7 @@
 target
 node_modules/
 /tests/*/clients/
+/tests/*/artifacts/
 
 !/client/README.md
 /tests/realloc/programs/

@@ -1,7 +1,7 @@
 import { strict as assert } from "assert";
 import { TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import * as naclac from "@naclac-fw/client/legacy";
-import { EventsClient } from "../clients/typescript/src/generated/events/client-legacy";
+import { EventsClient } from "../artifacts/clients/typescript/src/generated/events/client-legacy";
 import { createLookupTable } from "./lookup-table";
 
 /**

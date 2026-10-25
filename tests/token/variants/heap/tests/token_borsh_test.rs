@@ -1527,16 +1527,9 @@ fn check_group_member_pointer_reads_extension_correctly() {
 }
 
 fn load_hook_program(provider: &NaclacProvider, program_id: &Address) {
-    // NOT a hardcoded "target/deploy/..." relative path: tests/token/.cargo/config.toml
-    // redirects cargo's target-dir to a native path (see docs/plan/custom-discriminators.md
-    // and tests/TEST_PLAN.md), which `naclac build`'s own `cargo build-sbf` call honors —
-    // so the real .so lands there, not under this crate's own relative `target/`.
-    // `resolve_cargo_target_dir` asks `cargo metadata` for the real path the same way
-    // `naclac build` itself does, instead of assuming the default location.
-    let target_dir = naclac_client::resolve_cargo_target_dir(std::path::Path::new(env!(
-        "CARGO_MANIFEST_DIR"
-    )));
-    let so_path = target_dir.join("deploy/test_transfer_hook.so");
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let so_path =
+        naclac_client::workspace_deploy_dir(&workspace_root).join("test_transfer_hook.so");
 
     provider
         .add_program(program_id, so_path.to_str().unwrap())

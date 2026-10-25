@@ -325,7 +325,7 @@ fn non_primitive_field_seed_pda_helper_is_correctly_skipped() {
 
     let generated_lib_rs = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../clients/rust/",
+        "/../../artifacts/clients/rust/",
         env!("CARGO_PKG_NAME"),
         "/src/lib.rs"
     ));

@@ -8,7 +8,7 @@ describe("Naclac CounterBorsh Test Suite (Legacy)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterWincodeClient("litesvm", payer);
+    client = new CounterWincodeClient("devnet", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 

@@ -8,7 +8,7 @@ describe("Naclac CounterBorsh Test Suite (Kit)", () => {
 
   before(async () => {
     payer = await naclac.loadNodeWallet();
-    client = new CounterBorshClient("litesvm", payer);
+    client = new CounterBorshClient("devnet", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 

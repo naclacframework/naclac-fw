@@ -1,5 +1,5 @@
 [workspace]
-members = ["programs/*", "clients/rust/enums_zc", "clients/rust/enums", "clients/rust/enums_borsh", "clients/rust/enums_wincode", "clients/rust/enums_wincode_pinocchio"]
+members = ["programs/*", "artifacts/clients/rust/enums_zc", "artifacts/clients/rust/enums", "artifacts/clients/rust/enums_borsh", "artifacts/clients/rust/enums_wincode", "artifacts/clients/rust/enums_wincode_pinocchio"]
 resolver = "2"
 
 [profile.release]

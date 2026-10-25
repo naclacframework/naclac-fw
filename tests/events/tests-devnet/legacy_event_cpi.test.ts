@@ -1,8 +1,8 @@
 import { strict as assert } from "assert";
 import * as naclac from "@naclac-fw/client/legacy";
-import { EventsBorshClient } from "../clients/typescript/src/generated/events_borsh/client-legacy";
-import { EventsClient } from "../clients/typescript/src/generated/events/client-legacy";
-import { EventsZcClient } from "../clients/typescript/src/generated/events_zc/client-legacy";
+import { EventsBorshClient } from "../artifacts/clients/typescript/src/generated/events_borsh/client-legacy";
+import { EventsClient } from "../artifacts/clients/typescript/src/generated/events/client-legacy";
+import { EventsZcClient } from "../artifacts/clients/typescript/src/generated/events_zc/client-legacy";
 
 /**
  * Same checks as `tests/legacy/event_cpi.test.ts`, but against devnet: the

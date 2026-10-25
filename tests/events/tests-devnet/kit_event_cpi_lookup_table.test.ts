@@ -14,7 +14,7 @@ import {
 } from "@solana/kit";
 import * as naclac from "@naclac-fw/client/kit";
 import * as legacy from "@naclac-fw/client/legacy";
-import { EventsClient } from "../clients/typescript/src/generated/events";
+import { EventsClient } from "../artifacts/clients/typescript/src/generated/events";
 import { createLookupTable } from "./lookup-table";
 
 /**
