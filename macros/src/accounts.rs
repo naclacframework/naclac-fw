@@ -89,7 +89,7 @@ fn const_seed_tokens(seed: &naclac_syn::types::NaclacSeed) -> proc_macro2::Token
 /// resolution and its real value lands in the JSON — no AST-based constant
 /// lookup needed, and no `#[constant]`-tagging requirement either. The seed
 /// carries the identifier as its constant name only when it names a constant
-/// of this crate; a framework constant such as `TOKEN_PROGRAM_ID` has no
+/// of this crate; a framework constant such as `SYSTEM_PROGRAM_ID` has no
 /// entry in the program's `constants`, so it is reported unnamed.
 #[cfg(feature = "idl-build")]
 fn splice_const_fallback(expr: &syn::Expr, name: Option<&str>) -> proc_macro2::TokenStream {

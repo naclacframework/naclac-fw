@@ -4,7 +4,10 @@
 //! It extracts constraints (e.g., `init`, `mut`, `signer`, `field = target` relations) and builds a structured
 //! `ParsedField` representation for the code generators.
 
-use syn::{FieldsNamed, Ident, Type};
+use {
+    crate::instruction::builtin_namespaces,
+    syn::{FieldsNamed, Ident, Type},
+};
 
 /// A field's `bump = ...` constraint: either bare `bump` (auto-derive/
 /// auto-verify the canonical bump) or an explicit `bump = <expr>`.
@@ -44,15 +47,6 @@ pub struct ParsedField {
     pub owner: Option<syn::Expr>,
     pub address: Option<syn::Expr>,
     pub realloc: Option<ReallocConfig>,
-    pub token_mint: Option<syn::Expr>,
-    pub token_authority: Option<syn::Expr>,
-    pub token_program: Option<syn::Expr>,
-    pub mint_decimals: Option<syn::Expr>,
-    pub mint_authority: Option<syn::Expr>,
-    pub mint_freeze_authority: Option<syn::Expr>,
-    pub associated_token_mint: Option<syn::Expr>,
-    pub associated_token_authority: Option<syn::Expr>,
-    pub associated_token_bump: Option<syn::Expr>,
     /// `extra_accounts = [...]` on an `init`/`init_if_needed` associated-token
     /// field — other fields (by name) to pad, as harmless pass-through
     /// entries, onto the generated ATA-creation CPI's own account list.
@@ -63,8 +57,9 @@ pub struct ParsedField {
     /// whatever CPI is entered next — see
     /// `naclac_token::associated_token::create_idempotent_with_extra_accounts_signed`.
     pub extra_accounts: Option<syn::ExprArray>,
-    /// `namespace::key = value` constraints whose namespace is provided by
-    /// another crate (see `naclac_core::constraint`), in the order written.
+    /// `namespace::key = value` constraints, builtin (`builtin_namespaces`)
+    /// or provided by another crate (see `naclac_core::constraint`), in the
+    /// order written.
     pub plugin_constraints: Vec<PluginConstraint>,
     pub index: usize,
     /// True if this field was declared `Option<T>` — `ty` above is always
@@ -87,9 +82,14 @@ pub struct ParsedField {
     pub parse_error: Option<syn::Error>,
 }
 
-/// Namespaces the derive itself defines. A path that starts with one of these
-/// but is not one of its keys is a mistake, never a plugin constraint.
-const CORE_NAMESPACES: [&str; 5] = ["token", "mint", "associated_token", "realloc", "seeds"];
+/// Namespaces of the derive's own constraints. A path that starts with one of
+/// these, or with a builtin namespace, but is not one of its keys is a
+/// mistake, never a plugin constraint.
+const CORE_NAMESPACES: [&str; 2] = ["realloc", "seeds"];
+
+fn is_builtin_namespace(segment: &syn::PathSegment) -> bool {
+    builtin_namespaces::namespace(&segment.ident.to_string()).is_some()
+}
 
 /// One `namespace::key = value` constraint. `namespace` is the path as
 /// written (everything before the last segment); the crate it names must
@@ -133,47 +133,6 @@ pub struct ReallocConfig {
     /// account it doesn't own out from under its rightful holder. See
     /// `realloc::generate_any_of_space_expr`.
     pub grow_only: bool,
-}
-
-/// Records the token program named by a field's `token::token_program`,
-/// `mint::token_program` or `associated_token::token_program` key. A field
-/// names at most one.
-fn set_token_program(
-    slot: &mut Option<syn::Expr>,
-    expr: syn::Expr,
-    path: &syn::Path,
-) -> syn::Result<()> {
-    if slot.is_some() {
-        return Err(syn::Error::new_spanned(
-            path,
-            "Naclac Error: this field names its token program more than once; keep a single \
-             `token_program` key.",
-        ));
-    }
-    *slot = Some(expr);
-    Ok(())
-}
-
-/// The error for a key that `namespace::` does not define. Every unknown key
-/// is rejected, so a misspelled constraint can never compile into a missing
-/// check.
-fn unknown_key_error(path: &syn::Path, namespace: &str, key: &str, valid: &[&str]) -> syn::Error {
-    let list = valid
-        .iter()
-        .map(|k| format!("`{namespace}::{k}`"))
-        .collect::<Vec<_>>()
-        .join(", ");
-    let hint = if key == "program" {
-        format!(" Write `{namespace}::token_program` to name the token program.")
-    } else {
-        String::new()
-    };
-    syn::Error::new_spanned(
-        path,
-        format!(
-            "Naclac Error: `{namespace}::{key}` is not a constraint. Valid keys: {list}.{hint}"
-        ),
-    )
 }
 
 /// True if any doc-comment line on this field (once desugared from `///`/`#[doc = "..."]`
@@ -244,15 +203,6 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                     owner: None,
                     address: None,
                     realloc: None,
-                    token_mint: None,
-                    token_authority: None,
-                    token_program: None,
-                    mint_decimals: None,
-                    mint_authority: None,
-                    mint_freeze_authority: None,
-                    associated_token_mint: None,
-                    associated_token_authority: None,
-                    associated_token_bump: None,
                     extra_accounts: None,
                     plugin_constraints: Vec::new(),
                     index: idx,
@@ -340,15 +290,6 @@ fn parse_one_field(
     let mut owner = None;
     let mut address = None;
     let mut realloc = None;
-    let mut token_mint: Option<syn::Expr> = None;
-    let mut token_authority: Option<syn::Expr> = None;
-    let mut token_program: Option<syn::Expr> = None;
-    let mut mint_decimals: Option<syn::Expr> = None;
-    let mut mint_authority: Option<syn::Expr> = None;
-    let mut mint_freeze_authority: Option<syn::Expr> = None;
-    let mut associated_token_mint: Option<syn::Expr> = None;
-    let mut associated_token_authority: Option<syn::Expr> = None;
-    let mut associated_token_bump: Option<syn::Expr> = None;
     let mut extra_accounts: Option<syn::ExprArray> = None;
     let mut plugin_constraints: Vec<PluginConstraint> = Vec::new();
 
@@ -422,9 +363,7 @@ fn parse_one_field(
                         || path.is_ident("rent_exempt")
                         || path.is_ident("realloc")
                         || path.is_ident("extra_accounts")
-                        || (path.segments.len() == 2 && path.segments[0].ident == "token")
-                        || (path.segments.len() == 2 && path.segments[0].ident == "mint")
-                        || (path.segments.len() == 2 && path.segments[0].ident == "associated_token")
+                        || (path.segments.len() == 2 && is_builtin_namespace(&path.segments[0]))
                         || (path.segments.len() == 2 && path.segments[0].ident == "realloc")
                         || (path.segments.len() == 2 && path.segments[0].ident == "seeds" && path.segments[1].ident == "program");
 
@@ -435,7 +374,9 @@ fn parse_one_field(
                         };
                         let key = last.ident;
                         namespace.segments.pop_punct();
-                        if CORE_NAMESPACES.iter().any(|n| namespace.segments[0].ident == n) {
+                        if CORE_NAMESPACES.iter().any(|n| namespace.segments[0].ident == n)
+                            || is_builtin_namespace(&namespace.segments[0])
+                        {
                             let written = path
                                 .segments
                                 .iter()
@@ -537,69 +478,28 @@ fn parse_one_field(
                         return Ok(());
                     }
 
-                    if meta.path.segments.len() == 2 && meta.path.segments[0].ident == "token" {
-                        let key = meta.path.segments[1].ident.to_string();
-                        let expr = meta.value()?.parse::<syn::Expr>()?;
-                        match key.as_str() {
-                            "mint" => token_mint = Some(expr),
-                            "authority" => token_authority = Some(expr),
-                            "token_program" => {
-                                set_token_program(&mut token_program, expr, &meta.path)?
-                            }
-                            _ => {
-                                return Err(unknown_key_error(
-                                    &meta.path,
-                                    "token",
-                                    &key,
-                                    &["mint", "authority", "token_program"],
-                                ))
-                            }
+                    if meta.path.segments.len() == 2 {
+                        let name = meta.path.segments[0].ident.to_string();
+                        if let Some(namespace) = builtin_namespaces::namespace(&name) {
+                            let mut namespace_path = meta.path.clone();
+                            let Some(last) = namespace_path.segments.pop() else {
+                                return Err(meta.error("expected a constraint name"));
+                            };
+                            namespace_path.segments.pop_punct();
+                            let constraint = PluginConstraint {
+                                namespace: namespace_path,
+                                key: last.ident,
+                                value: meta.value()?.parse::<syn::Expr>()?,
+                            };
+                            builtin_namespaces::validate_key(
+                                namespace,
+                                &constraint,
+                                &plugin_constraints,
+                                &meta.path,
+                            )?;
+                            plugin_constraints.push(constraint);
+                            return Ok(());
                         }
-                        return Ok(());
-                    }
-
-                    if meta.path.segments.len() == 2 && meta.path.segments[0].ident == "mint" {
-                        let key = meta.path.segments[1].ident.to_string();
-                        let expr = meta.value()?.parse::<syn::Expr>()?;
-                        match key.as_str() {
-                            "decimals" => mint_decimals = Some(expr),
-                            "authority" => mint_authority = Some(expr),
-                            "freeze_authority" => mint_freeze_authority = Some(expr),
-                            "token_program" => {
-                                set_token_program(&mut token_program, expr, &meta.path)?
-                            }
-                            _ => {
-                                return Err(unknown_key_error(
-                                    &meta.path,
-                                    "mint",
-                                    &key,
-                                    &["decimals", "authority", "freeze_authority", "token_program"],
-                                ))
-                            }
-                        }
-                        return Ok(());
-                    }
-
-                    if meta.path.segments.len() == 2 && meta.path.segments[0].ident == "associated_token" {
-                        let key = meta.path.segments[1].ident.to_string();
-                        let expr = meta.value()?.parse::<syn::Expr>()?;
-                        match key.as_str() {
-                            "mint" => associated_token_mint = Some(expr),
-                            "authority" => associated_token_authority = Some(expr),
-                            "bump" => associated_token_bump = Some(expr),
-                            "token_program" => {
-                                set_token_program(&mut token_program, expr, &meta.path)?
-                            }
-                            _ => {
-                                return Err(unknown_key_error(
-                                    &meta.path,
-                                    "associated_token",
-                                    &key,
-                                    &["mint", "authority", "bump", "token_program"],
-                                ))
-                            }
-                        }
-                        return Ok(());
                     }
 
                     if meta.path.is_ident("bump") {
@@ -728,14 +628,10 @@ fn parse_one_field(
         }
         (false, None) => {}
     }
-    if is_init_unchecked && associated_token_mint.is_some() {
-        return Err(syn::Error::new_spanned(
-            &ident,
-            "Naclac Error: `init_unchecked` is not supported on an `associated_token::mint` \
-                 field — ATA creation CPIs into the Associated Token Program, which handles its \
-                 own account creation internally; there's no naclac-core `create_account_*` \
-                 call here to redirect. Use `init`/`init_if_needed` instead.",
-        ));
+    if is_init_unchecked {
+        if let Some(message) = builtin_namespaces::init_unchecked_error(&plugin_constraints) {
+            return Err(syn::Error::new_spanned(&ident, message));
+        }
     }
     let realloc_space_variant = match (realloc_space, realloc_any_of) {
         (Some(_), Some(_)) => {
@@ -818,19 +714,14 @@ fn parse_one_field(
     let mut final_address = address;
     if final_address.is_none() {
         if crate::type_classify::is_exactly(&ty, "Program") {
-            if crate::type_classify::inner_is(&ty, "Token2022") {
-                final_address =
-                    Some(syn::parse_str("naclac_lang::prelude::TOKEN_2022_PROGRAM_ID").unwrap());
-            } else if crate::type_classify::inner_is(&ty, "Token") {
-                final_address =
-                    Some(syn::parse_str("naclac_lang::prelude::TOKEN_PROGRAM_ID").unwrap());
+            let builtin = builtin_namespaces::PROGRAM_ADDRESSES
+                .iter()
+                .find(|(marker, _)| crate::type_classify::inner_is(&ty, marker));
+            if let Some((_, address)) = builtin {
+                final_address = Some(syn::parse_str(address).unwrap());
             } else if crate::type_classify::inner_is(&ty, "System") {
                 final_address =
                     Some(syn::parse_str("naclac_lang::prelude::SYSTEM_PROGRAM_ID").unwrap());
-            } else if crate::type_classify::inner_is(&ty, "AssociatedToken") {
-                final_address = Some(
-                    syn::parse_str("naclac_lang::prelude::ASSOCIATED_TOKEN_PROGRAM_ID").unwrap(),
-                );
             }
         } else if crate::type_classify::is_exactly(&ty, "Rent") {
             final_address = Some(syn::parse_str("naclac_lang::prelude::RENT_SYSVAR_ID").unwrap());
@@ -867,15 +758,6 @@ fn parse_one_field(
         owner,
         address: final_address,
         realloc,
-        token_mint,
-        token_authority,
-        token_program,
-        mint_decimals,
-        mint_authority,
-        mint_freeze_authority,
-        associated_token_mint,
-        associated_token_authority,
-        associated_token_bump,
         extra_accounts,
         plugin_constraints,
         index: idx,
@@ -885,7 +767,7 @@ fn parse_one_field(
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_struct_fields, ParsedField};
+    use super::{builtin_namespaces, parse_struct_fields, ParsedField};
 
     fn parse(fields: &str) -> Vec<ParsedField> {
         let item: syn::ItemStruct = syn::parse_str(&format!("struct S {{ {fields} }}")).unwrap();
@@ -932,7 +814,8 @@ mod tests {
         ] {
             let fields = parse(&format!("#[account({attr})] a: Account<TokenAccount>"));
             assert!(fields[0].parse_error.is_none(), "{attr}");
-            assert!(fields[0].token_program.is_some(), "{attr}");
+            let token_program = builtin_namespaces::written_token_program(&fields[0]);
+            assert!(token_program.is_some(), "{attr}");
         }
     }
 

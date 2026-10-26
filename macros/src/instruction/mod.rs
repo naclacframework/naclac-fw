@@ -4,6 +4,7 @@
 //! CPI initializers, and account reallocation logic, shared by
 //! `#[derive(Accounts)]`'s own codegen.
 
+pub mod builtin_namespaces;
 pub mod close_account;
 pub mod init_cpi;
 pub mod load_order;

@@ -5,7 +5,11 @@
 //! signer seeds, and invoking the System Program to allocate memory.
 
 use {
-    crate::instruction::{parser::ParsedField, security::plugin_args_tokens},
+    crate::instruction::{
+        builtin_namespaces::{self, CreatedBy},
+        parser::ParsedField,
+        security::plugin_args_tokens,
+    },
     proc_macro2::{Ident, TokenStream},
     quote::{format_ident, quote},
     syn::Type,
@@ -44,46 +48,6 @@ pub(crate) fn program_marker_ident(ty: &Type) -> Option<String> {
         }
     }
     None
-}
-
-/// Resolves which token-program field an `init`'d mint/token-account/ATA
-/// should CPI into. A `token_program = <field>` key (`token::`, `mint::` or
-/// `associated_token::`) always wins —
-/// needed the moment a struct has more than one token-program-shaped field
-/// (e.g. a hardcoded `Program<Token2022>` for one account and a generic
-/// `Interface<TokenInterface>` for another), since without an explicit
-/// pointer there's no way to tell which one a given `init` actually means.
-/// Falls back to the first `Program<Token>`/`Program<Token2022>`/
-/// `Interface<TokenInterface>` field in the struct otherwise, preserving
-/// existing single-token-program-field behavior unchanged.
-pub(crate) fn resolve_token_program_idx(
-    field: &ParsedField,
-    all_fields: &[ParsedField],
-) -> Result<usize, TokenStream> {
-    if let Some(syn::Expr::Path(expr_path)) = &field.token_program {
-        if let Some(ident) = expr_path.path.get_ident() {
-            if let Some(pos) = all_fields.iter().position(|f| &f.ident == ident) {
-                return Ok(pos);
-            }
-        }
-    }
-    all_fields
-        .iter()
-        .position(|f| {
-            matches!(
-                program_marker_ident(&f.ty).as_deref(),
-                Some("Token") | Some("Token2022") | Some("TokenInterface")
-            )
-        })
-        .ok_or_else(|| {
-            syn::Error::new_spanned(
-                &field.ident,
-                "Naclac Error: token_program must be defined in the Accounts struct for account \
-                 initialization (or point at one explicitly via `token::token_program`, \
-                 `mint::token_program` or `associated_token::token_program`).",
-            )
-            .to_compile_error()
-        })
 }
 
 fn get_account_reference(expr: &syn::Expr, all_fields: &[ParsedField]) -> TokenStream {
@@ -228,14 +192,11 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
         None => return quote! {},
     };
 
-    if field.extra_accounts.is_some() && field.associated_token_mint.is_none() {
-        return syn::Error::new_spanned(
-            &field.ident,
-            "Naclac Error: `extra_accounts` is only supported on an `init_if_needed` \
-             associated-token field (one with `associated_token::mint = ...`) — every other \
-             `init` path (`mint::`, `token::`, plain PDA `init`) doesn't wire it in yet.",
-        )
-        .to_compile_error();
+    let creator_accepts_extra_accounts = builtin_namespaces::creator(field)
+        .is_some_and(|(_, create)| create.extra_accounts.is_some());
+    if field.extra_accounts.is_some() && !creator_accepts_extra_accounts {
+        return syn::Error::new_spanned(&field.ident, builtin_namespaces::EXTRA_ACCOUNTS_ELSEWHERE)
+            .to_compile_error();
     }
 
     // Resolved by raw index into the pre-walked accounts slice (same as
@@ -263,111 +224,40 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
         }
     };
 
-    let token_program_key = format_ident!("token_program");
-    let authority_key = format_ident!("authority");
-
-    if let Some(decimals_expr) = &field.mint_decimals {
-        let Some(authority_expr) = field.mint_authority.as_ref() else {
-            return syn::Error::new_spanned(
-                &field.ident,
-                "Naclac Error: `mint::authority` must be specified alongside `mint::decimals`.",
-            )
-            .to_compile_error();
-        };
-        let token_program_idx = match resolve_token_program_idx(field, all_fields) {
-            Ok(idx) => idx,
-            Err(err) => return err,
-        };
-        let token_program: syn::Expr = syn::parse_quote! { accounts[#token_program_idx] };
-        let decimals_key = format_ident!("decimals");
-        let freeze_authority_key = format_ident!("freeze_authority");
-
-        let mut members: Vec<(&Ident, &syn::Expr)> = vec![
-            (&decimals_key, decimals_expr),
-            (&authority_key, authority_expr),
-        ];
-        if let Some(freeze_authority_expr) = &field.mint_freeze_authority {
-            members.push((&freeze_authority_key, freeze_authority_expr));
+    if let Some((namespace, create)) = builtin_namespaces::creator(field) {
+        let written = builtin_namespaces::written(field, namespace);
+        if let Some(err) = builtin_namespaces::first_missing(create.required, &written, field) {
+            return err;
         }
-        members.push((&token_program_key, &token_program));
-
-        let init = PluginInit {
-            namespace: quote! { naclac_lang::token_constraints::mint },
-            members: &members,
-            payer_ref: &payer_ref,
-            signer_seeds_logic: &signer_seeds_logic,
-            system_program_idx,
-        };
-        return init.tokens(field, all_fields);
-    }
-
-    if let Some(mint_expr) = &field.token_mint {
-        let Some(authority_expr) = field.token_authority.as_ref() else {
-            return syn::Error::new_spanned(
-                &field.ident,
-                "Naclac Error: `token::authority` must be specified alongside `token::mint`.",
-            )
-            .to_compile_error();
-        };
-        let token_program_idx = match resolve_token_program_idx(field, all_fields) {
-            Ok(idx) => idx,
-            Err(err) => return err,
-        };
-        let token_program: syn::Expr = syn::parse_quote! { accounts[#token_program_idx] };
-        let mint_key = format_ident!("mint");
-
-        let members: Vec<(&Ident, &syn::Expr)> = vec![
-            (&mint_key, mint_expr),
-            (&authority_key, authority_expr),
-            (&token_program_key, &token_program),
-        ];
-
-        let init = PluginInit {
-            namespace: quote! { naclac_lang::token_constraints::token },
-            members: &members,
-            payer_ref: &payer_ref,
-            signer_seeds_logic: &signer_seeds_logic,
-            system_program_idx,
-        };
-        return init.tokens(field, all_fields);
-    }
-
-    if let Some(ata_mint_expr) = &field.associated_token_mint {
-        let Some(ata_authority_expr) = field.associated_token_authority.as_ref() else {
-            return syn::Error::new_spanned(
-                &field.ident,
-                "Naclac Error: `associated_token::authority` must be specified alongside \
-                 `associated_token::mint`.",
-            )
-            .to_compile_error();
-        };
-
-        let token_program_idx = match resolve_token_program_idx(field, all_fields) {
-            Ok(idx) => idx,
-            Err(err) => return err,
-        };
-
-        let associated_token_program_idx = match all_fields
-            .iter()
-            .position(|f| program_marker_ident(&f.ty).as_deref() == Some("AssociatedToken"))
-        {
-            Some(idx) => idx,
-            None => {
-                return syn::Error::new_spanned(
-                    &field.ident,
-                    "Naclac Error: associated_token_program (Program<AssociatedToken>) must be \
-                     defined in the Accounts struct for associated token account initialization.",
-                )
-                .to_compile_error();
+        let mut filled_values: Vec<(Ident, syn::Expr)> = Vec::new();
+        for filled in create.filled {
+            match builtin_namespaces::resolve_filled(filled, field, all_fields) {
+                Ok(idx) => filled_values.push((
+                    format_ident!("{}", filled.key),
+                    syn::parse_quote! { accounts[#idx] },
+                )),
+                Err(err) => return err,
             }
-        };
+        }
+        let path = builtin_namespaces::path_tokens(namespace);
+
+        if create.by == CreatedBy::Derive {
+            let mut members = written;
+            members.extend(filled_values.iter().map(|(key, value)| (key, value)));
+            let init = PluginInit {
+                namespace: path,
+                members: &members,
+                payer_ref: &payer_ref,
+                signer_seeds_logic: &signer_seeds_logic,
+                system_program_idx,
+            };
+            return init.tokens(field, all_fields);
+        }
 
         let idx = field.index;
 
-        // `init_if_needed` creates idempotently (a no-op if the ATA already
-        // exists) instead of failing on an existing account: a second claim
-        // to the same recipient must not fail just because its ATA was
-        // already created by a prior claim.
+        // `init_if_needed` creates idempotently (a no-op if the account
+        // already exists) instead of failing on an existing account.
         let existence_check = if field.is_init_if_needed {
             quote! {}
         } else {
@@ -378,14 +268,9 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
             }
         };
         if field.extra_accounts.is_some() && !field.is_init_if_needed {
-            return syn::Error::new_spanned(
-                &field.ident,
-                "Naclac Error: `extra_accounts` on an associated-token `init` field requires \
-                 `init_if_needed` (not plain `init`) — only \
-                 `create_idempotent_with_extra_accounts_signed` exists, since nothing in this \
-                 codebase needs the strict, non-idempotent variant padded.",
-            )
-            .to_compile_error();
+            if let Some(message) = create.extra_accounts {
+                return syn::Error::new_spanned(&field.ident, message).to_compile_error();
+            }
         }
 
         let extra_accounts_tokens = match &field.extra_accounts {
@@ -428,35 +313,13 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
             (quote! {}, quote! { &[] })
         };
 
-        if let Some(bump_expr) = &field.associated_token_bump {
-            return syn::Error::new_spanned(
-                bump_expr,
-                format!(
-                    "Naclac Error: `associated_token::bump` on field `{}` is never read here -- \
-                     `init`/`init_if_needed` associated-token accounts are verified by the real \
-                     Associated Token Program's own CPI (it re-derives and checks the canonical \
-                     address internally on every call), so naclac never reads this value for \
-                     them. Remove the `associated_token::bump = ...` line; it only matters on an \
-                     existing (non-init) associated_token field.",
-                    field.ident
-                ),
-            )
-            .to_compile_error();
+        if let Some(err) = builtin_namespaces::first_forbidden(create.forbidden, &written, field) {
+            return err;
         }
 
-        let token_program: syn::Expr = syn::parse_quote! { accounts[#token_program_idx] };
-        let associated_token_program: syn::Expr =
-            syn::parse_quote! { accounts[#associated_token_program_idx] };
-        let mint_key = format_ident!("mint");
-        let associated_token_program_key = format_ident!("associated_token_program");
-        let members: Vec<(&Ident, &syn::Expr)> = vec![
-            (&mint_key, ata_mint_expr),
-            (&authority_key, ata_authority_expr),
-            (&token_program_key, &token_program),
-            (&associated_token_program_key, &associated_token_program),
-        ];
-        let namespace = quote! { naclac_lang::token_constraints::associated_token };
-        let args = plugin_args_tokens(&namespace, &members, all_fields);
+        let mut members = written;
+        members.extend(filled_values.iter().map(|(key, value)| (key, value)));
+        let args = plugin_args_tokens(&path, &members, all_fields);
         let ty = &field.ty;
         let idempotent = field.is_init_if_needed;
 
@@ -470,7 +333,7 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
 
             #payer_seeds_logic
 
-            <#namespace::Constraint as naclac_lang::prelude::AccountConstraintCreate<#ty>>::create(
+            <#path::Constraint as naclac_lang::prelude::AccountConstraintCreate<#ty>>::create(
                 &#args,
                 naclac_lang::prelude::ConstraintCreation {
                     account: naclac_lang::prelude::ToAccountInfo::to_account_info(info),

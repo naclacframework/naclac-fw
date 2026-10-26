@@ -6,7 +6,10 @@
 //! 2. **Relational Checks**: Validates cross-account relationships (`field = target` relations) after all accounts are parsed.
 
 use {
-    crate::instruction::parser::{ParsedField, PdaBump},
+    crate::instruction::{
+        builtin_namespaces::{self, CheckWhen},
+        parser::{ParsedField, PdaBump},
+    },
     proc_macro2::{Ident, TokenStream},
     quote::{format_ident, quote},
     syn::spanned::Spanned,
@@ -652,114 +655,57 @@ pub fn generate_security_checks(
         });
     }
 
-    // 6. Token Validation (for existing accounts)
-    //
-    // Also runs for `init_if_needed` fields, not just plain existing
-    // accounts: `init_cpi.rs`'s `mint::`/`token::` branches only run their
-    // creation CPI inside `if info.data_is_empty()`, so an `init_if_needed`
-    // field whose account already exists gets no creation CPI *and*, before
-    // this condition included `is_init_if_needed`, no validation either —
-    // any pre-existing account satisfied `mint::decimals =`/`mint::authority
-    // =`/etc regardless of its actual contents. Safe to run unconditionally
-    // here because `init_logic` always executes before `constraint_checks`
-    // (see `accounts.rs`'s per-field emission order): on a freshly created
-    // account the check trivially passes against the values just written: on
-    // a pre-existing one it now actually verifies them.
-    if field.init_config.is_none() || field.is_init_if_needed {
-        let mint_key = format_ident!("mint");
-        let authority_key = format_ident!("authority");
-        let decimals_key = format_ident!("decimals");
-        let freeze_authority_key = format_ident!("freeze_authority");
-
-        let mut token_members: Vec<(&Ident, &syn::Expr)> = Vec::new();
-        if let Some(value) = &field.token_mint {
-            token_members.push((&mint_key, value));
+    // Builtin namespaces (`builtin_namespaces::NAMESPACES`), in table order.
+    for namespace in builtin_namespaces::NAMESPACES {
+        let runs = match namespace.check.when {
+            CheckWhen::UnlessCreated => field.init_config.is_none() || field.is_init_if_needed,
+            CheckWhen::OnlyExisting => field.init_config.is_none(),
+        };
+        if !runs {
+            continue;
         }
-        if let Some(value) = &field.token_authority {
-            token_members.push((&authority_key, value));
+        let written = builtin_namespaces::written(field, namespace);
+        let triggered = written
+            .iter()
+            .any(|(key, _)| namespace.check.trigger.iter().any(|t| *key == t));
+        if !triggered {
+            continue;
         }
-        if !token_members.is_empty() {
-            let namespace = quote! { naclac_lang::token_constraints::token };
-            let call = plugin_call_tokens(&namespace, &token_members, field, all_fields);
-            constraint_checks.push(quote! { { #call } });
+        if let Some(missing) = namespace
+            .check
+            .together
+            .iter()
+            .find(|required| !written.iter().any(|(key, _)| *key == required.key))
+        {
+            let message = missing.message;
+            constraint_checks.push(quote! { compile_error!(#message); });
+            continue;
         }
 
-        let mut mint_members: Vec<(&Ident, &syn::Expr)> = Vec::new();
-        if let Some(value) = &field.mint_decimals {
-            mint_members.push((&decimals_key, value));
-        }
-        if let Some(value) = &field.mint_authority {
-            mint_members.push((&authority_key, value));
-        }
-        if let Some(value) = &field.mint_freeze_authority {
-            mint_members.push((&freeze_authority_key, value));
-        }
-        if !mint_members.is_empty() {
-            let namespace = quote! { naclac_lang::token_constraints::mint };
-            let call = plugin_call_tokens(&namespace, &mint_members, field, all_fields);
-            constraint_checks.push(quote! { { #call } });
-        }
-    }
-
-    // 7. Associated Token Validation (for existing accounts)
-    //
-    // Deliberately narrower than block 6's gate above: an `init_if_needed`
-    // associated-token field doesn't need this, since `init_cpi.rs`'s ATA
-    // branch calls `create`/`create_idempotent` unconditionally every call
-    // (not gated behind `data_is_empty()`), so the real Associated Token
-    // Program CPI always runs and self-validates the account's address from
-    // `(authority, mint, token_program)` on its own.
-    if field.init_config.is_none() {
-        let mint_key = format_ident!("mint");
-        let authority_key = format_ident!("authority");
-        let token_program_key = format_ident!("token_program");
-        // Entering this branch on EITHER attribute alone (not just both) is
-        // deliberate: it's what lets the match arms below emit a clear
-        // compile_error! when only one of mint/authority is present,
-        // instead of the constraint silently doing nothing — which is
-        // exactly the bug this replaces (see
-        // token/docs/04-associated-token-existing-account-gap.md).
-        if field.associated_token_mint.is_some() || field.associated_token_authority.is_some() {
-            match (
-                field.associated_token_mint.as_ref(),
-                field.associated_token_authority.as_ref(),
-                field.associated_token_bump.as_ref(),
-            ) {
-                (Some(ata_mint_expr), Some(ata_authority_expr), ata_bump_expr) => {
-                    match crate::instruction::init_cpi::resolve_token_program_idx(field, all_fields)
-                    {
-                        Ok(token_program_idx) => {
-                            let token_program: syn::Expr =
-                                syn::parse_quote! { accounts[#token_program_idx] };
-                            let bump_key = format_ident!("bump");
-                            let mut members: Vec<(&Ident, &syn::Expr)> = vec![
-                                (&mint_key, ata_mint_expr),
-                                (&authority_key, ata_authority_expr),
-                            ];
-                            if let Some(ata_bump_expr) = ata_bump_expr {
-                                members.push((&bump_key, ata_bump_expr));
-                            }
-                            members.push((&token_program_key, &token_program));
-                            let namespace =
-                                quote! { naclac_lang::token_constraints::associated_token };
-                            let call = plugin_call_tokens(&namespace, &members, field, all_fields);
-                            constraint_checks.push(quote! { { #call } });
-                        }
-                        Err(err) => constraint_checks.push(err),
-                    }
-                }
-                (None, _, _) => {
-                    constraint_checks.push(quote! {
-                        compile_error!("Naclac Error: associated_token::mint must be specified alongside associated_token::authority. Example: #[account(associated_token::mint = mint, associated_token::authority = owner)]");
-                    });
-                }
-                (_, None, _) => {
-                    constraint_checks.push(quote! {
-                        compile_error!("Naclac Error: associated_token::authority must be specified alongside associated_token::mint. Example: #[account(associated_token::mint = mint, associated_token::authority = owner)]");
-                    });
+        let mut filled_values: Vec<(Ident, syn::Expr)> = Vec::new();
+        let mut unresolved = None;
+        for filled in namespace.check.filled {
+            match builtin_namespaces::resolve_filled(filled, field, all_fields) {
+                Ok(idx) => filled_values.push((
+                    format_ident!("{}", filled.key),
+                    syn::parse_quote! { accounts[#idx] },
+                )),
+                Err(err) => {
+                    unresolved = Some(err);
+                    break;
                 }
             }
         }
+        if let Some(err) = unresolved {
+            constraint_checks.push(err);
+            continue;
+        }
+
+        let mut members = written;
+        members.extend(filled_values.iter().map(|(key, value)| (key, value)));
+        let path = builtin_namespaces::path_tokens(namespace);
+        let call = plugin_call_tokens(&path, &members, field, all_fields);
+        constraint_checks.push(quote! { { #call } });
     }
 
     let field_span = field.ident.span();
@@ -773,7 +719,7 @@ pub fn generate_security_checks(
         .pda_seed
         .as_ref()
         .map(|s| s.span())
-        .or_else(|| field.token_mint.as_ref().map(|m| m.span()))
+        .or_else(|| builtin_namespaces::check_span(field))
         .unwrap_or(field_span);
 
     let core_checks = set_span_recur(quote! { #(#constraint_checks)* }, constraint_checks_span);
@@ -794,6 +740,9 @@ fn generate_plugin_checks(field: &ParsedField, all_fields: &[ParsedField]) -> To
 
     let mut groups: Vec<(syn::Path, Vec<(&Ident, &syn::Expr)>)> = Vec::new();
     for constraint in &field.plugin_constraints {
+        if builtin_namespaces::of(constraint).is_some() {
+            continue;
+        }
         let written = constraint.namespace.to_token_stream().to_string();
         let member = (&constraint.key, &constraint.value);
         match groups
@@ -972,8 +921,8 @@ pub fn generate_relational_checks(fields: &[ParsedField], prefix: TokenStream) -
             }
         }
 
-        // `token_program` check (`token::`, `mint::` or `associated_token::`)
-        if let Some(prog_expr) = &field.token_program {
+        // A written token program must own the account once it is loaded.
+        if let Some(prog_expr) = builtin_namespaces::written_token_program(field) {
             let idx = field.index;
             checks.push(quote! {
                 let __expected_prog = naclac_lang::prelude::ToAddress::address(&#prefix.#prog_expr);

@@ -45,22 +45,9 @@ fn load_time_exprs(field: &ParsedField) -> Vec<&syn::Expr> {
     }
     exprs.extend(field.plugin_constraints.iter().map(|c| &c.value));
     exprs.extend(
-        [
-            &field.pda_program,
-            &field.owner,
-            &field.address,
-            &field.token_mint,
-            &field.token_authority,
-            &field.token_program,
-            &field.mint_decimals,
-            &field.mint_authority,
-            &field.mint_freeze_authority,
-            &field.associated_token_mint,
-            &field.associated_token_authority,
-            &field.associated_token_bump,
-        ]
-        .into_iter()
-        .flatten(),
+        [&field.pda_program, &field.owner, &field.address]
+            .into_iter()
+            .flatten(),
     );
     exprs
 }
