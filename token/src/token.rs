@@ -1203,6 +1203,8 @@ impl naclac_idl::idl_build::NaclacIdlBuild for Mint {
 /// `validate_token_account_layout`/`validate_mint_layout` with
 /// `exact_len: false`.
 impl crate::prelude::ValidateInterfaceLayout for TokenAccount {
+    const OWNERS: &'static [Address] = TokenInterface::IDS;
+
     fn validate_interface_layout(
         data: &[u8],
     ) -> core::result::Result<(), crate::prelude::NaclacError> {
@@ -1211,6 +1213,8 @@ impl crate::prelude::ValidateInterfaceLayout for TokenAccount {
 }
 
 impl crate::prelude::ValidateInterfaceLayout for Mint {
+    const OWNERS: &'static [Address] = TokenInterface::IDS;
+
     fn validate_interface_layout(
         data: &[u8],
     ) -> core::result::Result<(), crate::prelude::NaclacError> {

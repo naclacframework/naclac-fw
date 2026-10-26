@@ -84,17 +84,22 @@ pub trait Discriminator {
     }
 }
 
-/// Extra per-type validation `InterfaceAccount<T>` runs on `T`'s own raw
-/// byte region (the account's data slice past the discriminator) once the
-/// owner check has passed. Unlike `Discriminator::validate_account`,
+/// What `InterfaceAccount<T>` needs from `T`: the programs allowed to own
+/// the account, and extra validation of `T`'s own raw byte region (the
+/// account's data slice past the discriminator) once the owner check has
+/// passed. Unlike `Discriminator::validate_account`,
 /// `InterfaceAccount<T>::try_from`/`try_from_mut` never call
-/// `T::validate_account` (that hook's owner check is what `InterfaceAccount`
-/// exists to relax), so this is the only place a `T` used with
-/// `InterfaceAccount<T>` can enforce additional layout invariants — e.g.
+/// `T::validate_account` (that hook's single-owner check is what
+/// `InterfaceAccount` exists to relax), so this is the only place a `T` used
+/// with `InterfaceAccount<T>` can enforce additional layout invariants — e.g.
 /// naclac-token's `TokenAccount`/`Mint` validating canonical `COption` tag
 /// bytes and initialized-state, permissively (`>=` minimum length) to allow
-/// for Token-2022's appended TLV extension region. No-op by default.
+/// for Token-2022's appended TLV extension region. The layout check is a
+/// no-op by default.
 pub trait ValidateInterfaceLayout {
+    /// The programs allowed to own an account of this type.
+    const OWNERS: &'static [Address];
+
     #[inline(always)]
     fn validate_interface_layout(
         _data: &[u8],

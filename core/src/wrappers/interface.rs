@@ -196,13 +196,18 @@ impl<T: Clone> ToAddress for Interface<T> {
     }
 }
 
+impl TokenInterface {
+    /// The Token and Token-2022 programs.
+    pub const IDS: &'static [Address] = &[
+        crate::prelude::TOKEN_PROGRAM_ID,
+        crate::prelude::TOKEN_2022_PROGRAM_ID,
+    ];
+}
+
 impl crate::wrappers::Ids for TokenInterface {
     #[inline(always)]
     fn ids() -> &'static [Address] {
-        &[
-            crate::prelude::TOKEN_PROGRAM_ID,
-            crate::prelude::TOKEN_2022_PROGRAM_ID,
-        ]
+        Self::IDS
     }
 }
 

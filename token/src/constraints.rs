@@ -256,7 +256,7 @@ pub mod associated_token {
                 AtaCpiAccounts,
             },
             prelude::{
-                AccountInfo, CpiHandle, CpiHandleMut, NaclacError, Owner,
+                AccountInfo, Address, CpiHandle, CpiHandleMut, NaclacError, Owner,
                 ASSOCIATED_TOKEN_PROGRAM_ID,
             },
             token::TokenAccount,
@@ -305,17 +305,22 @@ pub mod associated_token {
                 return Err(NaclacError::ConstraintOwner);
             }
 
-            let actual = ToAddress::address(&info);
+            #[cfg(feature = "pinocchio")]
+            let actual: &Address = Address::from_address_ref(info.view.address());
+            #[cfg(not(feature = "pinocchio"))]
+            let actual_owned = ToAddress::address(&info);
+            #[cfg(not(feature = "pinocchio"))]
+            let actual: &Address = &actual_owned;
             if let Some(bump) = args.bump {
                 return check_associated_token_address(
-                    &actual,
+                    actual,
                     &authority,
                     &token_program,
                     &mint,
                     bump,
                 );
             }
-            if find_associated_token_bump(&actual, &authority, &token_program, &mint).is_none() {
+            if find_associated_token_bump(actual, &authority, &token_program, &mint).is_none() {
                 return Err(NaclacError::ConstraintSeeds);
             }
             Ok(())

@@ -2,8 +2,9 @@
 // wrappers/accounts/interface_account.rs — InterfaceAccount<T>
 // ===========================================================================
 
-//! `InterfaceAccount<T>` accepts an account owned by either the legacy Token
-//! program or Token-2022, regardless of what `T`'s own
+//! `InterfaceAccount<T>` accepts an account owned by any of the programs
+//! `T` lists in `ValidateInterfaceLayout::OWNERS` (naclac-token's
+//! `TokenAccount`/`Mint`: Token or Token-2022), regardless of what `T`'s own
 //! `Discriminator::validate_account` says (e.g. `TokenAccount`/`Mint`'s own
 //! `validate_account` is strict — Token-program-only). This can't be done
 //! via a type alias to `Account<T>` (an alias carries no behavior of its own
@@ -13,15 +14,6 @@
 //! (`accounts/account.rs`) almost exactly — same cfg-routed Borsh-vs-zero-copy
 //! split, same set of trait impls — except `try_from`/`try_from_mut` check
 //! the owner directly instead of calling `T::validate_account`.
-//!
-//! Hardcoding `TOKEN_PROGRAM_ID`/`TOKEN_2022_PROGRAM_ID` here (rather than
-//! taking the allowed-owner set generically) matches existing naclac-core
-//! precedent: `wrappers/interface.rs`'s `TokenInterface` marker already
-//! hardcodes the same two IDs for `Program<TokenInterface>`/
-//! `Interface<TokenInterface>` fields. This type is specifically the
-//! Token/Token-2022 dual-owner wrapper, not a fully generic multi-owner
-//! mechanism — a different future multi-owner need would be its own file in
-//! this same `accounts/` folder, not a generalization of this one.
 
 // ===========================================================================
 // Borsh branch — owns a deserialized copy of T
@@ -30,7 +22,6 @@
 #[cfg(feature = "borsh")]
 use crate::prelude::{
     AccountInfo, Address, BorshDeserialize, BorshSerialize, NaclacError, Owner, Result,
-    TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
 };
 #[cfg(feature = "borsh")]
 use crate::wrappers::{ToAccountInfo, ToAddress};
@@ -38,12 +29,12 @@ use crate::wrappers::{ToAccountInfo, ToAddress};
 use core::ops::{Deref, DerefMut};
 
 #[cfg(feature = "borsh")]
-fn check_interface_owner(
+fn check_interface_owner<T: crate::wrappers::ValidateInterfaceLayout>(
     info: &AccountInfo,
     index: usize,
 ) -> core::result::Result<(), NaclacError> {
     let owner = Owner::program_owner(info);
-    if owner != TOKEN_PROGRAM_ID && owner != TOKEN_2022_PROGRAM_ID {
+    if !T::OWNERS.contains(&owner) {
         return Err(NaclacError::ConstraintOwner);
     }
     let _ = index;
@@ -74,7 +65,7 @@ impl<
     > InterfaceAccount<T>
 {
     pub fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
-        check_interface_owner(info, index).map_err(|e| e.err(index))?;
+        check_interface_owner::<T>(info, index).map_err(|e| e.err(index))?;
         let raw = info.try_borrow_data()?;
         let disc_len = T::DISCRIMINATOR.len();
         if raw.len() < disc_len {
@@ -113,7 +104,7 @@ impl<
     /// the CPI this is called after could itself have closed or reassigned
     /// the account.
     pub fn reload(&mut self) -> Result<()> {
-        check_interface_owner(&self.info, self.index).map_err(|e| e.err(self.index))?;
+        check_interface_owner::<T>(&self.info, self.index).map_err(|e| e.err(self.index))?;
         let raw = self.info.try_borrow_data()?;
         let disc_len = T::DISCRIMINATOR.len();
         if raw.len() < disc_len {
@@ -282,21 +273,19 @@ impl<
 // ===========================================================================
 
 #[cfg(feature = "wincode")]
-use crate::prelude::{
-    AccountInfo, Address, NaclacError, Owner, Result, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
-};
+use crate::prelude::{AccountInfo, Address, NaclacError, Owner, Result};
 #[cfg(feature = "wincode")]
 use crate::wrappers::{ToAccountInfo, ToAddress};
 #[cfg(feature = "wincode")]
 use core::ops::{Deref, DerefMut};
 
 #[cfg(feature = "wincode")]
-fn check_interface_owner_wincode(
+fn check_interface_owner_wincode<T: crate::wrappers::ValidateInterfaceLayout>(
     info: &AccountInfo,
     index: usize,
 ) -> core::result::Result<(), NaclacError> {
     let owner = Owner::program_owner(info);
-    if owner != TOKEN_PROGRAM_ID && owner != TOKEN_2022_PROGRAM_ID {
+    if !T::OWNERS.contains(&owner) {
         return Err(NaclacError::ConstraintOwner);
     }
     let _ = index;
@@ -324,7 +313,7 @@ impl<
     > InterfaceAccount<T>
 {
     pub fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
-        check_interface_owner_wincode(info, index).map_err(|e| e.err(index))?;
+        check_interface_owner_wincode::<T>(info, index).map_err(|e| e.err(index))?;
         let raw = info.try_borrow_data()?;
         let disc_len = T::DISCRIMINATOR.len();
         if raw.len() < disc_len {
@@ -355,7 +344,8 @@ impl<
     }
 
     pub fn reload(&mut self) -> Result<()> {
-        check_interface_owner_wincode(&self.info, self.index).map_err(|e| e.err(self.index))?;
+        check_interface_owner_wincode::<T>(&self.info, self.index)
+            .map_err(|e| e.err(self.index))?;
         let raw = self.info.try_borrow_data()?;
         let disc_len = T::DISCRIMINATOR.len();
         if raw.len() < disc_len {
@@ -568,9 +558,7 @@ impl<
 // ===========================================================================
 
 #[cfg(feature = "bytemuck")]
-use crate::prelude::{
-    AccountInfo, Address, NaclacError, Owner, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
-};
+use crate::prelude::{AccountInfo, Address, NaclacError, Owner};
 #[cfg(feature = "bytemuck")]
 use crate::wrappers::accounts::NaclacZeroCopy;
 #[cfg(feature = "bytemuck")]
@@ -581,12 +569,12 @@ use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 
 #[cfg(feature = "bytemuck")]
-fn check_interface_owner_zc(
+fn check_interface_owner_zc<T: crate::wrappers::ValidateInterfaceLayout>(
     info: &AccountInfo,
     index: usize,
 ) -> core::result::Result<(), NaclacError> {
     let owner = Owner::program_owner(info);
-    if owner != TOKEN_PROGRAM_ID && owner != TOKEN_2022_PROGRAM_ID {
+    if !T::OWNERS.contains(&owner) {
         return Err(NaclacError::ConstraintOwner);
     }
     let _ = index;
@@ -601,6 +589,9 @@ fn check_interface_owner_zc(
 pub struct InterfaceAccount<T: NaclacZeroCopy> {
     pub info: AccountInfo,
     header_ptr: *mut T,
+    // Deliberately private — see `accounts/account.rs`'s `Account<T>` doc
+    // comment on its own `index` field for why.
+    index: usize,
     pub _phantom: PhantomData<T>,
 }
 
@@ -624,6 +615,7 @@ impl<T: NaclacZeroCopy> Clone for InterfaceAccount<T> {
         Self {
             info: self.info,
             header_ptr: self.header_ptr,
+            index: self.index,
             _phantom: PhantomData,
         }
     }
@@ -635,7 +627,7 @@ impl<T: NaclacZeroCopy> Copy for InterfaceAccount<T> {}
 #[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAccount<T> {
     pub fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
-        check_interface_owner_zc(info, index).map_err(|e| e.err(index))?;
+        check_interface_owner_zc::<T>(info, index).map_err(|e| e.err(index))?;
         let header_ptr: *mut T;
         let disc_len = T::DISCRIMINATOR.len();
 
@@ -664,6 +656,7 @@ impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAcco
         Ok(Self {
             info: *info,
             header_ptr,
+            index,
             _phantom: PhantomData,
         })
     }
@@ -690,7 +683,7 @@ impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAcco
     /// that's a real possibility, mirroring the Borsh branch's own
     /// re-validation for the same reason.
     pub fn reload(&mut self) -> crate::prelude::Result<()> {
-        check_interface_owner_zc(&self.info, 0).map_err(|e| e.into())
+        check_interface_owner_zc::<T>(&self.info, self.index).map_err(|e| e.err(self.index))
     }
 }
 

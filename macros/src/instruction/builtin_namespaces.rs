@@ -236,7 +236,10 @@ pub(crate) const EXTRA_ACCOUNTS_ELSEWHERE: &str =
 pub(crate) const PROGRAM_ADDRESSES: &[(&str, &str)] = &[
     ("Token2022", "naclac_lang::prelude::TOKEN_2022_PROGRAM_ID"),
     ("Token", "naclac_lang::prelude::TOKEN_PROGRAM_ID"),
-    ("AssociatedToken", "naclac_lang::prelude::ASSOCIATED_TOKEN_PROGRAM_ID"),
+    (
+        "AssociatedToken",
+        "naclac_lang::prelude::ASSOCIATED_TOKEN_PROGRAM_ID",
+    ),
 ];
 
 pub(crate) fn namespace(name: &str) -> Option<&'static Namespace> {
@@ -392,7 +395,9 @@ pub(crate) fn first_forbidden(
 ) -> Option<TokenStream> {
     forbidden.iter().find_map(|forbidden| {
         let (_, value) = written.iter().find(|(key, _)| *key == forbidden.key)?;
-        let message = forbidden.message.replace("{field}", &field.ident.to_string());
+        let message = forbidden
+            .message
+            .replace("{field}", &field.ident.to_string());
         Some(syn::Error::new_spanned(value, message).to_compile_error())
     })
 }
@@ -496,7 +501,10 @@ mod tests {
     #[test]
     fn every_creating_namespace_is_in_the_creation_order() {
         for name in CREATION_ORDER {
-            assert!(namespace(name).is_some_and(|ns| ns.create.is_some()), "{name}");
+            assert!(
+                namespace(name).is_some_and(|ns| ns.create.is_some()),
+                "{name}"
+            );
         }
         let creating = NAMESPACES.iter().filter(|ns| ns.create.is_some()).count();
         assert_eq!(creating, CREATION_ORDER.len());
