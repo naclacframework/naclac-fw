@@ -863,11 +863,11 @@ fn generate_plugin_checks(field: &ParsedField, all_fields: &[ParsedField]) -> To
 /// on the loaded field with `Some(value)` for each key written and the
 /// namespace's `Args` default for the rest, its error mapped to the field's
 /// index. Each value goes through `ConstraintValue`, so its conversion is
-/// decided by the type of the key's `Args` field. Values are evaluated in the
-/// order written, in the surrounding function (so `?` in a value works),
-/// before `Args` is built; `Args` is built by assignment rather than a struct
-/// literal with `..Default::default()`, which lints flag when every key is
-/// given.
+/// decided by the type of the key's setter (`#[constraint_args]`). `Args` is
+/// built as `<Args as Default>::default().key(value)..`, values in the order
+/// written and evaluated in the surrounding function, so `?` in a value
+/// works; the fully qualified `Default` cannot be captured by a key named
+/// `default`.
 pub(crate) fn plugin_call_tokens(
     namespace: &TokenStream,
     members: &[(&Ident, &syn::Expr)],
@@ -883,9 +883,6 @@ pub(crate) fn plugin_call_tokens(
     let idx = field.index;
     let key_names = members.iter().map(|(key, _)| key.to_string());
     let keys = members.iter().map(|(key, _)| *key);
-    let value_bindings: Vec<Ident> = (0..members.len())
-        .map(|position| format_ident!("__constraint_value_{}", position))
-        .collect();
     let values = members.iter().map(|(_, value)| {
         let source = value_reference(value, all_fields);
         quote! { naclac_lang::prelude::ConstraintValue::into_value(#source) }
@@ -895,14 +892,10 @@ pub(crate) fn plugin_call_tokens(
             &[#(#key_names),*],
             naclac_lang::prelude::ConstraintPhase::#phase,
         );
-        #(let #value_bindings = ::core::option::Option::Some(#values);)*
         <#namespace::Constraint as naclac_lang::prelude::AccountConstraint<_>>::check(
             &#field_ident,
-            &naclac_lang::prelude::build_constraint_args(
-                |__constraint_args: &mut #namespace::Args| {
-                    #(__constraint_args.#keys = #value_bindings;)*
-                },
-            ),
+            &<#namespace::Args as ::core::default::Default>::default()
+                #(.#keys(#values))*,
         )
         .map_err(|e| e.err(#idx))?;
     }
@@ -1433,14 +1426,9 @@ mod plugin_tests {
 
     const INTO_VALUE: &str = "naclac_lang::prelude::ConstraintValue::into_value";
 
-    /// Whether `generated` assigns `key` from the value read through `source`.
+    /// Whether `generated` sets `key` from the value read through `source`.
     fn sets(generated: &str, key: &str, source: &str) -> bool {
-        (0..8).any(|n| {
-            let binding = format!("let__constraint_value_{n}=::core::option::Option::Some(");
-            let value = format!("{binding}{INTO_VALUE}({source}));");
-            let assignment = format!("__constraint_args.{key}=__constraint_value_{n};");
-            generated.contains(&value) && generated.contains(&assignment)
-        })
+        generated.contains(&format!(".{key}({INTO_VALUE}({source}))"))
     }
 
     #[test]
@@ -1458,10 +1446,7 @@ mod plugin_tests {
             "<my_vault::Constraintasnaclac_lang::prelude::",
             "AccountConstraint<_>>::check(&v,"
         );
-        let build = concat!(
-            "&naclac_lang::prelude::build_constraint_args(",
-            "|__constraint_args:&mutmy_vault::Args|"
-        );
+        let build = "&<my_vault::Argsas::core::default::Default>::default()";
 
         assert_eq!(generated.matches("my_vault::RULES.check").count(), 1);
         assert!(generated.contains(r#"&["fee_bps","admin"]"#), "{generated}");
@@ -1470,7 +1455,7 @@ mod plugin_tests {
         assert_eq!(generated.matches(build).count(), 1, "{generated}");
         assert!(sets(&generated, "fee_bps", "&(30)"), "{generated}");
         assert!(sets(&generated, "admin", "&admin"), "{generated}");
-        assert!(!generated.contains("Default::default()"), "{generated}");
+        assert!(!generated.contains("..::core"), "{generated}");
         assert!(
             generated.contains(".map_err(|e|e.err(0usize))?"),
             "{generated}"
@@ -1480,8 +1465,8 @@ mod plugin_tests {
     #[test]
     fn values_are_bound_in_the_order_written() {
         let generated = code("#[account(my_vault::b = 2, my_vault::a = 1)] v: Account<Vault>");
-        let first = generated.find("let__constraint_value_0").unwrap();
-        let second = generated.find("let__constraint_value_1").unwrap();
+        let first = generated.find(".b(").unwrap();
+        let second = generated.find(".a(").unwrap();
         assert!(first < second, "{generated}");
         assert!(sets(&generated, "b", "&(2)"), "{generated}");
         assert!(sets(&generated, "a", "&(1)"), "{generated}");
@@ -1559,7 +1544,7 @@ mod plugin_tests {
              owner: Signer",
         );
         assert!(sets(&generated, "authority", "&owner"), "{generated}");
-        assert!(!generated.contains("args.mint"), "{generated}");
+        assert!(!generated.contains(".mint("), "{generated}");
     }
 
     #[test]

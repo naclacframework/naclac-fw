@@ -26,8 +26,7 @@ pub use {
 
 // --- Wrappers: common types (shared by both backends) ---
 pub use crate::constraint::{
-    build_constraint_args, AccountConstraint, ConstraintPhase, ConstraintRule, ConstraintRules,
-    ConstraintValue,
+    AccountConstraint, ConstraintPhase, ConstraintRule, ConstraintRules, ConstraintValue,
 };
 pub use crate::error::NaclacError;
 

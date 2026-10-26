@@ -11,6 +11,7 @@ pub struct Counter {
 mod min_value {
     use {super::Counter, naclac_lang::prelude::*};
 
+    #[constraint_args]
     #[derive(Default)]
     pub struct Args {
         pub min: Option<u64>,

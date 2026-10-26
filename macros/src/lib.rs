@@ -14,6 +14,7 @@ extern crate proc_macro;
 
 mod accounts;
 mod component;
+mod constraint_args;
 mod emit;
 mod error_code;
 mod event;
@@ -276,6 +277,14 @@ pub fn constant(attr: TokenStream, item: TokenStream) -> TokenStream {
     {
         item
     }
+}
+
+/// Adds a setter per key to a constraint plugin's `Args` struct, which
+/// `#[derive(Accounts)]` uses to build it from `#[account(namespace::key = ..)]`.
+/// Every field must be `Option<..>`.
+#[proc_macro_attribute]
+pub fn constraint_args(attr: TokenStream, item: TokenStream) -> TokenStream {
+    constraint_args::expand(attr, item)
 }
 
 /// Derives the necessary validation, deserialization, and constraints for an Accounts struct.

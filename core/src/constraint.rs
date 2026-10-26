@@ -51,15 +51,6 @@ macro_rules! copied_constraint_values {
 
 copied_constraint_values!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, bool);
 
-/// Builds a namespace's `Args`: its `Default`, with `set` assigning the keys
-/// written in the attribute.
-#[inline(always)]
-pub fn build_constraint_args<T: Default>(set: impl FnOnce(&mut T)) -> T {
-    let mut args = T::default();
-    set(&mut args);
-    args
-}
-
 /// Where in an account's life the constraint is being applied.
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum ConstraintPhase {

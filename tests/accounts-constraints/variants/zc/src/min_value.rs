@@ -4,6 +4,7 @@
 
 use {crate::components::SeededThing, naclac_lang::prelude::*};
 
+#[constraint_args]
 #[derive(Default)]
 pub struct Args {
     pub min: Option<u64>,
