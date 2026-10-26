@@ -16,7 +16,7 @@ use token_borsh_client::{
         build_check_permanent_delegate,
         build_check_permissioned_burn,
         build_check_scaled_ui_amount_config,
-        build_check_transfer_fee_config, build_check_transfer_hook, build_check_vault_constraints,
+        build_check_transfer_fee_config, build_check_transfer_hook, build_check_vault_constraints, build_check_vault_unchecked,
         build_check_vault_program, build_create_ata, build_create_ata_idempotent, build_create_mint,
         build_create_mint2022,
         build_create_mint2022_init_if_needed,
@@ -57,7 +57,7 @@ use token_borsh_client::{
         CheckPermissionedBurnAccounts,
         CheckScaledUiAmountConfigAccounts,
         CheckTokenGroupAccounts, CheckTokenGroupMemberAccounts,
-        CheckTransferFeeConfigAccounts, CheckTransferHookAccounts, CheckVaultConstraintsAccounts,
+        CheckTransferFeeConfigAccounts, CheckTransferHookAccounts, CheckVaultConstraintsAccounts, CheckVaultUncheckedAccounts,
         CheckVaultProgramAccounts, CreateAtaAccounts,
         CreateAtaIdempotentAccounts, CreateMint2022WithTransferHookAccounts, CreateMintAccounts,
         CreateMint2022Accounts,
@@ -379,6 +379,43 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     .send_and_confirm();
     // `vault` is field index 2; `AccountNotInitialized` (15) -> 10000 + 2*100 + 15 = 10215.
     assert_custom_code(uninitialized_result, 10215);
+
+    // A plain `AccountInfo` vault proves nothing about its owner by its type,
+    // so the token constraint checks the owner itself: a real token account
+    // passes, and an account carrying the same mint and authority bytes but
+    // owned by this program instead of the Token program is rejected.
+    build_check_vault_unchecked(
+        &provider,
+        PROGRAM_ID,
+        CheckVaultUncheckedAccounts {
+            mint: mint_a,
+            mint_authority: mint_authority_pda,
+            vault: correct_vault.address(),
+        },
+    )
+    .send_and_confirm()
+    .expect("check_vault_unchecked must accept a real token account");
+
+    let mut spoofed_bytes = vec![0u8; 165];
+    spoofed_bytes[..32].copy_from_slice(mint_a.as_ref());
+    spoofed_bytes[32..64].copy_from_slice(mint_authority_pda.as_ref());
+    spoofed_bytes[108] = 1;
+    let spoofed_vault = Keypair::new();
+    provider
+        .set_account(&spoofed_vault.address(), spoofed_bytes, &PROGRAM_ID, 1_000_000)
+        .expect("set_account for spoofed_vault should succeed");
+    let spoofed_result = build_check_vault_unchecked(
+        &provider,
+        PROGRAM_ID,
+        CheckVaultUncheckedAccounts {
+            mint: mint_a,
+            mint_authority: mint_authority_pda,
+            vault: spoofed_vault.address(),
+        },
+    )
+    .send_and_confirm();
+    // `vault` is field index 2; `ConstraintOwner` (4) -> 10000 + 2*100 + 4 = 10204.
+    assert_custom_code(spoofed_result, 10204);
 }
 
 /// `token::token_program`: validates an existing account's owning program against

@@ -37,6 +37,10 @@ pub mod token_borsh {
         check_vault_constraints::check_vault_constraints(ctx)
     }
 
+    pub fn check_vault_unchecked(ctx: Context<CheckVaultUnchecked>) -> Result {
+        check_vault_unchecked::check_vault_unchecked(ctx)
+    }
+
     pub fn check_vault_program(ctx: Context<CheckVaultProgram>) -> Result {
         check_vault_program::check_vault_program(ctx)
     }

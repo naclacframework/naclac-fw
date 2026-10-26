@@ -5,8 +5,8 @@
 //! signer seeds, and invoking the System Program to allocate memory.
 
 use {
-    crate::instruction::parser::ParsedField,
-    proc_macro2::TokenStream,
+    crate::instruction::{parser::ParsedField, security::plugin_args_tokens},
+    proc_macro2::{Ident, TokenStream},
     quote::{format_ident, quote},
     syn::Type,
 };
@@ -263,213 +263,73 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
         }
     };
 
+    let token_program_key = format_ident!("token_program");
+    let authority_key = format_ident!("authority");
+
     if let Some(decimals_expr) = &field.mint_decimals {
-        let authority_expr = match field.mint_authority.as_ref() {
-            Some(expr) => expr,
-            None => {
-                return syn::Error::new_spanned(
-                    &field.ident,
-                    "Naclac Error: `mint::authority` must be specified alongside `mint::decimals`.",
-                )
-                .to_compile_error();
-            }
+        let Some(authority_expr) = field.mint_authority.as_ref() else {
+            return syn::Error::new_spanned(
+                &field.ident,
+                "Naclac Error: `mint::authority` must be specified alongside `mint::decimals`.",
+            )
+            .to_compile_error();
         };
-
-        let authority_ref = get_account_reference(authority_expr, all_fields);
-
-        let freeze_authority_tokens = match &field.mint_freeze_authority {
-            Some(expr) => {
-                let ref_tokens = get_account_reference(expr, all_fields);
-                quote! { Some(naclac_lang::prelude::ToAddress::address(#ref_tokens)) }
-            }
-            None => quote! { None },
-        };
-
         let token_program_idx = match resolve_token_program_idx(field, all_fields) {
             Ok(idx) => idx,
             Err(err) => return err,
         };
+        let token_program: syn::Expr = syn::parse_quote! { accounts[#token_program_idx] };
+        let decimals_key = format_ident!("decimals");
+        let freeze_authority_key = format_ident!("freeze_authority");
 
-        let idx = field.index;
-        let existence_check = if field.is_init_if_needed {
-            quote! {}
-        } else {
-            quote! {
-                if !info.data_is_empty() {
-                    return Err(naclac_lang::prelude::NaclacError::AccountAlreadyInitialized.err(#idx));
-                }
-            }
+        let mut members: Vec<(&Ident, &syn::Expr)> = vec![
+            (&decimals_key, decimals_expr),
+            (&authority_key, authority_expr),
+        ];
+        if let Some(freeze_authority_expr) = &field.mint_freeze_authority {
+            members.push((&freeze_authority_key, freeze_authority_expr));
+        }
+        members.push((&token_program_key, &token_program));
+
+        let init = PluginInit {
+            namespace: quote! { naclac_lang::token_constraints::mint },
+            members: &members,
+            payer_ref: &payer_ref,
+            signer_seeds_logic: &signer_seeds_logic,
+            system_program_idx,
         };
-        let create_call_solana = if field.is_init_unchecked {
-            quote! { naclac_lang::prelude::system_program::create_account_signed_unchecked }
-        } else {
-            quote! { naclac_lang::prelude::system_program::create_account_signed }
-        };
-        let create_call_pinocchio = if field.is_init_unchecked {
-            quote! { naclac_lang::prelude::system_program::create_account_unchecked_for_init }
-        } else {
-            quote! { naclac_lang::prelude::system_program::create_account_checked_for_init }
-        };
-        return quote! {
-            #existence_check
-            if info.data_is_empty() {
-                #signer_seeds_logic
-                #[cfg(not(feature = "solana"))]
-                let signer_seeds: &[&[&[u8]]] = &[];
-
-                let __sys_info = &accounts[#system_program_idx];
-                if (__sys_info).address() != naclac_lang::prelude::SYSTEM_PROGRAM_ID {
-                    return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#system_program_idx));
-                }
-
-                let __tok_prog_info = &accounts[#token_program_idx];
-                let __tok_prog_key = (__tok_prog_info).address();
-                if __tok_prog_key != naclac_lang::prelude::TOKEN_PROGRAM_ID && __tok_prog_key != naclac_lang::prelude::TOKEN_2022_PROGRAM_ID {
-                    return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#token_program_idx));
-                }
-
-                let __payer_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref);
-                let __authority_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#authority_ref);
-                let __authority_key = naclac_lang::prelude::ToAddress::address(&__authority_info);
-                let __freeze_authority: Option<naclac_lang::prelude::Address> = #freeze_authority_tokens;
-
-                #[cfg(feature = "solana")]
-                {
-                    let lamports = naclac_lang::prelude::const_rent_lamports(82);
-
-                    #create_call_solana(
-                        naclac_lang::prelude::CpiHandleMut { info: __payer_info.clone(), _phantom: core::marker::PhantomData },
-                        naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
-                        naclac_lang::prelude::CpiHandle { info: __tok_prog_info.clone(), _phantom: core::marker::PhantomData },
-                        lamports,
-                        82,
-                        &__tok_prog_key,
-                        signer_seeds,
-                    )?;
-                }
-                #[cfg(not(feature = "solana"))]
-                {
-                    let __lamports = naclac_lang::prelude::const_rent_lamports(82);
-                    #create_call_pinocchio(
-                        &__payer_info.view,
-                        &info.view,
-                        __lamports,
-                        82,
-                        &__tok_prog_key,
-                        pinocchio_signer_seeds,
-                    )?;
-                }
-
-                naclac_lang::token::initialize_mint_signed(
-                    naclac_lang::prelude::CpiHandle { info: __tok_prog_info.clone(), _phantom: core::marker::PhantomData },
-                    naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
-                    #decimals_expr,
-                    &__authority_key,
-                    __freeze_authority.as_ref(),
-                    signer_seeds,
-                )?;
-            }
-        };
+        return init.tokens(field, all_fields);
     }
 
     if let Some(mint_expr) = &field.token_mint {
-        let authority_expr = match field.token_authority.as_ref() {
-            Some(expr) => expr,
-            None => {
-                return syn::Error::new_spanned(
-                    &field.ident,
-                    "Naclac Error: `token::authority` must be specified alongside `token::mint`.",
-                )
-                .to_compile_error();
-            }
+        let Some(authority_expr) = field.token_authority.as_ref() else {
+            return syn::Error::new_spanned(
+                &field.ident,
+                "Naclac Error: `token::authority` must be specified alongside `token::mint`.",
+            )
+            .to_compile_error();
         };
-
-        let mint_ref = get_account_reference(mint_expr, all_fields);
-        let authority_ref = get_account_reference(authority_expr, all_fields);
-
         let token_program_idx = match resolve_token_program_idx(field, all_fields) {
             Ok(idx) => idx,
             Err(err) => return err,
         };
+        let token_program: syn::Expr = syn::parse_quote! { accounts[#token_program_idx] };
+        let mint_key = format_ident!("mint");
 
-        let idx = field.index;
-        let existence_check = if field.is_init_if_needed {
-            quote! {}
-        } else {
-            quote! {
-                if !info.data_is_empty() {
-                    return Err(naclac_lang::prelude::NaclacError::AccountAlreadyInitialized.err(#idx));
-                }
-            }
+        let members: Vec<(&Ident, &syn::Expr)> = vec![
+            (&mint_key, mint_expr),
+            (&authority_key, authority_expr),
+            (&token_program_key, &token_program),
+        ];
+
+        let init = PluginInit {
+            namespace: quote! { naclac_lang::token_constraints::token },
+            members: &members,
+            payer_ref: &payer_ref,
+            signer_seeds_logic: &signer_seeds_logic,
+            system_program_idx,
         };
-        let create_call_solana = if field.is_init_unchecked {
-            quote! { naclac_lang::prelude::system_program::create_account_signed_unchecked }
-        } else {
-            quote! { naclac_lang::prelude::system_program::create_account_signed }
-        };
-        let create_call_pinocchio = if field.is_init_unchecked {
-            quote! { naclac_lang::prelude::system_program::create_account_unchecked_for_init }
-        } else {
-            quote! { naclac_lang::prelude::system_program::create_account_checked_for_init }
-        };
-        return quote! {
-            #existence_check
-            if info.data_is_empty() {
-                #signer_seeds_logic
-                #[cfg(not(feature = "solana"))]
-                let signer_seeds: &[&[&[u8]]] = &[];
-
-                let __sys_info = &accounts[#system_program_idx];
-                if (__sys_info).address() != naclac_lang::prelude::SYSTEM_PROGRAM_ID {
-                    return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#system_program_idx));
-                }
-
-                let __tok_prog_info = &accounts[#token_program_idx];
-                let __tok_prog_key = (__tok_prog_info).address();
-                if __tok_prog_key != naclac_lang::prelude::TOKEN_PROGRAM_ID && __tok_prog_key != naclac_lang::prelude::TOKEN_2022_PROGRAM_ID {
-                    return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#token_program_idx));
-                }
-
-                let __payer_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref);
-                let __mint_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#mint_ref);
-                let __authority_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#authority_ref);
-
-                #[cfg(feature = "solana")]
-                {
-                    let lamports = naclac_lang::prelude::const_rent_lamports(165);
-
-                    #create_call_solana(
-                        naclac_lang::prelude::CpiHandleMut { info: __payer_info.clone(), _phantom: core::marker::PhantomData },
-                        naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
-                        naclac_lang::prelude::CpiHandle { info: __tok_prog_info.clone(), _phantom: core::marker::PhantomData },
-                        lamports,
-                        165,
-                        &__tok_prog_key,
-                        signer_seeds,
-                    )?;
-                }
-                #[cfg(not(feature = "solana"))]
-                {
-                    let __lamports = naclac_lang::prelude::const_rent_lamports(165);
-                    #create_call_pinocchio(
-                        &__payer_info.view,
-                        &info.view,
-                        __lamports,
-                        165,
-                        &__tok_prog_key,
-                        pinocchio_signer_seeds,
-                    )?;
-                }
-
-                naclac_lang::token::initialize_account_signed(
-                    naclac_lang::prelude::CpiHandle { info: __tok_prog_info.clone(), _phantom: core::marker::PhantomData },
-                    naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
-                    naclac_lang::prelude::CpiHandle { info: __mint_info, _phantom: core::marker::PhantomData },
-                    naclac_lang::prelude::CpiHandle { info: __authority_info, _phantom: core::marker::PhantomData },
-                    signer_seeds,
-                )?;
-            }
-        };
+        return init.tokens(field, all_fields);
     }
 
     if let Some(ata_mint_expr) = &field.associated_token_mint {
@@ -805,5 +665,199 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
                 }
             }
         }
+    }
+}
+
+/// What `generate_init_cpi` needs to create a field's account through a
+/// constraint namespace that implements `AccountConstraintInit`.
+struct PluginInit<'a> {
+    namespace: TokenStream,
+    members: &'a [(&'a Ident, &'a syn::Expr)],
+    payer_ref: &'a TokenStream,
+    signer_seeds_logic: &'a TokenStream,
+    system_program_idx: usize,
+}
+
+impl PluginInit<'_> {
+    /// Creates `field`'s account when it is empty (an `init` field must be
+    /// empty, an `init_if_needed` one is left as it is otherwise): the
+    /// namespace's `owner` and `space` decide what the system program creates,
+    /// funded by the payer and signed with the field's own PDA seeds, then
+    /// its `initialize` writes the initial state. Errors from the programs
+    /// called keep their own codes; `owner` errors carry the field's index.
+    fn tokens(&self, field: &ParsedField, all_fields: &[ParsedField]) -> TokenStream {
+        let PluginInit {
+            namespace,
+            members,
+            payer_ref,
+            signer_seeds_logic,
+            system_program_idx,
+        } = self;
+        let idx = field.index;
+        let ty = &field.ty;
+        let args = plugin_args_tokens(namespace, members, all_fields);
+        let init = quote! {
+            <#namespace::Constraint as naclac_lang::prelude::AccountConstraintInit<#ty>>
+        };
+        let existence_check = if field.is_init_if_needed {
+            quote! {}
+        } else {
+            quote! {
+                if !info.data_is_empty() {
+                    return Err(naclac_lang::prelude::NaclacError::AccountAlreadyInitialized.err(#idx));
+                }
+            }
+        };
+        let create_call_solana = if field.is_init_unchecked {
+            quote! { naclac_lang::prelude::system_program::create_account_signed_unchecked }
+        } else {
+            quote! { naclac_lang::prelude::system_program::create_account_signed }
+        };
+        let create_call_pinocchio = if field.is_init_unchecked {
+            quote! { naclac_lang::prelude::system_program::create_account_unchecked_for_init }
+        } else {
+            quote! { naclac_lang::prelude::system_program::create_account_checked_for_init }
+        };
+
+        quote! {
+            #existence_check
+            if info.data_is_empty() {
+                #signer_seeds_logic
+                #[cfg(not(feature = "solana"))]
+                let signer_seeds: &[&[&[u8]]] = &[];
+
+                let __sys_info = &accounts[#system_program_idx];
+                if (__sys_info).address() != naclac_lang::prelude::SYSTEM_PROGRAM_ID {
+                    return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#system_program_idx));
+                }
+
+                let __init_args = #args;
+                let __owner = #init::owner(&__init_args).map_err(|e| e.err(#idx))?;
+                let __space = #init::space(&__init_args);
+                let __payer_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref);
+
+                #[cfg(feature = "solana")]
+                {
+                    let lamports = naclac_lang::prelude::const_rent_lamports(__space);
+                    #create_call_solana(
+                        naclac_lang::prelude::CpiHandleMut { info: __payer_info.clone(), _phantom: core::marker::PhantomData },
+                        naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
+                        naclac_lang::prelude::CpiHandle { info: __sys_info.clone(), _phantom: core::marker::PhantomData },
+                        lamports,
+                        __space as u64,
+                        &__owner,
+                        signer_seeds,
+                    )?;
+                }
+                #[cfg(not(feature = "solana"))]
+                {
+                    let __lamports = naclac_lang::prelude::const_rent_lamports(__space);
+                    #create_call_pinocchio(
+                        &__payer_info.view,
+                        &info.view,
+                        __lamports,
+                        __space as u64,
+                        &__owner,
+                        pinocchio_signer_seeds,
+                    )?;
+                }
+
+                #init::initialize(info, #idx, &__init_args, signer_seeds)?;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::generate_init_cpi,
+        crate::instruction::parser::{parse_struct_fields, ParsedField},
+    };
+
+    const INTO_VALUE: &str = "naclac_lang::prelude::ConstraintValue::into_value";
+
+    const MINT_INIT: &str = concat!(
+        "<naclac_lang::token_constraints::mint::Constraintas",
+        "naclac_lang::prelude::AccountConstraintInit<Account<Mint>>>"
+    );
+
+    const TOKEN_INIT: &str = concat!(
+        "<naclac_lang::token_constraints::token::Constraintas",
+        "naclac_lang::prelude::AccountConstraintInit<Account<TokenAccount>>>"
+    );
+
+    const MINT_FIELDS: &str = "
+        mint: Account<Mint>,
+        owner: Signer,
+        #[account(mut)] payer: Signer,
+        token_program: Program<Token>,
+        system_program: Program<System>";
+
+    fn parse(fields: &str) -> Vec<ParsedField> {
+        let item: syn::ItemStruct = syn::parse_str(&format!("struct S {{ {fields} }}")).unwrap();
+        let syn::Fields::Named(named) = &item.fields else {
+            panic!("a struct with named fields");
+        };
+        parse_struct_fields(named).unwrap()
+    }
+
+    fn init_code(fields: &str) -> String {
+        let parsed = parse(fields);
+        generate_init_cpi(&parsed[0], &parsed)
+            .to_string()
+            .replace(' ', "")
+    }
+
+    fn mint_init_code(kind: &str) -> String {
+        let attribute = "payer = payer, mint::decimals = 6, mint::authority = owner";
+        init_code(&format!("#[account({kind}, {attribute})] {MINT_FIELDS}"))
+    }
+
+    #[test]
+    fn a_mint_is_created_through_the_mint_constraint() {
+        let generated = mint_init_code("init");
+        let owner = format!("{MINT_INIT}::owner(&__init_args)");
+        let space = format!("{MINT_INIT}::space(&__init_args)");
+        let initialize = format!("{MINT_INIT}::initialize(info,0usize,");
+        let decimals = format!(".decimals({INTO_VALUE}(&(6)))");
+        let program = format!(".token_program({INTO_VALUE}(&(accounts[3usize])))");
+
+        for expected in [owner, space, initialize, decimals, program] {
+            assert!(generated.contains(&expected), "{generated}");
+        }
+        for removed in ["initialize_mint_signed", "TOKEN_PROGRAM_ID"] {
+            assert!(!generated.contains(removed), "{generated}");
+        }
+    }
+
+    #[test]
+    fn a_token_account_is_created_through_the_token_constraint() {
+        let generated = init_code(
+            "#[account(init, payer = payer, token::mint = mint, token::authority = owner)]
+             vault: Account<TokenAccount>,
+             mint: Account<Mint>,
+             owner: Signer,
+             #[account(mut)] payer: Signer,
+             token_program: Program<Token>,
+             system_program: Program<System>",
+        );
+        let initialize = format!("{TOKEN_INIT}::initialize(");
+        let mint = format!(".mint({INTO_VALUE}(&accounts[1usize]))");
+        let authority = format!(".authority({INTO_VALUE}(&owner))");
+
+        for expected in [initialize, mint, authority] {
+            assert!(generated.contains(&expected), "{generated}");
+        }
+        let removed = "initialize_account_signed";
+        assert!(!generated.contains(removed), "{generated}");
+    }
+
+    #[test]
+    fn an_init_field_must_be_empty_and_an_init_if_needed_field_need_not() {
+        let created = mint_init_code("init");
+        let maybe_created = mint_init_code("init_if_needed");
+        assert!(created.contains("AccountAlreadyInitialized"), "{created}");
+        assert!(!maybe_created.contains("AccountAlreadyInitialized"));
     }
 }

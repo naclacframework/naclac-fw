@@ -7,7 +7,11 @@
 //! accounts' addresses or fixed values: checks on what an instruction does
 //! with the data belong in the handler.
 
-use crate::{error::NaclacError, prelude::Address, wrappers::ToAddress};
+use crate::{
+    error::NaclacError,
+    prelude::{AccountInfo, Address},
+    wrappers::{ToAccountInfo, ToAddress},
+};
 
 /// A constraint attached to a field of type `A`.
 pub trait AccountConstraint<A> {
@@ -19,10 +23,35 @@ pub trait AccountConstraint<A> {
     fn check(account: &A, args: &Self::Args<'_>) -> core::result::Result<(), NaclacError>;
 }
 
+/// A constraint that can also create the account, for an `init` /
+/// `init_if_needed` field. The derive creates the account itself (existence
+/// check, payer, rent, the field's own PDA seeds) with the size and owner
+/// given here, then calls `initialize` to write its initial state.
+pub trait AccountConstraintInit<A>: AccountConstraint<A> {
+    /// Size in bytes of the account to create.
+    fn space(args: &Self::Args<'_>) -> usize;
+
+    /// The program that will own the new account. An error means the
+    /// arguments do not allow creating it.
+    fn owner(args: &Self::Args<'_>) -> core::result::Result<Address, NaclacError>;
+
+    /// Writes the initial state of the freshly created `account`, the field at
+    /// `index`. `signer_seeds` are the account's own PDA seeds (empty when it
+    /// is not a PDA). Errors from the programs it calls are returned
+    /// unchanged; its own errors carry `index`.
+    fn initialize(
+        account: &AccountInfo,
+        index: usize,
+        args: &Self::Args<'_>,
+        signer_seeds: &[&[&[u8]]],
+    ) -> crate::prelude::Result<()>;
+}
+
 /// Turns the value written for a key, taken by reference, into the type of
 /// that key's `Args` field. Anything with an address (another field of the
-/// struct, an `Address`, a reference to one) becomes an `Address`; integers
-/// and `bool` are copied. A crate that uses its own type for a key implements
+/// struct, an `Address`, a reference to one) becomes an `Address`; another
+/// field of the struct becomes its `AccountInfo` handle; integers and `bool`
+/// are copied. A crate that uses its own type for a key implements
 /// this for a reference to that type. There is deliberately no conversion
 /// between different types, so a value of the wrong type is a compile error.
 pub trait ConstraintValue<T> {
@@ -33,6 +62,13 @@ impl<A: ToAddress + ?Sized> ConstraintValue<Address> for &A {
     #[inline(always)]
     fn into_value(self) -> Address {
         self.address()
+    }
+}
+
+impl<A: ToAccountInfo + ?Sized> ConstraintValue<AccountInfo> for &A {
+    #[inline(always)]
+    fn into_value(self) -> AccountInfo {
+        self.to_account_info()
     }
 }
 

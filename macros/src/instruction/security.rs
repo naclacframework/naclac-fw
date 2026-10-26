@@ -882,11 +882,7 @@ pub(crate) fn plugin_call_tokens(
     let field_ident = &field.ident;
     let idx = field.index;
     let key_names = members.iter().map(|(key, _)| key.to_string());
-    let keys = members.iter().map(|(key, _)| *key);
-    let values = members.iter().map(|(_, value)| {
-        let source = value_reference(value, all_fields);
-        quote! { naclac_lang::prelude::ConstraintValue::into_value(#source) }
-    });
+    let args = plugin_args_tokens(namespace, members, all_fields);
     quote! {
         const _: () = #namespace::RULES.check(
             &[#(#key_names),*],
@@ -894,10 +890,27 @@ pub(crate) fn plugin_call_tokens(
         );
         <#namespace::Constraint as naclac_lang::prelude::AccountConstraint<_>>::check(
             &#field_ident,
-            &<#namespace::Args as ::core::default::Default>::default()
-                #(.#keys(#values))*,
+            &#args,
         )
         .map_err(|e| e.err(#idx))?;
+    }
+}
+
+/// A namespace's `Args` built from `members`:
+/// `<Args as Default>::default().key(value)..`, values in the order written,
+/// each converted by `ConstraintValue` to the type its setter takes.
+pub(crate) fn plugin_args_tokens(
+    namespace: &TokenStream,
+    members: &[(&Ident, &syn::Expr)],
+    all_fields: &[ParsedField],
+) -> TokenStream {
+    let keys = members.iter().map(|(key, _)| *key);
+    let values = members.iter().map(|(_, value)| {
+        let source = value_reference(value, all_fields);
+        quote! { naclac_lang::prelude::ConstraintValue::into_value(#source) }
+    });
+    quote! {
+        <#namespace::Args as ::core::default::Default>::default() #(.#keys(#values))*
     }
 }
 

@@ -732,11 +732,24 @@ pub fn initialize_account_signed(
     authority: CpiHandle<'_>,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
+    let authority = ToAddress::address(&authority.info);
+    initialize_account_with_owner_signed(program, account, mint, &authority, signer_seeds)
+}
+
+/// `InitializeAccount3`: the token account's owner is only written into the
+/// instruction data, so it is given as an address, not an account.
+pub fn initialize_account_with_owner_signed(
+    program: CpiHandle<'_>,
+    account: CpiHandleMut<'_>,
+    mint: CpiHandle<'_>,
+    owner: &Address,
+    signer_seeds: &[&[&[u8]]],
+) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
         let mut data = [0u8; 33];
         data[0] = 18; // InitializeAccount3 discriminant
-        data[1..].copy_from_slice(authority.info.address().as_ref());
+        data[1..].copy_from_slice(owner.as_ref());
 
         let ix = solana_instruction::Instruction {
             program_id: program.address(),
@@ -757,7 +770,7 @@ pub fn initialize_account_signed(
             token_program: program.info.view.address(),
             account: &account.info.view,
             mint: &mint.info.view,
-            owner: authority.info.view.address(),
+            owner: owner.as_address(),
         };
 
         ix.invoke()
