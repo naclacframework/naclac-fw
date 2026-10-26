@@ -333,20 +333,14 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
     }
 
     if let Some(ata_mint_expr) = &field.associated_token_mint {
-        let ata_authority_expr = match field.associated_token_authority.as_ref() {
-            Some(expr) => expr,
-            None => {
-                return syn::Error::new_spanned(
-                    &field.ident,
-                    "Naclac Error: `associated_token::authority` must be specified alongside \
-                     `associated_token::mint`.",
-                )
-                .to_compile_error();
-            }
+        let Some(ata_authority_expr) = field.associated_token_authority.as_ref() else {
+            return syn::Error::new_spanned(
+                &field.ident,
+                "Naclac Error: `associated_token::authority` must be specified alongside \
+                 `associated_token::mint`.",
+            )
+            .to_compile_error();
         };
-
-        let mint_ref = get_account_reference(ata_mint_expr, all_fields);
-        let authority_ref = get_account_reference(ata_authority_expr, all_fields);
 
         let token_program_idx = match resolve_token_program_idx(field, all_fields) {
             Ok(idx) => idx,
@@ -370,22 +364,10 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
 
         let idx = field.index;
 
-        // Unlike `mint::decimals` (which hand-rolls raw CPI instruction bytes
-        // per backend, since there's no shared CreateAccount+InitializeMint
-        // helper), ATA creation already has a single dual-backend function —
-        // `naclac_lang::associated_token::create`/`create_idempotent` internally
-        // branch on `#[cfg(not(feature = "solana"))]` themselves (confirmed by
-        // reading `token/src/associated_token.rs` directly) — so this
-        // codegen needs no cfg branches of its own, mirroring the same
-        // already-unified-at-the-call-site pattern `realloc.rs` uses for
-        // `system_program::transfer`.
-        //
-        // `init_if_needed` selects `create_idempotent` (no-op if the ATA
-        // already exists) instead of the strict `create` (hard error on an
-        // existing account) — confirmed against the real `pump_fees.so`
-        // bytecode that `claim_social_fee_pda_v2` needs exactly this: a
-        // second claim to the same recipient must not fail just because its
-        // ATA was already created by a prior claim.
+        // `init_if_needed` creates idempotently (a no-op if the ATA already
+        // exists) instead of failing on an existing account: a second claim
+        // to the same recipient must not fail just because its ATA was
+        // already created by a prior claim.
         let existence_check = if field.is_init_if_needed {
             quote! {}
         } else {
@@ -408,24 +390,26 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
 
         let extra_accounts_tokens = match &field.extra_accounts {
             Some(extra_array) => {
-                let refs: Vec<TokenStream> = extra_array.elems.iter().map(|expr| {
-                    let account_ref = get_account_reference(expr, all_fields);
-                    quote! {
-                        naclac_lang::prelude::CpiHandle {
-                            info: naclac_lang::prelude::ToAccountInfo::to_account_info(#account_ref),
-                            _phantom: core::marker::PhantomData,
+                let refs: Vec<TokenStream> = extra_array
+                    .elems
+                    .iter()
+                    .map(|expr| {
+                        let account_ref = get_account_reference(expr, all_fields);
+                        quote! {
+                            naclac_lang::prelude::CpiHandle {
+                                info: naclac_lang::prelude::ToAccountInfo::to_account_info(#account_ref),
+                                _phantom: core::marker::PhantomData,
+                            }
                         }
-                    }
-                }).collect();
-                quote! { &[#(#refs),*] }
+                    })
+                    .collect();
+                quote! { ::core::option::Option::Some(&[#(#refs),*]) }
             }
-            None => quote! { &[] },
+            None => quote! { ::core::option::Option::None },
         };
 
         // The payer may itself be a PDA (e.g. a program-owned lamport
-        // source, not a real wallet) — resolved the same way
-        // `signer_seeds_tokens` resolves `field`'s own seeds, just anchored
-        // to whichever field `payer` names instead of `field` itself.
+        // source, not a real wallet), signing with its own seeds.
         let payer_field = if let syn::Expr::Path(expr_path) = &init_config.payer {
             expr_path
                 .path
@@ -434,42 +418,14 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
         } else {
             None
         };
-        // `create_idempotent_with_extra_accounts_signed`'s `signer_seeds` is
-        // the same backend-uniform `&[&[&[u8]]]` format every other
-        // `_signed` helper in this codebase already takes (it converts to
-        // pinocchio's own `Signer`/`Seed` types internally on that backend)
-        // — no per-backend branching needed here, unlike `signer_seeds_logic`
-        // above for the field-being-initialized's own seeds.
-        //
-        // Only emitted when `extra_accounts` is actually set — `call_tail`
-        // is the only consumer of `__payer_signer_seeds`, so emitting this
-        // unconditionally would leave an unused-variable warning on every
-        // `init_if_needed` associated-token field that doesn't use padding
-        // (e.g. `pump_amm::create_pool`'s own `pool_base_token_account`).
-        let payer_signer_seeds_logic = if field.extra_accounts.is_some() {
-            match payer_field {
+        let (payer_seeds_logic, payer_seeds) = if field.extra_accounts.is_some() {
+            let logic = match payer_field {
                 Some(pf) if pf.pda_seed.is_some() => payer_signer_seeds_tokens(pf),
                 _ => quote! { let __payer_signer_seeds: &[&[&[u8]]] = &[]; },
-            }
+            };
+            (logic, quote! { __payer_signer_seeds })
         } else {
-            quote! {}
-        };
-
-        let create_call = if field.extra_accounts.is_some() {
-            quote! { naclac_lang::associated_token::create_idempotent_with_extra_accounts_signed }
-        } else if field.is_init_if_needed {
-            quote! { naclac_lang::associated_token::create_idempotent }
-        } else {
-            quote! { naclac_lang::associated_token::create }
-        };
-        // `create_idempotent_with_extra_accounts_signed` takes two extra
-        // arguments (`extra_accounts`, `signer_seeds`) that `create`/
-        // `create_idempotent` don't, so the call-site arguments differ per
-        // branch.
-        let call_tail = if field.extra_accounts.is_some() {
-            quote! { , #extra_accounts_tokens, __payer_signer_seeds }
-        } else {
-            quote! {}
+            (quote! {}, quote! { &[] })
         };
 
         if let Some(bump_expr) = &field.associated_token_bump {
@@ -488,41 +444,43 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
             .to_compile_error();
         }
 
+        let token_program: syn::Expr = syn::parse_quote! { accounts[#token_program_idx] };
+        let associated_token_program: syn::Expr =
+            syn::parse_quote! { accounts[#associated_token_program_idx] };
+        let mint_key = format_ident!("mint");
+        let associated_token_program_key = format_ident!("associated_token_program");
+        let members: Vec<(&Ident, &syn::Expr)> = vec![
+            (&mint_key, ata_mint_expr),
+            (&authority_key, ata_authority_expr),
+            (&token_program_key, &token_program),
+            (&associated_token_program_key, &associated_token_program),
+        ];
+        let namespace = quote! { naclac_lang::token_constraints::associated_token };
+        let args = plugin_args_tokens(&namespace, &members, all_fields);
+        let ty = &field.ty;
+        let idempotent = field.is_init_if_needed;
+
         return quote! {
             #existence_check
 
-            let __payer_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref);
-            let __ata_info = naclac_lang::prelude::ToAccountInfo::to_account_info(info);
-            let __authority_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#authority_ref);
-            let __mint_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#mint_ref);
             let __sys_info = naclac_lang::prelude::ToAccountInfo::to_account_info(&accounts[#system_program_idx]);
-            let __tok_prog_info = naclac_lang::prelude::ToAccountInfo::to_account_info(&accounts[#token_program_idx]);
-            let __ata_prog_info = naclac_lang::prelude::ToAccountInfo::to_account_info(&accounts[#associated_token_program_idx]);
-
             if (&__sys_info).address() != naclac_lang::prelude::SYSTEM_PROGRAM_ID {
                 return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#system_program_idx));
             }
-            let __tok_prog_key = (&__tok_prog_info).address();
-            if __tok_prog_key != naclac_lang::prelude::TOKEN_PROGRAM_ID && __tok_prog_key != naclac_lang::prelude::TOKEN_2022_PROGRAM_ID {
-                return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#token_program_idx));
-            }
-            if (&__ata_prog_info).address() != naclac_lang::prelude::ASSOCIATED_TOKEN_PROGRAM_ID {
-                return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#associated_token_program_idx));
-            }
 
-            #payer_signer_seeds_logic
+            #payer_seeds_logic
 
-            #create_call(
-                naclac_lang::prelude::CpiHandle { info: __ata_prog_info, _phantom: core::marker::PhantomData },
-                naclac_lang::associated_token::AtaCpiAccounts {
-                    payer: naclac_lang::prelude::CpiHandleMut { info: __payer_info, _phantom: core::marker::PhantomData },
-                    associated_token: naclac_lang::prelude::CpiHandleMut { info: __ata_info, _phantom: core::marker::PhantomData },
-                    authority: naclac_lang::prelude::CpiHandle { info: __authority_info, _phantom: core::marker::PhantomData },
-                    mint: naclac_lang::prelude::CpiHandle { info: __mint_info, _phantom: core::marker::PhantomData },
-                    system_program: naclac_lang::prelude::CpiHandle { info: __sys_info, _phantom: core::marker::PhantomData },
-                    token_program: naclac_lang::prelude::CpiHandle { info: __tok_prog_info, _phantom: core::marker::PhantomData },
-                }
-                #call_tail
+            <#namespace::Constraint as naclac_lang::prelude::AccountConstraintCreate<#ty>>::create(
+                &#args,
+                naclac_lang::prelude::ConstraintCreation {
+                    account: naclac_lang::prelude::ToAccountInfo::to_account_info(info),
+                    index: #idx,
+                    payer: naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref),
+                    system_program: __sys_info,
+                    idempotent: #idempotent,
+                    extra_accounts: #extra_accounts_tokens,
+                    payer_signer_seeds: #payer_seeds,
+                },
             )?;
         };
     }
@@ -851,6 +809,38 @@ mod tests {
         }
         let removed = "initialize_account_signed";
         assert!(!generated.contains(removed), "{generated}");
+    }
+
+    #[test]
+    fn an_associated_token_account_is_created_through_its_constraint() {
+        let generated = init_code(
+            "#[account(init_if_needed, payer = payer, associated_token::mint = mint, associated_token::authority = owner)]
+             ata: Account<TokenAccount>,
+             mint: Account<Mint>,
+             owner: Signer,
+             #[account(mut)] payer: Signer,
+             token_program: Program<Token>,
+             associated_token_program: Program<AssociatedToken>,
+             system_program: Program<System>",
+        );
+        let create = concat!(
+            "<naclac_lang::token_constraints::associated_token::Constraintas",
+            "naclac_lang::prelude::AccountConstraintCreate<Account<TokenAccount>>>::create("
+        );
+        let program = format!(".associated_token_program({INTO_VALUE}(&(accounts[5usize])))");
+        let expected = [
+            create.to_string(),
+            program,
+            "idempotent:true".to_string(),
+            "extra_accounts:::core::option::Option::None".to_string(),
+        ];
+
+        for expected in expected {
+            assert!(generated.contains(&expected), "{generated}");
+        }
+        for removed in ["AccountAlreadyInitialized", "create_idempotent"] {
+            assert!(!generated.contains(removed), "{generated}");
+        }
     }
 
     #[test]

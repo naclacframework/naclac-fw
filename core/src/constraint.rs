@@ -9,7 +9,7 @@
 
 use crate::{
     error::NaclacError,
-    prelude::{AccountInfo, Address},
+    prelude::{AccountInfo, Address, CpiHandle},
     wrappers::{ToAccountInfo, ToAddress},
 };
 
@@ -44,6 +44,36 @@ pub trait AccountConstraintInit<A>: AccountConstraint<A> {
         index: usize,
         args: &Self::Args<'_>,
         signer_seeds: &[&[&[u8]]],
+    ) -> crate::prelude::Result<()>;
+}
+
+/// What the derive gives a constraint that creates its account itself, for an
+/// `init` / `init_if_needed` field. The derive has already checked that an
+/// `init` account is empty and that `system_program` is the system program.
+pub struct ConstraintCreation<'a> {
+    pub account: AccountInfo,
+    /// The field's index, for the constraint's own errors.
+    pub index: usize,
+    pub payer: AccountInfo,
+    pub system_program: AccountInfo,
+    /// `init_if_needed`: an account that already exists is left as it is.
+    pub idempotent: bool,
+    /// The field's `extra_accounts = [..]`, when it has one.
+    pub extra_accounts: Option<&'a [CpiHandle<'a>]>,
+    /// The payer's own PDA seeds (empty when it is not a PDA); given only
+    /// with `extra_accounts`.
+    pub payer_signer_seeds: &'a [&'a [&'a [u8]]],
+}
+
+/// A constraint whose account is created by the program it calls (instead of
+/// by the derive through the system program, as `AccountConstraintInit`
+/// does), for an `init` / `init_if_needed` field.
+pub trait AccountConstraintCreate<A>: AccountConstraint<A> {
+    /// Creates the account. Errors from the programs it calls are returned
+    /// unchanged; its own errors carry `creation.index`.
+    fn create(
+        args: &Self::Args<'_>,
+        creation: ConstraintCreation<'_>,
     ) -> crate::prelude::Result<()>;
 }
 

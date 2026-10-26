@@ -238,3 +238,147 @@ pub mod mint {
         }
     }
 }
+
+/// `associated_token::mint` / `associated_token::authority` (and optionally
+/// `associated_token::bump`) on an associated token account: its stored mint
+/// and owner must equal the given accounts, it must be owned by
+/// `token_program`, and its address must be the associated token address of
+/// (authority, token program, mint), using `bump` when given and otherwise
+/// searching for it. A created account is made by the Associated Token
+/// program, which derives and checks the address itself.
+pub mod associated_token {
+    use {
+        super::token_program_address,
+        crate::{
+            associated_token::{
+                check_associated_token_address, create, create_idempotent,
+                create_idempotent_with_extra_accounts_signed, find_associated_token_bump,
+                AtaCpiAccounts,
+            },
+            prelude::{
+                AccountInfo, CpiHandle, CpiHandleMut, NaclacError, Owner,
+                ASSOCIATED_TOKEN_PROGRAM_ID,
+            },
+            token::TokenAccount,
+            wrappers::{NaclacAccount, ToAccountInfo, ToAddress},
+        },
+        naclac_core::{
+            constraint::{
+                AccountConstraint, AccountConstraintCreate, ConstraintCreation, ConstraintRules,
+            },
+            constraint_args,
+        },
+    };
+
+    #[constraint_args]
+    #[derive(Default)]
+    pub struct Args {
+        pub mint: Option<AccountInfo>,
+        pub authority: Option<AccountInfo>,
+        pub bump: Option<u8>,
+        pub token_program: Option<AccountInfo>,
+        pub associated_token_program: Option<AccountInfo>,
+    }
+
+    pub struct Constraint;
+
+    pub const RULES: ConstraintRules = ConstraintRules { rules: &[] };
+
+    impl<A: ToAccountInfo + NaclacAccount> AccountConstraint<A> for Constraint {
+        type Args<'a> = Args;
+
+        #[inline(always)]
+        fn check(account: &A, args: &Args) -> core::result::Result<(), NaclacError> {
+            account_data!(account => info, data);
+            let (Some(mint), Some(authority), Some(token_program)) =
+                (&args.mint, &args.authority, &args.token_program)
+            else {
+                return Err(NaclacError::ConstraintAccountIsNone);
+            };
+            let mint = ToAddress::address(mint);
+            let authority = ToAddress::address(authority);
+            TokenAccount::check_mint(data, &mint)?;
+            TokenAccount::check_authority(data, &authority)?;
+
+            let token_program = ToAddress::address(token_program);
+            if Owner::program_owner(&info) != token_program {
+                return Err(NaclacError::ConstraintOwner);
+            }
+
+            let actual = ToAddress::address(&info);
+            if let Some(bump) = args.bump {
+                return check_associated_token_address(
+                    &actual,
+                    &authority,
+                    &token_program,
+                    &mint,
+                    bump,
+                );
+            }
+            if find_associated_token_bump(&actual, &authority, &token_program, &mint).is_none() {
+                return Err(NaclacError::ConstraintSeeds);
+            }
+            Ok(())
+        }
+    }
+
+    impl<A: ToAccountInfo + NaclacAccount> AccountConstraintCreate<A> for Constraint {
+        #[inline(always)]
+        fn create(args: &Args, creation: ConstraintCreation<'_>) -> crate::prelude::Result<()> {
+            let index = creation.index;
+            let (Some(mint), Some(authority), Some(token_program), Some(program)) = (
+                args.mint,
+                args.authority,
+                args.token_program,
+                args.associated_token_program,
+            ) else {
+                return Err(NaclacError::ConstraintAccountIsNone.err(index));
+            };
+            token_program_address(Some(&token_program)).map_err(|e| e.err(index))?;
+            if ToAddress::address(&program) != ASSOCIATED_TOKEN_PROGRAM_ID {
+                return Err(NaclacError::ProgramIdMismatch.err(index));
+            }
+
+            let program = CpiHandle {
+                info: program,
+                _phantom: core::marker::PhantomData,
+            };
+            let accounts = AtaCpiAccounts {
+                payer: CpiHandleMut {
+                    info: creation.payer,
+                    _phantom: core::marker::PhantomData,
+                },
+                associated_token: CpiHandleMut {
+                    info: creation.account,
+                    _phantom: core::marker::PhantomData,
+                },
+                authority: CpiHandle {
+                    info: authority,
+                    _phantom: core::marker::PhantomData,
+                },
+                mint: CpiHandle {
+                    info: mint,
+                    _phantom: core::marker::PhantomData,
+                },
+                system_program: CpiHandle {
+                    info: creation.system_program,
+                    _phantom: core::marker::PhantomData,
+                },
+                token_program: CpiHandle {
+                    info: token_program,
+                    _phantom: core::marker::PhantomData,
+                },
+            };
+            match creation.extra_accounts {
+                Some(extra_accounts) => create_idempotent_with_extra_accounts_signed(
+                    program,
+                    accounts,
+                    extra_accounts,
+                    creation.payer_signer_seeds,
+                ),
+                None if creation.idempotent => create_idempotent(program, accounts),
+                None => create(program, accounts),
+            }
+        }
+    }
+}

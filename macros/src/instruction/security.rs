@@ -12,25 +12,6 @@ use {
     syn::spanned::Spanned,
 };
 
-/// Common "borrow this field's raw account data" prelude shared by every
-/// `token::*`/`mint::*`/`associated_token::*` existing-account check —
-/// these constraints validate raw bytes directly against the fixed SPL
-/// Token/Token-2022 layout (see `naclac_token::token::{TokenAccount, Mint}`'s
-/// `check_*` methods), independent of whether the field has been hydrated as
-/// a typed zero-copy/Borsh account yet.
-fn borrow_field_data_tokens(field_ident: &syn::Ident) -> TokenStream {
-    quote! {
-        #[cfg(feature = "solana")]
-        let __data_info = #field_ident.to_account_info();
-        #[cfg(feature = "solana")]
-        let data = __data_info.try_borrow_data()?;
-        #[cfg(not(feature = "solana"))]
-        let __data_info = naclac_lang::prelude::ToAccountInfo::to_account_info(&#field_ident);
-        #[cfg(not(feature = "solana"))]
-        let data = __data_info.data();
-    }
-}
-
 fn is_exact_signer_type(ty: &syn::Type) -> bool {
     crate::type_classify::is_exactly(ty, "Signer")
 }
@@ -729,8 +710,9 @@ pub fn generate_security_checks(
     // Program CPI always runs and self-validates the account's address from
     // `(authority, mint, token_program)` on its own.
     if field.init_config.is_none() {
-        let field_ident = &field.ident;
-        let data_prelude = borrow_field_data_tokens(field_ident);
+        let mint_key = format_ident!("mint");
+        let authority_key = format_ident!("authority");
+        let token_program_key = format_ident!("token_program");
         // Entering this branch on EITHER attribute alone (not just both) is
         // deliberate: it's what lets the match arms below emit a clear
         // compile_error! when only one of mint/authority is present,
@@ -744,53 +726,24 @@ pub fn generate_security_checks(
                 field.associated_token_bump.as_ref(),
             ) {
                 (Some(ata_mint_expr), Some(ata_authority_expr), ata_bump_expr) => {
-                    let actual_mint_access = resolve_smart_key(ata_mint_expr, all_fields);
-                    let actual_authority_access = resolve_smart_key(ata_authority_expr, all_fields);
-                    let ata_address_check = match ata_bump_expr {
-                        Some(ata_bump_expr) => quote! {
-                            let __ata_bump: u8 = #ata_bump_expr;
-                            naclac_lang::associated_token::check_associated_token_address(
-                                __actual_address,
-                                &actual_authority,
-                                &__token_program_addr,
-                                &actual_mint,
-                                __ata_bump,
-                            ).map_err(|e| e.err(#idx))?;
-                        },
-                        None => quote! {
-                            naclac_lang::associated_token::find_associated_token_bump(
-                                __actual_address,
-                                &actual_authority,
-                                &__token_program_addr,
-                                &actual_mint,
-                            )
-                            .ok_or(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
-                        },
-                    };
-
                     match crate::instruction::init_cpi::resolve_token_program_idx(field, all_fields)
                     {
                         Ok(token_program_idx) => {
-                            constraint_checks.push(quote! {
-                                {
-                                    #data_prelude
-                                    let actual_mint: naclac_lang::prelude::Address = #actual_mint_access;
-                                    let actual_authority: naclac_lang::prelude::Address = #actual_authority_access;
-                                    naclac_lang::token::TokenAccount::check_mint(&data, &actual_mint)
-                                        .map_err(|e| e.err(#idx))?;
-                                    naclac_lang::token::TokenAccount::check_authority(&data, &actual_authority)
-                                        .map_err(|e| e.err(#idx))?;
-
-                                    let __token_program_addr = naclac_lang::prelude::ToAddress::address(&accounts[#token_program_idx]);
-                                    let __actual_owner = naclac_lang::prelude::Owner::program_owner(info);
-                                    if __actual_owner != __token_program_addr {
-                                        return Err(naclac_lang::prelude::NaclacError::ConstraintOwner.err(#idx));
-                                    }
-
-                                    #actual_address_ref
-                                    #ata_address_check
-                                }
-                            });
+                            let token_program: syn::Expr =
+                                syn::parse_quote! { accounts[#token_program_idx] };
+                            let bump_key = format_ident!("bump");
+                            let mut members: Vec<(&Ident, &syn::Expr)> = vec![
+                                (&mint_key, ata_mint_expr),
+                                (&authority_key, ata_authority_expr),
+                            ];
+                            if let Some(ata_bump_expr) = ata_bump_expr {
+                                members.push((&bump_key, ata_bump_expr));
+                            }
+                            members.push((&token_program_key, &token_program));
+                            let namespace =
+                                quote! { naclac_lang::token_constraints::associated_token };
+                            let call = plugin_call_tokens(&namespace, &members, field, all_fields);
+                            constraint_checks.push(quote! { { #call } });
                         }
                         Err(err) => constraint_checks.push(err),
                     }
@@ -942,26 +895,6 @@ fn field_reference(ident: &Ident, all_fields: &[ParsedField]) -> Option<TokenStr
     } else {
         Some(quote! { &#ident })
     }
-}
-
-/// Resolves a constraint's target expression (e.g. the `mint_authority` in
-/// `mint::authority = mint_authority`) to its address. Resolves via indexed
-/// `accounts[idx]` access into the raw pre-walked slice — the same
-/// technique `get_account_reference` (`init_cpi.rs`) uses — rather than
-/// referencing a typed `self.field`-style local, so the referenced field
-/// may be declared anywhere in the struct relative to the field whose
-/// constraint references it. `accounts` is a `load_and_validate` parameter,
-/// in scope and fully populated before any per-field loading/validation
-/// runs, so this is always valid regardless of field declaration order.
-fn resolve_smart_key(expr: &syn::Expr, all_fields: &[ParsedField]) -> TokenStream {
-    if let syn::Expr::Path(expr_path) = expr {
-        if let Some(ident) = expr_path.path.get_ident() {
-            if let Some(reference) = field_reference(ident, all_fields) {
-                return quote! { naclac_lang::prelude::ToAddress::address(#reference) };
-            }
-        }
-    }
-    quote! { naclac_lang::prelude::ToAddress::address(&#expr) }
 }
 
 /// PHASE 2: Relational Checks
@@ -1548,6 +1481,32 @@ mod plugin_tests {
             "{generated}"
         );
         assert!(!generated.contains("check_decimals"), "{generated}");
+    }
+
+    #[test]
+    fn associated_token_keys_on_an_existing_account_call_its_constraint() {
+        let generated = constraint_code(
+            "#[account(associated_token::mint = mint, associated_token::authority = owner, associated_token::bump = 7)]
+             ata: Account<TokenAccount>,
+             mint: Account<Mint>,
+             owner: Signer,
+             token_program: Program<Token>",
+        );
+        let call = concat!(
+            "<naclac_lang::token_constraints::associated_token::Constraintas",
+            "naclac_lang::prelude::AccountConstraint<_>>::check(&ata,"
+        );
+        let removed = "find_associated_token_bump";
+
+        assert_eq!(generated.matches(call).count(), 1, "{generated}");
+        assert!(sets(&generated, "mint", "&accounts[1usize]"), "{generated}");
+        assert!(sets(&generated, "authority", "&owner"), "{generated}");
+        assert!(sets(&generated, "bump", "&(7)"), "{generated}");
+        assert!(
+            sets(&generated, "token_program", "&(accounts[3usize])"),
+            "{generated}"
+        );
+        assert!(!generated.contains(removed), "{generated}");
     }
 
     #[test]
