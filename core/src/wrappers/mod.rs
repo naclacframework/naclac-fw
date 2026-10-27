@@ -127,7 +127,9 @@ pub trait ToAccountInfos {
 /// Core trait for Naclac-validated account wrapper types.
 /// Defines unified hydration and lifecycle methods for all execution backends.
 pub trait NaclacAccount: Sized {
-    /// Whether this account type is a signer by default.
+    /// Whether this type only accepts an account that signed: its `try_from`
+    /// rejects one that did not, so `#[derive(Accounts)]` emits no signer
+    /// check of its own for it.
     const IS_SIGNER: bool = false;
 
     /// Whether this account type is writable by default.

@@ -15,10 +15,6 @@ use {
     syn::spanned::Spanned,
 };
 
-fn is_exact_signer_type(ty: &syn::Type) -> bool {
-    crate::type_classify::is_exactly(ty, "Signer")
-}
-
 const HASH_ONLY_INELIGIBLE_MSG: &str =
     "Naclac Error: this existing PDA field has no bump, and its type can't have one discovered \
      on-chain. Bump discovery skips the curve check, which is only sound when the account type \
@@ -133,11 +129,12 @@ pub fn generate_security_checks(
     // 1-2b. Signer / mutability / executable checks. On pinocchio these are
     // enforced by `load_and_validate`'s declared-account walk before
     // any field loader runs, so only the other backends emit them here.
-    if field.is_signer && !is_exact_signer_type(&field.ty) {
+    if field.is_signer {
+        let ty = &field.ty;
         metadata_checks.push(quote! {
             #[cfg(feature = "solana")]
             {
-                if !info.is_signer {
+                if !<#ty as naclac_lang::prelude::NaclacAccount>::IS_SIGNER && !info.is_signer {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintSigner.err(#idx));
                 }
             }
