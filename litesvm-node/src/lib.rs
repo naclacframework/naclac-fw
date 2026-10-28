@@ -421,8 +421,8 @@ impl LiteSvm {
                     })
                     .collect())
             }
-            ClientBackend::Rpc(_) => Err(to_napi_err(
-                "get_program_accounts on the RPC backend is not supported by this binding",
+            ClientBackend::Rpc(_) | ClientBackend::Custom(_) => Err(to_napi_err(
+                "get_program_accounts is only supported on the litesvm backend by this binding",
             )),
         }
     }

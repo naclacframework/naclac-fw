@@ -87,6 +87,7 @@ solana-program-pack = "^3"
 solana-sha256-hasher = "^3"
 solana-rpc-client-api = "^4.3"
 solana-transaction-status = "^4.3"
+solana-transaction-status-client-types = "^4.3"
 solana-account = "^4"
 solana-message = "^4"
 solana-commitment-config = "^3"
@@ -97,7 +98,8 @@ solana-instruction-error = "^2"
 solana-hash = "^4"
 solana-signature = "^3"
 solana-account-decoder = "^4.3"
-solana-address = { version = "^2", features = ["curve25519"] }
+solana-account-decoder-client-types = "^4.3"
+solana-address ={ version = "^2", features = ["curve25519"] }
 solana-system-interface = { version = "^3", features = ["wincode"] }
 solana-signer = "^3"
 solana-sdk-ids = "^3"

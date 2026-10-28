@@ -1,0 +1,5 @@
+error: Naclac Error: the account constraints of `first`, `second` refer to each other in a cycle, so none of them can be loaded first. Remove one of these references.
+ --> tests/fail/57_load_order_cycle.rs:9:9
+  |
+9 |     pub first: Account<Thing>,
+  |         ^^^^^

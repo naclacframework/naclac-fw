@@ -534,6 +534,70 @@ mod pinocchio_system {
     ) -> Result<()> {
         create_account_unchecked_raw(from, to, lamports, space, owner, signer_seeds)
     }
+
+    #[cfg(kani)]
+    mod kani_proofs {
+        use crate::prelude::{MAX_CPI_SEEDS_PER_SIGNER, MAX_CPI_SIGNERS};
+
+        /// Proves `pinocchio_signers_from_seeds!` rejects more than
+        /// `MAX_CPI_SIGNERS` signer groups with an error instead of
+        /// truncating them.
+        #[kani::proof]
+        fn prove_rejects_too_many_signers() -> crate::prelude::Result<()> {
+            let empty: &[&[u8]] = &[];
+            let too_many: [&[&[u8]]; MAX_CPI_SIGNERS + 1] = [empty; MAX_CPI_SIGNERS + 1];
+            let signer_seeds: &[&[&[u8]]] = &too_many;
+            let result: crate::prelude::Result<()> = (|| {
+                pinocchio_signers_from_seeds!(signer_seeds, _signers);
+                Ok(())
+            })();
+            assert!(
+                result.is_err(),
+                "more than MAX_CPI_SIGNERS signer groups must be rejected"
+            );
+            Ok(())
+        }
+
+        /// Proves it rejects more than `MAX_CPI_SEEDS_PER_SIGNER` seeds in one
+        /// signer group with an error instead of truncating them.
+        #[kani::proof]
+        fn prove_rejects_too_many_seeds_per_signer() -> crate::prelude::Result<()> {
+            let one_seed: &[u8] = &[0u8];
+            let too_many_seeds: [&[u8]; MAX_CPI_SEEDS_PER_SIGNER + 1] =
+                [one_seed; MAX_CPI_SEEDS_PER_SIGNER + 1];
+            let signer_seeds: &[&[&[u8]]] = &[&too_many_seeds];
+            let result: crate::prelude::Result<()> = (|| {
+                pinocchio_signers_from_seeds!(signer_seeds, _signers);
+                Ok(())
+            })();
+            assert!(
+                result.is_err(),
+                "more than MAX_CPI_SEEDS_PER_SIGNER seeds in one group must be rejected"
+            );
+            Ok(())
+        }
+
+        /// Proves it never panics and yields one `Signer` per signer group
+        /// for any seed bytes in a small bounded shape (2 groups of 2 seeds
+        /// of 4 bytes each).
+        #[kani::proof]
+        fn prove_within_bounds_is_correct() -> crate::prelude::Result<()> {
+            let seed_a0: [u8; 4] = kani::any();
+            let seed_a1: [u8; 4] = kani::any();
+            let seed_b0: [u8; 4] = kani::any();
+            let seed_b1: [u8; 4] = kani::any();
+            let signer_a: [&[u8]; 2] = [&seed_a0, &seed_a1];
+            let signer_b: [&[u8]; 2] = [&seed_b0, &seed_b1];
+            let signer_seeds: &[&[&[u8]]] = &[&signer_a, &signer_b];
+
+            pinocchio_signers_from_seeds!(signer_seeds, signers);
+            assert!(
+                signers.len() == signer_seeds.len(),
+                "must produce exactly one Signer per input signer group"
+            );
+            Ok(())
+        }
+    }
 }
 
 // ===========================================================================

@@ -2,8 +2,9 @@ use {
     crate::{
         error::NaclacClientError,
         provider::{NaclacProvider, TransactionVersion},
+        token::{Mint, TokenAccount},
     },
-    solana_address::Address,
+    solana_address::{address, Address},
     solana_instruction::Instruction,
     solana_keypair::Keypair,
     solana_message::{v0, v1, Message as LegacyMessage, VersionedMessage},
@@ -12,10 +13,10 @@ use {
     solana_transaction::versioned::VersionedTransaction,
 };
 
-pub const TOKEN_PROGRAM_ID: Address = Address::new_from_array(spl_token::ID.to_bytes());
+pub const TOKEN_PROGRAM_ID: Address = address!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 pub const ASSOCIATED_TOKEN_PROGRAM_ID: Address =
-    Address::new_from_array(spl_associated_token_account::ID.to_bytes());
-pub const TOKEN_2022_PROGRAM_ID: Address = Address::new_from_array(spl_token_2022::ID.to_bytes());
+    address!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+pub const TOKEN_2022_PROGRAM_ID: Address = address!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
 pub const SYSTEM_PROGRAM_ID: Address = Address::new_from_array([0; 32]);
 pub const RENT_SYSVAR_ID: Address = Address::new_from_array(solana_sysvar::rent::ID.to_bytes());
 
@@ -159,7 +160,7 @@ pub fn create_mint_with_program(
     let payer_address = provider.payer.address();
     let mint_address = mint_signer.address();
 
-    let space = 82; // spl_token::state::Mint::LEN
+    let space = Mint::LEN;
     let lamports = provider.get_minimum_balance_for_rent_exemption(space)?;
 
     let sys_ix = solana_system_interface::instruction::create_account(
@@ -204,27 +205,47 @@ pub fn create_ata(
     create_ata_with_program(provider, mint, owner, &TOKEN_PROGRAM_ID)
 }
 
+/// The associated-token-account program's `Create` instruction: `funding`
+/// pays for the associated token account of `owner` for `mint` under
+/// `token_program_id`, and the instruction fails if that account already
+/// exists. The account being created is the instruction's second account.
+pub fn create_associated_token_account_instruction(
+    funding: &Address,
+    owner: &Address,
+    mint: &Address,
+    token_program_id: &Address,
+) -> Instruction {
+    let (associated_account, _bump) = Address::find_program_address(
+        &[owner.as_ref(), token_program_id.as_ref(), mint.as_ref()],
+        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    Instruction {
+        program_id: ASSOCIATED_TOKEN_PROGRAM_ID,
+        accounts: vec![
+            solana_instruction::AccountMeta::new(*funding, true),
+            solana_instruction::AccountMeta::new(associated_account, false),
+            solana_instruction::AccountMeta::new_readonly(*owner, false),
+            solana_instruction::AccountMeta::new_readonly(*mint, false),
+            solana_instruction::AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
+            solana_instruction::AccountMeta::new_readonly(*token_program_id, false),
+        ],
+        data: vec![0],
+    }
+}
+
 pub fn create_ata_with_program(
     provider: &NaclacProvider,
     mint: &Address,
     owner: &Address,
     token_program_id: &Address,
 ) -> Result<Address, NaclacClientError> {
-    let payer_address = provider.payer.address();
-
-    // Derive ATA address using find_program_address
-    let (ata_address, _) = Address::find_program_address(
-        &[owner.as_ref(), token_program_id.as_ref(), mint.as_ref()],
-        &ASSOCIATED_TOKEN_PROGRAM_ID,
+    let ix = create_associated_token_account_instruction(
+        &provider.payer.address(),
+        owner,
+        mint,
+        token_program_id,
     );
-
-    let sys_ix = spl_associated_token_account::instruction::create_associated_token_account(
-        &solana_address::Address::new_from_array(payer_address.to_bytes()),
-        &solana_address::Address::new_from_array(owner.to_bytes()),
-        &solana_address::Address::new_from_array(mint.to_bytes()),
-        &solana_address::Address::new_from_array(token_program_id.to_bytes()),
-    );
-    let ix = to_sdk_instruction(sys_ix);
+    let ata_address = ix.accounts[1].pubkey;
 
     let versioned_message = compile_provider_message(provider, &[ix])?;
     let tx = VersionedTransaction::try_new(versioned_message, &[&*provider.payer])
@@ -318,7 +339,7 @@ pub fn create_token_account_with_program(
         mint,
         owner,
         token_program_id,
-        165, // spl_token::state::Account::LEN
+        TokenAccount::LEN,
     )
 }
 

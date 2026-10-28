@@ -1,86 +1,48 @@
-use std::{fs, process::Command};
+use {
+    crate::{
+        commands::{programs, workspace},
+        ui,
+    },
+    std::process::Command,
+};
 
-pub fn execute(program_id: Option<&str>) {
-    let current_dir = std::env::current_dir().unwrap();
+/// Deploys each program in `requested` (every program of
+/// `[programs.<cluster>]` when empty, `cluster` being `[provider] cluster`) to
+/// that cluster, signing with `[provider] wallet`.
+pub fn execute(requested: &[String]) {
+    let workspace_root = workspace::root();
+    let config = workspace::config(&workspace_root);
+    let cluster_url = workspace::rpc_url(&workspace::cluster(&config));
+    let wallet = workspace::wallet(&config);
 
-    let workspace_root = if current_dir.join("Naclac.toml").exists() {
-        current_dir.clone()
-    } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../..").canonicalize().unwrap()
-    } else {
-        eprintln!(
-            "❌ Error: Could not find Naclac.toml. Please run from within a Naclac workspace."
-        );
-        std::process::exit(1);
-    };
+    let on_cluster = workspace::on_cluster(&config);
+    let names: Vec<String> = on_cluster.iter().map(|(name, _)| name.clone()).collect();
+    let selected = programs::select(&names, requested);
 
     let deploy_dir = naclac_client_gen::deploy_dir(&workspace_root);
-    if !deploy_dir.exists() {
-        eprintln!(
-            "❌ Error: 'artifacts/deploy' directory not found. Please run `naclac build` first."
-        );
-        std::process::exit(1);
-    }
-
-    // --- Parse Naclac.toml for Cluster and Wallet ---
-    let toml_path = workspace_root.join("Naclac.toml");
-    let toml_content = fs::read_to_string(&toml_path).unwrap();
-
-    let mut cluster_setting = "localnet".to_string();
-    let mut wallet_setting = "~/.config/solana/id.json".to_string();
-
-    for line in toml_content.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with("cluster =") {
-            if let Some(val) = trimmed.split('"').nth(1) {
-                cluster_setting = val.to_string();
-            }
-        }
-        if trimmed.starts_with("wallet =") {
-            if let Some(val) = trimmed.split('"').nth(1) {
-                wallet_setting = val.to_string();
-            }
-        }
-    }
-
-    // Map cluster names to actual RPC URLs
-    let cluster_url = match cluster_setting.as_str() {
-        "localnet" => "http://127.0.0.1:8899",
-        "devnet" => "https://api.devnet.solana.com",
-        "testnet" => "https://api.testnet.solana.com",
-        "mainnet" => "https://api.mainnet-beta.solana.com",
-        custom => custom, // If they pasted a QuickNode/Helius URL, use it directly!
-    };
-
-    // Resolve the '~' in the wallet path to the actual Home Directory
-    let home_dir = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .unwrap_or_default();
-    let expanded_wallet = wallet_setting.replace("~", &home_dir);
-
     let mut so_files = Vec::new();
-    for entry in fs::read_dir(&deploy_dir).unwrap() {
-        let path = entry.unwrap().path();
-        if path.extension().unwrap_or_default() == "so" {
-            let program_name = path.file_stem().unwrap().to_str().unwrap();
-            let is_target = program_id.is_none_or(|tgt| program_name == tgt);
-            if is_target {
-                so_files.push(path);
-            }
+    for (name, address) in on_cluster
+        .iter()
+        .filter(|(name, _)| selected.contains(name))
+    {
+        programs::require_synced_ids(&workspace_root, name, address);
+        let so_file = deploy_dir.join(format!("{name}.so"));
+        let built = so_file
+            .try_exists()
+            .unwrap_or_else(|e| ui::error(format!("Cannot check for {}: {e}", so_file.display())));
+        if !built {
+            ui::error(format!(
+                "No compiled program for '{name}' at {}. Run `naclac build` first.",
+                so_file.display()
+            ));
         }
-    }
-
-    if so_files.is_empty() {
-        eprintln!("❌ Error: No compiled .so programs found. Please run `naclac build` first.");
-        std::process::exit(1);
+        so_files.push((name, so_file));
     }
 
     // --- Anchor-Parity Console Output ---
-    for so_file in so_files {
-        let program_name = so_file.file_stem().unwrap().to_str().unwrap();
-
+    for (program_name, so_file) in so_files {
         println!("Deploying cluster: {}", cluster_url);
-        println!("Upgrade authority: {}", expanded_wallet);
+        println!("Upgrade authority: {}", wallet.display());
         println!("Deploying program \"{}\"...", program_name);
         println!("Program path: {}\n", so_file.display());
 
@@ -89,9 +51,9 @@ pub fn execute(program_id: Option<&str>) {
             .arg("deploy")
             .arg(&so_file)
             .arg("--url")
-            .arg(cluster_url)
+            .arg(&cluster_url)
             .arg("--keypair")
-            .arg(&expanded_wallet)
+            .arg(&wallet)
             .output()
             .expect("Failed to execute solana program deploy");
 

@@ -21,7 +21,7 @@ borsh = ["naclac-lang/borsh"]
 naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
+naclac-client = { version = "0.1.0", path = "../../../../client-rs", features = ["litesvm"] }
 vault-borsh-client = { version = "0.1.0", path = "../../artifacts/clients/rust/vault_borsh", features = ["borsh"] }
 
 [lints]

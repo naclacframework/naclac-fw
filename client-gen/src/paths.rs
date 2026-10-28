@@ -3,71 +3,34 @@ use std::{
     process::Command,
 };
 
-pub fn read_target_dir_from_cargo_config(workspace_root: &Path) -> Option<PathBuf> {
-    for config_name in &["config.toml", "config"] {
-        let config_path = workspace_root.join(".cargo").join(config_name);
-        if let Ok(contents) = std::fs::read_to_string(&config_path) {
-            if let Ok(parsed) = toml::from_str::<toml::Value>(&contents) {
-                if let Some(target_dir) = parsed
-                    .get("build")
-                    .and_then(|b| b.get("target-dir"))
-                    .and_then(|v| v.as_str())
-                {
-                    let path = PathBuf::from(target_dir);
-                    return Some(if path.is_absolute() {
-                        path
-                    } else {
-                        workspace_root.join(path)
-                    });
-                }
-            }
-        }
-    }
-    None
-}
-
-fn read_target_dir_from_env(workspace_root: &Path) -> Option<PathBuf> {
-    std::env::var("CARGO_TARGET_DIR").ok().and_then(|val| {
-        let trimmed = val.trim();
-        if trimmed.is_empty() {
-            None
-        } else {
-            let path = PathBuf::from(trimmed);
-            Some(if path.is_absolute() {
-                path
-            } else {
-                workspace_root.join(path)
-            })
-        }
-    })
-}
-
-/// Resolves the cargo target directory for `workspace_root`, honoring
-/// `CARGO_TARGET_DIR` and `.cargo/config.toml`'s `target-dir`.
-pub fn resolve_target_dir(workspace_root: &Path) -> PathBuf {
+/// The cargo target directory of `workspace_root`, as `cargo metadata` reports
+/// it (so `CARGO_TARGET_DIR` and `.cargo/config.toml`'s `target-dir` apply).
+/// Fails when the workspace has no `Cargo.toml` or cargo cannot read it.
+pub fn resolve_target_dir(workspace_root: &Path) -> Result<PathBuf, String> {
     let manifest_path = workspace_root.join("Cargo.toml");
-    if manifest_path.exists() {
-        if let Ok(output) = Command::new("cargo")
-            .arg("metadata")
-            .arg("--no-deps")
-            .arg("--format-version")
-            .arg("1")
-            .arg("--manifest-path")
-            .arg(&manifest_path)
-            .output()
-        {
-            if output.status.success() {
-                if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
-                    if let Some(dir) = json.get("target_directory").and_then(|v| v.as_str()) {
-                        return PathBuf::from(dir);
-                    }
-                }
-            }
-        }
+    let output = Command::new("cargo")
+        .arg("metadata")
+        .arg("--no-deps")
+        .arg("--format-version")
+        .arg("1")
+        .arg("--manifest-path")
+        .arg(&manifest_path)
+        .output()
+        .map_err(|e| format!("could not run `cargo metadata`: {e}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "`cargo metadata` failed for {}: {}",
+            manifest_path.display(),
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
     }
-    read_target_dir_from_env(workspace_root)
-        .or_else(|| read_target_dir_from_cargo_config(workspace_root))
-        .unwrap_or_else(|| workspace_root.join("target"))
+    let metadata: serde_json::Value = serde_json::from_slice(&output.stdout)
+        .map_err(|e| format!("`cargo metadata` printed invalid JSON: {e}"))?;
+    metadata
+        .get("target_directory")
+        .and_then(|dir| dir.as_str())
+        .map(PathBuf::from)
+        .ok_or_else(|| "`cargo metadata` did not report a `target_directory`".to_string())
 }
 
 pub const ARTIFACTS_DIR_NAME: &str = "artifacts";

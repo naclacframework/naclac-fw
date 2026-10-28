@@ -1,3 +1,8 @@
+#[cfg(feature = "rpc")]
+use solana_rpc_client_api::{
+    config::RpcProgramAccountsConfig,
+    filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
+};
 use {
     crate::{
         error::NaclacClientError,
@@ -7,10 +12,6 @@ use {
     bytemuck::Pod,
     solana_account::Account,
     solana_address::Address,
-    solana_rpc_client_api::{
-        config::RpcProgramAccountsConfig,
-        filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
-    },
 };
 
 /// A type that knows how to decode itself from raw on-chain account bytes.
@@ -200,6 +201,8 @@ impl<'a> AccountFetcher<'a> {
         addresses: &[Address],
     ) -> Result<Vec<Option<Account>>, NaclacClientError> {
         match &self.provider.backend {
+            ClientBackend::Custom(backend) => backend.get_multiple_accounts(addresses),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(_) => {
                 let mut results = Vec::with_capacity(addresses.len());
                 for addr in addresses {
@@ -210,6 +213,7 @@ impl<'a> AccountFetcher<'a> {
                 }
                 Ok(results)
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => {
                 let pubkeys: Vec<Address> = addresses
                     .iter()
@@ -231,13 +235,28 @@ impl<'a> AccountFetcher<'a> {
         discriminator: &[u8],
     ) -> Result<Vec<(Address, Account)>, NaclacClientError> {
         match &self.provider.backend {
+            ClientBackend::Custom(backend) => Ok(backend
+                .get_program_accounts(program_id, Some(discriminator))?
+                .into_iter()
+                .map(|(address, data)| {
+                    (
+                        address,
+                        Account {
+                            data,
+                            ..Account::default()
+                        },
+                    )
+                })
+                .collect()),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(_) => {
                 Err(NaclacClientError::General("get_program_accounts is not supported by the LiteSVM backend. Please track account addresses manually during tests.".to_string()))
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => {
                 let mut config = RpcProgramAccountsConfig::default();
                 config.account_config.commitment = Some(self.provider.commitment);
-                config.account_config.encoding = Some(solana_account_decoder::UiAccountEncoding::Base64);
+                config.account_config.encoding = Some(solana_account_decoder_client_types::UiAccountEncoding::Base64);
 
                 let encoded_discriminator = bs58::encode(discriminator).into_string();
                 let memcmp = Memcmp::new(0, MemcmpEncodedBytes::Base58(encoded_discriminator));

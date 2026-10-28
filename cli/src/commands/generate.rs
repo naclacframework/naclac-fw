@@ -10,7 +10,10 @@
 //! doesn't require the client-gen step to also run.
 
 use {
-    crate::ui,
+    crate::{
+        commands::{programs, workspace},
+        ui,
+    },
     std::{
         fs,
         io::Read,
@@ -86,18 +89,21 @@ pub fn detect_program_features(program_dir: &Path) -> Result<ProgramFeatures, St
     }
 }
 
+/// A program's own `Cargo.toml`, read and parsed.
+fn program_manifest(program_dir: &Path) -> toml::Value {
+    let path = program_dir.join("Cargo.toml");
+    let text = fs::read_to_string(&path)
+        .unwrap_or_else(|e| ui::error(format!("Cannot read {}: {e}", path.display())));
+    toml::from_str(&text)
+        .unwrap_or_else(|e| ui::error(format!("{} is not valid TOML: {e}", path.display())))
+}
+
 /// Whether a program's own `Cargo.toml` lists `naclac-lang` under
 /// `[dependencies]`. A program without it (a plain Solana program kept in the
 /// workspace, such as a hook program a test loads) has no account-data layout,
 /// IDL or generated client; it is only compiled.
 pub fn depends_on_naclac_lang(program_dir: &Path) -> bool {
-    let Ok(content) = fs::read_to_string(program_dir.join("Cargo.toml")) else {
-        return false;
-    };
-    let Ok(parsed) = toml::from_str::<toml::Value>(&content) else {
-        return false;
-    };
-    parsed
+    program_manifest(program_dir)
         .get("dependencies")
         .and_then(|d| d.as_table())
         .is_some_and(|deps| deps.contains_key("naclac-lang"))
@@ -169,26 +175,24 @@ pub fn ensure_client_stubs(workspace_root: &Path, program_dirs: &[PathBuf]) {
 /// the opt-in signal for using the real-compilation `idl-build` mechanism
 /// instead of the AST-walker (`naclac_idl::generate_idl`) for that program.
 pub fn program_declares_idl_build(program_dir: &Path) -> bool {
-    let Ok(content) = fs::read_to_string(program_dir.join("Cargo.toml")) else {
-        return false;
-    };
-    let Ok(parsed) = toml::from_str::<toml::Value>(&content) else {
-        return false;
-    };
-    parsed
+    program_manifest(program_dir)
         .get("features")
         .and_then(|f| f.as_table())
         .is_some_and(|features| features.contains_key("idl-build"))
 }
 
-fn read_package_name(program_dir: &Path) -> Option<String> {
-    let content = fs::read_to_string(program_dir.join("Cargo.toml")).ok()?;
-    let parsed: toml::Value = toml::from_str(&content).ok()?;
-    parsed
-        .get("package")?
-        .get("name")?
-        .as_str()
+pub fn read_package_name(program_dir: &Path) -> String {
+    program_manifest(program_dir)
+        .get("package")
+        .and_then(|package| package.get("name"))
+        .and_then(|name| name.as_str())
         .map(str::to_string)
+        .unwrap_or_else(|| {
+            ui::error(format!(
+                "{} has no `name` under `[package]`.",
+                program_dir.join("Cargo.toml").display()
+            ))
+        })
 }
 
 /// Runs the target program's real, compiled `idl-build` print function and
@@ -207,7 +211,7 @@ fn generate_idl_via_idl_build(
     prog_name: &str,
     show_output: bool,
 ) -> Result<String, String> {
-    let crate_name = read_package_name(program_dir).unwrap_or_else(|| prog_name.to_string());
+    let crate_name = read_package_name(program_dir);
     let lib_ident = crate_name.replace('-', "_");
 
     let program_dir_abs = program_dir.canonicalize().map_err(|e| e.to_string())?;
@@ -324,33 +328,13 @@ fn run_capturing_stdout(mut cmd: Command, show_output: bool, what: &str) -> Resu
     Ok(stdout_buf)
 }
 
-pub fn resolve_workspace_root() -> PathBuf {
-    let current_dir = std::env::current_dir().unwrap();
-    if current_dir.join("Naclac.toml").exists() {
-        current_dir
-    } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../..").canonicalize().unwrap()
-    } else {
-        ui::error("Could not find Naclac.toml.")
-    }
-}
-
-fn target_program_dirs(workspace_root: &Path, program_id: Option<&str>) -> Vec<PathBuf> {
-    let programs_dir = workspace_root.join("programs");
-    if !programs_dir.exists() {
-        ui::error("No valid Naclac programs found in workspace.");
-    }
-    fs::read_dir(&programs_dir)
-        .unwrap()
-        .filter_map(|entry| {
-            let path = entry.unwrap().path();
-            let is_target = program_id.is_none_or(|tgt| path.file_name().unwrap() == tgt);
-            if path.is_dir() && path.join("src/lib.rs").exists() && is_target {
-                Some(path)
-            } else {
-                None
-            }
-        })
+/// The folders of the programs a command works on: `requested`, or every
+/// program Naclac.toml lists when empty.
+fn selected_dirs(workspace_root: &Path, requested: &[String]) -> Vec<PathBuf> {
+    let config = workspace::config(workspace_root);
+    programs::select(&programs::listed(&config), requested)
+        .iter()
+        .map(|name| programs::program_dir(workspace_root, name))
         .collect()
 }
 
@@ -367,7 +351,8 @@ pub fn generate_idl_for_program(
     show_output: bool,
 ) -> String {
     let serialization = features.serialization();
-    let target_dir = naclac_client_gen::resolve_target_dir(workspace_root);
+    let target_dir =
+        naclac_client_gen::resolve_target_dir(workspace_root).unwrap_or_else(|e| ui::error(e));
     let keypair_path =
         naclac_client_gen::deploy_dir(workspace_root).join(format!("{}-keypair.json", prog_name));
     if !keypair_path.exists() {
@@ -430,12 +415,9 @@ pub fn generate_idl_for_program(
 
 /// `naclac generate idl` — regenerates the IDL JSON only. No
 /// `cargo build-sbf`, no client SDK regeneration.
-pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
-    let workspace_root = resolve_workspace_root();
-    let program_dirs = target_program_dirs(&workspace_root, program_id);
-    if program_dirs.is_empty() {
-        ui::error("No matching program found.");
-    }
+pub fn execute_idl(requested: &[String], show_output: bool) {
+    let workspace_root = workspace::root();
+    let program_dirs = selected_dirs(&workspace_root, requested);
 
     for program_dir in &program_dirs {
         if !depends_on_naclac_lang(program_dir) {
@@ -478,65 +460,21 @@ pub fn execute_idl(program_id: Option<&str>, show_output: bool) {
 }
 
 /// Regenerates client SDK(s) from the IDL JSON already on disk
-/// (`artifacts/idl/<name>.json`) — `target` selects Rust only, TypeScript only,
-/// or both when `None`.
-pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
-    let workspace_root = resolve_workspace_root();
-    let target_idl_dir = naclac_client_gen::idl_dir(&workspace_root);
-    if !target_idl_dir.exists() {
+/// (`artifacts/idl/<name>.json`) of each program in `requested` (every program
+/// Naclac.toml lists when empty) that depends on naclac-lang — `target` selects
+/// Rust only, TypeScript only, or both when `None`.
+pub fn execute_client(requested: &[String], target: Option<ClientKind>) {
+    let workspace_root = workspace::root();
+    let idl_dir = naclac_client_gen::idl_dir(&workspace_root);
+    let program_dirs: Vec<PathBuf> = selected_dirs(&workspace_root, requested)
+        .into_iter()
+        .filter(|dir| depends_on_naclac_lang(dir))
+        .collect();
+    if program_dirs.is_empty() {
         ui::error(
-            "artifacts/idl does not exist — run `naclac generate idl` (or `naclac build`) first.",
+            "None of the selected programs depend on naclac-lang, so there is no client to \
+             generate.",
         );
-    }
-
-    let mut target_json_paths = Vec::new();
-
-    if let Some(pid) = program_id {
-        for entry in fs::read_dir(&target_idl_dir).unwrap().flatten() {
-            let path = entry.path();
-            if path.extension().unwrap_or_default() == "json" {
-                let content = fs::read_to_string(&path).unwrap();
-                let idl: serde_json::Value = serde_json::from_str(&content).unwrap();
-                let program_name = idl
-                    .get("metadata")
-                    .and_then(|m| m.get("name"))
-                    .and_then(|n| n.as_str())
-                    .unwrap_or_else(|| path.file_stem().unwrap().to_str().unwrap())
-                    .to_string();
-                // Exact match only — a substring check here (e.g. matching
-                // "accounts_constraints" against "accounts_constraints_borsh.json")
-                // would regenerate the wrong sibling program's client and silently
-                // leave the intended one stale, since directory iteration order
-                // isn't guaranteed and this loop stops at the first hit.
-                if program_name == pid {
-                    target_json_paths.push((path, program_name));
-                    break;
-                }
-            }
-        }
-    } else {
-        let workspace_programs: Vec<String> = fs::read_dir(workspace_root.join("programs"))
-            .map(|entries| {
-                entries
-                    .flatten()
-                    .filter(|entry| entry.path().join("src/lib.rs").exists())
-                    .map(|entry| entry.file_name().to_string_lossy().to_string())
-                    .collect()
-            })
-            .unwrap_or_default();
-        for entry in fs::read_dir(&target_idl_dir).unwrap().flatten() {
-            let path = entry.path();
-            if path.extension().unwrap_or_default() == "json" {
-                let file_stem = path.file_stem().unwrap().to_string_lossy().to_string();
-                if workspace_programs.contains(&file_stem) {
-                    target_json_paths.push((path, file_stem));
-                }
-            }
-        }
-    }
-
-    if target_json_paths.is_empty() {
-        ui::error("No IDL found — run `naclac generate idl` (or `naclac build`) first.");
     }
 
     let kind_label = match target {
@@ -545,8 +483,23 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
         None => "Rust + TypeScript client SDKs",
     };
 
-    for (json_path, program_name) in target_json_paths {
-        let content = fs::read_to_string(&json_path).unwrap();
+    for program_dir in &program_dirs {
+        let program_name = program_dir
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let json_path = idl_dir.join(format!("{}.json", program_name));
+        let content = fs::read_to_string(&json_path).unwrap_or_else(|e| {
+            ui::error(format!(
+                "Cannot read the IDL of '{}' at {}: {}. Run `naclac generate idl` (or \
+                 `naclac build`) first.",
+                program_name,
+                json_path.display(),
+                e
+            ))
+        });
 
         let step = ui::Step::start(format!("Generating {} ({})...", kind_label, program_name));
         let res: Result<(), Box<dyn std::error::Error>> = match target {
@@ -574,12 +527,9 @@ pub fn execute_client(program_id: Option<&str>, target: Option<ClientKind>) {
 /// `naclac generate` with no subcommand — regenerates the IDL from source,
 /// then both client SDKs from the freshly-written IDL, all in one run (no
 /// on-chain build).
-pub fn execute_all(program_id: Option<&str>, show_output: bool) {
-    let workspace_root = resolve_workspace_root();
-    let program_dirs = target_program_dirs(&workspace_root, program_id);
-    if program_dirs.is_empty() {
-        ui::error("No matching program found.");
-    }
+pub fn execute_all(requested: &[String], show_output: bool) {
+    let workspace_root = workspace::root();
+    let program_dirs = selected_dirs(&workspace_root, requested);
 
     for program_dir in &program_dirs {
         if !depends_on_naclac_lang(program_dir) {
@@ -615,5 +565,5 @@ pub fn execute_all(program_id: Option<&str>, show_output: bool) {
         }
     }
 
-    execute_client(program_id, None);
+    execute_client(requested, None);
 }

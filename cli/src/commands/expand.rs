@@ -1,46 +1,28 @@
-use std::{fs, path::PathBuf, process::Command};
+use {
+    crate::{
+        commands::{programs, workspace},
+        ui,
+    },
+    std::process::Command,
+};
 
-pub fn execute(program_id: Option<&str>, features: Vec<String>) {
-    let current_dir = std::env::current_dir().unwrap();
-
-    let workspace_root = if current_dir.join("Naclac.toml").exists() {
-        current_dir.clone()
-    } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../..").canonicalize().unwrap()
-    } else {
-        eprintln!(
-            "❌ Error: Could not find Naclac.toml. Please run from within a Naclac workspace."
-        );
-        std::process::exit(1);
+/// Expands the macros of one program. `requested` names it; it may be empty
+/// only when Naclac.toml lists exactly one program, because an expansion is
+/// large and one is always meant.
+pub fn execute(requested: &[String], features: Vec<String>) {
+    let workspace_root = workspace::root();
+    let config = workspace::config(&workspace_root);
+    let listed = programs::listed(&config);
+    let selected = programs::select(&listed, requested);
+    let [program_name] = selected.as_slice() else {
+        ui::error(format!(
+            "`naclac expand` works on one program at a time; choose one with `-p <program>`. \
+             Available: {}.",
+            listed.join(", ")
+        ));
     };
 
-    let programs_dir = workspace_root.join("programs");
-    let program_dirs: Vec<PathBuf> = if programs_dir.exists() {
-        fs::read_dir(&programs_dir)
-            .unwrap()
-            .filter_map(|entry| {
-                let path = entry.unwrap().path();
-                let is_target = program_id.is_none_or(|tgt| path.file_name().unwrap() == tgt);
-                if path.is_dir() && path.join("src/lib.rs").exists() && is_target {
-                    Some(path)
-                } else {
-                    None
-                }
-            })
-            .collect()
-    } else {
-        eprintln!("❌ Error: No valid Naclac programs found in workspace.");
-        std::process::exit(1);
-    };
-
-    if program_dirs.is_empty() {
-        eprintln!("❌ Error: No matching program found to expand.");
-        std::process::exit(1);
-    }
-
-    // Expand the first matching program (usually only one)
-    let program_dir = &program_dirs[0];
-    let program_name = program_dir.file_name().unwrap().to_str().unwrap();
+    let program_dir = programs::program_dir(&workspace_root, program_name);
     let cargo_toml_path = program_dir.join("Cargo.toml");
 
     eprintln!("⚡ Expanding macros for '{}'...", program_name);

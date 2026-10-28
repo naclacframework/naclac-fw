@@ -46,6 +46,13 @@ jobs:
           for runtime in solana pinocchio; do
             cargo clippy -p naclac-metadata --no-default-features --features "$runtime" --all-targets -- -D warnings
           done
+      - name: naclac-client, per backend combination
+        run: |
+          set -e
+          cargo clippy -p naclac-client --lib -- -D warnings
+          for combo in litesvm rpc litesvm,rpc; do
+            cargo clippy -p naclac-client --lib --features "$combo" -- -D warnings
+          done
       - name: Everything else
         run: >
           cargo clippy --workspace --exclude naclac-core --exclude naclac-lang

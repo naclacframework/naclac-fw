@@ -19,7 +19,7 @@ bytemuck = ["naclac-lang/bytemuck"]
 naclac-lang = { version = "0.1.0", path = "../../../../lang", features = ["token"]  }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
+naclac-client = { version = "0.1.0", path = "../../../../client-rs", features = ["litesvm"] }
 token-vault-client = { version = "0.1.0", path = "../../artifacts/clients/rust/token_vault" }
 
 [lints.rust]

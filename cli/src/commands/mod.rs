@@ -12,6 +12,8 @@ pub mod idl;
 pub mod init;
 pub mod logs;
 pub mod profile;
+pub mod programs;
 pub mod test;
 pub mod upgrade;
 pub mod verify;
+pub mod workspace;

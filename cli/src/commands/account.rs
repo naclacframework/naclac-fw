@@ -1,5 +1,6 @@
 // Re-defining parts of IDL for decoding
 use {
+    crate::{commands::workspace, ui},
     bs58,
     serde::Deserialize,
     serde_json::{Map, Value},
@@ -33,31 +34,13 @@ struct IdlField {
     ty: Value,
 }
 
-fn get_rpc_url() -> String {
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .unwrap_or_else(|_| ".".to_string());
-    let config_path = format!("{}/.config/solana/cli/config.yml", home);
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
-        for line in content.lines() {
-            if line.starts_with("json_rpc_url:") {
-                return line.replace("json_rpc_url:", "").trim().to_string();
-            }
-        }
-    }
-    "http://127.0.0.1:8899".to_string()
-}
-
 pub fn execute(address: &str) {
-    let address_val = match Address::from_str(address) {
-        Ok(pk) => pk,
-        Err(_) => {
-            eprintln!("❌ Invalid base58 address string.");
-            return;
-        }
-    };
+    let address_val =
+        Address::from_str(address).unwrap_or_else(|_| ui::error("Invalid base58 address string."));
 
-    let rpc_url = get_rpc_url();
+    let workspace_root = workspace::root();
+    let config = workspace::config(&workspace_root);
+    let rpc_url = workspace::rpc_url(&workspace::cluster(&config));
     println!("📡 Connecting to RPC: {}", rpc_url);
     let client = RpcClient::new(rpc_url);
 
@@ -70,18 +53,6 @@ pub fn execute(address: &str) {
     };
 
     println!("✅ Fetched {} bytes of data.", account_data.len());
-
-    let current_dir = std::env::current_dir().unwrap();
-    let workspace_root = if current_dir.join("Naclac.toml").exists() {
-        current_dir.clone()
-    } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../..").canonicalize().unwrap()
-    } else {
-        eprintln!(
-            "❌ Error: Could not find Naclac.toml. Please run from within a Naclac workspace."
-        );
-        return;
-    };
 
     let idl_dir = naclac_client_gen::idl_dir(&workspace_root);
     if !idl_dir.exists() {

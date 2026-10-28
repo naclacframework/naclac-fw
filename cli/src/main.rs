@@ -55,6 +55,9 @@ enum Commands {
     /// Builds the SBF binary and generates the IDL JSON
     Build {
         program_id: Option<String>,
+        /// Program to build (e.g. counter); repeat for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         #[arg(short, long)]
         features: Vec<String>,
         /// Stream cargo's own compilation output (progress bar, per-crate
@@ -73,6 +76,9 @@ enum Commands {
     /// running `cargo build-sbf` — use `idl`/`client` to run just one step.
     Generate {
         program_id: Option<String>,
+        /// Program to generate for (e.g. counter); repeat for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         #[command(subcommand)]
         action: Option<GenerateAction>,
         /// Stream cargo's own compilation output for the `idl-build`
@@ -80,15 +86,21 @@ enum Commands {
         #[arg(long)]
         show_output: bool,
     },
-    /// Deploys all programs in the workspace to the configured network
-    Deploy { program_id: Option<String> },
+    /// Deploys the programs of `[programs.<cluster>]` to the cluster named by
+    /// `[provider] cluster`
+    Deploy {
+        program_id: Option<String>,
+        /// Program to deploy (e.g. counter); repeat for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
+    },
     /// Runs the test suite defined in Naclac.toml
     Test {
         /// Optional specific test file to run (e.g. counter_test.test.ts)
         file: Option<String>,
-        /// Optional program name to run tests for (e.g. counter)
-        #[arg(short, long)]
-        program: Option<String>,
+        /// Program to run tests for (e.g. counter); repeat for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         /// Runs the Rust test suite (default)
         #[arg(short, long)]
         rust: bool,
@@ -104,6 +116,10 @@ enum Commands {
     /// Upgrades a deployed Naclac program and securely refunds buffer accounts
     Upgrade {
         program_id: Option<String>,
+        /// Program to upgrade (a name from `[programs.<cluster>]` or an
+        /// address); repeat for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         #[arg(short, long)]
         filepath: Option<String>,
         #[arg(short, long)]
@@ -116,13 +132,26 @@ enum Commands {
         action: IdlAction,
     },
     /// Verifies the determinism of local codebase against an on-chain program
-    Verify { program_id: Option<String> },
+    Verify {
+        program_id: Option<String>,
+        /// Program to verify (a name from `[programs.<cluster>]` or an
+        /// address); repeat for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
+    },
     /// Checks the system environment for Naclac dependencies
     Doctor,
-    /// Cleans cargo's target directory; artifacts/ (including deploy keys) is never touched
+    /// Removes the build output of each program (dependencies stay cached);
+    /// `--hard` removes cargo's whole target directory instead. artifacts/
+    /// (including deploy keys) is never touched
     Clean {
-        /// Also removes the target directory itself, node_modules and dist
-        #[arg(long)]
+        program_id: Option<String>,
+        /// Program to clean (e.g. counter); repeat for several
+        #[arg(short = 'p', long = "program", conflicts_with = "hard")]
+        programs: Vec<String>,
+        /// Run a single `cargo clean` for the whole target directory,
+        /// dependencies included
+        #[arg(long, conflicts_with_all = ["program_id", "programs"])]
         hard: bool,
     },
     /// Airdrops SOL to the current wallet configured in Naclac.toml
@@ -133,13 +162,20 @@ enum Commands {
     },
     /// Tails the logs for the target cluster (or specific program)
     Logs {
-        /// Optional specific program ID to filter logs for
+        /// Optional specific program (a name from `[programs.<cluster>]` or
+        /// an address) to filter logs for
         program_id: Option<String>,
+        /// Same as the positional program; at most one program can be followed
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
     },
     /// Expands macros in the target program using cargo-expand
     Expand {
         /// Optional specific program name to expand
         program_id: Option<String>,
+        /// Program to expand (e.g. counter)
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         #[arg(short, long)]
         features: Vec<String>,
     },
@@ -147,6 +183,9 @@ enum Commands {
     Profile {
         /// Optional specific program name to profile
         program: Option<String>,
+        /// Program to profile (e.g. counter); repeat for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         /// Print rows in the order instructions actually ran, instead of the
         /// default lowest-to-highest CU order
         #[arg(long)]
@@ -158,6 +197,9 @@ enum Commands {
     /// of the program; run `naclac build` first so the generated client exists
     Check {
         program_id: Option<String>,
+        /// Program to check (e.g. counter); repeat for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         #[arg(short, long)]
         features: Vec<String>,
         /// Lint the tests instead of the program
@@ -189,13 +231,29 @@ pub enum GenerateAction {
 pub enum IdlAction {
     /// Creates the on-chain metadata account if it doesn't exist yet, or
     /// updates it in place if it does
-    Upload { program_id: Option<String> },
+    Upload {
+        program_id: Option<String>,
+        /// Program (a name from `[programs.<cluster>]` or an address); repeat
+        /// for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
+    },
     /// Permanently locks the metadata account against any further
     /// upload/set-authority/trim/close — irreversible
-    SetImmutable { program_id: Option<String> },
+    SetImmutable {
+        program_id: Option<String>,
+        /// Program (a name from `[programs.<cluster>]` or an address); repeat
+        /// for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
+    },
     /// Permanently deletes the metadata account, refunding its rent
     Close {
         program_id: Option<String>,
+        /// Program (a name from `[programs.<cluster>]` or an address); repeat
+        /// for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         /// Where the reclaimed rent goes (defaults to your own wallet)
         #[arg(short, long)]
         destination: Option<String>,
@@ -204,6 +262,10 @@ pub enum IdlAction {
     /// refunding the excess lamports
     Trim {
         program_id: Option<String>,
+        /// Program (a name from `[programs.<cluster>]` or an address); repeat
+        /// for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         /// Where the reclaimed rent goes (defaults to your own wallet)
         #[arg(short, long)]
         destination: Option<String>,
@@ -211,6 +273,10 @@ pub enum IdlAction {
     /// Changes or removes who can manage the metadata account
     SetAuthority {
         program_id: Option<String>,
+        /// Program (a name from `[programs.<cluster>]` or an address); repeat
+        /// for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
         /// The new authority's pubkey
         #[arg(short, long)]
         new_authority: Option<String>,
@@ -222,81 +288,88 @@ pub enum IdlAction {
     /// stdout (or writing it to a file with --output)
     Fetch {
         program_id: Option<String>,
-        #[arg(short, long)]
-        output: Option<String>,
+        /// Program (a name from `[programs.<cluster>]` or an address); repeat
+        /// for several
+        #[arg(short = 'p', long = "program")]
+        programs: Vec<String>,
+        /// File name to write, without `.json` (default: the program's name)
+        #[arg(long)]
+        name: Option<String>,
+        /// Existing folder to write into (default: artifacts/onchain-idl)
+        #[arg(long)]
+        dir: Option<String>,
+        /// Print the IDL instead of writing a file
+        #[arg(long, conflicts_with_all = ["name", "dir"])]
+        stdout: bool,
     },
 }
 
-use {std::fs, toml::Value};
+/// The programs named on the command line: the positional name, then every
+/// `-p` value.
+fn requested_programs(positional: &Option<String>, flagged: &[String]) -> Vec<String> {
+    positional.iter().chain(flagged).cloned().collect()
+}
 
-fn get_target_programs(cli_arg: Option<&String>) -> Vec<String> {
-    let current_dir = std::env::current_dir().unwrap();
-    let toml_path = if current_dir.join("Naclac.toml").exists() {
-        current_dir.join("Naclac.toml")
-    } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir
-            .join("../../Naclac.toml")
-            .canonicalize()
-            .unwrap()
-    } else {
-        eprintln!("❌ Not a Naclac workspace.");
-        std::process::exit(1);
-    };
+/// A program a cluster command works on: its name in `[programs.<cluster>]`
+/// when it is listed there, and its address.
+struct TargetProgram {
+    name: Option<String>,
+    address: String,
+}
 
-    let content = fs::read_to_string(&toml_path).unwrap_or_default();
-    let parsed: Value = toml::from_str(&content).unwrap_or(Value::Table(Default::default()));
+/// The programs a cluster command works on, from `[provider] cluster`'s own
+/// `[programs.<cluster>]` table (which must exist): an address in `requested`
+/// is used as given, a name is looked up in the table, and every program of
+/// the table is used when nothing was requested.
+fn target_programs(requested: &[String]) -> Vec<TargetProgram> {
+    let workspace_root = commands::workspace::root();
+    let config = commands::workspace::config(&workspace_root);
+    let cluster = commands::workspace::cluster(&config);
+    let table = commands::workspace::on_cluster(&config);
 
-    let cluster = parsed
-        .get("provider")
-        .and_then(|p| p.get("cluster"))
-        .and_then(|c| c.as_str())
-        .unwrap_or("devnet");
+    if requested.is_empty() {
+        return table
+            .into_iter()
+            .map(|(name, address)| TargetProgram {
+                name: Some(name),
+                address,
+            })
+            .collect();
+    }
 
-    let programs_table = parsed
-        .get("programs")
-        .and_then(|p| p.get(cluster))
-        .and_then(|c| c.as_table());
-
-    if let Some(arg) = cli_arg {
-        // A real program address is used as-is. Anything else is treated as
-        // a program *name* and resolved against this workspace's own
-        // Naclac.toml — a local convenience only, not a global lookup: a
-        // name unknown to this workspace's [programs.<cluster>] table fails
-        // clearly rather than silently passing a bogus string downstream.
-        if Address::from_str(arg).is_ok() {
-            return vec![arg.clone()];
-        }
-        return match programs_table
-            .and_then(|t| t.get(arg))
-            .and_then(|v| v.as_str())
-        {
-            Some(id) => vec![id.to_string()],
-            None => {
-                eprintln!(
-                    "❌ '{}' isn't a valid program address, and no program named '{}' was \
-                     found in this workspace's Naclac.toml under [programs.{}].",
-                    arg, arg, cluster
-                );
-                std::process::exit(1);
+    requested
+        .iter()
+        .map(|arg| {
+            if Address::from_str(arg).is_ok() {
+                let name = table
+                    .iter()
+                    .find(|(_, address)| address == arg)
+                    .map(|(name, _)| name.clone());
+                return TargetProgram {
+                    name,
+                    address: arg.clone(),
+                };
             }
-        };
-    }
-
-    let mut programs = Vec::new();
-    if let Some(programs_table) = programs_table {
-        for val in programs_table.values() {
-            if let Some(pid) = val.as_str() {
-                programs.push(pid.to_string());
+            match table.iter().find(|(name, _)| name == arg) {
+                Some((name, address)) => TargetProgram {
+                    name: Some(name.clone()),
+                    address: address.clone(),
+                },
+                None => ui::error(format!(
+                    "`{arg}` is not a valid program address, and no program named `{arg}` is \
+                     listed in `[programs.{cluster}]` of Naclac.toml."
+                )),
             }
-        }
-    }
+        })
+        .collect()
+}
 
-    if programs.is_empty() {
-        eprintln!("❌ Error: No program IDs found in Naclac.toml for cluster '{}', and no ID was explicitly provided.", cluster);
-        std::process::exit(1);
-    }
-
-    programs
+/// The addresses of `target_programs`.
+fn target_addresses(requested: &[String]) -> Vec<String> {
+    target_programs(requested)
+        .into_iter()
+        .map(|program| program.address)
+        .collect()
 }
 
 fn main() {
@@ -327,129 +400,183 @@ fn main() {
         } => commands::add::execute(name, runtime.as_deref(), mode.as_deref(), ts.as_deref()),
         Commands::Build {
             program_id,
+            programs,
             features,
             show_output,
             extra_args,
         } => commands::build::execute(
-            program_id.as_deref(),
+            &requested_programs(program_id, programs),
             features.clone(),
             *show_output,
             extra_args.clone(),
         ),
         Commands::Generate {
             program_id,
+            programs,
             action,
             show_output,
-        } => match action {
-            None => commands::generate::execute_all(program_id.as_deref(), *show_output),
-            Some(GenerateAction::Idl) => {
-                commands::generate::execute_idl(program_id.as_deref(), *show_output)
+        } => {
+            let requested = requested_programs(program_id, programs);
+            match action {
+                None => commands::generate::execute_all(&requested, *show_output),
+                Some(GenerateAction::Idl) => {
+                    commands::generate::execute_idl(&requested, *show_output)
+                }
+                Some(GenerateAction::Client { rust, typescript }) => {
+                    // Neither flag (or both) means "generate everything" — only
+                    // a single flag set alone narrows to just that one SDK.
+                    let target = match (*rust, *typescript) {
+                        (true, false) => Some(commands::generate::ClientKind::Rust),
+                        (false, true) => Some(commands::generate::ClientKind::Typescript),
+                        _ => None,
+                    };
+                    commands::generate::execute_client(&requested, target)
+                }
             }
-            Some(GenerateAction::Client { rust, typescript }) => {
-                // Neither flag (or both) means "generate everything" — only
-                // a single flag set alone narrows to just that one SDK.
-                let target = match (*rust, *typescript) {
-                    (true, false) => Some(commands::generate::ClientKind::Rust),
-                    (false, true) => Some(commands::generate::ClientKind::Typescript),
-                    _ => None,
-                };
-                commands::generate::execute_client(program_id.as_deref(), target)
-            }
-        },
-        Commands::Deploy { program_id } => commands::deploy::execute(program_id.as_deref()),
+        }
+        Commands::Deploy {
+            program_id,
+            programs,
+        } => commands::deploy::execute(&requested_programs(program_id, programs)),
         Commands::Test {
             file,
-            program,
+            programs,
             rust,
             node,
             all,
-        } => commands::test::execute(file.as_deref(), program.as_deref(), *rust, *node, *all),
+        } => commands::test::execute(file.as_deref(), programs, *rust, *node, *all),
         Commands::Account { address } => commands::account::execute(address),
         Commands::Upgrade {
             program_id,
+            programs,
             filepath,
             buffer,
         } => {
-            let pids = get_target_programs(program_id.as_ref());
-            for pid in pids {
-                commands::upgrade::execute(&pid, filepath.as_deref(), buffer.as_deref());
+            for program in target_programs(&requested_programs(program_id, programs)) {
+                commands::upgrade::execute(
+                    &program.address,
+                    program.name.as_deref(),
+                    filepath.as_deref(),
+                    buffer.as_deref(),
+                );
             }
         }
         Commands::Idl { action } => match action {
-            IdlAction::Upload { program_id } => {
-                let pids = get_target_programs(program_id.as_ref());
-                for pid in pids {
-                    commands::idl::execute_upload(&pid);
+            IdlAction::Upload {
+                program_id,
+                programs,
+            } => {
+                for address in target_addresses(&requested_programs(program_id, programs)) {
+                    commands::idl::execute_upload(&address);
                 }
             }
-            IdlAction::SetImmutable { program_id } => {
-                let pids = get_target_programs(program_id.as_ref());
-                for pid in pids {
-                    commands::idl::execute_set_immutable(&pid);
+            IdlAction::SetImmutable {
+                program_id,
+                programs,
+            } => {
+                for address in target_addresses(&requested_programs(program_id, programs)) {
+                    commands::idl::execute_set_immutable(&address);
                 }
             }
             IdlAction::Close {
                 program_id,
+                programs,
                 destination,
             } => {
-                let pids = get_target_programs(program_id.as_ref());
-                for pid in pids {
-                    commands::idl::execute_close(&pid, destination.as_deref());
+                for address in target_addresses(&requested_programs(program_id, programs)) {
+                    commands::idl::execute_close(&address, destination.as_deref());
                 }
             }
             IdlAction::Trim {
                 program_id,
+                programs,
                 destination,
             } => {
-                let pids = get_target_programs(program_id.as_ref());
-                for pid in pids {
-                    commands::idl::execute_trim(&pid, destination.as_deref());
+                for address in target_addresses(&requested_programs(program_id, programs)) {
+                    commands::idl::execute_trim(&address, destination.as_deref());
                 }
             }
             IdlAction::SetAuthority {
                 program_id,
+                programs,
                 new_authority,
                 remove,
             } => {
-                let pids = get_target_programs(program_id.as_ref());
-                for pid in pids {
-                    commands::idl::execute_set_authority(&pid, new_authority.as_deref(), *remove);
+                for address in target_addresses(&requested_programs(program_id, programs)) {
+                    commands::idl::execute_set_authority(
+                        &address,
+                        new_authority.as_deref(),
+                        *remove,
+                    );
                 }
             }
-            IdlAction::Fetch { program_id, output } => {
-                let pids = get_target_programs(program_id.as_ref());
-                for pid in pids {
-                    commands::idl::execute_fetch(&pid, output.as_deref());
+            IdlAction::Fetch {
+                program_id,
+                programs,
+                name,
+                dir,
+                stdout,
+            } => {
+                for program in target_programs(&requested_programs(program_id, programs)) {
+                    commands::idl::execute_fetch(
+                        &program.address,
+                        program.name.as_deref(),
+                        name.as_deref(),
+                        dir.as_deref(),
+                        *stdout,
+                    );
                 }
             }
         },
-        Commands::Verify { program_id } => {
-            let pids = get_target_programs(program_id.as_ref());
-            for pid in pids {
-                commands::verify::execute(&pid);
+        Commands::Verify {
+            program_id,
+            programs,
+        } => {
+            for program in target_programs(&requested_programs(program_id, programs)) {
+                commands::verify::execute(&program.address, program.name.as_deref());
             }
         }
         Commands::Doctor => commands::doctor::execute(),
-        Commands::Clean { hard } => commands::clean::execute(*hard),
+        Commands::Clean {
+            program_id,
+            programs,
+            hard,
+        } => commands::clean::execute(&requested_programs(program_id, programs), *hard),
         Commands::Airdrop { amount } => commands::airdrop::execute(*amount),
-        Commands::Logs { program_id } => {
-            let pid = program_id.clone();
-            commands::logs::execute(pid.as_deref());
+        Commands::Logs {
+            program_id,
+            programs,
+        } => {
+            let requested = requested_programs(program_id, programs);
+            match requested.as_slice() {
+                [] => commands::logs::execute(None),
+                [_] => {
+                    let addresses = target_addresses(&requested);
+                    commands::logs::execute(addresses.first().map(String::as_str));
+                }
+                _ => ui::error(
+                    "`naclac logs` follows one program, or every program when none is given.",
+                ),
+            }
         }
         Commands::Expand {
             program_id,
+            programs,
             features,
-        } => commands::expand::execute(program_id.as_deref(), features.clone()),
-        Commands::Profile { program, run_order } => {
-            commands::profile::execute(program.as_deref(), *run_order)
-        }
+        } => commands::expand::execute(&requested_programs(program_id, programs), features.clone()),
+        Commands::Profile {
+            program,
+            programs,
+            run_order,
+        } => commands::profile::execute(&requested_programs(program, programs), *run_order),
         Commands::Check {
             program_id,
+            programs,
             features,
             test,
             deny_warnings,
         } => commands::check::execute(
-            program_id.as_deref(),
+            &requested_programs(program_id, programs),
             features.clone(),
             *test,
             *deny_warnings,

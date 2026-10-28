@@ -1,10 +1,13 @@
 use {
-    crate::ui,
+    crate::{
+        commands::{programs, workspace},
+        ui,
+    },
     colored::Colorize,
     std::{
         fs,
         io::{BufRead, BufReader},
-        path::{Path, PathBuf},
+        path::PathBuf,
         process::{Command, Stdio},
     },
 };
@@ -17,16 +20,11 @@ const ACCEPTED_PLATFORM_TOOLS: [&str; 2] = ["v1.58", "v1.56"];
 const DEFAULT_PLATFORM_TOOLS_FALLBACK: &str = "v1.56";
 const DEFAULT_ARCH: &str = "v3";
 
-fn home_dir() -> String {
-    std::env::var("HOME")
-        .unwrap_or_else(|_| std::env::var("USERPROFILE").unwrap_or_else(|_| ".".to_string()))
-}
-
 /// Highest version in `ACCEPTED_PLATFORM_TOOLS` that `cargo-build-sbf` has
 /// already downloaded to its cache — i.e. one we can use without triggering
 /// a fresh download.
 fn cached_accepted_platform_tools_version() -> Option<&'static str> {
-    let cache_dir = PathBuf::from(home_dir()).join(".cache/solana");
+    let cache_dir = workspace::home_dir().join(".cache/solana");
     ACCEPTED_PLATFORM_TOOLS
         .iter()
         .find(|v| cache_dir.join(v).join("platform-tools").exists())
@@ -43,14 +41,10 @@ const ALLOWED_ARCH_VALUES: [&str; 5] = ["v0", "v1", "v2", "v3", "v4"];
 /// override — any version string is passed through as-is, including ones
 /// released after `ACCEPTED_PLATFORM_TOOLS` was last updated. `[build] arch`
 /// is instead validated against `ALLOWED_ARCH_VALUES`.
-fn resolve_build_toolchain(workspace_root: &Path) -> (String, String) {
-    let build_section = fs::read_to_string(workspace_root.join("Naclac.toml"))
-        .ok()
-        .and_then(|content| toml::from_str::<toml::Value>(&content).ok())
-        .and_then(|v| v.get("build").cloned());
+pub fn resolve_build_toolchain(config: &toml::Value) -> (String, String) {
+    let build_section = config.get("build");
 
     let tools_version = build_section
-        .as_ref()
         .and_then(|b| b.get("platform_tools_version"))
         .and_then(|v| v.as_str())
         .map(str::to_string)
@@ -58,7 +52,6 @@ fn resolve_build_toolchain(workspace_root: &Path) -> (String, String) {
         .unwrap_or_else(|| DEFAULT_PLATFORM_TOOLS_FALLBACK.to_string());
 
     let arch = match build_section
-        .as_ref()
         .and_then(|b| b.get("arch"))
         .and_then(|v| v.as_str())
     {
@@ -73,71 +66,39 @@ fn resolve_build_toolchain(workspace_root: &Path) -> (String, String) {
     (tools_version, arch)
 }
 
+/// Builds each program in `requested` (every program Naclac.toml lists when
+/// empty; see `programs`).
 pub fn execute(
-    program_id: Option<&str>,
+    requested: &[String],
     features: Vec<String>,
     show_output: bool,
     extra_args: Vec<String>,
 ) {
     let build_start = std::time::Instant::now();
-    let current_dir = std::env::current_dir().unwrap();
+    let workspace_root = workspace::root();
+    let config = workspace::config(&workspace_root);
 
-    let workspace_root = if current_dir.join("Naclac.toml").exists() {
-        current_dir.clone()
-    } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../..").canonicalize().unwrap()
-    } else {
-        ui::error("Could not find Naclac.toml — run this from within a Naclac workspace.")
-    };
-
-    let (tools_version, arch) = resolve_build_toolchain(&workspace_root);
+    let (tools_version, arch) = resolve_build_toolchain(&config);
     ui::info(format!(
         "Using platform-tools {} (arch {})",
         tools_version, arch
     ));
 
-    let programs_dir = workspace_root.join("programs");
-    let all_program_dirs: Vec<PathBuf> = if programs_dir.exists() {
-        fs::read_dir(&programs_dir)
-            .unwrap()
-            .filter_map(|entry| {
-                let path = entry.unwrap().path();
-                if path.is_dir() && path.join("src/lib.rs").exists() {
-                    Some(path)
-                } else {
-                    None
-                }
-            })
-            .collect()
-    } else {
-        ui::error("No valid Naclac programs found in workspace.")
-    };
+    let programs_to_build: Vec<PathBuf> = programs::select(&programs::listed(&config), requested)
+        .iter()
+        .map(|name| programs::program_dir(&workspace_root, name))
+        .collect();
 
-    if all_program_dirs.is_empty() {
-        ui::error("No valid Naclac programs found in workspace.");
-    }
-    let mut all_program_dirs = all_program_dirs;
-    all_program_dirs.sort();
-
-    let programs_to_build: Vec<PathBuf> = if let Some(tgt) = program_id {
-        let matched: Vec<PathBuf> = all_program_dirs
-            .iter()
-            .filter(|p| p.file_name().unwrap().to_str().unwrap() == tgt)
-            .cloned()
-            .collect();
-        if matched.is_empty() {
-            ui::error(format!("Program '{}' not found in workspace.", tgt));
-        }
-        matched
-    } else {
-        all_program_dirs.clone()
-    };
-
-    crate::commands::generate::ensure_client_stubs(&workspace_root, &all_program_dirs);
+    crate::commands::generate::ensure_client_stubs(
+        &workspace_root,
+        &programs::all_dirs(&workspace_root),
+    );
 
     let deploy_dir = naclac_client_gen::deploy_dir(&workspace_root);
     fs::create_dir_all(&deploy_dir).unwrap();
-    let legacy_deploy_dir = naclac_client_gen::resolve_target_dir(&workspace_root).join("deploy");
+    let legacy_deploy_dir = naclac_client_gen::resolve_target_dir(&workspace_root)
+        .unwrap_or_else(|e| ui::error(e))
+        .join("deploy");
 
     for program_dir in &programs_to_build {
         let program_name = program_dir
@@ -222,24 +183,18 @@ pub fn execute(
         }
 
         let toml_path = workspace_root.join("Naclac.toml");
-        if toml_path.exists() {
-            let mut toml_code = fs::read_to_string(&toml_path).unwrap();
-            let search_str = format!("{} = \"", program_name);
-            if let Some(start) = toml_code.find(&search_str) {
-                let addr_start = start + search_str.len();
-                if let Some(end_offset) = toml_code[addr_start..].find("\"") {
-                    let current_address = &toml_code[addr_start..addr_start + end_offset];
-                    if current_address != actual_address {
-                        ui::warn(format!(
-                            "Synced program ID -> Naclac.toml ({})",
-                            program_name
-                        ));
-                        toml_code
-                            .replace_range(addr_start..addr_start + end_offset, &actual_address);
-                        fs::write(&toml_path, toml_code).unwrap();
-                    }
-                }
-            }
+        let toml_code = fs::read_to_string(&toml_path)
+            .unwrap_or_else(|e| ui::error(format!("Cannot read {}: {e}", toml_path.display())));
+        if let Some(updated) =
+            programs::with_synced_address(&toml_code, &program_name, &actual_address)
+        {
+            ui::warn(format!(
+                "Synced program ID -> Naclac.toml ({})",
+                program_name
+            ));
+            fs::write(&toml_path, updated).unwrap_or_else(|e| {
+                ui::error(format!("Cannot write {}: {e}", toml_path.display()))
+            });
         }
     }
 
@@ -426,7 +381,7 @@ pub fn execute(
             Some(step) => step.done(format!("IDL + TS types written ({})", prog_name)),
             None => ui::success(format!("IDL + TS types written ({})", prog_name)),
         }
-        crate::commands::generate::execute_client(Some(prog_name), None);
+        crate::commands::generate::execute_client(&[prog_name.to_string()], None);
     }
 
     ui::milestone(format!(

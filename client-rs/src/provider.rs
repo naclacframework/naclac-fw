@@ -1,21 +1,24 @@
+#[cfg(any(feature = "litesvm", feature = "rpc"))]
+use std::collections::HashMap;
 use {
-    crate::error::{translate_error_code, NaclacClientError},
-    litesvm::LiteSVM,
+    crate::{
+        backend::Backend,
+        error::{translate_error_code, NaclacClientError},
+    },
     solana_account::Account,
     solana_address::Address,
     solana_commitment_config::CommitmentConfig,
     solana_hash::Hash,
     solana_instruction_error::InstructionError,
     solana_keypair::Keypair,
-    solana_rpc_client::rpc_client::RpcClient,
     solana_signature::Signature,
-    solana_signer::Signer,
     solana_transaction::{versioned::VersionedTransaction, TransactionError},
-    std::{
-        collections::HashMap,
-        sync::{Arc, Mutex, OnceLock},
-    },
+    std::sync::{Arc, Mutex},
 };
+#[cfg(feature = "litesvm")]
+use {litesvm::LiteSVM, solana_signer::Signer};
+#[cfg(feature = "rpc")]
+use {solana_rpc_client::rpc_client::RpcClient, std::sync::OnceLock};
 
 #[derive(Debug, Clone)]
 pub struct NaclacTransactionMetadata {
@@ -51,6 +54,7 @@ pub struct NaclacInnerInstruction {
 /// Resolves litesvm's compiled inner instructions against the transaction's
 /// static account keys. `None` if any index falls outside them (i.e. the
 /// transaction used an address lookup table).
+#[cfg(feature = "litesvm")]
 fn resolve_litesvm_inner_instructions(
     keys: &[Address],
     list: &solana_message::inner_instruction::InnerInstructionsList,
@@ -84,14 +88,16 @@ fn resolve_litesvm_inner_instructions(
 /// keys, then ALT-loaded readonly keys). `None` if an instruction isn't in
 /// compiled form or refers to a key outside `keys`. A node that doesn't
 /// report `stackHeight` yields `stack_height: 0`.
+#[cfg(feature = "rpc")]
 fn resolve_ui_inner_instructions(
     keys: &[solana_address::Address],
-    list: &[solana_transaction_status::UiInnerInstructions],
+    list: &[solana_transaction_status_client_types::UiInnerInstructions],
 ) -> Option<Vec<NaclacInnerInstruction>> {
     let mut resolved = Vec::new();
     for set in list {
         for ui in &set.instructions {
-            let solana_transaction_status::UiInstruction::Compiled(compiled) = ui else {
+            let solana_transaction_status_client_types::UiInstruction::Compiled(compiled) = ui
+            else {
                 return None;
             };
             resolved.push(NaclacInnerInstruction {
@@ -113,10 +119,11 @@ fn resolve_ui_inner_instructions(
 /// Inner instructions of a `getTransaction` response fetched with binary
 /// encoding. `None` when the node omitted them, the transaction can't be
 /// decoded, or any key can't be resolved.
+#[cfg(feature = "rpc")]
 fn inner_instructions_from_rpc(
-    encoded: &solana_transaction_status::EncodedTransactionWithStatusMeta,
+    encoded: &solana_transaction_status_client_types::EncodedTransactionWithStatusMeta,
 ) -> Option<Vec<NaclacInnerInstruction>> {
-    use solana_transaction_status::option_serializer::OptionSerializer;
+    use solana_transaction_status_client_types::option_serializer::OptionSerializer;
     let meta = encoded.meta.as_ref()?;
     // A failed transaction's recorded inner instructions were never
     // committed, so none of them can vouch for an event.
@@ -312,10 +319,16 @@ pub trait NaclacEvent {
     const CPI_TAG: &'static [u8];
 }
 
+/// Where a [`NaclacProvider`] runs transactions and reads accounts. `LiteSVM`
+/// exists with the `litesvm` feature, `Rpc` with the `rpc` feature; `Custom`
+/// carries any other [`Backend`].
 #[derive(Clone)]
 pub enum ClientBackend {
+    #[cfg(feature = "litesvm")]
     LiteSVM(Arc<Mutex<LiteSVM>>),
+    #[cfg(feature = "rpc")]
     Rpc(Arc<RpcClient>),
+    Custom(Arc<dyn Backend>),
 }
 
 /// Which real cluster an RPC-backed `NaclacProvider` is talking to — inferred
@@ -338,6 +351,7 @@ pub enum RpcCluster {
 /// `naclac deploy`'s own workspace-root discovery (`cli/src/commands/deploy.rs`)
 /// so both land on the same directory. Returns `None` outside a Naclac
 /// workspace — that's not an error, just nothing to auto-load.
+#[cfg(feature = "litesvm")]
 fn find_workspace_root() -> Option<std::path::PathBuf> {
     let current_dir = std::env::current_dir().ok()?;
     if current_dir.join("Naclac.toml").exists() {
@@ -357,6 +371,7 @@ fn find_workspace_root() -> Option<std::path::PathBuf> {
 /// deploy, a missing/unparsable keypair file here is a real error — there's
 /// no way to know what ID a caller's `declare_id!`/generated client expects
 /// otherwise, and inventing one would silently fail to match either.
+#[cfg(feature = "litesvm")]
 fn resolve_program_id_from_so(so_path: &std::path::Path) -> Result<Address, NaclacClientError> {
     let stem = so_path.file_stem().ok_or_else(|| {
         NaclacClientError::General(format!(
@@ -387,6 +402,7 @@ fn resolve_program_id_from_so(so_path: &std::path::Path) -> Result<Address, Nacl
 /// `"localnet"` already is — no manual `add_program` call needed for the
 /// workspace's own program(s). A no-op outside a Naclac workspace or before
 /// the first `naclac build`.
+#[cfg(feature = "litesvm")]
 fn auto_load_workspace_programs(svm: &mut LiteSVM) -> Result<(), NaclacClientError> {
     let Some(workspace_root) = find_workspace_root() else {
         return Ok(());
@@ -425,8 +441,9 @@ fn auto_load_workspace_programs(svm: &mut LiteSVM) -> Result<(), NaclacClientErr
 /// `TransactionError`, translating a custom program error code via
 /// `translate_error_code` when there is one. Shared by `send_transaction`,
 /// `simulate_transaction`, and `get_transaction` so the three don't drift
-/// out of sync with each other.
-fn translate_transaction_failure(
+/// out of sync with each other, and by [`Backend`] implementations outside
+/// this crate.
+pub fn translate_transaction_failure(
     err: &TransactionError,
     logs: Vec<String>,
     account_names: Option<&[&str]>,
@@ -454,6 +471,7 @@ fn translate_transaction_failure(
     }
 }
 
+#[cfg(feature = "rpc")]
 fn cluster_from_url(url: &str) -> RpcCluster {
     if url.contains("devnet") {
         RpcCluster::Devnet
@@ -486,10 +504,47 @@ pub struct NaclacProvider {
     /// litesvm keeps only compiled inner instructions with no message keys,
     /// so `get_transaction` couldn't resolve them after the fact; the
     /// resolved form is remembered here at `send_transaction` time.
+    #[cfg(feature = "litesvm")]
     inner_instruction_cache: Arc<Mutex<HashMap<Signature, Option<Vec<NaclacInnerInstruction>>>>>,
 }
 
+#[cfg(not(all(feature = "litesvm", feature = "rpc")))]
+fn backend_feature_disabled(feature: &str) -> NaclacClientError {
+    NaclacClientError::General(format!(
+        "naclac-client was built without the `{feature}` feature; enable it with \
+         `naclac-client = {{ features = [\"{feature}\"] }}` in Cargo.toml"
+    ))
+}
+
+fn is_http_url(candidate: &str) -> bool {
+    ["http://", "https://"].iter().any(|scheme| {
+        candidate
+            .strip_prefix(scheme)
+            .is_some_and(|rest| !rest.is_empty())
+    })
+}
+
 impl NaclacProvider {
+    /// A provider that runs on `backend`. `cluster` is what `provider.cluster`
+    /// reports; tests branch on it to tell a local sandbox from a live network.
+    pub fn with_backend(backend: Arc<dyn Backend>, payer: Keypair, cluster: RpcCluster) -> Self {
+        Self {
+            backend: ClientBackend::Custom(backend),
+            payer: Arc::new(payer),
+            commitment: CommitmentConfig::confirmed(),
+            cluster,
+            default_tx_version: TransactionVersion::V1,
+            #[cfg(feature = "litesvm")]
+            inner_instruction_cache: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    #[cfg(not(feature = "litesvm"))]
+    pub fn new_litesvm(_payer: Keypair) -> Result<Self, NaclacClientError> {
+        Err(backend_feature_disabled("litesvm"))
+    }
+
+    #[cfg(feature = "litesvm")]
     pub fn new_litesvm(payer: Keypair) -> Result<Self, NaclacClientError> {
         let mut svm = LiteSVM::new();
         let payer_pubkey = payer.pubkey();
@@ -507,13 +562,26 @@ impl NaclacProvider {
         })
     }
 
+    #[cfg(not(feature = "rpc"))]
+    pub fn new_rpc(_url: &str, _payer: Keypair) -> Result<Self, NaclacClientError> {
+        Err(backend_feature_disabled("rpc"))
+    }
+
+    #[cfg(feature = "rpc")]
     pub fn new_rpc(url: &str, payer: Keypair) -> Result<Self, NaclacClientError> {
+        if !is_http_url(url) {
+            return Err(NaclacClientError::General(format!(
+                "`{url}` is not an http(s) URL; an RPC endpoint needs its scheme, for example \
+                 http://127.0.0.1:8899"
+            )));
+        }
         Ok(Self {
             backend: ClientBackend::Rpc(Arc::new(RpcClient::new(url.to_string()))),
             payer: Arc::new(payer),
             commitment: CommitmentConfig::confirmed(),
             cluster: cluster_from_url(url),
             default_tx_version: TransactionVersion::V1,
+            #[cfg(feature = "litesvm")]
             inner_instruction_cache: Arc::new(Mutex::new(HashMap::new())),
         })
     }
@@ -532,7 +600,11 @@ impl NaclacProvider {
             "mainnet" | "mainnet-beta" => {
                 Self::new_rpc("https://api.mainnet-beta.solana.com", payer)
             }
-            url => Self::new_rpc(url, payer),
+            url if is_http_url(url) => Self::new_rpc(url, payer),
+            other => Err(NaclacClientError::General(format!(
+                "`{other}` is not a known cluster or an http(s) URL; expected litesvm, localnet, \
+                 devnet, testnet, mainnet, mainnet-beta, or a URL such as http://127.0.0.1:8899"
+            ))),
         }
     }
 
@@ -542,6 +614,8 @@ impl NaclacProvider {
         account_names: Option<&[&str]>,
     ) -> Result<NaclacTransactionMetadata, NaclacClientError> {
         let result = match &self.backend {
+            ClientBackend::Custom(backend) => backend.send_transaction(vtx, account_names),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -570,6 +644,7 @@ impl NaclacProvider {
                     )),
                 }
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => {
                 match client
                     .send_and_confirm_transaction_with_spinner_and_commitment(vtx, self.commitment)
@@ -583,7 +658,7 @@ impl NaclacProvider {
                             &sig,
                             solana_rpc_client_api::config::RpcTransactionConfig {
                                 encoding: Some(
-                                    solana_transaction_status::UiTransactionEncoding::Base64,
+                                    solana_transaction_status_client_types::UiTransactionEncoding::Base64,
                                 ),
                                 commitment: Some(self.commitment),
                                 max_supported_transaction_version: Some(1),
@@ -592,11 +667,11 @@ impl NaclacProvider {
                             inner_instructions =
                                 inner_instructions_from_rpc(&tx_response.transaction);
                             if let Some(meta) = tx_response.transaction.meta {
-                                if let solana_transaction_status::option_serializer::OptionSerializer::Some(l) = meta.log_messages {
+                                if let solana_transaction_status_client_types::option_serializer::OptionSerializer::Some(l) = meta.log_messages {
                                     logs = l;
                                 }
                                 compute_units_consumed = meta.compute_units_consumed.unwrap_or(0);
-                                if let solana_transaction_status::option_serializer::OptionSerializer::Some(rd) = meta.return_data {
+                                if let solana_transaction_status_client_types::option_serializer::OptionSerializer::Some(rd) = meta.return_data {
                                     use base64::Engine;
                                     return_data = base64::engine::general_purpose::STANDARD
                                         .decode(&rd.data.0)
@@ -674,7 +749,7 @@ impl NaclacProvider {
         };
 
         if let Ok(meta) = &result {
-            write_profile_log(vtx, meta);
+            write_profile_log(vtx, meta).map_err(NaclacClientError::General)?;
         }
 
         result
@@ -688,6 +763,8 @@ impl NaclacProvider {
         account_names: Option<&[&str]>,
     ) -> Result<NaclacTransactionMetadata, NaclacClientError> {
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.simulate_transaction(vtx, account_names),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -710,6 +787,7 @@ impl NaclacProvider {
                     )),
                 }
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => {
                 let response = client
                     .simulate_transaction_with_config(
@@ -771,6 +849,8 @@ impl NaclacProvider {
         signature: &Signature,
     ) -> Result<NaclacTransactionMetadata, NaclacClientError> {
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.get_transaction(signature),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -799,13 +879,14 @@ impl NaclacProvider {
                     ))),
                 }
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => {
                 let tx_response = client
                     .get_transaction_with_config(
                         signature,
                         solana_rpc_client_api::config::RpcTransactionConfig {
                             encoding: Some(
-                                solana_transaction_status::UiTransactionEncoding::Base64,
+                                solana_transaction_status_client_types::UiTransactionEncoding::Base64,
                             ),
                             commitment: Some(self.commitment),
                             max_supported_transaction_version: Some(1),
@@ -822,13 +903,13 @@ impl NaclacProvider {
                 let mut return_data = Vec::new();
                 let inner_instructions = inner_instructions_from_rpc(&tx_response.transaction);
                 if let Some(meta) = tx_response.transaction.meta {
-                    if let solana_transaction_status::option_serializer::OptionSerializer::Some(l) =
+                    if let solana_transaction_status_client_types::option_serializer::OptionSerializer::Some(l) =
                         meta.log_messages
                     {
                         logs = l;
                     }
                     compute_units_consumed = meta.compute_units_consumed.unwrap_or(0);
-                    if let solana_transaction_status::option_serializer::OptionSerializer::Some(
+                    if let solana_transaction_status_client_types::option_serializer::OptionSerializer::Some(
                         rd,
                     ) = meta.return_data
                     {
@@ -856,6 +937,10 @@ impl NaclacProvider {
         let pubkey = Address::new_from_array(address.to_bytes());
 
         match &self.backend {
+            ClientBackend::Custom(backend) => backend
+                .get_account(&pubkey)?
+                .ok_or_else(|| NaclacClientError::AccountNotFound(address.to_string())),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -863,6 +948,7 @@ impl NaclacProvider {
                 svm.get_account(&pubkey)
                     .ok_or_else(|| NaclacClientError::AccountNotFound(address.to_string()))
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => client
                 .get_account_with_commitment(&pubkey, self.commitment)
                 .map_err(|e| {
@@ -890,6 +976,8 @@ impl NaclacProvider {
     ) -> Result<Vec<(solana_address::Address, Vec<u8>)>, NaclacClientError> {
         let pubkey = Address::new_from_array(program_id.to_bytes());
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.get_program_accounts(&pubkey, discriminator),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -908,9 +996,10 @@ impl NaclacProvider {
                 }
                 Ok(results)
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => {
                 use {
-                    solana_account_decoder::{UiAccountData, UiAccountEncoding},
+                    solana_account_decoder_client_types::{UiAccountData, UiAccountEncoding},
                     solana_rpc_client_api::{
                         config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
                         filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
@@ -962,12 +1051,15 @@ impl NaclacProvider {
     pub fn get_balance(&self, address: &solana_address::Address) -> Result<u64, NaclacClientError> {
         let pubkey = Address::new_from_array(address.to_bytes());
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.get_balance(&pubkey),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
                 })?;
                 Ok(svm.get_balance(&pubkey).unwrap_or(0))
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => client
                 .get_balance_with_commitment(&pubkey, self.commitment)
                 .map_err(|e| {
@@ -980,79 +1072,68 @@ impl NaclacProvider {
         }
     }
 
-    /// Returns `(amount, decimals)` for an SPL Token or Token-2022 account
-    /// (branches on the account's owner — both programs' base account
-    /// layout, `{ mint, amount, ... }` at a fixed offset, is unpackable via
-    /// either crate's own `Account::unpack`/`Mint::unpack`; Token-2022's TLV
-    /// extensions live after that fixed-size prefix and don't affect it). A
-    /// token account only stores `amount` and which `mint` it belongs to —
-    /// `decimals` lives on the mint itself, so this fetches both accounts.
+    /// Returns `(amount, decimals)` for an SPL Token or Token-2022 token
+    /// account. Both programs share one fixed base layout, which a Token-2022
+    /// account with extensions keeps as the prefix of its longer data, so
+    /// the accounts are read through [`TokenAccount`] and [`Mint`] regardless
+    /// of length. A token account only stores `amount` and which `mint` it
+    /// belongs to — `decimals` lives on the mint itself, so this fetches both
+    /// accounts. Fails if the account is not owned by either token program,
+    /// or if the token account or its mint is uninitialized.
     pub fn get_token_balance(
         &self,
         address: &solana_address::Address,
     ) -> Result<(u64, u8), NaclacClientError> {
-        use solana_program_pack::Pack;
+        use crate::{
+            fetcher::NaclacDecode,
+            token::{Mint, TokenAccount},
+            utils::{TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID},
+        };
 
         let account = self.get_account(address)?;
-        let owner_bytes = account.owner.to_bytes();
-
-        let (amount, mint_bytes) = if owner_bytes == spl_token::id().to_bytes() {
-            let token_account = spl_token::state::Account::unpack(&account.data).map_err(|e| {
-                NaclacClientError::General(format!(
-                    "Failed to unpack token account {}: {}",
-                    address, e
-                ))
-            })?;
-            (token_account.amount, token_account.mint.to_bytes())
-        } else if owner_bytes == spl_token_2022::id().to_bytes() {
-            let token_account =
-                spl_token_2022::state::Account::unpack(&account.data).map_err(|e| {
-                    NaclacClientError::General(format!(
-                        "Failed to unpack token-2022 account {}: {}",
-                        address, e
-                    ))
-                })?;
-            (token_account.amount, token_account.mint.to_bytes())
-        } else {
+        if account.owner != TOKEN_PROGRAM_ID && account.owner != TOKEN_2022_PROGRAM_ID {
             return Err(NaclacClientError::General(format!(
                 "{} is not a Token or Token-2022 account (owner {})",
                 address, account.owner
             )));
-        };
+        }
 
-        let mint_address = solana_address::Address::new_from_array(mint_bytes);
+        let token_account = TokenAccount::naclac_decode(&account.data).map_err(|e| {
+            NaclacClientError::General(format!("Failed to read token account {}: {}", address, e))
+        })?;
+        if !token_account.is_initialized() {
+            return Err(NaclacClientError::General(format!(
+                "Token account {} is not initialized",
+                address
+            )));
+        }
+
+        let mint_address = token_account.mint();
         let mint_data = self.get_account_data(&mint_address)?;
-        let decimals = if owner_bytes == spl_token::id().to_bytes() {
-            spl_token::state::Mint::unpack(&mint_data)
-                .map_err(|e| {
-                    NaclacClientError::General(format!(
-                        "Failed to unpack mint {}: {}",
-                        mint_address, e
-                    ))
-                })?
-                .decimals
-        } else {
-            spl_token_2022::state::Mint::unpack(&mint_data)
-                .map_err(|e| {
-                    NaclacClientError::General(format!(
-                        "Failed to unpack mint {}: {}",
-                        mint_address, e
-                    ))
-                })?
-                .decimals
-        };
+        let mint = Mint::naclac_decode(&mint_data).map_err(|e| {
+            NaclacClientError::General(format!("Failed to read mint {}: {}", mint_address, e))
+        })?;
+        if !mint.is_initialized() {
+            return Err(NaclacClientError::General(format!(
+                "Mint {} is not initialized",
+                mint_address
+            )));
+        }
 
-        Ok((amount, decimals))
+        Ok((token_account.amount(), mint.decimals()))
     }
 
     pub fn get_latest_blockhash(&self) -> Result<Hash, NaclacClientError> {
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.latest_blockhash(),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
                 })?;
                 Ok(svm.latest_blockhash())
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => client
                 .get_latest_blockhash_with_commitment(self.commitment)
                 .map_err(|e| {
@@ -1067,12 +1148,15 @@ impl NaclacProvider {
         size: usize,
     ) -> Result<u64, NaclacClientError> {
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.minimum_balance_for_rent_exemption(size),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
                 })?;
                 Ok(svm.minimum_balance_for_rent_exemption(size))
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => client
                 .get_minimum_balance_for_rent_exemption(size)
                 .map_err(|e| {
@@ -1088,6 +1172,8 @@ impl NaclacProvider {
     ) -> Result<(), NaclacClientError> {
         let pubkey = Address::new_from_array(address.to_bytes());
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.airdrop(&pubkey, lamports),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -1097,6 +1183,7 @@ impl NaclacProvider {
                 })?;
                 Ok(())
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(client) => {
                 // Devnet's real faucet is rate-limited hard enough that a
                 // single over-large request routinely fails outright; cap
@@ -1147,6 +1234,8 @@ impl NaclacProvider {
     /// transactions in a test.
     pub fn expire_blockhash(&self) -> Result<(), NaclacClientError> {
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.expire_blockhash(),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -1154,6 +1243,7 @@ impl NaclacProvider {
                 svm.expire_blockhash();
                 Ok(())
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(_) => Err(NaclacClientError::General(
                 "expire_blockhash is only supported on the litesvm backend".to_string(),
             )),
@@ -1163,9 +1253,10 @@ impl NaclacProvider {
     /// Sets an account's lamport balance directly, bypassing normal transfer
     /// execution (and its rent-exemption rule) — `airdrop` goes through a
     /// real System Program transfer, which the runtime rejects if it would
-    /// leave a new account underfunded. Only supported on the litesvm
-    /// backend, since it writes ledger state that isn't reachable through a
-    /// real transaction.
+    /// leave a new account underfunded. Only supported on a local backend
+    /// (litesvm, or a custom one that implements [`Backend::set_account`]),
+    /// since it writes ledger state that isn't reachable through a real
+    /// transaction.
     pub fn set_account_lamports(
         &self,
         address: &solana_address::Address,
@@ -1173,6 +1264,12 @@ impl NaclacProvider {
     ) -> Result<(), NaclacClientError> {
         let pubkey = Address::new_from_array(address.to_bytes());
         match &self.backend {
+            ClientBackend::Custom(backend) => {
+                let mut account = backend.get_account(&pubkey)?.unwrap_or_default();
+                account.lamports = lamports;
+                backend.set_account(&pubkey, account)
+            }
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -1184,6 +1281,7 @@ impl NaclacProvider {
                 })?;
                 Ok(())
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(_) => Err(NaclacClientError::General(
                 "set_account_lamports is only supported on the litesvm backend".to_string(),
             )),
@@ -1196,10 +1294,12 @@ impl NaclacProvider {
     /// advances it on its own, so any test relying on real-looking on-chain
     /// timestamps (e.g. an emitted event's `timestamp` field, or a
     /// rate-limit computed from elapsed time) needs to set this explicitly.
-    /// Only supported on the litesvm backend, since a real RPC target's
-    /// clock reflects genuine chain time and can't be overwritten this way.
+    /// Only supported on a local backend, since a real RPC target's clock
+    /// reflects genuine chain time and can't be overwritten this way.
     pub fn set_clock_unix_timestamp(&self, unix_timestamp: i64) -> Result<(), NaclacClientError> {
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.set_clock_unix_timestamp(unix_timestamp),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -1209,6 +1309,7 @@ impl NaclacProvider {
                 svm.set_sysvar(&clock);
                 Ok(())
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(_) => Err(NaclacClientError::General(
                 "set_clock_unix_timestamp is only supported on the litesvm backend".to_string(),
             )),
@@ -1217,8 +1318,8 @@ impl NaclacProvider {
 
     /// Directly injects an account into ledger state — data, owner, and
     /// lamports all explicitly controlled — bypassing normal account
-    /// creation entirely. Only supported on the litesvm backend, since it
-    /// writes ledger state that isn't reachable through a real transaction.
+    /// creation entirely. Only supported on a local backend, since it writes
+    /// ledger state that isn't reachable through a real transaction.
     /// Needed for fixtures owned by a program this test doesn't itself
     /// deploy or control (e.g. a PDA whose real owner is a different,
     /// possibly not-yet-built program) — there is no other way to give such
@@ -1232,23 +1333,26 @@ impl NaclacProvider {
     ) -> Result<(), NaclacClientError> {
         let pubkey = Address::new_from_array(address.to_bytes());
         let owner_pubkey = Address::new_from_array(owner.to_bytes());
+        let account = Account {
+            lamports,
+            data,
+            owner: owner_pubkey,
+            executable: false,
+            rent_epoch: 0,
+        };
         match &self.backend {
+            ClientBackend::Custom(backend) => backend.set_account(&pubkey, account),
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
                 })?;
-                let account = Account {
-                    lamports,
-                    data,
-                    owner: owner_pubkey,
-                    executable: false,
-                    rent_epoch: 0,
-                };
                 svm.set_account(pubkey, account).map_err(|e| {
                     NaclacClientError::LiteSvmError(format!("set_account failed: {:?}", e))
                 })?;
                 Ok(())
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(_) => Err(NaclacClientError::General(
                 "set_account is only supported on the litesvm backend".to_string(),
             )),
@@ -1261,6 +1365,15 @@ impl NaclacProvider {
         path: &str,
     ) -> Result<(), NaclacClientError> {
         match &self.backend {
+            ClientBackend::Custom(backend) => {
+                let elf = std::fs::read(path).map_err(|e| {
+                    NaclacClientError::General(format!(
+                        "Failed to read program binary '{path}': {e}"
+                    ))
+                })?;
+                backend.add_program(&Address::new_from_array(program_id.to_bytes()), &elf)
+            }
+            #[cfg(feature = "litesvm")]
             ClientBackend::LiteSVM(svm_lock) => {
                 let mut svm = svm_lock.lock().map_err(|e| {
                     NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
@@ -1274,6 +1387,7 @@ impl NaclacProvider {
                 })?;
                 Ok(())
             }
+            #[cfg(feature = "rpc")]
             ClientBackend::Rpc(_) => {
                 // Loading program binary is a no-op on a live RPC network
                 Ok(())
@@ -1282,15 +1396,18 @@ impl NaclacProvider {
     }
 
     /// Fetches a deployed program's executable bytes from a live cluster and
-    /// loads them into this litesvm instance at `program_id` — for CPI
-    /// targets that live on a real network (e.g. mainnet) rather than in
-    /// this workspace. Mirrors `solana program dump`'s exact mechanism
+    /// loads them into this provider's local backend at `program_id` — for
+    /// CPI targets that live on a real network (e.g. mainnet) rather than in
+    /// this workspace. Needs the `rpc` feature to fetch, and a backend that
+    /// can load a program: the litesvm backend, or a custom one that
+    /// implements [`Backend::add_program`].
+    ///
+    /// The fetch mirrors `solana program dump`'s exact mechanism
     /// (`agave/cli/src/program.rs`, `process_dump`): non-upgradeable-loader
     /// accounts are used as-is; upgradeable-loader accounts are followed to
     /// their ProgramData account and stripped of its
     /// `UpgradeableLoaderState::size_of_programdata_metadata()`-byte header.
-    /// LoaderV4 is not supported, matching `dump`'s own scope. Only
-    /// supported on the litesvm backend.
+    /// LoaderV4 is not supported, matching `dump`'s own scope.
     ///
     /// The fetched bytes are cached process-wide, keyed by
     /// `(program_id, cluster_url)` — a test binary that calls this
@@ -1301,11 +1418,46 @@ impl NaclacProvider {
     /// up to 5 times (transient RPC/network errors only — a real "account
     /// not found" or "not an SBF program" is not retried, since retrying
     /// can't fix that) before giving up with a clear error.
+    #[cfg(feature = "rpc")]
     pub fn add_program_from_cluster(
         &self,
         program_id: &solana_address::Address,
         cluster_url: &str,
     ) -> Result<(), NaclacClientError> {
+        match &self.backend {
+            ClientBackend::Custom(backend) => {
+                let elf_bytes = self.fetch_program_elf(program_id, cluster_url)?;
+                backend.add_program(&Address::new_from_array(program_id.to_bytes()), &elf_bytes)
+            }
+            #[cfg(feature = "litesvm")]
+            ClientBackend::LiteSVM(svm_lock) => {
+                let elf_bytes = self.fetch_program_elf(program_id, cluster_url)?;
+                let mut svm = svm_lock.lock().map_err(|e| {
+                    NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
+                })?;
+                svm.add_program(Address::new_from_array(program_id.to_bytes()), &elf_bytes)
+                    .map_err(|e| {
+                        NaclacClientError::LiteSvmError(format!(
+                            "Failed to load fetched program bytes into LiteSVM: {:?}",
+                            e
+                        ))
+                    })?;
+                Ok(())
+            }
+            ClientBackend::Rpc(_) => Err(NaclacClientError::General(
+                "add_program_from_cluster needs a local backend (litesvm or a custom one), \
+                 not an RPC one"
+                    .to_string(),
+            )),
+        }
+    }
+
+    #[cfg(feature = "rpc")]
+    fn fetch_program_elf(
+        &self,
+        program_id: &solana_address::Address,
+        cluster_url: &str,
+    ) -> Result<Vec<u8>, NaclacClientError> {
         use {
             solana_loader_v3_interface::state::UpgradeableLoaderState,
             solana_sdk_ids::{bpf_loader, bpf_loader_deprecated, bpf_loader_upgradeable},
@@ -1348,153 +1500,136 @@ impl NaclacProvider {
         let cache = PROGRAM_BYTES_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
         let cache_key: ProgramCacheKey = (*program_id, cluster_url.to_string());
 
-        match &self.backend {
-            ClientBackend::LiteSVM(svm_lock) => {
-                let pubkey = Address::new_from_array(program_id.to_bytes());
+        let pubkey = Address::new_from_array(program_id.to_bytes());
 
-                let cached = cache
-                    .lock()
-                    .map_err(|e| {
-                        NaclacClientError::General(format!(
-                            "Failed to lock program-bytes cache: {}",
-                            e
-                        ))
-                    })?
-                    .get(&cache_key)
-                    .cloned();
+        let cached = cache
+            .lock()
+            .map_err(|e| {
+                NaclacClientError::General(format!("Failed to lock program-bytes cache: {}", e))
+            })?
+            .get(&cache_key)
+            .cloned();
+        if let Some(cached_bytes) = cached {
+            return Ok(cached_bytes);
+        }
 
-                let elf_bytes = if let Some(cached_bytes) = cached {
-                    cached_bytes
-                } else {
-                    let fetch_client = RpcClient::new(cluster_url.to_string());
+        let fetch_client = RpcClient::new(cluster_url.to_string());
 
-                    let account = fetch_account_with_retry(
-                        &fetch_client,
-                        &pubkey,
-                        self.commitment,
-                        "program account",
-                    )?
-                    .ok_or_else(|| NaclacClientError::AccountNotFound(program_id.to_string()))?;
+        let account =
+            fetch_account_with_retry(&fetch_client, &pubkey, self.commitment, "program account")?
+                .ok_or_else(|| NaclacClientError::AccountNotFound(program_id.to_string()))?;
 
-                    let elf_bytes = if account.owner == bpf_loader::id()
-                        || account.owner == bpf_loader_deprecated::id()
-                    {
-                        account.data
-                    } else if account.owner == bpf_loader_upgradeable::id() {
-                        let Ok(UpgradeableLoaderState::Program {
-                            programdata_address,
-                        }) = UpgradeableLoaderState::deserialize_from(&account.data[..])
-                        else {
-                            return Err(NaclacClientError::General(format!(
-                                "{} is not an upgradeable-loader program account",
-                                program_id
-                            )));
-                        };
-
-                        let programdata_account = fetch_account_with_retry(
-                            &fetch_client,
-                            &programdata_address,
-                            self.commitment,
-                            "ProgramData account",
-                        )?
-                        .ok_or_else(|| {
-                            NaclacClientError::General(format!(
-                                "Program {} has been closed (ProgramData account missing)",
-                                program_id
-                            ))
-                        })?;
-
-                        if !matches!(
-                            UpgradeableLoaderState::deserialize_from(&programdata_account.data[..]),
-                            Ok(UpgradeableLoaderState::ProgramData { .. })
-                        ) {
-                            return Err(NaclacClientError::General(format!(
-                                "Program {} has been closed",
-                                program_id
-                            )));
-                        }
-
-                        let offset = UpgradeableLoaderState::size_of_programdata_metadata();
-                        programdata_account.data[offset..].to_vec()
-                    } else {
-                        return Err(NaclacClientError::General(format!(
-                            "{} is not an SBF program (owner {} is not a supported loader — \
-                             LoaderV4 is not supported, matching `solana program dump`)",
-                            program_id, account.owner
-                        )));
-                    };
-
-                    cache
-                        .lock()
-                        .map_err(|e| {
-                            NaclacClientError::General(format!(
-                                "Failed to lock program-bytes cache: {}",
-                                e
-                            ))
-                        })?
-                        .insert(cache_key, elf_bytes.clone());
-
-                    elf_bytes
+        let elf_bytes =
+            if account.owner == bpf_loader::id() || account.owner == bpf_loader_deprecated::id() {
+                account.data
+            } else if account.owner == bpf_loader_upgradeable::id() {
+                let Ok(UpgradeableLoaderState::Program {
+                    programdata_address,
+                }) = UpgradeableLoaderState::deserialize_from(&account.data[..])
+                else {
+                    return Err(NaclacClientError::General(format!(
+                        "{} is not an upgradeable-loader program account",
+                        program_id
+                    )));
                 };
 
-                let mut svm = svm_lock.lock().map_err(|e| {
-                    NaclacClientError::General(format!("Failed to lock LiteSVM: {}", e))
-                })?;
-                svm.add_program(pubkey, &elf_bytes).map_err(|e| {
-                    NaclacClientError::LiteSvmError(format!(
-                        "Failed to load fetched program bytes into LiteSVM: {:?}",
-                        e
+                let programdata_account = fetch_account_with_retry(
+                    &fetch_client,
+                    &programdata_address,
+                    self.commitment,
+                    "ProgramData account",
+                )?
+                .ok_or_else(|| {
+                    NaclacClientError::General(format!(
+                        "Program {} has been closed (ProgramData account missing)",
+                        program_id
                     ))
                 })?;
-                Ok(())
-            }
-            ClientBackend::Rpc(_) => Err(NaclacClientError::General(
-                "add_program_from_cluster is only supported on the litesvm backend".to_string(),
-            )),
-        }
+
+                if !matches!(
+                    UpgradeableLoaderState::deserialize_from(&programdata_account.data[..]),
+                    Ok(UpgradeableLoaderState::ProgramData { .. })
+                ) {
+                    return Err(NaclacClientError::General(format!(
+                        "Program {} has been closed",
+                        program_id
+                    )));
+                }
+
+                let offset = UpgradeableLoaderState::size_of_programdata_metadata();
+                programdata_account.data[offset..].to_vec()
+            } else {
+                return Err(NaclacClientError::General(format!(
+                    "{} is not an SBF program (owner {} is not a supported loader — \
+                 LoaderV4 is not supported, matching `solana program dump`)",
+                    program_id, account.owner
+                )));
+            };
+
+        cache
+            .lock()
+            .map_err(|e| {
+                NaclacClientError::General(format!("Failed to lock program-bytes cache: {}", e))
+            })?
+            .insert(cache_key, elf_bytes.clone());
+
+        Ok(elf_bytes)
     }
 }
 
 static PROFILE_WRITE_LOCK: Mutex<()> = Mutex::new(());
 
-fn write_profile_log(tx: &VersionedTransaction, meta: &NaclacTransactionMetadata) {
-    if let Ok(file_path) = std::env::var("NACLAC_PROFILE_FILE") {
-        let mut instructions = Vec::new();
-        let message = &tx.message;
-        let static_account_keys = message.static_account_keys();
-        for ix in message.instructions() {
-            let program_id_index = ix.program_id_index as usize;
-            if program_id_index < static_account_keys.len() {
-                let prog_id = static_account_keys[program_id_index];
-                let data_hex = hex::encode(&ix.data);
-                instructions.push(serde_json::json!({
-                    "program_id": prog_id.to_string(),
-                    "data": data_hex,
-                }));
-            }
-        }
+/// Appends one record for `tx` to the file `NACLAC_PROFILE_FILE` names, when
+/// it is set. Any failure to record is an error, so a profile is never
+/// silently incomplete.
+fn write_profile_log(
+    tx: &VersionedTransaction,
+    meta: &NaclacTransactionMetadata,
+) -> Result<(), String> {
+    let file_path = match std::env::var("NACLAC_PROFILE_FILE") {
+        Ok(path) => path,
+        Err(std::env::VarError::NotPresent) => return Ok(()),
+        Err(e) => return Err(format!("NACLAC_PROFILE_FILE is not valid: {e}")),
+    };
 
-        let log_entry = serde_json::json!({
-            "instructions": instructions,
-            "compute_units_consumed": meta.compute_units_consumed,
-            "logs": meta.logs,
-        });
-
-        if let Ok(log_str) = serde_json::to_string(&log_entry) {
-            use std::{fs::OpenOptions, io::Write};
-            if let Some(parent) = std::path::Path::new(&file_path).parent() {
-                let _ = std::fs::create_dir_all(parent);
-            }
-            let _guard = PROFILE_WRITE_LOCK
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            if let Ok(mut file) = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&file_path)
-            {
-                let _ = writeln!(file, "{}", log_str);
-            }
-        }
+    let message = &tx.message;
+    let static_account_keys = message.static_account_keys();
+    let mut instructions = Vec::new();
+    for ix in message.instructions() {
+        let program_id_index = ix.program_id_index as usize;
+        let prog_id = static_account_keys.get(program_id_index).ok_or_else(|| {
+            format!(
+                "an instruction's program index {program_id_index} is outside the \
+                 transaction's {} static accounts",
+                static_account_keys.len()
+            )
+        })?;
+        instructions.push(serde_json::json!({
+            "program_id": prog_id.to_string(),
+            "data": hex::encode(&ix.data),
+        }));
     }
+
+    let log_entry = serde_json::json!({
+        "instructions": instructions,
+        "compute_units_consumed": meta.compute_units_consumed,
+        "logs": meta.logs,
+    });
+    let log_str = serde_json::to_string(&log_entry)
+        .map_err(|e| format!("could not serialize the profile record: {e}"))?;
+
+    use std::{fs::OpenOptions, io::Write};
+    if let Some(parent) = std::path::Path::new(&file_path).parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("could not create the folder of {file_path}: {e}"))?;
+    }
+    let _guard = PROFILE_WRITE_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&file_path)
+        .map_err(|e| format!("could not open {file_path}: {e}"))?;
+    writeln!(file, "{}", log_str).map_err(|e| format!("could not write to {file_path}: {e}"))
 }

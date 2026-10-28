@@ -1,3 +1,4 @@
+pub mod backend;
 pub mod builder;
 pub mod error;
 pub mod fetcher;
@@ -8,6 +9,7 @@ pub mod utils;
 // Custom AccountMeta and Address
 pub use solana_address::{address, Address};
 pub use {
+    backend::Backend,
     builder::InstructionBuilder,
     error::{decode_custom_error, translate_error_code, NaclacClientError, NaclacError},
     fetcher::{
@@ -15,8 +17,9 @@ pub use {
         AccountFetcher, NaclacDecode,
     },
     provider::{
-        ClientBackend, NaclacAllocEvent, NaclacEvent, NaclacInnerInstruction, NaclacProvider,
-        NaclacTransactionMetadata, RpcCluster, TransactionVersion,
+        translate_transaction_failure, ClientBackend, NaclacAllocEvent, NaclacEvent,
+        NaclacInnerInstruction, NaclacProvider, NaclacTransactionMetadata, RpcCluster,
+        TransactionVersion,
     },
     token::{Mint, TokenAccount},
     utils::{

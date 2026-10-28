@@ -22,7 +22,7 @@ pump-amm-client = { path = "../../../pump-amm/artifacts/clients/rust/pump_amm", 
 donation-relay-client = { path = "../../../../donation-relay/artifacts/clients/rust/donation_relay", default-features = false, features = ["cpi", "pinocchio"] }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../../client-rs" }
+naclac-client = { version = "0.1.0", path = "../../../../../client-rs", features = ["litesvm"] }
 pump-fees-client = { version = "0.1.0", path = "../../artifacts/clients/rust/pump_fees" }
 pump-client = { path = "../../../pump-bonding-curve/artifacts/clients/rust/pump", features = ["offchain"] }
 pump-amm-client = { path = "../../../pump-amm/artifacts/clients/rust/pump_amm", features = ["offchain"] }

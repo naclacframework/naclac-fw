@@ -12,6 +12,9 @@
 #   src/               the program source, identical in every mode
 #   tests/*.rs         the integration tests; every occurrence of the canonical
 #                      client crate name is renamed to the mode's own client crate
+# `client_features=` lists the `naclac-client` backend features the generated
+# programs' tests are built with, comma-separated (default `litesvm`; a suite
+# whose tests also talk to a network adds `rpc`).
 # `idl_build=true` declares the `idl-build` feature in every generated manifest,
 # for suites whose source or tests use `cfg(feature = "idl-build")`; the CLI then
 # generates their IDL by compiling the program instead of walking its source.
@@ -53,6 +56,7 @@ placeholder_id="11111111111111111111111111111111"
 description=""
 lang_features=""
 idl_build=""
+client_features="litesvm"
 declare -A family_client=()
 declare -A family_module=()
 declare -A family_base=()
@@ -81,6 +85,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     description=*) description=${line#description=} ;;
     lang_features=*) lang_features=${line#lang_features=} ;;
     idl_build=*) idl_build=${line#idl_build=} ;;
+    client_features=*) client_features=${line#client_features=} ;;
     client=*) family_client[_]=${line#client=} ;;
     client.*=*) key=${line#client.}; family_client["${key%%=*}"]=${key#*=} ;;
     module=*) family_module[_]=${line#module=} ;;
@@ -100,6 +105,11 @@ while IFS= read -r line || [ -n "$line" ]; do
     *) echo "gen-variants: cannot parse line: $line" >&2; exit 1 ;;
   esac
 done <"$conf"
+
+client_feature_items=""
+for feature in ${client_features//,/ }; do
+  client_feature_items+="${client_feature_items:+, }\"$feature\""
+done
 
 [ ${#names[@]} -gt 0 ] || { echo "gen-variants: $conf lists no programs" >&2; exit 1; }
 
@@ -254,7 +264,7 @@ $feature_lines
 naclac-lang = { version = "0.1.0", path = "../../../../lang"$default_features_off$lang_dep_features }$extra_dependencies
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
+naclac-client = { version = "0.1.0", path = "../../../../client-rs", features = [$client_feature_items] }
 $client_dep = { version = "0.1.0", path = "../../artifacts/clients/rust/$name" }$extra_dev_dependencies
 
 [lints]
@@ -264,6 +274,14 @@ EOF
   echo "$name = \"${known_ids[$name]:-$placeholder_id}\"" >>"$suite_dir/Naclac.toml.new"
   echo "gen-variants: $name ($runtime, $layout)"
 done
+
+if [ -d "$variants_dir/static" ]; then
+  for static_program in "$variants_dir"/static/*/; do
+    static_name=$(basename "$static_program")
+    echo "$static_name = \"${known_ids[$static_name]:-$placeholder_id}\"" >>"$suite_dir/Naclac.toml.new"
+    echo "gen-variants: $static_name (static)"
+  done
+fi
 
 cat >>"$suite_dir/Naclac.toml.new" <<'EOF'
 

@@ -4,7 +4,7 @@
 //! `set-authority`.
 
 use {
-    crate::ui,
+    crate::{commands::workspace, ui},
     flate2::{
         read::{GzDecoder, ZlibDecoder},
         write::ZlibEncoder,
@@ -26,7 +26,6 @@ use {
         path::{Path, PathBuf},
         str::FromStr,
     },
-    toml::Value,
 };
 
 /// Conservative per-transaction payload budget for `write`/inline calls —
@@ -34,84 +33,26 @@ use {
 /// for signatures, account keys, and the fixed instruction header.
 const CHUNK_SIZE: usize = 800;
 
+/// Folder under `artifacts/` that `naclac idl fetch` writes to unless `--dir`
+/// is given. Kept apart from `artifacts/idl`, which holds the IDLs generated
+/// from the local source under the same file names.
+const DEFAULT_FETCH_DIR: &str = "onchain-idl";
+
 struct NaclacConfig {
     cluster: String,
     wallet_path: String,
     rpc_url: String,
 }
 
-fn load_naclac_config() -> Option<NaclacConfig> {
-    let current_dir = std::env::current_dir().unwrap();
-    let toml_path = if current_dir.join("Naclac.toml").exists() {
-        current_dir.join("Naclac.toml")
-    } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir
-            .join("../../Naclac.toml")
-            .canonicalize()
-            .unwrap()
-    } else {
-        ui::error_line("Not a Naclac workspace. Run `naclac init` to initialize a new one.");
-        return None;
-    };
-
-    let content = match fs::read_to_string(&toml_path) {
-        Ok(c) => c,
-        Err(_) => {
-            ui::error_line("Found Naclac.toml but could not read it.");
-            return None;
-        }
-    };
-
-    let parsed: Value = match toml::from_str(&content) {
-        Ok(v) => v,
-        Err(_) => {
-            ui::error_line("Naclac.toml is malformed — check its format.");
-            return None;
-        }
-    };
-
-    let cluster = parsed
-        .get("provider")
-        .and_then(|p| p.get("cluster"))
-        .and_then(|c| c.as_str())
-        .unwrap_or("devnet")
-        .to_string();
-
-    let raw_wallet = parsed
-        .get("provider")
-        .and_then(|p| p.get("wallet"))
-        .and_then(|w| w.as_str())
-        .unwrap_or("~/.config/solana/id.json")
-        .to_string();
-
-    let wallet_path = if raw_wallet.starts_with("~/") {
-        let home = std::env::var("HOME")
-            .unwrap_or_else(|_| std::env::var("USERPROFILE").unwrap_or_else(|_| ".".to_string()));
-        raw_wallet.replacen("~", &home, 1)
-    } else {
-        raw_wallet
-    };
-
-    let rpc_url = match cluster.to_lowercase().as_str() {
-        "mainnet" | "mainnet-beta" => "https://api.mainnet-beta.solana.com".to_string(),
-        "devnet" => "https://api.devnet.solana.com".to_string(),
-        "testnet" => "https://api.testnet.solana.com".to_string(),
-        "localnet" | "localhost" => "http://127.0.0.1:8899".to_string(),
-        url if url.starts_with("http") => url.to_string(),
-        other => {
-            ui::warn(format!(
-                "Unknown cluster '{}' in Naclac.toml — defaulting to devnet.",
-                other
-            ));
-            "https://api.devnet.solana.com".to_string()
-        }
-    };
-
-    Some(NaclacConfig {
+fn load_naclac_config() -> NaclacConfig {
+    let root = workspace::root();
+    let config = workspace::config(&root);
+    let cluster = workspace::cluster(&config);
+    NaclacConfig {
+        rpc_url: workspace::rpc_url(&cluster),
+        wallet_path: workspace::wallet(&config).to_string_lossy().into_owned(),
         cluster,
-        wallet_path,
-        rpc_url,
-    })
+    }
 }
 
 fn load_keypair(wallet_path: &str) -> Option<Keypair> {
@@ -138,26 +79,14 @@ fn load_keypair(wallet_path: &str) -> Option<Keypair> {
     Some(Keypair::new_from_array(secret))
 }
 
-fn workspace_root() -> PathBuf {
-    let current_dir = std::env::current_dir().unwrap();
-    if current_dir.join("Naclac.toml").exists() {
-        current_dir
-    } else {
-        current_dir.join("../..").canonicalize().unwrap()
-    }
-}
-
+/// The name of the program listed at `id` in `[programs.<cluster>]`, if any.
 fn find_program_name(workspace_root: &Path, id: &str, cluster: &str) -> Option<String> {
-    let toml_path = workspace_root.join("Naclac.toml");
-    let content = fs::read_to_string(toml_path).ok()?;
-    let parsed: Value = toml::from_str(&content).ok()?;
-    let programs = parsed.get("programs")?.get(cluster)?.as_table()?;
-    for (name, val) in programs {
-        if val.as_str()? == id {
-            return Some(name.clone());
-        }
-    }
-    None
+    let config = workspace::config(workspace_root);
+    let programs = config.get("programs")?.get(cluster)?.as_table()?;
+    programs
+        .iter()
+        .find(|(_, address)| address.as_str() == Some(id))
+        .map(|(name, _)| name.clone())
 }
 
 /// True if it's safe to proceed — `naclac idl` commands only support
@@ -180,10 +109,7 @@ fn require_non_local_cluster(config: &NaclacConfig) -> bool {
 }
 
 pub fn execute_upload(program_id_str: &str) {
-    let config = match load_naclac_config() {
-        Some(c) => c,
-        None => return,
-    };
+    let config = load_naclac_config();
 
     if !require_non_local_cluster(&config) {
         return;
@@ -197,7 +123,7 @@ pub fn execute_upload(program_id_str: &str) {
         }
     };
 
-    let root = workspace_root();
+    let root = workspace::root();
 
     let program_name = match find_program_name(&root, program_id_str, &config.cluster) {
         Some(name) => name,
@@ -611,7 +537,7 @@ fn update_existing(
 fn common_setup(
     program_id_str: &str,
 ) -> Option<(NaclacConfig, Address, Address, Address, Keypair, RpcClient)> {
-    let config = load_naclac_config()?;
+    let config = load_naclac_config();
     if !require_non_local_cluster(&config) {
         return None;
     }
@@ -767,11 +693,18 @@ pub fn execute_set_authority(program_id_str: &str, new_authority: Option<&str>, 
     }
 }
 
-pub fn execute_fetch(program_id_str: &str, output: Option<&str>) {
-    let config = match load_naclac_config() {
-        Some(c) => c,
-        None => return,
-    };
+/// Writes the IDL uploaded for `program_id_str` to `<dir>/<file_name>.json`
+/// (`file_name` defaults to the program's name in Naclac.toml, `dir` to
+/// `artifacts/onchain-idl`) and never overwrites a file; with `stdout` it
+/// prints the IDL instead.
+pub fn execute_fetch(
+    program_id_str: &str,
+    program_name: Option<&str>,
+    file_name: Option<&str>,
+    dir: Option<&str>,
+    stdout: bool,
+) {
+    let config = load_naclac_config();
 
     if !require_non_local_cluster(&config) {
         return;
@@ -848,24 +781,55 @@ pub fn execute_fetch(program_id_str: &str, output: Option<&str>) {
         return;
     }
 
-    let default_path = || {
-        let root = workspace_root();
-        let name = find_program_name(&root, program_id_str, &config.cluster)?;
-        Some(naclac_client_gen::idl_dir(&root).join(format!("{}.onchain.json", name)))
-    };
+    if stdout {
+        print!("{}", String::from_utf8_lossy(&decompressed));
+        return;
+    }
 
-    match output.map(PathBuf::from).or_else(default_path) {
-        Some(path) => {
-            if let Some(parent) = path.parent() {
-                let _ = fs::create_dir_all(parent);
-            }
-            match fs::write(&path, &decompressed) {
-                Ok(_) => ui::success(format!("IDL written to {}", path.display())),
-                Err(e) => ui::error_line(format!("Failed to write to {}: {}", path.display(), e)),
+    let file_name = match (file_name, program_name) {
+        (Some(file_name), _) => file_name,
+        (None, Some(program_name)) => program_name,
+        (None, None) => ui::error(format!(
+            "{program_id_str} is not listed in `[programs.{}]`, so it has no default file \
+             name. Choose one with --name.",
+            config.cluster
+        )),
+    };
+    if file_name.contains('/') || file_name.contains('\\') {
+        ui::error("`--name` is a file name, not a path; choose the folder with --dir.");
+    }
+
+    let dir = match dir {
+        Some(dir) => {
+            let dir = PathBuf::from(dir);
+            match fs::metadata(&dir) {
+                Ok(metadata) if metadata.is_dir() => dir,
+                Ok(_) => ui::error(format!("`--dir` {} is not a folder.", dir.display())),
+                Err(e) => ui::error(format!("Cannot use `--dir` {}: {e}", dir.display())),
             }
         }
         None => {
-            print!("{}", String::from_utf8_lossy(&decompressed));
+            let dir = naclac_client_gen::artifacts_dir(&workspace::root()).join(DEFAULT_FETCH_DIR);
+            fs::create_dir_all(&dir)
+                .unwrap_or_else(|e| ui::error(format!("Cannot create {}: {e}", dir.display())));
+            dir
         }
-    }
+    };
+
+    let path = dir.join(format!("{file_name}.json"));
+    let mut file = match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+    {
+        Ok(file) => file,
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => ui::error(format!(
+            "{} already exists. Choose another name with --name, or another folder with --dir.",
+            path.display()
+        )),
+        Err(e) => ui::error(format!("Cannot create {}: {e}", path.display())),
+    };
+    file.write_all(&decompressed)
+        .unwrap_or_else(|e| ui::error(format!("Failed to write {}: {e}", path.display())));
+    ui::success(format!("IDL written to {}", path.display()));
 }

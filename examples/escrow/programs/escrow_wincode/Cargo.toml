@@ -22,7 +22,7 @@ wincode = ["naclac-lang/wincode"]
 naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false, features = ["token"] }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../client-rs" }
+naclac-client = { version = "0.1.0", path = "../../../../client-rs", features = ["litesvm"] }
 escrow-wincode-client = { version = "0.1.0", path = "../../artifacts/clients/rust/escrow_wincode" }
 
 [lints]

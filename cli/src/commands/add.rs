@@ -1,9 +1,16 @@
 use {
-    crate::commands::init::{
-        templates::{
-            generate_program, parse_ts_framework, prompt_ts_framework, resolve_mode, TsFramework,
+    crate::{
+        commands::{
+            init::{
+                templates::{
+                    generate_program, parse_ts_framework, prompt_ts_framework, resolve_mode,
+                    TsFramework,
+                },
+                utils::generate_keypair,
+            },
+            programs, workspace,
         },
-        utils::generate_keypair,
+        ui,
     },
     heck::ToSnakeCase,
     std::fs,
@@ -15,16 +22,17 @@ pub fn execute(
     mode_flag: Option<&str>,
     ts_flag: Option<&str>,
 ) {
-    let current_dir = std::env::current_dir().unwrap();
+    let workspace_root = workspace::root();
 
-    let workspace_root = if current_dir.join("Naclac.toml").exists() {
-        current_dir.clone()
-    } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../..").canonicalize().unwrap()
-    } else {
-        eprintln!("❌ Error: Could not find Naclac.toml. Are you inside a Naclac Workspace?");
-        std::process::exit(1);
-    };
+    let config_path = workspace_root.join("Naclac.toml");
+    let config_text = fs::read_to_string(&config_path)
+        .unwrap_or_else(|e| ui::error(format!("Cannot read {}: {e}", config_path.display())));
+    if !programs::has_programs_table(&config_text) {
+        ui::error(
+            "Naclac.toml has no `[programs.<cluster>]` table to add the program to. Add one, \
+             e.g. `[programs.localnet]`.",
+        );
+    }
 
     let snake_name = name.to_snake_case();
     let program_dir = workspace_root.join("programs").join(&snake_name);
@@ -49,7 +57,11 @@ pub fn execute(
         }
     } else {
         let pkg_path = workspace_root.join("package.json");
-        let pkg_content = fs::read_to_string(&pkg_path).unwrap_or_default();
+        let pkg_content = match fs::read_to_string(&pkg_path) {
+            Ok(content) => content,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(e) => ui::error(format!("Cannot read {}: {e}", pkg_path.display())),
+        };
         if pkg_content.contains("\"@solana/kit\"") {
             TsFramework::Kit
         } else if pkg_content.contains("\"@solana/web3.js\"") {
@@ -70,30 +82,15 @@ pub fn execute(
 
     generate_program(&workspace_root, name, &address, mode, ts_framework, false);
 
-    let config_path = workspace_root.join("Naclac.toml");
-    let mut config_text = fs::read_to_string(&config_path).unwrap_or_default();
-
-    let target_section = if config_text.contains("[programs.localnet]") {
-        "[programs.localnet]"
-    } else if config_text.contains("[programs.devnet]") {
-        "[programs.devnet]"
-    } else {
-        ""
-    };
-
-    if !target_section.is_empty() {
-        if let Some(pos) = config_text.find(target_section) {
-            let insert_idx = pos + target_section.len();
-            config_text.insert_str(insert_idx, &format!("\n{} = \"{}\"", snake_name, address));
-            fs::write(&config_path, config_text).unwrap();
-        }
-    } else {
-        config_text.push_str(&format!(
-            "\n\n[programs.localnet]\n{} = \"{}\"",
-            snake_name, address
-        ));
-        fs::write(&config_path, config_text).unwrap();
-    }
+    // Read again: generating the program may have changed Naclac.toml.
+    let config_text = fs::read_to_string(&config_path)
+        .unwrap_or_else(|e| ui::error(format!("Cannot read {}: {e}", config_path.display())));
+    let updated =
+        programs::with_added_program(&config_text, &snake_name, &address).unwrap_or_else(|| {
+            ui::error("Naclac.toml has no `[programs.<cluster>]` table to add the program to.")
+        });
+    fs::write(&config_path, updated)
+        .unwrap_or_else(|e| ui::error(format!("Cannot write {}: {e}", config_path.display())));
 
     println!("✅ Securely mapped Program ID: {}", address);
     println!(

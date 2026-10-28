@@ -1,67 +1,43 @@
 use {
-    crate::ui,
+    crate::{
+        commands::{programs, workspace},
+        ui,
+    },
     solana_address::Address,
-    solana_keypair::Keypair,
-    solana_signer::Signer,
-    std::{fs, process::Command, str::FromStr},
+    std::{process::Command, str::FromStr},
 };
 
-pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&str>) {
-    let program_id = match Address::from_str(program_id_str) {
-        Ok(pk) => pk,
-        Err(_) => {
-            ui::error_line("Invalid program address string.");
-            return;
-        }
-    };
+pub fn execute(
+    program_id_str: &String,
+    name: Option<&str>,
+    filepath: Option<&str>,
+    buffer: Option<&str>,
+) {
+    let program_id = Address::from_str(program_id_str).unwrap_or_else(|_| {
+        ui::error(format!(
+            "`{program_id_str}` is not a valid program address."
+        ))
+    });
 
-    let current_dir = std::env::current_dir().unwrap();
-    let workspace_root = if current_dir.join("Naclac.toml").exists() {
-        current_dir.clone()
-    } else if current_dir.join("../../Naclac.toml").exists() {
-        current_dir.join("../..").canonicalize().unwrap()
-    } else {
-        ui::error_line("Could not find Naclac.toml.");
-        return;
-    };
+    let workspace_root = workspace::root();
+    let config = workspace::config(&workspace_root);
+    let cluster = workspace::cluster(&config);
+    let wallet_path = workspace::wallet(&config);
+    let rpc_url = workspace::rpc_url(&cluster);
 
-    let toml_path = workspace_root.join("Naclac.toml");
-    let content = fs::read_to_string(&toml_path).unwrap_or_default();
-    let parsed: toml::Value =
-        toml::from_str(&content).unwrap_or(toml::Value::Table(Default::default()));
-
-    let cluster = parsed
-        .get("provider")
-        .and_then(|p| p.get("cluster"))
-        .and_then(|c| c.as_str())
-        .unwrap_or("devnet")
-        .to_string();
-
-    let raw_wallet = parsed
-        .get("provider")
-        .and_then(|p| p.get("wallet"))
-        .and_then(|w| w.as_str())
-        .unwrap_or("~/.config/solana/id.json")
-        .to_string();
-
-    let wallet_path = if raw_wallet.starts_with("~/") {
-        let home = std::env::var("HOME")
-            .unwrap_or_else(|_| std::env::var("USERPROFILE").unwrap_or_else(|_| ".".to_string()));
-        raw_wallet.replacen("~", &home, 1)
-    } else {
-        raw_wallet
-    };
-
-    let rpc_url = match cluster.to_lowercase().as_str() {
-        "mainnet" | "mainnet-beta" => "https://api.mainnet-beta.solana.com".to_string(),
-        "localnet" | "localhost" => "http://127.0.0.1:8899".to_string(),
-        url if url.starts_with("http") => url.to_string(),
-        _ => "https://api.devnet.solana.com".to_string(),
-    };
+    match name {
+        Some(name) => programs::require_synced_ids(&workspace_root, name, program_id_str),
+        None => ui::warn(format!(
+            "{program_id} is not listed in `[programs.{cluster}]`; its keypair, lib.rs and \
+             Naclac.toml addresses were not checked."
+        )),
+    }
 
     ui::info(format!(
         "Upgrading {} on {} via {}",
-        program_id, cluster, wallet_path
+        program_id,
+        cluster,
+        wallet_path.display()
     ));
 
     if let Some(buf) = buffer {
@@ -91,73 +67,25 @@ pub fn execute(program_id_str: &String, filepath: Option<&str>, buffer: Option<&
     } else {
         let deploy_dir = naclac_client_gen::deploy_dir(&workspace_root);
 
-        let so_file_path = if let Some(path) = filepath {
-            path.to_string()
-        } else {
-            let mut resolved_so = None;
-
-            if deploy_dir.exists() {
-                if let Ok(entries) = std::fs::read_dir(&deploy_dir) {
-                    let mut so_files = Vec::new();
-                    for entry in entries.flatten() {
-                        let path = entry.path();
-                        if let Some(ext) = path.extension() {
-                            if ext == "so" {
-                                so_files.push(path.clone());
-                            } else if ext == "json"
-                                && path
-                                    .file_stem()
-                                    .unwrap()
-                                    .to_string_lossy()
-                                    .ends_with("-keypair")
-                            {
-                                // Extract the keypair and see if it matches our target program_id
-                                if let Ok(key_bytes) = fs::read_to_string(&path) {
-                                    if let Ok(bytes) = serde_json::from_str::<Vec<u8>>(&key_bytes) {
-                                        if bytes.len() >= 32 {
-                                            let secret: [u8; 32] = bytes[..32].try_into().unwrap();
-                                            let kp = Keypair::new_from_array(secret);
-                                            if kp.pubkey() == program_id {
-                                                let base_name = path
-                                                    .file_stem()
-                                                    .unwrap()
-                                                    .to_string_lossy()
-                                                    .replace("-keypair", "");
-                                                let target_so =
-                                                    deploy_dir.join(format!("{}.so", base_name));
-                                                if target_so.exists() {
-                                                    resolved_so = Some(
-                                                        target_so.to_string_lossy().into_owned(),
-                                                    );
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Fallback to single .so auto-discovery if public key correlation didn't natively resolve
-                    if resolved_so.is_none() && so_files.len() == 1 {
-                        resolved_so = Some(so_files[0].to_string_lossy().into_owned());
-                    } else if resolved_so.is_none() && so_files.len() > 1 {
-                        ui::error(format!(
-                            "Multiple .so files found in artifacts/deploy/ without matching \
-                             keypairs — specify the filepath manually for program {}",
-                            program_id
-                        ));
-                    }
+        let so_file_path = match (filepath, name) {
+            (Some(path), _) => path.to_string(),
+            (None, Some(name)) => {
+                let so_file = deploy_dir.join(format!("{name}.so"));
+                let built = so_file.try_exists().unwrap_or_else(|e| {
+                    ui::error(format!("Cannot check for {}: {e}", so_file.display()))
+                });
+                if !built {
+                    ui::error(format!(
+                        "No compiled program for '{name}' at {}. Run `naclac build` first.",
+                        so_file.display()
+                    ));
                 }
+                so_file.to_string_lossy().into_owned()
             }
-
-            resolved_so.unwrap_or_else(|| {
-                ui::error(format!(
-                    "No compiled .so program found for {} — run `naclac build` first.",
-                    program_id
-                ))
-            })
+            (None, None) => ui::error(format!(
+                "{program_id} is not listed in `[programs.{cluster}]`, so its compiled program \
+                 cannot be found. Pass it with --filepath."
+            )),
         };
 
         let mut deploy_cmd = Command::new("solana")

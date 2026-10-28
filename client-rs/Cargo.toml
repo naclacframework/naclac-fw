@@ -6,38 +6,51 @@ license.workspace = true
 repository.workspace = true
 description = "Naclac Framework Rust Client & Testing Runtime Library"
 
+[features]
+litesvm = ["dep:litesvm"]
+rpc = [
+    "dep:solana-rpc-client",
+    "dep:solana-rpc-client-api",
+    "dep:solana-transaction-status-client-types",
+    "dep:solana-account-decoder-client-types",
+]
+
+[[test]]
+name = "transaction_modes"
+required-features = ["litesvm"]
+
+[[test]]
+name = "cpi_alt_devnet"
+required-features = ["rpc"]
+
 [dependencies]
 naclac-core = { workspace = true, features = ["solana"] }
 naclac-pod = { workspace = true, features = ["solana", "alloc"] }
-solana-rpc-client = { workspace = true }
-solana-rpc-client-api = { workspace = true }
+solana-rpc-client = { workspace = true, optional = true }
+solana-rpc-client-api = { workspace = true, optional = true }
 solana-keypair = { workspace = true }
 solana-signer = { workspace = true }
-solana-transaction = { workspace = true }
+solana-transaction = { workspace = true, features = ["wincode"] }
 solana-address = { workspace = true, features = ["curve25519"] }
 solana-signature = { workspace = true }
 solana-instruction-error = { workspace = true }
 solana-instruction = { workspace = true }
 solana-system-interface = { workspace = true }
-solana-loader-v3-interface = { workspace = true }
+solana-loader-v3-interface = { workspace = true, features = ["wincode"] }
 solana-sdk-ids = { workspace = true }
 solana-hash = { workspace = true }
-solana-program-pack = { workspace = true }
 solana-sysvar = { workspace = true }
 solana-clock = { workspace = true }
 wincode = { workspace = true }
-litesvm = { workspace = true }
+litesvm = { workspace = true, optional = true }
 borsh = { workspace = true, default-features = false, features = ["derive"] }
 bytemuck = { workspace = true, features = ["derive"] }
 solana-account = { workspace = true, features = ["bincode"] }
-solana-transaction-status = { workspace = true, features = ["agave-unstable-api"] }
+solana-transaction-status-client-types = { workspace = true, optional = true, features = ["agave-unstable-api"] }
 solana-commitment-config = { workspace = true }
 solana-message = { workspace = true }
 bs58 = { workspace = true }
-spl-token = { workspace = true }
-spl-token-2022 = { workspace = true }
-spl-associated-token-account = { workspace = true }
-solana-account-decoder = { workspace = true, features = ["agave-unstable-api"] }
+solana-account-decoder-client-types = { workspace = true, optional = true, features = ["agave-unstable-api"] }
 thiserror = { workspace = true }
 serde_json = { workspace = true }
 base64 = { workspace = true }
@@ -45,7 +58,12 @@ hex = { workspace = true }
 
 [dev-dependencies]
 bincode = "1.3"
+solana-transaction = { workspace = true, features = ["serde"] }
 solana-address-lookup-table-interface = { version = "^3", features = ["bincode"] }
+solana-program-pack = { workspace = true }
+spl-token = { workspace = true }
+spl-token-2022 = { workspace = true }
+spl-associated-token-account = { workspace = true }
 
 [lints]
 workspace = true

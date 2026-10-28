@@ -264,7 +264,7 @@ debug-mode = []
 {deps_snippet}
 
 [dev-dependencies]
-naclac-client = {{ version = "0.1.0"{naclac_client_path} }}
+naclac-client = {{ version = "0.1.0"{naclac_client_path}, features = ["litesvm"] }}
 {pname_kebab}-client = {{ version = "0.1.0", path = "../../artifacts/clients/rust/{snake_name}" }}
 
 [lints]

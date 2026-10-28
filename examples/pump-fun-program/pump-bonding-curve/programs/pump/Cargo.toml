@@ -21,7 +21,7 @@ pump-fees-client = { path = "../../../pump-fees/artifacts/clients/rust/pump_fees
 pump-amm-client = { path = "../../../pump-amm/artifacts/clients/rust/pump_amm", default-features = false, features = ["cpi", "pinocchio"] }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../../client-rs" }
+naclac-client = { version = "0.1.0", path = "../../../../../client-rs", features = ["litesvm"] }
 pump-client = { version = "0.1.0", path = "../../artifacts/clients/rust/pump" }
 pump-fees-client = { version = "0.1.0", path = "../../../pump-fees/artifacts/clients/rust/pump_fees", features = ["offchain"] }
 pump-amm-client = { version = "0.1.0", path = "../../../pump-amm/artifacts/clients/rust/pump_amm", features = ["offchain"] }

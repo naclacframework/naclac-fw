@@ -20,7 +20,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../../lang", default-feature
 amm-client = { path = "../../artifacts/clients/rust/amm", default-features = false, features = ["cpi", "borsh", "solana"] }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../../client-rs" }
+naclac-client = { version = "0.1.0", path = "../../../../../client-rs", features = ["litesvm"] }
 token-creator-client = { version = "0.1.0", path = "../../artifacts/clients/rust/token_creator" }
 amm-client = { path = "../../artifacts/clients/rust/amm" }
 
