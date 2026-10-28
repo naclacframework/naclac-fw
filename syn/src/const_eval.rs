@@ -1,5 +1,6 @@
-//! Evaluation of `const` initializer expressions for the AST IDL generator,
-//! which has no compiler to do it. The result is the constant's `Debug` text,
+//! Evaluation of `const` initializer expressions without a compiler, for the
+//! array lengths and constant references the macros resolve at expansion
+//! time. The result is the constant's `Debug` text,
 //! byte for byte what the compiled `idl-build` path prints for the same
 //! constant, so both IDLs report one value.
 //!

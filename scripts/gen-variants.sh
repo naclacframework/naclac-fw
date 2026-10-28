@@ -15,9 +15,8 @@
 # `client_features=` lists the `naclac-client` backend features the generated
 # programs' tests are built with, comma-separated (default `litesvm`; a suite
 # whose tests also talk to a network adds `rpc`).
-# `idl_build=true` declares the `idl-build` feature in every generated manifest,
-# for suites whose source or tests use `cfg(feature = "idl-build")`; the CLI then
-# generates their IDL by compiling the program instead of walking its source.
+# Every generated manifest declares the `idl-build` feature the CLI generates
+# the IDL from by compiling the program.
 # `from.<family>=<dir>` makes a family reuse another source directory (`.` is the
 # variants root) so it can differ from it only by rewrite rules.
 # `base.<family>=<name>` names the program whose name has no mode suffix; the rest
@@ -55,7 +54,6 @@ conf="$variants_dir/variants.conf"
 placeholder_id="11111111111111111111111111111111"
 description=""
 lang_features=""
-idl_build=""
 client_features="litesvm"
 declare -A family_client=()
 declare -A family_module=()
@@ -84,7 +82,6 @@ while IFS= read -r line || [ -n "$line" ]; do
     ''|'#'*) continue ;;
     description=*) description=${line#description=} ;;
     lang_features=*) lang_features=${line#lang_features=} ;;
-    idl_build=*) idl_build=${line#idl_build=} ;;
     client_features=*) client_features=${line#client_features=} ;;
     client=*) family_client[_]=${line#client=} ;;
     client.*=*) key=${line#client.}; family_client["${key%%=*}"]=${key#*=} ;;
@@ -173,9 +170,7 @@ for i in "${!names[@]}"; do
 
   lang_dep_features=""
   [ -z "$lang_feature_list" ] || lang_dep_features=", features = [$lang_feature_list]"
-  if [ "$idl_build" = true ]; then
-    feature_lines+=$'\n'"idl-build = [\"naclac-lang/idl-build\"]"
-  fi
+  feature_lines+=$'\n'"idl-build = [\"naclac-lang/idl-build\"]"
 
   family=${families[$i]}
   source_dir="$variants_dir${family:+/$family}"
@@ -284,6 +279,9 @@ if [ -d "$variants_dir/static" ]; then
 fi
 
 cat >>"$suite_dir/Naclac.toml.new" <<'EOF'
+
+[framework]
+path = "../.."
 
 [provider]
 cluster = "localnet"

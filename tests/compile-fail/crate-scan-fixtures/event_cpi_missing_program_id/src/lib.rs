@@ -1,8 +1,6 @@
-//! Must FAIL: `#[event_cpi]` is in use but `Naclac.toml` has no entry for
-//! this crate, so the event authority PDA cannot be derived at compile time.
+//! Must FAIL: this program never declares its address with `declare_id!`, so
+//! there is no program id to build for.
 use naclac_lang::prelude::*;
-
-declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
 
 #[event_cpi]
 #[derive(Accounts)]

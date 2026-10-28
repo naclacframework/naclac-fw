@@ -3,6 +3,8 @@
 // perfectly valid when no handler's accounts struct uses `#[event_cpi]`.
 use naclac_lang::prelude::*;
 
+declare_id!("11111111111111111111111111111111");
+
 #[derive(Accounts)]
 pub struct Plain {}
 

@@ -18,6 +18,7 @@ fn messages(tag: &str, lib_rs: &str) -> Vec<String> {
     ));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("src")).unwrap();
+    fs::write(dir.join("Cargo.toml"), "[package]\nname = \"sample\"\n").unwrap();
     fs::write(dir.join("src/lib.rs"), lib_rs).unwrap();
     let modules = crate_modules(&dir);
     let found: Vec<String> = violations(&declarations(&modules).unwrap())
@@ -139,6 +140,7 @@ fn clashing_declarations_that_never_coexist_carry_their_cfgs() {
     let dir = std::env::temp_dir().join(format!("naclac-syn-idl-items-cfg-{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("src")).unwrap();
+    fs::write(dir.join("Cargo.toml"), "[package]\nname = \"sample\"\n").unwrap();
     fs::write(
         dir.join("src/lib.rs"),
         r#"

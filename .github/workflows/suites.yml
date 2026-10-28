@@ -185,45 +185,10 @@ jobs:
       - run: cargo test --locked --test compile_fail
         working-directory: tests/compile-fail
 
-  idl-parity:
-    name: idl parity
-    needs: [plan, cli]
-    if: needs.plan.outputs.full == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - name: Free runner disk
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: tests/idl-parity/.work
-          save-if: ${{ github.ref_name == 'main' || github.ref_name == 'pending' }}
-
-      - name: Install Solana CLI
-        run: |
-          sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: naclac-bin
-          path: ${{ runner.temp }}/bin
-
-      - name: Put naclac on PATH
-        run: |
-          chmod +x "${{ runner.temp }}/bin/naclac"
-          echo "${{ runner.temp }}/bin" >> "$GITHUB_PATH"
-
-      - run: bash run.sh
-        working-directory: tests/idl-parity
-
   all-green:
     name: all suites green
     if: always()
-    needs: [cli, suite, client-ts, compile-fail, idl-parity]
+    needs: [cli, suite, client-ts, compile-fail]
     runs-on: ubuntu-latest
     steps:
       - run: |

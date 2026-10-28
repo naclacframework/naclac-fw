@@ -9,10 +9,7 @@ use {
     syn::{parse_macro_input, FnArg, Item, ItemMod, Pat, Type},
 };
 
-/// Real `idl-build` assembler — replaces the old `idl_json_const` (removed;
-/// it called `naclac_idl::generate_idl`, the AST walker, at macro-expansion
-/// time, exactly the approach this migration exists to replace — see
-/// docs/plan/idl-build-compilation-migration.md). One instruction's worth of
+/// Real `idl-build` assembler. One instruction's worth of
 /// data the main `#[program]` loop already extracts for dispatch codegen,
 /// captured a second time (owned, cloned) for the idl-build assembler built
 /// after that loop finishes.
@@ -48,10 +45,7 @@ fn unreachable_item_error(
 /// coexist, so the compiler decides whether the build is affected. A
 /// malformed `#[error_code]` argument is left to that macro to report.
 fn idl_rule_errors() -> proc_macro2::TokenStream {
-    let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") else {
-        return quote! {};
-    };
-    let modules = naclac_syn::modules::crate_modules(std::path::Path::new(&manifest_dir));
+    let modules = naclac_syn::modules::crate_modules(&crate::manifest_dir());
     let Ok(declarations) = naclac_syn::idl_items::declarations(&modules) else {
         return quote! {};
     };
@@ -104,9 +98,7 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
     let idl = quote! { naclac_lang::naclac_idl };
 
     let handler_names: Vec<String> = ixs.iter().map(|ix| ix.name.to_string()).collect();
-    let mut instruction_docs = std::env::var("CARGO_MANIFEST_DIR")
-        .map(|dir| naclac_syn::instruction_docs(std::path::Path::new(&dir), &handler_names))
-        .unwrap_or_default();
+    let mut instruction_docs = naclac_syn::instruction_docs(&crate::manifest_dir(), &handler_names);
 
     let constants = crate::crate_constants();
     let aliases = crate::crate_aliases();
@@ -225,8 +217,9 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
     // `CARGO_FEATURE_*` env vars (a build-script-only Cargo convention, not
     // something a proc-macro's own process ever receives) are not a
     // reliable signal here, unlike this function-level `#[cfg(...)]` split.
-    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
-        let program_dir = std::path::Path::new(&manifest_dir);
+    {
+        let manifest_dir = crate::manifest_dir();
+        let program_dir = manifest_dir.as_path();
 
         for item in naclac_syn::names::scan_tagged_items(program_dir, "component") {
             let Ok(path) =
@@ -400,8 +393,7 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
                 })
                 .collect();
 
-            // Top-level `pdas` — mirrors the AST walker's own logic exactly
-            // (`idl/src/lib.rs`'s "Top-level PDAs array" section):
+            // Top-level `pdas`:
             // deduplicate every instruction's per-account PDA by account
             // name, from data already resolved above — no new discovery
             // needed, unlike constants/events/errors.
@@ -424,8 +416,7 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
                 .collect();
 
             // A seed constant not `#[constant]`-tagged still needs to end
-            // up in the top-level `constants` list, matching the AST
-            // walker's own "used, even if untagged" rule. Its declared type
+            // up in the top-level `constants` list. Its declared type
             // and value come from evaluating the crate's own `pub const`
             // (`__crate_consts`), deduplicated against any already-tagged
             // entry by name; a name with no such constant falls back to the
@@ -780,6 +771,16 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let mod_name = &module.ident;
     let mod_vis = &module.vis;
 
+    let (declared_address, declaring_file) =
+        match crate::instruction::security::declared_program_id() {
+            Ok(declared) => declared,
+            Err(message) => {
+                return syn::Error::new_spanned(&module.ident, format!("Naclac Error: {message}"))
+                    .to_compile_error()
+                    .into();
+            }
+        };
+
     let content_items = match &module.content {
         Some((_, items)) => items.clone(),
         None => panic!("Naclac: #[program] requires a module body with items."),
@@ -841,10 +842,8 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     ) {
         discriminator_errors.extend(errs);
     }
-    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
-        let found = naclac_syn::discriminator::scan_crate_discriminators(std::path::Path::new(
-            &manifest_dir,
-        ));
+    {
+        let found = naclac_syn::discriminator::scan_crate_discriminators(&crate::manifest_dir());
         for (kind, entries) in [
             (
                 naclac_syn::discriminator::DiscriminatorKind::Account,
@@ -1510,41 +1509,23 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let event_authority_seed = b"__event_authority".to_vec();
-    let precomputed_authority = std::env::var("CARGO_PKG_NAME")
-        .ok()
-        .and_then(|crate_name| crate::instruction::security::find_program_id(&crate_name))
-        .and_then(|(id_str, toml_path)| {
-            crate::instruction::security::find_pda_at_compile_time(
-                std::slice::from_ref(&event_authority_seed),
-                &id_str,
-            )
-            .map(|(pda, _bump)| (pda, toml_path))
-        });
-    let (expected_authority, track_program_id) = match precomputed_authority {
-        Some((pda_str, toml_path)) => {
-            let pda_bytes = bs58::decode(pda_str)
-                .into_vec()
-                .expect("Invalid precomputed event authority PDA");
-            (
-                quote! { naclac_lang::prelude::Address::new_from_array([ #(#pda_bytes),* ]) },
-                quote! { const _: &[u8] = include_bytes!(#toml_path); },
-            )
-        }
-        None => {
-            let msg = "`#[event_cpi]` needs the program id to derive the event authority PDA at compile time, but the id from `Naclac.toml` could not be resolved for this crate; run `naclac build` from the project root";
-            processed_content_items.push(syn::parse_quote! {
-                const _: () = {
-                    if __NACLAC_NEEDS_EVENT_CPI {
-                        panic!(#msg);
-                    }
-                };
-            });
-            (
-                quote! { naclac_lang::prelude::Address::new_from_array([0u8; 32]) },
-                quote! {},
-            )
-        }
+    let (event_authority_pda, _bump) = crate::instruction::security::find_pda_at_compile_time(
+        std::slice::from_ref(&event_authority_seed),
+        &declared_address,
+    )
+    .unwrap_or_else(|| {
+        panic!(
+            "Naclac Error: the address `declare_id!` declares in {declaring_file} is not a valid \
+             32-byte base58 address"
+        )
+    });
+    let event_authority_bytes = bs58::decode(event_authority_pda)
+        .into_vec()
+        .expect("Invalid precomputed event authority PDA");
+    let expected_authority = quote! {
+        naclac_lang::prelude::Address::new_from_array([ #(#event_authority_bytes),* ])
     };
+    let track_program_id = quote! { const _: &[u8] = include_bytes!(#declaring_file); };
     let event_tag_literal = disc_arm_literal(ix_disc_len, &event_tag_bytes);
     dispatch_arms.push((
         quote! { #event_tag_literal if #mod_name::__NACLAC_NEEDS_EVENT_CPI },

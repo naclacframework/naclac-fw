@@ -10,6 +10,9 @@ vault_borsh = "3Rd7M1sS1asY9YZTPpHQMz3NFw75XDvDhWYuT6pr2kNd"
 vault_zc = "5jVQhedLsNigCy6nq2mN4LfVsAkRVUyadf1E4dF8q2BA"
 vault = "2ZTMxbh1yJFNJsH3eM3dh5XfBQVrEEExQqXQsMoJBgt2"
 
+[framework]
+path = "../.."
+
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"

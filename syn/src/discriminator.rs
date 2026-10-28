@@ -1,9 +1,8 @@
 //! Shared, single-source-of-truth helpers for values that must match
 //! byte-for-byte between the code a macro actually compiles into a program
-//! and any other Naclac tool (the AST-based IDL walker, the IDL's own
-//! runtime) that separately needs to know the same value. Previously each
-//! consumer re-implemented these independently; kept here instead so there
-//! is exactly one implementation to get right.
+//! and any other Naclac tool (the IDL's own runtime) that separately needs to
+//! know the same value. Kept here so there is exactly one implementation to
+//! get right.
 
 use {
     sha2::{Digest, Sha256},
@@ -65,8 +64,8 @@ pub fn compute_discriminator(prefix: &str, name: &str) -> [u8; 8] {
 }
 
 /// The discriminator an item actually uses: its override bytes when it has
-/// one, otherwise the name-derived default. Every consumer (macros, IDL
-/// walker) must resolve through this function so they cannot disagree.
+/// one, otherwise the name-derived default. Every consumer must resolve
+/// through this function so they cannot disagree.
 pub fn resolve_discriminator(
     kind: DiscriminatorKind,
     name: &str,
@@ -610,6 +609,7 @@ mod tests {
         ));
         let src = dir.join("src");
         fs::create_dir_all(&src).unwrap();
+        fs::write(dir.join("Cargo.toml"), "[package]\nname = \"sample\"\n").unwrap();
         fs::write(
             src.join("lib.rs"),
             r#"

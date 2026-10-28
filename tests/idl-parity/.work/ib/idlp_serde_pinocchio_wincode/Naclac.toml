@@ -1,0 +1,13 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+idlp_serde_pinocchio_wincode = "GjZvL7nwSUpwHwG2hemk61Si2ed8CWJejaiJcD1sUHCH"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"

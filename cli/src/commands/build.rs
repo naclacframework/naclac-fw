@@ -168,6 +168,14 @@ pub fn execute(
         let lib_path = program_dir.join("src/lib.rs");
         if lib_path.exists() {
             let mut lib_code = fs::read_to_string(&lib_path).unwrap();
+            if programs::declared_id(&lib_code).is_none() {
+                ui::error(format!(
+                    "'{}' must declare its address with `declare_id!(\"<address>\")` in {}; \
+                     without it there is no program address to build for.",
+                    program_name,
+                    lib_path.display()
+                ));
+            }
             if let Some(start) = lib_code.find("declare_id!(\"") {
                 let addr_start = start + 13;
                 if let Some(end_offset) = lib_code[addr_start..].find("\")") {
@@ -206,7 +214,7 @@ pub fn execute(
         // implementation of "what does regenerating a program's IDL mean."
         let prog_features = if crate::commands::generate::depends_on_naclac_lang(build_dir) {
             Some(
-                crate::commands::generate::detect_program_features(build_dir)
+                crate::commands::generate::detect_program_features(&workspace_root, build_dir)
                     .unwrap_or_else(|e| ui::error(format!("Cannot build '{}': {}", prog_name, e))),
             )
         } else {
@@ -336,14 +344,16 @@ pub fn execute(
             continue;
         };
 
+        if !crate::commands::generate::can_generate(build_dir, prog_name) {
+            continue;
+        }
+
         // A real `idl-build` compile can take well over a minute; with
         // `show_output` its cargo output is inherited straight to the
         // terminal, which would otherwise fight the redrawing spinner for
         // the same line — skip the spinner in that case, same as the
         // `cargo build-sbf` step above.
-        let use_idl_build_output =
-            show_output && crate::commands::generate::program_declares_idl_build(build_dir);
-        let idl_step = if use_idl_build_output {
+        let idl_step = if show_output {
             None
         } else {
             Some(ui::Step::start(format!(

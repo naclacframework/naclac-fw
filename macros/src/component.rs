@@ -18,9 +18,8 @@ use {
 /// identical regardless of which representation (Pod/Borsh) the calling
 /// crate actually compiles, since the IDL-visible shape doesn't depend on
 /// representation. Field type classification reuses
-/// `naclac_syn::parser::rust_type_to_idl` — the same pure, already-in-hand-
-/// AST matcher the default (non-`idl-build`) IDL walker uses for a field's
-/// *own* shape — computed here, now, at this struct's macro-expansion time,
+/// `naclac_syn::parser::rust_type_to_idl` — a pure matcher on the
+/// already-in-hand syntax for a field's *own* shape — computed here, now, at this struct's macro-expansion time,
 /// since a field's own top-level type is fully known from its syntax alone.
 /// Only a *referenced* type's internal shape is deferred to real trait
 /// dispatch at `idl-build` test-runtime (via `insert_types`, chasing

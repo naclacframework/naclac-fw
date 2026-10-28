@@ -12,6 +12,9 @@ escrow_borsh = "G5gui4RgZH8tjr6M6Js2yJqTcG9tVukUz8p27BNonEgT"
 escrow = "BUnzdon444sj9eHgaCNgnNk3ckdKc5xSgyax946Uuvau"
 escrow_wincode_pinocchio = "GXHh7jtpFHtpvJRQWwgpU53diSw94MFoDTq2YeHmuDUu"
 
+[framework]
+path = "../.."
+
 [provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"

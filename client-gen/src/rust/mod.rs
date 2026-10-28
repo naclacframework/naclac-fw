@@ -679,7 +679,7 @@ pub fn generate_rust_sdk(
 
     // 1. Generate Cargo.toml with custom feature flags
     let (naclac_lang_path, naclac_client_path) =
-        crate::paths::naclac_dep_path_fragments(workspace_root, &clients_dir);
+        crate::paths::naclac_dep_path_fragments(workspace_root, &clients_dir)?;
     let cargo_toml_content = format!(
         r#"[package]
 name = "{}-client"

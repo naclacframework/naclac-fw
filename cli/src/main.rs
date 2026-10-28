@@ -38,6 +38,10 @@ enum Commands {
         /// Skip initializing a git repository
         #[arg(long = "no-git")]
         no_git: bool,
+        /// Build against a local checkout of the framework instead of the
+        /// published packages (recorded as `[framework] path` in Naclac.toml)
+        #[arg(long = "framework-path")]
+        framework_path: Option<String>,
     },
     /// Adds a new program to an existing Naclac workspace
     Add {
@@ -82,8 +86,9 @@ enum Commands {
         #[command(subcommand)]
         action: Option<GenerateAction>,
         /// Stream cargo's own compilation output for the `idl-build`
-        /// (real-compilation) IDL path instead of running it silently.
-        #[arg(long)]
+        /// compile that generates the IDL instead of naclac's summarized
+        /// spinner. Accepted before or after `idl` / `client`.
+        #[arg(long, global = true)]
         show_output: bool,
     },
     /// Deploys the programs of `[programs.<cluster>]` to the cluster named by
@@ -383,15 +388,17 @@ fn main() {
             pm,
             no_install,
             no_git,
-        } => crate::commands::init::execute(
+            framework_path,
+        } => crate::commands::init::execute(crate::commands::init::InitOptions {
             name,
-            runtime.as_deref(),
-            mode.as_deref(),
-            ts.as_deref(),
-            pm.as_deref(),
-            *no_install,
-            *no_git,
-        ),
+            runtime: runtime.as_deref(),
+            mode: mode.as_deref(),
+            ts: ts.as_deref(),
+            pm: pm.as_deref(),
+            no_install: *no_install,
+            no_git: *no_git,
+            framework_path: framework_path.as_deref(),
+        }),
         Commands::Add {
             name,
             runtime,

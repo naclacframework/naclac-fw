@@ -1,0 +1,9 @@
+[workspace]
+members = ["programs/*"]
+resolver = "2"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+    'cfg(feature, values("pinocchio", "solana", "borsh", "wincode"))'
+] }

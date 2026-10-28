@@ -82,12 +82,11 @@ fn const_seed_tokens(seed: &naclac_syn::types::NaclacSeed) -> proc_macro2::Token
 
 /// A seed expression this macro cannot locally prove is an instruction arg
 /// or an account field of this struct is spliced into the generated
-/// `idl-build` code as real Rust source — mirrors Anchor's own
-/// `lang/syn/src/idl/accounts.rs::parse_seed` fallback. When that generated
+/// `idl-build` code as real Rust source. When that generated
 /// code actually compiles and runs (inside the `idl-build` print binary),
 /// the real compiler resolves the identifier through ordinary name
-/// resolution and its real value lands in the JSON — no AST-based constant
-/// lookup needed, and no `#[constant]`-tagging requirement either. The seed
+/// resolution and its real value lands in the JSON — no `#[constant]`-tagging
+/// requirement. The seed
 /// carries the identifier as its constant name only when it names a constant
 /// of this crate; a framework constant such as `SYSTEM_PROGRAM_ID` has no
 /// entry in the program's `constants`, so it is reported unnamed.
@@ -111,8 +110,7 @@ fn splice_const_fallback(expr: &syn::Expr, name: Option<&str>) -> proc_macro2::T
 }
 
 /// Classifies a named (non-literal) seed as an instruction-arg reference, an
-/// account-field reference, or (falling through) a spliced constant —
-/// mirrors `naclac_syn::pda::parse_single_seed`'s own account/arg detection,
+/// account-field reference, or (falling through) a spliced constant,
 /// using only this struct's own already-parsed fields (no cross-item
 /// visibility needed, unlike a named-constant lookup). An `Account`-kind
 /// seed's `account_type` is filled in here when locally derivable (the
@@ -157,12 +155,9 @@ fn classify_named_seed(
     splice_const_fallback(original_expr, Some(root))
 }
 
-/// Builds the `idl-build` tokens for one seed expression — mirrors
-/// `naclac_syn::pda::parse_single_seed`'s own match arms (literal, path,
-/// method-call, field-access, reference, single-element array), reusing its
-/// exact literal-classification and path-extraction helpers so this can't
-/// silently drift from what the AST walker already does for the same
-/// expression shapes.
+/// Builds the `idl-build` tokens for one seed expression: literal, path,
+/// method-call, field-access, reference and single-element array, reusing
+/// `naclac_syn::pda`'s literal-classification and path-extraction helpers.
 #[cfg(feature = "idl-build")]
 fn build_idl_seed_expr(
     expr: &syn::Expr,

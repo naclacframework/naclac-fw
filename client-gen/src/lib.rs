@@ -33,9 +33,9 @@ pub mod typescript;
 
 pub use {
     paths::{
-        artifacts_dir, clients_dir, deploy_dir, find_naclac_framework_root, idl_dir,
-        naclac_dep_path_fragments, naclac_dep_paths, naclac_ts_dep_specs, relative_path,
-        resolve_target_dir, ARTIFACTS_DIR_NAME,
+        artifacts_dir, clients_dir, deploy_dir, find_framework_checkout, framework_root, idl_dir,
+        naclac_dep_path_fragments, naclac_ts_dep_specs, relative_path, resolve_target_dir,
+        ARTIFACTS_DIR_NAME,
     },
     typescript::generate_ts,
 };

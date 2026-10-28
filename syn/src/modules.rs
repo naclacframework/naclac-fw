@@ -1,14 +1,16 @@
 //! The crate's module tree as rustc builds it from the crate root: which files
 //! belong to the crate, which module each item lives in, and which `#[cfg]`
 //! attributes gate it. Every naclac tool that reads a program's source takes
-//! its items from here, so the AST IDL generator, the compiled `idl-build`
-//! path and the macros agree on what the crate declares and where.
+//! its items from here, so the compiled `idl-build` path and the macros agree
+//! on what the crate declares and where.
 
 use std::{
-    collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
 };
+
+/// The crate root Cargo uses when `Cargo.toml` sets no `[lib] path`.
+const DEFAULT_CRATE_ROOT: &str = "src/lib.rs";
 
 /// One module of the crate.
 #[derive(Clone)]
@@ -32,26 +34,88 @@ pub struct CrateModule {
     pub visible_from_root: bool,
 }
 
-/// The crate root file: `[lib] path` from `Cargo.toml` when set, otherwise
-/// `src/lib.rs`.
+/// The root file of the crate cargo is compiling: that of the binary named by
+/// `CARGO_BIN_NAME` when cargo sets it, otherwise the library's. See
+/// [`crate_root_of`].
 pub fn crate_root(program_dir: &Path) -> PathBuf {
-    let lib_path = fs::read_to_string(program_dir.join("Cargo.toml"))
-        .ok()
-        .and_then(|content| toml::from_str::<toml::Value>(&content).ok())
-        .and_then(|manifest| Some(manifest.get("lib")?.get("path")?.as_str()?.to_string()))
-        .unwrap_or_else(|| "src/lib.rs".to_string());
+    crate_root_of(program_dir, std::env::var("CARGO_BIN_NAME").ok().as_deref())
+}
+
+/// The crate root file of the library (`[lib] path` from `Cargo.toml` when
+/// set, otherwise Cargo's default `src/lib.rs`), or, when `bin` names the
+/// binary being compiled, of that binary: the `path` of its `[[bin]]` entry.
+///
+/// Panics, naming the file and the cause, when `Cargo.toml` cannot be read, is
+/// not valid TOML, has a `lib` or `lib.path` of the wrong type, or lacks a
+/// `[[bin]]` entry with a string `path` for `bin`: the module tree cannot be
+/// read without knowing the crate root.
+pub fn crate_root_of(program_dir: &Path, bin: Option<&str>) -> PathBuf {
+    let manifest_path = program_dir.join("Cargo.toml");
+    let text = fs::read_to_string(&manifest_path)
+        .unwrap_or_else(|e| panic!("naclac-syn: cannot read {}: {e}", manifest_path.display()));
+    let manifest: toml::Value = toml::from_str(&text).unwrap_or_else(|e| {
+        panic!(
+            "naclac-syn: {} is not valid TOML: {e}",
+            manifest_path.display()
+        )
+    });
+    if let Some(bin) = bin {
+        let path = manifest
+            .get("bin")
+            .and_then(toml::Value::as_array)
+            .and_then(|bins| {
+                bins.iter()
+                    .find(|entry| entry.get("name").and_then(toml::Value::as_str) == Some(bin))
+            })
+            .and_then(|entry| entry.get("path"))
+            .and_then(toml::Value::as_str)
+            .unwrap_or_else(|| {
+                panic!(
+                    "naclac-syn: the binary `{bin}` being compiled has no `[[bin]]` entry with a \
+                     `path` in {}",
+                    manifest_path.display()
+                )
+            });
+        return program_dir.join(path);
+    }
+    let lib_path = match manifest.get("lib") {
+        None => DEFAULT_CRATE_ROOT,
+        Some(toml::Value::Table(lib)) => match lib.get("path") {
+            None => DEFAULT_CRATE_ROOT,
+            Some(toml::Value::String(path)) => path.as_str(),
+            Some(_) => panic!(
+                "naclac-syn: `path` under `[lib]` in {} must be a string",
+                manifest_path.display()
+            ),
+        },
+        Some(_) => panic!(
+            "naclac-syn: `lib` in {} must be a table",
+            manifest_path.display()
+        ),
+    };
     program_dir.join(lib_path)
 }
 
 /// Every module of the crate, parents before children, in declaration
-/// order. A module whose file is missing or does not parse contributes
-/// nothing (the crate itself would not compile).
+/// order. Panics when the crate root file cannot be read or does not parse.
+/// A child module whose file is missing or does not parse contributes
+/// nothing: a `#[cfg]`-disabled `mod x;` has no file rustc loads, and a file
+/// that is needed but broken fails the compilation of the crate itself.
 pub fn crate_modules(program_dir: &Path) -> Vec<CrateModule> {
     let root = crate_root(program_dir);
     let mut out = Vec::new();
-    let Some(file) = parse(&root) else {
-        return out;
-    };
+    let text = fs::read_to_string(&root).unwrap_or_else(|e| {
+        panic!(
+            "naclac-syn: cannot read the crate root {}: {e}",
+            root.display()
+        )
+    });
+    let file = syn::parse_file(&text).unwrap_or_else(|e| {
+        panic!(
+            "naclac-syn: the crate root {} does not parse: {e}",
+            root.display()
+        )
+    });
     let children_dir = root.parent().map(Path::to_path_buf).unwrap_or_default();
     walk(
         &mut out,
@@ -89,22 +153,6 @@ pub fn reaches_root(vis: &syn::Visibility, declared_in_depth: usize) -> bool {
             }
         }
     }
-}
-
-/// The modules and items the crate has when built with `features`, for a
-/// reader with no compiler. A `#[cfg]` is evaluated through
-/// [`cfg_active`]; modules and items it rules out are dropped.
-pub fn active_crate_modules(program_dir: &Path, features: &HashSet<String>) -> Vec<CrateModule> {
-    crate_modules(program_dir)
-        .into_iter()
-        .filter(|module| cfg_active(&module.cfgs, features))
-        .map(|mut module| {
-            module
-                .items
-                .retain(|item| cfg_active(item_attrs(item), features));
-            module
-        })
-        .collect()
 }
 
 struct Job {
@@ -221,25 +269,6 @@ fn path_attr(attrs: &[syn::Attribute]) -> Option<String> {
     })
 }
 
-/// Paths of the crate-root modules carrying `#[program]`: the modules whose
-/// `fn` items are the program's instruction handlers.
-pub fn program_module_paths(modules: &[CrateModule]) -> Vec<String> {
-    let Some(root) = modules.iter().find(|m| m.path == "crate") else {
-        return Vec::new();
-    };
-    root.items
-        .iter()
-        .filter_map(|item| match item {
-            syn::Item::Mod(item_mod)
-                if item_mod.attrs.iter().any(|a| a.path().is_ident("program")) =>
-            {
-                Some(format!("crate::{}", item_mod.ident))
-            }
-            _ => None,
-        })
-        .collect()
-}
-
 /// The `#[cfg(..)]` attributes in `attrs`.
 pub fn cfg_attrs(attrs: &[syn::Attribute]) -> Vec<syn::Attribute> {
     attrs
@@ -271,68 +300,9 @@ pub fn item_attrs(item: &syn::Item) -> &[syn::Attribute] {
     }
 }
 
-/// The crate's own features enabled by default: `default` from `Cargo.toml`
-/// `[features]`, closed over the plain feature names each enabled feature
-/// lists. Entries naming a dependency (`dep:x`, `x/feature`, `x?/feature`)
-/// are not features of this crate and are skipped.
-pub fn default_features(program_dir: &Path) -> HashSet<String> {
-    let table: HashMap<String, Vec<String>> = fs::read_to_string(program_dir.join("Cargo.toml"))
-        .ok()
-        .and_then(|content| toml::from_str::<toml::Value>(&content).ok())
-        .and_then(|manifest| manifest.get("features")?.as_table().cloned())
-        .map(|features| {
-            features
-                .into_iter()
-                .map(|(name, list)| {
-                    let entries = list
-                        .as_array()
-                        .map(|a| {
-                            a.iter()
-                                .filter_map(|v| v.as_str().map(str::to_string))
-                                .collect()
-                        })
-                        .unwrap_or_default();
-                    (name, entries)
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-
-    let mut enabled = HashSet::new();
-    let mut pending = vec!["default".to_string()];
-    while let Some(feature) = pending.pop() {
-        for entry in table.get(&feature).into_iter().flatten() {
-            if entry.starts_with("dep:") || entry.contains('/') {
-                continue;
-            }
-            if enabled.insert(entry.clone()) {
-                pending.push(entry.clone());
-            }
-        }
-    }
-    enabled
-}
-
-/// Whether every `#[cfg(..)]` in `attrs` holds for a build with exactly
-/// `features` enabled. `feature = ".."`, `test` (false: no IDL describes a
-/// test build), `any`, `all` and `not` are decidable here; a `#[cfg]` whose
-/// outcome depends on any other predicate (`target_os`, ...) counts as
-/// holding, so the item is kept rather than silently dropped.
-pub fn cfg_active(attrs: &[syn::Attribute], features: &HashSet<String>) -> bool {
-    attrs
-        .iter()
-        .filter(|attr| attr.path().is_ident("cfg"))
-        .all(|attr| {
-            attr.parse_args::<syn::Meta>()
-                .ok()
-                .and_then(|meta| eval_cfg(&meta, features))
-                .unwrap_or(true)
-        })
-}
-
 /// Whether every `#[cfg(..)]` in `attrs` is built only from `feature = ".."`,
-/// `test`, `any`, `all` and `not`, so that [`cfg_active`] decides it the
-/// same way the compiler does for the program's IDL build.
+/// `test`, `any`, `all` and `not`, the predicates whose outcome does not
+/// depend on the target the program is compiled for.
 pub fn cfg_is_decidable(attrs: &[syn::Attribute]) -> bool {
     attrs
         .iter()
@@ -355,46 +325,5 @@ fn decidable(meta: &syn::Meta) -> bool {
                     )
                     .is_ok_and(|nested| nested.iter().all(decidable))
         }
-    }
-}
-
-fn eval_cfg(meta: &syn::Meta, features: &HashSet<String>) -> Option<bool> {
-    match meta {
-        syn::Meta::Path(path) if path.is_ident("test") => Some(false),
-        syn::Meta::NameValue(nv) if nv.path.is_ident("feature") => match &nv.value {
-            syn::Expr::Lit(syn::ExprLit {
-                lit: syn::Lit::Str(s),
-                ..
-            }) => Some(features.contains(&s.value())),
-            _ => None,
-        },
-        syn::Meta::List(list) => {
-            let nested = list
-                .parse_args_with(
-                    syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated,
-                )
-                .ok()?;
-            let values: Vec<Option<bool>> = nested.iter().map(|m| eval_cfg(m, features)).collect();
-            if list.path.is_ident("not") {
-                return match values.as_slice() {
-                    [single] => single.map(|v| !v),
-                    _ => None,
-                };
-            }
-            if list.path.is_ident("all") {
-                if values.contains(&Some(false)) {
-                    return Some(false);
-                }
-                return values.iter().all(Option::is_some).then_some(true);
-            }
-            if list.path.is_ident("any") {
-                if values.contains(&Some(true)) {
-                    return Some(true);
-                }
-                return values.iter().all(Option::is_some).then_some(false);
-            }
-            None
-        }
-        _ => None,
     }
 }

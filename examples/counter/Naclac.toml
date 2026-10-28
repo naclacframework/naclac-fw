@@ -12,6 +12,9 @@ counter_wincode_pinocchio = "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF"
 counter_zc = "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM"
 counter = "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM"
 
+[framework]
+path = "../.."
+
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"

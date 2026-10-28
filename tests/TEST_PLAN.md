@@ -464,14 +464,11 @@ toward the old syntax again, this is worth revisiting.
 **14 of 15 remaining sites are covered as `tests/fail/*.rs` fixtures.** The remaining one
 (`security.rs`'s `bump = <expr>` + `init` + precomputed-PDA check,
 `:325-332`) can't be triggered from an isolated `trybuild` fixture: it only
-fires inside the `is_pda_precomputed` branch, which requires
-`find_program_id` (`security.rs:812`) to successfully read a `Naclac.toml`
-walked up from `CARGO_MANIFEST_DIR` — a trybuild fixture has no such file in
-its scratch compile directory, so that branch is structurally unreachable
-here regardless of what the fixture's seed expression looks like. Testing
-it needs a real program workspace with a working `Naclac.toml`/`declare_id!`
-instead (e.g. folded into a future case, or its own tiny one) — noted as a
-follow-up, not silently dropped.
+fires inside the `is_pda_precomputed` branch, which requires the crate's own
+`declare_id!` to be found (`declared_program_id`, `security.rs`). A fixture
+that declares one with `declare_id!` can reach that branch, so this site can
+now be covered by a fixture that declares its id and uses an all-literal seed
+array — noted as a follow-up, not silently dropped.
 
 Where a site has an accompanying *valid* form, a `tests/pass/*.rs`
 counterpart exists too, so a future refactor that makes the check *too*

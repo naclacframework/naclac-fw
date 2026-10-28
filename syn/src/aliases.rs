@@ -1,5 +1,5 @@
-//! Crate-local type aliases (`type Amount = u64;`) for the IDL generator and
-//! the macros' type-name checks.
+//! Crate-local type aliases (`type Amount = u64;`) for the macros' IDL
+//! assembly and type-name checks.
 //!
 //! Both read source syntax only, so without this a field of type `Amount` is
 //! indistinguishable from a user-defined struct named `Amount`. [`Aliases`]

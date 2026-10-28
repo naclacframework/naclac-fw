@@ -8,6 +8,9 @@ skip-lint = false
 [programs.devnet]
 pump_fees = "cBPbCAyFhnUXngDY23SoKwvPrS5ppDaS1VjakEegoDV"
 
+[framework]
+path = "../../.."
+
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"

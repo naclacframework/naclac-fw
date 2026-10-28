@@ -1,7 +1,5 @@
-//! Targeted name-and-module-path-only scanning for `idl-build`. Unlike
-//! `parse_workspace_program` (which resolves full type/field shapes via
-//! AST, exactly what `idl-build` exists to stop relying on for real
-//! values), this only answers "which `const`/`struct`/`enum` items in this
+//! Targeted name-and-module-path-only scanning for `idl-build`. It only
+//! answers "which `const`/`struct`/`enum` items in this
 //! crate carry a given attribute, and where do they live" — a structural
 //! question a real compiled program cannot answer on its own, since an
 //! item carrying an attribute macro that doesn't itself register anything

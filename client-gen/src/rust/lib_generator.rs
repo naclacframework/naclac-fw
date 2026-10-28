@@ -150,9 +150,9 @@ pub fn generate_lib(
         let mut seed_slices = Vec::new();
         let mut seen_params = std::collections::HashSet::new();
         // Set when a seed references a *field* of another account (e.g.
-        // `registry.bump`) whose type naclac-syn couldn't resolve from the
+        // `registry.bump`) whose type the IDL could not resolve from the
         // backing component's struct definition (a nested/defined type, not
-        // a plain primitive — see naclac_syn::pda::mk_account_seed). There is
+        // a plain primitive). There is
         // no reliable way to generate correct code without knowing the real
         // type, so the helper is skipped entirely rather than guessed at.
         let mut unresolvable_field_seed: Option<String> = None;

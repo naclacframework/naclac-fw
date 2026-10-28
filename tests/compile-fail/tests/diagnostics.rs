@@ -1,7 +1,8 @@
 //! Diagnostics that can't be `trybuild` snapshots: a `trybuild` `.stderr`
 //! must match byte for byte, but these errors' notes point into naclac-core
-//! by absolute path (machine-specific) or need a real crate (a discoverable
-//! program ID in `Naclac.toml`). Each fixture under `../crate-scan-fixtures/`
+//! by absolute path (machine-specific) or need a real crate (one that
+//! declares, or fails to declare, its program address). Each fixture under
+//! `../crate-scan-fixtures/`
 //! is built with a real `cargo check` and its message text asserted instead.
 
 use std::path::Path;
@@ -100,10 +101,10 @@ fn emit_cpi_without_event_cpi_names_the_missing_attribute() {
 }
 
 #[test]
-fn event_cpi_without_a_resolvable_program_id_fails_to_compile() {
+fn a_program_without_declare_id_fails_to_compile() {
     let stderr = check_fails("event_cpi_missing_program_id");
     assert!(
-        stderr.contains("`#[event_cpi]` needs the program id to derive the event authority PDA"),
+        stderr.contains("the program must declare its address with `declare_id!"),
         "{stderr}"
     );
 }

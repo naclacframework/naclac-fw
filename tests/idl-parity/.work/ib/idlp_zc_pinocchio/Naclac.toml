@@ -1,0 +1,13 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+idlp_zc_pinocchio = "5Z6BrShNWKVNEXSpSixuXSsKG5hSyvuFLfy6r1Tcb2Lq"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"

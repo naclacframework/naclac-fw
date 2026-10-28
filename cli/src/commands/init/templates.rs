@@ -226,7 +226,8 @@ pub fn generate_program(
     ensure_dir(&program_dir.join("src/systems"));
 
     let (naclac_lang_path, naclac_client_path) =
-        naclac_client_gen::naclac_dep_path_fragments(root_path, &program_dir);
+        naclac_client_gen::naclac_dep_path_fragments(root_path, &program_dir)
+            .unwrap_or_else(|e| crate::ui::error(e));
 
     let layout_feature = mode.layout.feature();
     let (features_block, deps_snippet) = match mode.runtime {
@@ -257,8 +258,7 @@ cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
-# Enable to build IDL via real cargo compilation instead of AST parsing:
-# idl-build = ["naclac-lang/idl-build"]
+idl-build = ["naclac-lang/idl-build"]
 {features_block}
 [dependencies]
 {deps_snippet}

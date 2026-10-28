@@ -9,6 +9,9 @@ skip-lint = false
 token_creator = "H1Hcpaf3iW9RHrc8bAYkrEcqfb3kTWRvgZceNBi8tWYX"
 amm = "6WCKBWWvuGYDHA14FXBbWMFeTQzHYmNR3p2oiLct4G1F"
 
+[framework]
+path = "../../.."
+
 [provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"

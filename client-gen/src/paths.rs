@@ -1,7 +1,12 @@
 use std::{
+    fs,
     path::{Path, PathBuf},
     process::Command,
 };
+
+/// The version of the published naclac packages a workspace without a
+/// `[framework]` section depends on.
+const PUBLISHED_VERSION: &str = "0.1.0";
 
 /// The cargo target directory of `workspace_root`, as `cargo metadata` reports
 /// it (so `CARGO_TARGET_DIR` and `.cargo/config.toml`'s `target-dir` apply).
@@ -59,17 +64,85 @@ pub fn deploy_dir(workspace_root: &Path) -> PathBuf {
     artifacts_dir(workspace_root).join("deploy")
 }
 
-pub fn find_naclac_framework_root(start_dir: &Path) -> Option<PathBuf> {
-    let mut dir = start_dir.canonicalize().ok()?;
-    for _ in 0..7 {
-        if dir.join("lang/Cargo.toml").exists() && dir.join("client-rs/Cargo.toml").exists() {
-            return Some(dir);
+/// The local framework checkout the workspace builds against: `[framework]
+/// path` in the workspace's Naclac.toml, relative to the workspace root.
+/// `None` when there is no `[framework]` section, in which case the workspace
+/// depends on the published packages. Fails when Naclac.toml cannot be read
+/// or parsed, when `[framework]` has no string `path`, or when that folder is
+/// not a framework checkout.
+pub fn framework_root(workspace_root: &Path) -> Result<Option<PathBuf>, String> {
+    let config_path = workspace_root.join("Naclac.toml");
+    let text = fs::read_to_string(&config_path)
+        .map_err(|e| format!("cannot read {}: {e}", config_path.display()))?;
+    let config: toml::Value = toml::from_str(&text)
+        .map_err(|e| format!("{} is not valid TOML: {e}", config_path.display()))?;
+    let Some(section) = config.get("framework") else {
+        return Ok(None);
+    };
+    let toml::Value::Table(section) = section else {
+        return Err(format!(
+            "`[framework]` in {} must be a table",
+            config_path.display()
+        ));
+    };
+    let path = match section.get("path") {
+        Some(toml::Value::String(path)) => path,
+        Some(_) => {
+            return Err(format!(
+                "`path` under `[framework]` in {} must be a string",
+                config_path.display()
+            ))
         }
-        if !dir.pop() {
-            return None;
+        None => {
+            return Err(format!(
+                "`[framework]` in {} needs a `path` to the framework checkout",
+                config_path.display()
+            ))
+        }
+    };
+    let candidate = workspace_root.join(path);
+    let root = fs::canonicalize(&candidate).map_err(|e| {
+        format!(
+            "`[framework] path = \"{path}\"` in {}: cannot read {}: {e}",
+            config_path.display(),
+            candidate.display()
+        )
+    })?;
+    for required in ["lang/Cargo.toml", "client-rs/Cargo.toml"] {
+        let file = root.join(required);
+        if !file.is_file() {
+            return Err(format!(
+                "`[framework] path = \"{path}\"` in {} is not a naclac framework checkout: {} \
+                 is missing",
+                config_path.display(),
+                file.display()
+            ));
         }
     }
-    None
+    Ok(Some(root))
+}
+
+/// How many folders above a new project `naclac init` looks for a framework
+/// checkout.
+const MAX_FRAMEWORK_SEARCH_DEPTH: usize = 7;
+
+/// For `naclac init` only: the framework checkout `start_dir` sits inside, if
+/// any (the nearest ancestor holding `lang/Cargo.toml` and
+/// `client-rs/Cargo.toml`). The result is written into the new workspace's
+/// Naclac.toml as `[framework] path`; every other command reads that
+/// recorded value and never searches.
+pub fn find_framework_checkout(start_dir: &Path) -> Result<Option<PathBuf>, String> {
+    let mut dir = fs::canonicalize(start_dir)
+        .map_err(|e| format!("cannot read {}: {e}", start_dir.display()))?;
+    for _ in 0..=MAX_FRAMEWORK_SEARCH_DEPTH {
+        if dir.join("lang/Cargo.toml").is_file() && dir.join("client-rs/Cargo.toml").is_file() {
+            return Ok(Some(dir));
+        }
+        if !dir.pop() {
+            break;
+        }
+    }
+    Ok(None)
 }
 
 pub fn relative_path(from: &Path, to: &Path) -> PathBuf {
@@ -91,51 +164,68 @@ pub fn relative_path(from: &Path, to: &Path) -> PathBuf {
     result
 }
 
-pub fn naclac_dep_paths(workspace_root: &Path, clients_dir: &Path) -> Option<(String, String)> {
-    let root = find_naclac_framework_root(workspace_root)?;
-    let canon_ws = workspace_root.canonicalize().ok()?;
-    let canon_clients = if let Ok(canon) = clients_dir.canonicalize() {
-        canon
-    } else if clients_dir.is_relative() {
-        canon_ws.join(clients_dir)
-    } else {
-        clients_dir.to_path_buf()
+fn slashed(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
+/// `target` relative to `dir`, a folder inside `workspace_root`.
+fn relative_to_workspace_dir(
+    workspace_root: &Path,
+    dir: &Path,
+    target: &Path,
+) -> Result<PathBuf, String> {
+    let inside = dir.strip_prefix(workspace_root).map_err(|_| {
+        format!(
+            "{} is not inside the workspace {}",
+            dir.display(),
+            workspace_root.display()
+        )
+    })?;
+    let canonical_workspace = fs::canonicalize(workspace_root)
+        .map_err(|e| format!("cannot read {}: {e}", workspace_root.display()))?;
+    Ok(relative_path(&canonical_workspace.join(inside), target))
+}
+
+/// The `path = "..."` fragments to append to the `naclac-lang` and
+/// `naclac-client` dependency lines of a manifest in `manifest_dir` (a folder
+/// inside `workspace_root`): empty without a `[framework]` section, so the
+/// published packages are used.
+pub fn naclac_dep_path_fragments(
+    workspace_root: &Path,
+    manifest_dir: &Path,
+) -> Result<(String, String), String> {
+    let Some(root) = framework_root(workspace_root)? else {
+        return Ok((String::new(), String::new()));
     };
-    let lang_path = relative_path(&canon_clients, &root.join("lang"));
-    let client_path = relative_path(&canon_clients, &root.join("client-rs"));
-    Some((
-        lang_path.to_string_lossy().replace('\\', "/"),
-        client_path.to_string_lossy().replace('\\', "/"),
-    ))
+    let fragment = |package: &str| -> Result<String, String> {
+        let relative =
+            relative_to_workspace_dir(workspace_root, manifest_dir, &root.join(package))?;
+        Ok(format!(", path = \"{}\"", slashed(&relative)))
+    };
+    Ok((fragment("lang")?, fragment("client-rs")?))
 }
 
-pub fn naclac_dep_path_fragments(workspace_root: &Path, clients_dir: &Path) -> (String, String) {
-    match naclac_dep_paths(workspace_root, clients_dir) {
-        Some((lang, client)) => (
-            format!(", path = \"{lang}\""),
-            format!(", path = \"{client}\""),
-        ),
-        None => (String::new(), String::new()),
-    }
-}
-
-pub fn naclac_ts_dep_specs(workspace_root: &Path) -> (String, String) {
-    if let Some(root) = find_naclac_framework_root(workspace_root) {
-        if let Ok(canon_ws) = workspace_root.canonicalize() {
-            let client_target = root.join("client");
-            let litesvm_target = root.join("litesvm-node");
-            if client_target.join("package.json").exists()
-                && litesvm_target.join("package.json").exists()
-            {
-                let client_rel = relative_path(&canon_ws, &client_target)
-                    .to_string_lossy()
-                    .replace('\\', "/");
-                let litesvm_rel = relative_path(&canon_ws, &litesvm_target)
-                    .to_string_lossy()
-                    .replace('\\', "/");
-                return (format!("link:{client_rel}"), format!("link:{litesvm_rel}"));
-            }
+/// The `@naclac-fw/client` and `@naclac-fw/litesvm` dependency specs of the
+/// workspace's `package.json`: `link:` paths into the `[framework]` checkout,
+/// or the published version without a `[framework]` section.
+pub fn naclac_ts_dep_specs(workspace_root: &Path) -> Result<(String, String), String> {
+    let Some(root) = framework_root(workspace_root)? else {
+        return Ok((PUBLISHED_VERSION.to_string(), PUBLISHED_VERSION.to_string()));
+    };
+    let canonical_workspace = fs::canonicalize(workspace_root)
+        .map_err(|e| format!("cannot read {}: {e}", workspace_root.display()))?;
+    let spec = |package: &str| -> Result<String, String> {
+        let target = root.join(package);
+        if !target.join("package.json").is_file() {
+            return Err(format!(
+                "the framework checkout at {} has no {package}/package.json",
+                root.display()
+            ));
         }
-    }
-    ("0.1.0".to_string(), "0.1.0".to_string())
+        Ok(format!(
+            "link:{}",
+            slashed(&relative_path(&canonical_workspace, &target))
+        ))
+    };
+    Ok((spec("client")?, spec("litesvm-node")?))
 }

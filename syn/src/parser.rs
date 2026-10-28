@@ -1,8 +1,7 @@
 use {
-    crate::types::*,
+    crate::types::NaclacConstant,
     quote::ToTokens,
     serde_json::{json, Value},
-    std::collections::{HashMap, HashSet},
     syn::Item,
 };
 
@@ -111,7 +110,7 @@ fn decimal_array_literal(expr: &syn::Expr) -> Option<String> {
 /// a literal integer, or a bare identifier naming a `pub const N: usize = ...;`
 /// declared in any module of the crate (`constants`, which by the time this
 /// runs has already been collected from every module — see
-/// `parse_workspace_program`'s two-pass split). Anything else is a hard
+/// the constants pass's whole-crate collection). Anything else is a hard
 /// error, not a fallback: a silently-wrong guess here (e.g. degrading to a
 /// generic `bytes` type) would discard both the real length and the real
 /// element type, corrupting every downstream IDL consumer (client codegen
@@ -226,7 +225,7 @@ pub fn rust_type_to_idl(ty: &syn::Type, constants: &[crate::types::NaclacConstan
 
             // `ZcVec<T>` is a zero-copy instruction-arg-only alternative to `Vec<T>` —
             // the IDL is identical in every mode, so it maps to the same `"vec"` type.
-            // It is matched by name because the IDL walker sees source tokens only.
+            // It is matched by name because the macros see source tokens only.
             if ident_str == "Vec" || ident_str == "ZcVec" {
                 if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                     if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
@@ -346,17 +345,13 @@ pub fn defined_type_leaf(ty: &syn::Type) -> Option<syn::Type> {
     }
 }
 
-/// Collects every `pub` or `#[constant]` `const` among one module's `items`
-/// into `idl.constants`. Must run over every module of the crate before
-/// `parse_module_items`: array lengths and other constant references resolved
-/// there (`rust_type_to_idl`) need the complete, whole-crate constant set. `env` holds every constant of the crate, for
-/// constants defined in terms of each other. `warn` reports, on stderr, each
-/// constant whose value could not be evaluated.
+/// Appends every `pub` or `#[constant]` `const` among one module's `items`
+/// to `constants`. `env` holds every constant of the crate, for constants
+/// defined in terms of each other.
 pub fn parse_constants_pass(
-    idl: &mut NaclacProgram,
+    constants: &mut Vec<NaclacConstant>,
     items: &[Item],
     env: &crate::const_eval::ConstEnv,
-    warn: bool,
 ) {
     for item in items {
         let Item::Const(item_const) = item else {
@@ -370,7 +365,7 @@ pub fn parse_constants_pass(
         if !is_pub && !is_exported {
             continue;
         }
-        let ty = rust_type_to_idl(&item_const.ty, &idl.constants);
+        let ty = rust_type_to_idl(&item_const.ty, constants);
         // Byte-string literals (`b"..."`) and numeric array literals
         // (`[N, N, ...]`, optionally behind `&`) are both rendered as
         // a decimal byte array, matching real Anchor/Codama IDL
@@ -402,21 +397,13 @@ pub fn parse_constants_pass(
             match crate::const_eval::evaluate_constant(&item_const.ty, &item_const.expr, env) {
                 Ok(Some(evaluated)) => evaluated,
                 Ok(None) => rendered_source(),
-                Err(crate::const_eval::EvalError::Unsupported(why)) => {
-                    if warn {
-                        eprintln!(
-                            "warning: constant `{name}` cannot be evaluated without compiling ({why}); \
-                             its IDL value is the source text. Add the `idl-build` feature for the exact value."
-                        );
-                    }
-                    rendered_source()
-                }
+                Err(crate::const_eval::EvalError::Unsupported(_)) => rendered_source(),
                 Err(crate::const_eval::EvalError::Invalid(why)) => {
                     panic!("Naclac Error: constant `{name}` is invalid: {why}")
                 }
             }
         };
-        idl.constants.push(NaclacConstant {
+        constants.push(NaclacConstant {
             name,
             ty,
             value,
@@ -424,339 +411,4 @@ pub fn parse_constants_pass(
             docs: extract_docs(&item_const.attrs),
         });
     }
-}
-
-/// Adds the components, events, errors and defined types declared in one
-/// module's `items` to `idl`. Runs after `parse_constants_pass` has seen
-/// every module.
-pub fn parse_module_items(idl: &mut NaclacProgram, items: &[Item]) {
-    for item in items {
-        match item {
-            Item::Struct(item_struct) => {
-                // Check #[component]
-                let component_attr = item_struct
-                    .attrs
-                    .iter()
-                    .find(|a| a.path().is_ident("component"));
-                if let Some(component_attr) = component_attr {
-                    let component_name = item_struct.ident.to_string();
-                    let discriminator = crate::discriminator::resolve_discriminator(
-                        crate::discriminator::DiscriminatorKind::Account,
-                        &component_name,
-                        crate::discriminator::macro_args_of(component_attr, false)
-                            .unwrap_or_else(|e| {
-                                panic!(
-                                    "naclac-syn: invalid #[component] on `{component_name}`: {e}"
-                                )
-                            })
-                            .discriminator
-                            .as_deref(),
-                    );
-                    let mut fields = Vec::new();
-                    for field in &item_struct.fields {
-                        let field_name = idl_name(&field.ident.as_ref().unwrap().to_string());
-                        fields.push(NaclacField {
-                            name: field_name,
-                            ty: rust_type_to_idl(&field.ty, &idl.constants),
-                            slots: rust_type_slots(&field.ty, &idl.constants),
-                            docs: extract_docs(&field.attrs),
-                        });
-                    }
-                    idl.accounts.push(NaclacAccountStruct {
-                        name: component_name,
-                        discriminator,
-                        fields,
-                        docs: extract_docs(&item_struct.attrs),
-                    });
-                    continue;
-                }
-
-                // Check #[event] / #[event(alloc)]
-                let event_attr = item_struct
-                    .attrs
-                    .iter()
-                    .find(|a| a.path().is_ident("event"));
-                if let Some(attr) = event_attr {
-                    let event_name = item_struct.ident.to_string();
-                    let event_args = crate::discriminator::macro_args_of(attr, true)
-                        .unwrap_or_else(|e| {
-                            panic!("naclac-syn: invalid #[event] on `{event_name}`: {e}")
-                        });
-                    let is_alloc = event_args.alloc;
-                    let event_discriminator = crate::discriminator::resolve_discriminator(
-                        crate::discriminator::DiscriminatorKind::Event,
-                        &event_name,
-                        event_args.discriminator.as_deref(),
-                    );
-
-                    let mut fields = Vec::new();
-                    for field in &item_struct.fields {
-                        fields.push(NaclacEventField {
-                            name: idl_name(&field.ident.as_ref().unwrap().to_string()),
-                            ty: rust_type_to_idl(&field.ty, &idl.constants),
-                            docs: extract_docs(&field.attrs),
-                        });
-                    }
-
-                    idl.events.push(NaclacEvent {
-                        name: event_name,
-                        discriminator: event_discriminator,
-                        fields,
-                        alloc: is_alloc,
-                        docs: extract_docs(&item_struct.attrs),
-                    });
-                    continue;
-                }
-
-                if derives(&item_struct.attrs, "Accounts") {
-                    continue;
-                }
-
-                // Parse as a generic defined struct type — named fields
-                // (`struct Foo { x: T }`) use the field's own name;
-                // tuple fields (`struct Foo(T)`) have none, so the
-                // positional index is used instead (matching how Rust
-                // itself accesses them: `.0`, `.1`, ...), consistent
-                // with naclac's own `NaclacField`/IDL schema always
-                // requiring a name (unlike Anchor's own spec, which
-                // represents tuple fields as a bare, nameless type list
-                // — naclac deliberately doesn't mirror that here since
-                // every other consumer of this IDL already assumes
-                // every field has a name).
-                if matches!(
-                    &item_struct.fields,
-                    syn::Fields::Named(_) | syn::Fields::Unnamed(_)
-                ) {
-                    let mut fields = Vec::new();
-                    for (i, field) in item_struct.fields.iter().enumerate() {
-                        let field_name = match &field.ident {
-                            Some(ident) => idl_name(&ident.to_string()),
-                            None => i.to_string(),
-                        };
-                        fields.push(NaclacField {
-                            name: field_name,
-                            ty: rust_type_to_idl(&field.ty, &idl.constants),
-                            slots: rust_type_slots(&field.ty, &idl.constants),
-                            docs: extract_docs(&field.attrs),
-                        });
-                    }
-                    idl.types.push(NaclacTypeDef {
-                        name: item_struct.ident.to_string(),
-                        ty: NaclacTypeDefTy::Struct { fields },
-                        docs: extract_docs(&item_struct.attrs),
-                    });
-                }
-            }
-            Item::Enum(item_enum) => {
-                let error_attr = item_enum
-                    .attrs
-                    .iter()
-                    .find(|a| a.path().is_ident("error_code"));
-                if let Some(error_attr) = error_attr {
-                    let offset =
-                        crate::idl_items::error_code_offset(error_attr).unwrap_or_else(|e| {
-                            panic!("naclac-syn: invalid `#[error_code]` attribute: {e}")
-                        });
-                    let discriminants =
-                        crate::discriminator::variant_discriminants(&item_enum.variants);
-                    for (discriminant, variant) in discriminants.iter().zip(&item_enum.variants) {
-                        let code_offset = (i128::from(offset) + *discriminant) as u32;
-                        let name = variant.ident.to_string();
-                        let mut msg = None;
-                        for attr in &variant.attrs {
-                            if attr.path().is_ident("doc") {
-                                if let syn::Meta::NameValue(mnv) = &attr.meta {
-                                    if let syn::Expr::Lit(expr_lit) = &mnv.value {
-                                        if let syn::Lit::Str(lit_str) = &expr_lit.lit {
-                                            let doc_str = lit_str.value().trim().to_string();
-                                            msg = Some(if let Some(existing) = msg {
-                                                format!("{} {}", existing, doc_str)
-                                            } else {
-                                                doc_str
-                                            });
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        idl.errors.push(NaclacError {
-                            code: code_offset,
-                            name,
-                            msg,
-                        });
-                    }
-                } else {
-                    // Generic Data Enum
-                    let discriminants =
-                        crate::discriminator::variant_discriminants(&item_enum.variants);
-                    let mut variants = Vec::new();
-                    for (variant, discriminant) in item_enum.variants.iter().zip(&discriminants) {
-                        let fields = match &variant.fields {
-                            syn::Fields::Named(named) => {
-                                let mut fs = Vec::new();
-                                for field in &named.named {
-                                    let field_name =
-                                        idl_name(&field.ident.as_ref().unwrap().to_string());
-                                    fs.push(NaclacField {
-                                        name: field_name,
-                                        ty: rust_type_to_idl(&field.ty, &idl.constants),
-                                        slots: None,
-                                        docs: extract_docs(&field.attrs),
-                                    });
-                                }
-                                Some(NaclacEnumFields::Named(fs))
-                            }
-                            syn::Fields::Unnamed(unnamed) => {
-                                let tys = unnamed
-                                    .unnamed
-                                    .iter()
-                                    .map(|field| rust_type_to_idl(&field.ty, &idl.constants))
-                                    .collect();
-                                Some(NaclacEnumFields::Tuple(tys))
-                            }
-                            syn::Fields::Unit => None,
-                        };
-                        variants.push(NaclacEnumVariant {
-                            name: variant.ident.to_string(),
-                            docs: extract_docs(&variant.attrs),
-                            fields,
-                            discriminant: discriminant.to_string(),
-                        });
-                    }
-                    idl.types.push(NaclacTypeDef {
-                        name: item_enum.ident.to_string(),
-                        ty: NaclacTypeDefTy::Enum {
-                            variants,
-                            repr: Some(
-                                crate::discriminator::detect_enum_repr(&item_enum.attrs)
-                                    .unwrap_or_else(|| "u8".to_string()),
-                            ),
-                        },
-                        docs: extract_docs(&item_enum.attrs),
-                    });
-                }
-            }
-            // Constants are collected in their own earlier pass
-            // (`parse_constants_pass`) — see that function's doc comment
-            // for why array-length resolution needs them collected
-            // whole-crate-first, before any field type here can consume
-            // them.
-            Item::Const(_) => {}
-            _ => {}
-        }
-    }
-}
-
-/// Recursively collects every `{"defined": "Name"}` reference found inside an
-/// IDL type-shape JSON value (walking through `option`/`vec`/`array`/nested
-/// object wrappers) into `out`.
-fn collect_type_refs(ty: &Value, out: &mut HashSet<String>) {
-    match ty {
-        Value::Object(map) => {
-            if let Some(Value::String(name)) = map.get("defined") {
-                out.insert(name.clone());
-            }
-            for v in map.values() {
-                collect_type_refs(v, out);
-            }
-        }
-        Value::Array(arr) => {
-            for v in arr {
-                collect_type_refs(v, out);
-            }
-        }
-        _ => {}
-    }
-}
-
-/// Prunes `idl.types` down to only types actually reachable from the public
-/// interface — instruction args/return types, account/component struct
-/// fields, and event fields — expanded transitively through any of those
-/// types' own fields. Every struct the earlier per-file walk added to
-/// `idl.types` is a candidate, not a guarantee: that walk adds *any*
-/// non-`Accounts` named-field struct/enum found anywhere under `src/`,
-/// including internal CPI-plumbing helpers never meant to be part of the
-/// IDL (e.g. a hand-rolled foreign-CPI accounts bundle using raw SDK types
-/// with no IDL representation) — without this pass those leak into the
-/// generated client and, if their fields aren't IDL-representable, break
-/// its build outright.
-pub fn filter_unreachable_types(idl: &mut NaclacProgram) {
-    let mut referenced: HashSet<String> = HashSet::new();
-
-    for ix in &idl.instructions {
-        for arg in &ix.args {
-            collect_type_refs(&arg.ty, &mut referenced);
-        }
-        if let Some(ret) = &ix.returns {
-            collect_type_refs(ret, &mut referenced);
-        }
-    }
-    for acc in &idl.accounts {
-        for f in &acc.fields {
-            collect_type_refs(&f.ty, &mut referenced);
-        }
-    }
-    for evt in &idl.events {
-        for f in &evt.fields {
-            collect_type_refs(&f.ty, &mut referenced);
-        }
-    }
-
-    let by_name: HashMap<&str, &NaclacTypeDef> =
-        idl.types.iter().map(|t| (t.name.as_str(), t)).collect();
-    let mut frontier: Vec<String> = referenced.iter().cloned().collect();
-    while let Some(name) = frontier.pop() {
-        let mut nested = HashSet::new();
-        let Some(def) = by_name.get(name.as_str()) else {
-            if let Some(inner) = crate::opt_type::opt_inner_type(&name, |n| by_name.contains_key(n))
-            {
-                collect_type_refs(&inner, &mut nested);
-                for n in nested {
-                    if referenced.insert(n.clone()) {
-                        frontier.push(n);
-                    }
-                }
-            }
-            continue;
-        };
-        match &def.ty {
-            NaclacTypeDefTy::Struct { fields } => {
-                for field in fields {
-                    collect_type_refs(&field.ty, &mut nested);
-                }
-            }
-            // A variant's own fields can reference further types just like
-            // a struct's can (e.g. `Named { mode: InnerMode }`) — without
-            // walking these too, a type only ever reachable through a
-            // variant field (not any struct field) is incorrectly pruned
-            // even though it's genuinely used. Confirmed via a real build:
-            // `StepMode::Named { mode: InnerMode }` referenced from a real
-            // instruction arg still dropped `InnerMode` from `definedTypes`
-            // before this fix.
-            NaclacTypeDefTy::Enum { variants, .. } => {
-                for variant in variants {
-                    match &variant.fields {
-                        Some(NaclacEnumFields::Named(fields)) => {
-                            for field in fields {
-                                collect_type_refs(&field.ty, &mut nested);
-                            }
-                        }
-                        Some(NaclacEnumFields::Tuple(tys)) => {
-                            for ty in tys {
-                                collect_type_refs(ty, &mut nested);
-                            }
-                        }
-                        None => {}
-                    }
-                }
-            }
-        }
-        for n in nested {
-            if referenced.insert(n.clone()) {
-                frontier.push(n);
-            }
-        }
-    }
-
-    idl.types.retain(|t| referenced.contains(&t.name));
 }

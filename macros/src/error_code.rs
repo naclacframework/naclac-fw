@@ -12,7 +12,7 @@ use {
 
 /// Builds `impl #name { pub fn __naclac_idl_errors() -> Vec<IdlError> }` —
 /// each variant's `code` is `offset` plus its *real* Rust discriminant (via
-/// the same shared `variant_discriminants` the AST IDL generator uses), so
+/// the shared `naclac_syn::discriminator::variant_discriminants`), so
 /// it matches what the `From<#name> for ProgramError` impl puts on-chain.
 /// Each variant's doc comment (if any) becomes its `message`.
 #[cfg(feature = "idl-build")]
@@ -65,7 +65,7 @@ fn idl_build_errors_impl(
 /// (`offset + discriminant`) lies in the user range: at or above
 /// `USER_ERROR_BASE` and below `FRAMEWORK_ERROR_BASE`, where naclac's own
 /// framework errors begin. Also pins `naclac_syn`'s default offset to
-/// `USER_ERROR_BASE`, which the AST IDL generator relies on.
+/// `USER_ERROR_BASE`.
 fn user_code_range_asserts(
     name: &syn::Ident,
     variants: &syn::punctuated::Punctuated<syn::Variant, syn::Token![,]>,

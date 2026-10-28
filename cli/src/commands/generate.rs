@@ -3,7 +3,8 @@
 //! into it too (after `cargo build-sbf` succeeds) rather than keeping its
 //! own separate copy, so there is exactly one implementation of "what does
 //! regenerating a program's IDL mean" no matter which command triggers it.
-//! Splitting IDL generation (pure source parsing) from client generation
+//! Splitting IDL generation (compiles the program with its `idl-build`
+//! feature) from client generation
 //! (reads an already-written IDL JSON) also means either can run on its
 //! own — regenerating the SDK after an app-level template change doesn't
 //! require rebuilding the on-chain program, and regenerating the IDL
@@ -14,11 +15,14 @@ use {
         commands::{programs, workspace},
         ui,
     },
+    serde_json::Value,
     std::{
+        collections::HashSet,
         fs,
         io::Read,
         path::{Path, PathBuf},
         process::{Command, Stdio},
+        sync::OnceLock,
     },
 };
 
@@ -30,7 +34,7 @@ pub enum ClientKind {
 }
 
 /// A program's runtime and account-data layout as its default features
-/// select them, read from its `Cargo.toml` — the layout decides what IDL and
+/// select them, as cargo resolves them — the layout decides what IDL and
 /// client are generated, the runtime only labels the build.
 pub struct ProgramFeatures {
     solana_runtime: bool,
@@ -57,12 +61,92 @@ impl ProgramFeatures {
     }
 }
 
+/// `cargo metadata` of the workspace, run once per process: its dependency
+/// resolution is what cargo itself enables for every package.
+fn workspace_metadata(workspace_root: &Path) -> Result<&'static Value, String> {
+    static METADATA: OnceLock<Value> = OnceLock::new();
+    if let Some(metadata) = METADATA.get() {
+        return Ok(metadata);
+    }
+    let manifest_path = workspace_root.join("Cargo.toml");
+    let output = Command::new("cargo")
+        .arg("metadata")
+        .arg("--format-version")
+        .arg("1")
+        .arg("--manifest-path")
+        .arg(&manifest_path)
+        .output()
+        .map_err(|e| format!("could not run `cargo metadata`: {e}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "`cargo metadata` failed for {}: {}",
+            manifest_path.display(),
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    let metadata = serde_json::from_slice(&output.stdout)
+        .map_err(|e| format!("`cargo metadata` printed invalid JSON: {e}"))?;
+    Ok(METADATA.get_or_init(|| metadata))
+}
+
+/// The features cargo enables by default for the workspace package whose
+/// manifest is `program_dir/Cargo.toml`.
+fn default_features(workspace_root: &Path, program_dir: &Path) -> Result<HashSet<String>, String> {
+    let metadata = workspace_metadata(workspace_root)?;
+    let manifest = fs::canonicalize(program_dir.join("Cargo.toml"))
+        .map_err(|e| format!("cannot read {}/Cargo.toml: {e}", program_dir.display()))?;
+    let id = metadata
+        .get("packages")
+        .and_then(Value::as_array)
+        .ok_or("`cargo metadata` did not list the workspace's packages")?
+        .iter()
+        .find(|package| {
+            package
+                .get("manifest_path")
+                .and_then(Value::as_str)
+                .and_then(|path| fs::canonicalize(path).ok())
+                .is_some_and(|path| path == manifest)
+        })
+        .and_then(|package| package.get("id"))
+        .and_then(Value::as_str)
+        .ok_or_else(|| {
+            format!(
+                "{} is not a package of the cargo workspace at {}",
+                manifest.display(),
+                workspace_root.display()
+            )
+        })?;
+    let node = metadata
+        .get("resolve")
+        .and_then(|resolve| resolve.get("nodes"))
+        .and_then(Value::as_array)
+        .ok_or("`cargo metadata` did not report a dependency resolution")?
+        .iter()
+        .find(|node| node.get("id").and_then(Value::as_str) == Some(id))
+        .ok_or_else(|| format!("`cargo metadata` has no resolution for `{id}`"))?;
+    node.get("features")
+        .and_then(Value::as_array)
+        .ok_or_else(|| format!("`cargo metadata` lists no features for `{id}`"))?
+        .iter()
+        .map(|feature| {
+            feature
+                .as_str()
+                .map(str::to_string)
+                .ok_or_else(|| format!("`cargo metadata` lists a non-string feature for `{id}`"))
+        })
+        .collect()
+}
+
 /// Resolves which of `bytemuck`, `borsh` and `wincode` the program enables by
-/// default (following its feature table transitively), and whether it selects
-/// the `solana` runtime (absent means `pinocchio`). Errors when the program
-/// enables no layout or more than one, since `naclac-lang` accepts exactly one.
-pub fn detect_program_features(program_dir: &Path) -> Result<ProgramFeatures, String> {
-    let enabled = naclac_syn::modules::default_features(program_dir);
+/// default as cargo resolves its features, and whether it selects the
+/// `solana` runtime (absent means `pinocchio`). Errors when cargo cannot
+/// resolve the program, and when the program enables no layout or more than
+/// one, since `naclac-lang` accepts exactly one.
+pub fn detect_program_features(
+    workspace_root: &Path,
+    program_dir: &Path,
+) -> Result<ProgramFeatures, String> {
+    let enabled = default_features(workspace_root, program_dir)?;
     let layouts: Vec<(&str, naclac_idl::Serialization)> = [
         ("bytemuck", naclac_idl::Serialization::Bytemuck),
         ("borsh", naclac_idl::Serialization::Borsh),
@@ -152,7 +236,8 @@ pub fn ensure_client_stubs(workspace_root: &Path, program_dirs: &[PathBuf]) {
             ));
         }
         let (naclac_lang_path, naclac_client_path) =
-            naclac_client_gen::naclac_dep_path_fragments(workspace_root, &rust_client_dir);
+            naclac_client_gen::naclac_dep_path_fragments(workspace_root, &rust_client_dir)
+                .unwrap_or_else(|e| ui::error(e));
         let stub_cargo = format!(
             "[package]\nname = \"{pname_kebab}-client\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[features]\ndefault = [\"offchain\"]\noffchain = [\"dep:naclac-client\"]\ncpi = [\"dep:naclac-lang\"]\nsolana = [\"naclac-lang?/solana\"]\npinocchio = [\"naclac-lang?/pinocchio\"]\nbytemuck = [\"naclac-lang?/bytemuck\"]\nborsh = [\"naclac-lang?/borsh\"]\nwincode = [\"naclac-lang?/wincode\"]\n\n[dependencies]\nnaclac-client = {{ version = \"0.1.0\", optional = true{naclac_client_path} }}\nnaclac-lang = {{ version = \"0.1.0\", optional = true, default-features = false{naclac_lang_path} }}\n"
         );
@@ -171,10 +256,43 @@ pub fn ensure_client_stubs(workspace_root: &Path, program_dirs: &[PathBuf]) {
     }
 }
 
-/// Whether a program's own `Cargo.toml` declares an `idl-build` feature —
-/// the opt-in signal for using the real-compilation `idl-build` mechanism
-/// instead of the AST-walker (`naclac_idl::generate_idl`) for that program.
-pub fn program_declares_idl_build(program_dir: &Path) -> bool {
+fn idl_build_fix(program_dir: &Path) -> String {
+    format!(
+        "Add `idl-build = [\"naclac-lang/idl-build\"]` under `[features]` in {}.",
+        program_dir.join("Cargo.toml").display()
+    )
+}
+
+/// For `naclac build`: whether the program's IDL and client SDKs can be
+/// generated, i.e. its own `Cargo.toml` declares the `idl-build` feature the
+/// IDL is generated from. When it does not, prints a warning naming the line
+/// to add and returns `false`; the caller skips generation for that program.
+pub fn can_generate(program_dir: &Path, prog_name: &str) -> bool {
+    if program_declares_idl_build(program_dir) {
+        return true;
+    }
+    ui::warn(format!(
+        "'{prog_name}' does not declare the `idl-build` feature, so its IDL and client SDKs are \
+         not generated. {}",
+        idl_build_fix(program_dir)
+    ));
+    false
+}
+
+/// For the commands that generate an IDL: errors unless the program's own
+/// `Cargo.toml` declares the `idl-build` feature the IDL is generated from.
+pub fn require_idl_build(program_dir: &Path, prog_name: &str) {
+    if !program_declares_idl_build(program_dir) {
+        ui::error(format!(
+            "Cannot generate the IDL of '{prog_name}': its Cargo.toml does not declare the \
+             `idl-build` feature the IDL is generated from. {}",
+            idl_build_fix(program_dir)
+        ));
+    }
+}
+
+/// Whether a program's own `Cargo.toml` declares an `idl-build` feature.
+fn program_declares_idl_build(program_dir: &Path) -> bool {
     program_manifest(program_dir)
         .get("features")
         .and_then(|f| f.as_table())
@@ -196,8 +314,7 @@ pub fn read_package_name(program_dir: &Path) -> String {
 }
 
 /// Runs the target program's real, compiled `idl-build` print function and
-/// returns the same IDL JSON the AST-walker path returns, so callers don't
-/// need to know which mechanism actually produced it.
+/// returns its IDL JSON.
 ///
 /// The program is compiled in place, from its own manifest, as an `rlib`
 /// regardless of the `crate-type` it declares. It must be built from its real
@@ -338,11 +455,10 @@ fn selected_dirs(workspace_root: &Path, requested: &[String]) -> Vec<PathBuf> {
         .collect()
 }
 
-/// Regenerates and persists one program's IDL: resolves its deploy-keypair
-/// address, builds the IDL (from the compiled program when it declares
-/// `idl-build`, from source otherwise), checks its `metadata.serialization`
-/// against the program's Cargo.toml features, and writes
-/// `artifacts/idl/<name>.json`. Returns the IDL JSON.
+/// Regenerates and persists one program's IDL from the compiled program (its
+/// `idl-build` feature; the address in it is the program's `declare_id!`),
+/// checks its `metadata.serialization` against the program's Cargo.toml
+/// features, and writes `artifacts/idl/<name>.json`. Returns the IDL JSON.
 pub fn generate_idl_for_program(
     workspace_root: &Path,
     program_dir: &Path,
@@ -353,47 +469,11 @@ pub fn generate_idl_for_program(
     let serialization = features.serialization();
     let target_dir =
         naclac_client_gen::resolve_target_dir(workspace_root).unwrap_or_else(|e| ui::error(e));
-    let keypair_path =
-        naclac_client_gen::deploy_dir(workspace_root).join(format!("{}-keypair.json", prog_name));
-    if !keypair_path.exists() {
-        ui::error(format!(
-            "No deploy keypair found for '{}' — run `naclac build` at least once first.",
-            prog_name
-        ));
-    }
-    let address_output = Command::new("solana-keygen")
-        .arg("pubkey")
-        .arg(&keypair_path)
-        .output()
-        .unwrap_or_else(|e| ui::error(format!("Failed to run solana-keygen: {}", e)));
-    let actual_address = String::from_utf8_lossy(&address_output.stdout)
-        .trim()
-        .to_string();
-    if !address_output.status.success() || actual_address.is_empty() {
-        ui::error(format!(
-            "Could not read the program address from {}: {}",
-            keypair_path.display(),
-            String::from_utf8_lossy(&address_output.stderr).trim()
-        ));
-    }
-
-    let idl_json_pretty = if program_declares_idl_build(program_dir) {
+    let idl_json_pretty =
         match generate_idl_via_idl_build(&target_dir, program_dir, prog_name, show_output) {
             Ok(result) => result,
             Err(e) => ui::error(format!("Failed to generate IDL for '{}': {}", prog_name, e)),
-        }
-    } else {
-        match naclac_idl::generate_idl(
-            program_dir,
-            prog_name,
-            &actual_address,
-            env!("CARGO_PKG_VERSION"),
-            serialization,
-        ) {
-            Ok(result) => result,
-            Err(e) => ui::error(format!("Failed to generate IDL for '{}': {}", prog_name, e)),
-        }
-    };
+        };
 
     let written_serialization = serde_json::from_str::<serde_json::Value>(&idl_json_pretty)
         .ok()
@@ -429,13 +509,13 @@ pub fn execute_idl(requested: &[String], show_output: bool) {
             .to_str()
             .unwrap()
             .to_string();
+        require_idl_build(program_dir, &prog_name);
         // A real `idl-build` compile can take well over a minute; with
         // `show_output` its cargo output is inherited straight to the
         // terminal, which would otherwise fight a redrawing spinner for the
         // same line — skip the spinner in that case, matching how
         // `build.rs` handles `--show-output` for `cargo build-sbf`.
-        let use_idl_build = program_declares_idl_build(program_dir) && show_output;
-        let step = if use_idl_build {
+        let step = if show_output {
             None
         } else {
             Some(ui::Step::start(format!(
@@ -443,7 +523,7 @@ pub fn execute_idl(requested: &[String], show_output: bool) {
                 prog_name
             )))
         };
-        let program_features = detect_program_features(program_dir)
+        let program_features = detect_program_features(&workspace_root, program_dir)
             .unwrap_or_else(|e| ui::error(format!("Cannot generate '{}': {}", prog_name, e)));
         generate_idl_for_program(
             &workspace_root,
@@ -524,9 +604,9 @@ pub fn execute_client(requested: &[String], target: Option<ClientKind>) {
     }
 }
 
-/// `naclac generate` with no subcommand — regenerates the IDL from source,
-/// then both client SDKs from the freshly-written IDL, all in one run (no
-/// on-chain build).
+/// `naclac generate` with no subcommand — regenerates the IDL (compiling each
+/// program with its `idl-build` feature), then both client SDKs from the
+/// freshly-written IDL, all in one run (no on-chain build).
 pub fn execute_all(requested: &[String], show_output: bool) {
     let workspace_root = workspace::root();
     let program_dirs = selected_dirs(&workspace_root, requested);
@@ -541,8 +621,10 @@ pub fn execute_all(requested: &[String], show_output: bool) {
             .to_str()
             .unwrap()
             .to_string();
-        let use_idl_build = program_declares_idl_build(program_dir) && show_output;
-        let step = if use_idl_build {
+        require_idl_build(program_dir, &prog_name);
+        let program_features = detect_program_features(&workspace_root, program_dir)
+            .unwrap_or_else(|e| ui::error(format!("Cannot generate '{}': {}", prog_name, e)));
+        let step = if show_output {
             None
         } else {
             Some(ui::Step::start(format!(
@@ -550,8 +632,6 @@ pub fn execute_all(requested: &[String], show_output: bool) {
                 prog_name
             )))
         };
-        let program_features = detect_program_features(program_dir)
-            .unwrap_or_else(|e| ui::error(format!("Cannot generate '{}': {}", prog_name, e)));
         generate_idl_for_program(
             &workspace_root,
             program_dir,

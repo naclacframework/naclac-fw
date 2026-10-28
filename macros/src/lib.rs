@@ -29,26 +29,32 @@ mod zc_enum;
 
 use proc_macro::TokenStream;
 
-/// The calling crate's constants, collected by the same function the AST IDL
-/// generator uses, for resolving `[T; N]` lengths when building `idl-build`
-/// field types.
+/// The directory of the crate being compiled, from `CARGO_MANIFEST_DIR`. The
+/// macros read that crate's own source for checks that cannot be done from
+/// the item being expanded, so a missing variable is an error: continuing
+/// without it would silently skip those checks.
+pub(crate) fn manifest_dir() -> std::path::PathBuf {
+    std::env::var_os("CARGO_MANIFEST_DIR")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| {
+            panic!(
+                "naclac: CARGO_MANIFEST_DIR is not set; the naclac macros must be expanded by \
+                 cargo (or a tool that sets it, such as rust-analyzer)"
+            )
+        })
+}
+
+/// The calling crate's constants, for resolving `[T; N]` lengths when
+/// building `idl-build` field types.
 #[cfg(feature = "idl-build")]
 pub(crate) fn crate_constants() -> Vec<naclac_syn::types::NaclacConstant> {
-    std::env::var("CARGO_MANIFEST_DIR")
-        .map(|dir| naclac_syn::crate_constants(std::path::Path::new(&dir)))
-        .unwrap_or_default()
+    naclac_syn::crate_constants(&manifest_dir())
 }
 
 /// The calling crate's type aliases, for the checks that match a field's type
 /// by name.
 pub(crate) fn crate_aliases() -> naclac_syn::aliases::Aliases {
-    std::env::var("CARGO_MANIFEST_DIR")
-        .map(|dir| {
-            naclac_syn::aliases::Aliases::collect(&naclac_syn::modules::crate_modules(
-                std::path::Path::new(&dir),
-            ))
-        })
-        .unwrap_or_default()
+    naclac_syn::aliases::Aliases::collect(&naclac_syn::modules::crate_modules(&manifest_dir()))
 }
 
 /// Tokens evaluating to the IDL `value` string of a constant of type `ty`
@@ -253,11 +259,11 @@ fn constant_idl_build_impl(item: &syn::ItemConst) -> proc_macro2::TokenStream {
     }
 }
 
-/// Stub for constant declarations (ignored, acts as a marker) — `naclac-syn`'s
-/// AST-walker IDL generator scans for this attribute's bare presence on a
-/// `const` item. Under `idl-build`, also generates that constant's own
-/// print function (see `constant_idl_build_impl`); the attribute itself
-/// never modifies the original `const` item either way.
+/// Marker for constant declarations — `naclac-syn`'s name scanner finds a
+/// constant by this attribute's bare presence on a `const` item. Under
+/// `idl-build`, also generates that constant's own print function (see
+/// `constant_idl_build_impl`); the attribute itself never modifies the
+/// original `const` item either way.
 #[proc_macro_attribute]
 pub fn constant(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(err) = reject_nonempty_attr(&attr, "constant") {
@@ -535,7 +541,7 @@ pub fn defined_type(
     // the integer is the width of its stored tag, and Rust requires one for
     // explicit discriminants on a variant with fields. The same detection
     // (`naclac_syn::discriminator::detect_enum_repr`) is used for the tag type
-    // below and by the IDL walker, so they cannot drift apart.
+    // below and for the `idl-build` output, so they cannot drift apart.
     let mut zero_copy_repr_conflict = proc_macro2::TokenStream::new();
     match &input.data {
         syn::Data::Enum(_) => {

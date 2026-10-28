@@ -1,6 +1,7 @@
 use {
+    crate::ui,
     heck::ToSnakeCase,
-    std::{path::Path, process::Command},
+    std::{fs, path::Path, process::Command},
 };
 
 pub mod templates;
@@ -14,15 +15,31 @@ use self::{
     utils::{ensure_dir, generate_keypair, write_file},
 };
 
-pub fn execute(
-    name: &str,
-    runtime_flag: Option<&str>,
-    mode_flag: Option<&str>,
-    ts_flag: Option<&str>,
-    pm_flag: Option<&str>,
-    no_install: bool,
-    no_git: bool,
-) {
+/// What `naclac init` was asked for on the command line.
+pub struct InitOptions<'a> {
+    pub name: &'a str,
+    pub runtime: Option<&'a str>,
+    pub mode: Option<&'a str>,
+    pub ts: Option<&'a str>,
+    pub pm: Option<&'a str>,
+    pub no_install: bool,
+    pub no_git: bool,
+    /// A local framework checkout to build against; recorded in Naclac.toml
+    /// as `[framework] path`, relative to the new workspace.
+    pub framework_path: Option<&'a str>,
+}
+
+pub fn execute(options: InitOptions) {
+    let InitOptions {
+        name,
+        runtime: runtime_flag,
+        mode: mode_flag,
+        ts: ts_flag,
+        pm: pm_flag,
+        no_install,
+        no_git,
+        framework_path,
+    } = options;
     let root = Path::new(name);
 
     if root.exists() {
@@ -105,6 +122,42 @@ unexpected_cfgs = { level = "warn", check-cfg = [
         |p| p.test_node_script(),
     );
 
+    let framework =
+        match framework_path {
+            Some(path) => Some(fs::canonicalize(path).unwrap_or_else(|e| {
+                ui::error(format!("Cannot read the framework path {path}: {e}"))
+            })),
+            None => {
+                let found = naclac_client_gen::find_framework_checkout(root)
+                    .unwrap_or_else(|e| ui::error(e));
+                match &found {
+                    Some(checkout) => println!(
+                        "🔗 Found the naclac framework checkout at {}; recording it as \
+                     `[framework] path` in Naclac.toml. Remove that section to use the published \
+                     packages instead.",
+                        checkout.display()
+                    ),
+                    None => println!(
+                        "📦 No naclac framework checkout found above this folder; using the \
+                     published packages."
+                    ),
+                }
+                found
+            }
+        };
+    let framework_section = match framework {
+        Some(framework) => {
+            let project = fs::canonicalize(root)
+                .unwrap_or_else(|e| ui::error(format!("Cannot read {}: {e}", root.display())));
+            let relative = naclac_client_gen::relative_path(&project, &framework);
+            format!(
+                "[framework]\npath = \"{}\"\n\n",
+                relative.to_string_lossy().replace('\\', "/")
+            )
+        }
+        None => String::new(),
+    };
+
     let naclac_toml = format!(
         r#"[toolchain]
 package_manager = "{pm_name}"
@@ -116,7 +169,7 @@ skip-lint = false
 [programs.localnet]
 {snake_name} = "{program_id}"
 
-[provider]
+{framework_section}[provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
@@ -127,7 +180,8 @@ test-node = "{test_node_script}"
     );
     write_file(&root.join("Naclac.toml"), &naclac_toml);
 
-    let (ts_client_dep, ts_litesvm_dep) = naclac_client_gen::naclac_ts_dep_specs(root);
+    let (ts_client_dep, ts_litesvm_dep) =
+        naclac_client_gen::naclac_ts_dep_specs(root).unwrap_or_else(|e| ui::error(e));
     let ts_deps = match ts_framework {
         TsFramework::Kit => format!(
             "    \"@naclac-fw/client\": \"{ts_client_dep}\",\n    \"@naclac-fw/litesvm\": \"{ts_litesvm_dep}\",\n    \"@solana-program/system\": \"^0.15\",\n    \"@solana/kit\": \"^8\""

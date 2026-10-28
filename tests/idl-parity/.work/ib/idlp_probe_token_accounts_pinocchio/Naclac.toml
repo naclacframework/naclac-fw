@@ -1,0 +1,13 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+idlp_probe_token_accounts_pinocchio = "BKwRZDJUJA9Yb5s1EHPrK6YQhGg6V1FwHaLFTrGspmBN"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"

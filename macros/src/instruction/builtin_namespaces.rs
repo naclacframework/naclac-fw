@@ -75,13 +75,16 @@ pub(crate) struct Required {
 }
 
 /// A key filled from another field of the struct when it is not written: the
-/// written value when it names a field, else the first field typed
+/// written value, which must name a field, else the single field typed
 /// `Program<T>` / `Interface<T>` with `T` in `from`.
 pub(crate) struct Filled {
     pub key: &'static str,
     pub from: &'static [&'static str],
     /// The error when no field fills it.
     pub missing: &'static str,
+    /// The error when several fields could fill it, `{fields}` replaced by
+    /// their names.
+    pub ambiguous: &'static str,
 }
 
 /// One field names its token program at most once, in whichever namespace.
@@ -96,13 +99,21 @@ const TOKEN_PROGRAM: Filled = Filled {
     missing: "Naclac Error: token_program must be defined in the Accounts struct for account \
               initialization (or point at one explicitly via `token::token_program`, \
               `mint::token_program` or `associated_token::token_program`).",
+    ambiguous: "Naclac Error: more than one field could be this account's token program \
+                ({fields}); name the one to use with `token::token_program`, \
+                `mint::token_program` or `associated_token::token_program`.",
 };
+
+const TOKEN_PROGRAM_NOT_A_FIELD: &str = "Naclac Error: the token program must name a field of \
+     this Accounts struct, e.g. `token_program` for a field `token_program: Program<Token>`.";
 
 const ASSOCIATED_TOKEN_PROGRAM: Filled = Filled {
     key: "associated_token_program",
     from: &["AssociatedToken"],
     missing: "Naclac Error: associated_token_program (Program<AssociatedToken>) must be \
               defined in the Accounts struct for associated token account initialization.",
+    ambiguous: "Naclac Error: more than one `Program<AssociatedToken>` field ({fields}); an \
+                Accounts struct declares only one.",
 };
 
 const TOKEN_PROGRAM_HINT: Option<(&str, &str)> =
@@ -351,28 +362,53 @@ pub(crate) fn creator(field: &ParsedField) -> Option<(&'static Namespace, &'stat
     })
 }
 
-/// The index of the field that fills `filled` for `field`.
+/// The index of the field that fills `filled` for `field`: the field a
+/// written token program names (an error when it names no field), else the
+/// only field whose program marker is in `filled.from` (an error when there
+/// is none or several).
 pub(crate) fn resolve_filled(
     filled: &Filled,
     field: &ParsedField,
     all_fields: &[ParsedField],
 ) -> Result<usize, TokenStream> {
     if filled.key == TOKEN_PROGRAM_KEY {
-        if let Some(syn::Expr::Path(expr_path)) = written_token_program(field) {
-            if let Some(ident) = expr_path.path.get_ident() {
-                if let Some(pos) = all_fields.iter().position(|f| &f.ident == ident) {
-                    return Ok(pos);
-                }
-            }
+        if let Some(written) = written_token_program(field) {
+            let named = match written {
+                syn::Expr::Path(expr_path) => expr_path
+                    .path
+                    .get_ident()
+                    .and_then(|ident| all_fields.iter().position(|f| &f.ident == ident)),
+                _ => None,
+            };
+            return named.ok_or_else(|| {
+                syn::Error::new_spanned(written, TOKEN_PROGRAM_NOT_A_FIELD).to_compile_error()
+            });
         }
     }
-    all_fields
+    let candidates: Vec<usize> = all_fields
         .iter()
-        .position(|f| {
+        .enumerate()
+        .filter(|(_, f)| {
             crate::instruction::init_cpi::program_marker_ident(&f.ty)
                 .is_some_and(|marker| filled.from.contains(&marker.as_str()))
         })
-        .ok_or_else(|| syn::Error::new_spanned(&field.ident, filled.missing).to_compile_error())
+        .map(|(index, _)| index)
+        .collect();
+    match candidates.as_slice() {
+        [only] => Ok(*only),
+        [] => Err(syn::Error::new_spanned(&field.ident, filled.missing).to_compile_error()),
+        several => {
+            let names = several
+                .iter()
+                .map(|&index| format!("`{}`", all_fields[index].ident))
+                .collect::<Vec<_>>()
+                .join(", ");
+            Err(
+                syn::Error::new_spanned(&field.ident, filled.ambiguous.replace("{fields}", &names))
+                    .to_compile_error(),
+            )
+        }
+    }
 }
 
 /// The first of `required` not written, as a compile error at the field.
@@ -423,9 +459,73 @@ pub(crate) fn path_tokens(namespace: &Namespace) -> TokenStream {
 #[cfg(test)]
 mod tests {
     use {
-        super::{namespace, CREATION_ORDER, NAMESPACES},
+        super::{namespace, resolve_filled, CREATION_ORDER, NAMESPACES, TOKEN_PROGRAM},
+        crate::instruction::parser::{parse_struct_fields, ParsedField},
         std::path::{Path, PathBuf},
     };
+
+    fn parse(fields: &str) -> Vec<ParsedField> {
+        let item: syn::ItemStruct = syn::parse_str(&format!("struct S {{ {fields} }}")).unwrap();
+        let syn::Fields::Named(named) = &item.fields else {
+            panic!("a struct with named fields");
+        };
+        parse_struct_fields(named).unwrap()
+    }
+
+    fn token_program_of(fields: &str) -> Result<usize, String> {
+        let parsed = parse(fields);
+        resolve_filled(&TOKEN_PROGRAM, &parsed[0], &parsed).map_err(|e| e.to_string())
+    }
+
+    const VAULT: &str = "#[account(token::mint = mint, token::authority = owner TOKEN_KEY)] \
+         vault: Account<TokenAccount>, mint: Account<Mint>, owner: Signer";
+
+    fn vault_with(programs: &str, token_key: &str) -> String {
+        format!("{}, {programs}", VAULT.replace(" TOKEN_KEY", token_key))
+    }
+
+    #[test]
+    fn the_only_program_field_is_the_token_program() {
+        let fields = vault_with("token_program: Program<Token>", "");
+        assert_eq!(token_program_of(&fields), Ok(3));
+    }
+
+    #[test]
+    fn several_program_fields_without_a_written_one_are_an_error() {
+        let fields = vault_with(
+            "token_program: Program<Token>, token_2022_program: Program<Token2022>",
+            "",
+        );
+        let error = token_program_of(&fields).unwrap_err();
+        assert!(error.contains("more than one field"), "{error}");
+        assert!(error.contains("token_program"), "{error}");
+        assert!(error.contains("token_2022_program"), "{error}");
+    }
+
+    #[test]
+    fn a_written_token_program_picks_among_several() {
+        let fields = vault_with(
+            "token_program: Program<Token>, token_2022_program: Program<Token2022>",
+            ", token::token_program = token_2022_program",
+        );
+        assert_eq!(token_program_of(&fields), Ok(4));
+    }
+
+    #[test]
+    fn a_written_token_program_that_is_not_a_field_is_an_error() {
+        let fields = vault_with(
+            "token_program: Program<Token>",
+            ", token::token_program = no_such_field",
+        );
+        let error = token_program_of(&fields).unwrap_err();
+        assert!(error.contains("must name a field"), "{error}");
+    }
+
+    #[test]
+    fn no_program_field_is_an_error() {
+        let error = token_program_of(&vault_with("system: Signer", "")).unwrap_err();
+        assert!(error.contains("token_program must be defined"), "{error}");
+    }
 
     /// Names that tie derive code to naclac's token crate. Outside this file
     /// they may appear only in test code.

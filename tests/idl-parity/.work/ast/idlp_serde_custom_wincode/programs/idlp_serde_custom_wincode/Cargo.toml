@@ -1,0 +1,26 @@
+[package]
+name = "idlp_serde_custom_wincode"
+version = "0.1.0"
+description = "IDL parity fixture (serde_custom, wincode, ast)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+default = ["wincode"]
+pinocchio = ["naclac-lang/pinocchio"]
+borsh = ["naclac-lang/borsh"]
+wincode = ["naclac-lang/wincode"]
+
+
+[dependencies]
+naclac-lang = { version = "0.1.0", path = "../../../../../../../naclac-lang", features = ["token", "metadata"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,13 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+idlp_modules_borsh = "9D3ont5pE6KdSW1FUGjP8i7wo2ecwmV8rGicCk81Pqxk"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"

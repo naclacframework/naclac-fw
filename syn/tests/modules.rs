@@ -1,10 +1,10 @@
 //! Pins `naclac_syn::modules` to rustc's module rules: file modules (`x.rs`,
 //! `x/mod.rs`), inline modules, `#[path]` at file level and inside an inline
-//! module, undeclared files, `cfg` evaluation over default features, and
+//! module, undeclared files, the crate root named by `[lib] path`, and
 //! visibility from the crate root.
 
 use {
-    naclac_syn::modules::{active_crate_modules, crate_modules, default_features, CrateModule},
+    naclac_syn::modules::{crate_modules, crate_root, crate_root_of, CrateModule},
     std::{
         fs,
         path::{Path, PathBuf},
@@ -121,28 +121,132 @@ fn follows_rustc_module_rules_and_ignores_undeclared_files() {
     assert!(!found.iter().any(|(_, name)| name == "InStray"));
 }
 
-#[test]
-fn default_features_are_closed_over_the_features_table() {
-    let dir = sample_crate("features");
-    let features = default_features(&dir);
+fn bare_dir(tag: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "naclac-syn-root-{tag}-{}-{:?}",
+        std::process::id(),
+        std::thread::current().id()
+    ));
     let _ = fs::remove_dir_all(&dir);
-    assert!(features.contains("on"));
-    assert!(features.contains("also_on"));
-    assert!(!features.contains("off"));
+    fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+fn panic_message(f: impl FnOnce() + std::panic::UnwindSafe) -> String {
+    let payload = std::panic::catch_unwind(f).unwrap_err();
+    payload
+        .downcast_ref::<String>()
+        .cloned()
+        .or_else(|| payload.downcast_ref::<&str>().map(|s| s.to_string()))
+        .unwrap_or_default()
 }
 
 #[test]
-fn active_modules_drop_what_default_features_compile_out() {
-    let dir = sample_crate("active");
-    let features = default_features(&dir);
-    let found = structs(&active_crate_modules(&dir, &features));
+fn a_manifest_without_lib_path_uses_cargos_default_root() {
+    let dir = bare_dir("default");
+    write(&dir, "Cargo.toml", "[package]\nname = \"sample\"\n");
+    let root = crate_root(&dir);
     let _ = fs::remove_dir_all(&dir);
+    assert_eq!(root, dir.join("src/lib.rs"));
+}
 
-    let names: Vec<&str> = found.iter().map(|(_, name)| name.as_str()).collect();
-    assert!(!names.contains(&"InGatedOff"));
-    assert!(!names.contains(&"ItemOff"));
-    assert!(names.contains(&"InGatedOn"));
-    assert!(names.contains(&"UnknownPredicate"));
+#[test]
+fn lib_path_names_the_crate_root() {
+    let dir = bare_dir("lib-path");
+    write(&dir, "Cargo.toml", "[lib]\npath = \"src/entry.rs\"\n");
+    let root = crate_root(&dir);
+    let _ = fs::remove_dir_all(&dir);
+    assert_eq!(root, dir.join("src/entry.rs"));
+}
+
+#[test]
+fn a_binary_being_compiled_has_the_root_its_bin_entry_names() {
+    let dir = bare_dir("bin-path");
+    write(
+        &dir,
+        "Cargo.toml",
+        "[[bin]]\nname = \"other\"\npath = \"src/other.rs\"\n\n\
+         [[bin]]\nname = \"fixture\"\npath = \"tests/fixture.rs\"\n",
+    );
+    let root = crate_root_of(&dir, Some("fixture"));
+    let _ = fs::remove_dir_all(&dir);
+    assert_eq!(root, dir.join("tests/fixture.rs"));
+}
+
+#[test]
+fn a_binary_without_a_bin_entry_is_an_error() {
+    let dir = bare_dir("bin-missing");
+    write(&dir, "Cargo.toml", "[package]\nname = \"sample\"\n");
+    let target = dir.clone();
+    let message = panic_message(move || {
+        crate_root_of(&target, Some("fixture"));
+    });
+    let _ = fs::remove_dir_all(&dir);
+    assert!(message.contains("`fixture`"), "{message}");
+    assert!(message.contains("`[[bin]]` entry"), "{message}");
+}
+
+#[test]
+fn a_missing_manifest_is_an_error() {
+    let dir = bare_dir("no-manifest");
+    let target = dir.clone();
+    let message = panic_message(move || {
+        crate_root(&target);
+    });
+    let _ = fs::remove_dir_all(&dir);
+    assert!(message.contains("cannot read"), "{message}");
+    assert!(message.contains("Cargo.toml"), "{message}");
+}
+
+#[test]
+fn an_invalid_manifest_is_an_error() {
+    let dir = bare_dir("bad-toml");
+    write(&dir, "Cargo.toml", "[package\nname = ");
+    let target = dir.clone();
+    let message = panic_message(move || {
+        crate_root(&target);
+    });
+    let _ = fs::remove_dir_all(&dir);
+    assert!(message.contains("is not valid TOML"), "{message}");
+}
+
+#[test]
+fn a_lib_entry_of_the_wrong_type_is_an_error() {
+    for (tag, manifest, expected) in [
+        ("lib-not-table", "lib = 3\n", "`lib` in"),
+        (
+            "path-not-string",
+            "[lib]\npath = 3\n",
+            "`path` under `[lib]`",
+        ),
+    ] {
+        let dir = bare_dir(tag);
+        write(&dir, "Cargo.toml", manifest);
+        let target = dir.clone();
+        let message = panic_message(move || {
+            crate_root(&target);
+        });
+        let _ = fs::remove_dir_all(&dir);
+        assert!(message.contains(expected), "{tag}: {message}");
+    }
+}
+
+#[test]
+fn an_unreadable_or_unparseable_crate_root_is_an_error() {
+    let dir = bare_dir("missing-root");
+    write(&dir, "Cargo.toml", "[package]\nname = \"sample\"\n");
+    let target = dir.clone();
+    let missing = panic_message(move || {
+        crate_modules(&target);
+    });
+    write(&dir, "src/lib.rs", "pub fn broken( {");
+    let target = dir.clone();
+    let unparseable = panic_message(move || {
+        crate_modules(&target);
+    });
+    let _ = fs::remove_dir_all(&dir);
+    assert!(missing.contains("cannot read the crate root"), "{missing}");
+    assert!(unparseable.contains("does not parse"), "{unparseable}");
 }
 
 #[test]

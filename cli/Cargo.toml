@@ -16,7 +16,6 @@ heck = { workspace = true }
 sha2 = { workspace = true }
 naclac-idl = { workspace = true }
 naclac-client-gen = { workspace = true }
-naclac-syn = { workspace = true }
 
 solana-address = { workspace = true }
 solana-instruction = { workspace = true }

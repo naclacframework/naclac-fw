@@ -162,7 +162,7 @@ pub fn with_added_program(text: &str, program: &str, address: &str) -> Option<St
 }
 
 /// The address `declare_id!("...")` declares in a program's `lib.rs`.
-fn declared_id(lib_code: &str) -> Option<&str> {
+pub fn declared_id(lib_code: &str) -> Option<&str> {
     let start = lib_code.find("declare_id!(\"")? + "declare_id!(\"".len();
     let end = lib_code[start..].find("\")")?;
     Some(&lib_code[start..start + end])

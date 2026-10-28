@@ -635,7 +635,6 @@ dependencies = [
  "sha2 0.11.0",
  "solana-address 2.6.1",
  "syn 3.0.3",
- "toml",
 ]
 
 [[package]]
@@ -659,8 +658,6 @@ dependencies = [
 name = "naclac-syn"
 version = "0.1.0"
 dependencies = [
- "bs58",
- "heck",
  "proc-macro2",
  "quote",
  "serde",

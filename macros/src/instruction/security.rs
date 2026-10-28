@@ -351,7 +351,7 @@ pub fn generate_security_checks(
         let mut is_pda_precomputed = false;
         let mut pda_str = String::new();
         let mut bump_val = 0;
-        let mut toml_path_str = String::new();
+        let mut declaring_file_str = String::new();
 
         // Precompute requires the PDA's program ID to be known at macro-expansion
         // time: the crate's own program ID by default, or, when `seeds::program = X`
@@ -368,13 +368,9 @@ pub fn generate_security_checks(
             .and_then(resolve_program_id_literal);
 
         if all_literals && (field.pda_program.is_none() || resolved_foreign_program_id.is_some()) {
-            let own_program_lookup = || {
-                let crate_name = std::env::var("CARGO_PKG_NAME").unwrap_or_default();
-                find_program_id(&crate_name)
-            };
             let program_id_result = match &resolved_foreign_program_id {
                 Some(resolved) => Some(resolved.clone()),
-                None => own_program_lookup(),
+                None => declared_program_id().ok(),
             };
             if let Some((prog_id_str, path_str)) = program_id_result {
                 if let Some((computed_pda, computed_bump)) =
@@ -383,7 +379,7 @@ pub fn generate_security_checks(
                     is_pda_precomputed = true;
                     pda_str = computed_pda;
                     bump_val = computed_bump;
-                    toml_path_str = path_str;
+                    declaring_file_str = path_str;
                 }
             }
         }
@@ -442,7 +438,7 @@ pub fn generate_security_checks(
             // foreign-program-only import spuriously looks unused.
             let foreign_program_expr: Vec<&syn::Expr> = field.pda_program.iter().collect();
             pda_creation_logic = quote! {
-                const _: &[u8] = include_bytes!(#toml_path_str);
+                const _: &[u8] = include_bytes!(#declaring_file_str);
                 // Not dead code: re-references the user's seed constant so
                 // rustc's post-expansion resolution sees their `use` as
                 // used, avoiding a spurious unused-import warning.
@@ -938,8 +934,7 @@ pub fn generate_relational_checks(fields: &[ParsedField], prefix: TokenStream) -
 /// byte-string or byte literal; a bare constant name; `CONST.as_ref()` or
 /// `CONST.as_bytes()` on such a constant; or a `&` reference to any of
 /// these. Every form it accepts must yield exactly the bytes the program
-/// would hash at runtime, and a subset of the seeds naclac-syn's IDL
-/// generator (`parse_single_seed`) records as constants.
+/// would hash at runtime.
 fn resolve_seed_literal(expr: &syn::Expr) -> Option<Vec<u8>> {
     match expr {
         syn::Expr::Lit(expr_lit) => match &expr_lit.lit {
@@ -980,9 +975,7 @@ fn seed_literal_root(expr: &syn::Expr) -> &syn::Expr {
 /// The crate's modules (see `naclac_syn::modules`), read from the crate
 /// being compiled.
 fn current_crate_modules() -> Vec<naclac_syn::modules::CrateModule> {
-    std::env::var("CARGO_MANIFEST_DIR")
-        .map(|dir| naclac_syn::modules::crate_modules(std::path::Path::new(&dir)))
-        .unwrap_or_default()
+    naclac_syn::modules::crate_modules(&crate::manifest_dir())
 }
 
 /// Locates the `const IDENT: T = <expr>;` declaration for `ident_str` in any
@@ -1034,7 +1027,12 @@ fn find_const_expr(ident_str: &str) -> Option<(syn::Expr, String)> {
 /// any of them declares `bump`. A wrong true is a compile error at the
 /// write-back, whereas a wrong false would silently never store the bump.
 pub(crate) fn component_declares_bump_field(ident_str: &str) -> bool {
-    current_crate_modules()
+    declares_bump_field(&current_crate_modules(), ident_str)
+}
+
+/// `component_declares_bump_field` over the given modules.
+fn declares_bump_field(modules: &[naclac_syn::modules::CrateModule], ident_str: &str) -> bool {
+    modules
         .iter()
         .flat_map(|module| module.items.iter())
         .any(|item| {
@@ -1065,7 +1063,14 @@ pub(crate) fn component_declares_bump_field(ident_str: &str) -> bool {
 /// answer (`None`): the diagnostic is skipped rather than naming a field of a
 /// struct the argument may not use.
 pub(crate) fn dynamic_view_field_of(ident_str: &str) -> Option<String> {
-    let modules = current_crate_modules();
+    dynamic_view_field_in(&current_crate_modules(), ident_str)
+}
+
+/// `dynamic_view_field_of` over the given modules.
+fn dynamic_view_field_in(
+    modules: &[naclac_syn::modules::CrateModule],
+    ident_str: &str,
+) -> Option<String> {
     let mut answers = modules
         .iter()
         .flat_map(|module| module.items.iter())
@@ -1142,8 +1147,8 @@ fn expr_to_bytes(expr: &syn::Expr) -> Option<Vec<u8>> {
 /// address!("...")` (or `pubkey!("...")`) declaration via real `syn` parsing,
 /// mirroring `find_const_expr`. Returns `(base58_address, source_file_path)`
 /// — the file path lets the generated code `include_bytes!` it, so editing
-/// the constant invalidates the cached expansion, matching `find_program_id`'s
-/// own cache-dependency trick for `Naclac.toml`.
+/// the constant invalidates the cached expansion, as it does for the file
+/// `declared_program_id` returns.
 fn resolve_program_id_literal(expr: &syn::Expr) -> Option<(String, String)> {
     let syn::Expr::Path(expr_path) = expr else {
         return None;
@@ -1161,41 +1166,16 @@ fn resolve_program_id_literal(expr: &syn::Expr) -> Option<(String, String)> {
     Some((lit.value(), file_path))
 }
 
-pub(crate) fn find_program_id(crate_name: &str) -> Option<(String, String)> {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").ok()?;
-    let mut path = std::path::PathBuf::from(manifest_dir);
-    for _ in 0..10 {
-        let naclac_toml_path = path.join("Naclac.toml");
-        if naclac_toml_path.exists() {
-            if let Ok(content) = std::fs::read_to_string(&naclac_toml_path) {
-                if let Ok(manifest) = toml::from_str::<toml::Value>(&content) {
-                    // Scoped to the active cluster's own `[programs.<cluster>]` table
-                    // (defaulting to "localnet", matching every Naclac.toml in this repo)
-                    // rather than matching `crate_name` against a key anywhere in the
-                    // file — a program name repeated under a different cluster's table
-                    // must not be picked up here.
-                    let cluster = manifest
-                        .get("provider")
-                        .and_then(|p| p.get("cluster"))
-                        .and_then(|c| c.as_str())
-                        .unwrap_or("localnet");
-                    let value = manifest
-                        .get("programs")
-                        .and_then(|programs| programs.get(cluster))
-                        .and_then(|table| table.get(crate_name))
-                        .and_then(|v| v.as_str())
-                        .filter(|v| !v.is_empty());
-                    if let Some(value) = value {
-                        return Some((value.to_string(), naclac_toml_path.to_str()?.to_string()));
-                    }
-                }
-            }
-        }
-        if !path.pop() {
-            break;
-        }
-    }
-    None
+/// The address the crate declares with `declare_id!` and the file declaring
+/// it.
+pub(crate) fn declared_program_id() -> Result<(String, String), String> {
+    let declared = naclac_syn::program_id::declared_id(&crate::manifest_dir())?;
+    let file = declared
+        .file
+        .to_str()
+        .ok_or_else(|| format!("{} is not valid UTF-8", declared.file.display()))?
+        .to_string();
+    Ok((declared.address, file))
 }
 
 pub(crate) fn find_pda_at_compile_time(
@@ -1238,30 +1218,26 @@ fn set_span_recur(tokens: TokenStream, span: proc_macro2::Span) -> TokenStream {
 
 #[cfg(test)]
 mod lookup_tests {
-    use super::{component_declares_bump_field, dynamic_view_field_of};
+    use super::{declares_bump_field, dynamic_view_field_in};
 
-    fn in_crate<T>(source: &str, check: impl FnOnce() -> T) -> T {
+    fn modules_of(source: &str) -> Vec<naclac_syn::modules::CrateModule> {
         let dir = std::env::temp_dir().join(format!(
-            "naclac-macros-security-lookups-{}",
-            std::process::id()
+            "naclac-macros-security-lookups-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
         ));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("src")).unwrap();
+        std::fs::write(dir.join("Cargo.toml"), "[package]\nname = \"sample\"\n").unwrap();
         std::fs::write(dir.join("src/lib.rs"), source).unwrap();
-        let previous = std::env::var_os("CARGO_MANIFEST_DIR");
-        std::env::set_var("CARGO_MANIFEST_DIR", &dir);
-        let result = check();
-        match previous {
-            Some(value) => std::env::set_var("CARGO_MANIFEST_DIR", value),
-            None => std::env::remove_var("CARGO_MANIFEST_DIR"),
-        }
+        let modules = naclac_syn::modules::crate_modules(&dir);
         let _ = std::fs::remove_dir_all(&dir);
-        result
+        modules
     }
 
     #[test]
     fn same_named_structs_are_resolved_without_picking_one_arbitrarily() {
-        in_crate(
+        let modules = modules_of(
             r#"
             pub mod a { pub struct Pool { pub bump: u8 } pub struct Args { pub v: ZcVec<u8> } }
             pub mod b { pub struct Pool { pub x: u8 } pub struct Args { pub v: u8 } }
@@ -1270,19 +1246,24 @@ mod lookup_tests {
             pub mod c { pub struct Agreed { pub s: ZcString } }
             pub mod d { pub struct Agreed { pub s: ZcString } }
             "#,
-            || {
-                assert!(component_declares_bump_field("Pool"));
-                assert!(component_declares_bump_field("Alone"));
-                assert!(!component_declares_bump_field("Plain"));
-                assert!(!component_declares_bump_field("Missing"));
-
-                assert_eq!(dynamic_view_field_of("Args"), None);
-                assert_eq!(dynamic_view_field_of("Alone").as_deref(), Some("s"));
-                assert_eq!(dynamic_view_field_of("Agreed").as_deref(), Some("s"));
-                assert_eq!(dynamic_view_field_of("Plain"), None);
-                assert_eq!(dynamic_view_field_of("Missing"), None);
-            },
         );
+
+        assert!(declares_bump_field(&modules, "Pool"));
+        assert!(declares_bump_field(&modules, "Alone"));
+        assert!(!declares_bump_field(&modules, "Plain"));
+        assert!(!declares_bump_field(&modules, "Missing"));
+
+        assert_eq!(dynamic_view_field_in(&modules, "Args"), None);
+        assert_eq!(
+            dynamic_view_field_in(&modules, "Alone").as_deref(),
+            Some("s")
+        );
+        assert_eq!(
+            dynamic_view_field_in(&modules, "Agreed").as_deref(),
+            Some("s")
+        );
+        assert_eq!(dynamic_view_field_in(&modules, "Plain"), None);
+        assert_eq!(dynamic_view_field_in(&modules, "Missing"), None);
     }
 }
 
