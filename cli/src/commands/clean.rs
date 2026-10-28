@@ -36,15 +36,15 @@ pub fn execute(requested: &[String], hard: bool) {
             ));
         }
         println!("🧹 Running cargo clean...");
-        run(Command::new("cargo").arg("clean").current_dir(&workspace_root));
+        run(Command::new("cargo")
+            .arg("clean")
+            .current_dir(&workspace_root));
     } else {
         let config = workspace::config(&workspace_root);
         let selected = programs::select(&programs::listed(&config), requested);
         let packages: Vec<String> = selected
             .iter()
-            .map(|name| {
-                generate::read_package_name(&programs::program_dir(&workspace_root, name))
-            })
+            .map(|name| generate::read_package_name(&programs::program_dir(&workspace_root, name)))
             .collect();
         println!("🧹 Cleaning {}...", selected.join(", "));
 
