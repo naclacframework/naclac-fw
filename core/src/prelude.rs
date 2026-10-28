@@ -1456,6 +1456,9 @@ pub use crate::{address, declare_id, emit, emit_cpi, require};
 /// - Solana backend: delegates to `solana_declare_id!`
 /// - Pinocchio backend: creates a `pub const ID: Address` using pinocchio's
 ///   compile-time address parsing.
+///
+/// On both, the address must be the canonical base58 encoding of exactly 32
+/// bytes; anything else is a compile error.
 #[macro_export]
 macro_rules! declare_id {
     ($id:expr) => {
@@ -1469,6 +1472,8 @@ macro_rules! declare_id {
         pub fn id() -> $crate::prelude::Address {
             ID
         }
+
+        const _: () = $crate::address_literal::assert_program_address($id);
     };
 }
 

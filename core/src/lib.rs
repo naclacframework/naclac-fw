@@ -120,6 +120,7 @@ pub use pinocchio_system;
 // Modules
 // ===========================================================================
 
+pub mod address_literal;
 pub mod base58;
 pub mod constraint;
 pub mod context;

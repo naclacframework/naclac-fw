@@ -1,0 +1,26 @@
+[workspace]
+
+[package]
+name = "declare_id_not_canonical"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[features]
+default = ["solana", "bytemuck"]
+solana = ["naclac-lang/solana"]
+bytemuck = ["naclac-lang/bytemuck"]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+
+[dependencies]
+naclac-lang = { path = "../../../../lang", default-features = false }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+    'cfg(feature, values("pinocchio", "solana", "bytemuck", "borsh", "wincode"))'
+] }

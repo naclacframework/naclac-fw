@@ -168,7 +168,9 @@ pub fn execute(
         let lib_path = program_dir.join("src/lib.rs");
         if lib_path.exists() {
             let mut lib_code = fs::read_to_string(&lib_path).unwrap();
-            if programs::declared_id(&lib_code).is_none() {
+            if crate::commands::generate::depends_on_naclac_lang(program_dir)
+                && programs::declared_id(&lib_code).is_none()
+            {
                 ui::error(format!(
                     "'{}' must declare its address with `declare_id!(\"<address>\")` in {}; \
                      without it there is no program address to build for.",

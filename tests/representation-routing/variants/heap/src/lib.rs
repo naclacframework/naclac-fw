@@ -6,7 +6,7 @@ extern crate std;
 #[cfg(test)]
 mod routing_test;
 
-declare_id!("11111111111111111111111111111111111111111");
+declare_id!("11111111111111111111111111111111");
 
 pub const SEED_THING: &[u8] = b"thing";
 

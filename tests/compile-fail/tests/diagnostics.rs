@@ -110,6 +110,15 @@ fn a_program_without_declare_id_fails_to_compile() {
 }
 
 #[test]
+fn an_address_that_is_not_canonical_base58_fails_to_compile() {
+    let stderr = check_fails("declare_id_not_canonical");
+    assert!(
+        stderr.contains("not the canonical base58 encoding of 32 bytes"),
+        "{stderr}"
+    );
+}
+
+#[test]
 fn event_cpi_below_the_derive_names_the_required_order() {
     let stderr = check_fails("event_cpi_wrong_order");
     assert!(
