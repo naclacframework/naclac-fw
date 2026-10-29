@@ -979,12 +979,10 @@ fn current_crate_modules() -> Vec<naclac_syn::modules::CrateModule> {
 }
 
 /// Locates the `const IDENT: T = <expr>;` declaration for `ident_str` in any
-/// module of the crate. Must resolve to the same constant initializer
-/// expression naclac-syn's IDL generator sees, since the seed/PDA-program-id
-/// precomputation path depends on it. Returns `None` when several constants
-/// share the name but not the initializer: which one a seed refers to
-/// depends on module scope, so the caller must derive that seed at runtime
-/// instead of guessing.
+/// module of the crate. Returns `None` when several constants share the name
+/// but not the initializer: which one a seed refers to depends on module
+/// scope, so the caller must derive that seed at runtime instead of
+/// guessing.
 fn find_const_expr(ident_str: &str) -> Option<(syn::Expr, String)> {
     use quote::ToTokens;
 

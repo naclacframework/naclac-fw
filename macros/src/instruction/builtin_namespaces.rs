@@ -20,6 +20,28 @@ pub(crate) struct Namespace {
     pub key_hint: Option<(&'static str, &'static str)>,
     pub check: Check,
     pub create: Option<Create>,
+    /// The PDA the address of a field using this namespace is derived at, for
+    /// the IDL.
+    #[cfg(feature = "idl-build")]
+    pub idl_pda: Option<IdlPda>,
+}
+
+/// The PDA a namespace's accounts are derived at, as the IDL describes it.
+#[cfg(feature = "idl-build")]
+pub(crate) struct IdlPda {
+    /// A field is this PDA when one of these keys is written on it.
+    pub trigger: &'static [&'static str],
+    pub seeds: &'static [IdlPdaSeed],
+    /// Path to the id of the program the PDA is derived against.
+    pub program: &'static str,
+}
+
+#[cfg(feature = "idl-build")]
+pub(crate) enum IdlPdaSeed {
+    /// The value written for this key.
+    Key(&'static str),
+    /// The field that fills this program (see [`Filled`]).
+    Filled(&'static Filled),
 }
 
 /// When and with what a namespace checks a field after it is loaded.
@@ -119,12 +141,16 @@ const ASSOCIATED_TOKEN_PROGRAM: Filled = Filled {
 const TOKEN_PROGRAM_HINT: Option<(&str, &str)> =
     Some(("program", "token_program` to name the token program."));
 
+const ASSOCIATED_TOKEN_PROGRAM_ID_PATH: &str = "naclac_lang::prelude::ASSOCIATED_TOKEN_PROGRAM_ID";
+
 pub(crate) const NAMESPACES: &[Namespace] = &[
     Namespace {
         name: "token",
         path: "naclac_lang::token_constraints::token",
         keys: &["mint", "authority", "token_program"],
         key_hint: TOKEN_PROGRAM_HINT,
+        #[cfg(feature = "idl-build")]
+        idl_pda: None,
         check: Check {
             when: CheckWhen::UnlessCreated,
             trigger: &["mint", "authority"],
@@ -150,6 +176,8 @@ pub(crate) const NAMESPACES: &[Namespace] = &[
         path: "naclac_lang::token_constraints::mint",
         keys: &["decimals", "authority", "freeze_authority", "token_program"],
         key_hint: TOKEN_PROGRAM_HINT,
+        #[cfg(feature = "idl-build")]
+        idl_pda: None,
         check: Check {
             when: CheckWhen::UnlessCreated,
             trigger: &["decimals", "authority", "freeze_authority"],
@@ -175,6 +203,16 @@ pub(crate) const NAMESPACES: &[Namespace] = &[
         path: "naclac_lang::token_constraints::associated_token",
         keys: &["mint", "authority", "bump", "token_program"],
         key_hint: TOKEN_PROGRAM_HINT,
+        #[cfg(feature = "idl-build")]
+        idl_pda: Some(IdlPda {
+            trigger: &["mint", "authority"],
+            seeds: &[
+                IdlPdaSeed::Key("authority"),
+                IdlPdaSeed::Filled(&TOKEN_PROGRAM),
+                IdlPdaSeed::Key("mint"),
+            ],
+            program: ASSOCIATED_TOKEN_PROGRAM_ID_PATH,
+        }),
         check: Check {
             when: CheckWhen::OnlyExisting,
             trigger: &["mint", "authority"],
@@ -247,10 +285,7 @@ pub(crate) const EXTRA_ACCOUNTS_ELSEWHERE: &str =
 pub(crate) const PROGRAM_ADDRESSES: &[(&str, &str)] = &[
     ("Token2022", "naclac_lang::prelude::TOKEN_2022_PROGRAM_ID"),
     ("Token", "naclac_lang::prelude::TOKEN_PROGRAM_ID"),
-    (
-        "AssociatedToken",
-        "naclac_lang::prelude::ASSOCIATED_TOKEN_PROGRAM_ID",
-    ),
+    ("AssociatedToken", ASSOCIATED_TOKEN_PROGRAM_ID_PATH),
 ];
 
 pub(crate) fn namespace(name: &str) -> Option<&'static Namespace> {
@@ -409,6 +444,57 @@ pub(crate) fn resolve_filled(
             )
         }
     }
+}
+
+/// What the IDL needs to describe the PDA `field`'s address is derived at, for
+/// a field written with a namespace that defines one: the expression of each
+/// seed (the value written for a key, or the field filling a program) and the
+/// path to the id of the program it is derived against. `None` when no
+/// namespace written on the field defines one.
+#[cfg(feature = "idl-build")]
+pub(crate) fn idl_pda(
+    field: &ParsedField,
+    all_fields: &[ParsedField],
+) -> Result<Option<(Vec<syn::Expr>, syn::Expr)>, TokenStream> {
+    for namespace in NAMESPACES {
+        let Some(pda) = &namespace.idl_pda else {
+            continue;
+        };
+        let written = written(field, namespace);
+        if !pda.trigger.iter().any(|key| has(&written, key)) {
+            continue;
+        }
+        let mut seeds = Vec::new();
+        for seed in pda.seeds {
+            match seed {
+                IdlPdaSeed::Key(key) => {
+                    let key = *key;
+                    let Some((_, value)) =
+                        written.iter().find(|(written_key, _)| *written_key == key)
+                    else {
+                        return Err(syn::Error::new_spanned(
+                            &field.ident,
+                            format!(
+                                "Naclac Error: `{}::{key}` is needed to describe this account's \
+                                 address in the IDL.",
+                                namespace.name
+                            ),
+                        )
+                        .to_compile_error());
+                    };
+                    seeds.push((*value).clone());
+                }
+                IdlPdaSeed::Filled(filled) => {
+                    let ident = &all_fields[resolve_filled(filled, field, all_fields)?].ident;
+                    seeds.push(syn::parse_quote!(#ident));
+                }
+            }
+        }
+        let program = syn::parse_str::<syn::Expr>(pda.program)
+            .expect("a namespace's IDL program is a path expression");
+        return Ok(Some((seeds, program)));
+    }
+    Ok(None)
 }
 
 /// The first of `required` not written, as a compile error at the field.
@@ -608,5 +694,79 @@ mod tests {
         }
         let creating = NAMESPACES.iter().filter(|ns| ns.create.is_some()).count();
         assert_eq!(creating, CREATION_ORDER.len());
+    }
+}
+
+#[cfg(all(test, feature = "idl-build"))]
+mod idl_pda_tests {
+    use {
+        super::idl_pda,
+        crate::instruction::parser::{parse_struct_fields, ParsedField},
+        quote::ToTokens,
+    };
+
+    fn parse(fields: &str) -> Vec<ParsedField> {
+        let item: syn::ItemStruct = syn::parse_str(&format!("struct S {{ {fields} }}")).unwrap();
+        let syn::Fields::Named(named) = &item.fields else {
+            panic!("a struct with named fields");
+        };
+        parse_struct_fields(named).unwrap()
+    }
+
+    fn text(expr: &syn::Expr) -> String {
+        expr.to_token_stream().to_string().replace(' ', "")
+    }
+
+    fn ata_with(token_key: &str, programs: &str) -> String {
+        format!(
+            "#[account(associated_token::mint = mint, associated_token::authority = owner{token_key})] \
+             ata: Account<TokenAccount>, mint: Account<Mint>, owner: Signer, {programs}"
+        )
+    }
+
+    fn seeds_of(fields: &str) -> Result<Option<(Vec<String>, String)>, String> {
+        let parsed = parse(fields);
+        idl_pda(&parsed[0], &parsed)
+            .map(|found| {
+                found.map(|(seeds, program)| (seeds.iter().map(text).collect(), text(&program)))
+            })
+            .map_err(|error| error.to_string())
+    }
+
+    #[test]
+    fn an_associated_token_account_is_a_pda_of_the_associated_token_program() {
+        let (seeds, program) = seeds_of(&ata_with("", "token_program: Program<Token>"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(seeds, ["owner", "token_program", "mint"]);
+        assert_eq!(program, "naclac_lang::prelude::ASSOCIATED_TOKEN_PROGRAM_ID");
+    }
+
+    #[test]
+    fn a_field_with_no_pda_namespace_has_none() {
+        let fields = "#[account(token::mint = mint, token::authority = owner)] \
+                      vault: Account<TokenAccount>, mint: Account<Mint>, owner: Signer, \
+                      token_program: Program<Token>";
+        assert!(seeds_of(fields).unwrap().is_none());
+    }
+
+    #[test]
+    fn a_written_token_program_picks_among_several() {
+        let fields = ata_with(
+            ", associated_token::token_program = token_2022_program",
+            "token_program: Program<Token>, token_2022_program: Program<Token2022>",
+        );
+        let (seeds, _) = seeds_of(&fields).unwrap().unwrap();
+        assert_eq!(seeds, ["owner", "token_2022_program", "mint"]);
+    }
+
+    #[test]
+    fn several_program_fields_without_a_written_one_are_an_error() {
+        let fields = ata_with(
+            "",
+            "token_program: Program<Token>, token_2022_program: Program<Token2022>",
+        );
+        let error = seeds_of(&fields).unwrap_err();
+        assert!(error.contains("more than one field"), "{error}");
     }
 }

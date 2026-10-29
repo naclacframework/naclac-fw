@@ -15,12 +15,19 @@ export type IdlSeed =
 /** PDA descriptor attached to an account in the IDL. */
 export interface IdlPda {
   readonly seeds: readonly IdlSeed[];
+  /**
+   * The program the PDA is derived against when it is not the program the IDL
+   * describes: a `seeds::program`, or the Associated Token Program for an
+   * associated token account. Absent means the program itself.
+   */
+  readonly program?: IdlSeed;
 }
 
 /** Top-level PDA definition — lists all discoverable PDAs for the program. */
 export interface IdlPdaDef {
   readonly name: string;
   readonly seeds: readonly IdlSeed[];
+  readonly program?: IdlSeed;
 }
 
 /** A single account in an instruction's accounts array. */

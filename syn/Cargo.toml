@@ -9,7 +9,6 @@ description = "Syntax parsing and AST utilities for the Naclac framework."
 [dependencies]
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 syn = { workspace = true, features = ["full", "extra-traits"] }

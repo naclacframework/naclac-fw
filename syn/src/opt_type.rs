@@ -2,8 +2,8 @@
 //! instantiation is described as its own defined struct, named `Opt` plus the
 //! inner type's name: `OptU64`, `OptBool`, `OptAddress`, `OptPair`, and
 //! `OptU8x32` for `Opt<[u8; 32]>`. [`opt_type_name`] and [`opt_inner_type`]
-//! must stay exact inverses: the IDL generators name a reference with the
-//! first and define it, in `naclac_idl::Idl::canonicalize`, with the second.
+//! must stay exact inverses: the macros name a reference with the first and
+//! `naclac_idl::Idl::canonicalize` defines it with the second.
 
 use serde_json::{json, Value};
 

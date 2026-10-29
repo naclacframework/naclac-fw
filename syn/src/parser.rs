@@ -52,60 +52,6 @@ pub fn extract_docs(attrs: &[syn::Attribute]) -> Vec<String> {
         .collect()
 }
 
-/// Renders a constant's initializer expression as a decimal byte-array
-/// string (`"[102, 101, ...]"`) when it's a byte-string literal (`b"..."`)
-/// or a numeric array literal (`[N, N, ...]`) whose every element is a plain
-/// integer literal, optionally behind a `&` reference or `*` dereference.
-/// Returns `None` for anything else, so the caller falls back to the raw
-/// token string.
-fn decimal_array_literal(expr: &syn::Expr) -> Option<String> {
-    let expr = match expr {
-        syn::Expr::Unary(syn::ExprUnary {
-            op: syn::UnOp::Deref(_),
-            expr: inner,
-            ..
-        }) => &**inner,
-        _ => expr,
-    };
-
-    if let syn::Expr::Lit(syn::ExprLit {
-        lit: syn::Lit::ByteStr(byte_str),
-        ..
-    }) = expr
-    {
-        let bytes = byte_str
-            .value()
-            .iter()
-            .map(|b| b.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
-        return Some(format!("[{}]", bytes));
-    }
-
-    let array_expr = match expr {
-        syn::Expr::Array(arr) => Some(arr),
-        syn::Expr::Reference(reference) => match &*reference.expr {
-            syn::Expr::Array(arr) => Some(arr),
-            _ => None,
-        },
-        _ => None,
-    }?;
-
-    let elems: Option<Vec<String>> = array_expr
-        .elems
-        .iter()
-        .map(|elem| match elem {
-            syn::Expr::Lit(syn::ExprLit {
-                lit: syn::Lit::Int(int_lit),
-                ..
-            }) => Some(int_lit.base10_digits().to_string()),
-            _ => None,
-        })
-        .collect();
-
-    elems.map(|nums| format!("[{}]", nums.join(", ")))
-}
-
 /// Resolves a `[T; N]` array's length to a concrete `usize` — `N` is either
 /// a literal integer, or a bare identifier naming a `pub const N: usize = ...;`
 /// declared in any module of the crate (`constants`, which by the time this
@@ -358,57 +304,29 @@ pub fn parse_constants_pass(
             continue;
         };
         let is_pub = matches!(item_const.vis, syn::Visibility::Public(_));
-        let is_exported = item_const
+        let is_tagged = item_const
             .attrs
             .iter()
             .any(|a| a.path().is_ident("constant"));
-        if !is_pub && !is_exported {
+        if !is_pub && !is_tagged {
             continue;
         }
-        let ty = rust_type_to_idl(&item_const.ty, constants);
-        // Byte-string literals (`b"..."`) and numeric array literals
-        // (`[N, N, ...]`, optionally behind `&`) are both rendered as
-        // a decimal byte array, matching real Anchor/Codama IDL
-        // convention — not the raw Rust source text. Client
-        // generators then only need to parse one standard array
-        // format, not re-detect Rust literal syntax themselves.
         let name = item_const.ident.to_string();
-        let rendered_source = || {
-            let raw = item_const
+        let source_text = || {
+            item_const
                 .expr
                 .to_token_stream()
                 .to_string()
-                .replace(" ", "");
-            // An `Address`-typed constant's raw expression is either a
-            // plain string literal or an `address!("...")`/`pubkey!("...")`
-            // macro call — resolve either down to the plain base58 string,
-            // matching how a resolved `address =` constraint is represented
-            // elsewhere in the IDL, rather than leaking the macro-call
-            // source text into `value`.
-            if ty == json!("publicKey") {
-                crate::instruction::resolve_constant_address_str(&raw)
-            } else {
-                raw
-            }
+                .replace(" ", "")
         };
-        let value = if let Some(decimal_array) = decimal_array_literal(&item_const.expr) {
-            decimal_array
-        } else {
+        let value =
             match crate::const_eval::evaluate_constant(&item_const.ty, &item_const.expr, env) {
                 Ok(Some(evaluated)) => evaluated,
-                Ok(None) => rendered_source(),
-                Err(crate::const_eval::EvalError::Unsupported(_)) => rendered_source(),
+                Ok(None) | Err(crate::const_eval::EvalError::Unsupported(_)) => source_text(),
                 Err(crate::const_eval::EvalError::Invalid(why)) => {
                     panic!("Naclac Error: constant `{name}` is invalid: {why}")
                 }
-            }
-        };
-        constants.push(NaclacConstant {
-            name,
-            ty,
-            value,
-            is_exported,
-            docs: extract_docs(&item_const.attrs),
-        });
+            };
+        constants.push(NaclacConstant { name, value });
     }
 }

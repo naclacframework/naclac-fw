@@ -1,8 +1,8 @@
 //! The IDL-visible declarations of a crate, gathered from its module tree,
 //! and the rules they must satisfy for an IDL to describe the program
 //! unambiguously: one declaration per IDL name in each namespace, one error
-//! per error code, and existence that depends only on `feature` cfgs. Both
-//! IDL generators and `#[program]` enforce these rules from this one source.
+//! per error code, and existence that depends only on `feature` cfgs.
+//! `#[program]` enforces these rules from this one source.
 
 use crate::modules::CrateModule;
 

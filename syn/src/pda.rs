@@ -2,7 +2,7 @@
 //! integer-literal seeds resolved to exact bytes, and the account/field path
 //! of a seed expression.
 
-use {crate::types::NaclacSeed, quote::ToTokens, syn::Expr};
+use {quote::ToTokens, syn::Expr};
 
 /// Maps an integer literal's type suffix (`u8`, `u16`, ...) to its byte
 /// width. `None` for an unsuffixed or non-integer-primitive literal — the
@@ -20,11 +20,11 @@ fn int_literal_byte_width(int_lit: &syn::LitInt) -> Option<usize> {
 }
 
 /// Resolves a bare integer-literal seed element (e.g. `5u8` inside `&[5u8]`)
-/// to its single-byte `NaclacSeed::Const`. Only a `u8`-suffixed (or
-/// unsuffixed, which infers `u8` in this single-byte-slice-element context)
-/// literal is a byte on its own; anything wider needs an explicit
-/// `.to_le_bytes()`/`.to_be_bytes()` call, handled separately.
-pub fn int_literal_seed_byte(int_lit: &syn::LitInt) -> NaclacSeed {
+/// to its single byte. Only a `u8`-suffixed (or unsuffixed, which infers `u8`
+/// in this single-byte-slice-element context) literal is a byte on its own;
+/// anything wider needs an explicit `.to_le_bytes()`/`.to_be_bytes()` call,
+/// handled separately.
+pub fn int_literal_seed_byte(int_lit: &syn::LitInt) -> Vec<u8> {
     let suffix = int_lit.suffix();
     if suffix.is_empty() || suffix == "u8" {
         let value: u8 = int_lit.base10_parse().unwrap_or_else(|e| {
@@ -33,10 +33,7 @@ pub fn int_literal_seed_byte(int_lit: &syn::LitInt) -> NaclacSeed {
                 int_lit.to_token_stream()
             );
         });
-        return NaclacSeed::Const {
-            value: vec![value],
-            name: None,
-        };
+        return vec![value];
     }
     panic!(
         "Naclac Error: literal seed `{}` has an integer type suffix (`{suffix}`) that isn't \
@@ -48,11 +45,11 @@ pub fn int_literal_seed_byte(int_lit: &syn::LitInt) -> NaclacSeed {
 }
 
 /// Resolves a literal integer's `.to_le_bytes()`/`.to_be_bytes()` call (e.g.
-/// `0u16.to_le_bytes()`) to its `NaclacSeed::Const` byte sequence. Requires
-/// an explicit type suffix on the literal so the byte width is known exactly
-/// — the same real width `.to_le_bytes()`/`.to_be_bytes()` produces at
-/// runtime — rather than guessed.
-pub fn int_literal_seed_bytes(int_lit: &syn::LitInt, big_endian: bool) -> NaclacSeed {
+/// `0u16.to_le_bytes()`) to its byte sequence. Requires an explicit type
+/// suffix on the literal so the byte width is known exactly — the same real
+/// width `.to_le_bytes()`/`.to_be_bytes()` produces at runtime — rather than
+/// guessed.
+pub fn int_literal_seed_bytes(int_lit: &syn::LitInt, big_endian: bool) -> Vec<u8> {
     let Some(width) = int_literal_byte_width(int_lit) else {
         panic!(
             "Naclac Error: literal seed `{}.{}()` needs an explicit integer type suffix (e.g. \
@@ -71,10 +68,7 @@ pub fn int_literal_seed_bytes(int_lit: &syn::LitInt, big_endian: bool) -> Naclac
             int_lit.to_token_stream()
         );
     });
-    NaclacSeed::Const {
-        value: truncate_le_bytes(value, width, big_endian),
-        name: None,
-    }
+    truncate_le_bytes(value, width, big_endian)
 }
 
 /// Truncates `value`'s little-endian bytes to the first `width` of them,

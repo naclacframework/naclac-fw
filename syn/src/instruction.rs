@@ -1,32 +1,10 @@
-//! Source-text helpers for the `#[program]` handlers' doc comments and for
-//! constants that hold an address.
+//! Source-text lookup of the `#[program]` handlers' doc comments.
 
 use {
     crate::modules::CrateModule,
     std::path::Path,
     syn::{Item, ItemFn},
 };
-
-/// Resolves a constant's raw IDL `value` string down to a plain base58
-/// address string. Handles a plain string literal (`"..."`) and a
-/// `address!("...")`/`pubkey!("...")` macro-call literal (the raw token
-/// text stored for any non-string-literal constant expression) — without
-/// this, a constant declared as `pub const X: Address = address!("...")`
-/// would leak the literal macro-call source text as the resolved address.
-pub(crate) fn resolve_constant_address_str(val: &str) -> String {
-    if val.starts_with('"') && val.ends_with('"') {
-        return val[1..val.len() - 1].to_string();
-    }
-    for macro_name in ["address!", "pubkey!"] {
-        if let Some(rest) = val.strip_prefix(macro_name) {
-            let rest = rest.trim_start_matches('(').trim_end_matches(')');
-            if rest.starts_with('"') && rest.ends_with('"') {
-                return rest[1..rest.len() - 1].to_string();
-            }
-        }
-    }
-    val.to_string()
-}
 
 fn module_fns(module: &CrateModule) -> impl Iterator<Item = &ItemFn> {
     module.items.iter().filter_map(|item| match item {

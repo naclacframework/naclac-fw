@@ -300,9 +300,8 @@ pub enum IdlSeed {
     #[serde(rename = "account")]
     Account {
         path: String,
-        /// See `naclac_syn::types::NaclacSeed::Account` — set only when
-        /// `path` is a dotted field access whose field type was resolved
-        /// from the backing component's own struct definition.
+        /// Set only when `path` is a dotted field access whose field type
+        /// was resolved from the backing component's own struct definition.
         #[serde(rename = "fieldType", skip_serializing_if = "Option::is_none")]
         field_type: Option<String>,
     },

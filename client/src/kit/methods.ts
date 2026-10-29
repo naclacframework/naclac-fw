@@ -28,7 +28,7 @@ import type {
 import { type NaclacProvider, type TxVersion, normalizeTxVersion } from "./provider";
 import type { NaclacIdl, IdlInstruction } from "../idl";
 import { encodeInstructionData } from "../coder/instruction";
-import { resolvePdas } from "../utils/pda";
+import { pinnedAddress, resolvePdas } from "../utils/pda";
 import { translateRpcError } from "../utils/rpc";
 import { toCamelCase } from "../utils/case";
 import {
@@ -37,13 +37,6 @@ import {
   eventFieldLayout,
   type NaclacInnerInstruction,
 } from "../events";
-import {
-  SYSTEM_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
-  ATA_PROGRAM_ID,
-  SYSVAR_RENT_PUBKEY,
-} from "../constants";
 
 /**
  * The result of `.rpc()`: the confirmed transaction's signature and logs,
@@ -223,19 +216,8 @@ export class MethodsBuilder {
         let addr = allAccounts[acctDef.name];
 
         if (!addr) {
-          if (acctDef.address) {
-            addr = address(acctDef.address);
-          }
-          else {
-            const nameLower = acctDef.name.toLowerCase();
-            if (nameLower === "systemprogram") addr = address(SYSTEM_PROGRAM_ID);
-            else if (nameLower === "tokenprogram") addr = address(TOKEN_PROGRAM_ID);
-            else if (nameLower === "token2022program")
-              addr = address(TOKEN_2022_PROGRAM_ID);
-            else if (nameLower === "ataprogram") addr = address(ATA_PROGRAM_ID);
-            else if (nameLower === "rent" || nameLower === "sysvarrent")
-              addr = address(SYSVAR_RENT_PUBKEY);
-          }
+          const pinned = pinnedAddress(acctDef);
+          if (pinned) addr = address(pinned);
         }
 
         if (!addr) {

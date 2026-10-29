@@ -1,12 +1,56 @@
 import type { Address } from "@solana/kit";
 import { getProgramDerivedAddress, address, getAddressEncoder } from "@solana/kit";
 import type { IdlSeed } from "../idl";
-import { getBase58Encoder } from "@solana/codecs";
-import { TOKEN_PROGRAM_ID, ATA_PROGRAM_ID } from "../constants";
+import { getBase58Decoder, getBase58Encoder } from "@solana/codecs";
+import {
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+  ATA_PROGRAM_ID,
+  SYSTEM_PROGRAM_ID,
+  SYSVAR_RENT_PUBKEY,
+} from "../constants";
 import { getIdlCodec } from "../coder/types";
-import type { IdlInstruction } from "../idl";
+import type { IdlAccount, IdlInstruction, IdlPda } from "../idl";
 
 const addressEncoder = getAddressEncoder();
+
+/**
+ * The address an instruction account always has: the one its IDL entry pins,
+ * or, for an IDL that predates that, the one its conventional name implies.
+ */
+export function pinnedAddress(account: IdlAccount): string | undefined {
+  if (account.address) return account.address;
+  switch (account.name.toLowerCase()) {
+    case "systemprogram":
+      return SYSTEM_PROGRAM_ID;
+    case "tokenprogram":
+      return TOKEN_PROGRAM_ID;
+    case "token2022program":
+      return TOKEN_2022_PROGRAM_ID;
+    case "ataprogram":
+      return ATA_PROGRAM_ID;
+    case "rent":
+    case "sysvarrent":
+      return SYSVAR_RENT_PUBKEY;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * The program a PDA is derived against: the program the IDL describes unless
+ * the PDA names another, which must be a constant.
+ */
+function derivationProgram(pda: IdlPda, own: Address, accountName: string): Address {
+  const program = pda.program;
+  if (!program) return own;
+  if (program.kind !== "const") {
+    throw new Error(
+      `[Naclac/PDA] "${accountName}" is derived against a program that is not a constant, so its address cannot be derived automatically; pass the account explicitly.`
+    );
+  }
+  return address(getBase58Decoder().decode(new Uint8Array(program.value)));
+}
 
 /** Resolved PDA result containing the address and canonical bump. */
 export interface ResolvedPda {
@@ -154,6 +198,11 @@ export async function resolvePdas(
 ): Promise<Record<string, Address>> {
   const resolved: Record<string, Address> = {};
   const idlAccounts = ixDef.accounts;
+  const pinned: Record<string, Address> = {};
+  for (const acct of idlAccounts) {
+    const fixed = pinnedAddress(acct);
+    if (fixed) pinned[acct.name] = address(fixed);
+  }
 
   for (const acct of idlAccounts) {
     if (!acct.pda) continue;
@@ -171,11 +220,13 @@ export async function resolvePdas(
     );
     
     const isAta = basePdfSeeds.some((s) => s.kind === "ata");
-    const derivationProgramId = isAta ? address(ATA_PROGRAM_ID) : programId;
+    const derivationProgramId = isAta
+      ? address(ATA_PROGRAM_ID)
+      : derivationProgram(acct.pda, programId, acct.name);
     
     const seeds = basePdfSeeds.flatMap((seed) => {
       if (seed.kind === "ata") {
-        const pool = { ...userAccounts, ...resolved };
+        const pool = { ...pinned, ...userAccounts, ...resolved };
         const authorityAddr = pool[seed.authority];
         const mintAddr = pool[seed.mint];
         const tokenProgramAddr = seed.tokenProgram
@@ -200,7 +251,9 @@ export async function resolvePdas(
         ];
       }
 
-      return [resolveSeed(seed, ixDef, args, { ...userAccounts, ...resolved }, definedTypes, isZeroCopy)];
+      return [
+        resolveSeed(seed, ixDef, args, { ...pinned, ...userAccounts, ...resolved }, definedTypes, isZeroCopy),
+      ];
     });
 
     const [pdaAddress] = await getProgramDerivedAddress({

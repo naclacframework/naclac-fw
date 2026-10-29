@@ -1,8 +1,7 @@
 //! Evaluation of `const` initializer expressions without a compiler, for the
 //! array lengths and constant references the macros resolve at expansion
-//! time. The result is the constant's `Debug` text,
-//! byte for byte what the compiled `idl-build` path prints for the same
-//! constant, so both IDLs report one value.
+//! time. The result is the constant's `Debug` text, byte for byte what the
+//! compiled `idl-build` path prints for the same constant.
 //!
 //! Supported: integer, float and bool literals with their suffixes; unary
 //! `-` and `!`; binary `+ - * / % & | ^ << >>`, comparisons and `&& ||`;
@@ -10,7 +9,7 @@
 //! `T::MAX`, `T::MIN`, `T::BITS`; `size_of::<T>()` and `align_of::<T>()` of a
 //! primitive; `.pow(n)`; arrays and `[x; N]` of those. Arithmetic follows
 //! rustc's const evaluation: overflow and division by zero are errors, and
-//! sizes are those of the 64-bit host the compiled path runs on. A `u128`
+//! sizes are those of the 64-bit host the `idl-build` compile runs on. A `u128`
 //! value above `i128::MAX` is not representable here and reports as
 //! unsupported.
 

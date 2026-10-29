@@ -176,8 +176,8 @@ pub enum IdlTypeDefVariants {
     #[serde(rename = "enum")]
     Enum {
         variants: Vec<IdlEnumVariant>,
-        /// The width of the enum's tag on the wire. The IDL generators always
-        /// populate it: the declared `repr` (`u8` when none) for zero-copy
+        /// The width of the enum's tag on the wire. The IDL always carries
+        /// it: the declared `repr` (`u8` when none) for zero-copy
         /// programs, `u8` for Borsh and Wincode programs. An IDL file without
         /// it is read as `u8`.
         #[serde(default)]

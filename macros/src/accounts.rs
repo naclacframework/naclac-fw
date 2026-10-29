@@ -56,26 +56,15 @@ fn signer_flag(
     quote! { <#ty as naclac_lang::prelude::NaclacAccount>::IS_SIGNER }
 }
 
-/// Converts a macro-expansion-time-resolved `naclac_syn::types::NaclacSeed::Const`
-/// (from `naclac_syn::pda`'s literal-seed helpers — always `Const`, since
-/// those helpers only ever classify a byte/string/int literal) into tokens
-/// that construct the equivalent `IdlSeedBuild::Const` at the calling
-/// crate's own `idl-build` runtime.
+/// Tokens constructing, at the calling crate's own `idl-build` runtime, the
+/// `IdlSeedBuild::Const` of an unnamed literal seed whose bytes are known at
+/// macro-expansion time.
 #[cfg(feature = "idl-build")]
-fn const_seed_tokens(seed: &naclac_syn::types::NaclacSeed) -> proc_macro2::TokenStream {
-    let naclac_syn::types::NaclacSeed::Const { value, name } = seed else {
-        unreachable!(
-            "naclac_syn::pda's int-literal seed helpers only ever return NaclacSeed::Const"
-        );
-    };
-    let name_tokens = match name {
-        Some(n) => quote! { Some(#n.into()) },
-        None => quote! { None },
-    };
+fn literal_seed_tokens(value: &[u8]) -> proc_macro2::TokenStream {
     quote! {
         naclac_lang::naclac_idl::idl_build_accounts::IdlSeedBuild::Const {
             value: vec![#(#value),*],
-            name: #name_tokens,
+            name: None,
         }
     }
 }
@@ -167,17 +156,10 @@ fn build_idl_seed_expr(
 ) -> proc_macro2::TokenStream {
     match expr {
         syn::Expr::Lit(expr_lit) => match &expr_lit.lit {
-            syn::Lit::ByteStr(b) => {
-                let value = b.value();
-                quote! { naclac_lang::naclac_idl::idl_build_accounts::IdlSeedBuild::Const { value: vec![#(#value),*], name: None } }
-            }
-            syn::Lit::Str(s) => {
-                let value = s.value().into_bytes();
-                quote! { naclac_lang::naclac_idl::idl_build_accounts::IdlSeedBuild::Const { value: vec![#(#value),*], name: None } }
-            }
+            syn::Lit::ByteStr(b) => literal_seed_tokens(&b.value()),
+            syn::Lit::Str(s) => literal_seed_tokens(s.value().as_bytes()),
             syn::Lit::Int(int_lit) => {
-                let seed = naclac_syn::pda::int_literal_seed_byte(int_lit);
-                const_seed_tokens(&seed)
+                literal_seed_tokens(&naclac_syn::pda::int_literal_seed_byte(int_lit))
             }
             _ => splice_const_fallback(expr, None),
         },
@@ -200,9 +182,10 @@ fn build_idl_seed_expr(
             {
                 let method = expr_method.method.to_string();
                 if method == "to_le_bytes" || method == "to_be_bytes" {
-                    let seed =
-                        naclac_syn::pda::int_literal_seed_bytes(int_lit, method == "to_be_bytes");
-                    return const_seed_tokens(&seed);
+                    return literal_seed_tokens(&naclac_syn::pda::int_literal_seed_bytes(
+                        int_lit,
+                        method == "to_be_bytes",
+                    ));
                 }
             }
             if let Some(path) = naclac_syn::pda::extract_field_path(&expr_method.receiver) {
@@ -344,7 +327,23 @@ fn idl_build_accounts_impl(
                 })
             }
         } else {
-            quote! { None }
+            match crate::instruction::builtin_namespaces::idl_pda(field, parsed_fields) {
+                Err(error) => return error,
+                Ok(None) => quote! { None },
+                Ok(Some((seeds, program))) => {
+                    let seed_tokens: Vec<_> = seeds
+                        .iter()
+                        .map(|e| build_idl_seed_expr(e, &account_names, instr_names, parsed_fields))
+                        .collect();
+                    let program_tokens = splice_const_fallback(&program, None);
+                    quote! {
+                        Some(naclac_lang::naclac_idl::idl_build_accounts::IdlPdaBuild {
+                            seeds: vec![#(#seed_tokens),*],
+                            program: Some(#program_tokens),
+                        })
+                    }
+                }
+            }
         };
 
         let address_tokens = match &field.address {

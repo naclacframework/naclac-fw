@@ -13,7 +13,7 @@ import { getBase58Codec } from "@solana/codecs";
 import type { NaclacIdl, IdlInstruction, IdlAccountDef } from "../idl";
 import { type LegacyProvider, type TxVersion, normalizeTxVersion } from "./provider";
 import { encodeInstructionData, decodeDiscriminatedAccountData } from "../coder/instruction";
-import { resolvePdas } from "../utils/pda";
+import { pinnedAddress, resolvePdas } from "../utils/pda";
 import { resolveSlots } from "../slots";
 import { translateRpcError } from "../utils/rpc";
 import { resolveDiscriminator } from "../utils/hash";
@@ -27,13 +27,6 @@ import {
   type NaclacInnerInstruction,
   type NaclacRpcResult,
 } from "../events";
-import {
-  SYSTEM_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
-  ATA_PROGRAM_ID,
-  SYSVAR_RENT_PUBKEY,
-} from "../constants";
 
 export type IdlInstructionName<T extends NaclacIdl> =
   T["instructions"][number]["name"];
@@ -391,16 +384,8 @@ export class LegacyMethodsBuilder {
       let addr = allAccounts[acctDef.name];
 
       if (!addr) {
-        if (acctDef.address) {
-          addr = new PublicKey(acctDef.address);
-        } else {
-          const nameLower = acctDef.name.toLowerCase();
-          if (nameLower === "systemprogram") addr = new PublicKey(SYSTEM_PROGRAM_ID);
-          else if (nameLower === "tokenprogram") addr = new PublicKey(TOKEN_PROGRAM_ID);
-          else if (nameLower === "token2022program") addr = new PublicKey(TOKEN_2022_PROGRAM_ID);
-          else if (nameLower === "ataprogram") addr = new PublicKey(ATA_PROGRAM_ID);
-          else if (nameLower === "rent" || nameLower === "sysvarrent") addr = new PublicKey(SYSVAR_RENT_PUBKEY);
-        }
+        const pinned = pinnedAddress(acctDef);
+        if (pinned) addr = new PublicKey(pinned);
       }
 
       if (!addr) {
