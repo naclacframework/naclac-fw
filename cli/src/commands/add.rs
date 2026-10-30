@@ -21,6 +21,7 @@ pub fn execute(
     runtime_flag: Option<&str>,
     mode_flag: Option<&str>,
     ts_flag: Option<&str>,
+    empty: bool,
 ) {
     let workspace_root = workspace::root();
 
@@ -80,7 +81,15 @@ pub fn execute(
         naclac_client_gen::deploy_dir(&workspace_root).join(format!("{}-keypair.json", snake_name));
     let address = generate_keypair(&keypair_path);
 
-    generate_program(&workspace_root, name, &address, mode, ts_framework, false);
+    generate_program(
+        &workspace_root,
+        name,
+        &address,
+        mode,
+        ts_framework,
+        false,
+        empty,
+    );
 
     // Read again: generating the program may have changed Naclac.toml.
     let config_text = fs::read_to_string(&config_path)

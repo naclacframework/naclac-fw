@@ -135,6 +135,21 @@ jobs:
           path: tests/enums/artifacts/clients/typescript
           retention-days: 1
 
+      - name: Keep this suite's IDLs and clients
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: artifacts-${{ matrix.suite }}
+          path: |
+            tests/${{ matrix.suite }}/artifacts/idl
+            tests/${{ matrix.suite }}/artifacts/clients
+            !tests/${{ matrix.suite }}/artifacts/**/target/**
+            !tests/${{ matrix.suite }}/artifacts/**/node_modules/**
+            !tests/${{ matrix.suite }}/artifacts/**/*.so
+            !tests/${{ matrix.suite }}/artifacts/**/*keypair*
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Disk after run
         if: always()
         run: df -h /
@@ -185,10 +200,72 @@ jobs:
       - run: cargo test --locked --test compile_fail
         working-directory: tests/compile-fail
 
+  empty-program:
+    name: empty program (${{ matrix.runtime }}, ${{ matrix.mode }})
+    needs: [plan, cli]
+    if: needs.plan.outputs.full == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: pinocchio
+            mode: bytemuck
+          - runtime: solana
+            mode: borsh
+          - runtime: solana
+            mode: wincode
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Solana toolchain
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.local/share/solana
+            ~/.cache/solana
+          key: solana-${{ runner.os }}-v1
+
+      - name: Install Solana CLI
+        run: |
+          if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/cargo-build-sbf" ]; then
+            sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          fi
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Create throwaway wallet
+        run: |
+          mkdir -p "$HOME/.config/solana"
+          "$HOME/.local/share/solana/install/active_release/bin/solana-keygen" new \
+            --no-bip39-passphrase --silent --force -o "$HOME/.config/solana/id.json"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: naclac-bin
+          path: ${{ runner.temp }}/bin
+
+      - name: Put naclac on PATH
+        run: |
+          chmod +x "${{ runner.temp }}/bin/naclac"
+          echo "${{ runner.temp }}/bin" >> "$GITHUB_PATH"
+
+      - name: Create and build an empty program
+        working-directory: ${{ runner.temp }}
+        run: |
+          naclac init empty --empty --no-install --no-git \
+            --runtime ${{ matrix.runtime }} --mode ${{ matrix.mode }} --ts kit \
+            --framework-path "$GITHUB_WORKSPACE"
+          cd empty
+          naclac build
+          grep -q '"instructions": \[\]' artifacts/idl/empty.json
+
   all-green:
     name: all suites green
     if: always()
-    needs: [cli, suite, client-ts, compile-fail]
+    needs: [cli, suite, client-ts, compile-fail, empty-program]
     runs-on: ubuntu-latest
     steps:
       - run: |

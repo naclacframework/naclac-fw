@@ -360,7 +360,8 @@ fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStream {
             #(#error_calls)*
             #(#const_calls)*
 
-            let __instructions = vec![#(#ix_tokens),*];
+            let __instructions: naclac_lang::prelude::Vec<#idl::IdlInstruction> =
+                vec![#(#ix_tokens),*];
 
             let __accounts: naclac_lang::prelude::Vec<#idl::IdlAccountStruct> = __account_types
                 .iter()

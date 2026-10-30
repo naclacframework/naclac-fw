@@ -208,6 +208,10 @@ pub fn parse_package_manager(flag: &str) -> Option<PackageManager> {
     }
 }
 
+/// Writes the program `name` under `programs/`: its manifest and source tree,
+/// and for the counter example its Rust and TypeScript tests. With `empty` the
+/// tree is the same but the `#[program]` module has no instructions, every
+/// source file is empty, and no tests are written.
 pub fn generate_program(
     root_path: &Path,
     name: &str,
@@ -215,6 +219,7 @@ pub fn generate_program(
     mode: ProgramMode,
     ts_framework: TsFramework,
     _is_new_workspace: bool,
+    empty: bool,
 ) {
     let snake_name = name.to_snake_case();
     let type_name = snake_name.to_upper_camel_case();
@@ -279,8 +284,29 @@ workspace = true
         ""
     };
 
-    let lib_rs = format!(
-        r#"{header}use naclac_lang::prelude::*;
+    let lib_rs = if empty {
+        format!(
+            r#"{header}use naclac_lang::prelude::*;
+
+declare_id!("{program_id}");
+
+pub mod components;
+pub mod instructions;
+pub mod systems;
+pub mod events;
+pub mod errors;
+pub mod constants;
+
+#[program]
+pub mod {snake_name} {{}}
+"#,
+            header = lib_header,
+            program_id = program_id,
+            snake_name = snake_name
+        )
+    } else {
+        format!(
+            r#"{header}use naclac_lang::prelude::*;
 
 declare_id!("{program_id}");
 
@@ -304,11 +330,26 @@ pub mod {snake_name} {{
     }}
 }}
 "#,
-        header = lib_header,
-        program_id = program_id,
-        snake_name = snake_name
-    );
+            header = lib_header,
+            program_id = program_id,
+            snake_name = snake_name
+        )
+    };
     write_file(&program_dir.join("src/lib.rs"), &lib_rs);
+
+    if empty {
+        for file in [
+            "src/constants.rs",
+            "src/components/mod.rs",
+            "src/systems/mod.rs",
+            "src/events.rs",
+            "src/errors.rs",
+            "src/instructions/mod.rs",
+        ] {
+            write_file(&program_dir.join(file), "");
+        }
+        return;
+    }
 
     write_file(
         &program_dir.join("src/constants.rs"),

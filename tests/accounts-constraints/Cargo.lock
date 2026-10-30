@@ -1691,12 +1691,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "naclac-idl"
+version = "0.1.0"
+dependencies = [
+ "naclac-syn",
+ "serde",
+ "serde_json",
+ "solana-address 2.9.0",
+ "solana-instruction 3.5.1",
+ "solana-system-interface 3.3.0",
+]
+
+[[package]]
 name = "naclac-lang"
 version = "0.1.0"
 dependencies = [
  "naclac-core",
+ "naclac-idl",
  "naclac-macros",
  "naclac-metadata",
+ "naclac-syn",
  "naclac-token",
 ]
 
@@ -1706,13 +1720,14 @@ version = "0.1.0"
 dependencies = [
  "bs58",
  "heck",
+ "naclac-idl",
  "naclac-syn",
  "proc-macro2",
  "quote",
+ "serde_json",
  "sha2 0.11.0",
  "solana-address 2.9.0",
  "syn 3.0.3",
- "toml",
 ]
 
 [[package]]
@@ -1738,11 +1753,8 @@ dependencies = [
 name = "naclac-syn"
 version = "0.1.0"
 dependencies = [
- "bs58",
- "heck",
  "proc-macro2",
  "quote",
- "serde",
  "serde_json",
  "sha2 0.11.0",
  "syn 3.0.3",
@@ -1756,6 +1768,7 @@ dependencies = [
  "borsh",
  "bytemuck",
  "naclac-core",
+ "naclac-idl",
  "pinocchio 0.11.2",
  "pinocchio-associated-token-account",
  "pinocchio-token",
@@ -2349,6 +2362,7 @@ version = "1.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
 dependencies = [
+ "indexmap",
  "itoa",
  "memchr",
  "serde",

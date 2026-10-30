@@ -42,6 +42,10 @@ enum Commands {
         /// published packages (recorded as `[framework] path` in Naclac.toml)
         #[arg(long = "framework-path")]
         framework_path: Option<String>,
+        /// Create the program with no instructions and no example code,
+        /// instead of the counter example
+        #[arg(long)]
+        empty: bool,
     },
     /// Adds a new program to an existing Naclac workspace
     Add {
@@ -55,6 +59,10 @@ enum Commands {
         /// TypeScript SDK framework: kit or legacy
         #[arg(long)]
         ts: Option<String>,
+        /// Create the program with no instructions and no example code,
+        /// instead of the counter example
+        #[arg(long)]
+        empty: bool,
     },
     /// Builds the SBF binary and generates the IDL JSON
     Build {
@@ -98,6 +106,16 @@ enum Commands {
         /// Program to deploy (e.g. counter); repeat for several
         #[arg(short = 'p', long = "program")]
         programs: Vec<String>,
+        /// Deploy only; do not upload or update the program's IDL
+        #[arg(long)]
+        no_idl: bool,
+        /// Write each IDL even when the account already holds exactly it
+        #[arg(long, conflicts_with = "no_idl")]
+        force_idl: bool,
+        /// Show the detail the summary lines leave out (the deploy tool's own
+        /// output)
+        #[arg(long)]
+        show_output: bool,
     },
     /// Runs the test suite defined in Naclac.toml
     Test {
@@ -118,23 +136,39 @@ enum Commands {
     },
     /// Fetches and deserializes an on-chain account using the local IDL
     Account { address: String },
-    /// Upgrades a deployed Naclac program and securely refunds buffer accounts
+    /// Upgrades deployed Naclac programs and updates their IDLs
     Upgrade {
         program_id: Option<String>,
         /// Program to upgrade (a name from `[programs.<cluster>]` or an
         /// address); repeat for several
         #[arg(short = 'p', long = "program")]
         programs: Vec<String>,
+        /// Upgrade from this program file instead of the compiled `.so`
         #[arg(short, long)]
         filepath: Option<String>,
+        /// Upgrade from this already written buffer account
         #[arg(short, long)]
         buffer: Option<String>,
+        /// Upgrade only; do not update the programs' IDLs
+        #[arg(long)]
+        no_idl: bool,
+        /// Write each IDL even when the account already holds exactly it
+        #[arg(long, conflicts_with = "no_idl")]
+        force_idl: bool,
+        /// Show the detail the summary lines leave out (the upgrade tool's
+        /// own output)
+        #[arg(long)]
+        show_output: bool,
     },
     /// Manages a program's on-chain IDL metadata (Solana's Program Metadata
     /// Program) — upload/update, lock, close, trim, or change authority
     Idl {
         #[command(subcommand)]
         action: IdlAction,
+        /// List every transaction with its signature instead of one summary
+        /// line. Accepted before or after the action.
+        #[arg(long, global = true)]
+        show_output: bool,
     },
     /// Verifies the determinism of local codebase against an on-chain program
     Verify {
@@ -242,6 +276,9 @@ pub enum IdlAction {
         /// for several
         #[arg(short = 'p', long = "program")]
         programs: Vec<String>,
+        /// Write the IDL even when the account already holds exactly it
+        #[arg(long)]
+        force: bool,
     },
     /// Permanently locks the metadata account against any further
     /// upload/set-authority/trim/close — irreversible
@@ -408,6 +445,12 @@ fn run_each<T>(
 
 fn main() {
     let cli = Cli::parse();
+    if let Commands::Idl { show_output, .. }
+    | Commands::Deploy { show_output, .. }
+    | Commands::Upgrade { show_output, .. } = &cli.command
+    {
+        ui::set_show_output(*show_output);
+    }
     match &cli.command {
         Commands::Init {
             name,
@@ -418,6 +461,7 @@ fn main() {
             no_install,
             no_git,
             framework_path,
+            empty,
         } => crate::commands::init::execute(crate::commands::init::InitOptions {
             name,
             runtime: runtime.as_deref(),
@@ -427,13 +471,21 @@ fn main() {
             no_install: *no_install,
             no_git: *no_git,
             framework_path: framework_path.as_deref(),
+            empty: *empty,
         }),
         Commands::Add {
             name,
             runtime,
             mode,
             ts,
-        } => commands::add::execute(name, runtime.as_deref(), mode.as_deref(), ts.as_deref()),
+            empty,
+        } => commands::add::execute(
+            name,
+            runtime.as_deref(),
+            mode.as_deref(),
+            ts.as_deref(),
+            *empty,
+        ),
         Commands::Build {
             program_id,
             programs,
@@ -473,7 +525,14 @@ fn main() {
         Commands::Deploy {
             program_id,
             programs,
-        } => commands::deploy::execute(&requested_programs(program_id, programs)),
+            no_idl,
+            force_idl,
+            ..
+        } => commands::deploy::execute(
+            &requested_programs(program_id, programs),
+            *no_idl,
+            *force_idl,
+        ),
         Commands::Test {
             file,
             programs,
@@ -487,24 +546,41 @@ fn main() {
             programs,
             filepath,
             buffer,
+            no_idl,
+            force_idl,
+            ..
         } => {
-            for program in target_programs(&requested_programs(program_id, programs)) {
-                commands::upgrade::execute(
-                    &program.address,
-                    program.name.as_deref(),
-                    filepath.as_deref(),
-                    buffer.as_deref(),
-                );
-            }
+            let targets: Vec<(String, Option<String>)> =
+                target_programs(&requested_programs(program_id, programs))
+                    .into_iter()
+                    .map(|program| (program.address, program.name))
+                    .collect();
+            commands::upgrade::execute(
+                &targets,
+                filepath.as_deref(),
+                buffer.as_deref(),
+                *no_idl,
+                *force_idl,
+            );
         }
-        Commands::Idl { action } => match action {
+        Commands::Idl { action, .. } => match action {
             IdlAction::Upload {
                 program_id,
                 programs,
+                force,
             } => run_each(
-                target_addresses(&requested_programs(program_id, programs)),
-                |address| address.as_str(),
-                |address| commands::idl::execute_upload(address),
+                target_programs(&requested_programs(program_id, programs)),
+                |program| program.address.as_str(),
+                |program| {
+                    let heading = program
+                        .name
+                        .clone()
+                        .unwrap_or_else(|| ui::short(&program.address));
+                    ui::section(heading, ui::short(&program.address));
+                    let outcome = commands::idl::execute_upload(&program.address, *force);
+                    ui::end_section();
+                    outcome
+                },
             ),
             IdlAction::SetImmutable {
                 program_id,

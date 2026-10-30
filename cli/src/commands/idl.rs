@@ -26,6 +26,7 @@ use {
     solana_signer::Signer,
     solana_transaction::Transaction,
     std::{
+        cell::Cell,
         fs,
         io::{Read as _, Write as _},
         path::{Path, PathBuf},
@@ -99,6 +100,21 @@ fn fetch_account(client: &RpcClient, address: &Address) -> Result<Option<OnChain
         data: account.data,
         executable: account.executable,
     }))
+}
+
+/// Whether `address` is a deployed (executable) program on the cluster at
+/// `rpc_url`. Errors when the account exists but is not a program, and when
+/// the cluster cannot be read, so a failed read is never taken for "absent".
+pub fn program_is_deployed(rpc_url: &str, address: &str) -> Result<bool, String> {
+    let address = parse_address("program", address)?;
+    let client = RpcClient::new(rpc_url.to_string());
+    match fetch_account(&client, &address)? {
+        None => Ok(false),
+        Some(account) if account.executable => Ok(true),
+        Some(_) => Err(format!(
+            "{address} exists on the cluster but is not an executable program."
+        )),
+    }
 }
 
 /// Total tries, first attempt included, for any RPC read or transaction send.
@@ -188,6 +204,8 @@ struct Session {
     program_data: Address,
     payer: Keypair,
     client: RpcClient,
+    /// Transactions confirmed through this session, for the command's summary.
+    transactions: Cell<u32>,
 }
 
 impl Session {
@@ -208,6 +226,7 @@ impl Session {
             program_data,
             payer,
             client,
+            transactions: Cell::new(0),
         })
     }
 
@@ -295,22 +314,49 @@ fn confirm_irreversible(question: &str, yes: bool) -> Outcome {
     }
 }
 
-/// True only if `address` already holds a finalized `Metadata` account
-/// owned by the Program Metadata Program — never true for an address that
-/// merely has *some* account at it (e.g. one funded by a prior `upload`
-/// interrupted before `initialize`/`set_data` finished). Callers use this to
-/// choose between the create and update paths.
-fn is_initialized_metadata(client: &RpcClient, address: &Address) -> Result<bool, String> {
-    Ok(match fetch_account(client, address)? {
-        None => false,
-        Some(account) => {
-            account.owner == program_metadata::PROGRAM_METADATA_ID
-                && matches!(
-                    header::parse_header(&account.data).map(|h| h.discriminator),
-                    Some(header::AccountDiscriminator::Metadata)
-                )
+/// True only for a finalized `Metadata` account owned by the Program Metadata
+/// Program — never for an account that merely exists at the address (e.g. one
+/// funded by a prior `upload` interrupted before `initialize`/`set_data`
+/// finished). Callers use this to choose between the create and update paths.
+fn is_metadata_account(account: &OnChainAccount) -> bool {
+    account.owner == program_metadata::PROGRAM_METADATA_ID
+        && matches!(
+            header::parse_header(&account.data).map(|h| h.discriminator),
+            Some(header::AccountDiscriminator::Metadata)
+        )
+}
+
+/// True only if `account` is a finalized metadata account that holds exactly
+/// `onchain_idl_json`, stored the way `upload` stores it (UTF-8, zlib, JSON,
+/// direct). Any difference, including a reformatted copy of the same content
+/// or another encoding, is false, so an upload is never skipped over a real
+/// change. A payload that cannot be read is false, with a warning.
+fn holds_exactly(account: &OnChainAccount, onchain_idl_json: &str) -> bool {
+    if !is_metadata_account(account) {
+        return false;
+    }
+    let Some(parsed) = header::parse_header(&account.data) else {
+        return false;
+    };
+    if parsed.encoding != encoding::UTF8
+        || parsed.compression != compression::ZLIB
+        || parsed.format != format::JSON
+        || parsed.data_source != data_source::DIRECT
+    {
+        return false;
+    }
+    let stored = header::payload(&account.data, &parsed)
+        .ok_or_else(|| "its payload is truncated".to_string())
+        .and_then(|payload| decompress(parsed.compression, payload));
+    match stored {
+        Ok(text) => text == onchain_idl_json.as_bytes(),
+        Err(reason) => {
+            ui::warn(format!(
+                "The IDL on chain could not be read ({reason}); it will be replaced."
+            ));
+            false
         }
-    })
+    }
 }
 
 /// Clears `target` for a fresh `allocate` when it holds a leftover `Buffer`
@@ -381,6 +427,15 @@ fn ensure_rent_exempt(session: &Session, target: &Address, size: usize) -> Outco
     send(session, ix, "Fund account for rent-exemption")
 }
 
+/// Counts one confirmed transaction, and lists it with its signature when
+/// `--show-output` is on.
+fn confirmed(session: &Session, label: &str, signature: &impl std::fmt::Display) {
+    session.transactions.set(session.transactions.get() + 1);
+    if ui::show_output() {
+        ui::info(format!("  {label} — {signature}"));
+    }
+}
+
 /// Signs and sends `ix`, returning once it is confirmed. A failure that is
 /// not a definitive rejection is retried up to [`MAX_ATTEMPTS`] times in
 /// total, but a transaction is only ever rebuilt with a new blockhash after
@@ -389,6 +444,7 @@ fn ensure_rent_exempt(session: &Session, target: &Address, size: usize) -> Outco
 fn send(session: &Session, ix: Instruction, label: &str) -> Outcome {
     let client = &session.client;
     let mut failures = 0u32;
+    ui::working(format!("{label}…"));
     loop {
         let (blockhash, _) = retry_read("fetch the latest blockhash", || {
             client
@@ -406,7 +462,7 @@ fn send(session: &Session, ix: Instruction, label: &str) -> Outcome {
         loop {
             let error = match client.send_and_confirm_transaction(&tx) {
                 Ok(signature) => {
-                    ui::success(format!("{label} — {signature}"));
+                    confirmed(session, label, &signature);
                     return Ok(());
                 }
                 Err(error) => error,
@@ -424,7 +480,7 @@ fn send(session: &Session, ix: Instruction, label: &str) -> Outcome {
             })?;
             match status {
                 Some(Ok(())) => {
-                    ui::success(format!("{label} — {signature}"));
+                    confirmed(session, label, &signature);
                     return Ok(());
                 }
                 Some(Err(rejection)) => {
@@ -489,9 +545,7 @@ fn create_new(session: &Session, seed: &Seed, compressed: &[u8]) -> Outcome {
             data_source::DIRECT,
             Some(compressed),
         );
-        send(session, ix, "Initialize (inline)")?;
-        ui::success(format!("IDL uploaded ({})", session.metadata_pda));
-        return Ok(());
+        return send(session, ix, "Initialize (inline)");
     }
 
     reclaim_stray_buffer(session, &session.metadata_pda)?;
@@ -514,9 +568,7 @@ fn create_new(session: &Session, seed: &Seed, compressed: &[u8]) -> Outcome {
         data_source::DIRECT,
         None,
     );
-    send(session, init_ix, "Initialize (finalize buffer)")?;
-    ui::success(format!("IDL uploaded ({})", session.metadata_pda));
-    Ok(())
+    send(session, init_ix, "Initialize (finalize buffer)")
 }
 
 fn update_existing(session: &Session, compressed: &[u8]) -> Outcome {
@@ -542,9 +594,7 @@ fn update_existing(session: &Session, compressed: &[u8]) -> Outcome {
                 data: compressed,
             },
         );
-        send(session, ix, "SetData (inline)")?;
-        ui::success(format!("IDL updated ({})", session.metadata_pda));
-        return Ok(());
+        return send(session, ix, "SetData (inline)");
     }
 
     let buffer_seed = program_metadata::seed_from_str("idl-buffer");
@@ -582,12 +632,28 @@ fn update_existing(session: &Session, compressed: &[u8]) -> Outcome {
         &session.program_data,
         &authority,
     );
-    send(session, close_ix, "Close (temp buffer cleanup)")?;
-    ui::success(format!("IDL updated ({})", session.metadata_pda));
-    Ok(())
+    send(session, close_ix, "Close (temp buffer cleanup)")
 }
 
-pub fn execute_upload(program_id_str: &str) -> Outcome {
+/// Uploads or updates the IDL of the program at `program_id_str` as one
+/// spinner step that ends in a single summary line. The Program Metadata
+/// Program's account is created when absent and updated in place otherwise,
+/// and left untouched when it already holds exactly this IDL, unless `force`.
+pub fn execute_upload(program_id_str: &str, force: bool) -> Outcome {
+    let step = ui::Step::start("Uploading the IDL");
+    match upload_idl(program_id_str, force) {
+        Ok(summary) => {
+            step.done(summary);
+            Ok(())
+        }
+        Err(error) => {
+            step.clear();
+            Err(error)
+        }
+    }
+}
+
+fn upload_idl(program_id_str: &str, force: bool) -> Result<String, String> {
     let session = Session::open(program_id_str)?;
     let root = workspace::root();
 
@@ -624,14 +690,34 @@ pub fn execute_upload(program_id_str: &str) -> Outcome {
         .finish()
         .map_err(|e| format!("Failed to compress the IDL: {e}"))?;
 
+    let existing = fetch_account(&session.client, &session.metadata_pda)?;
+    if !force
+        && existing
+            .as_ref()
+            .is_some_and(|account| holds_exactly(account, &onchain_idl_json))
+    {
+        return Ok(format!(
+            "IDL unchanged {}",
+            ui::short(&session.metadata_pda.to_string())
+        ));
+    }
+
     require_authorized(&session)?;
 
-    if is_initialized_metadata(&session.client, &session.metadata_pda)? {
-        update_existing(&session, &compressed)
+    let verb = if existing.as_ref().is_some_and(is_metadata_account) {
+        update_existing(&session, &compressed)?;
+        "updated"
     } else {
         let seed = program_metadata::seed_from_str("idl");
-        create_new(&session, &seed, &compressed)
-    }
+        create_new(&session, &seed, &compressed)?;
+        "uploaded"
+    };
+    let transactions = session.transactions.get();
+    Ok(format!(
+        "IDL {verb} {} ({transactions} transaction{})",
+        ui::short(&session.metadata_pda.to_string()),
+        if transactions == 1 { "" } else { "s" }
+    ))
 }
 
 pub fn execute_set_immutable(program_id_str: &str, yes: bool) -> Outcome {
@@ -1060,5 +1146,106 @@ mod tests {
     #[test]
     fn decompress_rejects_unknown_compression() {
         assert!(decompress(9, b"x").is_err());
+    }
+
+    const IDL_TEXT: &str = r#"{"a":1}"#;
+
+    fn zlib(text: &str) -> Vec<u8> {
+        let mut encoder = ZlibEncoder::new(Vec::new(), ZlibCompression::default());
+        encoder.write_all(text.as_bytes()).unwrap();
+        encoder.finish().unwrap()
+    }
+
+    fn metadata_account(
+        owner: Address,
+        discriminator: u8,
+        compression_byte: u8,
+        payload: &[u8],
+    ) -> OnChainAccount {
+        let mut data = vec![0u8; HEADER_LEN];
+        data[0] = discriminator;
+        data[1..33].copy_from_slice(&[7u8; 32]);
+        data[65] = 1;
+        data[66] = 1;
+        data[67..70].copy_from_slice(b"idl");
+        data[83] = encoding::UTF8;
+        data[84] = compression_byte;
+        data[85] = format::JSON;
+        data[86] = data_source::DIRECT;
+        data[87..91].copy_from_slice(&(payload.len() as u32).to_le_bytes());
+        data.extend_from_slice(payload);
+        OnChainAccount {
+            owner,
+            data,
+            executable: false,
+        }
+    }
+
+    fn stored(text: &str) -> OnChainAccount {
+        metadata_account(
+            program_metadata::PROGRAM_METADATA_ID,
+            2,
+            compression::ZLIB,
+            &zlib(text),
+        )
+    }
+
+    #[test]
+    fn an_account_holding_exactly_the_idl_is_current() {
+        assert!(holds_exactly(&stored(IDL_TEXT), IDL_TEXT));
+    }
+
+    #[test]
+    fn a_different_idl_is_not_current() {
+        assert!(!holds_exactly(&stored(r#"{"a":2}"#), IDL_TEXT));
+    }
+
+    #[test]
+    fn the_same_content_laid_out_differently_is_not_current() {
+        assert!(!holds_exactly(&stored(r#"{ "a": 1 }"#), IDL_TEXT));
+    }
+
+    #[test]
+    fn the_same_text_stored_another_way_is_not_current() {
+        let uncompressed = metadata_account(
+            program_metadata::PROGRAM_METADATA_ID,
+            2,
+            compression::NONE,
+            IDL_TEXT.as_bytes(),
+        );
+        assert!(!holds_exactly(&uncompressed, IDL_TEXT));
+    }
+
+    #[test]
+    fn an_account_of_another_owner_is_not_current() {
+        let foreign = metadata_account(
+            Address::new_from_array([1u8; 32]),
+            2,
+            compression::ZLIB,
+            &zlib(IDL_TEXT),
+        );
+        assert!(!holds_exactly(&foreign, IDL_TEXT));
+    }
+
+    #[test]
+    fn an_unfinished_buffer_is_not_current() {
+        let buffer = metadata_account(
+            program_metadata::PROGRAM_METADATA_ID,
+            1,
+            compression::ZLIB,
+            &zlib(IDL_TEXT),
+        );
+        assert!(!holds_exactly(&buffer, IDL_TEXT));
+    }
+
+    #[test]
+    fn an_unreadable_payload_is_not_current() {
+        let garbage = metadata_account(
+            program_metadata::PROGRAM_METADATA_ID,
+            2,
+            compression::ZLIB,
+            b"not zlib data",
+        );
+        assert!(!holds_exactly(&garbage, IDL_TEXT));
     }
 }

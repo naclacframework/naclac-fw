@@ -27,6 +27,8 @@ pub struct InitOptions<'a> {
     /// A local framework checkout to build against; recorded in Naclac.toml
     /// as `[framework] path`, relative to the new workspace.
     pub framework_path: Option<&'a str>,
+    /// Generate the program with no instructions and no example code.
+    pub empty: bool,
 }
 
 pub fn execute(options: InitOptions) {
@@ -39,6 +41,7 @@ pub fn execute(options: InitOptions) {
         no_install,
         no_git,
         framework_path,
+        empty,
     } = options;
     let root = Path::new(name);
 
@@ -246,7 +249,7 @@ test-node = "{test_node_script}"
         "node_modules/\ntarget/\ntest-ledger/\ndist/\n",
     );
 
-    generate_program(root, name, &program_id, mode, ts_framework, true);
+    generate_program(root, name, &program_id, mode, ts_framework, true, empty);
 
     if no_install {
         println!("ℹ️  Skipping Node dependencies installation (--no-install).");

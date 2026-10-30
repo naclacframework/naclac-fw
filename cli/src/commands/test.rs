@@ -11,7 +11,7 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
 
     if all {
         crate::commands::build::execute(requested, Vec::new(), false, Vec::new());
-        crate::commands::deploy::execute(requested);
+        crate::commands::deploy::execute(requested, true, false);
     }
 
     let workspace_root = workspace::root();
