@@ -145,22 +145,22 @@
     {
       "code": 6000,
       "name": "InvalidMint",
-      "message": "Invalid mint for the trade."
+      "msg": "Invalid mint for the trade."
     },
     {
       "code": 6001,
       "name": "Unauthorized",
-      "message": "Unauthorized action."
+      "msg": "Unauthorized action."
     },
     {
       "code": 6002,
       "name": "Overflow",
-      "message": "Overflow or math error."
+      "msg": "Overflow or math error."
     },
     {
       "code": 6003,
       "name": "ZeroAmount",
-      "message": "The amount provided must be greater than zero."
+      "msg": "The amount provided must be greater than zero."
     }
   ],
   "constants": [

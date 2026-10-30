@@ -18,7 +18,7 @@ pub fn generate(
         .push_str("#[derive(Clone, Copy, Debug, PartialEq, Eq)]\npub enum ProgramError {\n");
     for err in &idl.errors {
         let err_camel = err.name.to_upper_camel_case();
-        let msg = err.message.as_deref().or(err.msg.as_deref()).unwrap_or("");
+        let msg = err.msg.as_deref().unwrap_or("");
         if !msg.is_empty() {
             errors_content.push_str(&format!("    /// {}\n", msg));
         }
@@ -41,8 +41,7 @@ pub fn generate(
     errors_content.push_str("    pub fn message(&self) -> &'static str {\n        match self {\n");
     for err in &idl.errors {
         let err_camel = err.name.to_upper_camel_case();
-        // Prefer the modern `message` field; fall back to legacy `msg`
-        let msg = err.message.as_deref().or(err.msg.as_deref()).unwrap_or("");
+        let msg = err.msg.as_deref().unwrap_or("");
         errors_content.push_str(&format!(
             "            Self::{} => \"{}\",\n",
             err_camel, msg

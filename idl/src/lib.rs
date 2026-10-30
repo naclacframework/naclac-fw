@@ -369,9 +369,9 @@ pub struct IdlEventField {
 pub struct IdlError {
     pub code: u32,
     pub name: String,
-    /// Human-readable error description (renamed from `msg` for Codama compatibility).
+    /// Human-readable error description.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
+    pub msg: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -620,7 +620,8 @@ fn write_compact_pretty(v: &Value, indent: usize, force_multiline: bool, out: &m
 
 /// Writes the root `Idl` object: every field on its own line, with
 /// `"metadata"` and the top-level definition lists (`instructions`,
-/// `accounts`, `events`, `errors`, `constants`, `definedTypes`) rendered via
+/// `accounts`, `events`, `errors`, `constants`, `definedTypes`, and an Anchor
+/// IDL's `types`) rendered via
 /// [`write_flat_multiline_object`] — this is the one place that decides
 /// which objects count as "top-level definitions" for that treatment, so the
 /// same key name nested elsewhere (e.g. an instruction's own `accounts`
@@ -642,6 +643,7 @@ fn write_root(map: &serde_json::Map<String, Value>, out: &mut String) {
                 | "errors"
                 | "constants"
                 | "definedTypes"
+                | "types"
         );
         write_compact_pretty(val, indent, force_child, out);
         if i + 1 < n {
@@ -665,4 +667,30 @@ pub fn to_compact_pretty_json<T: Serialize>(value: &T) -> Result<String, serde_j
         other => write_compact_pretty(other, 0, false, &mut out),
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod compact_pretty_tests {
+    use super::*;
+
+    #[test]
+    fn an_anchor_types_list_is_written_as_top_level_definitions() {
+        let idl: Value = serde_json::from_str(
+            r#"{"address":"A","types":[{"name":"S","type":{"kind":"struct","fields":[{"name":"x","type":"u64"}]}}]}"#,
+        )
+        .unwrap();
+        let text = to_compact_pretty_json(&idl).unwrap();
+        assert!(text.contains("\"types\": [\n    {\n      \"name\": \"S\","));
+    }
+
+    #[test]
+    fn root_keys_keep_the_order_they_were_parsed_in() {
+        let idl: Value =
+            serde_json::from_str(r#"{"zeta":1,"alpha":2,"metadata":{"name":"n"}}"#).unwrap();
+        let text = to_compact_pretty_json(&idl).unwrap();
+        let zeta = text.find("\"zeta\"").unwrap();
+        let alpha = text.find("\"alpha\"").unwrap();
+        let metadata = text.find("\"metadata\"").unwrap();
+        assert!(zeta < alpha && alpha < metadata);
+    }
 }

@@ -1,382 +1,354 @@
-//! Converts a naclac `Idl` into the real, on-chain Anchor IDL shape for
-//! upload through the shared Program Metadata Program. Every field-level
-//! rule here was verified against real, non-naclac Anchor IDLs (pump.fun's
-//! own on-chain IDL and others under `examples/pump-fun-program/
-//! pump-public-docs/idl/`) — see
-//! `docs/plan/anchor-idl-conversion-and-enum-pod-audit.md` for the evidence
-//! behind each one. Operates directly on the parsed `Idl` struct; the only
-//! place a generic `serde_json::Value` tree is walked is type-expression
-//! values themselves, since naclac doesn't model its own type-expression
-//! grammar as a Rust enum either.
+//! The on-chain form of a naclac IDL, and its inverse. Solana Explorer
+//! parses an IDL without `metadata.spec` as a legacy Anchor IDL, and finds an
+//! account's or event's fields in `types` by name. So the on-chain form is
+//! the local IDL with `metadata.spec` added, every account's and event's
+//! fields moved out of `accounts`/`events` into `types` beside the defined
+//! types, and `definedTypes` renamed `types`. [`to_local_idl`] moves them
+//! back, so `fetch` returns exactly the local IDL.
 
 use {
-    crate::{
-        Idl, IdlAccount, IdlEnumFields, IdlEnumVariant, IdlField, IdlInstruction, IdlPda, IdlSeed,
-        IdlType, IdlTypeDef,
-    },
-    serde::Serialize,
-    serde_json::Value,
+    crate::Idl,
+    serde_json::{json, Map, Value},
+    std::collections::BTreeSet,
 };
 
-#[derive(Serialize)]
-pub struct AnchorIdl {
-    pub address: String,
-    pub metadata: AnchorMetadata,
-    pub instructions: Vec<AnchorInstruction>,
-    pub accounts: Vec<AnchorAccountRef>,
-    pub events: Vec<AnchorEventRef>,
-    pub errors: Vec<AnchorError>,
-    pub types: Vec<AnchorTypeDef>,
-    pub constants: Vec<AnchorConstant>,
+/// The `metadata.spec` Explorer routes to its display path for an Anchor
+/// 0.30+ IDL.
+const ONCHAIN_SPEC: &str = "0.1.0";
+
+fn serialize(value: &impl serde::Serialize) -> Result<Value, String> {
+    serde_json::to_value(value).map_err(|e| format!("Failed to serialize the IDL: {e}"))
 }
 
-#[derive(Serialize)]
-pub struct AnchorMetadata {
-    pub name: String,
-    pub version: String,
-    pub spec: String,
-    pub description: String,
-}
-
-#[derive(Serialize)]
-pub struct AnchorInstruction {
-    pub name: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub docs: Vec<String>,
-    pub discriminator: Vec<u8>,
-    pub accounts: Vec<AnchorAccount>,
-    pub args: Vec<AnchorField>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub returns: Option<Value>,
-}
-
-#[derive(Serialize)]
-pub struct AnchorAccount {
-    pub name: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub docs: Vec<String>,
-    #[serde(skip_serializing_if = "is_false")]
-    pub writable: bool,
-    #[serde(skip_serializing_if = "is_false")]
-    pub signer: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub pda: Option<AnchorPda>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub address: Option<String>,
-}
-
-fn is_false(b: &bool) -> bool {
-    !b
-}
-
-#[derive(Serialize)]
-pub struct AnchorPda {
-    pub seeds: Vec<AnchorSeed>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub program: Option<AnchorSeed>,
-}
-
-#[derive(Serialize)]
-#[serde(tag = "kind")]
-pub enum AnchorSeed {
-    #[serde(rename = "const")]
-    Const { value: Vec<u8> },
-    #[serde(rename = "arg")]
-    Arg { path: String },
-    #[serde(rename = "account")]
-    Account { path: String },
-}
-
-#[derive(Serialize)]
-pub struct AnchorField {
-    pub name: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub docs: Vec<String>,
-    #[serde(rename = "type")]
-    pub ty: Value,
-}
-
-#[derive(Serialize)]
-pub struct AnchorAccountRef {
-    pub name: String,
-    pub discriminator: Vec<u8>,
-}
-
-#[derive(Serialize)]
-pub struct AnchorEventRef {
-    pub name: String,
-    pub discriminator: Vec<u8>,
-}
-
-#[derive(Serialize)]
-pub struct AnchorError {
-    pub code: u32,
-    pub name: String,
-    pub msg: String,
-}
-
-#[derive(Serialize)]
-pub struct AnchorTypeDef {
-    pub name: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub docs: Vec<String>,
-    #[serde(rename = "type")]
-    pub ty: AnchorTypeDefKind,
-}
-
-#[derive(Serialize)]
-#[serde(tag = "kind")]
-pub enum AnchorTypeDefKind {
-    #[serde(rename = "struct")]
-    Struct { fields: Vec<AnchorField> },
-    #[serde(rename = "enum")]
-    Enum { variants: Vec<AnchorEnumVariant> },
-}
-
-#[derive(Serialize)]
-pub struct AnchorEnumVariant {
-    pub name: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub docs: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub fields: Option<AnchorEnumFields>,
-}
-
-/// Matches real Anchor's own `IdlDefinedFields` shape exactly (untagged):
-/// named fields serialize as `[{name, type}, ...]`, tuple fields as a bare
-/// `[type, ...]` array.
-#[derive(Serialize)]
-#[serde(untagged)]
-pub enum AnchorEnumFields {
-    Named(Vec<AnchorField>),
-    Tuple(Vec<Value>),
-}
-
-#[derive(Serialize)]
-pub struct AnchorConstant {
-    pub name: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub docs: Vec<String>,
-    #[serde(rename = "type")]
-    pub ty: Value,
-    pub value: String,
-}
-
-/// Recursively rewrites a naclac type-expression `Value` into Anchor's
-/// shape: `"publicKey"` -> `"pubkey"`, and a bare-string `{"defined": "X"}`
-/// -> the nested-object `{"defined": {"name": "X"}}`. Verified against real
-/// Anchor IDLs, not guessed.
-fn convert_type(v: &Value) -> Value {
-    match v {
-        Value::String(s) if s == "publicKey" => Value::String("pubkey".to_string()),
-        Value::Array(arr) => Value::Array(arr.iter().map(convert_type).collect()),
-        Value::Object(map) => {
-            if let Some(Value::String(name)) = map.get("defined") {
-                let mut inner = serde_json::Map::new();
-                inner.insert("name".to_string(), Value::String(name.clone()));
-                let mut obj = serde_json::Map::new();
-                obj.insert("defined".to_string(), Value::Object(inner));
-                return Value::Object(obj);
-            }
-            let mut out = serde_json::Map::new();
-            for (k, val) in map {
-                out.insert(k.clone(), convert_type(val));
-            }
-            Value::Object(out)
-        }
-        other => other.clone(),
+fn type_entry(name: &str, docs: &[String], ty: Value) -> Value {
+    let mut entry = Map::new();
+    entry.insert("name".to_string(), Value::from(name));
+    if !docs.is_empty() {
+        entry.insert("docs".to_string(), json!(docs));
     }
+    entry.insert("type".to_string(), ty);
+    Value::Object(entry)
 }
 
-fn convert_field(f: &IdlField) -> AnchorField {
-    AnchorField {
-        name: f.name.clone(),
-        docs: f.docs.clone(),
-        ty: convert_type(&f.ty),
+/// One entry per account and per event (holding its fields), then every
+/// defined type. Errors on a name used twice, since Explorer matches by name
+/// alone.
+fn types_list(idl: &Idl) -> Result<Vec<Value>, String> {
+    let mut types: Vec<Value> = Vec::new();
+    for account in &idl.accounts {
+        types.push(type_entry(
+            &account.name,
+            &account.docs,
+            serialize(&account.ty)?,
+        ));
     }
-}
-
-fn convert_seed(s: &IdlSeed) -> AnchorSeed {
-    match s {
-        IdlSeed::Const { value, .. } => AnchorSeed::Const {
-            value: value.clone(),
-        },
-        IdlSeed::Arg { path } => AnchorSeed::Arg { path: path.clone() },
-        IdlSeed::Account { path, .. } => AnchorSeed::Account { path: path.clone() },
+    for event in &idl.events {
+        types.push(type_entry(
+            &event.name,
+            &event.docs,
+            json!({ "kind": "struct", "fields": serialize(&event.fields)? }),
+        ));
     }
-}
-
-fn convert_pda(p: &IdlPda) -> AnchorPda {
-    AnchorPda {
-        seeds: p.seeds.iter().map(convert_seed).collect(),
-        program: p.program.as_ref().map(convert_seed),
+    for defined in &idl.defined_types {
+        types.push(serialize(defined)?);
     }
-}
 
-fn convert_account(a: &IdlAccount) -> AnchorAccount {
-    AnchorAccount {
-        name: a.name.clone(),
-        docs: a.docs.clone(),
-        writable: a.writable,
-        signer: a.signer,
-        pda: a.pda.as_ref().map(convert_pda),
-        address: a.address.clone(),
-    }
-}
-
-fn convert_instruction(ix: &IdlInstruction) -> AnchorInstruction {
-    AnchorInstruction {
-        name: ix.name.clone(),
-        docs: ix.docs.clone(),
-        discriminator: ix.discriminator.clone(),
-        accounts: ix.accounts.iter().map(convert_account).collect(),
-        args: ix.args.iter().map(convert_field).collect(),
-        returns: ix.returns.as_ref().map(convert_type),
-    }
-}
-
-fn convert_enum_fields(f: &IdlEnumFields) -> AnchorEnumFields {
-    match f {
-        IdlEnumFields::Named(fields) => {
-            AnchorEnumFields::Named(fields.iter().map(convert_field).collect())
-        }
-        IdlEnumFields::Tuple(tys) => {
-            AnchorEnumFields::Tuple(tys.iter().map(convert_type).collect())
+    let mut seen = BTreeSet::new();
+    for entry in &types {
+        let name = entry["name"].as_str().unwrap_or_default();
+        if !seen.insert(name.to_string()) {
+            return Err(format!(
+                "The name `{name}` is used by more than one account, event or defined type; \
+                 Solana Explorer matches fields to them by name, so rename one."
+            ));
         }
     }
+    Ok(types)
 }
 
-fn convert_variant(v: &IdlEnumVariant) -> AnchorEnumVariant {
-    // `v.discriminant` deliberately not carried through — every real Anchor
-    // enum variant object observed (pump.json/pump_amm.json/pump_fees.json)
-    // carries only `name` (plus `fields` when present), never an extra
-    // discriminant key. Consistent with Anchor's own enums always being
-    // Borsh-encoded by positional index, which has no notion of a custom
-    // discriminant value at all — this field is naclac-only bookkeeping.
-    AnchorEnumVariant {
-        name: v.name.clone(),
-        docs: v.docs.clone(),
-        fields: v.fields.as_ref().map(convert_enum_fields),
-    }
-}
-
-fn convert_type_def(t: &IdlType) -> AnchorTypeDef {
-    let ty = match &t.ty {
-        IdlTypeDef::Struct { fields, .. } => AnchorTypeDefKind::Struct {
-            fields: fields.iter().map(convert_field).collect(),
-        },
-        // `repr` deliberately not carried through — same as `discriminant`
-        // above, confirmed absent from real Anchor IDLs.
-        IdlTypeDef::Enum { variants, .. } => AnchorTypeDefKind::Enum {
-            variants: variants.iter().map(convert_variant).collect(),
-        },
+/// The IDL to upload on chain. Every key of the local IDL stays where it is,
+/// except `accounts` and `events` keep only each entry's name, discriminator
+/// and (for an event) `alloc`, and `definedTypes` becomes `types`, holding
+/// those accounts' and events' fields too. `metadata.spec` is added.
+pub fn to_onchain_idl(idl: &Idl) -> Result<Value, String> {
+    let Value::Object(root) = serialize(idl)? else {
+        return Err("The IDL did not serialize to a JSON object.".to_string());
     };
-    AnchorTypeDef {
-        name: t.name.clone(),
-        docs: t.docs.clone(),
-        ty,
+    let types = Value::Array(types_list(idl)?);
+
+    let mut onchain = Map::new();
+    for (key, value) in root {
+        let value = match key.as_str() {
+            "metadata" => {
+                let mut metadata = value;
+                if let Value::Object(map) = &mut metadata {
+                    map.insert("spec".to_string(), Value::from(ONCHAIN_SPEC));
+                }
+                metadata
+            }
+            "accounts" => Value::Array(
+                idl.accounts
+                    .iter()
+                    .map(|a| json!({ "name": a.name, "discriminator": a.discriminator }))
+                    .collect(),
+            ),
+            "events" => Value::Array(
+                idl.events
+                    .iter()
+                    .map(|e| {
+                        let mut entry = Map::new();
+                        entry.insert("name".to_string(), Value::from(e.name.as_str()));
+                        entry.insert("discriminator".to_string(), json!(e.discriminator));
+                        if e.alloc {
+                            entry.insert("alloc".to_string(), Value::Bool(true));
+                        }
+                        Value::Object(entry)
+                    })
+                    .collect(),
+            ),
+            "definedTypes" => {
+                onchain.insert("types".to_string(), types.clone());
+                continue;
+            }
+            _ => value,
+        };
+        onchain.insert(key, value);
+    }
+    Ok(Value::Object(onchain))
+}
+
+/// Whether `idl` was written by naclac: only a naclac IDL has
+/// `metadata.serialization`.
+pub fn is_naclac_idl(idl: &Value) -> bool {
+    idl.pointer("/metadata/serialization").is_some()
+}
+
+/// Removes and returns the entry of `types` named `name`, leaving the others
+/// in order.
+fn take_type(types: &mut Vec<Value>, name: &str) -> Option<Value> {
+    let index = types
+        .iter()
+        .position(|entry| entry["name"].as_str() == Some(name))?;
+    Some(types.remove(index))
+}
+
+fn list<'a>(root: &'a Map<String, Value>, key: &str) -> Result<&'a Vec<Value>, String> {
+    match root.get(key) {
+        Some(Value::Array(items)) => Ok(items),
+        _ => Err(format!("The on-chain IDL has no `{key}` list.")),
     }
 }
 
-/// Converts a naclac `Idl` into the real Anchor IDL shape for upload
-/// through the Program Metadata Program.
-pub fn to_anchor_idl(idl: &Idl) -> AnchorIdl {
-    let mut types: Vec<AnchorTypeDef> = Vec::new();
+fn entry_name(entry: &Value) -> Result<&str, String> {
+    entry["name"]
+        .as_str()
+        .ok_or_else(|| format!("An entry of the on-chain IDL has no name: {entry}"))
+}
 
-    // Real Anchor's `accounts[]`/`events[]` hold only `{name, discriminator}`
-    // — the field data lives in the shared `types[]` array instead,
-    // referenced by name. Confirmed via a live Solana Explorer test: this
-    // cross-reference resolves correctly.
-    let accounts: Vec<AnchorAccountRef> = idl
-        .accounts
+/// An account's local form: its on-chain `name` and `discriminator`, plus
+/// `docs` and `type` from its entry in `types`.
+fn local_account(entry: &Value, types: &mut Vec<Value>) -> Result<Value, String> {
+    let name = entry_name(entry)?;
+    let ty = take_type(types, name)
+        .ok_or_else(|| format!("The account `{name}` has no entry in `types`."))?;
+    let mut local = Map::new();
+    local.insert("name".to_string(), Value::from(name));
+    if let Some(docs) = ty.get("docs") {
+        local.insert("docs".to_string(), docs.clone());
+    }
+    local.insert("discriminator".to_string(), entry["discriminator"].clone());
+    local.insert("type".to_string(), ty["type"].clone());
+    Ok(Value::Object(local))
+}
+
+/// An event's local form: its on-chain `name`, `discriminator` and `alloc`,
+/// plus `docs` and `fields` from its entry in `types`.
+fn local_event(entry: &Value, types: &mut Vec<Value>) -> Result<Value, String> {
+    let name = entry_name(entry)?;
+    let ty = take_type(types, name)
+        .ok_or_else(|| format!("The event `{name}` has no entry in `types`."))?;
+    let mut local = Map::new();
+    local.insert("name".to_string(), Value::from(name));
+    if let Some(docs) = ty.get("docs") {
+        local.insert("docs".to_string(), docs.clone());
+    }
+    local.insert("discriminator".to_string(), entry["discriminator"].clone());
+    if let Some(alloc) = entry.get("alloc") {
+        local.insert("alloc".to_string(), alloc.clone());
+    }
+    local.insert("fields".to_string(), ty["type"]["fields"].clone());
+    Ok(Value::Object(local))
+}
+
+/// The local IDL a [`to_onchain_idl`] result was made from. Each account and
+/// event takes its fields back from the `types` entry of the same name, and
+/// the remaining types become `definedTypes`. Only for an IDL for which
+/// [`is_naclac_idl`] holds, since another IDL's `types` are not ours to move.
+pub fn to_local_idl(onchain: Value) -> Result<Value, String> {
+    let Value::Object(root) = onchain else {
+        return Err("The on-chain IDL is not a JSON object.".to_string());
+    };
+
+    let mut remaining = list(&root, "types")?.clone();
+    let accounts = list(&root, "accounts")?
         .iter()
-        .map(|acc| {
-            types.push(AnchorTypeDef {
-                name: acc.name.clone(),
-                docs: acc.docs.clone(),
-                ty: AnchorTypeDefKind::Struct {
-                    fields: acc.ty.fields.iter().map(convert_field).collect(),
-                },
-            });
-            AnchorAccountRef {
-                name: acc.name.clone(),
-                discriminator: acc.discriminator.clone(),
-            }
-        })
-        .collect();
-
-    let events: Vec<AnchorEventRef> = idl
-        .events
+        .map(|entry| local_account(entry, &mut remaining))
+        .collect::<Result<Vec<_>, _>>()?;
+    let events = list(&root, "events")?
         .iter()
-        .map(|ev| {
-            types.push(AnchorTypeDef {
-                name: ev.name.clone(),
-                docs: ev.docs.clone(),
-                ty: AnchorTypeDefKind::Struct {
-                    fields: ev
-                        .fields
-                        .iter()
-                        .map(|f| AnchorField {
-                            name: f.name.clone(),
-                            docs: f.docs.clone(),
-                            ty: convert_type(&f.ty),
-                        })
-                        .collect(),
-                },
-            });
-            AnchorEventRef {
-                name: ev.name.clone(),
-                discriminator: ev.discriminator.clone(),
-            }
-        })
-        .collect();
+        .map(|entry| local_event(entry, &mut remaining))
+        .collect::<Result<Vec<_>, _>>()?;
 
-    for t in &idl.defined_types {
-        types.push(convert_type_def(t));
+    let mut local = Map::new();
+    for (key, value) in root {
+        let value = match key.as_str() {
+            "metadata" => {
+                let mut metadata = value;
+                if let Value::Object(map) = &mut metadata {
+                    map.remove("spec");
+                }
+                metadata
+            }
+            "accounts" => Value::Array(accounts.clone()),
+            "events" => Value::Array(events.clone()),
+            "types" => {
+                local.insert("definedTypes".to_string(), Value::Array(remaining.clone()));
+                continue;
+            }
+            _ => value,
+        };
+        local.insert(key, value);
+    }
+    Ok(Value::Object(local))
+}
+
+#[cfg(test)]
+mod tests {
+    use {super::*, crate::to_compact_pretty_json};
+
+    fn sample_idl() -> Idl {
+        let json = r#"{
+            "address": "A",
+            "metadata": {"name": "n", "version": "0.1.0", "description": "d", "serialization": "wincode"},
+            "instructions": [{
+                "name": "ix",
+                "discriminator": [1],
+                "accounts": [{"name": "maybe", "optional": true}, {"name": "always"}],
+                "args": [{"name": "items", "type": {"vec": "u8"}, "slots": 4}]
+            }],
+            "accounts": [{"name": "Acc", "docs": ["an account"], "discriminator": [2], "type": {"kind": "struct", "fields": [{"name": "x", "type": "publicKey"}]}}],
+            "events": [
+                {"name": "Ev", "discriminator": [3], "fields": [{"name": "y", "type": "u64"}]},
+                {"name": "EvAlloc", "docs": ["packed"], "discriminator": [4], "alloc": true, "fields": [{"name": "w", "type": "u8"}]}
+            ],
+            "errors": [{"code": 6000, "name": "Bad", "msg": "it is bad"}, {"code": 6001, "name": "Silent"}],
+            "constants": [{"name": "C", "type": "bytes", "value": "[1, 2]"}],
+            "definedTypes": [
+                {"name": "Plain", "type": {"kind": "struct", "fields": [{"name": "z", "type": "u8"}]}},
+                {"name": "Kind", "type": {"kind": "enum", "variants": [{"name": "A", "discriminant": "0"}]}}
+            ],
+            "pdas": [],
+            "eventCpiTag": [9, 9]
+        }"#;
+        serde_json::from_str(json).unwrap()
     }
 
-    // Real Anchor uses `msg`, not `message` — confirmed against real IDLs.
-    let errors: Vec<AnchorError> = idl
-        .errors
-        .iter()
-        .map(|e| AnchorError {
-            code: e.code,
-            name: e.name.clone(),
-            msg: e.message.clone().unwrap_or_default(),
-        })
-        .collect();
+    #[test]
+    fn the_spec_is_added_to_the_metadata() {
+        let onchain = to_onchain_idl(&sample_idl()).unwrap();
+        assert_eq!(onchain["metadata"]["spec"], Value::from("0.1.0"));
+        assert_eq!(onchain["metadata"]["serialization"], Value::from("wincode"));
+    }
 
-    // Real Anchor does have a top-level `constants` array (confirmed via
-    // pump_fees.json, contrary to an earlier assumption based on a
-    // reference file that simply happened to declare none) — kept, not
-    // dropped.
-    let constants: Vec<AnchorConstant> = idl
-        .constants
-        .iter()
-        .map(|c| AnchorConstant {
-            name: c.name.clone(),
-            docs: c.docs.clone(),
-            ty: convert_type(&c.ty),
-            value: c.value.clone(),
-        })
-        .collect();
+    #[test]
+    fn accounts_and_events_keep_only_their_name_and_discriminator() {
+        let onchain = to_onchain_idl(&sample_idl()).unwrap();
+        assert_eq!(
+            onchain["accounts"],
+            json!([{ "name": "Acc", "discriminator": [2] }])
+        );
+        assert_eq!(
+            onchain["events"],
+            json!([
+                { "name": "Ev", "discriminator": [3] },
+                { "name": "EvAlloc", "discriminator": [4], "alloc": true }
+            ])
+        );
+    }
 
-    AnchorIdl {
-        address: idl.address.clone(),
-        metadata: AnchorMetadata {
-            name: idl.metadata.name.clone(),
-            version: idl.metadata.version.clone(),
-            // Matches the literal spec-version string real Anchor 0.30+
-            // IDLs carry — confirmed via a live Solana Explorer test that
-            // this exact value renders as "Anchor 0.30.1 (version ...)".
-            spec: "0.1.0".to_string(),
-            description: idl.metadata.description.clone(),
-        },
-        instructions: idl.instructions.iter().map(convert_instruction).collect(),
-        accounts,
-        events,
-        errors,
-        types,
-        constants,
+    #[test]
+    fn types_replace_defined_types_and_hold_accounts_then_events_then_defined() {
+        let onchain = to_onchain_idl(&sample_idl()).unwrap();
+        assert!(onchain.get("definedTypes").is_none());
+        let types = onchain["types"].as_array().unwrap();
+        let names: Vec<&str> = types.iter().map(|t| t["name"].as_str().unwrap()).collect();
+        assert_eq!(names, ["Acc", "Ev", "EvAlloc", "Plain", "Kind"]);
+        assert_eq!(types[0]["type"]["fields"][0]["name"], Value::from("x"));
+        assert_eq!(types[0]["docs"], json!(["an account"]));
+        assert_eq!(types[1]["type"]["kind"], Value::from("struct"));
+        assert_eq!(types[1]["type"]["fields"][0]["name"], Value::from("y"));
+        assert_eq!(types[4]["type"]["kind"], Value::from("enum"));
+    }
+
+    #[test]
+    fn everything_else_in_the_local_idl_is_unchanged() {
+        let idl = sample_idl();
+        let onchain = to_onchain_idl(&idl).unwrap();
+        let local = serde_json::to_value(&idl).unwrap();
+        for key in [
+            "address",
+            "instructions",
+            "errors",
+            "constants",
+            "pdas",
+            "eventCpiTag",
+        ] {
+            assert_eq!(onchain[key], local[key], "{key}");
+        }
+        assert_eq!(onchain["errors"][0]["msg"], Value::from("it is bad"));
+        assert!(onchain["errors"][1].get("msg").is_none());
+        assert_eq!(
+            onchain["instructions"][0]["args"][0]["slots"],
+            Value::from(4)
+        );
+    }
+
+    #[test]
+    fn moving_the_fields_back_gives_the_local_idl_exactly() {
+        let idl = sample_idl();
+        let onchain = to_onchain_idl(&idl).unwrap();
+        assert!(is_naclac_idl(&onchain));
+        let restored = to_local_idl(onchain).unwrap();
+        assert_eq!(
+            to_compact_pretty_json(&restored).unwrap(),
+            to_compact_pretty_json(&idl).unwrap()
+        );
+    }
+
+    #[test]
+    fn an_account_without_a_types_entry_cannot_be_restored() {
+        let mut onchain = to_onchain_idl(&sample_idl()).unwrap();
+        if let Value::Array(types) = &mut onchain["types"] {
+            types.retain(|t| t["name"] != "Acc");
+        }
+        let error = to_local_idl(onchain).unwrap_err();
+        assert!(error.contains("`Acc`"), "{error}");
+    }
+
+    #[test]
+    fn an_idl_without_metadata_serialization_is_not_a_naclac_idl() {
+        let anchor: Value = serde_json::from_str(
+            r#"{"address": "A", "metadata": {"name": "n", "version": "0.1.0", "spec": "0.1.0"}}"#,
+        )
+        .unwrap();
+        assert!(!is_naclac_idl(&anchor));
+    }
+
+    #[test]
+    fn a_name_shared_by_an_account_and_a_defined_type_is_an_error() {
+        let mut idl = sample_idl();
+        idl.defined_types[0].name = "Acc".to_string();
+        let error = to_onchain_idl(&idl).unwrap_err();
+        assert!(error.contains("`Acc`"), "{error}");
     }
 }

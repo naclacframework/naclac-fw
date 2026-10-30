@@ -14,7 +14,7 @@ use {
 /// each variant's `code` is `offset` plus its *real* Rust discriminant (via
 /// the shared `naclac_syn::discriminator::variant_discriminants`), so
 /// it matches what the `From<#name> for ProgramError` impl puts on-chain.
-/// Each variant's doc comment (if any) becomes its `message`.
+/// Each variant's doc comment (if any) becomes its `msg`.
 #[cfg(feature = "idl-build")]
 fn idl_build_errors_impl(
     name: &syn::Ident,
@@ -37,7 +37,7 @@ fn idl_build_errors_impl(
             naclac_lang::naclac_idl::IdlError {
                 code: #code,
                 name: #variant_name.into(),
-                message: #message_tokens,
+                msg: #message_tokens,
             }
         });
     }

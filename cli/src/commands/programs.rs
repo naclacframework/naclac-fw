@@ -5,7 +5,7 @@
 //! a missing piece of configuration is an error, never a default.
 
 use {
-    crate::ui,
+    crate::{commands::keypair, ui},
     std::path::{Path, PathBuf},
     toml::Value,
 };
@@ -169,23 +169,12 @@ pub fn declared_id(lib_code: &str) -> Option<&str> {
 }
 
 fn keypair_address(path: &Path) -> String {
-    let text = std::fs::read_to_string(path).unwrap_or_else(|e| {
+    let keypair = keypair::read(path).unwrap_or_else(|e| {
         ui::error(format!(
-            "Cannot read the deploy keypair {}: {e}. Run `naclac build` first.",
-            path.display()
+            "{e} (`naclac build` creates a missing deploy keypair.)"
         ))
     });
-    let bytes: Vec<u8> = serde_json::from_str(&text).unwrap_or_else(|e| {
-        ui::error(format!(
-            "{} is not a valid keypair file: {e}",
-            path.display()
-        ))
-    });
-    let secret: [u8; 32] = bytes
-        .get(..32)
-        .and_then(|bytes| <[u8; 32]>::try_from(bytes).ok())
-        .unwrap_or_else(|| ui::error(format!("{} is too short to be a keypair.", path.display())));
-    solana_signer::Signer::pubkey(&solana_keypair::Keypair::new_from_array(secret)).to_string()
+    solana_signer::Signer::pubkey(&keypair).to_string()
 }
 
 /// Errors unless the program's deploy keypair, its `declare_id!` (when its

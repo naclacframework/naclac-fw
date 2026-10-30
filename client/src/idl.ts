@@ -109,9 +109,7 @@ export interface IdlEventDef {
 export interface IdlErrorDef {
   code: number;
   name: string;
-  /** Human-readable error description. Preferred over the deprecated `msg` field. */
-  message?: string;
-  /** @deprecated Use `message` instead. Kept for backward compatibility with older IDLs. */
+  /** Human-readable error description. */
   msg?: string;
 }
 

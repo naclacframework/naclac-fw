@@ -340,9 +340,6 @@ pub struct IdlErrorDef {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub msg: Option<String>,
-    /// Preferred alias for `msg` — used when IDL emits `message` instead.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]

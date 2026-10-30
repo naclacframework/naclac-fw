@@ -453,12 +453,7 @@ pub fn generate_shared_files(
     let mut errors_content = header.to_string();
     errors_content.push_str("/** All program errors keyed by their numeric error code. */\nexport const ProgramErrors = {\n");
     for err in &idl.errors {
-        // Prefer the modern `message` field; fall back to the legacy `msg` field
-        let msg = err
-            .message
-            .clone()
-            .or_else(|| err.msg.clone())
-            .unwrap_or_default();
+        let msg = err.msg.clone().unwrap_or_default();
         errors_content.push_str(&format!(
             "  {}: {{ code: {}, name: \"{}\", message: \"{}\" }},\n",
             err.code, err.code, err.name, msg

@@ -251,6 +251,9 @@ pub enum IdlAction {
         /// for several
         #[arg(short = 'p', long = "program")]
         programs: Vec<String>,
+        /// Skip the confirmation prompt
+        #[arg(long)]
+        yes: bool,
     },
     /// Permanently deletes the metadata account, refunding its rent
     Close {
@@ -262,6 +265,9 @@ pub enum IdlAction {
         /// Where the reclaimed rent goes (defaults to your own wallet)
         #[arg(short, long)]
         destination: Option<String>,
+        /// Skip the confirmation prompt
+        #[arg(long)]
+        yes: bool,
     },
     /// Resizes the metadata account down to its minimum rent-exempt size,
     /// refunding the excess lamports
@@ -306,6 +312,10 @@ pub enum IdlAction {
         /// Print the IDL instead of writing a file
         #[arg(long, conflicts_with_all = ["name", "dir"])]
         stdout: bool,
+        /// Keep the IDL in its on-chain form instead of restoring the local
+        /// form (written to `<name>.onchain.json` unless --name is given)
+        #[arg(long)]
+        raw: bool,
     },
 }
 
@@ -375,6 +385,25 @@ fn target_addresses(requested: &[String]) -> Vec<String> {
         .into_iter()
         .map(|program| program.address)
         .collect()
+}
+
+/// Runs `action` on every target, printing each failure as `<label>: <error>`
+/// and carrying on with the rest; exits with status 1 if any target failed.
+fn run_each<T>(
+    targets: Vec<T>,
+    label: impl Fn(&T) -> &str,
+    mut action: impl FnMut(&T) -> Result<(), String>,
+) {
+    let mut failed = 0usize;
+    for target in &targets {
+        if let Err(message) = action(target) {
+            ui::error_line(format!("{}: {message}", label(target)));
+            failed += 1;
+        }
+    }
+    if failed > 0 {
+        ui::error(format!("{failed} of {} failed.", targets.len()));
+    }
 }
 
 fn main() {
@@ -472,68 +501,72 @@ fn main() {
             IdlAction::Upload {
                 program_id,
                 programs,
-            } => {
-                for address in target_addresses(&requested_programs(program_id, programs)) {
-                    commands::idl::execute_upload(&address);
-                }
-            }
+            } => run_each(
+                target_addresses(&requested_programs(program_id, programs)),
+                |address| address.as_str(),
+                |address| commands::idl::execute_upload(address),
+            ),
             IdlAction::SetImmutable {
                 program_id,
                 programs,
-            } => {
-                for address in target_addresses(&requested_programs(program_id, programs)) {
-                    commands::idl::execute_set_immutable(&address);
-                }
-            }
+                yes,
+            } => run_each(
+                target_addresses(&requested_programs(program_id, programs)),
+                |address| address.as_str(),
+                |address| commands::idl::execute_set_immutable(address, *yes),
+            ),
             IdlAction::Close {
                 program_id,
                 programs,
                 destination,
-            } => {
-                for address in target_addresses(&requested_programs(program_id, programs)) {
-                    commands::idl::execute_close(&address, destination.as_deref());
-                }
-            }
+                yes,
+            } => run_each(
+                target_addresses(&requested_programs(program_id, programs)),
+                |address| address.as_str(),
+                |address| commands::idl::execute_close(address, destination.as_deref(), *yes),
+            ),
             IdlAction::Trim {
                 program_id,
                 programs,
                 destination,
-            } => {
-                for address in target_addresses(&requested_programs(program_id, programs)) {
-                    commands::idl::execute_trim(&address, destination.as_deref());
-                }
-            }
+            } => run_each(
+                target_addresses(&requested_programs(program_id, programs)),
+                |address| address.as_str(),
+                |address| commands::idl::execute_trim(address, destination.as_deref()),
+            ),
             IdlAction::SetAuthority {
                 program_id,
                 programs,
                 new_authority,
                 remove,
-            } => {
-                for address in target_addresses(&requested_programs(program_id, programs)) {
-                    commands::idl::execute_set_authority(
-                        &address,
-                        new_authority.as_deref(),
-                        *remove,
-                    );
-                }
-            }
+            } => run_each(
+                target_addresses(&requested_programs(program_id, programs)),
+                |address| address.as_str(),
+                |address| {
+                    commands::idl::execute_set_authority(address, new_authority.as_deref(), *remove)
+                },
+            ),
             IdlAction::Fetch {
                 program_id,
                 programs,
                 name,
                 dir,
                 stdout,
-            } => {
-                for program in target_programs(&requested_programs(program_id, programs)) {
+                raw,
+            } => run_each(
+                target_programs(&requested_programs(program_id, programs)),
+                |program| program.address.as_str(),
+                |program| {
                     commands::idl::execute_fetch(
                         &program.address,
                         program.name.as_deref(),
                         name.as_deref(),
                         dir.as_deref(),
                         *stdout,
-                    );
-                }
-            }
+                        *raw,
+                    )
+                },
+            ),
         },
         Commands::Verify {
             program_id,

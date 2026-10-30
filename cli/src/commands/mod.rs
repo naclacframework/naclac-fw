@@ -10,6 +10,7 @@ pub mod expand;
 pub mod generate;
 pub mod idl;
 pub mod init;
+pub mod keypair;
 pub mod logs;
 pub mod profile;
 pub mod programs;
