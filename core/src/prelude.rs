@@ -3,7 +3,7 @@
 //
 // Feature routing:
 //   default ("solana")       → solana_program backend — NO borsh by default
-//   "solana" + "borsh"       → solana_program + borsh serialization (Account<T>, #[component])
+//   "solana" + "borsh"       → solana_program + borsh serialization (Account<T>, #[account])
 //   "zero-copy"              → Account<T> zero-copy branch, zero-copy events via bytemuck::Pod
 //   "pinocchio"              → pinocchio backend (no_std, no lifetimes, zero-copy)
 //

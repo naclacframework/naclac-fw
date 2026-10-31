@@ -273,7 +273,7 @@ pub enum IdlSeed {
         path: String,
         /// Set only when `path` is a dotted field access (e.g.
         /// `registry.bump`) whose field type was resolved from the backing
-        /// component's own struct definition — see `naclac-idl`/`naclac-syn`
+        /// account's own struct definition — see `naclac-idl`/`naclac-syn`
         /// for where this gets populated. `None` for a plain whole-account
         /// reference, or when the field's type couldn't be resolved.
         #[serde(rename = "fieldType", skip_serializing_if = "Option::is_none", default)]

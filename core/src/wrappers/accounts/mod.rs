@@ -39,7 +39,7 @@ pub(crate) fn discard_error<E>(error: E) {
 /// is a thin alias for `try_from` (both call `load`), and nothing else calls
 /// the trait's `load_mut`. The only other `load_mut`
 /// in the repo is a separate, macro-generated *inherent* method
-/// (`macros/src/component.rs`) that duplicates this logic for
+/// (`macros/src/account.rs`) that duplicates this logic for
 /// off-chain use — it doesn't call this trait method either.
 #[cfg(feature = "bytemuck")]
 pub trait NaclacZeroCopy:
@@ -55,7 +55,7 @@ pub trait NaclacZeroCopy:
             assert!(
                 core::mem::align_of::<Self>() == 1,
                 "a zero-copy account must have alignment 1: build it from naclac-pod types and \
-                 plain integers in a `#[repr(C, packed)]` struct, which `#[component]` does",
+                 plain integers in a `#[repr(C, packed)]` struct, which `#[account]` does",
             );
         }
     }

@@ -142,7 +142,7 @@ pub fn generate_kit_client(
 
         // A dotted seed path like `registry.bump` is a field read from
         // another account, not that account's own address. If naclac-syn
-        // resolved the field's real type from the backing component's
+        // resolved the field's real type from the backing account's
         // struct definition (`field_type: Some(_)`), the loops below
         // generate correctly-typed/encoded code for it via
         // `naclac.getIdlCodec`. If the field's type couldn't be resolved
@@ -157,7 +157,7 @@ pub fn generate_kit_client(
                 "// get{}Pda intentionally not generated: this PDA's seeds include\n\
                  // `{}`, a field read from another account whose type is not a plain\n\
                  // primitive — naclac-syn couldn't resolve it from the backing\n\
-                 // component's struct definition. Derive it manually — fetch the\n\
+                 // account's struct definition. Derive it manually — fetch the\n\
                  // account, read the field, and call naclac.getProgramDerivedAddress\n\
                  // yourself with the correct encoding for that field's type.\n\n",
                 acc_name.to_upper_camel_case(),

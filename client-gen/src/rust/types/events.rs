@@ -53,7 +53,7 @@ pub fn generate(
     // path is live, not a type whose shape differs per branch. The event
     // structs themselves are a different story (see `generate_fixed_event`/
     // `generate_alloc_event`): those get independent `X`/`XCpi` names,
-    // mirroring `components.rs`/`types/typedefs.rs`.
+    // mirroring `state.rs`/`types/typedefs.rs`.
     events_content.push_str(
         "#[cfg(all(feature = \"borsh\", feature = \"offchain\"))]\n\
          use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};\n\
@@ -140,7 +140,7 @@ fn generate_fixed_event(
     // "offchain"` independently (not a mutually-exclusive `offchain`/
     // `not(offchain)` pair) so both can coexist under their own distinct
     // name when a crate is reached both ways at once (mirrors
-    // `components.rs`/`types/typedefs.rs`).
+    // `state.rs`/`types/typedefs.rs`).
     for for_cpi in [false, true] {
         let sdk_core = sdk_core_alias(for_cpi);
         let cfg = if for_cpi {
@@ -269,7 +269,7 @@ fn generate_alloc_event(
     // "offchain"` independently (not a mutually-exclusive `offchain`/
     // `not(offchain)` pair) so both can coexist under their own distinct
     // name when a crate is reached both ways at once (mirrors
-    // `components.rs`/`types/typedefs.rs`).
+    // `state.rs`/`types/typedefs.rs`).
     for for_cpi in [false, true] {
         let sdk_core = sdk_core_alias(for_cpi);
         let cfg = if for_cpi {

@@ -1,8 +1,8 @@
 //! `SerializedBounds` for a Borsh or Wincode `#[defined_type]`.
 //!
-//! The impl lets a `#[component]` field of the type resolve its maximum
+//! The impl lets an `#[account]` field of the type resolve its maximum
 //! serialized size and length-limit check through the compiler, and is built
-//! from the same `naclac_syn::bounds` generator as the component's own fields.
+//! from the same `naclac_syn::bounds` generator as the account's own fields.
 
 use {
     naclac_syn::bounds::{field_bound, max_len_values, Problem},

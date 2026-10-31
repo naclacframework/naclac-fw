@@ -193,10 +193,10 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let disc_tokens = quote! { &[#(#disc_bytes),*] };
 
     // Cargo gives a proc-macro no reliable way to see the invoking crate's
-    // activated features (see `component.rs`'s doc comment for the full
+    // activated features (see `account.rs`'s doc comment for the full
     // story), so both representations are always emitted below, each gated
     // by a real `#[cfg(...)]` in the output that the calling crate's own
-    // compiler resolves — same as `#[component]`/`#[derive(Accounts)]`. This
+    // compiler resolves — same as `#[account]`/`#[derive(Accounts)]`. This
     // requires the calling crate to declare its layout feature as a feature
     // of its own (mirroring `naclac-lang`'s), which is the enforced
     // convention for every naclac program crate.

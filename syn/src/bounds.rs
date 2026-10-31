@@ -1,5 +1,5 @@
 //! The maximum serialized size, and the length-limit check, of a field of a
-//! Borsh or Wincode `#[component]` or `#[defined_type]`.
+//! Borsh or Wincode `#[account]` or `#[defined_type]`.
 //!
 //! A type's name is read only to find the structure that `#[max_len]` limits:
 //! `String`, `Vec<_>` and `Option<_>`. Every other type is resolved by the

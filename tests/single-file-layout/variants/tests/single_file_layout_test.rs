@@ -10,13 +10,13 @@ use single_file_layout_client::{
 
 /// Proves `naclac-syn`'s source discovery (a plain recursive walk of every
 /// `.rs` file under `src/` — see `syn/src/lib.rs`'s
-/// `parse_workspace_program`) doesn't require the `components/`/
+/// `parse_workspace_program`) doesn't require the `state/`/
 /// `instructions/` folder split every other test/example uses: the
-/// `#[component]`, both `#[derive(Accounts)]` structs, and both
+/// `#[account]`, both `#[derive(Accounts)]` structs, and both
 /// `#[instruction]` handlers here all live directly in `lib.rs`, and the
 /// generated client SDK (including the `get_counter_pda` PDA helper, which
 /// specifically depends on the IDL correctly resolving the `seeds`/`bump`
-/// on the `Counter` component) still comes out correct and works on-chain,
+/// on the `Counter` account) still comes out correct and works on-chain,
 /// exactly like the split layout.
 #[test]
 fn single_file_program_generates_a_working_sdk() {

@@ -114,7 +114,7 @@ pub struct InitConfig {
 }
 
 /// Either a caller-supplied size expression (`realloc = <expr>`) or a list
-/// of component types the field's discriminator is matched against
+/// of `#[account]` types the field's discriminator is matched against
 /// (`realloc::any_of = [Type1, Type2, ...]`), sized to whichever type's
 /// `DISCRIMINATOR` the account's raw data actually starts with.
 pub enum ReallocSpace {

@@ -19,7 +19,7 @@ pub fn generate(
     // and `naclac_client::Address`/`crate::sdk_core_cpi::Address` are
     // genuinely different, non-interchangeable types -- a shared name would
     // silently resolve to whichever cfg'd variant happened to compile,
-    // breaking the other. Mirrors `types/typedefs.rs`/`components.rs`'s
+    // breaking the other. Mirrors `types/typedefs.rs`/`state.rs`'s
     // `X`/`XCpi` split.
     constants_content.push_str(&format!(
         "#[cfg(feature = \"offchain\")]\n\

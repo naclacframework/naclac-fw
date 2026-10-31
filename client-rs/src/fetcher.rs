@@ -18,7 +18,7 @@ use {
 ///
 /// Implemented once per type, with the correct decode strategy (Borsh vs raw
 /// `Pod` byte-cast) baked in at THAT type's own compile time — for generated
-/// component types, via `#[cfg(feature = "borsh")]` on the generated client
+/// account types, via `#[cfg(feature = "borsh")]` on the generated client
 /// crate (itself set correctly from the target program's real IDL at
 /// generation time). This is what lets [`AccountFetcher::fetch`] be a single,
 /// always-correct method name for any `T`: the Borsh-vs-zero-copy ambiguity is

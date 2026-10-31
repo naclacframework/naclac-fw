@@ -1,5 +1,5 @@
 //! Compile-time layout checks for a zero-copy struct, used by `defined_type`,
-//! `#[component]`, `#[instruction_args]` and plain `#[event]` in the macros and
+//! `#[account]`, `#[instruction_args]` and plain `#[event]` in the macros and
 //! by the generated Rust clients. Handles named-field and tuple structs alike.
 //!
 //! A zero-copy struct is emitted `#[repr(C, packed)]`: fields in declaration
@@ -40,11 +40,11 @@ pub fn generate(
         Some(first) => size_terms.fold(first, |sum, term| quote! { #sum + #term }),
     };
     let size_message = format!(
-        "defined_type/#[component]: `{ident}` has a different size than its fields add up to; a \
+        "defined_type/#[account]: `{ident}` has a different size than its fields add up to; a \
          zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     let align_message = format!(
-        "defined_type/#[component]: `{ident}` must have alignment 1; a zero-copy struct is \
+        "defined_type/#[account]: `{ident}` must have alignment 1; a zero-copy struct is \
          `#[repr(C, packed)]`"
     );
 

@@ -154,7 +154,7 @@ pub fn generate_legacy_client(
                 "// get{}Pda intentionally not generated: this PDA's seeds include\n\
                  // `{}`, a field read from another account whose type is not a plain\n\
                  // primitive — naclac-syn couldn't resolve it from the backing\n\
-                 // component's struct definition. Derive it manually — fetch the\n\
+                 // account's struct definition. Derive it manually — fetch the\n\
                  // account, read the field, and call\n\
                  // naclac.PublicKey.findProgramAddressSync yourself with the correct\n\
                  // byte encoding for that field's type.\n\n",

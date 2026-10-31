@@ -469,7 +469,7 @@ pub fn generate_security_checks(
             match &field.pda_bump {
                 Some(PdaBump::Auto) if field.init_config.is_none() => {
                     let stores_bump = crate::type_classify::wrapped_data_ident(&field.ty)
-                        .is_some_and(|ident| component_declares_bump_field(&ident.to_string()));
+                        .is_some_and(|ident| account_declares_bump_field(&ident.to_string()));
                     if is_zero_copy_account_field(&field.ty, is_zero_copy) && stores_bump {
                         // Account<T>'s zero-copy branch implements Deref<Target=T>: access .bump directly.
                         bump_expr = quote! { #field_ident.bump };
@@ -1013,10 +1013,10 @@ fn find_const_expr(ident_str: &str) -> Option<(syn::Expr, String)> {
     found
 }
 
-/// True if the component struct named `ident_str` (searched in every module
+/// True if the `#[account]` struct named `ident_str` (searched in every module
 /// of the crate, as `find_const_expr` searches) declares a field literally
 /// named `bump`. Used to decide whether an `init`-bump write-back into
-/// `.bump` is even possible for a given account type: a component with no
+/// `.bump` is even possible for a given account type: an `#[account]` struct with no
 /// `bump` field of its own has nothing to cache the derived bump into, and
 /// that's a legitimate, deliberate choice (nothing else in the program
 /// ever reads this account's bump back), not an error.
@@ -1024,11 +1024,11 @@ fn find_const_expr(ident_str: &str) -> Option<(syn::Expr, String)> {
 /// Several structs of the crate may share the name; the answer is true when
 /// any of them declares `bump`. A wrong true is a compile error at the
 /// write-back, whereas a wrong false would silently never store the bump.
-pub(crate) fn component_declares_bump_field(ident_str: &str) -> bool {
+pub(crate) fn account_declares_bump_field(ident_str: &str) -> bool {
     declares_bump_field(&current_crate_modules(), ident_str)
 }
 
-/// `component_declares_bump_field` over the given modules.
+/// `account_declares_bump_field` over the given modules.
 fn declares_bump_field(modules: &[naclac_syn::modules::CrateModule], ident_str: &str) -> bool {
     modules
         .iter()
@@ -1043,7 +1043,7 @@ fn declares_bump_field(modules: &[naclac_syn::modules::CrateModule], ident_str: 
         })
 }
 
-/// Searched the same way `find_const_expr`/`component_declares_bump_field`
+/// Searched the same way `find_const_expr`/`account_declares_bump_field`
 /// find their targets (every module of the crate) — if `ident_str` names a
 /// struct with a field whose type is
 /// `ZcVec<T>`/`ZcString`, returns that field's name. Used by

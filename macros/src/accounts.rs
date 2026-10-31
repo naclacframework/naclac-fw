@@ -389,11 +389,11 @@ fn idl_build_accounts_impl(
 }
 
 /// If `ty` is (optionally boxed) `Account<T>`/`InterfaceAccount<T>`, returns
-/// `T` — the real component type this field actually holds. `Box<Account<T>>`
+/// `T` — the real `#[account]` type this field actually holds. `Box<Account<T>>`
 /// unwraps the same as bare `Account<T>` (a boxed account is still a real,
-/// IDL-visible component, just heap-allocated); every other field shape
+/// IDL-visible `#[account]` type, just heap-allocated); every other field shape
 /// (`Signer`, `Program<T>`, `Interface<T>`, plain `AccountInfo`/`AccountView`)
-/// returns `None` — these are thin markers with no component data of their
+/// returns `None` — these are thin markers with no `#[account]` data of their
 /// own to chase into the IDL's type list.
 #[cfg(feature = "idl-build")]
 fn account_wrapper_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
@@ -412,16 +412,16 @@ fn account_wrapper_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
 }
 
 /// Builds `impl #struct_name { pub fn __naclac_insert_account_types(types, discriminators, defined_types) }` —
-/// mirrors `component.rs`'s own `insert_types` (same chase-every-
+/// mirrors `account.rs`'s own `insert_types` (same chase-every-
 /// reachable-type-via-`NaclacIdlBuild` pattern), scoped to this `Accounts`
-/// struct's own fields instead of a component's. This is how `#[program]`'s
-/// assembler discovers which component types (needing their own
+/// struct's own fields instead of an `#[account]` struct's. This is how `#[program]`'s
+/// assembler discovers which `#[account]` types (needing their own
 /// discriminator-bearing `Idl.accounts` entry) a given instruction actually
 /// references — `__naclac_idl_accounts()` alone only carries per-field
 /// metadata (writable/signer/pda/...), never the field's own Rust type,
 /// since that's meaningless to a client reading the IDL but essential here
-/// for the chase. The components land in `types`; the defined types they
-/// reference land in `defined_types`, because only a component is an account.
+/// for the chase. The `#[account]` types land in `types`; the defined types they
+/// reference land in `defined_types`, because only an `#[account]` type has a discriminator.
 #[cfg(feature = "idl-build")]
 fn idl_insert_account_types_impl(
     struct_name: &syn::Ident,
@@ -432,7 +432,7 @@ fn idl_insert_account_types_impl(
         .iter()
         .map(|f| aliases.resolve(&f.ty))
         .collect();
-    let component_tys: Vec<&syn::Type> = field_tys
+    let account_tys: Vec<&syn::Type> = field_tys
         .iter()
         .filter_map(account_wrapper_inner_type)
         .collect();
@@ -455,18 +455,18 @@ fn idl_insert_account_types_impl(
                 >,
             ) {
                 #(
-                    if let Some(ty) = <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::create_type() {
+                    if let Some(ty) = <#account_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::create_type() {
                         types.insert(
-                            <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
+                            <#account_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
                             ty,
                         );
-                        if let Some(disc) = <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::account_discriminator() {
+                        if let Some(disc) = <#account_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::account_discriminator() {
                             discriminators.insert(
-                                <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
+                                <#account_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
                                 disc,
                             );
                         }
-                        <#component_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::insert_types(defined_types);
+                        <#account_tys as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::insert_types(defined_types);
                     }
                 )*
             }
@@ -487,7 +487,7 @@ fn idl_insert_account_types_impl(
 /// Processes field constraints, performs security checks, generates instruction data
 /// deserialization, and manages the hydration/teardown pipeline. Cargo gives a
 /// proc-macro no reliable way to see which features the calling crate has
-/// actually activated (see `macros/src/component.rs`'s doc comment for
+/// actually activated (see `macros/src/account.rs`'s doc comment for
 /// the full story), so zero-copy vs Borsh can't be decided here at
 /// macro-expansion time — everything that depends on the choice is computed
 /// once per representation (`build_variant(true)`/`build_variant(false)`
@@ -1049,12 +1049,12 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         // regardless of whether this field's own PDA was compile-time-precomputed:
         // precomputation only means the *program* already knows the bump value at
         // compile time, not that it's been persisted into this specific account's
-        // on-chain data. Gated on `component_declares_bump_field` rather than
+        // on-chain data. Gated on `account_declares_bump_field` rather than
         // precomputability: whether a write-back is even possible (or wanted)
-        // depends only on whether the component itself declares a `bump` field
-        // at all — a component with none has nothing to cache into and legitimately
-        // never needs one (nothing else in the program reads its bump back); a
-        // component that does declare one always gets it written, since a freshly
+        // depends only on whether the `#[account]` struct itself declares a `bump` field
+        // at all — one with none has nothing to cache into and legitimately
+        // never needs one (nothing else in the program reads its bump back); one
+        // that does declare one always gets it written, since a freshly
         // `init`ed account's data starts zeroed and nothing else ever sets it.
         let mut mut_bump_writeback: Vec<proc_macro2::TokenStream> = Vec::new();
 
@@ -1066,7 +1066,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
             let is_wincode_field =
                 variant_type == 2 && crate::type_classify::is_exactly(&field.ty, "Account");
             let has_bump_field = crate::type_classify::wrapped_data_ident(&field.ty)
-                .is_some_and(|ident| security::component_declares_bump_field(&ident.to_string()));
+                .is_some_and(|ident| security::account_declares_bump_field(&ident.to_string()));
 
             if (is_zero_copy_field || is_borsh_field || is_wincode_field)
                 && field.is_mut

@@ -29,17 +29,17 @@ pub fn generate_lib(
     lib_content.push_str(
         "#[cfg(feature = \"offchain\")]\npub use naclac_client as sdk_core_offchain;\n\n",
     );
-    // `mod components`/`mod instructions` are only emitted when there's
+    // `mod state`/`mod instructions` are only emitted when there's
     // actually something for them to declare — `client-gen/src/rust/mod.rs`
-    // only creates the `src/components`/`src/instructions` directories (and
-    // so only `client-gen/src/rust/components.rs`/`instructions.rs`
+    // only creates the `src/state`/`src/instructions` directories (and
+    // so only `client-gen/src/rust/state.rs`/`instructions.rs`
     // only ever write a `mod.rs` into them) when `idl.accounts`/
     // `idl.instructions` are non-empty — declaring the module unconditionally
     // here produced `E0583: file not found for module` for any program with
-    // zero components (a pure-logic program, e.g. `tests/error-codes/`).
+    // zero accounts (a pure-logic program, e.g. `tests/error-codes/`).
     if !idl.accounts.is_empty() {
         lib_content.push_str("#[cfg(feature = \"offchain\")]\n");
-        lib_content.push_str("pub mod components;\n");
+        lib_content.push_str("pub mod state;\n");
     }
     if !idl.instructions.is_empty() {
         lib_content.push_str("pub mod instructions;\n");
@@ -47,7 +47,7 @@ pub fn generate_lib(
     lib_content.push_str("pub mod types;\n\n");
     if !idl.accounts.is_empty() {
         lib_content.push_str("#[cfg(feature = \"offchain\")]\n");
-        lib_content.push_str("pub use components::*;\n");
+        lib_content.push_str("pub use state::*;\n");
     }
     if !idl.instructions.is_empty() {
         lib_content.push_str("pub use instructions::*;\n");
@@ -151,7 +151,7 @@ pub fn generate_lib(
         let mut seen_params = std::collections::HashSet::new();
         // Set when a seed references a *field* of another account (e.g.
         // `registry.bump`) whose type the IDL could not resolve from the
-        // backing component's struct definition (a nested/defined type, not
+        // backing account's struct definition (a nested/defined type, not
         // a plain primitive). There is
         // no reliable way to generate correct code without knowing the real
         // type, so the helper is skipped entirely rather than guessed at.
@@ -263,7 +263,7 @@ pub fn generate_lib(
                 "// get_{}_pda intentionally not generated: this PDA's seeds include\n\
                  // `{}`, a field read from another account whose type is not a plain\n\
                  // primitive (e.g. a nested/defined type) — naclac-syn couldn't resolve\n\
-                 // it from the backing component's struct definition, so there's no\n\
+                 // it from the backing account's struct definition, so there's no\n\
                  // reliable way to generate correct code. Derive it manually — fetch the\n\
                  // account, read the field, and call Address::find_program_address\n\
                  // yourself with the correct byte conversion for that field's type.\n\n",

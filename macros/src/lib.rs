@@ -12,8 +12,8 @@
 
 extern crate proc_macro;
 
+mod account;
 mod accounts;
-mod component;
 mod constraint_args;
 mod emit;
 mod error_code;
@@ -91,8 +91,8 @@ fn reject_nonempty_attr(attr: &TokenStream, macro_name: &str) -> Option<TokenStr
 /// Emits a real compiler *warning* (not a hard error) for a heap-allocated
 /// `Vec<T>`/`String` instruction argument used in a zero-copy program.
 ///
-/// Unlike a `Vec<T>`/`String` field in a *persisted* `#[component]` (see
-/// component.rs — that one is rejected outright, because a pointer cannot
+/// Unlike a `Vec<T>`/`String` field in a *persisted* `#[account]` (see
+/// account.rs — that one is rejected outright, because a pointer cannot
 /// survive being written to an account and read back in a later transaction),
 /// a heap-allocated instruction argument is not unsound — it's a valid choice,
 /// e.g. for interop with an existing API shaped around `Vec`/`String`. This is
@@ -134,8 +134,8 @@ pub(crate) fn heap_collection_warning(
 /// Takes an optional `discriminator = <int | [ints]>` argument (1 to 8 bytes)
 /// replacing the default name-derived 8-byte discriminator.
 #[proc_macro_attribute]
-pub fn component(attr: TokenStream, item: TokenStream) -> TokenStream {
-    component::expand(attr, item)
+pub fn account(attr: TokenStream, item: TokenStream) -> TokenStream {
+    account::expand(attr, item)
 }
 
 /// Compile-time math-safety engine for instruction logic functions: bans
@@ -303,7 +303,7 @@ pub fn derive_accounts(item: proc_macro::TokenStream) -> proc_macro::TokenStream
 
 /// Derives the correct serialization mechanism for a standalone, non-account,
 /// non-event type (a struct/enum used as e.g. an instruction arg or a nested
-/// field) — matching the same automatic per-mode routing `#[component]`/
+/// field) — matching the same automatic per-mode routing `#[account]`/
 /// `#[event]` already use: zero-copy mode gets `Pod`/`Zeroable` (structs) or
 /// `ZcCodec` (enums) for byte-level access; Borsh mode gets real
 /// `borsh::BorshSerialize`/`BorshDeserialize`.
@@ -439,10 +439,10 @@ pub fn defined_type(
     }
 
     // Cargo gives a proc-macro no reliable way to see the invoking crate's
-    // activated features (see `component.rs`'s doc comment for the full
+    // activated features (see `account.rs`'s doc comment for the full
     // story), so both representations are always emitted below, each gated
     // by a real `#[cfg(...)]` in the output that the calling crate's own
-    // compiler resolves — same as `#[component]`/`#[event]`/`#[derive(Accounts)]`.
+    // compiler resolves — same as `#[account]`/`#[event]`/`#[derive(Accounts)]`.
     let zero_copy_cfg = quote::quote! { #[cfg(feature = "bytemuck")] };
     let borsh_cfg = quote::quote! { #[cfg(feature = "borsh")] };
     let wincode_cfg = quote::quote! { #[cfg(feature = "wincode")] };
@@ -704,7 +704,7 @@ pub fn defined_type(
     // default above, matching the enum's real compiled discriminant width,
     // not just whatever the developer happened to write (or omit).
     let idl_build_variant = match &original_data {
-        syn::Data::Struct(s) => crate::component::idl_build_impl(
+        syn::Data::Struct(s) => crate::account::idl_build_impl(
             &ident,
             &syn::Generics::default(),
             &input.attrs,
@@ -771,7 +771,7 @@ pub fn defined_type(
 }
 
 /// Builds `impl NaclacIdlBuild for #ident` for a `#[defined_type]` enum —
-/// same principle as `component::idl_build_impl` (built once from the
+/// same principle as `account::idl_build_impl` (built once from the
 /// already-parsed `syn::Variant`s, no disk re-read), but producing
 /// `IdlTypeDef::Enum { variants, repr }` instead of `Struct { fields }`.
 /// `attrs` must be the enum's *final* attribute list (after any
@@ -1160,11 +1160,11 @@ pub fn instruction_args(
     // regardless of representation — Borsh derives are only ever
     // *additionally* layered on top when the calling crate is genuinely in
     // Borsh mode, not an exclusive alternative to it, so (unlike
-    // `#[component]`/`#[event]`/`#[derive(Accounts)]`) this doesn't need
+    // `#[account]`/`#[event]`/`#[derive(Accounts)]`) this doesn't need
     // full item duplication — a `cfg_attr` is enough, real-cfg-gated so the
     // calling crate's own compiler resolves it (Cargo gives a proc-macro no
     // reliable way to see the invoking crate's activated features — see
-    // `component.rs`'s doc comment). Except when `zc_field` is present: a
+    // `account.rs`'s doc comment). Except when `zc_field` is present: a
     // `ZcVec<T>`/`ZcString` field can never be Borsh-derived, so the derive
     // is skipped entirely for such a struct and a clear, purpose-built error
     // takes its place instead of the confusing raw trait-bound error rustc
@@ -1231,12 +1231,12 @@ pub fn instruction_args(
     // would generate `<Self as NaclacIdlBuild>::create_type()` for a type
     // that never implements the trait, a hard compile error the moment a
     // real program used `#[instruction_args]` under `idl-build`. Reuses
-    // `component.rs`'s own `idl_build_impl` directly rather than
+    // `account.rs`'s own `idl_build_impl` directly rather than
     // duplicating it — same named-fields shape, same per-field type mapping.
     let syn::Data::Struct(declared_struct) = &declared_input.data else {
         unreachable!("checked above: input is a struct")
     };
-    let idl_build_impl_tokens = component::idl_build_impl(
+    let idl_build_impl_tokens = account::idl_build_impl(
         ident,
         &input.generics,
         &input.attrs,

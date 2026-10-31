@@ -1,4 +1,4 @@
-//! Runtime-callable trait every `#[component]`/`#[defined_type]`/`#[event]`
+//! Runtime-callable trait every `#[account]`/`#[defined_type]`/`#[event]`
 //! type implements, only under the `idl-build` feature. Lets a program
 //! describe its own real IDL shape via a compiled `#[test]` instead of a
 //! second, independent parser guessing it from source text — see
@@ -25,8 +25,8 @@ pub trait NaclacIdlBuild {
     /// whose exact format Rust does not guarantee.
     fn get_full_path() -> String;
 
-    /// The on-chain discriminator bytes when this type is a `#[component]`
-    /// account; `None` for any other type.
+    /// The on-chain discriminator bytes when this type is an `#[account]`
+    /// struct; `None` for any other type.
     fn account_discriminator() -> Option<Vec<u8>> {
         None
     }

@@ -3,13 +3,13 @@
 //! `accounts.rs` can resolve everything about an `Accounts` struct's fields
 //! locally at its own macro-expansion time except one thing: an
 //! `Account`-kind PDA seed's subfield type (e.g. `registry.bump`'s `u8`)
-//! requires the *backing component's* real field types, which a single
+//! requires the *backing account's* real field types, which a single
 //! derive-macro invocation has no visibility into — it only ever sees its
 //! own struct's tokens. So `accounts.rs` emits the account's bare type name
 //! instead (`IdlSeedBuild::Account.account_type`, e.g. `"Registry"` — always
 //! locally derivable from the field's own `Account<'info, Registry>` generic
 //! parameter), and `#[program]`'s assembler — which by the time it runs has
-//! already collected every referenced component's real fields via
+//! already collected every referenced account's real fields via
 //! `idl_build::NaclacIdlBuild::create_type()` — resolves the subfield's real
 //! type by looking it up in that already-assembled map, via [`resolve`].
 

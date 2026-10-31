@@ -8,7 +8,7 @@ use {
     std::{fs, path::Path},
 };
 
-pub fn generate_components(
+pub fn generate_state(
     idl: &Idl,
     clients_dir: &Path,
     header: &str,
@@ -17,13 +17,13 @@ pub fn generate_components(
         return Ok(());
     }
 
-    let mut components_mod = header.to_string();
+    let mut state_mod = header.to_string();
     for acc in &idl.accounts {
         let acc_snake = AsSnakeCase(&acc.name).to_string();
-        components_mod.push_str(&format!("pub mod {};\n", acc_snake));
-        components_mod.push_str(&format!("pub use {}::*;\n", acc_snake));
+        state_mod.push_str(&format!("pub mod {};\n", acc_snake));
+        state_mod.push_str(&format!("pub use {}::*;\n", acc_snake));
     }
-    fs::write(clients_dir.join("src/components/mod.rs"), components_mod).unwrap();
+    fs::write(clients_dir.join("src/state/mod.rs"), state_mod).unwrap();
 
     for acc in &idl.accounts {
         let acc_snake = AsSnakeCase(&acc.name).to_string();
@@ -123,16 +123,16 @@ pub fn generate_components(
             let scratch_src = format!("struct {} {{ {} }}", struct_name, scratch_fields_src);
             let parsed_struct: syn::ItemStruct = syn::parse_str(&scratch_src).unwrap_or_else(|e| {
                 panic!(
-                    "component: generated account struct `{}` failed to parse as a \
+                    "state: generated account struct `{}` failed to parse as a \
                      syn::ItemStruct (bug in naclac-client-gen's type-string generation, \
                      not in the source IDL): {e}",
                     struct_name
                 )
             });
             let struct_ident: syn::Ident = syn::parse_str(&struct_name)
-                .expect("component: account struct name must be a valid identifier");
+                .expect("state: account struct name must be a valid identifier");
             let core: syn::Path =
-                syn::parse_str(sdk_core).expect("component: sdk_core alias must be a valid path");
+                syn::parse_str(sdk_core).expect("state: sdk_core alias must be a valid path");
             let layout_checks = naclac_syn::zc_codegen::struct_checks::generate(
                 &struct_ident,
                 &parsed_struct.fields,
@@ -146,7 +146,7 @@ pub fn generate_components(
                 pub struct #struct_ident #struct_fields
             };
             let struct_file: syn::File = syn::parse2(struct_item_tokens)
-                .expect("component: generated account struct item must parse as a syn::File");
+                .expect("state: generated account struct item must parse as a syn::File");
 
             comp_content.push_str(cfg);
             comp_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
@@ -155,7 +155,7 @@ pub fn generate_components(
             comp_content.push('\n');
 
             let layout_file: syn::File = syn::parse2(layout_checks)
-                .expect("component: struct_checks::generate output must parse as a syn::File");
+                .expect("state: struct_checks::generate output must parse as a syn::File");
             comp_content.push_str(&prettyplease::unparse(&layout_file));
             comp_content.push('\n');
 
@@ -299,7 +299,7 @@ pub fn fetch_all_{acc_snake}(
         ));
 
         fs::write(
-            clients_dir.join(format!("src/components/{}.rs", acc_snake)),
+            clients_dir.join(format!("src/state/{}.rs", acc_snake)),
             comp_content,
         )
         .unwrap();

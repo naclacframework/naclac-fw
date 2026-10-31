@@ -2,7 +2,7 @@
 //! or Wincode, and whether a value is within the length limits it was declared
 //! with.
 //!
-//! `#[component]` adds the maximum sizes of its fields to get the account's
+//! `#[account]` adds the maximum sizes of its fields to get the account's
 //! `SPACE`, and checks `within_bounds` before writing the account back.
 //! The maximum size is resolved by the compiler through this trait, never
 //! guessed from a type's name, so a type alias gives the same answer as the

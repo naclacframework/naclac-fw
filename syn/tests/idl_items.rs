@@ -34,7 +34,7 @@ fn a_clean_crate_has_no_violations() {
     let found = messages(
         "clean",
         r#"
-        #[component] pub struct Vault { pub a: u64 }
+        #[account] pub struct Vault { pub a: u64 }
         #[event] pub struct Moved { pub a: u64 }
         #[defined_type] pub struct Pair { pub a: u64 }
         #[constant] pub const LIMIT: u64 = 1;
@@ -63,7 +63,7 @@ fn two_types_with_one_name_clash_across_kinds_and_modules() {
     let found = messages(
         "type-clash",
         r#"
-        #[component] pub struct Same { pub a: u64 }
+        #[account] pub struct Same { pub a: u64 }
         pub mod inner { #[defined_type] pub struct Same { pub a: u64 } }
         "#,
     );
@@ -79,7 +79,7 @@ fn two_accounts_structs_with_one_name_clash_but_an_accounts_struct_and_a_type_do
         r#"
         #[derive(Accounts)] pub struct Init { pub a: AccountInfo }
         pub mod inner { #[derive(Accounts)] pub struct Init { pub b: AccountInfo } }
-        #[component] pub struct Shared { pub a: u64 }
+        #[account] pub struct Shared { pub a: u64 }
         #[derive(Accounts)] pub struct Shared2 { pub a: AccountInfo }
         #[derive(Accounts)] pub struct Shared { pub a: AccountInfo }
         "#,
@@ -144,8 +144,8 @@ fn clashing_declarations_that_never_coexist_carry_their_cfgs() {
     fs::write(
         dir.join("src/lib.rs"),
         r#"
-        #[cfg(feature = "a")] #[component] pub struct Same { pub a: u64 }
-        #[cfg(not(feature = "a"))] #[component] pub struct Same { pub a: u64 }
+        #[cfg(feature = "a")] #[account] pub struct Same { pub a: u64 }
+        #[cfg(not(feature = "a"))] #[account] pub struct Same { pub a: u64 }
         "#,
     )
     .unwrap();

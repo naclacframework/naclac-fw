@@ -301,7 +301,7 @@ pub enum IdlSeed {
     Account {
         path: String,
         /// Set only when `path` is a dotted field access whose field type
-        /// was resolved from the backing component's own struct definition.
+        /// was resolved from the backing account's own struct definition.
         #[serde(rename = "fieldType", skip_serializing_if = "Option::is_none")]
         field_type: Option<String>,
     },
@@ -327,7 +327,7 @@ pub struct IdlAccountStruct {
     pub name: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub docs: Vec<String>,
-    /// 1 to 8 bytes; `sha256("account:<Name>")[..8]` unless the component
+    /// 1 to 8 bytes; `sha256("account:<Name>")[..8]` unless the account
     /// carries `discriminator = ..`.
     pub discriminator: Vec<u8>,
     #[serde(rename = "type")]

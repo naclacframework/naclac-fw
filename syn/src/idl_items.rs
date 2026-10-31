@@ -12,7 +12,7 @@ use crate::modules::CrateModule;
 /// compile time.
 pub const DEFAULT_ERROR_OFFSET: u32 = 6000;
 
-/// Which IDL names an item competes with. Components, defined types and
+/// Which IDL names an item competes with. Accounts, defined types and
 /// events all become named types in generated clients, so they share one.
 /// Accounts structs are found by name from an instruction's `Context<Name>`,
 /// so they form a namespace of their own.
@@ -112,8 +112,8 @@ pub fn declarations(modules: &[CrateModule]) -> syn::Result<Vec<Declaration>> {
             match item {
                 syn::Item::Struct(s) => {
                     let name = s.ident.to_string();
-                    let entry = if has_attr(attrs, "component").is_some() {
-                        Some((Some(Namespace::Type), "component"))
+                    let entry = if has_attr(attrs, "account").is_some() {
+                        Some((Some(Namespace::Type), "account"))
                     } else if has_attr(attrs, "event").is_some() {
                         Some((Some(Namespace::Type), "event"))
                     } else if has_attr(attrs, "defined_type").is_some() {

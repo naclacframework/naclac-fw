@@ -3,13 +3,13 @@ use naclac_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");
 
-// Everything below — the component, both `#[derive(Accounts)]` structs, and
+// Everything below — the account, both `#[derive(Accounts)]` structs, and
 // both instruction handlers — lives directly in this one file, rather than
-// the `components/`/`instructions/` split every other test case and example
+// the `state/`/`instructions/` split every other test case and example
 // uses. That split is a project convention, not something the macros or
 // `naclac-syn`'s source discovery require: `parse_workspace_program`
 // (syn/src/lib.rs) recursively walks every `.rs` file under `src/`
-// looking for `#[component]`/`#[derive(Accounts)]`/`#[instruction]` items
+// looking for `#[account]`/`#[derive(Accounts)]`/`#[instruction]` items
 // wherever they are, so a single `lib.rs` is just as discoverable as a
 // deeply split layout. This file (and its matching test) exists to prove
 // that claim end-to-end rather than leave it as an unverified assertion —
@@ -19,7 +19,7 @@ declare_id!("11111111111111111111111111111111");
 
 pub const SEED_COUNTER: &[u8] = b"counter";
 
-#[component]
+#[account]
 pub struct Counter {
     pub bump: u8,
     pub value: u64,

@@ -1,8 +1,8 @@
-//! # Component Macro Logic
+//! # Account Macro Logic
 //!
-//! Handles the expansion of the `#[component]` attribute, transforming Rust structs into
+//! Handles the expansion of the `#[account]` attribute, transforming Rust structs into
 //! on-chain data accounts. It generates the account discriminator (8 bytes derived from the
-//! name, or the 1 to 8 bytes given by `#[component(discriminator = ..)]`) and handles
+//! name, or the 1 to 8 bytes given by `#[account(discriminator = ..)]`) and handles
 //! the serialization/deserialization traits based on the active execution mode.
 
 use {
@@ -129,7 +129,7 @@ pub(crate) fn idl_build_impl(
     quote! {}
 }
 
-/// Expands the `#[component]` macro.
+/// Expands the `#[account]` macro.
 ///
 /// This generates the structural foundation for an on-chain account. Cargo
 /// gives a proc-macro no reliable way to see which features the calling
@@ -180,7 +180,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     if let Some(error) = crate::type_classify::zc_view_field_error(
         fields.iter(),
-        "a #[component]",
+        "an #[account]",
         "Persisted account data is plain bytes: use 'FixedVec<T, N>', 'FixedString<N>' or a \
          fixed-size array (e.g. '[u8; 64]') instead.",
     ) {
@@ -209,10 +209,10 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // ── Zero-copy branch ────────────────────────────────────────────────
     //
-    // NOTE: zero-copy component fields must NOT be silently rewritten from
+    // NOTE: zero-copy account fields must NOT be silently rewritten from
     // `Vec<T>`/`String` to `ZcVec<T>`/`ZcString` here. Unlike an instruction
     // argument (parsed fresh from the current instruction's byte buffer, used
-    // and discarded within that same call), a `#[component]` field is *persisted*
+    // and discarded within that same call), an `#[account]` field is *persisted*
     // account data — it gets round-tripped through `unsafe impl Pod`/raw byte
     // casting across separate transactions. `ZcVec<T>` is a raw pointer + length;
     // a pointer value written into on-chain bytes in one transaction is
@@ -240,7 +240,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                     .unwrap_or_default();
                 let msg = format!(
                     "Naclac Error: field '{}' uses a heap-allocated type ('Vec'/'String') in a zero-copy \
-                     #[component]. Persisted zero-copy account data is read via raw byte-casting, and a \
+                     #[account]. Persisted zero-copy account data is read via raw byte-casting, and a \
                      heap pointer cannot survive being written to an account and read back in a later \
                      transaction. Please use 'FixedVec<T, N>', 'FixedString<N>' or a fixed-size \
                      array (e.g. '[u8; 64]') instead.",

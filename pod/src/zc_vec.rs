@@ -16,9 +16,9 @@ use {
 /// in) — it offers a similar API (`.len()`,
 /// `.is_empty()`, `.iter()`, `.get()`) but is just a raw pointer + length into
 /// the current instruction's byte buffer, used and discarded within that same
-/// call. NOT valid for persisted `#[component]` account storage: a pointer
+/// call. NOT valid for persisted `#[account]` storage: a pointer
 /// written into on-chain bytes in one transaction is meaningless (or
-/// attacker-controlled) when read back in a later one, so the `#[component]`
+/// attacker-controlled) when read back in a later one, so the `#[account]`
 /// macro rejects `ZcVec<T>`/`ZcString` fields outright.
 ///
 /// Element access always goes through an unaligned read
@@ -148,7 +148,7 @@ impl<T: Pod + Eq> Eq for ZcVec<'_, T> {}
 /// This is the zero-copy in-place replacement for `String` — but, like
 /// `ZcVec<T>` above, only ever for *instruction arguments*, parsed fresh out
 /// of the current instruction's byte buffer and discarded at the end of the
-/// call. It is never valid for persisted `#[component]` storage: a
+/// call. It is never valid for persisted `#[account]` storage: a
 /// `ZcVec`/`ZcString` is a raw pointer + length, sound only for data that
 /// lives entirely within one instruction's call frame; use `FixedString<N>`
 /// for stored text.

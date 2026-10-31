@@ -31,7 +31,7 @@ use core::ops::{Deref, DerefMut};
 /// deserialization and serialization of account data using Borsh.
 ///
 /// The account data starts with `T::DISCRIMINATOR` (8 bytes unless the
-/// component declares a custom one).
+/// account declares a custom one).
 #[cfg(feature = "borsh")]
 #[derive(Clone)]
 pub struct Account<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> {
@@ -39,7 +39,7 @@ pub struct Account<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discr
     pub data: T,
     // Deliberately private — a `pub` field here would sit in the same
     // field-resolution namespace as `T`'s own fields (reached only via
-    // `Deref`), so any component field sharing this name would be silently
+    // `Deref`), so any field of `T` sharing this name would be silently
     // shadowed by this bookkeeping field instead (Rust resolves the outer
     // type's own fields before falling through to `Deref`).
     index: usize,
@@ -49,7 +49,7 @@ pub struct Account<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discr
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Account<T> {
     /// Deserializes the account data into the inner type, validating the
     /// discriminator before skipping it. Without this check, two different
-    /// `#[component]` types owned by the same program are indistinguishable to
+    /// `#[account]` types owned by the same program are indistinguishable to
     /// this wrapper — a same-program account of the wrong type would silently
     /// be reinterpreted as `T` via raw Borsh deserialization.
     pub fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
@@ -86,7 +86,7 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Acco
     /// Serializes the inner type back into the account data, (re-)writing the
     /// discriminator before it. Re-stamping the discriminator on every
     /// exit keeps this symmetric with `try_from`'s validation and matches the
-    /// macro-generated `try_serialize` for `#[component]` Borsh types.
+    /// macro-generated `try_serialize` for `#[account]` Borsh types.
     pub fn exit(&self) -> Result<()> {
         if !self.data.within_max_len() {
             return Err(NaclacError::CapacityExceeded.err(self.index));

@@ -47,7 +47,7 @@ pub trait Owner {
 }
 
 /// The bytes that prefix an account's data to identify its type: 1 to 8 bytes
-/// for a `#[component]`, empty for a foreign type that carries none (e.g. an
+/// for an `#[account]`, empty for a foreign type that carries none (e.g. an
 /// SPL token account). There is deliberately no default, so an implementor
 /// can never silently inherit an all-zero discriminator.
 pub trait Discriminator {
@@ -76,7 +76,7 @@ pub trait Discriminator {
     /// Whether every `Vec`/`String` field is within the `#[max_len]` it was
     /// declared with. A Borsh or Wincode account checks this before it is
     /// written back, so a field cannot outgrow its declared length by using
-    /// room another field left unused. True by default; `#[component]`
+    /// room another field left unused. True by default; `#[account]`
     /// overrides it for a type that declares any `#[max_len]`.
     #[inline(always)]
     fn within_max_len(&self) -> bool {

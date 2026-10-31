@@ -4,7 +4,7 @@ use {
     std::{fs, path::Path},
 };
 
-pub mod components;
+pub mod state;
 pub mod instructions;
 pub mod lib_generator;
 pub mod types;
@@ -31,7 +31,7 @@ pub fn map_type_to_rust_with_prefix(
 /// Same as `map_type_to_rust_with_prefix`, but for a zero-copy program's CPI-mode
 /// dynamic (string/vec) args: emits `ZcString`/`ZcVec<T>` instead of `String`/`Vec<T>`.
 /// CPI-mode code runs *on-chain* (it's the calling program's own code), so it gets
-/// the same zero-alloc treatment as every other on-chain arg — `#[component]`
+/// the same zero-alloc treatment as every other on-chain arg — `#[account]`
 /// already rejects `String`/`Vec` fields for the same reason, and the on-chain
 /// instruction-arg parser already requires `ZcString`/`ZcVec` for zero-copy
 /// programs' own args. A caller can build a `ZcString`/`ZcVec` from any byte
@@ -47,7 +47,7 @@ pub fn map_type_to_rust_cpi(
     map_type_to_rust_inner(idl_type, is_zero_copy, defined_prefix, true)
 }
 
-/// The Rust type of a field of a *zero-copy* struct (a component, a fixed
+/// The Rust type of a field of a *zero-copy* struct (an account, a fixed
 /// event, a defined struct): like the two mappers above, except that a defined
 /// enum, also as the element of an array, becomes `ZcEnum<Enum>`. A bare enum
 /// is never `Pod`, so a zero-copy struct stores it in that byte container, as
@@ -661,7 +661,7 @@ pub fn generate_rust_sdk(
     fs::create_dir_all(clients_dir.join("src/types")).unwrap();
 
     if !idl.accounts.is_empty() {
-        fs::create_dir_all(clients_dir.join("src/components")).unwrap();
+        fs::create_dir_all(clients_dir.join("src/state")).unwrap();
     }
     if !idl.instructions.is_empty() {
         fs::create_dir_all(clients_dir.join("src/instructions")).unwrap();
@@ -711,8 +711,8 @@ naclac-lang = {{ version = "0.1.0", optional = true, default-features = false{na
         .collect::<Vec<_>>()
         .join(", ");
 
-    // 2. Generate Components
-    components::generate_components(&idl, &clients_dir, header)?;
+    // 2. Generate State
+    state::generate_state(&idl, &clients_dir, header)?;
 
     // 3. Generate Instructions
     instructions::generate_instructions(&idl, &clients_dir, header)?;

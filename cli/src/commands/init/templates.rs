@@ -227,7 +227,7 @@ pub fn generate_program(
     let program_dir = root_path.join("programs").join(&snake_name);
 
     ensure_dir(&program_dir.join("src/instructions"));
-    ensure_dir(&program_dir.join("src/components"));
+    ensure_dir(&program_dir.join("src/state"));
     ensure_dir(&program_dir.join("src/systems"));
 
     let (naclac_lang_path, naclac_client_path) =
@@ -290,7 +290,7 @@ workspace = true
 
 declare_id!("{program_id}");
 
-pub mod components;
+pub mod state;
 pub mod instructions;
 pub mod systems;
 pub mod events;
@@ -310,7 +310,7 @@ pub mod {snake_name} {{}}
 
 declare_id!("{program_id}");
 
-pub mod components;
+pub mod state;
 pub mod instructions;
 pub mod systems;
 pub mod events;
@@ -340,7 +340,7 @@ pub mod {snake_name} {{
     if empty {
         for file in [
             "src/constants.rs",
-            "src/components/mod.rs",
+            "src/state/mod.rs",
             "src/systems/mod.rs",
             "src/events.rs",
             "src/errors.rs",
@@ -357,25 +357,25 @@ pub mod {snake_name} {{
     );
 
     write_file(
-        &program_dir.join("src/components/mod.rs"),
+        &program_dir.join("src/state/mod.rs"),
         "pub mod counter;\npub use counter::*;\n",
     );
     let counter_rs = r#"use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct Counter {
     pub count: u64,
     pub authority: Address,
 }
 "#;
-    write_file(&program_dir.join("src/components/counter.rs"), counter_rs);
+    write_file(&program_dir.join("src/state/counter.rs"), counter_rs);
 
     write_file(
         &program_dir.join("src/systems/mod.rs"),
         "pub mod math;\npub use math::*;\n",
     );
     let math_rs = r#"use naclac_lang::prelude::*;
-use crate::components::counter::Counter;
+use crate::state::counter::Counter;
 
 #[system]
 pub fn process_increment(counter: &mut Counter) -> Result<u64> {
@@ -415,7 +415,7 @@ pub enum CounterError {
     );
 
     let initialize_rs = r#"use naclac_lang::prelude::*;
-use crate::components::counter::Counter;
+use crate::state::counter::Counter;
 use crate::constants::SEED_COUNTER;
 
 #[derive(Accounts)]
@@ -448,7 +448,7 @@ pub fn initialize(ctx: Context<Initialize>) -> Result {
     );
 
     let increment_rs = r#"use naclac_lang::prelude::*;
-use crate::components::counter::Counter;
+use crate::state::counter::Counter;
 use crate::systems::math::process_increment;
 use crate::events::CounterIncremented;
 use crate::constants::SEED_COUNTER;
@@ -498,7 +498,7 @@ use {client_crate}::{{
         build_initialize, build_increment,
         InitializeAccounts, IncrementAccounts,
     }},
-    components::{{Counter, fetch_counter}},
+    state::{{Counter, fetch_counter}},
     types::{{PROGRAM_ID, CounterIncremented}},
     get_counter_account_pda,
 }};
