@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 use cpi_callee_client::{CpiCallee, InitCounterCpi};
-use crate::components::CallerAuthority;
+use crate::state::CallerAuthority;
 use crate::constants::SEED_CALLER_AUTHORITY;
 
 // Real cross-program CPI (unsigned) to a *second* naclac-built program,

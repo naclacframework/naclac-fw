@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `remove_token_metadata_key` and
@@ -19,7 +19,7 @@ pub struct ExerciseTokenMetadataRemoveKeyAndAuthority {
     /// `create_mint2022_with_metadata_pointer_and_metadata` in the test that
     /// calls this instruction — no naclac `Discriminator` exists to check
     /// since this is a raw SPL `Mint` + `TokenMetadata` layout, not a
-    /// naclac component.
+    /// naclac account.
     #[account(mut)]
     pub mint: AccountInfo,
 

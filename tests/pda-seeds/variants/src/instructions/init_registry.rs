@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Registry;
+use crate::state::Registry;
 use crate::constants::SEED_REGISTRY;
 
 // Single-literal seed -> compile-time-precomputed PDA path. Bare `bump`

@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 // `transfer_checked`/`transfer_checked_signed` (`token/src/token.rs`)

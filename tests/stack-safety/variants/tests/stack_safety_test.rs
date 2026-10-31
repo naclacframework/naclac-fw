@@ -15,7 +15,7 @@ fn setup() -> NaclacProvider {
     NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
 }
 
-/// The ordinary path: a component well under both stack budgets, unboxed.
+/// The ordinary path: an account well under both stack budgets, unboxed.
 /// Confirms boxing is opt-in, not mandatory everywhere.
 #[test]
 fn small_unboxed_field_inits_and_mutates() {

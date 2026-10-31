@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Thing;
+use crate::state::Thing;
 use crate::constants::SEED_OPTIONAL_THING;
 
 // Exercises `init` on a seeded `Option<T>` field: `init_cpi.rs`'s codegen

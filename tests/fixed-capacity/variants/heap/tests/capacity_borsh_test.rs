@@ -1,4 +1,4 @@
-//! End-to-end LiteSVM tests that the space a `#[max_len]` component is created
+//! End-to-end LiteSVM tests that the space a `#[max_len]` account is created
 //! with holds a roster filled to every `max_len`, and that each `Vec` and
 //! `String` is limited to its own `max_len`, not only to the account's total
 //! space.

@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // `mut`: the field being marked `mut` means the framework requires the
 // account to actually be flagged writable (`AccountMeta.is_writable`) on

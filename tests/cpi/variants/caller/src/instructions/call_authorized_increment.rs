@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 use cpi_callee_client::{CpiCallee, AuthorizedIncrementCpi};
-use crate::components::CallerAuthority;
+use crate::state::CallerAuthority;
 use crate::constants::SEED_CALLER_AUTHORITY;
 
 // Signed cross-program CPI: `cpi_callee`'s `authorized_increment` requires

@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::SmallData;
+use crate::state::SmallData;
 
 #[derive(Accounts)]
 pub struct TouchSmall {

@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 // Identical to `mint_to_vault.rs` but `token_program` is `Program<Token2022>`

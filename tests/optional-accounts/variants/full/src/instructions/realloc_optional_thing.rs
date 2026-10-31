@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Thing;
+use crate::state::Thing;
 
 // Exercises `realloc` on an `Option<T>` field: same shape of fix as `close`
 // (runs in `teardown()`, after `self` exists) — wrapped in

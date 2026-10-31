@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Thing;
+use crate::state::Thing;
 
 // Exercises the sentinel scheme end to end for a single optional field: the
 // caller either passes a real `Thing` account (present — incremented) or the

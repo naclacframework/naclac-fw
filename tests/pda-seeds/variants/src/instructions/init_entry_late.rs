@@ -1,7 +1,7 @@
 // A PDA whose seed uses the address of `registry`, which is declared after it.
 use {
     crate::{
-        components::{Entry, Registry},
+        state::{Entry, Registry},
         constants::SEED_ENTRY_LATE,
     },
     naclac_lang::prelude::*,

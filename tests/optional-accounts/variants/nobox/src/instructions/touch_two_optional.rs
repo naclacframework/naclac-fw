@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Thing;
+use crate::state::Thing;
 
 // Two independent optional `mut` fields, both omittable at once — the
 // regression case for the `MUT_MASK` fix: two absent slots both carry the

@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `pause_mint` (`token/src/extensions/pausable.rs`)

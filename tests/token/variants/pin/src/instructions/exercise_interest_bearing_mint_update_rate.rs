@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `update_interest_bearing_mint_rate`

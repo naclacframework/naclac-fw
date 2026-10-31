@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::{Registry, TaggedChild};
+use crate::state::{Registry, TaggedChild};
 use crate::constants::SEED_TAGGED_CHILD;
 
 // `registry.label.as_ref()` — the seed depends on a non-primitive field

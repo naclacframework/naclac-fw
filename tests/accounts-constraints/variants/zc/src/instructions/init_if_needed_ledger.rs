@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Ledger;
+use crate::state::Ledger;
 use crate::constants::SEED_LEDGER;
 
 // `init_if_needed`: the framework skips the account-creation CPI on a

@@ -2,7 +2,7 @@
 // `registry`'s data and its `init` payer is `payer`, both declared after it.
 use {
     crate::{
-        components::{Child, Registry},
+        state::{Child, Registry},
         constants::SEED_CHILD_LATE,
     },
     naclac_lang::prelude::*,

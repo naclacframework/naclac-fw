@@ -2,7 +2,7 @@
 //! the account's `value` must be at least `N`. Exercises the plugin constraint
 //! mechanism end to end.
 
-use {crate::components::SeededThing, naclac_lang::prelude::*};
+use {crate::state::SeededThing, naclac_lang::prelude::*};
 
 #[constraint_args]
 #[derive(Default)]

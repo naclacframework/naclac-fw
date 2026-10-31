@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::CallerAuthority;
+use crate::state::CallerAuthority;
 use crate::constants::SEED_CALLER_AUTHORITY;
 
 // Real CPI to the System Program — `SystemTransferAccounts`, the

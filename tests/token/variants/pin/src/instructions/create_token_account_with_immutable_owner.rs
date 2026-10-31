@@ -16,7 +16,7 @@ pub struct CreateTokenAccountWithImmutableOwner {
     /// SAFETY: allocated and initialized entirely by hand in the handler
     /// body below (`create_account` then two CPIs) — there is no naclac
     /// `Discriminator` to check since this is a raw SPL `TokenAccount` +
-    /// `ImmutableOwner` extension layout, not a naclac component.
+    /// `ImmutableOwner` extension layout, not a naclac account.
     #[account(mut)]
     pub token_account: Signer,
 

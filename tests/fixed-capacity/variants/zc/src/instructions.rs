@@ -1,6 +1,6 @@
 //! Instructions that create the account and change its fixed-capacity fields.
 
-use crate::components::Profile;
+use crate::state::Profile;
 use naclac_lang::prelude::*;
 
 #[derive(Accounts)]

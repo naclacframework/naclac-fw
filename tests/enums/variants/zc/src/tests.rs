@@ -1,6 +1,6 @@
 //! Host-side checks of the macro-generated `ZcEnum` support on the real `State` account.
 
-use crate::components::State;
+use crate::state::State;
 use crate::types::{Action, Color, Level, Signed, Wide};
 use core::mem::{align_of, offset_of, size_of};
 use naclac_lang::prelude::{bytemuck, vec, Address, Opt, ZcEnum};

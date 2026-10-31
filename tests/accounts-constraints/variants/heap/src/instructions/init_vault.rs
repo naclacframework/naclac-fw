@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 use crate::constants::SEED_VAULT;
 
 // Covers `init`, `payer`, and `space` together — the space is given

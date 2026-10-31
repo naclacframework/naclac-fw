@@ -3,7 +3,7 @@
 // [u8; 300] alone guarantees this regardless of AccountInfo's own overhead.
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct BigData {
     pub payload: [u8; 300],
 }

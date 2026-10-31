@@ -4,7 +4,7 @@
 // under the 1700-byte aggregate budget on their own.
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct MidData {
     pub payload: [u8; 200],
 }

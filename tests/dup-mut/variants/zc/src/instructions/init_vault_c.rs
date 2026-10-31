@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 use crate::constants::SEED_VAULT_C;
 
 // Third independent vault, added specifically for the 3-mut-slot pairwise

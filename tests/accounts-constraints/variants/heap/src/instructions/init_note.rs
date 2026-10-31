@@ -1,9 +1,9 @@
 use naclac_lang::prelude::*;
-use crate::components::Note;
+use crate::state::Note;
 use crate::constants::SEED_NOTE;
 
 /// Real end-to-end proof that the default `init` space computation for a
-/// Borsh `#[component]` uses `Note::SPACE` (the real, `#[max_len]`-aware
+/// Borsh `#[account]` uses `Note::SPACE` (the real, `#[max_len]`-aware
 /// serialized size) rather than `size_of::<Note>()` (the much smaller
 /// in-memory `String` pointer/len/cap representation) — see
 /// `macros/docs/derive-accounts-gaps-audit.md`'s gap #3. No

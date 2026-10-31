@@ -1,6 +1,6 @@
 //! Instructions that create the account and fill its sized fields.
 
-use crate::components::Roster;
+use crate::state::Roster;
 use naclac_lang::prelude::*;
 
 #[derive(Accounts)]

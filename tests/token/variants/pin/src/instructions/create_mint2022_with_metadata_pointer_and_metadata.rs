@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 use crate::constants::{SEED_MINT, SEED_MINT_AUTHORITY};
 
 /// Real end-to-end proof of `initialize_token_metadata`
@@ -34,7 +34,7 @@ pub struct CreateMint2022WithMetadataPointerAndMetadata {
     /// SAFETY: allocated and initialized entirely by hand in the handler
     /// body below — there is no naclac `Discriminator` to check since this
     /// is a raw SPL `Mint` + `MetadataPointer` + `TokenMetadata` layout, not
-    /// a naclac component.
+    /// a naclac account.
     #[account(mut, seeds = [SEED_MINT, &args.id.to_le_bytes()], bump = args.mint_bump)]
     pub mint: AccountInfo,
 

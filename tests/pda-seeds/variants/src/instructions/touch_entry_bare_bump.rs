@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::{Entry, Registry};
+use crate::state::{Entry, Registry};
 use crate::constants::SEED_ENTRY;
 
 // The specific gap ZERO_COPY_CONSISTENCY_PLAN.md Part 6e flagged as

@@ -704,7 +704,7 @@ fn seeds_program_constraint_derives_pda_against_external_program() {
     assert_custom_code(wrong_result, 10006);
 }
 
-/// Real end-to-end proof that `init` on a heap-layout `#[component]` with a
+/// Real end-to-end proof that `init` on a heap-layout `#[account]` with a
 /// `#[max_len]` `Vec`/`String` field allocates the real serialized size
 /// (`Note::SPACE`) by default, not `size_of::<Note>()` (naclac-macros gap
 /// #3). Writes a 190-byte name (close to the 200-byte `#[max_len]` cap) with

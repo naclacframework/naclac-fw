@@ -1,7 +1,7 @@
 // `min_value::min = 7` on an account whose `value` is 7: a constraint defined
 // outside the derive passes.
 use {
-    crate::{components::SeededThing, min_value},
+    crate::{state::SeededThing, min_value},
     naclac_lang::prelude::*,
 };
 

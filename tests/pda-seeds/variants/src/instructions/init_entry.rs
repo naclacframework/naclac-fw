@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::{Entry, Registry};
+use crate::state::{Entry, Registry};
 use crate::constants::SEED_ENTRY;
 
 // `registry.as_ref()` here is a METHOD CALL on the whole zero-copy account

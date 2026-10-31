@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 
 // `token::mint`/`token::authority` on an *existing* (non-`init`) token
 // account — mirrors `examples/escrow/.../make.rs`'s `vault_token_account`

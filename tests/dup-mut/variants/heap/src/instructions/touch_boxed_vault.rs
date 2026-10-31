@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // No test program in this repo boxes any account field before this. The
 // point isn't the `Box` keyword itself — it's the blanket impls added for
@@ -11,7 +11,7 @@ use crate::components::Vault;
 // touches it — same `#[account(mut)]` constraint parsing, same
 // `.address()`/`Deref`/mutation behavior, same eligibility as a CPI handle
 // source. This instruction exercises all of that on a real, already-existing
-// `Vault` component rather than a purpose-built dummy type, so a regression
+// `Vault` account rather than a purpose-built dummy type, so a regression
 // here would be directly comparable to `touch_pair_no_alias`'s un-boxed
 // behavior.
 #[derive(Accounts)]

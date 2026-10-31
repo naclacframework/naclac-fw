@@ -1,4 +1,4 @@
-use {crate::components::MintAuthority, naclac_lang::prelude::*};
+use {crate::state::MintAuthority, naclac_lang::prelude::*};
 
 // `token::mint`/`token::authority` on a plain `AccountInfo`: its type proves
 // nothing about who owns it, so the token constraint itself requires the

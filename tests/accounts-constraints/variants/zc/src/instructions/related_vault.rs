@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // The `has_one`-equivalent relation mechanism: naclac has no literal
 // `has_one` keyword — any non-reserved bare identifier `X = Y` in

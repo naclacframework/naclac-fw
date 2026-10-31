@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Thing;
+use crate::state::Thing;
 
 // Proves `Option<Box<Account<Thing>>>` ("Box inside Option") already works
 // via naclac-core's existing blanket `NaclacAccount`/`ToAddress`/

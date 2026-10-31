@@ -1445,7 +1445,7 @@ fn transfer_signed(
 /// the raw SPL Token CPI that closes a token account and returns its
 /// lamports, distinct from naclac's own `#[account(close = ...)]` framework
 /// constraint (`tests/accounts-constraints/`'s `close_vault`, which closes a
-/// naclac-owned `#[component]` account, never a real SPL token account).
+/// naclac-owned `#[account]` account, never a real SPL token account).
 /// Empties the vault via `burn`, closes it, and confirms lamports moved to
 /// the destination and the account can no longer be read back as a valid
 /// token account (either the account no longer exists, or its data no

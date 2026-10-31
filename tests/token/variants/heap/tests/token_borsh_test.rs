@@ -509,7 +509,7 @@ fn token_program_constraint_rejects_wrong_owning_program() {
 /// Unlike `init_mint_authority`/`init_counter`'s bare-`bump` auto-write-back
 /// gotcha noted elsewhere in this test suite, `create_mint_with_freeze`'s
 /// `mint` field is a bare `AccountInfo` with an *explicit* `bump = mint_bump`
-/// (not a `#[component]` with a `.bump` field), so no manual bump write-back
+/// (not a `#[account]` with a `.bump` field), so no manual bump write-back
 /// is needed here in solana-borsh mode.
 #[test]
 fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {

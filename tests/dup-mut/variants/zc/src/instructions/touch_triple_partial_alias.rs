@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // See `programs/dup_mut/src/instructions/touch_triple_partial_alias.rs` for
 // the full rationale — identical shape, solana-zerocopy mode.

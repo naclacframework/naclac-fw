@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // Three `mut` slots, only two of which are marked `unsafe(alias)` — the
 // pairwise-aliasing case the 2-slot tests can't exercise. `a`/`b` are the

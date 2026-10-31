@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::{Child, Registry};
+use crate::state::{Child, Registry};
 use crate::constants::SEED_CHILD_SAFE;
 
 /// Same dynamic seed shape as `init_child` (`registry.bump.to_le_bytes().as_ref()`),

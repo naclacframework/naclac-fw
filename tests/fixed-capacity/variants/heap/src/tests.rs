@@ -1,6 +1,6 @@
-//! Host-side checks of the `SPACE` the `#[component]` macro computes from `#[max_len]`.
+//! Host-side checks of the `SPACE` the `#[account]` macro computes from `#[max_len]`.
 
-use crate::components::Roster;
+use crate::state::Roster;
 use naclac_lang::prelude::*;
 
 const DISCRIMINATOR_LEN: usize = 8;
@@ -50,7 +50,7 @@ pub enum Slot {
     },
 }
 
-#[component]
+#[account]
 pub struct Probe {
     pub amount: Amount,
     #[max_len(6)]

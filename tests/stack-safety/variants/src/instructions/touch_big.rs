@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::BigData;
+use crate::state::BigData;
 
 // `big` MUST be boxed here — it's over the per-field stack budget, so this
 // is the real reason for the mechanism, not a stand-in for something that

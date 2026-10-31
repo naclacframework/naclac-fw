@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 use crate::constants::SEED_MINT_AUTHORITY;
 
 /// Real end-to-end proof of `initialize_token_group_member`
@@ -24,7 +24,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMember {
 
     /// SAFETY: allocated and initialized entirely by hand in the handler
     /// body below — raw SPL `Mint` + `GroupMemberPointer` +
-    /// `TokenGroupMember` layout, not a naclac component.
+    /// `TokenGroupMember` layout, not a naclac account.
     #[account(mut, seeds = [b"member_mint", &args.member_seed.to_le_bytes()], bump = args.member_mint_bump)]
     pub member_mint: AccountInfo,
 

@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::ConfigEntry;
+use crate::state::ConfigEntry;
 use crate::constants::SEED_CONFIG_ENTRY;
 
 #[derive(Accounts)]

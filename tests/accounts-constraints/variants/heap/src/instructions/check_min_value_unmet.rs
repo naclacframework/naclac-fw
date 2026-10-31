@@ -1,7 +1,7 @@
 // `min_value::min = 8` on an account whose `value` is 7: the constraint fails
 // with `Unauthorized`.
 use {
-    crate::{components::SeededThing, min_value},
+    crate::{state::SeededThing, min_value},
     naclac_lang::prelude::*,
 };
 

@@ -1,6 +1,6 @@
 //! Instructions that create the account and write its enum fields.
 
-use crate::components::State;
+use crate::state::State;
 use crate::types::{
     Action, Color, DynArgs, Level, ListArgs, ModeArgs, MixedEvent, Signed, StateChanged,
     StateLog, Wide,

@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::BigData;
+use crate::state::BigData;
 use crate::constants::SEED_BIG;
 
 #[derive(Accounts)]

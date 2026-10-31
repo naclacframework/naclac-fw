@@ -1,13 +1,13 @@
 use naclac_lang::prelude::*;
-use crate::components::Note;
+use crate::state::Note;
 use crate::constants::SEED_NOTE;
 
 // Real runtime exercise of `ZcVec<T>`/`ZcString` (core/src/wrappers/zc_vec.rs):
 // `text: ZcString` is a genuine zero-allocation instruction argument — parsed
 // via `accounts.rs`'s `is_zc_string` codegen branch directly out of the raw
 // instruction-data buffer (length-prefixed: 4-byte LE length + UTF-8 bytes),
-// no heap allocation involved at any point. Since `#[component]` fields
-// can't themselves be `ZcString` (see `components/note.rs`), the bytes get
+// no heap allocation involved at any point. Since `#[account]` fields
+// can't themselves be `ZcString` (see `state/note.rs`), the bytes get
 // copied into a fixed `[u8; 32]` array for persistence — this instruction is
 // what proves the *read* side (`ZcString::as_str()`/`Deref`) produces the
 // exact original bytes, not a corrupted or truncated view.

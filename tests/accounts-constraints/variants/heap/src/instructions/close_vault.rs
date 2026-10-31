@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // `close`: drains the target account's lamports to `destination`, zeroes
 // its data (discriminator included), and reassigns it to the System

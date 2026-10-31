@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof that `init_if_needed` re-validates `mint::decimals`/

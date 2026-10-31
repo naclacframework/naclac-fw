@@ -3,7 +3,7 @@
 // the field clears the per-field assert regardless of T's real size.
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct BigData {
     pub payload: [u8; 300],
 }

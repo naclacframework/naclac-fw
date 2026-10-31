@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::MintAuthority;
+use crate::state::MintAuthority;
 use crate::constants::SEED_MINT;
 
 /// Real end-to-end proof of `initialize_transfer_fee_config`
@@ -29,7 +29,7 @@ pub struct CreateMint2022WithTransferFee {
     /// SAFETY: allocated and initialized entirely by hand in the handler
     /// body below (`create_account_signed` then two CPIs) — there is no
     /// naclac `Discriminator` to check since this is a raw SPL `Mint` +
-    /// `TransferFeeConfig` extension layout, not a naclac component.
+    /// `TransferFeeConfig` extension layout, not a naclac account.
     #[account(mut, seeds = [SEED_MINT, &args.id.to_le_bytes()], bump = args.mint_bump)]
     pub mint: AccountInfo,
 

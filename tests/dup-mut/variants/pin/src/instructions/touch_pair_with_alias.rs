@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // Same shape as `touch_pair_no_alias`, but both fields explicitly opt out of
 // the duplicate-mutable-account guard via `unsafe(alias)` — the escape

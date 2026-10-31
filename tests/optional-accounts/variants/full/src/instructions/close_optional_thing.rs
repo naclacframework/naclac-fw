@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Thing;
+use crate::state::Thing;
 
 // Exercises `close` on an `Option<T>` field: `close_account.rs`'s codegen
 // runs in `teardown()`, after `self` exists, so unlike `init` it needed a

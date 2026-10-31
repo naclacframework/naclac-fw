@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 use crate::errors::VaultError;
 
 // Same `admin = authority` relation as `related_vault.rs`, but with the `@`

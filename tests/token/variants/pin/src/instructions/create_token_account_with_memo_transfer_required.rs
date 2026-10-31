@@ -15,7 +15,7 @@ pub struct CreateTokenAccountWithMemoTransferRequired {
     /// SAFETY: allocated and initialized entirely by hand in the handler
     /// body below (`create_account` then three CPIs) — there is no naclac
     /// `Discriminator` to check since this is a raw SPL `TokenAccount` +
-    /// `MemoTransfer` extension layout, not a naclac component.
+    /// `MemoTransfer` extension layout, not a naclac account.
     #[account(mut)]
     pub token_account: Signer,
 

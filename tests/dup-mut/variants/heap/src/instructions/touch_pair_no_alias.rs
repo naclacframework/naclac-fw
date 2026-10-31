@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 #[derive(Accounts)]
 pub struct TouchPairNoAlias {

@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // No `unsafe(alias)` on either field, and deliberately no `seeds`/`address`
 // constraint (so the caller can pass any two account addresses, including

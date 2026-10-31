@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::BigData;
+use crate::state::BigData;
 
 // `close`'s lamport-drain/reassign logic (`close_account.rs`) operates on
 // the field's `AccountInfo` — this is the ToAccountInfo/AsRefByteSlice side

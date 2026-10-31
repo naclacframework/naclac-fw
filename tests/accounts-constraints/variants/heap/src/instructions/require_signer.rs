@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // `signer`: an account slot that must carry a real signature on the
 // transaction, independent of any data/relation check. `authority` here has
