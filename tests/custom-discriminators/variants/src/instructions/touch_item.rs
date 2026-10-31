@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Item;
+use crate::state::Item;
 
 // `item` is `mut` with no `seeds`/`address` constraint, so the only thing
 // standing between a correctly-typed Item and an arbitrary same-owner

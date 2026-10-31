@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Vault;
+use crate::state::Vault;
 
 // Deliberately no `seeds`/`address` constraint on `vault` here — this
 // instruction accepts any account the caller passes in that slot, so the

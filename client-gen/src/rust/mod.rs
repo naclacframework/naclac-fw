@@ -4,9 +4,9 @@ use {
     std::{fs, path::Path},
 };
 
-pub mod state;
 pub mod instructions;
 pub mod lib_generator;
+pub mod state;
 pub mod types;
 
 /// The attributes gating an item that exists only for the zero-copy

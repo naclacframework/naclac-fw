@@ -10,7 +10,7 @@ declare_id!("11111111111111111111111111111111");
 
 pub const SEED_THING: &[u8] = b"thing";
 
-#[component]
+#[account]
 pub struct Thing {
     pub value: u64,
 }

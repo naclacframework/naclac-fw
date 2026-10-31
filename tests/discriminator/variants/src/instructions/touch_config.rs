@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Config;
+use crate::state::Config;
 
 // `config` is `mut` with no `seeds`/`address` constraint, so the only thing
 // standing between a correctly-typed Config and an arbitrary same-owner

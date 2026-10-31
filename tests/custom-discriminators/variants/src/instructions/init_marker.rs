@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Marker;
+use crate::state::Marker;
 use crate::constants::SEED_MARKER;
 
 #[derive(Accounts)]

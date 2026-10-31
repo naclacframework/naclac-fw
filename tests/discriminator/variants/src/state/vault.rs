@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct Vault {
     pub owner: Address,
     pub balance: u64,

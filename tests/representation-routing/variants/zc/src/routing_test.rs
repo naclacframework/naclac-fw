@@ -1,9 +1,9 @@
 //! Permanent regression guard for the zero-copy/Borsh routing fix in
-//! naclac-macros: `#[component]`/`#[event]`/`#[defined_type]`/
+//! naclac-macros: `#[account]`/`#[event]`/`#[defined_type]`/
 //! `#[instruction_args]`/`#[derive(Accounts)]` all emit BOTH representations
 //! behind a real `#[cfg(...)]` in their output, since a proc-macro has no
 //! reliable way to see the calling crate's own activated Cargo features
-//! (see macros/src/component.rs's doc comment for the full story).
+//! (see macros/src/account.rs's doc comment for the full story).
 //!
 //! Unlike the proc-macro itself, a `#[test]`/`const _` in THIS crate's own
 //! compilation sees `cfg!(feature = "...")` reliably — it's the same crate

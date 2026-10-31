@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Growable;
+use crate::state::Growable;
 use crate::constants::SEED_GROWABLE;
 
 // No existing example in this repo uses `realloc` at all (confirmed while

@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct Config {
     pub admin: Address,
     pub fee_bps: u16,

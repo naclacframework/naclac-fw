@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Item;
+use crate::state::Item;
 use crate::constants::SEED_ITEM;
 use crate::events::ItemCreated;
 

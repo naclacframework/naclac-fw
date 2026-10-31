@@ -1,4 +1,4 @@
-//! End-to-end proof that `#[discriminator = ..]`/`#[component(discriminator = ..)]`/
+//! End-to-end proof that `#[discriminator = ..]`/`#[account(discriminator = ..)]`/
 //! `#[event(discriminator = ..)]` overrides work through the real dispatch,
 //! account-loading and event-log paths, not just at the macro/IDL level:
 //! - custom-width instruction dispatch actually reaches the right handler

@@ -6,7 +6,7 @@ use naclac_lang::prelude::*;
 // instruction handler can (in a real program) read/write manually. The
 // test only cares about the account's actual on-chain byte length and
 // lamports, not this struct's fields.
-#[component]
+#[account]
 pub struct Growable {
     pub bump: u8,
     pub tag: u32,
