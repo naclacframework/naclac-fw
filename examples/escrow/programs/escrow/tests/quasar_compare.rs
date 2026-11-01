@@ -51,13 +51,28 @@ fn make_ix<'a>(
             data.extend_from_slice(&amount_b.to_le_bytes());
             InstructionBuilder::new(provider, program, data)
                 .account(AccountMeta::new(accounts.maker, true), "maker")
-                .account(AccountMeta::new(accounts.escrow_state, false), "escrow_state")
+                .account(
+                    AccountMeta::new(accounts.escrow_state, false),
+                    "escrow_state",
+                )
                 .account(AccountMeta::new_readonly(accounts.mint_a, false), "mint_a")
                 .account(AccountMeta::new_readonly(accounts.mint_b, false), "mint_b")
-                .account(AccountMeta::new(accounts.vault_token_account, false), "vault")
-                .account(AccountMeta::new(accounts.maker_token_account_a, false), "maker_ta_a")
-                .account(AccountMeta::new_readonly(accounts.token_program, false), "token")
-                .account(AccountMeta::new_readonly(accounts.system_program, false), "system")
+                .account(
+                    AccountMeta::new(accounts.vault_token_account, false),
+                    "vault",
+                )
+                .account(
+                    AccountMeta::new(accounts.maker_token_account_a, false),
+                    "maker_ta_a",
+                )
+                .account(
+                    AccountMeta::new_readonly(accounts.token_program, false),
+                    "token",
+                )
+                .account(
+                    AccountMeta::new_readonly(accounts.system_program, false),
+                    "system",
+                )
         }
     }
 }
@@ -77,11 +92,26 @@ fn cancel_ix<'a>(
             InstructionBuilder::new(provider, program, data)
                 .account(AccountMeta::new(accounts.maker, true), "maker")
                 .account(AccountMeta::new_readonly(accounts.mint_a, false), "mint_a")
-                .account(AccountMeta::new(accounts.escrow_state, false), "escrow_state")
-                .account(AccountMeta::new(accounts.vault_token_account, false), "vault")
-                .account(AccountMeta::new(accounts.maker_token_account_a, false), "maker_ta_a")
-                .account(AccountMeta::new_readonly(accounts.token_program, false), "token")
-                .account(AccountMeta::new_readonly(accounts.system_program, false), "system")
+                .account(
+                    AccountMeta::new(accounts.escrow_state, false),
+                    "escrow_state",
+                )
+                .account(
+                    AccountMeta::new(accounts.vault_token_account, false),
+                    "vault",
+                )
+                .account(
+                    AccountMeta::new(accounts.maker_token_account_a, false),
+                    "maker_ta_a",
+                )
+                .account(
+                    AccountMeta::new_readonly(accounts.token_program, false),
+                    "token",
+                )
+                .account(
+                    AccountMeta::new_readonly(accounts.system_program, false),
+                    "system",
+                )
         }
     }
 }
@@ -103,13 +133,34 @@ fn take_ix<'a>(
                 .account(AccountMeta::new(accounts.maker, false), "maker")
                 .account(AccountMeta::new_readonly(accounts.mint_a, false), "mint_a")
                 .account(AccountMeta::new_readonly(accounts.mint_b, false), "mint_b")
-                .account(AccountMeta::new(accounts.escrow_state, false), "escrow_state")
-                .account(AccountMeta::new(accounts.vault_token_account, false), "vault")
-                .account(AccountMeta::new(accounts.taker_token_account_a, false), "taker_ta_a")
-                .account(AccountMeta::new(accounts.taker_token_account_b, false), "taker_ta_b")
-                .account(AccountMeta::new(accounts.maker_token_account_b, false), "maker_ta_b")
-                .account(AccountMeta::new_readonly(accounts.token_program, false), "token")
-                .account(AccountMeta::new_readonly(accounts.system_program, false), "system")
+                .account(
+                    AccountMeta::new(accounts.escrow_state, false),
+                    "escrow_state",
+                )
+                .account(
+                    AccountMeta::new(accounts.vault_token_account, false),
+                    "vault",
+                )
+                .account(
+                    AccountMeta::new(accounts.taker_token_account_a, false),
+                    "taker_ta_a",
+                )
+                .account(
+                    AccountMeta::new(accounts.taker_token_account_b, false),
+                    "taker_ta_b",
+                )
+                .account(
+                    AccountMeta::new(accounts.maker_token_account_b, false),
+                    "maker_ta_b",
+                )
+                .account(
+                    AccountMeta::new_readonly(accounts.token_program, false),
+                    "token",
+                )
+                .account(
+                    AccountMeta::new_readonly(accounts.system_program, false),
+                    "system",
+                )
         }
     }
 }
@@ -195,14 +246,28 @@ fn run(label: &str, kind: Kind, program: Address, quasar_so: Option<&str>) {
     let taker_ta_b =
         create_ata_with_program(&provider, &mint_b, &taker_address, &token_program).unwrap();
 
-    mint_to_with_program(&provider, &mint_a, &maker_ta_a, &provider.payer, 1_000_000_000, &token_program)
-        .expect("Failed to mint A");
-    mint_to_with_program(&provider, &mint_b, &taker_ta_b, &provider.payer, 2_000_000_000, &token_program)
-        .expect("Failed to mint B");
+    mint_to_with_program(
+        &provider,
+        &mint_a,
+        &maker_ta_a,
+        &provider.payer,
+        1_000_000_000,
+        &token_program,
+    )
+    .expect("Failed to mint A");
+    mint_to_with_program(
+        &provider,
+        &mint_b,
+        &taker_ta_b,
+        &provider.payer,
+        2_000_000_000,
+        &token_program,
+    )
+    .expect("Failed to mint B");
 
     let (seed_cancel, seed_take) =
         seeds_with_first_try_bump(&maker, &[PROGRAM_ID, QUASAR_PROGRAM_ID]);
-    let (escrow_cancel, _)= get_escrow_state_pda(&program, &maker, seed_cancel);
+    let (escrow_cancel, _) = get_escrow_state_pda(&program, &maker, seed_cancel);
     let vault_cancel =
         create_ata_with_program(&provider, &mint_a, &escrow_cancel, &token_program).unwrap();
 
@@ -248,8 +313,14 @@ fn run(label: &str, kind: Kind, program: Address, quasar_so: Option<&str>) {
     .unwrap();
     report(label, "cancel", &meta, &program);
     assert_eq!(token_amount(&provider, &maker_ta_a), 1_000_000_000);
-    assert!(provider.get_account(&escrow_cancel).is_err(), "escrow not closed");
-    assert!(provider.get_account(&vault_cancel).is_err(), "vault not closed");
+    assert!(
+        provider.get_account(&escrow_cancel).is_err(),
+        "escrow not closed"
+    );
+    assert!(
+        provider.get_account(&vault_cancel).is_err(),
+        "vault not closed"
+    );
 
     let (escrow_take, _) = get_escrow_state_pda(&program, &maker, seed_take);
     let vault_take =
@@ -303,8 +374,14 @@ fn run(label: &str, kind: Kind, program: Address, quasar_so: Option<&str>) {
     report(label, "take", &meta, &program);
     assert_eq!(token_amount(&provider, &taker_ta_a), 500_000_000);
     assert_eq!(token_amount(&provider, &maker_ta_b), 1_000_000_000);
-    assert!(provider.get_account(&escrow_take).is_err(), "escrow not closed");
-    assert!(provider.get_account(&vault_take).is_err(), "vault not closed");
+    assert!(
+        provider.get_account(&escrow_take).is_err(),
+        "escrow not closed"
+    );
+    assert!(
+        provider.get_account(&vault_take).is_err(),
+        "vault not closed"
+    );
 }
 
 #[test]

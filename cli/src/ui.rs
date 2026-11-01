@@ -102,6 +102,17 @@ pub fn format_duration(d: Duration) -> String {
     }
 }
 
+/// A progress bar `width` characters wide, `done` of `total` filled in the
+/// brand pink.
+pub fn bar(done: usize, total: usize, width: usize) -> String {
+    let filled = (done.min(total) * width).checked_div(total).unwrap_or(0);
+    format!(
+        "{}{}",
+        brand("━".repeat(filled)),
+        "─".repeat(width - filled).dimmed()
+    )
+}
+
 /// A timed result line: the mark, the duration right-aligned so a column of
 /// results lines up, then the message.
 fn result_line(mark: ColoredString, elapsed: Duration, msg: impl Display) -> String {

@@ -660,7 +660,7 @@ pub fn generate_rust_sdk(
 
     fs::create_dir_all(clients_dir.join("src/types")).unwrap();
 
-    if !idl.accounts.is_empty() {
+    if !idl.accounts.is_empty() && !state::collapses_into_one_file(&idl) {
         fs::create_dir_all(clients_dir.join("src/state")).unwrap();
     }
     if !idl.instructions.is_empty() {

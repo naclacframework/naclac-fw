@@ -1,7 +1,7 @@
 #![allow(unexpected_cfgs)]
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct Wide {
     pub flag: u8,
     pub amount: u128,

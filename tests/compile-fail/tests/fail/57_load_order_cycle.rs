@@ -11,7 +11,7 @@ pub struct Cycle {
     pub second: Account<Thing>,
 }
 
-#[component]
+#[account]
 pub struct Thing {
     pub value: u64,
 }

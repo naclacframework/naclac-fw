@@ -3,7 +3,7 @@
 // is resolved through the `min_value` module's `Args`, `Constraint` and `RULES`.
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct Counter {
     pub value: u64,
 }

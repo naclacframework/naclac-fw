@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct Profile {
     pub owner: Address,
     pub name: ZcString,

@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Bare `bump` on an existing `Account<T>` whose component declares a `bump`
+// Bare `bump` on an existing `Account<T>` whose account declares a `bump`
 // field reads the stored bump.
 use naclac_lang::prelude::*;
 
@@ -9,7 +9,7 @@ pub struct Foo {
     pub account: Account<FooData>,
 }
 
-#[component]
+#[account]
 pub struct FooData {
     pub bump: u8,
     pub value: u64,

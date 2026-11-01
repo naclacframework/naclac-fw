@@ -4,7 +4,7 @@ use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
 
-#[component]
+#[account]
 pub struct Counter {
     #[max_len(4)]
     pub count: u64,

@@ -9,7 +9,7 @@ pub struct Foo {
     pub account: Account<FooData>,
 }
 
-#[component]
+#[account]
 pub struct FooData {
     pub value: u64,
 }

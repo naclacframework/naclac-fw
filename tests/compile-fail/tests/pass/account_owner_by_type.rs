@@ -3,7 +3,7 @@
 // from its type's `NaclacAccount` constants, so it holds for an alias too.
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct Foo {
     pub value: u64,
 }

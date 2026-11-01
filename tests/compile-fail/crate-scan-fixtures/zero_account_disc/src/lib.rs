@@ -6,7 +6,7 @@ use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
 
-#[component(discriminator = [0, 0, 0, 0, 0, 0, 0, 0])]
+#[account(discriminator = [0, 0, 0, 0, 0, 0, 0, 0])]
 pub struct Foo {
     pub value: u64,
 }

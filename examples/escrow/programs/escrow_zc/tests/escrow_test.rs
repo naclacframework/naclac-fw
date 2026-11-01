@@ -3,17 +3,16 @@ use {
         components::{fetch_escrow_state, EscrowState},
         get_escrow_state_pda,
         instructions::{
-            build_cancel, build_make, build_take,
-            CancelAccounts, MakeAccounts, TakeAccounts,
+            build_cancel, build_make, build_take, CancelAccounts, MakeAccounts, TakeAccounts,
         },
         types::{EscrowCancelled, EscrowCreated, EscrowExchanged, PROGRAM_ID},
     },
     naclac_client::{
-        *,
         utils::{
             create_ata_with_program, create_mint_with_program, load_node_wallet,
             mint_to_with_program, transfer_sol, TOKEN_PROGRAM_ID,
         },
+        *,
     },
 };
 
@@ -36,31 +35,61 @@ fn test_escrow_lifecycle() {
     // 2. Setup Mint A and Mint B
     let mint_a_signer = Keypair::new();
     let mint_a = mint_a_signer.address();
-    create_mint_with_program(&provider, &mint_a_signer, &provider.payer.address(), 9, &token_program_id)
-        .expect("Failed to create mint A");
+    create_mint_with_program(
+        &provider,
+        &mint_a_signer,
+        &provider.payer.address(),
+        9,
+        &token_program_id,
+    )
+    .expect("Failed to create mint A");
 
     let mint_b_signer = Keypair::new();
     let mint_b = mint_b_signer.address();
-    create_mint_with_program(&provider, &mint_b_signer, &provider.payer.address(), 9, &token_program_id)
-        .expect("Failed to create mint B");
+    create_mint_with_program(
+        &provider,
+        &mint_b_signer,
+        &provider.payer.address(),
+        9,
+        &token_program_id,
+    )
+    .expect("Failed to create mint B");
 
     // 3. Setup Associated Token Accounts
-    let maker_token_account_a = create_ata_with_program(&provider, &mint_a, &maker_address, &token_program_id)
-        .expect("Failed to create maker ATA A");
-    let maker_token_account_b = create_ata_with_program(&provider, &mint_b, &maker_address, &token_program_id)
-        .expect("Failed to create maker ATA B");
-    let taker_token_account_a = create_ata_with_program(&provider, &mint_a, &taker_address, &token_program_id)
-        .expect("Failed to create taker ATA A");
-    let taker_token_account_b = create_ata_with_program(&provider, &mint_b, &taker_address, &token_program_id)
-        .expect("Failed to create taker ATA B");
+    let maker_token_account_a =
+        create_ata_with_program(&provider, &mint_a, &maker_address, &token_program_id)
+            .expect("Failed to create maker ATA A");
+    let maker_token_account_b =
+        create_ata_with_program(&provider, &mint_b, &maker_address, &token_program_id)
+            .expect("Failed to create maker ATA B");
+    let taker_token_account_a =
+        create_ata_with_program(&provider, &mint_a, &taker_address, &token_program_id)
+            .expect("Failed to create taker ATA A");
+    let taker_token_account_b =
+        create_ata_with_program(&provider, &mint_b, &taker_address, &token_program_id)
+            .expect("Failed to create taker ATA B");
 
     // Mint initial tokens
     let initial_maker_a = 1_000_000_000u64;
     let initial_taker_b = 2_000_000_000u64;
-    mint_to_with_program(&provider, &mint_a, &maker_token_account_a, &provider.payer, initial_maker_a, &token_program_id)
-        .expect("Failed to mint to maker ATA A");
-    mint_to_with_program(&provider, &mint_b, &taker_token_account_b, &provider.payer, initial_taker_b, &token_program_id)
-        .expect("Failed to mint to taker ATA B");
+    mint_to_with_program(
+        &provider,
+        &mint_a,
+        &maker_token_account_a,
+        &provider.payer,
+        initial_maker_a,
+        &token_program_id,
+    )
+    .expect("Failed to mint to maker ATA A");
+    mint_to_with_program(
+        &provider,
+        &mint_b,
+        &taker_token_account_b,
+        &provider.payer,
+        initial_taker_b,
+        &token_program_id,
+    )
+    .expect("Failed to mint to taker ATA B");
 
     let fetcher = AccountFetcher::new(&provider);
 
@@ -68,7 +97,8 @@ fn test_escrow_lifecycle() {
     // FLOW 1: Make & Cancel
     // =========================================================================
     let seed_cancel = 789012u64;
-    let (escrow_pda_cancel, _escrow_bump_cancel) = get_escrow_state_pda(&PROGRAM_ID, &maker_address, seed_cancel);
+    let (escrow_pda_cancel, _escrow_bump_cancel) =
+        get_escrow_state_pda(&PROGRAM_ID, &maker_address, seed_cancel);
 
     let mut already_initialized_cancel = false;
     if let Ok(account) = provider.get_account(&escrow_pda_cancel) {
@@ -78,14 +108,18 @@ fn test_escrow_lifecycle() {
         }
     }
 
-    let vault_token_account_cancel = create_ata_with_program(&provider, &mint_a, &escrow_pda_cancel, &token_program_id)
-        .expect("Failed to create vault ATA for cancel");
+    let vault_token_account_cancel =
+        create_ata_with_program(&provider, &mint_a, &escrow_pda_cancel, &token_program_id)
+            .expect("Failed to create vault ATA for cancel");
 
     let amount_a_cancel = 400_000_000u64;
     let amount_b_cancel = 800_000_000u64;
 
     if !already_initialized_cancel {
-        println!("🤝 Sending MAKE transaction for Cancel Flow (A = {}, B = {})...", amount_a_cancel, amount_b_cancel);
+        println!(
+            "🤝 Sending MAKE transaction for Cancel Flow (A = {}, B = {})...",
+            amount_a_cancel, amount_b_cancel
+        );
 
         let tx_meta = build_make(
             &provider,
@@ -107,12 +141,15 @@ fn test_escrow_lifecycle() {
         .send_and_confirm()
         .unwrap();
 
-        println!("   📊 Make Compute Units (Cancel Flow): {}", tx_meta.compute_units_consumed);
+        println!(
+            "   📊 Make Compute Units (Cancel Flow): {}",
+            tx_meta.compute_units_consumed
+        );
     }
 
     // Verify on-chain escrow state and vault balance
-    let escrow_state: EscrowState = fetch_escrow_state(&provider, &escrow_pda_cancel)
-        .expect("Failed to fetch escrow state");
+    let escrow_state: EscrowState =
+        fetch_escrow_state(&provider, &escrow_pda_cancel).expect("Failed to fetch escrow state");
     let escrow_amount_a = escrow_state.amount_a;
     assert_eq!(escrow_amount_a, amount_a_cancel);
 
@@ -141,13 +178,19 @@ fn test_escrow_lifecycle() {
     .send_and_confirm()
     .unwrap();
 
-    println!("   📊 Cancel Compute Units: {}", tx_meta_cancel.compute_units_consumed);
+    println!(
+        "   📊 Cancel Compute Units: {}",
+        tx_meta_cancel.compute_units_consumed
+    );
 
     // Parse and verify EscrowCancelled event
     let cancel_events: Vec<EscrowCancelled> = tx_meta_cancel
         .parse_events_zero_copy()
         .expect("Failed to parse cancel events");
-    assert!(!cancel_events.is_empty(), "EscrowCancelled event not emitted");
+    assert!(
+        !cancel_events.is_empty(),
+        "EscrowCancelled event not emitted"
+    );
     assert_eq!(cancel_events[0].maker, maker_address);
     let cancel_amount_a = cancel_events[0].amount_a;
     assert_eq!(cancel_amount_a, amount_a_cancel);
@@ -159,15 +202,22 @@ fn test_escrow_lifecycle() {
     assert_eq!(maker_a_balance.amount(), initial_maker_a);
 
     // Verify accounts closed
-    assert!(provider.get_account(&escrow_pda_cancel).is_err(), "Escrow state PDA not closed");
-    assert!(provider.get_account(&vault_token_account_cancel).is_err(), "Vault token account not closed");
+    assert!(
+        provider.get_account(&escrow_pda_cancel).is_err(),
+        "Escrow state PDA not closed"
+    );
+    assert!(
+        provider.get_account(&vault_token_account_cancel).is_err(),
+        "Vault token account not closed"
+    );
     println!("   ✅ Cancel Flow completed and verified successfully.");
 
     // =========================================================================
     // FLOW 2: Make & Take
     // =========================================================================
     let seed_take = 123456u64;
-    let (escrow_pda_take, _escrow_bump_take) = get_escrow_state_pda(&PROGRAM_ID, &maker_address, seed_take);
+    let (escrow_pda_take, _escrow_bump_take) =
+        get_escrow_state_pda(&PROGRAM_ID, &maker_address, seed_take);
 
     let mut already_initialized_take = false;
     if let Ok(account) = provider.get_account(&escrow_pda_take) {
@@ -177,14 +227,18 @@ fn test_escrow_lifecycle() {
         }
     }
 
-    let vault_token_account_take = create_ata_with_program(&provider, &mint_a, &escrow_pda_take, &token_program_id)
-        .expect("Failed to create vault ATA for take");
+    let vault_token_account_take =
+        create_ata_with_program(&provider, &mint_a, &escrow_pda_take, &token_program_id)
+            .expect("Failed to create vault ATA for take");
 
     let amount_a_take = 500_000_000u64;
     let amount_b_take = 1_000_000_000u64;
 
     if !already_initialized_take {
-        println!("🤝 Sending MAKE transaction for Take Flow (A = {}, B = {})...", amount_a_take, amount_b_take);
+        println!(
+            "🤝 Sending MAKE transaction for Take Flow (A = {}, B = {})...",
+            amount_a_take, amount_b_take
+        );
 
         let tx_meta = build_make(
             &provider,
@@ -206,13 +260,19 @@ fn test_escrow_lifecycle() {
         .send_and_confirm()
         .unwrap();
 
-        println!("   📊 Make Compute Units (Take Flow): {}", tx_meta.compute_units_consumed);
+        println!(
+            "   📊 Make Compute Units (Take Flow): {}",
+            tx_meta.compute_units_consumed
+        );
 
         // Parse and verify EscrowCreated event
         let captured_events: Vec<EscrowCreated> = tx_meta
             .parse_events_zero_copy()
             .expect("Failed to parse events");
-        assert!(!captured_events.is_empty(), "EscrowCreated event not emitted");
+        assert!(
+            !captured_events.is_empty(),
+            "EscrowCreated event not emitted"
+        );
         assert_eq!(captured_events[0].maker, maker_address);
         let captured_amount_a = captured_events[0].amount_a;
         let captured_amount_b = captured_events[0].amount_b;
@@ -221,8 +281,8 @@ fn test_escrow_lifecycle() {
     }
 
     // Fetch and verify EscrowState PDA state
-    let escrow_state_take: EscrowState = fetch_escrow_state(&provider, &escrow_pda_take)
-        .expect("Failed to fetch escrow state PDA");
+    let escrow_state_take: EscrowState =
+        fetch_escrow_state(&provider, &escrow_pda_take).expect("Failed to fetch escrow state PDA");
     assert_eq!(escrow_state_take.maker, maker_address);
     assert_eq!(escrow_state_take.mint_a, mint_a);
     assert_eq!(escrow_state_take.mint_b, mint_b);
@@ -262,7 +322,10 @@ fn test_escrow_lifecycle() {
     .send_and_confirm()
     .unwrap();
 
-    println!("   📊 Take Compute Units: {}", tx_meta_take.compute_units_consumed);
+    println!(
+        "   📊 Take Compute Units: {}",
+        tx_meta_take.compute_units_consumed
+    );
 
     // Parse and verify EscrowExchanged event
     let take_events: Vec<EscrowExchanged> = tx_meta_take
@@ -297,8 +360,14 @@ fn test_escrow_lifecycle() {
     assert_eq!(maker_a_balance.amount(), initial_maker_a - amount_a_take);
 
     // Verify accounts closed
-    assert!(provider.get_account(&escrow_pda_take).is_err(), "Escrow state PDA not closed");
-    assert!(provider.get_account(&vault_token_account_take).is_err(), "Vault token account not closed");
+    assert!(
+        provider.get_account(&escrow_pda_take).is_err(),
+        "Escrow state PDA not closed"
+    );
+    assert!(
+        provider.get_account(&vault_token_account_take).is_err(),
+        "Vault token account not closed"
+    );
 
     println!("   ✅ Take Flow completed and verified successfully.");
     println!("\n✨ Escrow integration test completed successfully!\n");

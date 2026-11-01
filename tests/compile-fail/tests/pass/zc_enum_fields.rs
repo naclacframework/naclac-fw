@@ -13,7 +13,7 @@ pub struct Settings {
     pub mode: ZcEnum<Mode>,
 }
 
-#[component]
+#[account]
 pub struct Foo {
     pub mode: ZcEnum<Mode>,
     pub modes: [ZcEnum<Mode>; 2],

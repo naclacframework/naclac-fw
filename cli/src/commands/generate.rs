@@ -12,6 +12,7 @@
 
 use {
     crate::{
+        cargo_progress,
         commands::{programs, workspace},
         ui,
     },
@@ -350,10 +351,14 @@ fn generate_idl_via_idl_build(
             .arg("--target-dir")
             .arg(&cargo_target_dir)
             .current_dir(&program_dir_abs);
+        if !show_output {
+            build.envs(cargo_progress::ENV);
+        }
         run_capturing_stdout(
             build,
             show_output,
             &format!("idl-build compilation for '{prog_name}'"),
+            Some("Generating the IDL"),
         )?;
 
         let main_rs = runner_dir.join("main.rs");
@@ -381,12 +386,14 @@ fn generate_idl_via_idl_build(
             link,
             show_output,
             &format!("idl-build runner link for '{prog_name}'"),
+            None,
         )?;
 
         let stdout_buf = run_capturing_stdout(
             Command::new(&runner_bin),
             show_output,
             &format!("idl-build print binary for '{prog_name}'"),
+            None,
         )?;
 
         let value: serde_json::Value = serde_json::from_str(stdout_buf.trim())
@@ -402,8 +409,15 @@ fn generate_idl_via_idl_build(
 
 /// Runs `cmd` to completion and returns its stdout. Stderr is inherited when
 /// `show_output` is set; otherwise it is captured and included in the error
-/// returned for a non-zero exit.
-fn run_capturing_stdout(mut cmd: Command, show_output: bool, what: &str) -> Result<String, String> {
+/// returned for a non-zero exit. A cargo progress line in the captured stderr
+/// is not kept: it updates the running spinner as `progress_label` plus the
+/// progress, when a label is given.
+fn run_capturing_stdout(
+    mut cmd: Command,
+    show_output: bool,
+    what: &str,
+    progress_label: Option<&str>,
+) -> Result<String, String> {
     cmd.stdout(Stdio::piped()).stderr(if show_output {
         Stdio::inherit()
     } else {
@@ -419,11 +433,28 @@ fn run_capturing_stdout(mut cmd: Command, show_output: bool, what: &str) -> Resu
     // Stdout and stderr must be drained concurrently — reading one to
     // completion before touching the other risks the child blocking on a full
     // pipe buffer for the stream nobody is draining yet.
-    let stderr_thread = stderr_pipe.map(|mut pipe| {
+    let label = progress_label.map(str::to_string);
+    let stderr_thread = stderr_pipe.map(|pipe| {
         std::thread::spawn(move || {
-            let mut buf = String::new();
-            let _ = pipe.read_to_string(&mut buf);
-            buf
+            let mut kept = String::new();
+            let _ =
+                cargo_progress::read_updates(pipe, |update| {
+                    match cargo_progress::parse_progress(update) {
+                        Some(progress) => {
+                            if let Some(label) = &label {
+                                ui::working(format!(
+                                    "{label}  {}",
+                                    cargo_progress::render(&progress)
+                                ));
+                            }
+                        }
+                        None => {
+                            kept.push_str(update);
+                            kept.push('\n');
+                        }
+                    }
+                });
+            kept
         })
     });
 

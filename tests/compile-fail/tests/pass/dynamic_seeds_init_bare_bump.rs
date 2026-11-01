@@ -31,7 +31,7 @@ pub struct Foo {
     pub system_program: Program<System>,
 }
 
-#[component]
+#[account]
 pub struct FooData {
     pub bump: u8,
     pub value: u64,

@@ -1,8 +1,10 @@
-use naclac_lang::prelude::*;
-use crate::components::escrow_state::EscrowState;
-use crate::constants::SEED_ESCROW;
-use crate::errors::EscrowError;
-use crate::events::EscrowExchanged;
+use {
+    crate::{
+        constants::SEED_ESCROW, errors::EscrowError, events::EscrowExchanged,
+        state::escrow_state::EscrowState,
+    },
+    naclac_lang::prelude::*,
+};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
@@ -60,7 +62,6 @@ pub struct Take {
 }
 
 pub fn take(ctx: Context<Take>, seed: u64) -> Result {
-
     // 1. Taker transfers Token B directly to the Maker
     let decimals_b = ctx.accounts.mint_b.decimals();
     ctx.accounts.token_program.transfer_checked(

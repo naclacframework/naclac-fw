@@ -1,12 +1,12 @@
 use {
     crate::{
+        cargo_progress,
         commands::{programs, workspace},
         ui,
     },
     colored::Colorize,
     std::{
         fs,
-        io::{BufRead, BufReader},
         path::PathBuf,
         process::{Command, Stdio},
     },
@@ -79,15 +79,28 @@ pub fn execute(
     let config = workspace::config(&workspace_root);
 
     let (tools_version, arch) = resolve_build_toolchain(&config);
-    ui::info(format!(
-        "Using platform-tools {} (arch {})",
-        tools_version, arch
-    ));
 
     let programs_to_build: Vec<PathBuf> = programs::select(&programs::listed(&config), requested)
         .iter()
         .map(|name| programs::program_dir(&workspace_root, name))
         .collect();
+
+    ui::header(
+        "build",
+        format!(
+            "{} program{}",
+            programs_to_build.len(),
+            if programs_to_build.len() == 1 {
+                ""
+            } else {
+                "s"
+            }
+        ),
+    );
+    ui::kv(
+        "tools",
+        format!("platform-tools {tools_version} · arch {arch}"),
+    );
 
     crate::commands::generate::ensure_client_stubs(
         &workspace_root,
@@ -100,6 +113,7 @@ pub fn execute(
         .unwrap_or_else(|e| ui::error(e))
         .join("deploy");
 
+    let mut addresses: Vec<String> = Vec::new();
     for program_dir in &programs_to_build {
         let program_name = program_dir
             .file_name()
@@ -206,9 +220,10 @@ pub fn execute(
                 ui::error(format!("Cannot write {}: {e}", toml_path.display()))
             });
         }
+        addresses.push(actual_address);
     }
 
-    for build_dir in &programs_to_build {
+    for (build_dir, address) in programs_to_build.iter().zip(&addresses) {
         let prog_name = build_dir.file_name().unwrap().to_str().unwrap();
         let cargo_toml_path = build_dir.join("Cargo.toml");
 
@@ -225,6 +240,11 @@ pub fn execute(
         let mode_label = prog_features
             .as_ref()
             .map_or_else(|| "plain program".to_string(), |f| f.label());
+
+        ui::section(
+            prog_name,
+            format!("{} · {}", ui::short(address), mode_label),
+        );
 
         let mut cmd = Command::new("cargo");
         cmd.arg("build-sbf")
@@ -256,9 +276,10 @@ pub fn execute(
             if !build_status.success() {
                 ui::error(format!("Compile failed for '{}'", prog_name));
             }
-            ui::success(format!("Compiled {}", prog_name));
+            ui::success("program compiled");
         } else {
             let mut child = cmd
+                .envs(cargo_progress::ENV)
                 .stderr(Stdio::piped())
                 .spawn()
                 .expect("Failed to execute cargo build-sbf");
@@ -267,34 +288,24 @@ pub fn execute(
                 .take()
                 .expect("Failed to capture cargo build-sbf stderr");
 
-            // Piped (not a pseudo-terminal), so cargo skips its own cursor-redrawn
-            // progress bar and just prints one plain "Compiling <crate>" line per
-            // crate on stderr as they start — parsed below to drive our own
-            // single-line spinner instead, since forwarding cargo's raw redraw
-            // bytes while dropping lines from the stream desyncs its cursor math
-            // (it moves the cursor up assuming every line it emitted is still on
-            // screen). Pass `--show-output` to skip this and see cargo's own
-            // output directly.
-            let step = ui::Step::start(format!("Compiling {} ({})...", prog_name, mode_label));
+            let step = ui::Step::start("Compiling the program");
             let mut combined = String::new();
             let mut compiled = 0u32;
             let mut printed_output_header = false;
             let mut cargo_error_summary: Option<String> = None;
-            for line in BufReader::new(stderr).lines() {
-                let Ok(line) = line else { break };
-                combined.push_str(&line);
-                combined.push('\n');
-                if let Some(crate_name) = cargo_compiling_crate_name(&line) {
-                    compiled += 1;
+            let _ = cargo_progress::read_updates(stderr, |line| {
+                if let Some(progress) = cargo_progress::parse_progress(line) {
                     step.set_message(format!(
-                        "Compiling {} ({})... {} crate{} built ({})",
-                        prog_name,
-                        mode_label,
-                        compiled,
-                        if compiled == 1 { "" } else { "s" },
-                        crate_name
+                        "Compiling the program  {}",
+                        cargo_progress::render(&progress)
                     ));
-                } else if !line.trim().is_empty() && !is_cargo_finished_line(&line) {
+                    return;
+                }
+                combined.push_str(line);
+                combined.push('\n');
+                if cargo_compiling_crate_name(line).is_some() {
+                    compiled += 1;
+                } else if !line.trim().is_empty() && !is_cargo_finished_line(line) {
                     if !printed_output_header {
                         step.print_above("── compiler output ──────────────────────".dimmed());
                         printed_output_header = true;
@@ -304,7 +315,7 @@ pub fn execute(
                     // errors") — the authoritative error count, straight from cargo
                     // itself rather than naclac re-deriving one by pattern-matching
                     // individual diagnostics.
-                    let stripped = strip_ansi(&line);
+                    let stripped = strip_ansi(line);
                     let trimmed = stripped.trim();
                     if trimmed.starts_with("error: could not compile")
                         || trimmed.starts_with("error: aborting due to")
@@ -313,7 +324,7 @@ pub fn execute(
                     }
                     step.print_above(line);
                 }
-            }
+            });
 
             let build_status = child.wait().expect("Failed to wait on cargo build-sbf");
             let stack_overflow_detected = combined
@@ -336,10 +347,14 @@ pub fn execute(
                     }
                 }
             }
-            step.done(format!(
-                "Compiled {} ({} crates built)",
-                prog_name, compiled
-            ));
+            step.done(if compiled == 0 {
+                "program compiled · up to date".to_string()
+            } else {
+                format!(
+                    "program compiled · {compiled} crate{} built",
+                    if compiled == 1 { "" } else { "s" }
+                )
+            });
         }
 
         let Some(prog_features) = prog_features else {
@@ -358,10 +373,7 @@ pub fn execute(
         let idl_step = if show_output {
             None
         } else {
-            Some(ui::Step::start(format!(
-                "Generating IDL & TS types ({})...",
-                prog_name
-            )))
+            Some(ui::Step::start("Generating the IDL"))
         };
 
         // Shared with `naclac generate idl` — see generate.rs.
@@ -389,15 +401,16 @@ pub fn execute(
 
         let ts_path = idl_dir.join(format!("{}.ts", prog_name));
         fs::write(&ts_path, ts_content).unwrap();
+        let idl_written = format!("IDL written · {prog_name}.json · {prog_name}.ts");
         match idl_step {
-            Some(step) => step.done(format!("IDL + TS types written ({})", prog_name)),
-            None => ui::success(format!("IDL + TS types written ({})", prog_name)),
+            Some(step) => step.done(idl_written),
+            None => ui::success(idl_written),
         }
         crate::commands::generate::execute_client(&[prog_name.to_string()], None);
     }
 
     ui::milestone(format!(
-        "Build complete — {} program{}, {}",
+        "Built {} program{} · {}",
         programs_to_build.len(),
         if programs_to_build.len() == 1 {
             ""
@@ -411,7 +424,7 @@ pub fn execute(
 /// Removes ANSI CSI escape sequences (`\x1b[...<letter>`), the only kind
 /// cargo emits, so line-content checks on a captured line see the same text
 /// a human reads.
-fn strip_ansi(s: &str) -> String {
+pub(crate) fn strip_ansi(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut chars = s.chars().peekable();
     while let Some(c) = chars.next() {

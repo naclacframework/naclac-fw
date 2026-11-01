@@ -4,7 +4,7 @@ use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
 
-#[component]
+#[account]
 pub struct Ledger {
     pub entries: Vec<u64>,
 }

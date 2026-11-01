@@ -3,11 +3,11 @@ use naclac_lang::prelude::*;
 
 declare_id!("BUnzdon444sj9eHgaCNgnNk3ckdKc5xSgyax946Uuvau");
 
-pub mod components;
-pub mod instructions;
-pub mod events;
-pub mod errors;
 pub mod constants;
+pub mod errors;
+pub mod events;
+pub mod instructions;
+pub mod state;
 
 use instructions::*;
 

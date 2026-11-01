@@ -8,12 +8,12 @@ use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
 
-#[component(discriminator = [1, 1, 1, 1, 1, 1, 1, 1])]
+#[account(discriminator = [1, 1, 1, 1, 1, 1, 1, 1])]
 pub struct Foo {
     pub value: u64,
 }
 
-#[component(discriminator = [2, 2, 2, 2, 2, 2, 2, 2])]
+#[account(discriminator = [2, 2, 2, 2, 2, 2, 2, 2])]
 pub struct Bar {
     pub value: u64,
 }

@@ -1,9 +1,9 @@
 #![allow(unexpected_cfgs)]
-// Site: macros/src/component.rs:29 — `#[component]` field typed
+// Site: macros/src/account.rs:29 — `#[account]` field typed
 // `Pubkey` (deprecated in favor of `Address`).
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct Foo {
     pub bad: Pubkey,
 }

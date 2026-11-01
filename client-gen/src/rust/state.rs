@@ -8,6 +8,26 @@ use {
     std::{fs, path::Path},
 };
 
+const BORSH_IMPORTS: &str = "#[cfg(all(feature = \"borsh\", feature = \"offchain\"))]\n\
+     use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};\n\
+     #[cfg(all(feature = \"borsh\", not(feature = \"offchain\")))]\n\
+     use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};\n";
+
+const TYPEDEFS_IMPORT: &str = "use crate::types::typedefs::*;\n";
+
+/// True when the generated client must hold every account in one `src/state.rs`
+/// instead of a `src/state/` folder with a file per account. The per-account
+/// file is named after the account, so an account whose snake_case name is
+/// `state` would otherwise become `state/state.rs`, a module inside a module of
+/// the same name, which clippy rejects under `-D warnings`. `generate_rust_sdk`
+/// uses this to decide whether to create `src/state/`, so it must stay the
+/// single source of truth for that decision.
+pub(crate) fn collapses_into_one_file(idl: &Idl) -> bool {
+    idl.accounts
+        .iter()
+        .any(|acc| AsSnakeCase(&acc.name).to_string() == "state")
+}
+
 pub fn generate_state(
     idl: &Idl,
     clients_dir: &Path,
@@ -17,29 +37,25 @@ pub fn generate_state(
         return Ok(());
     }
 
-    let mut state_mod = header.to_string();
-    for acc in &idl.accounts {
-        let acc_snake = AsSnakeCase(&acc.name).to_string();
-        state_mod.push_str(&format!("pub mod {};\n", acc_snake));
-        state_mod.push_str(&format!("pub use {}::*;\n", acc_snake));
+    let collapsed = collapses_into_one_file(idl);
+    let mut collapsed_items = String::new();
+
+    if !collapsed {
+        let mut state_mod = header.to_string();
+        for acc in &idl.accounts {
+            let acc_snake = AsSnakeCase(&acc.name).to_string();
+            state_mod.push_str(&format!("pub mod {};\n", acc_snake));
+            state_mod.push_str(&format!("pub use {}::*;\n", acc_snake));
+        }
+        fs::write(clients_dir.join("src/state/mod.rs"), state_mod).unwrap();
     }
-    fs::write(clients_dir.join("src/state/mod.rs"), state_mod).unwrap();
 
     for acc in &idl.accounts {
         let acc_snake = AsSnakeCase(&acc.name).to_string();
         let acc_camel = acc.name.to_upper_camel_case();
 
-        let mut comp_content = header.to_string();
-        comp_content.push_str(
-            "#[cfg(all(feature = \"borsh\", feature = \"offchain\"))]\n\
-             use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};\n\
-             #[cfg(all(feature = \"borsh\", not(feature = \"offchain\")))]\n\
-             use crate::sdk_core_cpi::borsh::{BorshDeserialize, BorshSerialize};\n",
-        );
-        if acc.ty.fields.iter().any(|f| references_defined_type(&f.ty)) {
-            comp_content.push_str("use crate::types::typedefs::*;\n");
-        }
-        comp_content.push('\n');
+        let uses_typedefs = acc.ty.fields.iter().any(|f| references_defined_type(&f.ty));
+        let mut comp_content = String::new();
 
         // Field types (e.g. `Address`/`Bool`) genuinely differ between
         // `sdk_core_offchain` and `sdk_core_cpi` — not interchangeable, just
@@ -298,12 +314,127 @@ pub fn fetch_all_{acc_snake}(
             disc_name = acc.name.to_uppercase().replace(' ', "_"),
         ));
 
+        if collapsed {
+            if !collapsed_items.is_empty() {
+                collapsed_items.push('\n');
+            }
+            collapsed_items.push_str(&comp_content);
+        } else {
+            let typedefs = if uses_typedefs { TYPEDEFS_IMPORT } else { "" };
+            fs::write(
+                clients_dir.join(format!("src/state/{}.rs", acc_snake)),
+                format!("{header}{BORSH_IMPORTS}{typedefs}\n{comp_content}"),
+            )
+            .unwrap();
+        }
+    }
+
+    if collapsed {
+        let any_typedefs = idl
+            .accounts
+            .iter()
+            .any(|acc| acc.ty.fields.iter().any(|f| references_defined_type(&f.ty)));
+        let typedefs = if any_typedefs { TYPEDEFS_IMPORT } else { "" };
         fs::write(
-            clients_dir.join(format!("src/state/{}.rs", acc_snake)),
-            comp_content,
+            clients_dir.join("src/state.rs"),
+            format!("{header}{BORSH_IMPORTS}{typedefs}\n{collapsed_items}"),
         )
         .unwrap();
+        eprintln!(
+            "ℹ️  naclac: this program has an account named `State`, so its generated Rust client keeps every account in one `src/state.rs` \
+             instead of a `src/state/` folder (a `state/state.rs` module would trip clippy's `module_inception`). Nothing to do; \
+             rename the account if you want the usual one-file-per-account layout."
+        );
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::{collapses_into_one_file, generate_state},
+        crate::Idl,
+        serde_json::json,
+        std::{fs, path::PathBuf},
+    };
+
+    fn idl_with_accounts(names: &[&str]) -> Idl {
+        let accounts: Vec<_> = names
+            .iter()
+            .map(|name| {
+                json!({
+                    "name": name,
+                    "type": { "kind": "struct", "fields": [{ "name": "value", "type": "u64" }] },
+                })
+            })
+            .collect();
+        let idl = json!({
+            "address": "11111111111111111111111111111111",
+            "metadata": { "name": "p", "version": "0.1.0", "description": "d", "serialization": "borsh" },
+            "instructions": [],
+            "accounts": accounts,
+            "events": [],
+            "errors": [],
+            "constants": [],
+        });
+        Idl::from_json(&idl.to_string()).unwrap()
+    }
+
+    fn scratch_client(test: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("naclac_state_{test}_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(dir.join("src")).unwrap();
+        dir
+    }
+
+    #[test]
+    fn only_an_account_whose_snake_case_name_is_state_collapses_the_layout() {
+        assert!(collapses_into_one_file(&idl_with_accounts(&["State"])));
+        assert!(collapses_into_one_file(&idl_with_accounts(&[
+            "Vault", "State"
+        ])));
+        assert!(!collapses_into_one_file(&idl_with_accounts(&[
+            "Vault",
+            "GlobalState"
+        ])));
+        assert!(!collapses_into_one_file(&idl_with_accounts(&["Stateful"])));
+    }
+
+    #[test]
+    fn a_state_account_puts_every_account_in_one_state_rs() {
+        let dir = scratch_client("collapsed");
+        let idl = idl_with_accounts(&["State", "Vault"]);
+        generate_state(&idl, &dir, "// header\n\n").unwrap();
+
+        assert!(!dir.join("src/state").exists());
+        let source = fs::read_to_string(dir.join("src/state.rs")).unwrap();
+        assert!(source.contains("pub struct State "));
+        assert!(source.contains("pub struct Vault "));
+        assert!(source.contains("pub fn fetch_state("));
+        assert!(source.contains("pub fn fetch_vault("));
+        assert_eq!(
+            source
+                .matches("use crate::sdk_core_offchain::borsh::{BorshDeserialize, BorshSerialize};")
+                .count(),
+            1
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn without_a_state_account_each_account_keeps_its_own_file() {
+        let dir = scratch_client("per_account");
+        fs::create_dir_all(dir.join("src/state")).unwrap();
+        let idl = idl_with_accounts(&["Vault", "GlobalState"]);
+        generate_state(&idl, &dir, "// header\n\n").unwrap();
+
+        assert!(!dir.join("src/state.rs").exists());
+        assert!(dir.join("src/state/vault.rs").exists());
+        assert!(dir.join("src/state/global_state.rs").exists());
+        let module = fs::read_to_string(dir.join("src/state/mod.rs")).unwrap();
+        assert!(module.contains("pub mod vault;"));
+        assert!(module.contains("pub mod global_state;"));
+        let _ = fs::remove_dir_all(&dir);
+    }
 }

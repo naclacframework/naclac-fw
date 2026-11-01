@@ -4,6 +4,7 @@ use {
     std::str::FromStr,
 };
 
+mod cargo_progress;
 mod commands;
 mod ui;
 

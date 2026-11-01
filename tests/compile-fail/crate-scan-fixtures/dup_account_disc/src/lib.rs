@@ -1,4 +1,4 @@
-//! Must FAIL to build: `Foo` and `Bar` are two different `#[component]`
+//! Must FAIL to build: `Foo` and `Bar` are two different `#[account]`
 //! accounts with the identical explicit discriminator. This is only
 //! catchable by `#[program]`'s crate-wide scan (naclac_syn::discriminator::
 //! scan_crate_discriminators + validate_category) — it can't be caught by
@@ -11,12 +11,12 @@ use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
 
-#[component(discriminator = [1, 1, 1, 1, 1, 1, 1, 1])]
+#[account(discriminator = [1, 1, 1, 1, 1, 1, 1, 1])]
 pub struct Foo {
     pub value: u64,
 }
 
-#[component(discriminator = [1, 1, 1, 1, 1, 1, 1, 1])]
+#[account(discriminator = [1, 1, 1, 1, 1, 1, 1, 1])]
 pub struct Bar {
     pub value: u64,
 }

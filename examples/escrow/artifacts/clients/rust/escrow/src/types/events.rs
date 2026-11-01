@@ -32,11 +32,11 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < EscrowCancelled > () == (::core::mem::size_of:: < crate
         ::sdk_core_offchain::Address > () + ::core::mem::size_of:: < u64 > ()),
-        "defined_type/#[component]: `EscrowCancelled` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `EscrowCancelled` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < EscrowCancelled > () == 1,
-        "defined_type/#[component]: `EscrowCancelled` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `EscrowCancelled` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
@@ -80,11 +80,11 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < EscrowCancelledCpi > () == (::core::mem::size_of:: <
         crate ::sdk_core_cpi::Address > () + ::core::mem::size_of:: < u64 > ()),
-        "defined_type/#[component]: `EscrowCancelledCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `EscrowCancelledCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < EscrowCancelledCpi > () == 1,
-        "defined_type/#[component]: `EscrowCancelledCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `EscrowCancelledCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
@@ -138,11 +138,11 @@ const _: () = {
         ::core::mem::size_of:: < EscrowCreated > () == (::core::mem::size_of:: < crate
         ::sdk_core_offchain::Address > () + ::core::mem::size_of:: < u64 > () +
         ::core::mem::size_of:: < u64 > ()),
-        "defined_type/#[component]: `EscrowCreated` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `EscrowCreated` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < EscrowCreated > () == 1,
-        "defined_type/#[component]: `EscrowCreated` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `EscrowCreated` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
@@ -190,11 +190,11 @@ const _: () = {
         ::core::mem::size_of:: < EscrowCreatedCpi > () == (::core::mem::size_of:: < crate
         ::sdk_core_cpi::Address > () + ::core::mem::size_of:: < u64 > () +
         ::core::mem::size_of:: < u64 > ()),
-        "defined_type/#[component]: `EscrowCreatedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `EscrowCreatedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < EscrowCreatedCpi > () == 1,
-        "defined_type/#[component]: `EscrowCreatedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `EscrowCreatedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
@@ -249,11 +249,11 @@ const _: () = {
         ::core::mem::size_of:: < EscrowExchanged > () == (::core::mem::size_of:: < crate
         ::sdk_core_offchain::Address > () + ::core::mem::size_of:: < u64 > () +
         ::core::mem::size_of:: < u64 > ()),
-        "defined_type/#[component]: `EscrowExchanged` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `EscrowExchanged` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < EscrowExchanged > () == 1,
-        "defined_type/#[component]: `EscrowExchanged` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `EscrowExchanged` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
@@ -301,11 +301,11 @@ const _: () = {
         ::core::mem::size_of:: < EscrowExchangedCpi > () == (::core::mem::size_of:: <
         crate ::sdk_core_cpi::Address > () + ::core::mem::size_of:: < u64 > () +
         ::core::mem::size_of:: < u64 > ()),
-        "defined_type/#[component]: `EscrowExchangedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `EscrowExchangedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < EscrowExchangedCpi > () == 1,
-        "defined_type/#[component]: `EscrowExchangedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `EscrowExchangedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]

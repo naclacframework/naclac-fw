@@ -1,8 +1,10 @@
-use naclac_lang::prelude::*;
-use crate::components::escrow_state::EscrowState;
-use crate::constants::SEED_ESCROW;
-use crate::errors::EscrowError;
-use crate::events::EscrowCreated;
+use {
+    crate::{
+        constants::SEED_ESCROW, errors::EscrowError, events::EscrowCreated,
+        state::escrow_state::EscrowState,
+    },
+    naclac_lang::prelude::*,
+};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
@@ -35,7 +37,10 @@ pub struct Make {
 }
 pub fn make(ctx: Context<Make>, _seed: u64, amount_a: u64, amount_b: u64) -> Result {
     require!(amount_a > 0 && amount_b > 0, EscrowError::ZeroAmount);
-    require!(ctx.accounts.mint_a.address() != ctx.accounts.mint_b.address(), EscrowError::InvalidMint);
+    require!(
+        ctx.accounts.mint_a.address() != ctx.accounts.mint_b.address(),
+        EscrowError::InvalidMint
+    );
 
     let escrow = &mut ctx.accounts.escrow_state;
     escrow.maker = ctx.accounts.maker.address();

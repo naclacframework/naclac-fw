@@ -8,7 +8,7 @@ pub enum Mode {
     On,
 }
 
-#[component]
+#[account]
 pub struct Foo {
     pub mode: Mode,
 }

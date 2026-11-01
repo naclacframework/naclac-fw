@@ -1,8 +1,10 @@
-use crate::components::escrow_state::EscrowState;
-use crate::constants::SEED_ESCROW;
-use crate::errors::EscrowError;
-use crate::events::EscrowCancelled;
-use naclac_lang::prelude::*;
+use {
+    crate::{
+        constants::SEED_ESCROW, errors::EscrowError, events::EscrowCancelled,
+        state::escrow_state::EscrowState,
+    },
+    naclac_lang::prelude::*,
+};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
@@ -40,7 +42,6 @@ pub struct Cancel {
 }
 
 pub fn cancel(ctx: Context<Cancel>, seed: u64) -> Result {
-
     // 1. Prepare signer seeds for the escrow state PDA
     let maker_addr = ctx.accounts.maker.address();
     let seed_bytes = seed.to_le_bytes();

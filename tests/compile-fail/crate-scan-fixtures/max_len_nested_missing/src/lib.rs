@@ -9,7 +9,7 @@ pub struct Inner {
     pub items: Vec<u8>,
 }
 
-#[component]
+#[account]
 pub struct Outer {
     pub inner: Inner,
 }

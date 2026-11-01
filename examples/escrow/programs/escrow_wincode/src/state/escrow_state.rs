@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 
-#[component]
+#[account]
 pub struct EscrowState {
     pub maker: Address,
     pub mint_a: Address,

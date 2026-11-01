@@ -23,7 +23,7 @@ pub struct Foo {
     pub system_program: Program<System>,
 }
 
-#[component]
+#[account]
 pub struct FooData {
     pub value: u64,
 }

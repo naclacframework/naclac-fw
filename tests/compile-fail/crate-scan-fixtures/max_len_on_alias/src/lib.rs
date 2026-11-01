@@ -7,7 +7,7 @@ declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
 
 type Label = String;
 
-#[component]
+#[account]
 pub struct Named {
     #[max_len(8)]
     pub label: Label,

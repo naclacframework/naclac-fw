@@ -11,7 +11,7 @@ pub struct Plain {
     pub value: u64,
 }
 
-#[component]
+#[account]
 pub struct Holder {
     pub plain: Plain,
 }
