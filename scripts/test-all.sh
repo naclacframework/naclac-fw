@@ -44,7 +44,7 @@ for case_dir in "${case_dirs[@]}"; do
         for step in "${steps[@]}"; do
             case $step in
                 check) label="naclac check"; args=(check --deny-warnings) ;;
-                build) label="naclac build"; args=(build --show-output) ;;
+                build) label="naclac build"; args=(build) ;;
                 check-test) label="naclac check --test"; args=(check --test --deny-warnings) ;;
             esac
             echo "=== $case_name :: $label ==="
