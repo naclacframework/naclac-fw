@@ -1,38 +1,15 @@
-// Re-defining parts of IDL for decoding
+//! `naclac account <address>`: fetches an account from the workspace's
+//! cluster and prints its fields, decoded with the IDL in `artifacts/idl` of
+//! the program that owns it.
+
 use {
-    crate::{commands::workspace, ui},
-    bs58,
-    serde::Deserialize,
-    serde_json::{Map, Value},
+    crate::{account_decode, commands::workspace, ui},
+    naclac_idl::{Idl, IdlAccountStruct},
+    serde_json::Value,
     solana_address::Address,
     solana_rpc_client::rpc_client::RpcClient,
-    std::{fs, str::FromStr},
+    std::{fs, path::Path, str::FromStr},
 };
-
-#[derive(Deserialize, Debug)]
-struct Idl {
-    accounts: Vec<IdlAccountDef>,
-}
-
-#[derive(Deserialize, Debug)]
-struct IdlAccountDef {
-    name: String,
-    discriminator: Vec<u8>,
-    #[serde(rename = "type")]
-    ty: IdlTypeDef,
-}
-
-#[derive(Deserialize, Debug)]
-struct IdlTypeDef {
-    fields: Vec<IdlField>,
-}
-
-#[derive(Deserialize, Debug)]
-struct IdlField {
-    name: String,
-    #[serde(rename = "type")]
-    ty: Value,
-}
 
 pub fn execute(address: &str) {
     let address_val =
@@ -61,7 +38,8 @@ pub fn execute(address: &str) {
         }
     };
 
-    ui::kv("owner", account.owner.to_string());
+    let owner = account.owner.to_string();
+    ui::kv("owner", &owner);
     ui::kv(
         "balance",
         format!("{:.6} SOL", account.lamports as f64 / 1_000_000_000.0),
@@ -78,130 +56,116 @@ pub fn execute(address: &str) {
         return;
     }
 
-    let account_data = account.data;
+    let idl = load_idl(&naclac_client_gen::idl_dir(&workspace_root), &owner);
+    let def = matching_account(&idl, &account.data);
 
-    let idl_dir = naclac_client_gen::idl_dir(&workspace_root);
-    if !idl_dir.exists() {
-        ui::error("No IDLs found in artifacts/idl. Run `naclac build` first.");
-    }
-
-    let mut matched_def = None;
-
-    for entry in fs::read_dir(&idl_dir).unwrap_or_else(|e| ui::error(e)).flatten() {
-        if let Ok(content) = fs::read_to_string(entry.path()) {
-            if let Ok(idl) = serde_json::from_str::<Idl>(&content) {
-                for acc in idl.accounts {
-                    if !acc.discriminator.is_empty() && account_data.starts_with(&acc.discriminator)
-                    {
-                        matched_def = Some(acc);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    let def = match matched_def {
-        Some(d) => d,
-        None => {
-            ui::error_line("Account discriminator does not match any known IDL struct in artifacts/idl.");
-            ui::info("  Tip: Pass the address of an account created by your program (such as a PDA or state account).");
-            std::process::exit(1);
-        }
-    };
-
+    ui::kv("program", &idl.metadata.name);
     ui::kv("type", &def.name);
 
-    let mut offset = def.discriminator.len();
-    let mut result_obj = Map::new();
-
-    for field in def.ty.fields {
-        let ty_str = if field.ty.is_string() {
-            field.ty.as_str().unwrap().to_string()
-        } else {
-            // handle objects, arrays, etc. (simplified for now)
-            "unknown".to_string()
-        };
-
-        if offset >= account_data.len() {
-            break;
-        }
-
-        match ty_str.as_str() {
-            "publicKey" => {
-                if offset + 32 <= account_data.len() {
-                    let pk_bytes = &account_data[offset..offset + 32];
-                    let pk = bs58::encode(pk_bytes).into_string();
-                    result_obj.insert(field.name.clone(), Value::String(pk));
-                    offset += 32;
-                }
-            }
-            "u8" | "i8" => {
-                if offset < account_data.len() {
-                    let val = account_data[offset];
-                    result_obj.insert(
-                        field.name.clone(),
-                        Value::Number(serde_json::Number::from(val)),
-                    );
-                    offset += 1;
-                }
-            }
-            "u16" | "i16" => {
-                if offset + 2 <= account_data.len() {
-                    let mut arr = [0u8; 2];
-                    arr.copy_from_slice(&account_data[offset..offset + 2]);
-                    let val = u16::from_le_bytes(arr);
-                    result_obj.insert(
-                        field.name.clone(),
-                        Value::Number(serde_json::Number::from(val)),
-                    );
-                    offset += 2;
-                }
-            }
-            "u32" | "i32" => {
-                if offset + 4 <= account_data.len() {
-                    let mut arr = [0u8; 4];
-                    arr.copy_from_slice(&account_data[offset..offset + 4]);
-                    let val = u32::from_le_bytes(arr);
-                    result_obj.insert(
-                        field.name.clone(),
-                        Value::Number(serde_json::Number::from(val)),
-                    );
-                    offset += 4;
-                }
-            }
-            "u64" | "i64" => {
-                if offset + 8 <= account_data.len() {
-                    let mut arr = [0u8; 8];
-                    arr.copy_from_slice(&account_data[offset..offset + 8]);
-                    let val = u64::from_le_bytes(arr);
-                    result_obj.insert(
-                        field.name.clone(),
-                        Value::Number(serde_json::Number::from(val)),
-                    );
-                    offset += 8;
-                }
-            }
-            "bool" => {
-                if offset < account_data.len() {
-                    let val = account_data[offset] != 0;
-                    result_obj.insert(field.name.clone(), Value::Bool(val));
-                    offset += 1;
-                }
-            }
-            _ => {
-                result_obj.insert(
-                    field.name.clone(),
-                    Value::String(format!("unsupported type: {}", ty_str)),
-                );
-                // We cannot safely advance offset for dynamic lengths without robust parsing
-                break;
-            }
-        }
+    let decoded = account_decode::decode_account(&idl, def, &account.data)
+        .unwrap_or_else(|e| ui::error(format!("Cannot decode the {} account: {e}", def.name)));
+    if decoded.trailing > 0 {
+        ui::kv(
+            "extra",
+            format!("{} bytes after the last field", decoded.trailing),
+        );
     }
 
-    let json_pretty = serde_json::to_string_pretty(&Value::Object(result_obj))
+    let json_pretty = serde_json::to_string_pretty(&decoded.value)
         .unwrap_or_else(|e| ui::error(format!("JSON serialization failed: {e}")));
     ui::info("");
     ui::info(json_pretty);
+}
+
+/// The IDL in `idl_dir` whose address is `owner`, the program that owns the
+/// account. Every `.json` file in the folder must be readable JSON; none or
+/// more than one naming `owner` is an error.
+fn load_idl(idl_dir: &Path, owner: &str) -> Idl {
+    let exists = idl_dir
+        .try_exists()
+        .unwrap_or_else(|e| ui::error(format!("Cannot check for {}: {e}", idl_dir.display())));
+    if !exists {
+        ui::error("No IDLs found in artifacts/idl. Run `naclac build` first.");
+    }
+
+    let mut matching = Vec::new();
+    let entries = fs::read_dir(idl_dir)
+        .unwrap_or_else(|e| ui::error(format!("Cannot read {}: {e}", idl_dir.display())));
+    for entry in entries {
+        let path = entry
+            .unwrap_or_else(|e| {
+                ui::error(format!(
+                    "Cannot read an entry of {}: {e}",
+                    idl_dir.display()
+                ))
+            })
+            .path();
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+        let text = fs::read_to_string(&path)
+            .unwrap_or_else(|e| ui::error(format!("Cannot read {}: {e}", path.display())));
+        let value: Value = serde_json::from_str(&text)
+            .unwrap_or_else(|e| ui::error(format!("{} is not valid JSON: {e}", path.display())));
+        if value.get("address").and_then(Value::as_str) == Some(owner) {
+            matching.push((path, value));
+        }
+    }
+
+    match matching.len() {
+        0 => ui::error(format!(
+            "No IDL in {} is for the program that owns this account ({owner}). Run `naclac build` \
+             for that program, or check that the cluster is the one the account is on.",
+            idl_dir.display()
+        )),
+        1 => {
+            let (path, value) = matching.remove(0);
+            serde_json::from_value(value).unwrap_or_else(|e| {
+                ui::error(format!("{} is not a Naclac IDL: {e}", path.display()))
+            })
+        }
+        _ => {
+            let files: Vec<String> = matching
+                .iter()
+                .map(|(path, _)| path.display().to_string())
+                .collect();
+            ui::error(format!(
+                "More than one IDL in {} is for the program {owner}: {}. Remove the stale ones.",
+                idl_dir.display(),
+                files.join(", ")
+            ))
+        }
+    }
+}
+
+/// The account of `idl` whose discriminator `data` starts with; none or more
+/// than one is an error.
+fn matching_account<'a>(idl: &'a Idl, data: &[u8]) -> &'a IdlAccountStruct {
+    let matching: Vec<&IdlAccountStruct> = idl
+        .accounts
+        .iter()
+        .filter(|account| {
+            !account.discriminator.is_empty() && data.starts_with(&account.discriminator)
+        })
+        .collect();
+    match matching.as_slice() {
+        [one] => one,
+        [] => {
+            let known: Vec<&str> = idl.accounts.iter().map(|a| a.name.as_str()).collect();
+            ui::error(format!(
+                "The account's discriminator matches none of the accounts of '{}' ({}). Pass the \
+                 address of an account created by the program, such as a PDA or state account.",
+                idl.metadata.name,
+                known.join(", ")
+            ))
+        }
+        several => {
+            let names: Vec<&str> = several.iter().map(|a| a.name.as_str()).collect();
+            ui::error(format!(
+                "The account's discriminator matches more than one account of '{}': {}.",
+                idl.metadata.name,
+                names.join(", ")
+            ))
+        }
+    }
 }

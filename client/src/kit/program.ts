@@ -110,7 +110,7 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
   async getAccountInfo(address: string | Address) {
     const { value } = await this.provider.rpc
       .getAccountInfo(address as Address, {
-        commitment: this.provider.commitment ?? "confirmed",
+        commitment: this.provider.commitment,
         encoding: "base64",
       })
       .send();

@@ -1,100 +1,114 @@
 import {
-  createMint as splCreateMint,
-  getOrCreateAssociatedTokenAccount,
-  mintTo as splMintTo,
-  getAssociatedTokenAddress,
-} from "@solana/spl-token";
-import { PublicKey, Keypair } from "@solana/web3.js";
-import type { LegacyProvider } from "./provider";
+  findAssociatedTokenPda,
+  getCreateAssociatedTokenIdempotentInstruction,
+  getInitializeMint2Instruction,
+  getMintSize,
+  getMintToInstruction,
+} from "@solana-program/token-2022";
+import { PublicKey, SystemProgram, type Keypair } from "@solana/web3.js";
+import { normalizeTxVersion, type LegacyProvider } from "./provider";
+import { sendInstructions } from "./transaction";
+
+function requirePayer(provider: LegacyProvider, operation: string): Keypair {
+  if (!provider.payer) {
+    throw new Error(`[Naclac] Provider must have a payer Keypair to sign local ${operation} transactions.`);
+  }
+  return provider.payer;
+}
 
 /**
- * Creates and initializes a new SPL Token mint using legacy web3.js + spl-token.
+ * Creates and initializes a new SPL Token mint owned by `tokenProgramId`
+ * (Token or Token-2022), with `mintAuthority` as both mint and freeze
+ * authority.
  */
 export async function createMint(
   provider: LegacyProvider,
   mintSigner: Keypair,
-  tokenProgramId: PublicKey = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-  mintAuthority: PublicKey = provider.payer ? provider.payer.publicKey : provider.publicKey!,
-  decimals: number = 6,
+  tokenProgramId: PublicKey,
+  mintAuthority: PublicKey,
+  decimals: number,
 ): Promise<PublicKey> {
-  const payer = provider.payer;
-  if (!payer) {
-    throw new Error("[Naclac] Provider must have a payer Keypair to sign local createMint transactions.");
-  }
+  const payer = requirePayer(provider, "createMint");
 
-  await splCreateMint(
-    provider.connection,
-    payer,
-    mintAuthority,
-    mintAuthority,
-    decimals,
-    mintSigner,
-    undefined,
-    tokenProgramId
+  const space = getMintSize();
+  const lamports = await provider.connection.getMinimumBalanceForRentExemption(space, provider.commitment);
+  const createAccountIx = SystemProgram.createAccount({
+    fromPubkey: payer.publicKey,
+    newAccountPubkey: mintSigner.publicKey,
+    lamports,
+    space,
+    programId: tokenProgramId,
+  });
+  const initMintIx = getInitializeMint2Instruction(
+    {
+      mint: mintSigner.publicKey,
+      decimals,
+      mintAuthority,
+      freezeAuthority: mintAuthority,
+    },
+    { programAddress: tokenProgramId },
   );
 
+  await sendInstructions(
+    provider,
+    [createAccountIx, initMintIx],
+    [mintSigner],
+    normalizeTxVersion(provider.defaultTxVersion),
+  );
   return mintSigner.publicKey;
 }
 
 /**
- * Creates an Associated Token Account for a given owner+mint using legacy web3.js + spl-token.
+ * Creates the Associated Token Account for `owner` and `mint` if it does not
+ * exist yet, and returns its address.
  */
 export async function createAta(
   provider: LegacyProvider,
   mint: PublicKey,
   owner: PublicKey,
-  tokenProgramId: PublicKey = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+  tokenProgramId: PublicKey,
 ): Promise<PublicKey> {
-  const payer = provider.payer;
-  if (!payer) {
-    throw new Error("[Naclac] Provider must have a payer Keypair to sign local createAta transactions.");
-  }
+  const payer = requirePayer(provider, "createAta");
 
-  const ata = await getOrCreateAssociatedTokenAccount(
-    provider.connection,
+  const [ata] = await findAssociatedTokenPda({ mint, owner, tokenProgram: tokenProgramId });
+  const createAtaIx = getCreateAssociatedTokenIdempotentInstruction({
     payer,
-    mint,
+    ata,
     owner,
-    true,
-    undefined,
-    undefined,
-    tokenProgramId
-  );
+    mint,
+    tokenProgram: tokenProgramId,
+  });
 
-  return ata.address;
+  await sendInstructions(provider, [createAtaIx], [], normalizeTxVersion(provider.defaultTxVersion));
+  return new PublicKey(ata);
 }
 
 /**
- * Mints tokens to a destination owner's Associated Token Account using legacy web3.js + spl-token.
+ * Mints `amount` tokens to `destinationOwner`'s Associated Token Account,
+ * creating that account first if it does not exist. The provider's payer is
+ * the mint authority.
  */
 export async function mintTo(
   provider: LegacyProvider,
   mint: PublicKey,
   destinationOwner: PublicKey,
   amount: bigint | number,
-  tokenProgramId: PublicKey = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+  tokenProgramId: PublicKey,
 ): Promise<void> {
-  const payer = provider.payer;
-  if (!payer) {
-    throw new Error("[Naclac] Provider must have a payer Keypair to sign local mintTo transactions.");
-  }
+  const payer = requirePayer(provider, "mintTo");
 
-  const ataAddress = await getAssociatedTokenAddress(
+  const [ata] = await findAssociatedTokenPda({ mint, owner: destinationOwner, tokenProgram: tokenProgramId });
+  const createAtaIx = getCreateAssociatedTokenIdempotentInstruction({
+    payer,
+    ata,
+    owner: destinationOwner,
     mint,
-    destinationOwner,
-    true,
-    tokenProgramId
+    tokenProgram: tokenProgramId,
+  });
+  const mintToIx = getMintToInstruction(
+    { mint, token: ata, mintAuthority: payer, amount: BigInt(amount) },
+    { programAddress: tokenProgramId },
   );
 
-  await splMintTo(
-    provider.connection,
-    payer,
-    mint,
-    ataAddress,
-    payer,
-    amount,
-    [],
-    undefined,
-    tokenProgramId
-  );
+  await sendInstructions(provider, [createAtaIx, mintToIx], [], normalizeTxVersion(provider.defaultTxVersion));
 }

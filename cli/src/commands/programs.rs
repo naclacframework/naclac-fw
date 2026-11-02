@@ -65,6 +65,21 @@ pub fn program_dir(workspace_root: &Path, name: &str) -> PathBuf {
     dir
 }
 
+/// The name a program directory is listed under in Naclac.toml: its folder
+/// name, which must be valid UTF-8.
+pub fn dir_name(program_dir: &Path) -> String {
+    program_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(str::to_string)
+        .unwrap_or_else(|| {
+            ui::error(format!(
+                "{} is not a program folder: its name is not valid UTF-8.",
+                program_dir.display()
+            ))
+        })
+}
+
 /// Every program folder of the workspace, listed or not, sorted. For work on
 /// the workspace as a whole (client stubs the workspace's Cargo needs to
 /// resolve), never for choosing what a command runs on.

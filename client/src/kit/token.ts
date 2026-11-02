@@ -19,6 +19,10 @@ import {
   getMintToInstruction,
 } from "@solana-program/token-2022";
 import { type NaclacProvider, normalizeTxVersion } from "./provider";
+import {
+  V1_DEFAULT_COMPUTE_UNIT_LIMIT,
+  V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT,
+} from "../tx-config";
 import { getAssociatedTokenAddress } from "../utils/pda";
 export { getAssociatedTokenAddress };
 
@@ -29,15 +33,15 @@ function getSendAndConfirm(provider: NaclacProvider) {
     rpc: provider.rpc as any,
     rpcSubscriptions: provider.rpcSubscriptions as any,
   });
-  return (tx: any) => sendAndConfirm(tx, { commitment: provider.commitment ?? "confirmed" });
+  return (tx: any) => sendAndConfirm(tx, { commitment: provider.commitment });
 }
 
 export async function createMint(
   provider: NaclacProvider,
   mintSigner: any,
-  tokenProgram: any = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-  mintAuthority: string = provider.signer.address as string,
-  decimals: number = 6,
+  tokenProgram: any,
+  mintAuthority: string,
+  decimals: number,
 ): Promise<string> {
   const rpc = provider.rpc as any;
   const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
@@ -67,8 +71,8 @@ export async function createMint(
   const baseMsg = targetVersion === 1
     ? pipe(
         createTransactionMessage({ version: 1 }),
-        (msg) => setTransactionMessageComputeUnitLimit(1_400_000, msg),
-        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(64 * 1024 * 1024, msg),
+        (msg) => setTransactionMessageComputeUnitLimit(V1_DEFAULT_COMPUTE_UNIT_LIMIT, msg),
+        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT, msg),
       )
     : createTransactionMessage({ version: targetVersion });
 
@@ -88,7 +92,7 @@ export async function createAta(
   provider: NaclacProvider,
   mint: string,
   owner: string,
-  tokenProgram: any = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  tokenProgram: any,
 ): Promise<string> {
   const rpc = provider.rpc as any;
 
@@ -115,8 +119,8 @@ export async function createAta(
   const baseMsg = targetVersion === 1
     ? pipe(
         createTransactionMessage({ version: 1 }),
-        (msg) => setTransactionMessageComputeUnitLimit(1_400_000, msg),
-        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(64 * 1024 * 1024, msg),
+        (msg) => setTransactionMessageComputeUnitLimit(V1_DEFAULT_COMPUTE_UNIT_LIMIT, msg),
+        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT, msg),
       )
     : createTransactionMessage({ version: targetVersion });
 
@@ -137,7 +141,7 @@ export async function mintTo(
   mint: string,
   destinationOwner: string,
   amount: bigint,
-  tokenProgram: any = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  tokenProgram: any,
 ): Promise<void> {
   const rpc = provider.rpc as any;
   const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
@@ -170,8 +174,8 @@ export async function mintTo(
   const baseMsg = targetVersion === 1
     ? pipe(
         createTransactionMessage({ version: 1 }),
-        (msg) => setTransactionMessageComputeUnitLimit(1_400_000, msg),
-        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(64 * 1024 * 1024, msg),
+        (msg) => setTransactionMessageComputeUnitLimit(V1_DEFAULT_COMPUTE_UNIT_LIMIT, msg),
+        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT, msg),
       )
     : createTransactionMessage({ version: targetVersion });
 

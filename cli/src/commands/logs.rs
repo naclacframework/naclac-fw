@@ -136,4 +136,3 @@ pub fn execute_multiple(targets: &[LogTarget]) {
         _ => {}
     }
 }
-

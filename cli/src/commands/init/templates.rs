@@ -52,6 +52,12 @@ impl ProgramMode {
     }
 }
 
+fn prompt_failed(what: &str, flag: &str, error: dialoguer::Error) -> ! {
+    ui::error(format!(
+        "Cannot ask which {what} to use: {error}. Choose it without a prompt with {flag}."
+    ))
+}
+
 fn prompt_runtime() -> Runtime {
     let selections = &[
         "Pinocchio (no-std, hyper-optimized compute units)",
@@ -63,7 +69,7 @@ fn prompt_runtime() -> Runtime {
         .default(0)
         .items(&selections[..])
         .interact()
-        .unwrap_or(0);
+        .unwrap_or_else(|e| prompt_failed("execution runtime", "--runtime", e));
 
     match choice {
         1 => Runtime::Solana,
@@ -95,7 +101,7 @@ fn prompt_layout(runtime: Runtime) -> Layout {
         .default(0)
         .items(&labels[..])
         .interact()
-        .unwrap_or(0);
+        .unwrap_or_else(|e| prompt_failed("account data layout", "--mode", e));
 
     layouts
         .get(choice)
@@ -182,7 +188,7 @@ pub fn prompt_ts_framework() -> TsFramework {
         .default(0)
         .items(&selections[..])
         .interact()
-        .unwrap_or(0);
+        .unwrap_or_else(|e| prompt_failed("TypeScript client framework", "--ts", e));
 
     match choice {
         1 => TsFramework::Legacy,

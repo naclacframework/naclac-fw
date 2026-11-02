@@ -79,7 +79,10 @@ pub fn execute(
     if auto_detected {
         ui::kv(
             "typescript",
-            format!("{} (auto-detected from package.json)", ts_framework.as_str()),
+            format!(
+                "{} (auto-detected from package.json)",
+                ts_framework.as_str()
+            ),
         );
     } else {
         ui::kv("typescript", ts_framework.as_str());
@@ -88,10 +91,7 @@ pub fn execute(
     let keypair_path =
         naclac_client_gen::deploy_dir(&workspace_root).join(format!("{}-keypair.json", snake_name));
     let address = generate_keypair(&keypair_path);
-    ui::kv(
-        "program",
-        format!("{snake_name} ({})", ui::short(&address)),
-    );
+    ui::kv("program", format!("{snake_name} ({})", ui::short(&address)));
 
     let scaffold_start = Instant::now();
     generate_program(

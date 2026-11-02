@@ -1,6 +1,6 @@
 /**
  * Unit and differential tests for transaction version modes (V1, V0, Legacy)
- * across both the Kit (@solana/kit) and Legacy (@solana/web3.js) SDK implementations.
+ * across both the Kit (@solana/kit) and Legacy (@solana/web3.js v3) SDK implementations.
  */
 
 import { strict as assert } from "assert";
@@ -11,23 +11,13 @@ import {
   VersionedTransaction,
   TransactionInstruction,
   MessageV1,
+  type Blockhash,
 } from "@solana/web3.js";
-import {
-  generateKeyPairSigner,
-  pipe,
-  createTransactionMessage,
-  setTransactionMessageComputeUnitLimit,
-  setTransactionMessageLoadedAccountsDataSizeLimit,
-  setTransactionMessagePriorityFeeLamports,
-  compileTransaction,
-  address,
-} from "@solana/kit";
+import { getBase64Codec } from "@solana/codecs";
+import { generateKeyPairSigner, compileTransaction } from "@solana/kit";
 
-import {
-  compileToV1Message,
-  serializeMessageV1,
-  LegacyMethodsBuilder,
-} from "../src/legacy";
+import { LegacyMethodsBuilder, createProvider } from "../src/legacy";
+import { pollForConfirmation } from "../src/legacy/transaction";
 import { MethodsBuilder } from "../src/kit/methods";
 import type { NaclacIdl } from "../src/idl";
 import {
@@ -59,13 +49,17 @@ const fixtureIdl: NaclacIdl = {
   errors: [],
 };
 
-const DUMMY_BLOCKHASH = "11111111111111111111111111111111";
+const DUMMY_BLOCKHASH = "11111111111111111111111111111111" as Blockhash;
+
+async function randomPublicKey(): Promise<PublicKey> {
+  return (await Keypair.generate()).publicKey;
+}
 
 describe("Transaction Modes & V1 Serialization", () => {
-  describe("Legacy SDK (@solana/web3.js) — MessageV1 Wire Format", () => {
-    it("serializes and deserializes a minimal MessageV1 roundtrip", () => {
-      const payer = Keypair.generate();
-      const counter = Keypair.generate();
+  describe("Legacy SDK (@solana/web3.js v3) — MessageV1 Wire Format", () => {
+    it("serializes and deserializes a minimal MessageV1 roundtrip", async () => {
+      const payer = await Keypair.generate();
+      const counter = await Keypair.generate();
 
       const ix = new TransactionInstruction({
         programId: new PublicKey(fixtureIdl.address),
@@ -73,16 +67,16 @@ describe("Transaction Modes & V1 Serialization", () => {
           { pubkey: payer.publicKey, isSigner: true, isWritable: true },
           { pubkey: counter.publicKey, isSigner: false, isWritable: true },
         ],
-        data: Buffer.from([1, 2, 3, 4]),
+        data: new Uint8Array([1, 2, 3, 4]),
       });
 
-      const message = compileToV1Message({
+      const message = MessageV1.compile({
         payerKey: payer.publicKey,
         recentBlockhash: DUMMY_BLOCKHASH,
         instructions: [ix],
       });
 
-      const serialized = serializeMessageV1(message);
+      const serialized = message.serialize();
       assert.equal(serialized[0], 0x81);
 
       const restored = MessageV1.deserialize(serialized);
@@ -100,42 +94,41 @@ describe("Transaction Modes & V1 Serialization", () => {
       );
     });
 
-    it("serializes and deserializes transaction config resource limits accurately", () => {
-      const payer = Keypair.generate();
-      const message = compileToV1Message({
+    it("serializes and deserializes transaction config resource limits accurately", async () => {
+      const payer = await Keypair.generate();
+      const message = MessageV1.compile({
         payerKey: payer.publicKey,
         recentBlockhash: DUMMY_BLOCKHASH,
         instructions: [],
         transactionConfig: {
           computeUnitLimit: 450_000,
           loadedAccountsDataSizeLimit: 32 * 1024 * 1024,
-          priorityFee: 12_500n,
+          priorityFeeLamports: 12_500n,
           heapSize: 64 * 1024,
         },
       });
 
-      const serialized = serializeMessageV1(message);
-      const restored = MessageV1.deserialize(serialized);
+      const restored = MessageV1.deserialize(message.serialize());
 
-      assert.equal(restored.transactionConfig.computeUnitLimit, 450_000);
+      assert.equal(restored.transactionConfig?.computeUnitLimit, 450_000);
       assert.equal(
-        restored.transactionConfig.loadedAccountsDataSizeLimit,
+        restored.transactionConfig?.loadedAccountsDataSizeLimit,
         32 * 1024 * 1024,
       );
-      assert.equal(restored.transactionConfig.priorityFee, 12_500);
-      assert.equal(restored.transactionConfig.heapSize, 64 * 1024);
+      assert.equal(restored.transactionConfig?.priorityFeeLamports, 12_500n);
+      assert.equal(restored.transactionConfig?.heapSize, 64 * 1024);
     });
 
-    it("serializes through VersionedTransaction with signature verification", () => {
-      const payer = Keypair.generate();
-      const message = compileToV1Message({
+    it("serializes through VersionedTransaction with signature verification", async () => {
+      const payer = await Keypair.generate();
+      const message = MessageV1.compile({
         payerKey: payer.publicKey,
         recentBlockhash: DUMMY_BLOCKHASH,
         instructions: [],
       });
 
       const tx = new VersionedTransaction(message);
-      tx.sign([payer]);
+      await tx.sign([payer]);
 
       const rawWireBytes = tx.serialize();
       assert.ok(rawWireBytes.length > 0);
@@ -151,19 +144,26 @@ describe("Transaction Modes & V1 Serialization", () => {
   });
 
   describe("Legacy SDK (@naclac-fw/client/legacy) — Builder Version Switching", () => {
-    function createMockLegacyProvider(defaultTxVersion?: TxVersion): {
+    let blockhashFetches = 0;
+
+    async function createMockLegacyProvider(defaultTxVersion?: TxVersion): Promise<{
       provider: LegacyProvider;
       payer: Keypair;
-    } {
-      const payer = Keypair.generate();
+    }> {
+      const payer = await Keypair.generate();
+      blockhashFetches = 0;
       const provider: LegacyProvider = {
         connection: {
-          getLatestBlockhash: async () => ({
-            blockhash: DUMMY_BLOCKHASH,
-            lastValidBlockHeight: 100,
-          }),
+          getLatestBlockhash: async () => {
+            blockhashFetches += 1;
+            return {
+              blockhash: DUMMY_BLOCKHASH,
+              lastValidBlockHeight: 100n,
+            };
+          },
         } as any,
         payer,
+        commitment: "confirmed",
         defaultTxVersion,
         getBalance: async () => 0n,
         getTokenBalance: async () => 0,
@@ -172,8 +172,8 @@ describe("Transaction Modes & V1 Serialization", () => {
     }
 
     it("defaults to V1 when defaultTxVersion is \"v1\" or undefined", async () => {
-      const { provider, payer } = createMockLegacyProvider();
-      const counter = Keypair.generate().publicKey;
+      const { provider, payer } = await createMockLegacyProvider();
+      const counter = await randomPublicKey();
 
       const builder = new LegacyMethodsBuilder(
         fixtureIdl,
@@ -191,8 +191,8 @@ describe("Transaction Modes & V1 Serialization", () => {
     });
 
     it("switches to V0 when explicitly requested with .v0()", async () => {
-      const { provider, payer } = createMockLegacyProvider("v1");
-      const counter = Keypair.generate().publicKey;
+      const { provider, payer } = await createMockLegacyProvider("v1");
+      const counter = await randomPublicKey();
 
       const builder = new LegacyMethodsBuilder(
         fixtureIdl,
@@ -212,8 +212,8 @@ describe("Transaction Modes & V1 Serialization", () => {
     });
 
     it("switches to legacy Transaction when requested with .legacy()", async () => {
-      const { provider, payer } = createMockLegacyProvider("v1");
-      const counter = Keypair.generate().publicKey;
+      const { provider, payer } = await createMockLegacyProvider("v1");
+      const counter = await randomPublicKey();
 
       const builder = new LegacyMethodsBuilder(
         fixtureIdl,
@@ -230,11 +230,13 @@ describe("Transaction Modes & V1 Serialization", () => {
       const tx = await builder.transaction();
       assert.ok(tx instanceof Transaction);
       assert.equal(tx instanceof VersionedTransaction, false);
+      assert.equal(tx.recentBlockhash, DUMMY_BLOCKHASH);
+      assert.equal(tx.feePayer?.toBase58(), payer.publicKey.toBase58());
     });
 
     it("accepts version() with \"v0\", \"v1\" and \"legacy\"", async () => {
-      const { provider, payer } = createMockLegacyProvider();
-      const counter = Keypair.generate().publicKey;
+      const { provider, payer } = await createMockLegacyProvider();
+      const counter = await randomPublicKey();
 
       const v0Tx = await new LegacyMethodsBuilder(
         fixtureIdl,
@@ -271,8 +273,8 @@ describe("Transaction Modes & V1 Serialization", () => {
     });
 
     it("applies V1 compute unit, memory, and priority fee resource limits", async () => {
-      const { provider, payer } = createMockLegacyProvider("v1");
-      const counter = Keypair.generate().publicKey;
+      const { provider, payer } = await createMockLegacyProvider("v1");
+      const counter = await randomPublicKey();
 
       const tx = await new LegacyMethodsBuilder(
         fixtureIdl,
@@ -288,12 +290,64 @@ describe("Transaction Modes & V1 Serialization", () => {
 
       assert.ok(tx instanceof VersionedTransaction);
       const msg = tx.message as MessageV1;
-      assert.equal(msg.transactionConfig.computeUnitLimit, 300_000);
+      assert.equal(msg.transactionConfig?.computeUnitLimit, 300_000);
       assert.equal(
-        msg.transactionConfig.loadedAccountsDataSizeLimit,
+        msg.transactionConfig?.loadedAccountsDataSizeLimit,
         16 * 1024 * 1024,
       );
-      assert.equal(msg.transactionConfig.priorityFee, 5000);
+      assert.equal(msg.transactionConfig?.priorityFeeLamports, 5000n);
+    });
+
+    for (const version of ["v1", "v0", "legacy"] as const) {
+      it(`${version}: encoded() returns a transaction carrying the payer's signature`, async () => {
+        const { provider, payer } = await createMockLegacyProvider(version);
+        const counter = await randomPublicKey();
+
+        const encoded = await new LegacyMethodsBuilder(
+          fixtureIdl,
+          fixtureIdl.instructions[0],
+          { amount: 10n },
+          provider,
+        )
+          .accounts({ authority: payer.publicKey, counterAccount: counter })
+          .encoded();
+
+        const wire = getBase64Codec().encode(encoded);
+        if (version === "legacy") {
+          const signature = Transaction.from(wire).signatures[0].signature;
+          assert.ok(signature !== null && signature.some((byte) => byte !== 0));
+        } else {
+          const signature = VersionedTransaction.deserialize(wire).signatures[0];
+          assert.ok(signature.some((byte) => byte !== 0));
+        }
+      });
+    }
+
+    it("fetches a single blockhash per signed send", async () => {
+      const { provider, payer } = await createMockLegacyProvider("v1");
+      const counter = await randomPublicKey();
+
+      await new LegacyMethodsBuilder(
+        fixtureIdl,
+        fixtureIdl.instructions[0],
+        { amount: 10n },
+        provider,
+      )
+        .accounts({ authority: payer.publicKey, counterAccount: counter })
+        .encoded();
+
+      assert.equal(blockhashFetches, 1);
+    });
+
+    it("createProvider(\"litesvm\") requires a payer", () => {
+      assert.throws(() => createProvider("litesvm"), /requires a payer/);
+    });
+
+    it("pollForConfirmation rejects an unknown commitment", async () => {
+      await assert.rejects(
+        pollForConfirmation({} as any, "sig", 1n, "bogus" as any),
+        /Unknown commitment/,
+      );
     });
   });
 
@@ -316,6 +370,7 @@ describe("Transaction Modes & V1 Serialization", () => {
         } as any,
         rpcSubscriptions: {} as any,
         signer,
+        commitment: "confirmed",
         defaultTxVersion,
         getBalance: async () => 0n,
         getTokenBalance: async () => 0,
@@ -447,11 +502,12 @@ describe("Transaction Modes & V1 Serialization", () => {
     }
 
     it("legacy builder: .version() with an unknown value fails at transaction()", async () => {
-      const payer = Keypair.generate();
+      const payer = await Keypair.generate();
       const provider = {
         connection: {} as any,
         publicKey: payer.publicKey,
         payer,
+        commitment: "confirmed",
         getBalance: async () => 0n,
         getTokenBalance: async () => 0,
       } as LegacyProvider;
@@ -461,7 +517,7 @@ describe("Transaction Modes & V1 Serialization", () => {
         { amount: 10n },
         provider,
       )
-        .accounts({ authority: payer.publicKey, counterAccount: Keypair.generate().publicKey })
+        .accounts({ authority: payer.publicKey, counterAccount: await randomPublicKey() })
         .version(0 as any);
       await assert.rejects(builder.transaction(), /Unknown transaction version/);
     });

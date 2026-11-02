@@ -62,7 +62,7 @@ export class AccountFetcher {
    */
   async fetch(pubkey: Address | string): Promise<Record<string, unknown>> {
     const addr = address(pubkey as string);
-    const commitment = this.provider.commitment ?? "confirmed";
+    const commitment = this.provider.commitment;
 
     const { value: accountInfo } = await (
       this.provider.rpc as {
@@ -102,7 +102,7 @@ export class AccountFetcher {
     opts: { dropCorrupted?: boolean } = {},
   ): Promise<Array<Record<string, unknown> | null>> {
     const addrs = pubkeys.map((pk) => address(pk as string));
-    const commitment = this.provider.commitment ?? "confirmed";
+    const commitment = this.provider.commitment;
 
     const { value: accounts } = await (
       this.provider.rpc as {
@@ -167,7 +167,7 @@ export class AccountFetcher {
     const discriminator = this.discriminator();
     // getBase58Codec().decode(bytes) → base58 string, which is what memcmp.bytes expects.
     const base58Discriminator = getBase58Codec().decode(discriminator);
-    const commitment = this.provider.commitment ?? "confirmed";
+    const commitment = this.provider.commitment;
 
     const filters = [
       { memcmp: { offset: 0, bytes: base58Discriminator } },
@@ -221,13 +221,13 @@ export async function fetchAllAccountsByProgram<
   programAddress: Address,
   discriminator: Uint8Array,
   decodeFn: (encodedAccount: EncodedAccount<TAddress>) => Account<TAccount, TAddress>,
-  options?: { commitment?: Commitment; filters?: unknown[] },
+  options: { commitment: Commitment; filters?: unknown[] },
 ): Promise<Array<Account<TAccount, TAddress>>> {
   const discBase58 = getBase58Codec().decode(discriminator);
   const baseFilters = [{ memcmp: { offset: 0, bytes: discBase58 } }];
-  const allFilters = [...baseFilters, ...(options?.filters ?? [])];
+  const allFilters = [...baseFilters, ...(options.filters ?? [])];
   const raw = await rpc.getProgramAccounts(programAddress, {
-    commitment: options?.commitment ?? "confirmed",
+    commitment: options.commitment,
     encoding: "base64",
     filters: allFilters,
   }).send();

@@ -11,6 +11,10 @@ use {
     },
 };
 
+fn test_spawn_error(error: &std::io::Error) -> String {
+    format!("Cannot run the test script: {error}")
+}
+
 pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node: bool, all: bool) {
     let run_node = node && !rust;
 
@@ -63,7 +67,11 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
 
             if let Some(idx) = test_script.find(" --test ") {
                 let after_test = &test_script[idx + " --test ".len()..];
-                let test_target = after_test.split_whitespace().next().unwrap_or("");
+                let test_target = after_test.split_whitespace().next().unwrap_or_else(|| {
+                    ui::error(format!(
+                        "The Rust test script `{test_script}` has `--test` with no target after it."
+                    ))
+                });
                 test_script = test_script.replace(test_target, &clean_f);
             } else if let Some(idx) = test_script.find(" -- ") {
                 test_script.insert_str(idx, &format!(" --test {}", clean_f));
@@ -103,7 +111,11 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
         format!(
             "{} program{}",
             selected_programs.len(),
-            if selected_programs.len() == 1 { "" } else { "s" }
+            if selected_programs.len() == 1 {
+                ""
+            } else {
+                "s"
+            }
         )
     };
     ui::header("test", header_target);
@@ -126,7 +138,7 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
         let step_start = Instant::now();
         let status = command
             .status()
-            .expect("Failed to execute test script");
+            .unwrap_or_else(|e| ui::error(test_spawn_error(&e)));
 
         if !status.success() {
             ui::error("Node test suite failed.");
@@ -145,14 +157,13 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
     } else {
         for (prog_name, script) in selected_programs.iter().zip(&run_scripts) {
             let program_dir = programs::program_dir(&workspace_root, prog_name);
-            let prog_features = if generate::depends_on_naclac_lang(&program_dir) {
-                generate::detect_program_features(&workspace_root, &program_dir).ok()
+            let mode_label = if generate::depends_on_naclac_lang(&program_dir) {
+                generate::detect_program_features(&workspace_root, &program_dir)
+                    .unwrap_or_else(|e| ui::error(format!("Cannot test '{prog_name}': {e}")))
+                    .label()
             } else {
-                None
+                "plain program".to_string()
             };
-            let mode_label = prog_features
-                .as_ref()
-                .map_or_else(|| "plain program".to_string(), |f| f.label());
 
             ui::section(prog_name, mode_label);
 
@@ -169,7 +180,7 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
                     .stdout(Stdio::inherit())
                     .stderr(Stdio::inherit())
                     .status()
-                    .expect("Failed to execute test script");
+                    .unwrap_or_else(|e| ui::error(test_spawn_error(&e)));
                 if !status.success() {
                     ui::error(format!("Tests failed for '{prog_name}'."));
                 }
@@ -184,13 +195,16 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
                     .stdout(Stdio::inherit())
                     .stderr(Stdio::piped())
                     .spawn()
-                    .expect("Failed to execute test script");
+                    .unwrap_or_else(|e| ui::error(test_spawn_error(&e)));
 
-                let stderr = child.stderr.take().expect("Failed to capture stderr");
+                let stderr = child
+                    .stderr
+                    .take()
+                    .unwrap_or_else(|| ui::error("Cannot read the output of the test script."));
                 let step = ui::Step::start("Compiling & running tests");
 
                 let mut printed_header = false;
-                let _ = cargo_progress::read_updates(stderr, |line| {
+                let read = cargo_progress::read_updates(stderr, |line| {
                     if let Some(progress) = cargo_progress::parse_progress(line) {
                         step.set_message(format!(
                             "Compiling & running tests  {}",
@@ -208,7 +222,14 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
                     step.print_above(line);
                 });
 
-                let status = child.wait().expect("Failed to wait on test execution");
+                if let Err(e) = read {
+                    step.fail(format!("Cannot read the output of the test script: {e}"));
+                }
+
+                let status = match child.wait() {
+                    Ok(status) => status,
+                    Err(e) => step.fail(format!("Cannot wait for the test script: {e}")),
+                };
 
                 if !status.success() {
                     step.fail(format!("Tests failed for '{prog_name}'."));
@@ -221,7 +242,11 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
         ui::milestone(format!(
             "Passed tests for {} program{} · {}",
             selected_programs.len(),
-            if selected_programs.len() == 1 { "" } else { "s" },
+            if selected_programs.len() == 1 {
+                ""
+            } else {
+                "s"
+            },
             ui::format_duration(start.elapsed())
         ));
     }

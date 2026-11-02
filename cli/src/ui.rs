@@ -328,7 +328,13 @@ impl Theme for DialogTheme {
             Some(false) => "y/N",
             None => "y/n",
         };
-        write!(f, "  {} {} {} ", brand("▸").bold(), prompt, choices.dimmed())
+        write!(
+            f,
+            "  {} {} {} ",
+            brand("▸").bold(),
+            prompt,
+            choices.dimmed()
+        )
     }
 
     fn format_confirm_prompt_selection(

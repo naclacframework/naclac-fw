@@ -92,12 +92,12 @@ export const IDL = {
     {
       "code": 6000,
       "name": "Unauthorized",
-      "message": "User is not authorized to perform this action."
+      "msg": "User is not authorized to perform this action."
     },
     {
       "code": 6001,
       "name": "Underflow",
-      "message": "Counter value cannot be decremented below zero."
+      "msg": "Counter value cannot be decremented below zero."
     }
   ],
   "constants": [

@@ -1,12 +1,7 @@
 use {
     crate::ui,
     heck::ToSnakeCase,
-    std::{
-        fs,
-        path::Path,
-        process::{Command, Stdio},
-        time::Instant,
-    },
+    std::{fs, path::Path, process::Command, time::Instant},
 };
 
 pub mod templates;
@@ -15,10 +10,30 @@ pub mod utils;
 use self::{
     templates::{
         generate_program, parse_package_manager, parse_ts_framework, prompt_ts_framework,
-        resolve_mode, TsFramework,
+        resolve_mode, PackageManager, TsFramework,
     },
     utils::{ensure_dir, generate_keypair, write_file},
 };
+
+/// The first of yarn, pnpm and npm that runs on this machine, in that order;
+/// an error when none does.
+fn detect_package_manager() -> PackageManager {
+    [
+        PackageManager::Yarn,
+        PackageManager::Pnpm,
+        PackageManager::Npm,
+    ]
+    .into_iter()
+    .find(|pm| {
+        Command::new(pm.as_str())
+            .arg("--version")
+            .output()
+            .is_ok_and(|output| output.status.success())
+    })
+    .unwrap_or_else(|| {
+        ui::error("No package manager found. Install yarn, pnpm or npm, or choose one with --pm.")
+    })
+}
 
 /// What `naclac init` was asked for on the command line.
 pub struct InitOptions<'a> {
@@ -72,26 +87,20 @@ pub fn execute(options: InitOptions) {
         prompt_ts_framework()
     };
 
-    let package_manager = if let Some(p) = pm_flag {
-        match parse_package_manager(p) {
-            Some(pm) => Some(pm),
-            None => {
-                ui::error(format!(
-                    "Invalid package manager '{p}'. Available: npm, yarn, pnpm, bun"
-                ));
-            }
-        }
-    } else {
-        None
+    let package_manager = match pm_flag {
+        Some(p) => parse_package_manager(p).unwrap_or_else(|| {
+            ui::error(format!(
+                "Invalid package manager '{p}'. Available: npm, yarn, pnpm, bun"
+            ))
+        }),
+        None => detect_package_manager(),
     };
 
     let snake_name = name.to_snake_case();
 
     ui::kv("layout", mode.label());
     ui::kv("typescript", ts_framework.as_str());
-    if let Some(pm) = package_manager {
-        ui::kv("package", pm.as_str());
-    }
+    ui::kv("package", package_manager.as_str());
 
     let scaffold_start = Instant::now();
     ensure_dir(&root.join("tests"));
@@ -125,11 +134,8 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 "#;
     write_file(&root.join("Cargo.toml"), root_cargo);
 
-    let pm_name = package_manager.map_or("yarn", |p| p.as_str());
-    let test_node_script = package_manager.map_or(
-        r#"yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""#,
-        |p| p.test_node_script(),
-    );
+    let pm_name = package_manager.as_str();
+    let test_node_script = package_manager.test_node_script();
 
     let framework = match framework_path {
         Some(path) => Some(
@@ -250,63 +256,46 @@ test-node = "{test_node_script}"
     ui::timed_success(scaffold_start.elapsed(), "workspace scaffolded");
 
     if !no_install {
-        let step = ui::Step::start("Installing Node dependencies");
-        let mut deps_installed = false;
-        if let Some(pm) = package_manager {
-            let pm_cmd = pm.as_str();
-            if Command::new(pm_cmd).arg("--version").output().is_ok() {
-                if let Ok(status) = Command::new(pm_cmd)
-                    .arg("install")
-                    .current_dir(root)
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .status()
-                {
-                    if status.success() {
-                        deps_installed = true;
-                    }
-                }
-            }
-        } else {
-            for pm in ["yarn", "pnpm", "npm"].iter() {
-                if Command::new(pm).arg("--version").output().is_ok() {
-                    if let Ok(status) = Command::new(pm)
-                        .arg("install")
-                        .current_dir(root)
-                        .stdout(Stdio::null())
-                        .stderr(Stdio::null())
-                        .status()
-                    {
-                        if status.success() {
-                            deps_installed = true;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        if deps_installed {
-            step.done("Node dependencies installed");
-        } else {
-            step.clear();
-            ui::warn("Node dependency installation failed (install manually later)");
+        let pm_cmd = package_manager.as_str();
+        let step = ui::Step::start(format!("Installing Node dependencies with {pm_cmd}"));
+        match Command::new(pm_cmd)
+            .arg("install")
+            .current_dir(root)
+            .output()
+        {
+            Ok(output) if output.status.success() => step.done("Node dependencies installed"),
+            Ok(output) => step.fail(format!(
+                "`{pm_cmd} install` failed in '{name}' ({}):\n{}",
+                output.status,
+                String::from_utf8_lossy(&output.stderr).trim()
+            )),
+            Err(e) => step.fail(format!(
+                "Cannot run `{pm_cmd} install`: {e}. Install {pm_cmd}, choose another with --pm, \
+                 or pass --no-install."
+            )),
         }
     }
 
     if !no_git {
-        let in_git_repo = root
+        let canonical = root
             .canonicalize()
-            .ok()
-            .map(|canon| canon.ancestors().skip(1).any(|a| a.join(".git").exists()))
-            .unwrap_or(false);
+            .unwrap_or_else(|e| ui::error(format!("Cannot read {}: {e}", root.display())));
+        let in_git_repo = canonical
+            .ancestors()
+            .skip(1)
+            .any(|a| a.join(".git").exists());
 
         if !in_git_repo {
-            Command::new("git")
-                .arg("init")
-                .current_dir(root)
-                .output()
-                .ok();
+            match Command::new("git").arg("init").current_dir(root).output() {
+                Ok(output) if output.status.success() => {}
+                Ok(output) => ui::error(format!(
+                    "`git init` failed in '{name}': {}",
+                    String::from_utf8_lossy(&output.stderr).trim()
+                )),
+                Err(e) => ui::error(format!(
+                    "Cannot run git: {e}. Install git or pass --no-git."
+                )),
+            }
         }
     }
 

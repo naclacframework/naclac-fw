@@ -13,7 +13,7 @@ use {
     naclac_idl::Idl,
     std::{
         fs,
-        io::{BufRead, BufReader},
+        io::Read,
         path::{Path, PathBuf},
         process::{Command, Stdio},
         thread,
@@ -316,7 +316,6 @@ pub fn execute(requested: &[String], run_order: bool) {
     let profile_file: PathBuf =
         naclac_client_gen::artifacts_dir(&workspace_root).join("naclac_profile.jsonl");
     clear_profile_file(&profile_file);
-    let profile_file_str = profile_file.to_str().unwrap().to_string();
 
     let started = Instant::now();
     ui::header(
@@ -358,7 +357,7 @@ pub fn execute(requested: &[String], run_order: bool) {
             .arg(shell_flag)
             .arg(&script)
             .current_dir(&workspace_root)
-            .env("NACLAC_PROFILE_FILE", &profile_file_str)
+            .env("NACLAC_PROFILE_FILE", &profile_file)
             .envs(cargo_progress::ENV)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -368,21 +367,17 @@ pub fn execute(requested: &[String], run_order: bool) {
             Err(e) => step.fail(format!("Failed to execute test runner: {e}")),
         };
 
-        let stdout = child.stdout.take().expect("Failed to capture stdout");
-        let stderr = child.stderr.take().expect("Failed to capture stderr");
+        let (Some(mut stdout), Some(stderr)) = (child.stdout.take(), child.stderr.take()) else {
+            step.fail("Cannot read the output of the test runner.");
+        };
 
         let stdout_thread = thread::spawn(move || {
             let mut buffer = String::new();
-            let reader = BufReader::new(stdout);
-            for line in reader.lines().map_while(Result::ok) {
-                buffer.push_str(&line);
-                buffer.push('\n');
-            }
-            buffer
+            stdout.read_to_string(&mut buffer).map(|_| buffer)
         });
 
         let mut captured_stderr = String::new();
-        let _ = cargo_progress::read_updates(stderr, |line| {
+        let read = cargo_progress::read_updates(stderr, |line| {
             if let Some(progress) = cargo_progress::parse_progress(line) {
                 step.set_message(format!(
                     "Running tests  {}",
@@ -394,11 +389,18 @@ pub fn execute(requested: &[String], run_order: bool) {
             captured_stderr.push('\n');
         });
 
+        if let Err(e) = read {
+            step.fail(format!("Cannot read the output of the test runner: {e}"));
+        }
         let status = match child.wait() {
             Ok(s) => s,
             Err(e) => step.fail(format!("Failed to wait on test execution: {e}")),
         };
-        let stdout_str = stdout_thread.join().unwrap_or_default();
+        let stdout_str = match stdout_thread.join() {
+            Ok(Ok(text)) => text,
+            Ok(Err(e)) => step.fail(format!("Cannot read the output of the test runner: {e}")),
+            Err(_) => step.fail("Reading the output of the test runner stopped unexpectedly."),
+        };
 
         if !status.success() {
             step.failed("tests failed");

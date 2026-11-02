@@ -17,6 +17,10 @@ import {
   type Address,
 } from "@solana/kit";
 import { type NaclacProvider, type TxVersion, normalizeTxVersion } from "./provider";
+import {
+  V1_DEFAULT_COMPUTE_UNIT_LIMIT,
+  V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT,
+} from "../tx-config";
 import { createLiteSvmProvider } from "./provider-litesvm";
 import { SYSTEM_PROGRAM_ID } from "../constants";
 
@@ -149,7 +153,7 @@ export async function transferSol(
   };
 
   const { value: latestBlockhash } = await (provider.rpc as any)
-    .getLatestBlockhash({ commitment: provider.commitment ?? "confirmed" })
+    .getLatestBlockhash({ commitment: provider.commitment })
     .send();
 
   const targetVersion = normalizeTxVersion(provider.defaultTxVersion);
@@ -158,8 +162,8 @@ export async function transferSol(
   if (targetVersion === 1) {
     baseMsg = pipe(
       createTransactionMessage({ version: 1 }),
-      (msg) => setTransactionMessageComputeUnitLimit(1_400_000, msg),
-      (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(64 * 1024 * 1024, msg),
+      (msg) => setTransactionMessageComputeUnitLimit(V1_DEFAULT_COMPUTE_UNIT_LIMIT, msg),
+      (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT, msg),
     );
   } else if (targetVersion === 0) {
     baseMsg = createTransactionMessage({ version: 0 });
@@ -192,6 +196,6 @@ export async function transferSol(
   });
 
   await sendAndConfirm(signedTx as any, {
-    commitment: provider.commitment ?? "confirmed",
+    commitment: provider.commitment,
   });
 }

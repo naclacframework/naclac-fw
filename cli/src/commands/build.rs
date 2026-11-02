@@ -12,13 +12,18 @@ use {
     },
 };
 
-// platform-tools versions naclac will use as-is if already cached locally,
-// newest first.
+// The platform-tools versions naclac recommends, newest first. One already
+// cached locally is used as-is; with none cached the newest is downloaded by
+// `cargo build-sbf`.
 const ACCEPTED_PLATFORM_TOOLS: [&str; 2] = ["v1.58", "v1.56"];
-// Downloaded automatically (via cargo-build-sbf's own fetch-by-version
-// support) only when none of `ACCEPTED_PLATFORM_TOOLS` are already cached.
-const DEFAULT_PLATFORM_TOOLS_FALLBACK: &str = "v1.56";
 const DEFAULT_ARCH: &str = "v3";
+
+fn build_spawn_error(error: &std::io::Error) -> String {
+    format!(
+        "Cannot run cargo build-sbf: {error}. Install the Solana CLI tools, which provide it: \
+         https://solana.com/docs/intro/installation"
+    )
+}
 
 /// Highest version in `ACCEPTED_PLATFORM_TOOLS` that `cargo-build-sbf` has
 /// already downloaded to its cache — i.e. one we can use without triggering
@@ -36,30 +41,38 @@ const ALLOWED_ARCH_VALUES: [&str; 5] = ["v0", "v1", "v2", "v3", "v4"];
 /// Resolves the `--tools-version`/`--arch` naclac passes to every
 /// `cargo build-sbf` invocation. With no `[build]` section in `Naclac.toml`,
 /// naclac uses whichever version in `ACCEPTED_PLATFORM_TOOLS` is already
-/// cached locally (or downloads `DEFAULT_PLATFORM_TOOLS_FALLBACK` if none
-/// are) and `DEFAULT_ARCH`. `[build] platform_tools_version` is a trusted
-/// override — any version string is passed through as-is, including ones
-/// released after `ACCEPTED_PLATFORM_TOOLS` was last updated. `[build] arch`
-/// is instead validated against `ALLOWED_ARCH_VALUES`.
+/// cached locally (the newest of them is downloaded if none is) and
+/// `DEFAULT_ARCH`. `[build] platform_tools_version` is a trusted override —
+/// any version string is passed through as-is, including ones released after
+/// `ACCEPTED_PLATFORM_TOOLS` was last updated. `[build] arch` is instead
+/// validated against `ALLOWED_ARCH_VALUES`. A `[build]` value that is not a
+/// string is an error.
 pub fn resolve_build_toolchain(config: &toml::Value) -> (String, String) {
     let build_section = config.get("build");
 
-    let tools_version = build_section
-        .and_then(|b| b.get("platform_tools_version"))
-        .and_then(|v| v.as_str())
-        .map(str::to_string)
-        .or_else(|| cached_accepted_platform_tools_version().map(str::to_string))
-        .unwrap_or_else(|| DEFAULT_PLATFORM_TOOLS_FALLBACK.to_string());
+    let tools_version = match build_section.and_then(|b| b.get("platform_tools_version")) {
+        Some(value) => value.as_str().map(str::to_string).unwrap_or_else(|| {
+            ui::error(
+                "Naclac.toml [build] platform_tools_version must be a string, e.g. \"v1.58\".",
+            )
+        }),
+        None => cached_accepted_platform_tools_version()
+            .unwrap_or(ACCEPTED_PLATFORM_TOOLS[0])
+            .to_string(),
+    };
 
-    let arch = match build_section
-        .and_then(|b| b.get("arch"))
-        .and_then(|v| v.as_str())
-    {
-        Some(requested) if ALLOWED_ARCH_VALUES.contains(&requested) => requested.to_string(),
-        Some(requested) => ui::error(format!(
-            "Naclac.toml [build] arch = \"{}\" is not supported — expected one of {:?}.",
-            requested, ALLOWED_ARCH_VALUES
-        )),
+    let arch = match build_section.and_then(|b| b.get("arch")) {
+        Some(value) => match value.as_str() {
+            Some(requested) if ALLOWED_ARCH_VALUES.contains(&requested) => requested.to_string(),
+            Some(requested) => ui::error(format!(
+                "Naclac.toml [build] arch = \"{}\" is not supported — expected one of {:?}.",
+                requested, ALLOWED_ARCH_VALUES
+            )),
+            None => ui::error(format!(
+                "Naclac.toml [build] arch must be a string, one of {:?}.",
+                ALLOWED_ARCH_VALUES
+            )),
+        },
         None => DEFAULT_ARCH.to_string(),
     };
 
@@ -108,19 +121,15 @@ pub fn execute(
     );
 
     let deploy_dir = naclac_client_gen::deploy_dir(&workspace_root);
-    fs::create_dir_all(&deploy_dir).unwrap();
+    fs::create_dir_all(&deploy_dir)
+        .unwrap_or_else(|e| ui::error(format!("Cannot create {}: {e}", deploy_dir.display())));
     let legacy_deploy_dir = naclac_client_gen::resolve_target_dir(&workspace_root)
         .unwrap_or_else(|e| ui::error(e))
         .join("deploy");
 
     let mut addresses: Vec<String> = Vec::new();
     for program_dir in &programs_to_build {
-        let program_name = program_dir
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
+        let program_name = programs::dir_name(program_dir);
         let keypair_file_name = format!("{}-keypair.json", program_name);
         let keypair_path = deploy_dir.join(&keypair_file_name);
 
@@ -181,7 +190,8 @@ pub fn execute(
 
         let lib_path = program_dir.join("src/lib.rs");
         if lib_path.exists() {
-            let mut lib_code = fs::read_to_string(&lib_path).unwrap();
+            let mut lib_code = fs::read_to_string(&lib_path)
+                .unwrap_or_else(|e| ui::error(format!("Cannot read {}: {e}", lib_path.display())));
             if crate::commands::generate::depends_on_naclac_lang(program_dir)
                 && programs::declared_id(&lib_code).is_none()
             {
@@ -200,7 +210,9 @@ pub fn execute(
                         ui::warn(format!("Synced program ID -> lib.rs ({})", program_name));
                         lib_code
                             .replace_range(addr_start..addr_start + end_offset, &actual_address);
-                        fs::write(&lib_path, lib_code).unwrap();
+                        fs::write(&lib_path, lib_code).unwrap_or_else(|e| {
+                            ui::error(format!("Cannot write {}: {e}", lib_path.display()))
+                        });
                     }
                 }
             }
@@ -224,7 +236,8 @@ pub fn execute(
     }
 
     for (build_dir, address) in programs_to_build.iter().zip(&addresses) {
-        let prog_name = build_dir.file_name().unwrap().to_str().unwrap();
+        let prog_name = programs::dir_name(build_dir);
+        let prog_name = prog_name.as_str();
         let cargo_toml_path = build_dir.join("Cargo.toml");
 
         // Shared with `naclac generate idl` — see generate.rs, the single
@@ -249,7 +262,7 @@ pub fn execute(
         let mut cmd = Command::new("cargo");
         cmd.arg("build-sbf")
             .arg("--manifest-path")
-            .arg(cargo_toml_path.to_str().unwrap())
+            .arg(&cargo_toml_path)
             .arg("--tools-version")
             .arg(&tools_version)
             .arg("--arch")
@@ -272,7 +285,7 @@ pub fn execute(
             let build_status = cmd
                 .stderr(Stdio::inherit())
                 .status()
-                .expect("Failed to execute cargo build-sbf");
+                .unwrap_or_else(|e| ui::error(build_spawn_error(&e)));
             if !build_status.success() {
                 ui::error(format!("Compile failed for '{}'", prog_name));
             }
@@ -282,11 +295,11 @@ pub fn execute(
                 .envs(cargo_progress::ENV)
                 .stderr(Stdio::piped())
                 .spawn()
-                .expect("Failed to execute cargo build-sbf");
+                .unwrap_or_else(|e| ui::error(build_spawn_error(&e)));
             let stderr = child
                 .stderr
                 .take()
-                .expect("Failed to capture cargo build-sbf stderr");
+                .unwrap_or_else(|| ui::error("Cannot read the output of cargo build-sbf."));
 
             let step = ui::Step::start("Compiling the program");
             let mut combined = String::new();
@@ -294,7 +307,7 @@ pub fn execute(
             let mut last_progress_total: Option<u32> = None;
             let mut printed_output_header = false;
             let mut cargo_error_summary: Option<String> = None;
-            let _ = cargo_progress::read_updates(stderr, |line| {
+            let read = cargo_progress::read_updates(stderr, |line| {
                 if let Some(progress) = cargo_progress::parse_progress(line) {
                     step.set_message(format!(
                         "Compiling the program  {}",
@@ -329,7 +342,14 @@ pub fn execute(
                 step.print_above(line);
             });
 
-            let build_status = child.wait().expect("Failed to wait on cargo build-sbf");
+            if let Err(e) = read {
+                step.fail(format!("Cannot read the output of cargo build-sbf: {e}"));
+            }
+
+            let build_status = match child.wait() {
+                Ok(status) => status,
+                Err(e) => step.fail(format!("Cannot wait for cargo build-sbf: {e}")),
+            };
             let stack_overflow_detected = combined
                 .contains("overflows the maximum allowed frame space")
                 || combined.contains("exceeded max offset");
@@ -393,7 +413,8 @@ pub fn execute(
         );
 
         let idl_dir = naclac_client_gen::idl_dir(&workspace_root);
-        fs::create_dir_all(&idl_dir).unwrap();
+        fs::create_dir_all(&idl_dir)
+            .unwrap_or_else(|e| ui::error(format!("Cannot create {}: {e}", idl_dir.display())));
 
         let ts_content = match naclac_client_gen::generate_ts(&idl_json_pretty) {
             Ok(code) => code,
@@ -407,7 +428,8 @@ pub fn execute(
         };
 
         let ts_path = idl_dir.join(format!("{}.ts", prog_name));
-        fs::write(&ts_path, ts_content).unwrap();
+        fs::write(&ts_path, ts_content)
+            .unwrap_or_else(|e| ui::error(format!("Cannot write {}: {e}", ts_path.display())));
         let idl_written = format!("IDL written · {prog_name}.json · {prog_name}.ts");
         match idl_step {
             Some(step) => step.done(idl_written),

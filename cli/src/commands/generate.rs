@@ -207,9 +207,8 @@ pub fn ensure_client_stubs(workspace_root: &Path, program_dirs: &[PathBuf]) {
         if !depends_on_naclac_lang(prog_dir) {
             continue;
         }
-        let Some(pname) = prog_dir.file_name().and_then(|n| n.to_str()) else {
-            continue;
-        };
+        let pname = programs::dir_name(prog_dir);
+        let pname = pname.as_str();
         let pname_kebab = pname.replace('_', "-");
         let rust_client_dir = naclac_client_gen::clients_dir(workspace_root)
             .join("rust")
@@ -403,8 +402,10 @@ fn generate_idl_via_idl_build(
             .map_err(|e| format!("failed to re-serialize idl-build output: {e}"))
     })();
 
-    let _ = fs::remove_dir_all(&runner_dir);
-    result
+    let removed = fs::remove_dir_all(&runner_dir);
+    let idl = result?;
+    removed.map_err(|e| format!("cannot remove {}: {e}", runner_dir.display()))?;
+    Ok(idl)
 }
 
 /// Runs `cmd` to completion and returns its stdout. Stderr is inherited when
@@ -427,7 +428,10 @@ fn run_capturing_stdout(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("failed to start {what}: {e}"))?;
-    let mut stdout_pipe = child.stdout.take().expect("stdout was piped");
+    let mut stdout_pipe = child
+        .stdout
+        .take()
+        .ok_or_else(|| format!("cannot read the output of {what}"))?;
     let stderr_pipe = child.stderr.take();
 
     // Stdout and stderr must be drained concurrently — reading one to
@@ -437,24 +441,20 @@ fn run_capturing_stdout(
     let stderr_thread = stderr_pipe.map(|pipe| {
         std::thread::spawn(move || {
             let mut kept = String::new();
-            let _ =
-                cargo_progress::read_updates(pipe, |update| {
-                    match cargo_progress::parse_progress(update) {
-                        Some(progress) => {
-                            if let Some(label) = &label {
-                                ui::working(format!(
-                                    "{label}  {}",
-                                    cargo_progress::render(&progress)
-                                ));
-                            }
-                        }
-                        None => {
-                            kept.push_str(update);
-                            kept.push('\n');
+            cargo_progress::read_updates(pipe, |update| {
+                match cargo_progress::parse_progress(update) {
+                    Some(progress) => {
+                        if let Some(label) = &label {
+                            ui::working(format!("{label}  {}", cargo_progress::render(&progress)));
                         }
                     }
-                });
-            kept
+                    None => {
+                        kept.push_str(update);
+                        kept.push('\n');
+                    }
+                }
+            })
+            .map(|()| kept)
         })
     });
 
@@ -462,7 +462,15 @@ fn run_capturing_stdout(
     stdout_pipe
         .read_to_string(&mut stdout_buf)
         .map_err(|e| format!("failed to read stdout of {what}: {e}"))?;
-    let captured_stderr = stderr_thread.map(|t| t.join().unwrap_or_default());
+    let captured_stderr = match stderr_thread {
+        Some(thread) => Some(
+            thread
+                .join()
+                .map_err(|_| format!("reading the stderr of {what} stopped unexpectedly"))?
+                .map_err(|e| format!("failed to read stderr of {what}: {e}"))?,
+        ),
+        None => None,
+    };
 
     let status = child
         .wait()
@@ -518,9 +526,11 @@ pub fn generate_idl_for_program(
     }
 
     let idl_dir = naclac_client_gen::idl_dir(workspace_root);
-    fs::create_dir_all(&idl_dir).unwrap();
+    fs::create_dir_all(&idl_dir)
+        .unwrap_or_else(|e| ui::error(format!("Cannot create {}: {e}", idl_dir.display())));
     let idl_path = idl_dir.join(format!("{}.json", prog_name));
-    fs::write(&idl_path, &idl_json_pretty).unwrap();
+    fs::write(&idl_path, &idl_json_pretty)
+        .unwrap_or_else(|e| ui::error(format!("Cannot write {}: {e}", idl_path.display())));
     idl_json_pretty
 }
 
@@ -534,12 +544,7 @@ pub fn execute_idl(requested: &[String], show_output: bool) {
         if !depends_on_naclac_lang(program_dir) {
             continue;
         }
-        let prog_name = program_dir
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
+        let prog_name = programs::dir_name(program_dir);
         require_idl_build(program_dir, &prog_name);
         // A real `idl-build` compile can take well over a minute; with
         // `show_output` its cargo output is inherited straight to the
@@ -595,12 +600,7 @@ pub fn execute_client(requested: &[String], target: Option<ClientKind>) {
     };
 
     for program_dir in &program_dirs {
-        let program_name = program_dir
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
+        let program_name = programs::dir_name(program_dir);
         let json_path = idl_dir.join(format!("{}.json", program_name));
         let content = fs::read_to_string(&json_path).unwrap_or_else(|e| {
             ui::error(format!(
@@ -646,12 +646,7 @@ pub fn execute_all(requested: &[String], show_output: bool) {
         if !depends_on_naclac_lang(program_dir) {
             continue;
         }
-        let prog_name = program_dir
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
+        let prog_name = programs::dir_name(program_dir);
         require_idl_build(program_dir, &prog_name);
         let program_features = detect_program_features(&workspace_root, program_dir)
             .unwrap_or_else(|e| ui::error(format!("Cannot generate '{}': {}", prog_name, e)));

@@ -1,7 +1,4 @@
-use {
-    crate::ui,
-    std::process::Command,
-};
+use {crate::ui, std::process::Command};
 
 pub fn execute() {
     ui::header("doctor", "environment");
@@ -23,7 +20,11 @@ pub fn execute() {
             Ok(output) if output.status.success() => {
                 passed += 1;
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                let version = stdout.lines().next().unwrap_or("ok").trim();
+                let version = stdout
+                    .lines()
+                    .next()
+                    .unwrap_or("version not reported")
+                    .trim();
                 ui::success(format!("{cmd:<18} {version}"));
             }
             _ => {
@@ -34,7 +35,9 @@ pub fn execute() {
 
     ui::set_indent(0);
     if passed == total {
-        ui::milestone(format!("All {total} toolchain dependencies are operational"));
+        ui::milestone(format!(
+            "All {total} toolchain dependencies are operational"
+        ));
     } else {
         ui::warn(format!(
             "{passed}/{total} dependencies operational — install missing tools to build and test"

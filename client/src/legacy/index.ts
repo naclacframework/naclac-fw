@@ -23,7 +23,7 @@ export {
   TransactionMessage,
   AddressLookupTableAccount,
   MessageV1,
-  type TransactionConfig,
+  type V1TransactionConfig,
   // Data types used in account fetch results
   type AccountInfo,
   type ParsedAccountData,
@@ -34,6 +34,5 @@ export {
   type Commitment,
 } from "@solana/web3.js";
 
-export { compileToV1Message, serializeMessageV1, type CompileV1Args } from "./v1";
 export { createProvider, loadNodeWallet, transferSol } from "./setup";
 export { createLiteSvmProvider, type LiteSvmLegacyProvider } from "./provider-litesvm";

@@ -96,14 +96,13 @@ pub fn execute(requested: &[String], hard: bool) {
 
         for (prog_name, package) in selected.iter().zip(&packages) {
             let program_dir = programs::program_dir(&workspace_root, prog_name);
-            let prog_features = if generate::depends_on_naclac_lang(&program_dir) {
-                generate::detect_program_features(&workspace_root, &program_dir).ok()
+            let mode_label = if generate::depends_on_naclac_lang(&program_dir) {
+                generate::detect_program_features(&workspace_root, &program_dir)
+                    .unwrap_or_else(|e| ui::error(format!("Cannot clean '{prog_name}': {e}")))
+                    .label()
             } else {
-                None
+                "plain program".to_string()
             };
-            let mode_label = prog_features
-                .as_ref()
-                .map_or_else(|| "plain program".to_string(), |f| f.label());
 
             ui::section(prog_name, mode_label);
 
@@ -194,12 +193,16 @@ fn run_clean_command(command: &mut Command, success_msg: &str) {
             .spawn()
             .unwrap_or_else(|e| ui::error(format!("Failed to spawn cargo clean: {e}")));
 
-        let stderr = child.stderr.take().expect("Failed to capture stderr");
-        let _ = cargo_progress::read_updates(stderr, |line| {
+        let stderr = child
+            .stderr
+            .take()
+            .unwrap_or_else(|| ui::error("Cannot read the output of cargo clean."));
+        cargo_progress::read_updates(stderr, |line| {
             if !build::is_cargo_status_line(line) && !line.trim().is_empty() {
                 eprintln!("{line}");
             }
-        });
+        })
+        .unwrap_or_else(|e| ui::error(format!("Cannot read the output of cargo clean: {e}")));
 
         let status = child
             .wait()

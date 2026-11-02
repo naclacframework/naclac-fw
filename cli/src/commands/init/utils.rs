@@ -5,8 +5,12 @@ use {
 
 pub fn ensure_dir(path: &Path) {
     if !path.exists() {
-        fs::create_dir_all(path)
-            .unwrap_or_else(|e| ui::error(format!("Failed to create directory {}: {e}", path.display())));
+        fs::create_dir_all(path).unwrap_or_else(|e| {
+            ui::error(format!(
+                "Failed to create directory {}: {e}",
+                path.display()
+            ))
+        });
     }
 }
 

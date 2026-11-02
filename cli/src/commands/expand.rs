@@ -7,7 +7,7 @@ use {
     colored::Colorize,
     std::{
         fs,
-        io::{BufRead, BufReader},
+        io::Read,
         path::PathBuf,
         process::{Command, Stdio},
         time::Instant,
@@ -44,14 +44,13 @@ pub fn execute(requested: &[String], features: Vec<String>, output_target: Optio
         let program_dir = programs::program_dir(&workspace_root, program_name);
         let cargo_toml_path = program_dir.join("Cargo.toml");
 
-        let prog_features = if generate::depends_on_naclac_lang(&program_dir) {
-            generate::detect_program_features(&workspace_root, &program_dir).ok()
+        let mode_label = if generate::depends_on_naclac_lang(&program_dir) {
+            generate::detect_program_features(&workspace_root, &program_dir)
+                .unwrap_or_else(|e| ui::error(format!("Cannot expand '{program_name}': {e}")))
+                .label()
         } else {
-            None
+            "plain program".to_string()
         };
-        let mode_label = prog_features
-            .as_ref()
-            .map_or_else(|| "plain program".to_string(), |f| f.label());
 
         let out_path = match output_target {
             Some(target) => {
@@ -74,7 +73,9 @@ pub fn execute(requested: &[String], features: Vec<String>, output_target: Optio
         ui::section(program_name, mode_label);
         ui::kv("output", &display_path);
         if out_path.exists() {
-            ui::warn(format!("{display_path} already exists and will be overwritten"));
+            ui::warn(format!(
+                "{display_path} already exists and will be overwritten"
+            ));
         }
         if !features.is_empty() {
             ui::kv("features", features.join(", "));
@@ -83,7 +84,7 @@ pub fn execute(requested: &[String], features: Vec<String>, output_target: Optio
         let mut cmd = Command::new("cargo");
         cmd.arg("expand")
             .arg("--manifest-path")
-            .arg(cargo_toml_path.to_str().unwrap())
+            .arg(&cargo_toml_path)
             .current_dir(&workspace_root);
 
         if !features.is_empty() {
@@ -92,28 +93,30 @@ pub fn execute(requested: &[String], features: Vec<String>, output_target: Optio
 
         let step = ui::Step::start("Expanding program");
 
-        let mut child = cmd
+        let mut child = match cmd
             .envs(cargo_progress::ENV)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("Failed to execute cargo expand. Make sure cargo-expand is installed: cargo install cargo-expand");
+        {
+            Ok(child) => child,
+            Err(e) => step.fail(format!(
+                "Cannot run cargo expand: {e}. Make sure cargo-expand is installed: \
+                 cargo install cargo-expand"
+            )),
+        };
 
-        let stdout = child.stdout.take().expect("Failed to capture stdout");
-        let stderr = child.stderr.take().expect("Failed to capture stderr");
+        let (Some(mut stdout), Some(stderr)) = (child.stdout.take(), child.stderr.take()) else {
+            step.fail("Cannot read the output of cargo expand.");
+        };
 
         let stdout_thread = std::thread::spawn(move || {
             let mut buffer = String::new();
-            let reader = BufReader::new(stdout);
-            for line in reader.lines().map_while(Result::ok) {
-                buffer.push_str(&line);
-                buffer.push('\n');
-            }
-            buffer
+            stdout.read_to_string(&mut buffer).map(|_| buffer)
         });
 
         let mut printed_header = false;
-        let _ = cargo_progress::read_updates(stderr, |line| {
+        let read = cargo_progress::read_updates(stderr, |line| {
             if let Some(progress) = cargo_progress::parse_progress(line) {
                 step.set_message(format!(
                     "Expanding program  {}",
@@ -131,15 +134,27 @@ pub fn execute(requested: &[String], features: Vec<String>, output_target: Optio
             step.print_above(line);
         });
 
-        let status = child.wait().expect("Failed to wait on cargo expand");
-        let expanded_code = stdout_thread.join().unwrap_or_default();
+        if let Err(e) = read {
+            step.fail(format!("Cannot read the output of cargo expand: {e}"));
+        }
+        let status = match child.wait() {
+            Ok(status) => status,
+            Err(e) => step.fail(format!("Cannot wait for cargo expand: {e}")),
+        };
+        let expanded_code = match stdout_thread.join() {
+            Ok(Ok(code)) => code,
+            Ok(Err(e)) => step.fail(format!("Cannot read the expanded code: {e}")),
+            Err(_) => step.fail("Reading the expanded code stopped unexpectedly."),
+        };
 
         if !status.success() || expanded_code.trim().is_empty() {
             step.fail(format!("Cargo expand failed for '{program_name}'."));
         }
 
         if let Some(parent) = out_path.parent() {
-            let _ = fs::create_dir_all(parent);
+            if let Err(e) = fs::create_dir_all(parent) {
+                step.fail(format!("Cannot create {}: {e}", parent.display()));
+            }
         }
         if let Err(e) = fs::write(&out_path, &expanded_code) {
             step.fail(format!("Cannot write {}: {e}", out_path.display()));

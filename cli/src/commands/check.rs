@@ -12,6 +12,13 @@ use {
     },
 };
 
+fn clippy_spawn_error(error: &std::io::Error) -> String {
+    format!(
+        "Cannot run cargo clippy: {error}. Make sure cargo and clippy are installed: \
+         rustup component add clippy"
+    )
+}
+
 /// Runs `cargo clippy` against each program in `requested` (every program
 /// Naclac.toml lists when empty; see `programs`), one at a time. Each program
 /// is checked with its own default features, so the runtime and layout it
@@ -30,10 +37,7 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
         .map(|name| programs::program_dir(&workspace_root, name))
         .collect();
 
-    generate::ensure_client_stubs(
-        &workspace_root,
-        &programs::all_dirs(&workspace_root),
-    );
+    generate::ensure_client_stubs(&workspace_root, &programs::all_dirs(&workspace_root));
 
     let start = Instant::now();
     let target_label = if tests {
@@ -55,17 +59,17 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
     }
 
     for program_dir in &program_dirs {
-        let prog_name = program_dir.file_name().unwrap().to_str().unwrap();
+        let prog_name = programs::dir_name(program_dir);
+        let prog_name = prog_name.as_str();
         let cargo_toml_path = program_dir.join("Cargo.toml");
 
-        let prog_features = if generate::depends_on_naclac_lang(program_dir) {
-            generate::detect_program_features(&workspace_root, program_dir).ok()
+        let mode_label = if generate::depends_on_naclac_lang(program_dir) {
+            generate::detect_program_features(&workspace_root, program_dir)
+                .unwrap_or_else(|e| ui::error(format!("Cannot check '{prog_name}': {e}")))
+                .label()
         } else {
-            None
+            "plain program".to_string()
         };
-        let mode_label = prog_features
-            .as_ref()
-            .map_or_else(|| "plain program".to_string(), |f| f.label());
 
         ui::section(
             prog_name,
@@ -79,7 +83,7 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
         let mut cmd = Command::new("cargo");
         cmd.arg("clippy")
             .arg("--manifest-path")
-            .arg(cargo_toml_path.to_str().unwrap())
+            .arg(&cargo_toml_path)
             .env("CARGO_TERM_COLOR", "always")
             .current_dir(&workspace_root)
             .stdout(Stdio::inherit());
@@ -104,7 +108,7 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
             let status = cmd
                 .stderr(Stdio::inherit())
                 .status()
-                .expect("Failed to execute cargo clippy");
+                .unwrap_or_else(|e| ui::error(clippy_spawn_error(&e)));
             if !status.success() {
                 if tests {
                     ui::error(format!(
@@ -125,17 +129,17 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
                 .envs(cargo_progress::ENV)
                 .stderr(Stdio::piped())
                 .spawn()
-                .expect("Failed to execute cargo clippy. Make sure clippy is installed: rustup component add clippy");
+                .unwrap_or_else(|e| ui::error(clippy_spawn_error(&e)));
             let stderr = child
                 .stderr
                 .take()
-                .expect("Failed to capture cargo clippy stderr");
+                .unwrap_or_else(|| ui::error("Cannot read the output of cargo clippy."));
 
             let step = ui::Step::start(spinner_msg);
             let mut printed_output_header = false;
             let mut cargo_error_summary: Option<String> = None;
 
-            let _ = cargo_progress::read_updates(stderr, |line| {
+            let read = cargo_progress::read_updates(stderr, |line| {
                 if let Some(progress) = cargo_progress::parse_progress(line) {
                     step.set_message(format!(
                         "{spinner_msg}  {}",
@@ -160,7 +164,13 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
                 step.print_above(line);
             });
 
-            let status = child.wait().expect("Failed to wait on cargo clippy");
+            if let Err(e) = read {
+                step.fail(format!("Cannot read the output of cargo clippy: {e}"));
+            }
+
+            let status = child
+                .wait()
+                .unwrap_or_else(|e| ui::error(format!("Cannot wait for cargo clippy: {e}")));
             if !status.success() {
                 let fail_msg = if tests {
                     match cargo_error_summary {

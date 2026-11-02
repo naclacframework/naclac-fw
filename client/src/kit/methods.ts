@@ -26,6 +26,10 @@ import type {
 } from "@solana/kit";
 
 import { type NaclacProvider, type TxVersion, normalizeTxVersion } from "./provider";
+import {
+  V1_DEFAULT_COMPUTE_UNIT_LIMIT,
+  V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT,
+} from "../tx-config";
 import type { NaclacIdl, IdlInstruction } from "../idl";
 import { encodeInstructionData } from "../coder/instruction";
 import { pinnedAddress, resolvePdas } from "../utils/pda";
@@ -268,7 +272,7 @@ export class MethodsBuilder {
   }
 
   async transaction(): Promise<any> {
-    const commitment = this.provider.commitment ?? "confirmed";
+    const commitment = this.provider.commitment;
 
     const { data, accountMetas } = await this._buildInstructionMetasAndData();
 
@@ -296,8 +300,8 @@ export class MethodsBuilder {
     if (targetVersion === 1) {
       baseMsg = pipe(
         createTransactionMessage({ version: 1 }),
-        (msg) => setTransactionMessageComputeUnitLimit(this._computeUnitLimit ?? 1_400_000, msg),
-        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(this._loadedAccountsDataSizeLimit ?? 64 * 1024 * 1024, msg),
+        (msg) => setTransactionMessageComputeUnitLimit(this._computeUnitLimit ?? V1_DEFAULT_COMPUTE_UNIT_LIMIT, msg),
+        (msg) => setTransactionMessageLoadedAccountsDataSizeLimit(this._loadedAccountsDataSizeLimit ?? V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT, msg),
         (msg) => this._priorityFee !== undefined
           ? setTransactionMessagePriorityFeeLamports(BigInt(this._priorityFee), msg)
           : msg,
@@ -367,7 +371,7 @@ export class MethodsBuilder {
   }
 
   async send(options: { skipPreflight?: boolean } = {}): Promise<string> {
-    const commitment = this.provider.commitment ?? "confirmed";
+    const commitment = this.provider.commitment;
     const txMessage = await this.transaction();
     const signedTx = await signTransactionMessageWithSigners(txMessage as any);
 
@@ -456,7 +460,7 @@ export class MethodsBuilder {
   }
 
   async rpc(): Promise<NaclacRpcResult> {
-    const commitment = this.provider.commitment ?? "confirmed";
+    const commitment = this.provider.commitment;
     const txMessage = await this.transaction();
 
     const signedTx = await signTransactionMessageWithSigners(txMessage as any);
@@ -497,7 +501,10 @@ export class MethodsBuilder {
       );
 
       const sigBytes = signatures[0];
-      signature = sigBytes ? getBase58Codec().decode(sigBytes) : "(no signature)";
+      if (!sigBytes) {
+        throw new Error("[Naclac] The signed transaction carries no signature.");
+      }
+      signature = getBase58Codec().decode(sigBytes);
     }
 
     // Fetch the now-confirmed transaction's logs directly — no race, since

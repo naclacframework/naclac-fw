@@ -1,17 +1,22 @@
 import {
-  Connection,
   PublicKey,
   Transaction,
   TransactionInstruction,
   Keypair,
   AddressLookupTableAccount,
-  TransactionMessage,
   VersionedTransaction,
+  type BlockhashWithExpiryBlockHeight,
 } from "@solana/web3.js";
-import { compileToV1Message } from "./v1";
-import { getBase58Codec } from "@solana/codecs";
+import { getBase58Codec, getBase64Codec } from "@solana/codecs";
 import type { NaclacIdl, IdlInstruction, IdlAccountDef } from "../idl";
 import { type LegacyProvider, type TxVersion, normalizeTxVersion } from "./provider";
+import {
+  compileProviderTransaction,
+  requireFeePayer,
+  sendAndConfirmSigned,
+  signProviderTransaction,
+  v1ConfigFor,
+} from "./transaction";
 import { encodeInstructionData, decodeDiscriminatedAccountData } from "../coder/instruction";
 import { pinnedAddress, resolvePdas } from "../utils/pda";
 import { resolveSlots } from "../slots";
@@ -93,7 +98,7 @@ export class LegacyAccountFetcher {
 
   async fetch(pubkey: PublicKey | string): Promise<Record<string, unknown>> {
     const addr = typeof pubkey === "string" ? new PublicKey(pubkey) : pubkey;
-    const commitment = (this.provider.commitment ?? "confirmed") as any;
+    const commitment = this.provider.commitment;
 
     const accountInfo = await this.provider.connection.getAccountInfo(addr, commitment);
     if (!accountInfo) {
@@ -108,7 +113,7 @@ export class LegacyAccountFetcher {
     opts: { dropCorrupted?: boolean } = {}
   ): Promise<Array<Record<string, unknown> | null>> {
     const addrs = pubkeys.map((pk) => typeof pk === "string" ? new PublicKey(pk) : pk);
-    const commitment = (this.provider.commitment ?? "confirmed") as any;
+    const commitment = this.provider.commitment;
 
     const accounts = await this.provider.connection.getMultipleAccountsInfo(addrs, commitment);
     return accounts.map((acctInfo) => {
@@ -150,7 +155,7 @@ export class LegacyAccountFetcher {
   > {
     const discriminator = this.discriminator();
     const base58Discriminator = getBase58Codec().decode(discriminator);
-    const commitment = (this.provider.commitment ?? "confirmed") as any;
+    const commitment = this.provider.commitment;
 
     const filters = [
       { memcmp: { offset: 0, bytes: base58Discriminator } },
@@ -179,66 +184,6 @@ export class LegacyAccountFetcher {
     });
 
     return decoded.filter((d): d is { publicKey: PublicKey; account: Record<string, unknown> } => d !== null);
-  }
-}
-
-async function ensureRpcWebSocketConnected(connection: Connection): Promise<void> {
-  const conn = connection as any;
-  if (conn._rpcWebSocket && !conn._rpcWebSocketConnected) {
-    for (let i = 0; i < 100; i++) { // Max 5 seconds
-      if (conn._rpcWebSocketConnected) {
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-  }
-}
-
-const CONFIRMATION_RANK: Record<string, number> = {
-  processed: 0,
-  confirmed: 1,
-  finalized: 2,
-};
-
-/**
- * Polls `getSignatureStatuses` at a short, fixed interval until `signature`
- * reaches `commitment` (or fails / the blockhash expires).
- *
- * `Connection.confirmTransaction()` primarily waits on a websocket signature
- * notification, whose subscription is registered *after* the transaction is
- * already in flight — the same class of race as the one fixed for event
- * logs. Missing that push falls back to web3.js's own, much slower internal
- * polling. Polling ourselves over plain HTTP sidesteps the websocket
- * entirely, so confirmation latency no longer depends on that race.
- */
-async function pollForConfirmation(
-  connection: Connection,
-  signature: string,
-  lastValidBlockHeight: number,
-  commitment: "processed" | "confirmed" | "finalized",
-): Promise<void> {
-  const targetRank = CONFIRMATION_RANK[commitment] ?? CONFIRMATION_RANK.confirmed;
-  const pollIntervalMs = 400;
-
-  for (;;) {
-    const { value: statuses } = await connection.getSignatureStatuses([signature]);
-    const status = statuses[0];
-
-    if (status?.err) {
-      throw new Error(`[Naclac] Transaction failed on-chain: ${JSON.stringify(status.err)}`);
-    }
-
-    const statusRank = status ? CONFIRMATION_RANK[status.confirmationStatus ?? "processed"] ?? 0 : -1;
-    if (statusRank >= targetRank) return;
-
-    const blockHeight = await connection.getBlockHeight(commitment);
-    if (blockHeight > lastValidBlockHeight) {
-      throw new Error(
-        `[Naclac] Transaction confirmation timed out: blockhash expired at height ${lastValidBlockHeight}.`,
-      );
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
 }
 
@@ -420,7 +365,7 @@ export class LegacyMethodsBuilder {
     return new TransactionInstruction({
       keys: accountMetas,
       programId: this.programId,
-      data: Buffer.from(data),
+      data,
     });
   }
 
@@ -428,115 +373,53 @@ export class LegacyMethodsBuilder {
     return this.buildInstruction();
   }
 
-  async transaction(): Promise<Transaction | VersionedTransaction> {
+  private async _compile(
+    txVersion: 0 | 1 | "legacy",
+    latestBlockhash: BlockhashWithExpiryBlockHeight,
+  ): Promise<Transaction | VersionedTransaction> {
     const mainInstruction = await this.buildInstruction();
-    const allInstructions = [
-      ...this._preInstructions,
-      mainInstruction,
-      ...this._postInstructions,
-    ];
+    return compileProviderTransaction({
+      instructions: [...this._preInstructions, mainInstruction, ...this._postInstructions],
+      feePayer: requireFeePayer(this.provider),
+      latestBlockhash,
+      txVersion,
+      v1Config: v1ConfigFor({
+        computeUnitLimit: this._computeUnitLimit,
+        loadedAccountsDataSizeLimit: this._loadedAccountsDataSizeLimit,
+        priorityFee: this._priorityFee,
+      }),
+      addressLookupTableAccounts: this._addressLookupTableAccounts,
+    });
+  }
 
-    const targetVersion = normalizeTxVersion(this._txVersion ?? this.provider.defaultTxVersion);
-
-    if (targetVersion === "legacy") {
-      const tx = new Transaction();
-      for (const ix of allInstructions) {
-        tx.add(ix);
-      }
-      return tx;
-    }
-
-    const connection = this.provider.connection;
-    const commitment = (this.provider.commitment ?? "confirmed") as any;
-    const latestBlockhash = await connection.getLatestBlockhash(commitment);
-    const feePayer = this.provider.payer ? this.provider.payer.publicKey : this.provider.publicKey;
-    if (!feePayer) {
-      throw new Error("[Naclac] No fee payer available in the legacy provider.");
-    }
-
-    if (targetVersion === 1) {
-      const v1Msg = compileToV1Message({
-        payerKey: feePayer,
-        recentBlockhash: latestBlockhash.blockhash,
-        instructions: allInstructions,
-        transactionConfig: {
-          computeUnitLimit: this._computeUnitLimit ?? 1_400_000,
-          heapSize: null,
-          loadedAccountsDataSizeLimit: this._loadedAccountsDataSizeLimit ?? 64 * 1024 * 1024,
-          priorityFee: this._priorityFee !== undefined ? Number(this._priorityFee) : null,
-        },
-      });
-      return new VersionedTransaction(v1Msg);
-    }
-
-    const v0Msg = new TransactionMessage({
-      payerKey: feePayer,
-      recentBlockhash: latestBlockhash.blockhash,
-      instructions: allInstructions,
-    }).compileToV0Message(this._addressLookupTableAccounts);
-    return new VersionedTransaction(v0Msg);
+  async transaction(): Promise<Transaction | VersionedTransaction> {
+    const txVersion = normalizeTxVersion(this._txVersion ?? this.provider.defaultTxVersion);
+    const latestBlockhash = await this.provider.connection.getLatestBlockhash(this.provider.commitment);
+    return this._compile(txVersion, latestBlockhash);
   }
 
   /**
-   * Builds a transaction, attaches a fresh blockhash + fee payer, and signs it
-   * with the provider's payer/extra signers/wallet-adapter signTransaction.
-   * Shared by `simulate()`, `rpc()`, `send()`, and `encoded()` so the signing
-   * flow (more involved than kit's, since legacy has no transaction-message
-   * signer abstraction) isn't duplicated four times over.
+   * Builds a transaction against a single fetched blockhash and signs it with
+   * the provider's payer/extra signers/wallet-adapter signTransaction. Shared
+   * by `simulate()`, `rpc()`, `send()`, and `encoded()`. The returned
+   * `latestBlockhash` is the one the transaction carries, so expiry is
+   * checked against the right `lastValidBlockHeight`.
    */
   private async _signedTransaction(): Promise<{
     signedTx: Transaction | VersionedTransaction;
-    commitment: any;
-    latestBlockhash: { blockhash: string; lastValidBlockHeight: number };
+    commitment: LegacyProvider["commitment"];
+    latestBlockhash: BlockhashWithExpiryBlockHeight;
   }> {
-    const connection = this.provider.connection;
-    const commitment = (this.provider.commitment ?? "confirmed") as any;
-    const latestBlockhash = await connection.getLatestBlockhash(commitment);
-
-    const tx = await this.transaction();
-
-    if (tx instanceof VersionedTransaction) {
-      const signers: Keypair[] = [];
-      if (this.provider.payer) {
-        signers.push(this.provider.payer);
-      }
-      signers.push(...this._extraSigners);
-      if (signers.length > 0) {
-        tx.sign(signers);
-      }
-
-      let signedTx: VersionedTransaction = tx;
-      if (this.provider.signTransaction) {
-        signedTx = await this.provider.signTransaction(tx);
-      }
-      return { signedTx, commitment, latestBlockhash };
-    }
-
-    tx.recentBlockhash = latestBlockhash.blockhash;
-    const feePayer = this.provider.payer ? this.provider.payer.publicKey : this.provider.publicKey;
-    if (!feePayer) {
-      throw new Error("[Naclac] No fee payer available in the legacy provider.");
-    }
-    tx.feePayer = feePayer;
-
-    if (this.provider.payer) {
-      tx.partialSign(this.provider.payer);
-    }
-    for (const signer of this._extraSigners) {
-      tx.partialSign(signer);
-    }
-
-    let signedTx: Transaction = tx;
-    if (this.provider.signTransaction) {
-      signedTx = await this.provider.signTransaction(tx);
-    }
-
+    const txVersion = normalizeTxVersion(this._txVersion ?? this.provider.defaultTxVersion);
+    const commitment = this.provider.commitment;
+    const latestBlockhash = await this.provider.connection.getLatestBlockhash(commitment);
+    const tx = await this._compile(txVersion, latestBlockhash);
+    const signedTx = await signProviderTransaction(this.provider, tx, this._extraSigners);
     return { signedTx, commitment, latestBlockhash };
   }
 
   async simulate() {
     const connection = this.provider.connection;
-    await ensureRpcWebSocketConnected(connection);
     const { signedTx } = await this._signedTransaction();
 
     try {
@@ -560,7 +443,7 @@ export class LegacyMethodsBuilder {
    */
   async encoded(): Promise<string> {
     const { signedTx } = await this._signedTransaction();
-    return signedTx.serialize().toString("base64");
+    return getBase64Codec().decode(await signedTx.serialize());
   }
 
   /**
@@ -569,11 +452,10 @@ export class LegacyMethodsBuilder {
    */
   async send(options: { skipPreflight?: boolean } = {}): Promise<string> {
     const connection = this.provider.connection;
-    await ensureRpcWebSocketConnected(connection);
     const { signedTx, commitment } = await this._signedTransaction();
 
     try {
-      return await connection.sendRawTransaction(signedTx.serialize(), {
+      return await connection.sendRawTransaction(await signedTx.serialize(), {
         skipPreflight: options.skipPreflight ?? false,
         preflightCommitment: commitment,
       });
@@ -663,31 +545,21 @@ export class LegacyMethodsBuilder {
   }
 
   /** The program's `event_authority` PDA (base58) that signs `emit_cpi!` self-CPIs. */
-  private eventAuthority(): string {
-    return PublicKey.findProgramAddressSync(
-      [Buffer.from("__event_authority")],
+  private async eventAuthority(): Promise<string> {
+    const [pda] = await PublicKey.findProgramAddress(
+      [new TextEncoder().encode("__event_authority")],
       this.programId,
-    )[0].toBase58();
+    );
+    return pda.toBase58();
   }
 
   async rpc(): Promise<NaclacRpcResult> {
     const connection = this.provider.connection;
     const { signedTx, commitment, latestBlockhash } = await this._signedTransaction();
 
-    const rawTx = signedTx.serialize();
     let signature: string;
     try {
-      signature = await connection.sendRawTransaction(rawTx, {
-        skipPreflight: false,
-        preflightCommitment: commitment,
-      });
-
-      // litesvm's `sendRawTransaction` already executes and finalizes
-      // synchronously — there is nothing to poll for, and no real
-      // websocket/RPC for `pollForConfirmation` to poll against anyway.
-      if (!this.provider.litesvm) {
-        await pollForConfirmation(connection, signature, latestBlockhash.lastValidBlockHeight, commitment);
-      }
+      signature = await sendAndConfirmSigned(this.provider, signedTx, latestBlockhash.lastValidBlockHeight);
     } catch (err: any) {
       translateRpcError(err, this.idl.errors, this.ixDef.accounts);
       throw err;
@@ -704,14 +576,14 @@ export class LegacyMethodsBuilder {
         commitment: commitment === "finalized" ? "finalized" : "confirmed",
         maxSupportedTransactionVersion: 1,
       });
-      logs = txResult?.meta?.logMessages ?? [];
+      logs = [...(txResult?.meta?.logMessages ?? [])];
       innerInstructions = innerInstructionsFromLegacyTransaction(txResult);
     } catch {
       // Logs are a best-effort convenience; a failure fetching them shouldn't
       // fail an already-confirmed transaction.
     }
 
-    const eventAuthority = this.eventAuthority();
+    const eventAuthority = await this.eventAuthority();
     return {
       signature,
       logs,
@@ -867,7 +739,7 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
    */
   addEventListener(
     eventName: string,
-    callback: (event: any, slot: number, signature: string) => void,
+    callback: (event: any, slot: bigint, signature: string) => void,
   ): number {
     const eventDef = this.idl.events?.find((e) => e.name === eventName);
     if (!eventDef) {
@@ -876,7 +748,7 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
 
     const discriminator = resolveDiscriminator(eventDef.discriminator, "event", eventName);
     const connection = this.provider.connection;
-    const commitment = (this.provider.commitment ?? "confirmed") as any;
+    const commitment = this.provider.commitment;
 
     const listenerId = connection.onLogs(
       this.programId,
@@ -911,27 +783,38 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
    * Reserve `waitForEvent`/`addEventListener` for reacting to events across
    * future transactions whose signatures you don't know yet (an indexer, a bot, ...).
    */
-  parseEvents<T = any>(
+  parseEvents<T = any>(eventName: string, logs: readonly string[]): T[] {
+    return parseEventsFromLogs<T>(
+      this.idl,
+      eventName,
+      logs,
+      eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+    );
+  }
+
+  /**
+   * Like `parseEvents`, but also decodes events the program emitted as
+   * self-CPIs (`emit_cpi!`), which never appear in the logs. Async because
+   * the program's `event_authority` PDA has to be derived. Pass the inner
+   * instructions of a *successful* transaction, e.g. `.rpc()`'s returned
+   * `innerInstructions`.
+   */
+  async parseEventsFromTransaction<T = any>(
     eventName: string,
-    logs: readonly string[],
-    innerInstructions?: readonly NaclacInnerInstruction[],
-  ): T[] {
-    const zeroCopyLayout = eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName);
-    if (!innerInstructions) {
-      return parseEventsFromLogs<T>(this.idl, eventName, logs, zeroCopyLayout);
-    }
+    tx: {
+      logs: readonly string[];
+      innerInstructions?: readonly NaclacInnerInstruction[];
+    },
+  ): Promise<T[]> {
+    const [pda] = await PublicKey.findProgramAddress(
+      [new TextEncoder().encode("__event_authority")],
+      this.programId,
+    );
     return parseEventsFromTransaction<T>(
       this.idl,
       eventName,
-      {
-        logs,
-        innerInstructions,
-        eventAuthority: PublicKey.findProgramAddressSync(
-          [Buffer.from("__event_authority")],
-          this.programId,
-        )[0].toBase58(),
-      },
-      zeroCopyLayout,
+      { ...tx, eventAuthority: pda.toBase58() },
+      eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
     );
   }
 
@@ -969,11 +852,11 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
 
   async getAccountInfo(address: string | PublicKey) {
     const addr = typeof address === "string" ? new PublicKey(address) : address;
-    const info = await this.provider.connection.getAccountInfo(addr, this.provider.commitment as any);
+    const info = await this.provider.connection.getAccountInfo(addr, this.provider.commitment);
     if (!info) return null;
     return {
       ...info,
-      data: [info.data.toString("base64"), "base64"] as [string, string],
+      data: [getBase64Codec().decode(info.data), "base64"] as [string, string],
     };
   }
 }
