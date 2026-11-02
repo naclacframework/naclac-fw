@@ -1,11 +1,11 @@
 use naclac_lang::prelude::*;
-use crate::components::{BondingCurve, Shareholder, SharingConfig};
 use crate::constants::{
     BONDING_CURVE_SEED, CREATOR_VAULT_SEED, PUMP_FEES_AUTHORITY_SEED, PUMP_FEES_PROGRAM_ID, SHARING_CONFIG_SEED,
     WSOL_MINT,
 };
 use crate::errors::PumpError;
 use crate::events::DistributeCreatorFeesEvent;
+use crate::state::{BondingCurve, Shareholder, SharingConfig};
 
 #[derive(Accounts)]
 #[instruction(bonding_curve_bump: u8, creator_vault_bump: u8)]

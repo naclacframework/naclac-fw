@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::counter::Counter;
+use crate::state::counter::Counter;
 use crate::constants::SEED_COUNTER;
 
 #[derive(Accounts)]

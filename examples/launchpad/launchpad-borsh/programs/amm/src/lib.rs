@@ -2,8 +2,8 @@ use naclac_lang::prelude::*;
 
 declare_id!("ELAcXuQJ9UHTCcrrSHfnMRxzyxy8yh51oMu5BVJPCy8h");
 
-pub mod components;
 pub mod instructions;
+pub mod state;
 pub mod systems;
 pub mod events;
 pub mod errors;

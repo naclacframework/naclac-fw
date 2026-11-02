@@ -1,5 +1,5 @@
 use {
-    crate::{components::counter::Counter, errors::CounterError},
+    crate::{errors::CounterError, state::counter::Counter},
     naclac_lang::prelude::*,
 };
 

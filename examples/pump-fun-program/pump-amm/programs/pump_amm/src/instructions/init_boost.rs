@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::{GlobalConfig, Pool};
 use crate::constants::{BOOST_BASE_SUPPLY_DIVISOR, BOOST_VAULT_SEED, GLOBAL_CONFIG_SEED, POOL_SEED};
 use crate::errors::PumpAmmError;
+use crate::state::{GlobalConfig, Pool};
 use crate::events::InitBoostEvent;
 
 // Real `init_boost` takes zero args and derives `boost_vault_authority`/

@@ -1,11 +1,11 @@
 use naclac_lang::prelude::*;
-use crate::components::{BondingCurve, DonationFeePda, FeeProgramGlobal, Pool};
 use crate::constants::{
     BONDING_CURVE_SEED, DONATION_FEE_PDA_SEED, FEE_PROGRAM_GLOBAL_SEED, POOL_AUTHORITY_SEED,
     POOL_SEED, PUMP_AMM_PROGRAM_ID, PUMP_PROGRAM_ID, WSOL_MINT,
 };
 use crate::errors::FeesError;
 use crate::events::DonationFeePdaCreated;
+use crate::state::{BondingCurve, DonationFeePda, FeeProgramGlobal, Pool};
 
 // Real pump_fees requires `pool` to be a real, pump_amm-owned account at the
 // canonical migrated-pool address whenever `bonding_curve.complete` — but

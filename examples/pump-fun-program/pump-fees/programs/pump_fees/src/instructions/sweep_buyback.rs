@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::BuybackVault;
 use crate::constants::BUYBACK_VAULT_SEED;
 use crate::errors::FeesError;
 use crate::events::SweepBuybackEvent;
+use crate::state::BuybackVault;
 
 // naclac bans on-chain `find_program_address`, so `buyback_vault`'s seeds
 // (dynamic on `index`) need an explicit, client-computed bump — `BuybackVault`

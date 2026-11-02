@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::Global;
 use crate::constants::{GLOBAL_SEED, WSOL_MINT};
 use crate::errors::PumpError;
+use crate::state::Global;
 
 #[derive(Accounts)]
 #[instruction(quote_mint: Address)]

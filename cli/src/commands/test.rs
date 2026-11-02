@@ -1,9 +1,14 @@
 use {
     crate::{
-        commands::{programs, workspace},
+        cargo_progress,
+        commands::{build, generate, programs, workspace},
         ui,
     },
-    std::process::Command,
+    colored::Colorize,
+    std::{
+        process::{Command, Stdio},
+        time::Instant,
+    },
 };
 
 pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node: bool, all: bool) {
@@ -19,14 +24,15 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
 
     let mut test_script: String;
     let mut run_scripts = Vec::new();
+    let selected_programs: Vec<String>;
 
     if run_node {
         if !requested.is_empty() {
             ui::error("`-p` selects programs for the Rust tests; the Node tests do not take it.");
         }
         test_script = workspace::node_test_script(&config);
+        selected_programs = Vec::new();
 
-        // If target file specified, swap out/inject it
         if let Some(file_name) = target_file {
             let target_path = if file_name.starts_with("tests/") {
                 file_name.to_string()
@@ -66,11 +72,9 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
             }
         }
 
-        // Each program is tested in its own `cargo test --package`, never all
-        // together: programs with different account layouts enable
-        // naclac-core features that cannot be combined in one build.
         let listed = programs::listed(&config);
-        for p in programs::select(&listed, requested) {
+        selected_programs = programs::select(&listed, requested);
+        for p in &selected_programs {
             let mut s = test_script.clone();
             if let Some(idx) = s.find(" -- ") {
                 s.insert_str(idx, &format!(" --package {}", p));
@@ -92,51 +96,133 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
         "-c"
     };
 
-    let mut overall_success = true;
+    let start = Instant::now();
+    let header_target = if run_node {
+        "node".to_string()
+    } else {
+        format!(
+            "{} program{}",
+            selected_programs.len(),
+            if selected_programs.len() == 1 { "" } else { "s" }
+        )
+    };
+    ui::header("test", header_target);
+    if let Some(file_name) = target_file {
+        ui::kv("target", file_name);
+    }
 
     if run_node {
-        eprintln!("🧪 Running Naclac Test Suite...");
-        eprintln!("   > {}", test_script);
+        ui::section("node", "typescript test suite");
 
         let mut command = Command::new(shell);
         command
             .arg(shell_flag)
             .arg(&test_script)
             .current_dir(&workspace_root)
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit());
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .env("TS_NODE_TRANSPILE_ONLY", "1");
 
-        command.env("TS_NODE_TRANSPILE_ONLY", "1"); // Bypass slow TS checking
+        let step_start = Instant::now();
+        let status = command
+            .status()
+            .expect("Failed to execute test script");
 
-        let mut child = command.spawn().expect("Failed to execute test script");
-        let status = child.wait().expect("Failed to wait on test execution");
-        overall_success = status.success();
+        if !status.success() {
+            ui::error("Node test suite failed.");
+        }
+
+        eprintln!(
+            "  {} {} all tests passed",
+            "✓".green().bold(),
+            format!("{:>6}", ui::format_duration(step_start.elapsed())).dimmed()
+        );
+
+        ui::milestone(format!(
+            "Node test suite passed · {}",
+            ui::format_duration(start.elapsed())
+        ));
     } else {
-        for script in &run_scripts {
-            eprintln!("🧪 Running Naclac Test Suite...");
-            eprintln!("   > {}", script);
+        for (prog_name, script) in selected_programs.iter().zip(&run_scripts) {
+            let program_dir = programs::program_dir(&workspace_root, prog_name);
+            let prog_features = if generate::depends_on_naclac_lang(&program_dir) {
+                generate::detect_program_features(&workspace_root, &program_dir).ok()
+            } else {
+                None
+            };
+            let mode_label = prog_features
+                .as_ref()
+                .map_or_else(|| "plain program".to_string(), |f| f.label());
+
+            ui::section(prog_name, mode_label);
 
             let mut command = Command::new(shell);
             command
                 .arg(shell_flag)
                 .arg(script)
-                .current_dir(&workspace_root)
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit());
+                .env("CARGO_TERM_COLOR", "always")
+                .current_dir(&workspace_root);
 
-            let mut child = command.spawn().expect("Failed to execute test script");
-            let status = child.wait().expect("Failed to wait on test execution");
-            if !status.success() {
-                overall_success = false;
-                break;
+            if ui::show_output() {
+                let step_start = Instant::now();
+                let status = command
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit())
+                    .status()
+                    .expect("Failed to execute test script");
+                if !status.success() {
+                    ui::error(format!("Tests failed for '{prog_name}'."));
+                }
+                eprintln!(
+                    "  {} {} all tests passed",
+                    "✓".green().bold(),
+                    format!("{:>6}", ui::format_duration(step_start.elapsed())).dimmed()
+                );
+            } else {
+                let mut child = command
+                    .envs(cargo_progress::ENV)
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::piped())
+                    .spawn()
+                    .expect("Failed to execute test script");
+
+                let stderr = child.stderr.take().expect("Failed to capture stderr");
+                let step = ui::Step::start("Compiling & running tests");
+
+                let mut printed_header = false;
+                let _ = cargo_progress::read_updates(stderr, |line| {
+                    if let Some(progress) = cargo_progress::parse_progress(line) {
+                        step.set_message(format!(
+                            "Compiling & running tests  {}",
+                            cargo_progress::render(&progress)
+                        ));
+                        return;
+                    }
+                    if build::is_cargo_status_line(line) || line.trim().is_empty() {
+                        return;
+                    }
+                    if !printed_header {
+                        step.print_above("── compiler output ──────────────────────".dimmed());
+                        printed_header = true;
+                    }
+                    step.print_above(line);
+                });
+
+                let status = child.wait().expect("Failed to wait on test execution");
+
+                if !status.success() {
+                    step.fail(format!("Tests failed for '{prog_name}'."));
+                }
+
+                step.done("all tests passed");
             }
         }
-    }
 
-    if overall_success {
-        eprintln!("✅ All tests passed successfully!");
-    } else {
-        eprintln!("❌ Test suite failed.");
-        std::process::exit(1);
+        ui::milestone(format!(
+            "Passed tests for {} program{} · {}",
+            selected_programs.len(),
+            if selected_programs.len() == 1 { "" } else { "s" },
+            ui::format_duration(start.elapsed())
+        ));
     }
 }

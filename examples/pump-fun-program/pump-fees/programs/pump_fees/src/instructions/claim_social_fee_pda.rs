@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::{FeeProgramGlobal, SocialFeePda};
 use crate::constants::SOCIAL_FEE_PDA_SEED;
 use crate::errors::FeesError;
 use crate::events::SocialFeePdaClaimed;
+use crate::state::{FeeProgramGlobal, SocialFeePda};
 use crate::systems::accumulate_claimed;
 
 #[derive(Accounts)]

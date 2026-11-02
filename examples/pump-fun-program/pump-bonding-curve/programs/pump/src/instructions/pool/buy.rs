@@ -1,7 +1,6 @@
 use naclac_lang::prelude::*;
 use pump_fees_client::instructions::GetFeesCpiAccounts;
 use pump_fees_client::PumpFees;
-use crate::components::{BondingCurve, Global, GlobalVolumeAccumulator, UserVolumeAccumulator};
 use crate::constants::{
     BONDING_CURVE_SEED, BONDING_CURVE_V2_SEED, BUYBACK_VAULT_SEED, CREATOR_VAULT_RENT_EXEMPT_MINIMUM,
     CREATOR_VAULT_SEED, FEE_CONFIG_SEED, GLOBAL_SEED, GLOBAL_VOLUME_ACCUMULATOR_SEED, PUMP_AUTHORITY_SEED,
@@ -9,6 +8,7 @@ use crate::constants::{
 };
 use crate::errors::PumpError;
 use crate::events::{CompleteEvent, TradeEvent};
+use crate::state::{BondingCurve, Global, GlobalVolumeAccumulator, UserVolumeAccumulator};
 use crate::systems::{fee_amount_ceil, fee_amount_floor, get_fees_via_cpi, gross_sol_for_tokens_buy, GetFeesParams};
 
 #[instruction_args]

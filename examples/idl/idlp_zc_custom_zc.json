@@ -24,7 +24,7 @@
         {
           "name": "vault",
           "docs": [
-            "Mutable component account."
+            "Mutable account."
           ],
           "writable": true
         },
@@ -693,7 +693,7 @@
         {
           "name": "target",
           "docs": [
-            "SAFETY: its size follows whichever listed component its discriminator names."
+            "SAFETY: its size follows whichever listed account its discriminator names."
           ],
           "writable": true
         },
@@ -1288,7 +1288,7 @@
     {
       "name": "ComponentOnly",
       "docs": [
-        "Reachable only through a component field."
+        "Reachable only through an account field."
       ],
       "type": {
         "kind": "struct",

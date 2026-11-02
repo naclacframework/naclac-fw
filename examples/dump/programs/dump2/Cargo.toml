@@ -1,0 +1,28 @@
+[package]
+name = "dump2"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
+debug-mode = []
+idl-build = ["naclac-lang/idl-build"]
+default = ["solana", "borsh"]
+solana = ["naclac-lang/solana"]
+borsh = ["naclac-lang/borsh"]
+
+[dependencies]
+naclac-lang = { version = "0.1.0", default-features = false, path = "../../../../lang" }
+
+[dev-dependencies]
+naclac-client = { version = "0.1.0", path = "../../../../client-rs", features = ["litesvm"] }
+dump2-client = { version = "0.1.0", path = "../../artifacts/clients/rust/dump2" }
+
+[lints]
+workspace = true

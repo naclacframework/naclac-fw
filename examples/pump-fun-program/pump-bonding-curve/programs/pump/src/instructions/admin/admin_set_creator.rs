@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::{BondingCurve, Global};
 use crate::constants::{BONDING_CURVE_SEED, GLOBAL_SEED};
 use crate::errors::PumpError;
 use crate::events::AdminSetCreatorEvent;
+use crate::state::{BondingCurve, Global};
 
 #[derive(Accounts)]
 #[instruction(creator: Address, bonding_curve_bump: u8)]

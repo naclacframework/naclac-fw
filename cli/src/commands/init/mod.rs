@@ -1,7 +1,12 @@
 use {
     crate::ui,
     heck::ToSnakeCase,
-    std::{fs, path::Path, process::Command},
+    std::{
+        fs,
+        path::Path,
+        process::{Command, Stdio},
+        time::Instant,
+    },
 };
 
 pub mod templates;
@@ -46,11 +51,11 @@ pub fn execute(options: InitOptions) {
     let root = Path::new(name);
 
     if root.exists() {
-        eprintln!("❌ Error: Directory '{}' already exists.", name);
-        std::process::exit(1);
+        ui::error(format!("Directory '{name}' already exists."));
     }
 
-    println!("🚀 Initializing Naclac Workspace: {}...", name);
+    let start = Instant::now();
+    ui::header("init", name);
 
     let mode = resolve_mode(runtime_flag, mode_flag);
 
@@ -58,11 +63,9 @@ pub fn execute(options: InitOptions) {
         match parse_ts_framework(t) {
             Some(ts) => ts,
             None => {
-                eprintln!(
-                    "❌ Error: Invalid TypeScript framework '{}'. Available: kit, legacy",
-                    t
-                );
-                std::process::exit(1);
+                ui::error(format!(
+                    "Invalid TypeScript framework '{t}'. Available: kit, legacy"
+                ));
             }
         }
     } else {
@@ -73,31 +76,34 @@ pub fn execute(options: InitOptions) {
         match parse_package_manager(p) {
             Some(pm) => Some(pm),
             None => {
-                eprintln!(
-                    "❌ Error: Invalid package manager '{}'. Available: npm, yarn, pnpm, bun",
-                    p
-                );
-                std::process::exit(1);
+                ui::error(format!(
+                    "Invalid package manager '{p}'. Available: npm, yarn, pnpm, bun"
+                ));
             }
         }
     } else {
         None
     };
 
-    println!("🎨 Selected Mode: {:?}", mode);
-    println!("📦 Selected TypeScript Framework: {:?}", ts_framework);
+    let snake_name = name.to_snake_case();
+
+    ui::kv("layout", mode.label());
+    ui::kv("typescript", ts_framework.as_str());
     if let Some(pm) = package_manager {
-        println!("🔧 Selected Package Manager: {}", pm.as_str());
+        ui::kv("package", pm.as_str());
     }
 
-    let snake_name = name.to_snake_case();
+    let scaffold_start = Instant::now();
     ensure_dir(&root.join("tests"));
     let deploy_dir = naclac_client_gen::deploy_dir(root);
     ensure_dir(&deploy_dir);
 
     let keypair_path = deploy_dir.join(format!("{}-keypair.json", snake_name));
     let program_id = generate_keypair(&keypair_path);
-    println!("✅ Program ID generated: {}", program_id);
+    ui::kv(
+        "program",
+        format!("{snake_name} ({})", ui::short(&program_id)),
+    );
 
     let root_cargo = r#"[workspace]
 members = ["programs/*"]
@@ -125,29 +131,20 @@ unexpected_cfgs = { level = "warn", check-cfg = [
         |p| p.test_node_script(),
     );
 
-    let framework =
-        match framework_path {
-            Some(path) => Some(fs::canonicalize(path).unwrap_or_else(|e| {
-                ui::error(format!("Cannot read the framework path {path}: {e}"))
-            })),
-            None => {
-                let found = naclac_client_gen::find_framework_checkout(root)
-                    .unwrap_or_else(|e| ui::error(e));
-                match &found {
-                    Some(checkout) => println!(
-                        "🔗 Found the naclac framework checkout at {}; recording it as \
-                     `[framework] path` in Naclac.toml. Remove that section to use the published \
-                     packages instead.",
-                        checkout.display()
-                    ),
-                    None => println!(
-                        "📦 No naclac framework checkout found above this folder; using the \
-                     published packages."
-                    ),
-                }
-                found
+    let framework = match framework_path {
+        Some(path) => Some(
+            fs::canonicalize(path)
+                .unwrap_or_else(|e| ui::error(format!("Cannot read framework path {path}: {e}"))),
+        ),
+        None => {
+            let found =
+                naclac_client_gen::find_framework_checkout(root).unwrap_or_else(|e| ui::error(e));
+            if let Some(checkout) = &found {
+                ui::kv("framework", checkout.display());
             }
-        };
+            found
+        }
+    };
     let framework_section = match framework {
         Some(framework) => {
             let project = fs::canonicalize(root)
@@ -250,19 +247,19 @@ test-node = "{test_node_script}"
     );
 
     generate_program(root, name, &program_id, mode, ts_framework, true, empty);
+    ui::timed_success(scaffold_start.elapsed(), "workspace scaffolded");
 
-    if no_install {
-        println!("ℹ️  Skipping Node dependencies installation (--no-install).");
-    } else {
-        println!("📦 Installing Node dependencies...");
+    if !no_install {
+        let step = ui::Step::start("Installing Node dependencies");
         let mut deps_installed = false;
         if let Some(pm) = package_manager {
             let pm_cmd = pm.as_str();
             if Command::new(pm_cmd).arg("--version").output().is_ok() {
-                println!("   Using {} to install...", pm_cmd);
                 if let Ok(status) = Command::new(pm_cmd)
                     .arg("install")
                     .current_dir(root)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
                     .status()
                 {
                     if status.success() {
@@ -273,8 +270,13 @@ test-node = "{test_node_script}"
         } else {
             for pm in ["yarn", "pnpm", "npm"].iter() {
                 if Command::new(pm).arg("--version").output().is_ok() {
-                    println!("   Using {} to install...", pm);
-                    if let Ok(status) = Command::new(pm).arg("install").current_dir(root).status() {
+                    if let Ok(status) = Command::new(pm)
+                        .arg("install")
+                        .current_dir(root)
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .status()
+                    {
                         if status.success() {
                             deps_installed = true;
                             break;
@@ -284,10 +286,11 @@ test-node = "{test_node_script}"
             }
         }
 
-        if !deps_installed {
-            println!(
-                "   ⚠️  Warning: Dependency installation failed. You can install them manually later."
-            );
+        if deps_installed {
+            step.done("Node dependencies installed");
+        } else {
+            step.clear();
+            ui::warn("Node dependency installation failed (install manually later)");
         }
     }
 
@@ -306,8 +309,9 @@ test-node = "{test_node_script}"
                 .ok();
         }
     }
-    println!(
-        "\n✅ Success! Naclac Workspace '{}' generated (Mode: {:?}, TS: {:?}).",
-        name, mode, ts_framework
-    );
+
+    ui::milestone(format!(
+        "Initialized Naclac workspace '{name}' · {}",
+        ui::format_duration(start.elapsed())
+    ));
 }

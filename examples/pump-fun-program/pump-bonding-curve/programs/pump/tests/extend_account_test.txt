@@ -1,6 +1,6 @@
 //! Confirms `extend_account`'s `realloc::any_of` constraint (see
 //! `macros/src/instruction/parser.rs` and `realloc.rs`) against real
-//! on-chain byte layouts for every component it lists, replayed inside
+//! on-chain byte layouts for every account it lists, replayed inside
 //! LiteSVM from fixtures captured off devnet (`capture_devnet_fixtures.rs`,
 //! `tests/fixtures/*.bin`) rather than hand-typed approximations of what an
 //! account's bytes should look like. Run `capture_devnet_fixtures` first
@@ -61,7 +61,7 @@ fn extend_account_handles_a_real_global() {
     let old_len = fixture.len();
 
     let result = extend_fixture(&provider, fixture);
-    let expected_new_len = 8 + core::mem::size_of::<pump_client::components::Global>();
+    let expected_new_len = 8 + core::mem::size_of::<pump_client::state::Global>();
     println!(
         "global.bin: old_len={old_len} expected_new_len={expected_new_len} grew={}",
         old_len < expected_new_len
@@ -78,7 +78,7 @@ fn extend_account_handles_a_real_bonding_curve() {
     let provider = setup();
     let fixture = include_bytes!("fixtures/bonding_curve.bin");
     let result = extend_fixture(&provider, fixture);
-    let expected_new_len = 8 + core::mem::size_of::<pump_client::components::BondingCurve>();
+    let expected_new_len = 8 + core::mem::size_of::<pump_client::state::BondingCurve>();
     assert_eq!(result.len(), expected_new_len, "account should be exactly the current compiled size");
 }
 
@@ -88,7 +88,7 @@ fn extend_account_handles_a_real_global_volume_accumulator() {
     let fixture = include_bytes!("fixtures/global_volume_accumulator.bin");
     let result = extend_fixture(&provider, fixture);
     let expected_new_len =
-        8 + core::mem::size_of::<pump_client::components::GlobalVolumeAccumulator>();
+        8 + core::mem::size_of::<pump_client::state::GlobalVolumeAccumulator>();
     assert_eq!(result.len(), expected_new_len, "account should be exactly the current compiled size");
 }
 
@@ -98,7 +98,7 @@ fn extend_account_handles_a_real_user_volume_accumulator() {
     let fixture = include_bytes!("fixtures/user_volume_accumulator.bin");
     let result = extend_fixture(&provider, fixture);
     let expected_new_len =
-        8 + core::mem::size_of::<pump_client::components::UserVolumeAccumulator>();
+        8 + core::mem::size_of::<pump_client::state::UserVolumeAccumulator>();
     assert_eq!(result.len(), expected_new_len, "account should be exactly the current compiled size");
 }
 
@@ -112,7 +112,7 @@ fn extend_account_handles_a_real_user_volume_accumulator() {
 #[test]
 fn extend_account_refuses_to_shrink_an_oversized_user_volume_accumulator() {
     let provider = setup();
-    let compiled_len = 8 + core::mem::size_of::<pump_client::components::UserVolumeAccumulator>();
+    let compiled_len = 8 + core::mem::size_of::<pump_client::state::UserVolumeAccumulator>();
     let oversized_len = compiled_len + 64;
 
     let mut fixture = vec![0u8; oversized_len];

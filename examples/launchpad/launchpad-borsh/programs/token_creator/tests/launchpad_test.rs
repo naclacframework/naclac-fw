@@ -6,7 +6,7 @@ use token_creator_client::{
         build_create_mint,
         CreateMintAccounts,
     },
-    components::{LaunchRecord, fetch_launch_record},
+    state::{LaunchRecord, fetch_launch_record},
     types::{PROGRAM_ID as CREATOR_PROGRAM_ID, LaunchTokenArgs},
     get_launch_record_pda,
 };

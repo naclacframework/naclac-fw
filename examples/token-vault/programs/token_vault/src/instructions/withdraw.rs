@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
-use crate::components::vault::Vault;
-use crate::components::user_account::UserAccount;
+use crate::state::vault::Vault;
+use crate::state::user_account::UserAccount;
 use crate::constants::{SEED_VAULT, SEED_USER_ACCOUNT};
 use crate::events::TokenWithdrawn;
 use crate::systems::vault_ops::process_withdraw;

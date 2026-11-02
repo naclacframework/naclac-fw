@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::{BondingCurve, Global};
 use crate::constants::{BONDING_CURVE_SEED, GLOBAL_SEED, METADATA_SEED, MPL_TOKEN_METADATA_PROGRAM_ID};
 use crate::errors::PumpError;
 use crate::events::SetCreatorEvent;
+use crate::state::{BondingCurve, Global};
 use crate::systems::metadata_cpi::read_first_metaplex_creator;
 
 // `metadata_bump`/`bonding_curve_bump` don't exist in the real IDL -- same
@@ -22,7 +22,7 @@ pub struct SetCreator {
     /// SAFETY: the `owner`/`seeds`/`bump` constraints below already prove
     /// this is the real, canonical Metaplex `Metadata` PDA for `mint` —
     /// only its foreign, non-naclac Borsh-encoded data content (not a
-    /// naclac component, so not eligible for `Account<T>`'s own typed
+    /// naclac account, so not eligible for `Account<T>`'s own typed
     /// validation) is read manually via `read_first_metaplex_creator`.
     #[account(
         owner = MPL_TOKEN_METADATA_PROGRAM_ID,

@@ -1,6 +1,7 @@
 use {
     super::utils::{ensure_dir, write_file},
-    dialoguer::{theme::ColorfulTheme, Select},
+    crate::ui,
+    dialoguer::Select,
     heck::{ToSnakeCase, ToUpperCamelCase},
     std::path::Path,
 };
@@ -36,13 +37,28 @@ pub struct ProgramMode {
     pub layout: Layout,
 }
 
+impl ProgramMode {
+    pub fn label(&self) -> String {
+        let runtime = match self.runtime {
+            Runtime::Pinocchio => "pinocchio",
+            Runtime::Solana => "solana",
+        };
+        let layout = match self.layout {
+            Layout::Bytemuck => "bytemuck",
+            Layout::Wincode => "wincode",
+            Layout::Borsh => "borsh",
+        };
+        format!("{runtime}, {layout}")
+    }
+}
+
 fn prompt_runtime() -> Runtime {
     let selections = &[
         "Pinocchio (no-std, hyper-optimized compute units)",
         "Solana (standard Solana SDK runtime)",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = Select::with_theme(&ui::DialogTheme)
         .with_prompt("Choose execution runtime")
         .default(0)
         .items(&selections[..])
@@ -74,7 +90,7 @@ fn prompt_layout(runtime: Runtime) -> Layout {
     }
     let labels: Vec<&str> = layouts.iter().map(|(_, label)| *label).collect();
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = Select::with_theme(&ui::DialogTheme)
         .with_prompt("Choose account data layout & serialization")
         .default(0)
         .items(&labels[..])
@@ -109,30 +125,25 @@ fn parse_layout(flag: &str) -> Option<Layout> {
 pub fn resolve_mode(runtime_flag: Option<&str>, layout_flag: Option<&str>) -> ProgramMode {
     let runtime = match runtime_flag {
         Some(flag) => parse_runtime(flag).unwrap_or_else(|| {
-            eprintln!(
-                "❌ Error: Invalid runtime '{}'. Available: pinocchio, solana",
-                flag
-            );
-            std::process::exit(1);
+            ui::error(format!(
+                "Invalid runtime '{flag}'. Available: pinocchio, solana"
+            ));
         }),
         None => prompt_runtime(),
     };
     let layout = match layout_flag {
         Some(flag) => parse_layout(flag).unwrap_or_else(|| {
-            eprintln!(
-                "❌ Error: Invalid mode '{}'. Available: bytemuck, wincode, borsh",
-                flag
-            );
-            std::process::exit(1);
+            ui::error(format!(
+                "Invalid mode '{flag}'. Available: bytemuck, wincode, borsh"
+            ));
         }),
         None => prompt_layout(runtime),
     };
     if runtime == Runtime::Pinocchio && layout == Layout::Borsh {
-        eprintln!(
-            "❌ Error: borsh is not available with the pinocchio runtime. Use wincode or bytemuck, \
-             or pass --runtime solana."
+        ui::error(
+            "borsh is not available with the pinocchio runtime. Use wincode or bytemuck, \
+             or pass --runtime solana.",
         );
-        std::process::exit(1);
     }
     ProgramMode { runtime, layout }
 }
@@ -141,6 +152,15 @@ pub fn resolve_mode(runtime_flag: Option<&str>, layout_flag: Option<&str>) -> Pr
 pub enum TsFramework {
     Kit,
     Legacy,
+}
+
+impl TsFramework {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Kit => "kit",
+            Self::Legacy => "legacy",
+        }
+    }
 }
 
 pub fn parse_ts_framework(flag: &str) -> Option<TsFramework> {
@@ -157,7 +177,7 @@ pub fn prompt_ts_framework() -> TsFramework {
         "Legacy Web3.js (Classic @solana/web3.js v1 client)",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = Select::with_theme(&ui::DialogTheme)
         .with_prompt("Choose TypeScript client framework")
         .default(0)
         .items(&selections[..])

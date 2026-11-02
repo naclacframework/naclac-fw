@@ -1,6 +1,15 @@
 use {
-    crate::commands::{programs, workspace},
-    std::{path::PathBuf, process::Command},
+    crate::{
+        cargo_progress,
+        commands::{build, generate, programs, workspace},
+        ui,
+    },
+    colored::Colorize,
+    std::{
+        path::PathBuf,
+        process::{Command, Stdio},
+        time::Instant,
+    },
 };
 
 /// Runs `cargo clippy` against each program in `requested` (every program
@@ -21,32 +30,63 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
         .map(|name| programs::program_dir(&workspace_root, name))
         .collect();
 
-    crate::commands::generate::ensure_client_stubs(
+    generate::ensure_client_stubs(
         &workspace_root,
         &programs::all_dirs(&workspace_root),
     );
 
-    let mut overall_success = true;
+    let start = Instant::now();
+    let target_label = if tests {
+        format!(
+            "tests of {} program{}",
+            program_dirs.len(),
+            if program_dirs.len() == 1 { "" } else { "s" }
+        )
+    } else {
+        format!(
+            "{} program{}",
+            program_dirs.len(),
+            if program_dirs.len() == 1 { "" } else { "s" }
+        )
+    };
+    ui::header("check", target_label);
+    if deny_warnings {
+        ui::kv("flags", "-D warnings (warnings treated as errors)");
+    }
 
     for program_dir in &program_dirs {
         let prog_name = program_dir.file_name().unwrap().to_str().unwrap();
         let cargo_toml_path = program_dir.join("Cargo.toml");
 
-        if tests {
-            eprintln!("🔍 Checking the tests of '{}' with clippy...", prog_name);
+        let prog_features = if generate::depends_on_naclac_lang(program_dir) {
+            generate::detect_program_features(&workspace_root, program_dir).ok()
         } else {
-            eprintln!("🔍 Checking '{}' with clippy...", prog_name);
-        }
+            None
+        };
+        let mode_label = prog_features
+            .as_ref()
+            .map_or_else(|| "plain program".to_string(), |f| f.label());
+
+        ui::section(
+            prog_name,
+            if tests {
+                format!("tests · {}", mode_label)
+            } else {
+                mode_label
+            },
+        );
 
         let mut cmd = Command::new("cargo");
         cmd.arg("clippy")
             .arg("--manifest-path")
             .arg(cargo_toml_path.to_str().unwrap())
-            .current_dir(&workspace_root);
+            .env("CARGO_TERM_COLOR", "always")
+            .current_dir(&workspace_root)
+            .stdout(Stdio::inherit());
+
         if tests {
             cmd.arg("--tests");
         }
-
         if !features.is_empty() {
             cmd.arg("--features").arg(features.join(","));
         }
@@ -54,36 +94,107 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
             cmd.args(["--", "-D", "warnings"]);
         }
 
-        let mut child = cmd
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit())
-            .spawn()
-            .expect("Failed to execute cargo clippy. Make sure clippy is installed: rustup component add clippy");
-
-        let status = child.wait().expect("Failed to wait on cargo clippy");
-
-        if !status.success() {
-            if tests {
-                eprintln!(
-                    "❌ Clippy check failed for the tests of '{}'. If it could not resolve the \
-                     generated client, run `naclac build` first.",
-                    prog_name
-                );
-            } else {
-                eprintln!("❌ Clippy check failed for '{}'.", prog_name);
-            }
-            overall_success = false;
-            break;
-        }
-    }
-
-    if overall_success {
-        if tests {
-            eprintln!("✅ All program tests passed clippy checks!");
+        let spinner_msg = if tests {
+            "Checking tests with clippy"
         } else {
-            eprintln!("✅ All programs passed clippy checks!");
+            "Checking program with clippy"
+        };
+
+        if ui::show_output() {
+            let status = cmd
+                .stderr(Stdio::inherit())
+                .status()
+                .expect("Failed to execute cargo clippy");
+            if !status.success() {
+                if tests {
+                    ui::error(format!(
+                        "Clippy check failed for the tests of '{prog_name}'. If it could not resolve the \
+                         generated client, run `naclac build` first."
+                    ));
+                } else {
+                    ui::error(format!("Clippy check failed for '{prog_name}'."));
+                }
+            }
+            ui::success(if tests {
+                "tests clippy clean"
+            } else {
+                "clippy clean"
+            });
+        } else {
+            let mut child = cmd
+                .envs(cargo_progress::ENV)
+                .stderr(Stdio::piped())
+                .spawn()
+                .expect("Failed to execute cargo clippy. Make sure clippy is installed: rustup component add clippy");
+            let stderr = child
+                .stderr
+                .take()
+                .expect("Failed to capture cargo clippy stderr");
+
+            let step = ui::Step::start(spinner_msg);
+            let mut printed_output_header = false;
+            let mut cargo_error_summary: Option<String> = None;
+
+            let _ = cargo_progress::read_updates(stderr, |line| {
+                if let Some(progress) = cargo_progress::parse_progress(line) {
+                    step.set_message(format!(
+                        "{spinner_msg}  {}",
+                        cargo_progress::render(&progress)
+                    ));
+                    return;
+                }
+                if build::is_cargo_status_line(line) || line.trim().is_empty() {
+                    return;
+                }
+                if !printed_output_header {
+                    step.print_above("── compiler output ──────────────────────".dimmed());
+                    printed_output_header = true;
+                }
+                let stripped = build::strip_ansi(line);
+                let trimmed = stripped.trim();
+                if trimmed.starts_with("error: could not compile")
+                    || trimmed.starts_with("error: aborting due to")
+                {
+                    cargo_error_summary = Some(trimmed.to_string());
+                }
+                step.print_above(line);
+            });
+
+            let status = child.wait().expect("Failed to wait on cargo clippy");
+            if !status.success() {
+                let fail_msg = if tests {
+                    match cargo_error_summary {
+                        Some(summary) => format!(
+                            "Clippy check failed for the tests of '{prog_name}' — {summary}"
+                        ),
+                        None => format!(
+                            "Clippy check failed for the tests of '{prog_name}'. If it could not \
+                             resolve the generated client, run `naclac build` first."
+                        ),
+                    }
+                } else {
+                    match cargo_error_summary {
+                        Some(summary) => {
+                            format!("Clippy check failed for '{prog_name}' — {summary}")
+                        }
+                        None => format!("Clippy check failed for '{prog_name}'"),
+                    }
+                };
+                step.fail(fail_msg);
+            }
+
+            step.done(if tests {
+                "tests clippy clean"
+            } else {
+                "clippy clean"
+            });
         }
-    } else {
-        std::process::exit(1);
     }
+
+    ui::milestone(format!(
+        "Checked {} program{} · {}",
+        program_dirs.len(),
+        if program_dirs.len() == 1 { "" } else { "s" },
+        ui::format_duration(start.elapsed())
+    ));
 }

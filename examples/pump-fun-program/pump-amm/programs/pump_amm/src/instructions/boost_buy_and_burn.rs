@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::{GlobalConfig, Pool};
 use crate::constants::{BOOST_VAULT_SEED, GLOBAL_CONFIG_SEED, POOL_SEED};
 use crate::errors::PumpAmmError;
+use crate::state::{GlobalConfig, Pool};
 use crate::events::BoostBuyAndBurnEvent;
 
 // `boost_vault_authority_bump` is naclac-only (see `init_boost.rs`'s own

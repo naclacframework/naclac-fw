@@ -82,7 +82,7 @@ fn token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u8> {
 /// Standard Anchor/Borsh account: 8-byte discriminator + fields in the
 /// struct's own declared order. `MintWhitelistV1 { bump: u8, mints: Vec<Address> }`
 /// — this is well-documented, deterministic Borsh encoding (unlike naclac's
-/// own zero-copy component layout, which is a genuinely separate, unverified
+/// own zero-copy account layout, which is a genuinely separate, unverified
 /// question this probe does NOT need to answer).
 fn mint_whitelist_v1_account_data(bump: u8, mints: &[Address]) -> Vec<u8> {
     let mut data = Vec::new();

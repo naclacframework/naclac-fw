@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::UserVolumeAccumulator;
 use crate::constants::USER_VOLUME_ACCUMULATOR_SEED;
 use crate::errors::PumpError;
 use crate::events::ClaimCashbackEvent;
+use crate::state::UserVolumeAccumulator;
 
 // Real accounts (`pump-public-docs/idl/pump.json`): `user(mut)` (plain, not
 // a signer -- anyone may crank a payout to any user), `user_volume_accumulator

@@ -1,12 +1,12 @@
 mod helper;
 
 use token_vault_client::{
-    components::{
-        Vault, UserAccount, fetch_vault, fetch_user_account, fetch_all_vault, fetch_all_user_account,
-    },
     instructions::{
         build_initialize, build_deposit,
         InitializeAccounts, DepositAccounts,
+    },
+    state::{
+        Vault, UserAccount, fetch_vault, fetch_user_account, fetch_all_vault, fetch_all_user_account,
     },
     types::PROGRAM_ID,
     get_vault_account_pda, get_user_account_pda,

@@ -5,8 +5,8 @@ use {
 
 declare_id!("DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ");
 
-pub mod components;
 pub mod instructions;
+pub mod state;
 pub mod systems;
 pub mod events;
 pub mod errors;

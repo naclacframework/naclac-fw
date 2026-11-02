@@ -5,16 +5,17 @@ use {
 
 pub fn ensure_dir(path: &Path) {
     if !path.exists() {
-        fs::create_dir_all(path).expect("Failed to create directory");
+        fs::create_dir_all(path)
+            .unwrap_or_else(|e| ui::error(format!("Failed to create directory {}: {e}", path.display())));
     }
 }
 
 pub fn write_file(path: &Path, content: &str) {
-    fs::write(path, content).unwrap_or_else(|_| panic!("Failed to write file: {:?}", path));
+    fs::write(path, content)
+        .unwrap_or_else(|e| ui::error(format!("Failed to write {}: {e}", path.display())));
 }
 
 pub fn generate_keypair(keypair_path: &Path) -> String {
-    println!("🔑 Generating cryptographic root identity...");
     if let Some(parent) = keypair_path.parent() {
         ensure_dir(parent);
     }

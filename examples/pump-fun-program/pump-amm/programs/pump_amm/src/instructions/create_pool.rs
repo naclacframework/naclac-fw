@@ -1,11 +1,11 @@
 use naclac_lang::prelude::*;
-use crate::components::{GlobalConfig, Pool};
 use crate::constants::{
     DISABLE_CREATE_POOL_FLAG, GLOBAL_CONFIG_SEED, LP_BOOTSTRAP_WITHHELD, LP_MINT_DECIMALS,
     POOL_LP_MINT_SEED, POOL_SEED,
 };
 use crate::errors::PumpAmmError;
 use crate::events::CreatePoolEvent;
+use crate::state::{GlobalConfig, Pool};
 use crate::systems::lp_bootstrap_amount;
 
 // Real `create_pool` derives every PDA bump on-chain via a search loop;

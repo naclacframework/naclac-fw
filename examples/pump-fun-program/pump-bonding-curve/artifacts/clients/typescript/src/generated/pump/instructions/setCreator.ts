@@ -26,7 +26,7 @@ export interface SetCreatorAccounts {
    * SAFETY: the `owner`/`seeds`/`bump` constraints below already prove
    * this is the real, canonical Metaplex `Metadata` PDA for `mint` —
    * only its foreign, non-naclac Borsh-encoded data content (not a
-   * naclac component, so not eligible for `Account<T>`'s own typed
+   * naclac account, so not eligible for `Account<T>`'s own typed
    * validation) is read manually via `read_first_metaplex_creator`.
    */
   metadata?: naclac.Address | string;

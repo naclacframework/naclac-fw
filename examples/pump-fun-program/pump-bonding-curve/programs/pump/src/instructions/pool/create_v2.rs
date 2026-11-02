@@ -1,9 +1,9 @@
 use naclac_lang::prelude::*;
 use naclac_lang::prelude::spl_token_metadata_interface;
-use crate::components::{BondingCurve, Global};
 use crate::constants::{BONDING_CURVE_SEED, GLOBAL_SEED, MINT_AUTHORITY_SEED, MINT_DECIMALS, WSOL_MINT};
 use crate::errors::PumpError;
 use crate::events::CreateEvent;
+use crate::state::{BondingCurve, Global};
 
 // Real `create_v2` account list + args confirmed via `pump-rust-client`'s own
 // IDL (`reference/pump-rust-client/idls/pump.json`, discriminator

@@ -9,12 +9,12 @@ pub use naclac_lang::prelude as sdk_core_cpi;
 pub use naclac_client as sdk_core_offchain;
 
 #[cfg(feature = "offchain")]
-pub mod components;
+pub mod state;
 pub mod instructions;
 pub mod types;
 
 #[cfg(feature = "offchain")]
-pub use components::*;
+pub use state::*;
 pub use instructions::*;
 pub use types::*;
 

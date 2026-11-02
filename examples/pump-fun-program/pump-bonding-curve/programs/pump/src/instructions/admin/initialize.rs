@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
-use crate::components::Global;
 use crate::constants::GLOBAL_SEED;
+use crate::state::Global;
 
 #[derive(Accounts)]
 pub struct Initialize {

@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::{Fees, FeeTier, Shareholder};
+use crate::state::{Fees, FeeTier, Shareholder};
 
 // status: 0 = Paused, 1 = Active (real type is a ConfigStatus enum; bytemuck::Pod
-// can't be derived for enums, so this stays a plain u8 — same as in components).
+// can't be derived for enums, so this stays a plain u8 — same as in state).
 
 #[event(alloc)]
 pub struct CreateFeeSharingConfigEvent {

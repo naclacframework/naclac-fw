@@ -134,6 +134,9 @@ enum Commands {
         /// Builds and deploys programs before running tests
         #[arg(short, long)]
         all: bool,
+        /// Stream runner output directly instead of naclac's summarized progress
+        #[arg(long)]
+        show_output: bool,
     },
     /// Fetches and deserializes an on-chain account using the local IDL
     Account { address: String },
@@ -193,6 +196,9 @@ enum Commands {
         /// dependencies included
         #[arg(long, conflicts_with_all = ["program_id", "programs"])]
         hard: bool,
+        /// Stream cargo's own output instead of naclac's summarized output
+        #[arg(long)]
+        show_output: bool,
     },
     /// Airdrops SOL to the current wallet configured in Naclac.toml
     Airdrop {
@@ -200,14 +206,17 @@ enum Commands {
         #[arg(default_value_t = 1.0)]
         amount: f64,
     },
-    /// Tails the logs for the target cluster (or specific program)
+    /// Tails the logs for workspace programs, a specific program, or the whole network
     Logs {
         /// Optional specific program (a name from `[programs.<cluster>]` or
         /// an address) to filter logs for
         program_id: Option<String>,
-        /// Same as the positional program; at most one program can be followed
+        /// Program to follow (repeat for several)
         #[arg(short = 'p', long = "program")]
         programs: Vec<String>,
+        /// Stream all transactions across the entire cluster without filtering
+        #[arg(long)]
+        all: bool,
     },
     /// Expands macros in the target program using cargo-expand
     Expand {
@@ -218,6 +227,9 @@ enum Commands {
         programs: Vec<String>,
         #[arg(short, long)]
         features: Vec<String>,
+        /// File to write the expanded code to (default: programs/<name>/<name>.rs)
+        #[arg(short, long)]
+        output: Option<String>,
     },
     /// Profiles the compute unit usage of the program in real-time
     Profile {
@@ -248,6 +260,9 @@ enum Commands {
         /// Fail on any clippy warning, not only on errors
         #[arg(long)]
         deny_warnings: bool,
+        /// Stream cargo's own compilation output instead of naclac's summarized spinner
+        #[arg(long)]
+        show_output: bool,
     },
 }
 
@@ -448,7 +463,10 @@ fn main() {
     let cli = Cli::parse();
     if let Commands::Idl { show_output, .. }
     | Commands::Deploy { show_output, .. }
-    | Commands::Upgrade { show_output, .. } = &cli.command
+    | Commands::Upgrade { show_output, .. }
+    | Commands::Check { show_output, .. }
+    | Commands::Clean { show_output, .. }
+    | Commands::Test { show_output, .. } = &cli.command
     {
         ui::set_show_output(*show_output);
     }
@@ -540,6 +558,7 @@ fn main() {
             rust,
             node,
             all,
+            ..
         } => commands::test::execute(file.as_deref(), programs, *rust, *node, *all),
         Commands::Account { address } => commands::account::execute(address),
         Commands::Upgrade {
@@ -658,33 +677,52 @@ fn main() {
             program_id,
             programs,
             hard,
+            ..
         } => commands::clean::execute(&requested_programs(program_id, programs), *hard),
         Commands::Airdrop { amount } => commands::airdrop::execute(*amount),
         Commands::Logs {
             program_id,
             programs,
+            all,
+            ..
         } => {
-            let requested = requested_programs(program_id, programs);
-            match requested.as_slice() {
-                [] => commands::logs::execute(None),
-                [_] => {
-                    let addresses = target_addresses(&requested);
-                    commands::logs::execute(addresses.first().map(String::as_str));
+            if *all {
+                commands::logs::execute_all();
+            } else {
+                let requested = requested_programs(program_id, programs);
+                let targets: Vec<commands::logs::LogTarget> = target_programs(&requested)
+                    .into_iter()
+                    .map(|p| commands::logs::LogTarget {
+                        name: p.name,
+                        address: p.address,
+                    })
+                    .collect();
+
+                match targets.as_slice() {
+                    [] => commands::logs::execute_all(),
+                    [single] => {
+                        commands::logs::execute_single(single.name.as_deref(), &single.address)
+                    }
+                    _ => commands::logs::execute_multiple(&targets),
                 }
-                _ => ui::error(
-                    "`naclac logs` follows one program, or every program when none is given.",
-                ),
             }
         }
         Commands::Expand {
             program_id,
             programs,
             features,
-        } => commands::expand::execute(&requested_programs(program_id, programs), features.clone()),
+            output,
+            ..
+        } => commands::expand::execute(
+            &requested_programs(program_id, programs),
+            features.clone(),
+            output.as_deref(),
+        ),
         Commands::Profile {
             program,
             programs,
             run_order,
+            ..
         } => commands::profile::execute(&requested_programs(program, programs), *run_order),
         Commands::Check {
             program_id,
@@ -692,6 +730,7 @@ fn main() {
             features,
             test,
             deny_warnings,
+            ..
         } => commands::check::execute(
             &requested_programs(program_id, programs),
             features.clone(),

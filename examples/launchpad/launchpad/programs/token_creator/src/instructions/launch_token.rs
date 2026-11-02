@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
 use amm_client::{Amm, InitializeCpi};
-use crate::components::launch_record::LaunchRecord;
+use crate::state::launch_record::LaunchRecord;
 use crate::constants::SEED_MINT;
 
 #[instruction_args]

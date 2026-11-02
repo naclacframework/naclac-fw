@@ -2,13 +2,13 @@ use naclac_lang::prelude::*;
 use pump_amm_client::instructions::{CreatePoolCpi, CreatePoolCpiAccounts};
 use pump_amm_client::types::CreatePoolArgsCpi as PumpAmmCreatePoolArgs;
 use pump_amm_client::PumpAmm;
-use crate::components::{BondingCurve, Global};
 use crate::constants::{
     ASSOCIATED_TOKEN_PROGRAM_ID, BONDING_CURVE_SEED, GLOBAL_CONFIG_SEED, GLOBAL_SEED,
     POOL_AUTHORITY_SEED, POOL_LP_MINT_SEED, POOL_SEED, PUMP_AMM_PROGRAM_ID, WSOL_MINT,
 };
 use crate::errors::PumpError;
 use crate::events::CompletePumpAmmMigrationEvent;
+use crate::state::{BondingCurve, Global};
 
 // Real `migrate` has `args: []` — every PDA bump gets found via an on-chain
 // search loop, which naclac forbids for non-compile-time-literal seeds.

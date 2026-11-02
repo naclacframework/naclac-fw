@@ -1206,7 +1206,7 @@ fn transfer_fee_sharing_authority_is_always_deprecated() {
     assert_custom_code(result, 6023);
 }
 
-/// `FeeConfig` is a fixed-size zero-copy `#[component]` in this
+/// `FeeConfig` is a fixed-size zero-copy `#[account]` in this
 /// reimplementation (no growable `Vec<FeeTier>` the way the real, Borsh-based
 /// program has), so `fee_config`'s real on-chain size never needs to reach
 /// `FeeConfig::CURRENT_SIZE` in the first place — `initialize_fee_config`

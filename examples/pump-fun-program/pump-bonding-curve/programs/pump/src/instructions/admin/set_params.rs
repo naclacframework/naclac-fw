@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::Global;
 use crate::constants::GLOBAL_SEED;
 use crate::errors::PumpError;
 use crate::events::SetParamsEvent;
+use crate::state::Global;
 
 #[instruction_args]
 pub struct SetParamsArgs {

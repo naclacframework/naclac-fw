@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::{GlobalVolumeAccumulator, UserVolumeAccumulator};
 use crate::constants::{GLOBAL_VOLUME_ACCUMULATOR_SEED, USER_VOLUME_ACCUMULATOR_SEED};
 use crate::errors::PumpError;
 use crate::events::ClaimTokenIncentivesEvent;
+use crate::state::{GlobalVolumeAccumulator, UserVolumeAccumulator};
 
 // Real accounts (`pump-public-docs/idl/pump.json`): `user` (plain, not a
 // signer), `user_ata(mut, ATA[user, token_program, mint])` -- unlike

@@ -1,9 +1,9 @@
 use token_vault_borsh_client::{
-    components::{Vault, UserAccount, fetch_vault, fetch_user_account},
     instructions::{
         build_initialize, build_deposit, build_withdraw,
         InitializeAccounts, DepositAccounts, WithdrawAccounts,
     },
+    state::{Vault, UserAccount, fetch_vault, fetch_user_account},
     types::{PROGRAM_ID, TokenDeposited, TokenWithdrawn},
     get_vault_account_pda, get_user_account_pda,
 };
@@ -99,7 +99,7 @@ pub fn run_lifecycle_test(token_program_id: Address) {
             }
         }
 
-        // Verify account initialized using the generated Vault component
+        // Verify account initialized using the generated Vault account
         let vault_state: Vault = fetch_vault(&provider, &vault_pda)
             .expect("Failed to fetch initialized vault account");
         assert_eq!(vault_state.authority, provider.payer.address());
@@ -186,7 +186,7 @@ pub fn run_lifecycle_test(token_program_id: Address) {
         }
     }
 
-    // 7. Verify Deposit using the generated components and token accounts
+    // 7. Verify Deposit using the generated accounts and token accounts
     let user_state: UserAccount = fetch_user_account(&provider, &user_pda)
         .expect("Failed to fetch user account");
     assert_eq!(user_state.balance, start_user_account_balance + deposit_amount + second_deposit_amount);

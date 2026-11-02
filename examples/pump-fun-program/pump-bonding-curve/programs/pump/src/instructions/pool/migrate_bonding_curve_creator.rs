@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::BondingCurve;
 use crate::constants::{BONDING_CURVE_SEED, PUMP_FEES_AUTHORITY_SEED, PUMP_FEES_PROGRAM_ID, SHARING_CONFIG_SEED};
 use crate::events::MigrateBondingCurveCreatorEvent;
+use crate::state::BondingCurve;
 
 #[derive(Accounts)]
 #[instruction(bonding_curve_bump: u8, sharing_config_bump: u8)]

@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::pool_state::PoolState;
+use crate::state::pool_state::PoolState;
 use crate::constants::SEED_POOL;
 
 #[derive(Accounts)]

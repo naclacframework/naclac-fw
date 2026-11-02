@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::pool_state::PoolState;
+use crate::state::pool_state::PoolState;
 use crate::constants::SEED_POOL;
 
 #[derive(Accounts)]
@@ -64,7 +64,7 @@ pub fn initialize(ctx: Context<Initialize>, id: u64, pool_bump: u8, amount_a: u6
         crate::errors::AmmError::Unauthorized
     );
 
-    // Initialize PoolState component
+    // Initialize PoolState account
     let pool = &mut ctx.accounts.pool_state;
     pool.id = id;
     pool.token_a_mint = ctx.accounts.token_a_mint.address();

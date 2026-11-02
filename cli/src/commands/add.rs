@@ -13,7 +13,7 @@ use {
         ui,
     },
     heck::ToSnakeCase,
-    std::fs,
+    std::{fs, time::Instant},
 };
 
 pub fn execute(
@@ -39,21 +39,22 @@ pub fn execute(
     let program_dir = workspace_root.join("programs").join(&snake_name);
 
     if program_dir.exists() {
-        eprintln!("❌ Error: Program '{}' already exists.", snake_name);
-        std::process::exit(1);
+        ui::error(format!("Program '{snake_name}' already exists."));
     }
+
+    let start = Instant::now();
+    ui::header("add", &snake_name);
 
     let mode = resolve_mode(runtime_flag, mode_flag);
 
+    let mut auto_detected = false;
     let ts_framework = if let Some(t) = ts_flag {
         match parse_ts_framework(t) {
             Some(ts) => ts,
             None => {
-                eprintln!(
-                    "❌ Error: Invalid TypeScript framework '{}'. Available: kit, legacy",
-                    t
-                );
-                std::process::exit(1);
+                ui::error(format!(
+                    "Invalid TypeScript framework '{t}'. Available: kit, legacy"
+                ));
             }
         }
     } else {
@@ -64,23 +65,35 @@ pub fn execute(
             Err(e) => ui::error(format!("Cannot read {}: {e}", pkg_path.display())),
         };
         if pkg_content.contains("\"@solana/kit\"") {
+            auto_detected = true;
             TsFramework::Kit
         } else if pkg_content.contains("\"@solana/web3.js\"") {
+            auto_detected = true;
             TsFramework::Legacy
         } else {
             prompt_ts_framework()
         }
     };
 
-    println!(
-        "🏗️  Initializing new Naclac program: '{}' (Mode: {:?}, TS: {:?})...",
-        snake_name, mode, ts_framework
-    );
+    ui::kv("layout", mode.label());
+    if auto_detected {
+        ui::kv(
+            "typescript",
+            format!("{} (auto-detected from package.json)", ts_framework.as_str()),
+        );
+    } else {
+        ui::kv("typescript", ts_framework.as_str());
+    }
 
     let keypair_path =
         naclac_client_gen::deploy_dir(&workspace_root).join(format!("{}-keypair.json", snake_name));
     let address = generate_keypair(&keypair_path);
+    ui::kv(
+        "program",
+        format!("{snake_name} ({})", ui::short(&address)),
+    );
 
+    let scaffold_start = Instant::now();
     generate_program(
         &workspace_root,
         name,
@@ -101,9 +114,13 @@ pub fn execute(
     fs::write(&config_path, updated)
         .unwrap_or_else(|e| ui::error(format!("Cannot write {}: {e}", config_path.display())));
 
-    println!("✅ Securely mapped Program ID: {}", address);
-    println!(
-        "🎉 '{}' is locked, loaded, and ready to disrupt!",
-        snake_name
+    ui::timed_success(
+        scaffold_start.elapsed(),
+        format!("scaffolded programs/{snake_name} and updated Naclac.toml"),
     );
+
+    ui::milestone(format!(
+        "Added '{snake_name}' to Naclac workspace · {}",
+        ui::format_duration(start.elapsed())
+    ));
 }

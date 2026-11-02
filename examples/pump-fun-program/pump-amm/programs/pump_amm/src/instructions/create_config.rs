@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
-use crate::components::GlobalConfig;
 use crate::constants::{ADMIN_PUBKEY, GLOBAL_CONFIG_SEED};
+use crate::state::GlobalConfig;
 
 #[derive(Accounts)]
 pub struct CreateConfig {

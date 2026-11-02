@@ -1,10 +1,10 @@
 use naclac_lang::prelude::*;
-use crate::components::{BondingCurve, MinimumDistributableFeeEvent, SharingConfig};
 use crate::constants::{
     BONDING_CURVE_SEED, CREATOR_VAULT_RENT_EXEMPT_MINIMUM, CREATOR_VAULT_SEED, PUMP_FEES_PROGRAM_ID,
     SHARING_CONFIG_SEED,
 };
 use crate::errors::PumpError;
+use crate::state::{BondingCurve, MinimumDistributableFeeEvent, SharingConfig};
 
 // Real accounts (`pump-public-docs/idl/pump.json`): `mint` (relation:
 // `sharing_config`), `bonding_curve` (pda), `sharing_config` (pda, owned by

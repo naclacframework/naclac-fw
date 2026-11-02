@@ -3,13 +3,13 @@ use pump_amm_client::instructions::{TransferCreatorFeesToPumpV2Cpi, TransferCrea
 use pump_amm_client::PumpAmm;
 use pump_client::instructions::{DistributeCreatorFeesV2Cpi, DistributeCreatorFeesV2CpiAccounts, DistributeCreatorFeesV2CpiCall};
 use pump_client::Pump;
-use crate::components::{BondingCurve, Global, Shareholder, SharingConfig};
 use crate::constants::{
     AMM_CREATOR_VAULT_AUTHORITY_SEED, BONDING_CURVE_SEED, PUMP_AMM_PROGRAM_ID, PUMP_CREATOR_VAULT_SEED,
     PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED, PUMP_PROGRAM_ID, SHARING_CONFIG_SEED,
 };
 use crate::errors::FeesError;
 use crate::events::ResetFeeSharingConfigEvent;
+use crate::state::{BondingCurve, Global, Shareholder, SharingConfig};
 
 // Generalized (any-quote-mint) sibling of `reset_fee_sharing_config`. Same
 // `authority == global.admin_set_creator_authority` authorization source as v1

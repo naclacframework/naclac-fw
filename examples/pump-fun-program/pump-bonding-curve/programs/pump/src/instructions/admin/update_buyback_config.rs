@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::Global;
 use crate::constants::{BUYBACK_VAULT_SEED, GLOBAL_SEED, PUMP_FEES_PROGRAM_ID};
 use crate::errors::PumpError;
+use crate::state::Global;
 
 // Real accounts (confirmed via 2 real mainnet transactions, decoded directly
 // off `getTransaction`, plus `reference/fee-tier-probe/src/bin/probe65.rs`

@@ -3,16 +3,16 @@ use naclac_lang::prelude::*;
 
 declare_id!("rT4zemULLMgPUZq5fE6Gr6jTqsShFbwRbJcQSWG8gtY");
 
-pub mod components;
 pub mod instructions;
 pub mod events;
 pub mod errors;
 pub mod constants;
+pub mod state;
 pub mod systems;
 
-use components::MinimumDistributableFeeEvent;
 use events::{ClaimCashbackEvent, ClaimTokenIncentivesEvent, CollectCreatorFeeEvent};
 use instructions::*;
+use state::MinimumDistributableFeeEvent;
 
 #[program]
 pub mod pump {

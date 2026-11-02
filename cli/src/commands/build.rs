@@ -291,6 +291,7 @@ pub fn execute(
             let step = ui::Step::start("Compiling the program");
             let mut combined = String::new();
             let mut compiled = 0u32;
+            let mut last_progress_total: Option<u32> = None;
             let mut printed_output_header = false;
             let mut cargo_error_summary: Option<String> = None;
             let _ = cargo_progress::read_updates(stderr, |line| {
@@ -299,31 +300,33 @@ pub fn execute(
                         "Compiling the program  {}",
                         cargo_progress::render(&progress)
                     ));
+                    last_progress_total = Some(progress.total as u32);
                     return;
                 }
                 combined.push_str(line);
                 combined.push('\n');
-                if cargo_compiling_crate_name(line).is_some() {
+                if is_cargo_compiling_line(line) {
                     compiled += 1;
-                } else if !line.trim().is_empty() && !is_cargo_finished_line(line) {
-                    if !printed_output_header {
-                        step.print_above("── compiler output ──────────────────────".dimmed());
-                        printed_output_header = true;
-                    }
-                    // cargo's own final tally line ("error: could not compile `X` ...
-                    // due to N previous errors" / "error: aborting due to N previous
-                    // errors") — the authoritative error count, straight from cargo
-                    // itself rather than naclac re-deriving one by pattern-matching
-                    // individual diagnostics.
-                    let stripped = strip_ansi(line);
-                    let trimmed = stripped.trim();
-                    if trimmed.starts_with("error: could not compile")
-                        || trimmed.starts_with("error: aborting due to")
-                    {
-                        cargo_error_summary = Some(trimmed.to_string());
-                    }
-                    step.print_above(line);
+                    return;
                 }
+                if is_cargo_status_line(line) || line.trim().is_empty() {
+                    return;
+                }
+                // Real rustc diagnostic line — show it.
+                if !printed_output_header {
+                    step.print_above("── compiler output ──────────────────────".dimmed());
+                    printed_output_header = true;
+                }
+                // cargo's own final tally line ("error: could not compile `X` due to N
+                // previous errors") — the authoritative error count, straight from cargo.
+                let stripped = strip_ansi(line);
+                let trimmed = stripped.trim();
+                if trimmed.starts_with("error: could not compile")
+                    || trimmed.starts_with("error: aborting due to")
+                {
+                    cargo_error_summary = Some(trimmed.to_string());
+                }
+                step.print_above(line);
             });
 
             let build_status = child.wait().expect("Failed to wait on cargo build-sbf");
@@ -347,13 +350,17 @@ pub fn execute(
                     }
                 }
             }
-            step.done(if compiled == 0 {
-                "program compiled · up to date".to_string()
-            } else {
-                format!(
-                    "program compiled · {compiled} crate{} built",
-                    if compiled == 1 { "" } else { "s" }
-                )
+            step.done(match last_progress_total {
+                None => "program compiled · up to date".to_string(),
+                Some(steps) if compiled == 0 => format!(
+                    "program compiled · {steps} step{} built",
+                    if steps == 1 { "" } else { "s" }
+                ),
+                Some(steps) => format!(
+                    "program compiled · {compiled} crate{} · {steps} step{} built",
+                    if compiled == 1 { "" } else { "s" },
+                    if steps == 1 { "" } else { "s" },
+                ),
             });
         }
 
@@ -442,40 +449,50 @@ pub(crate) fn strip_ansi(s: &str) -> String {
     out
 }
 
-/// Extracts the crate name from one of cargo's own per-crate
-/// "Compiling <name> v<version> (<path>)" stderr lines, or `None` for any
-/// other line (warnings, errors, the final "Finished" line, etc.).
-fn cargo_compiling_crate_name(raw: &str) -> Option<String> {
+/// True for any of cargo's "Compiling <name> v<ver>" stderr lines, covering
+/// both workspace members and registry dependencies. Used alongside
+/// `is_cargo_status_line` to count compiled crates separately from the
+/// total step count (which also includes build-script runs).
+fn is_cargo_compiling_line(raw: &str) -> bool {
     let line = strip_ansi(raw);
     let trimmed = line.trim();
-    let rest = trimmed.strip_prefix("Compiling ")?;
-    let v_pos = rest.find(" v")?;
-    let after_v = &rest[v_pos + 2..];
-    if after_v.starts_with(|c: char| c.is_ascii_digit())
-        && after_v.contains('(')
-        && trimmed.ends_with(')')
-    {
-        Some(rest[..v_pos].to_string())
-    } else {
-        None
-    }
+    let Some(rest) = trimmed.strip_prefix("Compiling ") else {
+        return false;
+    };
+    let Some(v_pos) = rest.find(" v") else {
+        return false;
+    };
+    rest[v_pos + 2..].starts_with(|c: char| c.is_ascii_digit())
 }
 
-/// True for cargo's own final "Finished `<profile>` profile [...] target(s)
-/// in <N>s" line — dropped because naclac's own timed `✓ <elapsed> Compiled
-/// ...` result line (see [`ui::Step::done`]) already reports the same thing.
-fn is_cargo_finished_line(raw: &str) -> bool {
-    strip_ansi(raw).trim().starts_with("Finished `")
+/// True for any cargo informational status line — one whose first
+/// whitespace-delimited token is an all-ASCII-alphabetic word that starts
+/// with an uppercase letter (e.g. Compiling, Finished, Cleaning, Downloaded,
+/// Fetch, Blocking, Fresh, Updating, Locking, Unpacking, Running, …).
+/// Rustc diagnostic lines (warning/error/note/help, source spans `-->`,
+/// pipe-column `|` lines) all begin with lowercase or punctuation and are
+/// never matched by this predicate.
+pub(crate) fn is_cargo_status_line(raw: &str) -> bool {
+    let line = strip_ansi(raw);
+    let trimmed = line.trim();
+    let end = trimmed
+        .find(|c: char| !c.is_ascii_alphabetic())
+        .unwrap_or(trimmed.len());
+    if end == 0 {
+        return false;
+    }
+    let word = &trimmed[..end];
+    word.starts_with(|c: char| c.is_ascii_uppercase())
+        && (end == trimmed.len() || trimmed.as_bytes()[end] == b' ')
 }
 
 #[cfg(kani)]
 mod kani_proofs {
     use super::*;
 
-    /// Proves `strip_ansi`/`cargo_compiling_crate_name`/`is_cargo_finished_line`
+    /// Proves `strip_ansi`/`is_cargo_compiling_line`/`is_cargo_status_line`
     /// never panic for any valid UTF-8 input — including adversarial
-    /// ANSI/unicode sequences a real cargo subprocess could plausibly emit,
-    /// not just the well-formed lines these functions are designed around.
+    /// ANSI/unicode sequences a real cargo subprocess could plausibly emit.
     /// A small symbolic byte buffer validated as UTF-8 (Kani explores every
     /// valid encoding within it) stands in for arbitrary subprocess output.
     #[kani::proof]
@@ -484,8 +501,8 @@ mod kani_proofs {
         let bytes: [u8; 12] = kani::any();
         if let Ok(s) = core::str::from_utf8(&bytes) {
             let _ = strip_ansi(s);
-            let _ = cargo_compiling_crate_name(s);
-            let _ = is_cargo_finished_line(s);
+            let _ = is_cargo_compiling_line(s);
+            let _ = is_cargo_status_line(s);
         }
     }
 }

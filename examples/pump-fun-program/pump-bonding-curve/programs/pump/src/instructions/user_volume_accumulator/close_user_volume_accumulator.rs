@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::UserVolumeAccumulator;
 use crate::constants::USER_VOLUME_ACCUMULATOR_SEED;
 use crate::events::CloseUserVolumeAccumulatorEvent;
+use crate::state::UserVolumeAccumulator;
 
 // Real accounts (`pump-public-docs/idl/pump.json`): `user(signer, mut)`,
 // `user_volume_accumulator(mut, pda=[seed, user])`, no `system_program` --

@@ -6,9 +6,10 @@
 
 use {
     colored::{ColoredString, Colorize},
+    dialoguer::theme::Theme,
     indicatif::{ProgressBar, ProgressStyle},
     std::{
-        fmt::Display,
+        fmt::{self, Display},
         sync::{
             atomic::{AtomicBool, AtomicUsize, Ordering},
             Mutex, PoisonError,
@@ -274,4 +275,73 @@ pub fn milestone(msg: impl Display) {
     set_indent(0);
     emit("");
     emit(format!("{} {}", brand("★").bold(), msg.to_string().bold()));
+}
+
+/// A timed success line formatted identically to a finished [`Step`].
+pub fn timed_success(elapsed: Duration, msg: impl Display) {
+    emit(result_line("✓".green().bold(), elapsed, msg));
+}
+
+/// A `dialoguer` theme matching the Naclac brand: pink cursors, clean alignment,
+/// and quiet confirmation marks.
+pub struct DialogTheme;
+
+impl Theme for DialogTheme {
+    fn format_prompt(&self, f: &mut dyn fmt::Write, prompt: &str) -> fmt::Result {
+        write!(f, "  {} {}:", brand("▸").bold(), prompt)
+    }
+
+    fn format_select_prompt(&self, f: &mut dyn fmt::Write, prompt: &str) -> fmt::Result {
+        write!(f, "  {} {}:", brand("▸").bold(), prompt)
+    }
+
+    fn format_select_prompt_selection(
+        &self,
+        f: &mut dyn fmt::Write,
+        prompt: &str,
+        sel: &str,
+    ) -> fmt::Result {
+        write!(f, "  {} {} · {}", "✓".green().bold(), prompt.dimmed(), sel)
+    }
+
+    fn format_select_prompt_item(
+        &self,
+        f: &mut dyn fmt::Write,
+        text: &str,
+        active: bool,
+    ) -> fmt::Result {
+        if active {
+            write!(f, "  {} {}", brand("❯").bold(), text)
+        } else {
+            write!(f, "    {}", text.dimmed())
+        }
+    }
+
+    fn format_confirm_prompt(
+        &self,
+        f: &mut dyn fmt::Write,
+        prompt: &str,
+        default: Option<bool>,
+    ) -> fmt::Result {
+        let choices = match default {
+            Some(true) => "Y/n",
+            Some(false) => "y/N",
+            None => "y/n",
+        };
+        write!(f, "  {} {} {} ", brand("▸").bold(), prompt, choices.dimmed())
+    }
+
+    fn format_confirm_prompt_selection(
+        &self,
+        f: &mut dyn fmt::Write,
+        prompt: &str,
+        selection: Option<bool>,
+    ) -> fmt::Result {
+        let sel = match selection {
+            Some(true) => "yes",
+            Some(false) => "no",
+            None => "",
+        };
+        write!(f, "  {} {} · {}", "✓".green().bold(), prompt.dimmed(), sel)
+    }
 }

@@ -1,9 +1,9 @@
 use vault_zc_client::{
-    components::{Vault, UserAccount, fetch_vault, fetch_user_account},
     instructions::{
         build_initialize, build_deposit, build_withdraw,
         InitializeAccounts, DepositAccounts, WithdrawAccounts,
     },
+    state::{Vault, UserAccount, fetch_vault, fetch_user_account},
     types::{PROGRAM_ID, FundsDeposited, FundsWithdrawn},
     get_vault_account_pda, get_user_account_pda,
 };
@@ -62,7 +62,7 @@ fn test_vault_lifecycle() {
             }
         }
 
-        // Verify account initialized using the generated Vault component
+        // Verify account initialized using the generated Vault account
         let vault_state: Vault = fetch_vault(&provider, &vault_pda)
             .expect("Failed to fetch initialized vault account");
         assert_eq!(vault_state.total_deposited, 0);
@@ -111,7 +111,7 @@ fn test_vault_lifecycle() {
         }
     }
 
-    // 5. Verify Deposit using the generated Vault/UserAccount component
+    // 5. Verify Deposit using the generated Vault/UserAccount account
     let vault_state: Vault = fetch_vault(&provider, &vault_pda)
         .expect("Failed to fetch vault account");
     assert_eq!(vault_state.total_deposited, start_vault_balance + deposit_amount);

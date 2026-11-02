@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::{Fees, FeeConfig, FeeTier};
 use crate::constants::{FEE_CONFIG_SEED, MAX_FEE_TIERS};
 use crate::errors::FeesError;
 use crate::events::UpdateFeeConfigEvent;
+use crate::state::{Fees, FeeConfig, FeeTier};
 use crate::systems::validate_fee_tiers;
 
 // `config_program_id` must be declared before `fee_config`: its seeds

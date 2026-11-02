@@ -23,7 +23,7 @@ fn write_fixture(name: &str, data: &[u8]) {
     println!("wrote {} ({} bytes)", path.display(), data.len());
 }
 
-/// Any one real instance of a non-singleton component -- `extend_account`
+/// Any one real instance of a non-singleton account -- `extend_account`
 /// doesn't care which specific account it is, only that its discriminator
 /// and current byte length are genuine. `None` when no such account exists
 /// on this cluster yet, so the caller can keep capturing the rest instead

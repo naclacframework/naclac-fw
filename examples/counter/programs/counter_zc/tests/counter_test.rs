@@ -1,11 +1,11 @@
 use {
     counter_zc_client::{
-        components::{fetch_counter, Counter},
         get_counter_account_pda,
         instructions::{
             build_decrement, build_increment, build_initialize,
             DecrementAccounts, IncrementAccounts, InitializeAccounts,
         },
+        state::{fetch_counter, Counter},
         types::{CounterDecremented, CounterIncremented, PROGRAM_ID},
     },
     naclac_client::*,
@@ -55,7 +55,7 @@ fn test_counter_integration() {
         .send_and_confirm()
         .unwrap();
 
-        // Verify account initialized using the generated Counter component
+        // Verify account initialized using the generated Counter account
         let counter_state: Counter = fetch_counter(&provider, &counter_pda)
             .expect("Failed to fetch initialized counter account");
         let count = counter_state.count;
@@ -79,7 +79,7 @@ fn test_counter_integration() {
     .send_and_confirm()
     .unwrap();
 
-    // 5. Verify Increment using the generated Counter component
+    // 5. Verify Increment using the generated Counter account
     let counter_state_after: Counter = fetch_counter(&provider, &counter_pda)
         .expect("Failed to fetch incremented counter account");
     let count_after = counter_state_after.count;
@@ -110,7 +110,7 @@ fn test_counter_integration() {
     .send_and_confirm()
     .unwrap();
 
-    // 8. Verify Decrement using the generated Counter component
+    // 8. Verify Decrement using the generated Counter account
     let counter_state_dec: Counter = fetch_counter(&provider, &counter_pda)
         .expect("Failed to fetch decremented counter account");
     let count_dec = counter_state_dec.count;

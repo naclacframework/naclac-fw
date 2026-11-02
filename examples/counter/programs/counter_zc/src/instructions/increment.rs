@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::counter::Counter;
+use crate::state::counter::Counter;
 use crate::systems::math::process_increment;
 use crate::events::CounterIncremented;
 use crate::constants::SEED_COUNTER;

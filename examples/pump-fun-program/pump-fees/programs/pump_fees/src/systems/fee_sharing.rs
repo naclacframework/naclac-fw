@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::Shareholder;
 use crate::constants::MAX_SHAREHOLDERS;
 use crate::errors::FeesError;
+use crate::state::Shareholder;
 
 // CREATOR_FEE_SHARING.md: non-empty, <= MAX_SHAREHOLDERS, no duplicate
 // addresses, every share_bps > 0, and the total exactly 10_000 bps.

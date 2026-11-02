@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::Global;
 use crate::constants::GLOBAL_SEED;
 use crate::errors::PumpError;
+use crate::state::Global;
 
 #[derive(Accounts)]
 #[instruction(initial_virtual_quote_reserves: u64)]

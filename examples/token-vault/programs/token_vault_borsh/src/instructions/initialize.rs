@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::vault::Vault;
+use crate::state::vault::Vault;
 use crate::constants::SEED_VAULT;
 
 #[derive(Accounts)]

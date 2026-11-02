@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::user_account::UserAccount;
+use crate::state::user_account::UserAccount;
 use crate::errors::VaultError;
 
 #[system]

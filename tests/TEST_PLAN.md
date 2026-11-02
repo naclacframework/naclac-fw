@@ -53,8 +53,8 @@ The actual per-case workflow:
    `clients/`).
 4. `programs/<name>/tests/<name>_test.rs` — a `#[test]` using
    `naclac_client::NaclacProvider` + the generated client's typed
-   `build_<instruction>()`/`<Instruction>Accounts`/`fetch_<component>()`/
-   `get_<component>_pda()` functions (not `get_<component>_account_pda` —
+   `build_<instruction>()`/`<Instruction>Accounts`/`fetch_<account>()`/
+   `get_<account>_pda()` functions (not `get_<account>_account_pda` —
    that was an early naming guess that turned out wrong; always verify
    against the real generated output in `clients/rust/<name>/src/`, don't
    assume the naming convention holds without checking).
@@ -94,18 +94,18 @@ build-time/macro-expansion-time property that's identical across all three
 modes — not runtime account/serialization behavior).
 
 Every example and every other test case in this plan splits a program into
-`components/`, `instructions/`, etc. That's a convention this repo follows,
+`state/`, `instructions/`, etc. That's a convention this repo follows,
 not something the macros or `naclac-syn` require — confirmed directly from
 `syn/src/lib.rs`'s `parse_workspace_program`: it recursively
 `fs::read_dir`s every file under `src/` and parses each one for
-`#[component]`/`#[derive(Accounts)]`/`#[instruction]` items, with no
+`#[account]`/`#[derive(Accounts)]`/`#[instruction]` items, with no
 assumption about *which* files those live in. `tests/single-file-layout/`
 proves this end-to-end rather than leaving it as an unverified read of the
-code: one `Counter` component, two `#[derive(Accounts)]` structs, and both
+code: one `Counter` account, two `#[derive(Accounts)]` structs, and both
 instruction handlers all live directly in one `lib.rs`. The test exercises
 the full pipeline — IDL generation, generated client SDK (including the
 `get_counter_pda` PDA helper, which depends on the IDL correctly resolving
-`seeds`/`bump` off the component), and real on-chain execution — and
+`seeds`/`bump` off the account), and real on-chain execution — and
 confirms all of it works identically to the split layout.
 
 ---
@@ -116,7 +116,7 @@ confirms all of it works identically to the split layout.
 
 The exact scenario the now-fixed audit finding #1 describes, kept as a
 permanent regression test rather than a one-time verification: define two
-`#[component]` types owned by the same program (`Vault`, `Config`), write an
+`#[account]` types owned by the same program (`Vault`, `Config`), write an
 instruction (`read_vault`) expecting `Account<Vault>` with no `seeds`/`address`
 constraint on that field (so the discriminator check is the *only* thing
 that can reject a wrong-type account), and confirm passing an initialized
@@ -440,16 +440,16 @@ test:
 | File | Sites |
 |---|---|
 | `accounts.rs` | 3 — `Pubkey` field, `Pubkey` instruction arg, heap type (`Vec`/`String`) as a zero-copy Accounts field |
-| `component.rs` | 2 — `Pubkey` field, heap type in a zero-copy component |
+| `account.rs` | 2 — `Pubkey` field, heap type in a zero-copy account |
 | `event.rs` | 1 — `Pubkey` field |
 | `lib.rs` | 1 — banned `find_program_address`/`create_program_address` (text-scanned across `#[instruction]`/`#[program]`/`#[derive(Accounts)]` bodies) |
 | `system.rs` | 2 — unparseable `#[system(invariant = "...")]` expression, `f32`/`f64` banned in `#[system]` functions |
 | `instruction/parser.rs` | 3 — bare `alias` rejection, `has_one = <dotted.path>` (must be a simple ident), bare `AccountInfo` field missing a `/// SAFETY:` comment |
 | `instruction/security.rs` | 3 — `bump = <expr>` combined with `init` on a compile-time-precomputed literal-seed PDA, `seeds = [...]` with no `bump` at all, `has_one = <unknown field>` |
 
-**Removed from the framework, not tested:** the `#[component(...)]`/
+**Removed from the framework, not tested:** the `#[account(...)]`/
 `#[event(...)]`/`#[program(...)]`/`#[instruction(...)]` (function attribute)
-"no longer takes arguments" rejections that used to live in `component.rs`,
+"no longer takes arguments" rejections that used to live in `account.rs`,
 `event.rs`, `program.rs`, `instruction/mod.rs`. These existed only to catch
 the old, pre-consistency-plan `zero_copy` argument syntax during the
 migration to auto-detected mode. Since mode is now fully auto-detected from
@@ -567,7 +567,7 @@ duplicated). Two real bugs found and fixed while first running this:
   the dynamic `id` seed component, same as `create_mint`. No manual
   bump-write-back workaround needed (unlike `init_mint_authority`'s bare-bump
   gotcha noted above) since the `mint` field is a bare `AccountInfo` with an
-  *explicit* `bump = mint_bump`, not a `#[component]`.
+  *explicit* `bump = mint_bump`, not a `#[account]`.
 - `check_mint_freeze_authority` (`programs/*/src/instructions/check_mint_freeze_authority.rs`,
   all 3 modes) — `mint::freeze_authority = freeze_authority` on an existing,
   non-`init` `Account<Mint>` field (`security.rs`, ~lines 611-638, only
@@ -704,7 +704,7 @@ token CPI would defeat the point of testing token constraint enforcement.
 ## 7. `tests/events/` — event emission across all three event mechanisms ✅ DONE
 
 **✅ Built and passing (6/6, all 3 modes).** `tests/events/` exists (3 modes: `events`,
-`events_borsh`, `events_zc`) — a single `Counter` component + `init_counter`/
+`events_borsh`, `events_zc`) — a single `Counter` account + `init_counter`/
 `increment_counter` instructions, mirroring `examples/counter` exactly.
 `increment_counter` emits `CounterIncremented { new_count }` via `emit!` on
 every call; the test calls it twice and decodes both transactions'
@@ -831,7 +831,7 @@ client's `Counter.authority` field is `cpi_callee_client::sdk_core::Address`
 different types with the same name, the exact distinction noted earlier
 this session. Fixed with `.into()` at the comparison site. Worth
 remembering for any future cross-program-CPI test: comparing an on-chain
-component field against an off-chain-derived PDA address will hit this
+account field against an off-chain-derived PDA address will hit this
 every time.
 
 **Deferred to a follow-up, not silently dropped:** a dedicated test that
@@ -906,7 +906,7 @@ it could never reach this code path.
   path `close_account.rs` uses) through the Box — a different code path
   than mutation, not redundant with it. (`tests/dup-mut/`'s
   `boxed_account_field_loads_and_mutates_like_an_unboxed_one` already
-  covered the mutation/address side on a pre-existing component; `close_big`
+  covered the mutation/address side on a pre-existing account; `close_big`
   here is the new ground, not a duplicate.)
 - **Deferred, not attempted here:** actually invoking `naclac build` on an
   intentionally-oversized struct and asserting the CLI's own process exit
@@ -1013,10 +1013,10 @@ means the 6000 offset lands them at exactly 6000/6001/6002
 **Real bug found and fixed in `naclac-client-gen` while building this
 (not the framework itself, but the CLI's client generator):**
 `client-gen/src/rust/lib_generator.rs` unconditionally emitted
-`pub mod components;` regardless of whether the program had any
-`#[component]`s at all — `client-gen/src/rust/mod.rs` only creates
-the `src/components/` directory when `idl.accounts` is non-empty, so a
-pure-logic program (no components, like this one) got a generated client
+`pub mod state;` regardless of whether the program had any
+`#[account]`s at all — `client-gen/src/rust/mod.rs` only creates
+the `src/state/` directory when `idl.accounts` is non-empty, so a
+pure-logic program (no accounts, like this one) got a generated client
 that failed to compile (`E0583: file not found for module`). Fixed by
 gating both the `mod`/`use` declarations on the same `idl.accounts`/
 `idl.instructions` emptiness checks already used for directory creation.
@@ -1079,13 +1079,13 @@ rather than that account's own address. All three generators
 32-byte `Address` regardless of whether `path` was a plain account name or
 a dotted field-access path.
 
-**Fixed properly, not just contained.** Threaded the backing component
+**Fixed properly, not just contained.** Threaded the backing account
 type through the whole pipeline, mechanically — no guessing at any step:
 `syn/instruction.rs` now extracts the inner generic type from
 `Account<T>`/`InterfaceAccount<T>` fields (the same technique already used
 for `Program<T>`, just previously not applied to `Account<T>`), `pda.rs`
 resolves a dotted seed's real field type by looking it up in that
-component's own already-parsed struct definition, and the resolved type
+account's own already-parsed struct definition, and the resolved type
 (`NaclacSeed`/`IdlSeed::Account`'s new `field_type: Option<String>`) flows
 through `naclac-idl`'s JSON schema into all three generators, which now
 emit a correctly-typed, correctly-encoded parameter (`registry_bump: u8` in
@@ -1107,7 +1107,7 @@ generate byte-conversion code for an arbitrary nested type.
   on-chain program actually accepts.
 - `non_primitive_field_seed_pda_helper_is_correctly_skipped` — non-primitive
   field-type seed (`registry.label: [u8; 4]`, a new field + `TaggedChild`
-  component/`init_tagged_child` instruction added specifically for this):
+  account/`init_tagged_child` instruction added specifically for this):
   asserts the on-chain program still accepts the hand-derived PDA, while
   the generated `get_tagged_child_pda` helper is correctly absent (checked
   by reading the generated `clients/rust/*/src/lib.rs` source directly) with
@@ -1135,7 +1135,7 @@ that distinction rather than prescribing the wrong shape.
   path from section 7 above
 - `naclac test`, `naclac deploy` (against a local validator), `naclac idl`,
   `naclac generate`
-- `naclac add` — adding a dependency/component to an existing project
+- `naclac add` — adding a program to an existing workspace
 - `naclac account`, `naclac logs`, `naclac doctor`, `naclac profile` — these
   are read/introspection commands; lower priority than the write-path
   commands above but worth at least a smoke test each

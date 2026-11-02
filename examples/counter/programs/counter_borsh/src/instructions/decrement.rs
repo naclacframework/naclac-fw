@@ -1,8 +1,8 @@
 use {
     crate::{
-        components::counter::Counter,
         constants::SEED_COUNTER,
         events::CounterDecremented,
+        state::counter::Counter,
         systems::math::process_decrement,
     },
     naclac_lang::prelude::*,

@@ -111,7 +111,7 @@ export const GLOBAL_DISCRIMINATOR = new Uint8Array([167, 232, 232, 177, 200, 108
 
 /**
  * Field-for-field mirror of `pump-bonding-curve`'s own real `Global`
- * account, as far as field *order* goes — but this specific `#[component]`
+ * account, as far as field *order* goes — but this specific `#[account]`
  * (zero-copy, `#[repr(C)]`) instance is itself already deployed on devnet,
  * so its own layout is what must stay stable now, not the real (Borsh,
  * hence unpaddded) program's byte-for-byte layout, which a `#[repr(C)]`

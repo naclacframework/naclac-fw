@@ -9,13 +9,13 @@ use donation_relay_client::instructions::{
 // plain name only exists when a build activates `cpi` alone.
 use donation_relay_client::types::DonateAddressConfigIdWithPayerV1ArgsCpi;
 use donation_relay_client::DonationRelay;
-use crate::components::{DonationFeePda, FeeProgramGlobal};
 use crate::constants::{
     DEBOUNCER_V1, DONATION_FEE_PDA_SEED, DONATION_RELAY_PROGRAM_ID, EPOCH_TRACKER_V1,
     FEE_PROGRAM_GLOBAL_SEED, WSOL_MINT,
 };
 use crate::errors::FeesError;
 use crate::events::DonationFeePdaCranked;
+use crate::state::{DonationFeePda, FeeProgramGlobal};
 
 // naclac forbids on-chain PDA search, so every dynamic PDA below (everything
 // except `fee_program_global`, whose seed is fully literal) takes an

@@ -14,7 +14,7 @@
 //! - Prints the full indexed + labeled account_keys list (works on success
 //!   or failure) so any future rent/ordering issue is immediately locatable.
 //! - Decodes `Global.buyback_basis_points` directly from the cloned account
-//!   bytes (offset computed from `components/global.rs`'s field order,
+//!   bytes (offset computed from `state/global.rs`'s field order,
 //!   cross-checked against `fee_recipient`'s already-confirmed offset 41
 //!   and `buyback_fee_recipients[0]`'s already-confirmed offset 741) rather
 //!   than inferring it from equal-looking transfer amounts.

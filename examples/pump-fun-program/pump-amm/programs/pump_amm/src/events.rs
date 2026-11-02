@@ -8,7 +8,7 @@ use naclac_lang::prelude::*;
 // end where only trailing (not internal) padding can occur. Purely a wire-
 // layout concern: this event is never read back on-chain, only logged for
 // off-chain indexers, so its field order carries no cross-program dependency
-// the way component layouts (e.g. `Pool`) do.
+// the way account layouts (e.g. `Pool`) do.
 #[event]
 pub struct CreatePoolEvent {
     pub timestamp: i64,

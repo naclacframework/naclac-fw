@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::{Fees, FeeTier};
 use crate::constants::MAX_FEE_TIERS;
 use crate::errors::FeesError;
+use crate::state::{Fees, FeeTier};
 
 // fee-04 §3: `tiers` must be pre-sorted ascending by
 // `market_cap_lamports_threshold` (enforced at config-write time, not here).

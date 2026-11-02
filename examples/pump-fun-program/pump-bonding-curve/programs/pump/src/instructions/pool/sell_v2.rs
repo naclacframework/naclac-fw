@@ -1,7 +1,6 @@
 use naclac_lang::prelude::*;
 use pump_fees_client::instructions::GetFeesCpiAccounts;
 use pump_fees_client::PumpFees;
-use crate::components::{BondingCurve, Global, UserVolumeAccumulator};
 use crate::constants::{
     BONDING_CURVE_SEED, BUYBACK_VAULT_SEED, CREATOR_VAULT_RENT_EXEMPT_MINIMUM, CREATOR_VAULT_SEED,
     FEE_CONFIG_SEED, GLOBAL_SEED, PUMP_AUTHORITY_SEED, PUMP_FEES_PROGRAM_ID, USER_VOLUME_ACCUMULATOR_SEED,
@@ -9,6 +8,7 @@ use crate::constants::{
 };
 use crate::errors::PumpError;
 use crate::events::TradeEvent;
+use crate::state::{BondingCurve, Global, UserVolumeAccumulator};
 use crate::systems::{fee_amount_ceil, fee_amount_floor, get_fees_via_cpi, gross_sol_for_tokens_sell, GetFeesParams};
 
 // Real `sell_v2` account list (26 accounts — no `global_volume_accumulator`,

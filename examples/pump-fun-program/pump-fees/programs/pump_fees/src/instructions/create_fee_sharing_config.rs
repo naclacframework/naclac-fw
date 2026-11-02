@@ -1,11 +1,11 @@
 use naclac_lang::prelude::*;
 use pump_client::instructions::{MigrateBondingCurveCreatorCpi, MigrateBondingCurveCreatorCpiAccounts};
 use pump_client::Pump;
-use crate::components::{BondingCurve, Global, Shareholder, SharingConfig, SHARING_CONFIG_STATUS_ACTIVE};
 use crate::constants::{
     BONDING_CURVE_SEED, PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED, PUMP_PROGRAM_ID, SHARING_CONFIG_SEED,
 };
 use crate::errors::FeesError;
+use crate::state::{BondingCurve, Global, Shareholder, SharingConfig, SHARING_CONFIG_STATUS_ACTIVE};
 
 #[derive(Accounts)]
 #[instruction(bonding_curve_bump: u8, sharing_config_bump: u8)]

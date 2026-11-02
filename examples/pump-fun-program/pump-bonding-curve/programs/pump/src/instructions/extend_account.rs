@@ -1,12 +1,12 @@
 use naclac_lang::prelude::*;
-use crate::components::{
+use crate::events::ExtendAccountEvent;
+use crate::state::{
     BondingCurve, Global, GlobalVolumeAccumulator, SharingConfig, UserVolumeAccumulator,
 };
-use crate::events::ExtendAccountEvent;
 
 #[derive(Accounts)]
 pub struct ExtendAccount {
-    /// SAFETY: never deserialized as a typed component -- that's the whole
+    /// SAFETY: never deserialized as a typed account -- that's the whole
     /// point (a still-undersized account would fail a typed load before
     /// this instruction's `realloc` constraint ever ran). The `owner`
     /// constraint is the only real validation of the account itself;
@@ -34,8 +34,8 @@ pub struct ExtendAccount {
 /// `Account<T>`'s own size check before this instruction's `realloc`
 /// constraint (let alone its body) ever runs (confirmed empirically:
 /// `AccountDataTooSmall` from a typed field against this exact scenario).
-/// Recognizes every component this program itself owns; add a new type to
-/// the `realloc::any_of` list above when a new component needs the same
+/// Recognizes every account this program itself owns; add a new type to
+/// the `realloc::any_of` list above when a new account needs the same
 /// treatment.
 pub fn extend_account(ctx: Context<ExtendAccount>) -> Result {
     let current_size = ctx.accounts.account.try_borrow_data()?.len();

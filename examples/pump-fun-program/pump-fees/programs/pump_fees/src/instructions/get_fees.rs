@@ -1,6 +1,6 @@
 use naclac_lang::prelude::*;
-use crate::components::{FeeConfig, Fees};
 use crate::constants::{FEE_CONFIG_SEED, PUMP_AUTHORITY_SEED, PUMP_PROGRAM_ID};
+use crate::state::{FeeConfig, Fees};
 use crate::systems::calculate_fee_tier;
 
 // `config_program_id` must be declared before `fee_config`: its seeds

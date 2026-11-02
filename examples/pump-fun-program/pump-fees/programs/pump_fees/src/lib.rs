@@ -3,16 +3,16 @@ use naclac_lang::prelude::*;
 
 declare_id!("cBPbCAyFhnUXngDY23SoKwvPrS5ppDaS1VjakEegoDV");
 
-pub mod components;
-pub mod instructions;
-pub mod systems;
-pub mod events;
-pub mod errors;
 pub mod constants;
+pub mod errors;
+pub mod events;
+pub mod instructions;
+pub mod state;
+pub mod systems;
 
-use components::{Fees, FeeTier, Shareholder};
 use events::{DonationFeePdaCranked, SocialFeePdaClaimed};
 use instructions::*;
+use state::{Fees, FeeTier, Shareholder};
 
 #[program]
 pub mod pump_fees {

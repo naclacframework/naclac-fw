@@ -4,13 +4,13 @@ use pump_amm_client::instructions::{
 };
 use pump_amm_client::types::CreatePoolArgsCpi as PumpAmmCreatePoolArgs;
 use pump_amm_client::PumpAmm;
-use crate::components::{BondingCurve, Global};
 use crate::constants::{
     ASSOCIATED_TOKEN_PROGRAM_ID, BONDING_CURVE_SEED, BOOST_VAULT_SEED, GLOBAL_CONFIG_SEED,
     GLOBAL_SEED, POOL_AUTHORITY_SEED, POOL_LP_MINT_SEED, POOL_SEED, PUMP_AMM_PROGRAM_ID, WSOL_MINT,
 };
 use crate::errors::PumpError;
 use crate::events::CompletePumpAmmMigrationEvent;
+use crate::state::{BondingCurve, Global};
 
 // Real `migrate_v2` has `args: []` — same on-chain-search-ban divergence as
 // `migrate.rs`'s own `MigrateArgs`, plus two more bumps for the boost-vault

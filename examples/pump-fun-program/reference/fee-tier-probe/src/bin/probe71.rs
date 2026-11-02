@@ -104,7 +104,7 @@ fn bonding_curve_account_data(f: &BondingCurveFixture) -> Vec<u8> {
 }
 
 // Real `pump_fees::SharingConfig` field order (confirmed via
-// `probe70.rs`/this repo's own `components/sharing_config.rs` doc comment):
+// `probe70.rs`/this repo's own `state/sharing_config.rs` doc comment):
 // bump, version, status, mint, admin, admin_revoked, shareholders_len,
 // shareholders[...]. Real account is a fixed 1024 bytes total.
 fn sharing_config_account_data(bump: u8, mint: &Address, admin: &Address) -> Vec<u8> {

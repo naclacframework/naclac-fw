@@ -32,11 +32,11 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < CounterDecremented > () == (::core::mem::size_of:: < u64
         > () + ::core::mem::size_of:: < i64 > ()),
-        "defined_type/#[component]: `CounterDecremented` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `CounterDecremented` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < CounterDecremented > () == 1,
-        "defined_type/#[component]: `CounterDecremented` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `CounterDecremented` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
@@ -80,11 +80,11 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < CounterDecrementedCpi > () == (::core::mem::size_of:: <
         u64 > () + ::core::mem::size_of:: < i64 > ()),
-        "defined_type/#[component]: `CounterDecrementedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `CounterDecrementedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < CounterDecrementedCpi > () == 1,
-        "defined_type/#[component]: `CounterDecrementedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `CounterDecrementedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]
@@ -135,11 +135,11 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < CounterIncremented > () == (::core::mem::size_of:: < u64
         > () + ::core::mem::size_of:: < i64 > ()),
-        "defined_type/#[component]: `CounterIncremented` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `CounterIncremented` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < CounterIncremented > () == 1,
-        "defined_type/#[component]: `CounterIncremented` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `CounterIncremented` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "offchain")]
@@ -183,11 +183,11 @@ const _: () = {
     assert!(
         ::core::mem::size_of:: < CounterIncrementedCpi > () == (::core::mem::size_of:: <
         u64 > () + ::core::mem::size_of:: < i64 > ()),
-        "defined_type/#[component]: `CounterIncrementedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
+        "defined_type/#[account]: `CounterIncrementedCpi` has a different size than its fields add up to; a zero-copy struct is `#[repr(C, packed)]` and must have no padding"
     );
     assert!(
         ::core::mem::align_of:: < CounterIncrementedCpi > () == 1,
-        "defined_type/#[component]: `CounterIncrementedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
+        "defined_type/#[account]: `CounterIncrementedCpi` must have alignment 1; a zero-copy struct is `#[repr(C, packed)]`"
     );
 };
 #[cfg(feature = "cpi")]

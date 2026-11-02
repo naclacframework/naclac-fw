@@ -2,7 +2,7 @@
 //! `GlobalVolumeAccumulator`/`UserVolumeAccumulator` actually get updated
 //! when `track_volume = true`. Real field lists for both are already
 //! confirmed from `pump-public-docs/idl/pump.json` (see
-//! `components/global_volume_accumulator.rs`/`user_volume_accumulator.rs`'s
+//! `state/global_volume_accumulator.rs`/`user_volume_accumulator.rs`'s
 //! own file-header comments) — what's NOT known is the update algorithm:
 //! which fields change per buy, whether `sol_volumes`/`total_token_supply`
 //! accumulate into a single "today" slot or spread across the 30-slot
@@ -162,7 +162,7 @@ fn global_volume_accumulator_account_data() -> Vec<u8> {
 const BUYBACK_VAULT_DISCRIMINATOR: [u8; 8] = [153, 166, 71, 144, 179, 189, 137, 251];
 
 // Real field layout confirmed against `pump_fees.json`'s `types[].BuybackVault`
-// (also matches our own `pump_fees` component byte-for-byte): authority(32) +
+// (also matches our own `pump_fees` account byte-for-byte): authority(32) +
 // total_claimed(8) + total_claimed_token1(8) + total_claimed_token2(8) +
 // last_claimed(8) + claim_rate_limit(8) + _reserved(128) = 200, + 8-byte
 // discriminator = 208 — matches the real account's `data_len=208` observed
@@ -454,7 +454,7 @@ fn main() {
     // A real `pump_fees::BuybackVault` PDA, not a bare wallet — confirmed via
     // `inspect_buy_tx`: `Global.buyback_fee_recipients[i]` are addresses of
     // real `BuybackVault` accounts owned by `pump_fees` (208 bytes, matching
-    // that component's real field layout exactly).
+    // that account's real field layout exactly).
     let (buyback_fee_recipient, _) =
         Address::find_program_address(&[b"buyback-vault", &[0u8]], &pump_fees_program);
     svm.set_account(

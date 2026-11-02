@@ -1,7 +1,7 @@
 use {
     crate::{commands::workspace, ui},
     sha2::{Digest, Sha256},
-    std::{fs, process::Command},
+    std::{fs, process::Command, time::Instant},
 };
 
 /// Name the workspace's own Cargo.lock is moved to while the Docker build
@@ -37,10 +37,12 @@ pub fn execute(program_id_str: &String, name: Option<&str>) {
         ));
     };
 
-    ui::info(format!(
-        "Verifying {} (dockerized build)...",
-        program_id_str
-    ));
+    let start = Instant::now();
+    ui::header("verify", name);
+    ui::kv("program", format!("{name} ({})", ui::short(program_id_str)));
+    ui::kv("cluster", &cluster);
+    ui::kv("rpc", &rpc_url);
+    ui::kv("image", "ellipsislabs/solana:latest");
 
     let parent_dir = workspace_root
         .parent()
@@ -77,6 +79,7 @@ pub fn execute(program_id_str: &String, name: Option<&str>) {
         });
     }
 
+    let build_step = ui::Step::start("Running deterministic Docker build");
     let build_status = Command::new("docker")
         .arg("run")
         .arg("--rm")
@@ -87,9 +90,9 @@ pub fn execute(program_id_str: &String, name: Option<&str>) {
         .arg("ellipsislabs/solana:latest")
         .arg("cargo")
         .arg("build-sbf")
-        .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit())
-        .status();
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .output();
 
     if has_lock {
         fs::rename(&backup_path, &lock_path).unwrap_or_else(|e| {
@@ -103,11 +106,19 @@ pub fn execute(program_id_str: &String, name: Option<&str>) {
         });
     }
 
-    let build_status =
-        build_status.unwrap_or_else(|e| ui::error(format!("Failed to run Docker: {e}")));
-    if !build_status.success() {
-        ui::error("Dockerized build failed — resolve errors to continue verifying.");
+    let build_output = match build_status {
+        Ok(out) => out,
+        Err(e) => build_step.fail(format!("Failed to run Docker: {e}")),
+    };
+    if !build_output.status.success() {
+        let stderr = String::from_utf8_lossy(&build_output.stderr);
+        build_step.failed("Dockerized build failed");
+        for line in stderr.lines() {
+            ui::info(format!("  {line}"));
+        }
+        std::process::exit(1);
     }
+    build_step.done("deterministic build complete");
 
     let so_path = naclac_client_gen::deploy_dir(&workspace_root).join(format!("{name}.so"));
     let local_bytes = fs::read(&so_path).unwrap_or_else(|e| {
@@ -118,21 +129,25 @@ pub fn execute(program_id_str: &String, name: Option<&str>) {
     });
     let local_hash = hex::encode(Sha256::digest(&local_bytes));
 
+    let dump_step = ui::Step::start("Fetching on-chain program bytecode");
     let tmp_onchain_dump = std::env::temp_dir().join(format!("{}_onchain.so", program_id_str));
-    let dump = Command::new("solana")
+    let dump_result = Command::new("solana")
         .arg("program")
         .arg("dump")
         .arg(program_id_str)
         .arg(&tmp_onchain_dump)
         .arg("--url")
         .arg(&rpc_url)
-        .output()
-        .unwrap_or_else(|e| ui::error(format!("Failed to run `solana program dump`: {e}")));
+        .output();
+    let dump = match dump_result {
+        Ok(out) => out,
+        Err(e) => dump_step.fail(format!("Failed to run `solana program dump`: {e}")),
+    };
     if !dump.status.success() {
-        ui::error(format!(
+        dump_step.fail(format!(
             "Failed querying {} — wrong cluster? {}",
             rpc_url,
-            String::from_utf8_lossy(&dump.stderr)
+            String::from_utf8_lossy(&dump.stderr).trim()
         ));
     }
 
@@ -148,6 +163,7 @@ pub fn execute(program_id_str: &String, name: Option<&str>) {
             tmp_onchain_dump.display()
         ));
     }
+    dump_step.done(format!("fetched {} bytes", onchain_bytes.len()));
 
     // Solana deploys pad `.so` bytecodes to support future reallocs (usually
     // up to 2x the size in zeros), so only the length the local build has is
@@ -155,10 +171,13 @@ pub fn execute(program_id_str: &String, name: Option<&str>) {
     let comparable_length = std::cmp::min(onchain_bytes.len(), local_bytes.len());
     let on_chain_hash = hex::encode(Sha256::digest(&onchain_bytes[..comparable_length]));
 
+    ui::kv("local sha256", &local_hash);
+    ui::kv("on-chain sha256", &on_chain_hash);
+
     if local_hash == on_chain_hash {
-        ui::success(format!(
-            "On-chain code matches local source ({})",
-            local_hash
+        ui::milestone(format!(
+            "Verification succeeded · on-chain matches local build ({})",
+            ui::format_duration(start.elapsed())
         ));
     } else {
         ui::error(format!(

@@ -1,6 +1,6 @@
 use {
     escrow_zc_client::{
-        components::{fetch_escrow_state, EscrowState},
+        state::{fetch_escrow_state, EscrowState},
         get_escrow_state_pda,
         instructions::{
             build_cancel, build_make, build_take, CancelAccounts, MakeAccounts, TakeAccounts,

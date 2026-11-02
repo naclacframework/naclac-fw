@@ -14,7 +14,7 @@ pub const ID: ::naclac_core::prelude::Address = unsafe {
 pub fn id() -> ::naclac_core::prelude::Address {
     ID
 }
-pub mod components {
+pub mod state {
     pub mod fee_config {
         use naclac_lang::prelude::*;
         use crate::constants::MAX_FEE_TIERS;
@@ -91,7 +91,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `Fees`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `Fees`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -177,7 +177,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `FeeTier`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `FeeTier`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -338,7 +338,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `FeeConfig`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `FeeConfig`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -416,7 +416,7 @@ pub mod components {
             {
                 ::core::panicking::panic_fmt(
                     format_args!(
-                        "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
+                        "Naclac Error: this zero-copy #[account] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
                     ),
                 );
             }
@@ -535,7 +535,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `FeeProgramGlobal`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `FeeProgramGlobal`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -612,7 +612,7 @@ pub mod components {
             {
                 ::core::panicking::panic_fmt(
                     format_args!(
-                        "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
+                        "Naclac Error: this zero-copy #[account] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
                     ),
                 );
             }
@@ -678,7 +678,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `Shareholder`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `Shareholder`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -864,7 +864,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `SharingConfig`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `SharingConfig`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -943,7 +943,7 @@ pub mod components {
             {
                 ::core::panicking::panic_fmt(
                     format_args!(
-                        "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
+                        "Naclac Error: this zero-copy #[account] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
                     ),
                 );
             }
@@ -1125,7 +1125,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `SocialFeePda`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `SocialFeePda`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -1205,7 +1205,7 @@ pub mod components {
             {
                 ::core::panicking::panic_fmt(
                     format_args!(
-                        "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
+                        "Naclac Error: this zero-copy #[account] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
                     ),
                 );
             }
@@ -1387,7 +1387,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `DonationFeePda`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `DonationFeePda`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -1467,7 +1467,7 @@ pub mod components {
             {
                 ::core::panicking::panic_fmt(
                     format_args!(
-                        "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
+                        "Naclac Error: this zero-copy #[account] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
                     ),
                 );
             }
@@ -1606,7 +1606,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `BuybackVault`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `BuybackVault`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -1684,7 +1684,7 @@ pub mod components {
             {
                 ::core::panicking::panic_fmt(
                     format_args!(
-                        "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
+                        "Naclac Error: this zero-copy #[account] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
                     ),
                 );
             }
@@ -2474,7 +2474,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `Global`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `Global`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -2573,7 +2573,7 @@ pub mod components {
             {
                 ::core::panicking::panic_fmt(
                     format_args!(
-                        "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
+                        "Naclac Error: this zero-copy #[account] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
                     ),
                 );
             }
@@ -2802,7 +2802,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `BondingCurve`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `BondingCurve`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -2884,7 +2884,7 @@ pub mod components {
             {
                 ::core::panicking::panic_fmt(
                     format_args!(
-                        "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
+                        "Naclac Error: this zero-copy #[account] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
                     ),
                 );
             }
@@ -3219,7 +3219,7 @@ pub mod components {
                 {
                     ::core::panicking::panic_fmt(
                         format_args!(
-                            "defined_type/#[component]: `Pool`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
+                            "defined_type/#[account]: `Pool`\'s auto-computed internal padding doesn\'t match the real compiler layout — this indicates a bug in naclac\'s own padding computation (macros/src/pod_struct_checks.rs), not a field ordering issue for you to fix",
                         ),
                     );
                 }
@@ -3305,7 +3305,7 @@ pub mod components {
             {
                 ::core::panicking::panic_fmt(
                     format_args!(
-                        "Naclac Error: this zero-copy #[component] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
+                        "Naclac Error: this zero-copy #[account] requires more than 8-byte alignment (a u128 field, directly or nested inside another field\'s type) — Solana account buffers are only guaranteed 8-byte aligned, so Account\'s raw pointer cast would be undefined behavior. Use two u64 fields or [u8; 16] instead of u128.",
                     ),
                 );
             }
@@ -3324,10 +3324,10 @@ pub mod components {
 pub mod instructions {
     pub mod claim_social_fee_pda {
         use naclac_lang::prelude::*;
-        use crate::components::{FeeProgramGlobal, SocialFeePda};
         use crate::constants::SOCIAL_FEE_PDA_SEED;
         use crate::errors::FeesError;
         use crate::events::SocialFeePdaClaimed;
+        use crate::state::{FeeProgramGlobal, SocialFeePda};
         use crate::systems::accumulate_claimed;
         #[instruction(user_id:ZcString, platform:u8)]
         pub struct ClaimSocialFeePda {
@@ -3752,10 +3752,10 @@ pub mod instructions {
     }
     pub mod claim_social_fee_pda_v2 {
         use naclac_lang::prelude::*;
-        use crate::components::{FeeProgramGlobal, SocialFeePda};
         use crate::constants::SOCIAL_FEE_PDA_SEED;
         use crate::errors::FeesError;
         use crate::events::SocialFeePdaClaimed;
+        use crate::state::{FeeProgramGlobal, SocialFeePda};
         use crate::systems::accumulate_claimed;
         #[instruction(user_id:ZcString, platform:u8)]
         pub struct ClaimSocialFeePdaV2 {
@@ -4501,13 +4501,13 @@ pub mod instructions {
         };
         use donation_relay_client::types::DonateAddressConfigIdWithPayerV1ArgsCpi;
         use donation_relay_client::DonationRelay;
-        use crate::components::{DonationFeePda, FeeProgramGlobal};
         use crate::constants::{
             DEBOUNCER_V1, DONATION_FEE_PDA_SEED, DONATION_RELAY_PROGRAM_ID,
             EPOCH_TRACKER_V1, FEE_PROGRAM_GLOBAL_SEED, WSOL_MINT,
         };
         use crate::errors::FeesError;
         use crate::events::DonationFeePdaCranked;
+        use crate::state::{DonationFeePda, FeeProgramGlobal};
         #[repr(C)]
         pub struct CrankDonationFeePdaArgs {
             pub donation_fee_pda_ata_bump: u8,
@@ -5689,7 +5689,6 @@ pub mod instructions {
     }
     pub mod create_donation_fee_pda {
         use naclac_lang::prelude::*;
-        use crate::components::{BondingCurve, DonationFeePda, FeeProgramGlobal, Pool};
         use crate::constants::{
             BONDING_CURVE_SEED, DONATION_FEE_PDA_SEED, FEE_PROGRAM_GLOBAL_SEED,
             POOL_AUTHORITY_SEED, POOL_SEED, PUMP_AMM_PROGRAM_ID, PUMP_PROGRAM_ID,
@@ -5697,6 +5696,7 @@ pub mod instructions {
         };
         use crate::errors::FeesError;
         use crate::events::DonationFeePdaCreated;
+        use crate::state::{BondingCurve, DonationFeePda, FeeProgramGlobal, Pool};
         #[instruction(
             bonding_curve_bump:u8,
             pool_authority_bump:u8,
@@ -6535,15 +6535,15 @@ pub mod instructions {
             MigrateBondingCurveCreatorCpi, MigrateBondingCurveCreatorCpiAccounts,
         };
         use pump_client::Pump;
-        use crate::components::{
-            BondingCurve, Global, Shareholder, SharingConfig,
-            SHARING_CONFIG_STATUS_ACTIVE,
-        };
         use crate::constants::{
             BONDING_CURVE_SEED, PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED,
             PUMP_PROGRAM_ID, SHARING_CONFIG_SEED,
         };
         use crate::errors::FeesError;
+        use crate::state::{
+            BondingCurve, Global, Shareholder, SharingConfig,
+            SHARING_CONFIG_STATUS_ACTIVE,
+        };
         #[instruction(bonding_curve_bump:u8, sharing_config_bump:u8)]
         pub struct CreateFeeSharingConfig {
             #[account(mut)]
@@ -7220,10 +7220,10 @@ pub mod instructions {
     }
     pub mod create_social_fee_pda {
         use naclac_lang::prelude::*;
-        use crate::components::{FeeProgramGlobal, SocialFeePda};
         use crate::constants::SOCIAL_FEE_PDA_SEED;
         use crate::errors::FeesError;
         use crate::events::SocialFeePdaCreated;
+        use crate::state::{FeeProgramGlobal, SocialFeePda};
         #[instruction(user_id:ZcString, platform:u8, social_fee_pda_bump:u8)]
         pub struct CreateSocialFeePda {
             #[account(mut)]
@@ -7682,9 +7682,9 @@ pub mod instructions {
     }
     pub mod extend_fee_config {
         use naclac_lang::prelude::*;
-        use crate::components::FeeConfig;
         use crate::constants::{FEE_CONFIG_CURRENT_SIZE, FEE_CONFIG_SEED};
         use crate::events::ExtendFeeConfigEvent;
+        use crate::state::FeeConfig;
         pub struct ExtendFeeConfig {
             #[account(mut)]
             pub user: Signer,
@@ -8025,8 +8025,8 @@ pub mod instructions {
     }
     pub mod get_fees {
         use naclac_lang::prelude::*;
-        use crate::components::{FeeConfig, Fees};
         use crate::constants::{FEE_CONFIG_SEED, PUMP_AUTHORITY_SEED, PUMP_PROGRAM_ID};
+        use crate::state::{FeeConfig, Fees};
         use crate::systems::calculate_fee_tier;
         pub struct GetFees {
             /// SAFETY: only used as PDA seed material for `fee_config` below; never
@@ -8342,9 +8342,9 @@ pub mod instructions {
     }
     pub mod initialize_buyback {
         use naclac_lang::prelude::*;
-        use crate::components::BuybackVault;
         use crate::constants::{BUYBACK_VAULT_SEED, MAX_BUYBACK_INDEX};
         use crate::errors::FeesError;
+        use crate::state::BuybackVault;
         #[instruction(index:u8, buyback_vault_bump:u8)]
         pub struct InitializeBuyback {
             #[account(mut)]
@@ -8915,9 +8915,9 @@ pub mod instructions {
     }
     pub mod initialize_fee_config {
         use naclac_lang::prelude::*;
-        use crate::components::FeeConfig;
         use crate::constants::{ADMIN_PUBKEY, FEE_CONFIG_SEED};
         use crate::events::InitializeFeeConfigEvent;
+        use crate::state::FeeConfig;
         #[instruction(fee_config_bump:u8)]
         pub struct InitializeFeeConfig {
             #[account(mut, address = ADMIN_PUBKEY)]
@@ -9324,12 +9324,12 @@ pub mod instructions {
     }
     pub mod initialize_fee_program_global {
         use naclac_lang::prelude::*;
-        use crate::components::{FeeProgramGlobal, Global};
         use crate::constants::{
             FEE_PROGRAM_GLOBAL_SEED, PUMP_GLOBAL_SEED, PUMP_PROGRAM_ID,
         };
         use crate::errors::FeesError;
         use crate::events::InitializeFeeProgramGlobalEvent;
+        use crate::state::{FeeProgramGlobal, Global};
         pub struct InitializeFeeProgramGlobal {
             #[account(mut)]
             pub authority: Signer,
@@ -9744,7 +9744,6 @@ pub mod instructions {
             DistributeCreatorFeesCpiCall,
         };
         use pump_client::Pump;
-        use crate::components::{BondingCurve, Global, Shareholder, SharingConfig};
         use crate::constants::{
             AMM_CREATOR_VAULT_AUTHORITY_SEED, BONDING_CURVE_SEED, PUMP_AMM_PROGRAM_ID,
             PUMP_CREATOR_VAULT_SEED, PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED,
@@ -9752,6 +9751,7 @@ pub mod instructions {
         };
         use crate::errors::FeesError;
         use crate::events::ResetFeeSharingConfigEvent;
+        use crate::state::{BondingCurve, Global, Shareholder, SharingConfig};
         #[instruction(
             bonding_curve_bump:u8,
             pump_creator_vault_bump:u8,
@@ -10816,7 +10816,6 @@ pub mod instructions {
             DistributeCreatorFeesV2CpiCall,
         };
         use pump_client::Pump;
-        use crate::components::{BondingCurve, Global, Shareholder, SharingConfig};
         use crate::constants::{
             AMM_CREATOR_VAULT_AUTHORITY_SEED, BONDING_CURVE_SEED, PUMP_AMM_PROGRAM_ID,
             PUMP_CREATOR_VAULT_SEED, PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED,
@@ -10824,6 +10823,7 @@ pub mod instructions {
         };
         use crate::errors::FeesError;
         use crate::events::ResetFeeSharingConfigEvent;
+        use crate::state::{BondingCurve, Global, Shareholder, SharingConfig};
         #[instruction(
             bonding_curve_bump:u8,
             pump_creator_vault_bump:u8,
@@ -12056,10 +12056,10 @@ pub mod instructions {
     }
     pub mod set_authority {
         use naclac_lang::prelude::*;
-        use crate::components::FeeProgramGlobal;
         use crate::constants::FEE_PROGRAM_GLOBAL_SEED;
         use crate::errors::FeesError;
         use crate::events::SetAuthorityEvent;
+        use crate::state::FeeProgramGlobal;
         pub struct SetAuthority {
             pub authority: Signer,
             #[account(mut, seeds = [FEE_PROGRAM_GLOBAL_SEED])]
@@ -12296,10 +12296,10 @@ pub mod instructions {
     }
     pub mod set_claim_rate_limit {
         use naclac_lang::prelude::*;
-        use crate::components::FeeProgramGlobal;
         use crate::constants::FEE_PROGRAM_GLOBAL_SEED;
         use crate::errors::FeesError;
         use crate::events::SetClaimRateLimitEvent;
+        use crate::state::FeeProgramGlobal;
         pub struct SetClaimRateLimit {
             pub authority: Signer,
             #[account(mut, seeds = [FEE_PROGRAM_GLOBAL_SEED])]
@@ -12538,10 +12538,10 @@ pub mod instructions {
     }
     pub mod set_disable_flags {
         use naclac_lang::prelude::*;
-        use crate::components::FeeProgramGlobal;
         use crate::constants::FEE_PROGRAM_GLOBAL_SEED;
         use crate::errors::FeesError;
         use crate::events::SetDisableFlagsEvent;
+        use crate::state::FeeProgramGlobal;
         pub struct SetDisableFlags {
             pub authority: Signer,
             #[account(mut, seeds = [FEE_PROGRAM_GLOBAL_SEED])]
@@ -12780,10 +12780,10 @@ pub mod instructions {
     }
     pub mod set_social_claim_authority {
         use naclac_lang::prelude::*;
-        use crate::components::FeeProgramGlobal;
         use crate::constants::FEE_PROGRAM_GLOBAL_SEED;
         use crate::errors::FeesError;
         use crate::events::SetSocialClaimAuthorityEvent;
+        use crate::state::FeeProgramGlobal;
         pub struct SetSocialClaimAuthority {
             pub authority: Signer,
             #[account(mut, seeds = [FEE_PROGRAM_GLOBAL_SEED])]
@@ -13022,10 +13022,10 @@ pub mod instructions {
     }
     pub mod sweep_buyback {
         use naclac_lang::prelude::*;
-        use crate::components::BuybackVault;
         use crate::constants::BUYBACK_VAULT_SEED;
         use crate::errors::FeesError;
         use crate::events::SweepBuybackEvent;
+        use crate::state::BuybackVault;
         #[instruction(index:u8, buyback_vault_bump:u8)]
         pub struct SweepBuyback {
             /// SAFETY: only used as a lamport/token-transfer destination; not
@@ -13699,10 +13699,10 @@ pub mod instructions {
     }
     pub mod update_admin {
         use naclac_lang::prelude::*;
-        use crate::components::FeeConfig;
         use crate::constants::FEE_CONFIG_SEED;
         use crate::errors::FeesError;
         use crate::events::UpdateAdminEvent;
+        use crate::state::FeeConfig;
         pub struct UpdateAdmin {
             pub admin: Signer,
             /// SAFETY: only used as PDA seed material for `fee_config`; not
@@ -14018,9 +14018,9 @@ pub mod instructions {
     }
     pub mod update_buyback_authority {
         use naclac_lang::prelude::*;
-        use crate::components::{BuybackVault, FeeProgramGlobal};
         use crate::constants::{BUYBACK_VAULT_SEED, FEE_PROGRAM_GLOBAL_SEED};
         use crate::errors::FeesError;
+        use crate::state::{BuybackVault, FeeProgramGlobal};
         #[instruction(index:u8, buyback_vault_bump:u8)]
         pub struct UpdateBuybackAuthority {
             #[account(mut)]
@@ -14362,9 +14362,9 @@ pub mod instructions {
     }
     pub mod update_buyback_claim_rate_limit {
         use naclac_lang::prelude::*;
-        use crate::components::{BuybackVault, FeeProgramGlobal};
         use crate::constants::{BUYBACK_VAULT_SEED, FEE_PROGRAM_GLOBAL_SEED};
         use crate::errors::FeesError;
+        use crate::state::{BuybackVault, FeeProgramGlobal};
         #[instruction(index:u8, buyback_vault_bump:u8)]
         pub struct UpdateBuybackClaimRateLimit {
             #[account(mut)]
@@ -14706,10 +14706,10 @@ pub mod instructions {
     }
     pub mod update_fee_config {
         use naclac_lang::prelude::*;
-        use crate::components::{Fees, FeeConfig, FeeTier};
         use crate::constants::{FEE_CONFIG_SEED, MAX_FEE_TIERS};
         use crate::errors::FeesError;
         use crate::events::UpdateFeeConfigEvent;
+        use crate::state::{Fees, FeeConfig, FeeTier};
         use crate::systems::validate_fee_tiers;
         pub struct UpdateFeeConfig {
             pub admin: Signer,
@@ -15020,7 +15020,6 @@ pub mod instructions {
             DistributeCreatorFeesV2CpiCall,
         };
         use pump_client::Pump;
-        use crate::components::{BondingCurve, Global, Shareholder, SharingConfig};
         use crate::constants::{
             AMM_CREATOR_VAULT_AUTHORITY_SEED, BONDING_CURVE_SEED, PUMP_AMM_PROGRAM_ID,
             PUMP_CREATOR_VAULT_SEED, PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED,
@@ -15028,6 +15027,7 @@ pub mod instructions {
         };
         use crate::errors::FeesError;
         use crate::events::UpdateFeeSharesEvent;
+        use crate::state::{BondingCurve, Global, Shareholder, SharingConfig};
         use crate::systems::validate_shareholders;
         #[instruction(
             bonding_curve_bump:u8,
@@ -16110,7 +16110,6 @@ pub mod instructions {
             DistributeCreatorFeesV2CpiCall,
         };
         use pump_client::Pump;
-        use crate::components::{BondingCurve, Global, Shareholder, SharingConfig};
         use crate::constants::{
             AMM_CREATOR_VAULT_AUTHORITY_SEED, BONDING_CURVE_SEED, PUMP_AMM_PROGRAM_ID,
             PUMP_CREATOR_VAULT_SEED, PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED,
@@ -16118,6 +16117,7 @@ pub mod instructions {
         };
         use crate::errors::FeesError;
         use crate::events::UpdateFeeSharesEvent;
+        use crate::state::{BondingCurve, Global, Shareholder, SharingConfig};
         use crate::systems::validate_shareholders;
         #[instruction(
             bonding_curve_bump:u8,
@@ -17191,10 +17191,10 @@ pub mod instructions {
     }
     pub mod update_stable_fee_config {
         use naclac_lang::prelude::*;
-        use crate::components::{FeeConfig, FeeTier};
         use crate::constants::{FEE_CONFIG_SEED, MAX_FEE_TIERS};
         use crate::errors::FeesError;
         use crate::events::UpdateStableFeeConfigEvent;
+        use crate::state::{FeeConfig, FeeTier};
         use crate::systems::validate_fee_tiers;
         pub struct UpdateStableFeeConfig {
             pub admin: Signer,
@@ -17497,10 +17497,10 @@ pub mod instructions {
     }
     pub mod upsert_fee_tiers {
         use naclac_lang::prelude::*;
-        use crate::components::{FeeConfig, FeeTier};
         use crate::constants::{FEE_CONFIG_SEED, MAX_FEE_TIERS};
         use crate::errors::FeesError;
         use crate::events::UpsertFeeTiersEvent;
+        use crate::state::{FeeConfig, FeeTier};
         use crate::systems::validate_fee_tiers;
         pub struct UpsertFeeTiers {
             pub admin: Signer,
@@ -17807,10 +17807,10 @@ pub mod instructions {
     }
     pub mod upsert_stable_fee_tiers {
         use naclac_lang::prelude::*;
-        use crate::components::{FeeConfig, FeeTier};
         use crate::constants::{FEE_CONFIG_SEED, MAX_FEE_TIERS};
         use crate::errors::FeesError;
         use crate::events::UpsertStableFeeTiersEvent;
+        use crate::state::{FeeConfig, FeeTier};
         use crate::systems::validate_fee_tiers;
         pub struct UpsertStableFeeTiers {
             pub admin: Signer,
@@ -18187,9 +18187,9 @@ pub mod systems {
     }
     pub mod fee_sharing {
         use naclac_lang::prelude::*;
-        use crate::components::Shareholder;
         use crate::constants::MAX_SHAREHOLDERS;
         use crate::errors::FeesError;
+        use crate::state::Shareholder;
         pub fn validate_shareholders(shareholders: &[Shareholder]) -> Result<()> {
             let __result = {
                 {
@@ -18224,9 +18224,9 @@ pub mod systems {
     }
     pub mod fee_tier {
         use naclac_lang::prelude::*;
-        use crate::components::{Fees, FeeTier};
         use crate::constants::MAX_FEE_TIERS;
         use crate::errors::FeesError;
+        use crate::state::{Fees, FeeTier};
         pub fn calculate_fee_tier(tiers: &[FeeTier], market_cap: u128) -> Result<Fees> {
             let __result = {
                 {
@@ -18309,7 +18309,7 @@ pub mod systems {
 }
 pub mod events {
     use naclac_lang::prelude::*;
-    use crate::components::{Fees, FeeTier, Shareholder};
+    use crate::state::{Fees, FeeTier, Shareholder};
     pub struct CreateFeeSharingConfigEvent {
         pub timestamp: i64,
         pub mint: Address,
@@ -21142,9 +21142,9 @@ pub mod constants {
         }
     };
 }
-use components::{Fees, FeeTier, Shareholder};
 use events::{DonationFeePdaCranked, SocialFeePdaClaimed};
 use instructions::*;
+use state::{Fees, FeeTier, Shareholder};
 #[no_mangle]
 pub unsafe extern "C" fn entrypoint(input: *mut u8, ix_data_ptr: *const u8) -> u64 {
     match process_instruction(input, ix_data_ptr) {

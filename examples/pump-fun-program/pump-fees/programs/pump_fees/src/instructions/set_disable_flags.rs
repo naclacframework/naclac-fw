@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::FeeProgramGlobal;
 use crate::constants::FEE_PROGRAM_GLOBAL_SEED;
 use crate::errors::FeesError;
 use crate::events::SetDisableFlagsEvent;
+use crate::state::FeeProgramGlobal;
 
 #[derive(Accounts)]
 pub struct SetDisableFlags {

@@ -3,13 +3,13 @@ use pump_amm_client::instructions::{TransferCreatorFeesToPumpV2Cpi, TransferCrea
 use pump_amm_client::PumpAmm;
 use pump_client::instructions::{DistributeCreatorFeesV2Cpi, DistributeCreatorFeesV2CpiAccounts, DistributeCreatorFeesV2CpiCall};
 use pump_client::Pump;
-use crate::components::{BondingCurve, Global, Shareholder, SharingConfig};
 use crate::constants::{
     AMM_CREATOR_VAULT_AUTHORITY_SEED, BONDING_CURVE_SEED, PUMP_AMM_PROGRAM_ID, PUMP_CREATOR_VAULT_SEED,
     PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED, PUMP_PROGRAM_ID, SHARING_CONFIG_SEED, WSOL_MINT,
 };
 use crate::errors::FeesError;
 use crate::events::UpdateFeeSharesEvent;
+use crate::state::{BondingCurve, Global, Shareholder, SharingConfig};
 use crate::systems::validate_shareholders;
 
 // Legacy/WSOL-only sibling of `update_fee_shares_v2` (per fees-03-instructions.md:

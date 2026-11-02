@@ -1,10 +1,10 @@
 use naclac_lang::prelude::*;
-use crate::components::{BondingCurve, Global};
 use crate::constants::{
     BONDING_CURVE_SEED, GLOBAL_SEED, METADATA_SEED, MINT_AUTHORITY_SEED, MINT_DECIMALS,
     MPL_TOKEN_METADATA_PROGRAM_ID,
 };
 use crate::events::CreateEvent;
+use crate::state::{BondingCurve, Global};
 use crate::systems::{create_metadata_via_cpi, CreateMetadataCpiAccounts};
 
 #[derive(Accounts)]

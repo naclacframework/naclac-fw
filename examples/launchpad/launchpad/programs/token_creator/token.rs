@@ -14,7 +14,7 @@ pub const ID: ::naclac_lang::prelude::Address = unsafe {
 pub fn id() -> ::naclac_lang::prelude::Address {
     ID
 }
-pub mod components {
+pub mod state {
     pub mod launch_record {
         use naclac_lang::prelude::*;
         #[repr(C)]
@@ -83,7 +83,7 @@ pub mod components {
 pub mod instructions {
     pub mod launch_token {
         use naclac_lang::prelude::*;
-        use crate::components::launch_record::LaunchRecord;
+        use crate::state::launch_record::LaunchRecord;
         use crate::constants::SEED_MINT;
         #[repr(C)]
         pub struct LaunchTokenArgs {
@@ -1456,7 +1456,7 @@ pub mod constants {
 pub mod systems {
     pub mod launch {
         use naclac_lang::prelude::*;
-        use crate::components::launch_record::LaunchRecord;
+        use crate::state::launch_record::LaunchRecord;
         pub fn process_launch_record(
             launch_record: &mut LaunchRecord,
             creator: Address,

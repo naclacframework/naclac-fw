@@ -40,29 +40,54 @@ pub fn execute(address: &str) {
 
     let workspace_root = workspace::root();
     let config = workspace::config(&workspace_root);
-    let rpc_url = workspace::rpc_url(&workspace::cluster(&config));
-    println!("📡 Connecting to RPC: {}", rpc_url);
+    let cluster = workspace::cluster(&config);
+    let rpc_url = workspace::rpc_url(&cluster);
+
+    ui::header("account", ui::short(address));
+    ui::kv("address", address);
+    ui::kv("cluster", &cluster);
+    ui::kv("rpc", &rpc_url);
+
+    let step = ui::Step::start("Fetching on-chain account data");
     let client = RpcClient::new(rpc_url);
 
-    let account_data = match client.get_account_data(&address_val) {
-        Ok(data) => data,
+    let account = match client.get_account(&address_val) {
+        Ok(acc) => {
+            step.done(format!("fetched {} bytes", acc.data.len()));
+            acc
+        }
         Err(err) => {
-            eprintln!("❌ Failed to fetch account data: {}", err);
-            return;
+            step.fail(format!("failed to fetch account: {err}"));
         }
     };
 
-    println!("✅ Fetched {} bytes of data.", account_data.len());
+    ui::kv("owner", account.owner.to_string());
+    ui::kv(
+        "balance",
+        format!("{:.6} SOL", account.lamports as f64 / 1_000_000_000.0),
+    );
+
+    if account.executable {
+        ui::kv("executable", "true");
+        ui::warn("This is an executable program account, not an IDL data account.");
+        return;
+    }
+
+    if account.data.is_empty() {
+        ui::warn("Account has 0 bytes of data (system wallet or empty account).");
+        return;
+    }
+
+    let account_data = account.data;
 
     let idl_dir = naclac_client_gen::idl_dir(&workspace_root);
     if !idl_dir.exists() {
-        eprintln!("❌ Error: No IDLs found in artifacts/idl. Run `naclac build` first.");
-        return;
+        ui::error("No IDLs found in artifacts/idl. Run `naclac build` first.");
     }
 
     let mut matched_def = None;
 
-    for entry in fs::read_dir(&idl_dir).unwrap().flatten() {
+    for entry in fs::read_dir(&idl_dir).unwrap_or_else(|e| ui::error(e)).flatten() {
         if let Ok(content) = fs::read_to_string(entry.path()) {
             if let Ok(idl) = serde_json::from_str::<Idl>(&content) {
                 for acc in idl.accounts {
@@ -79,12 +104,13 @@ pub fn execute(address: &str) {
     let def = match matched_def {
         Some(d) => d,
         None => {
-            eprintln!("❌ Failed to match account discriminator with any local IDL struct.");
-            return;
+            ui::error_line("Account discriminator does not match any known IDL struct in artifacts/idl.");
+            ui::info("  Tip: Pass the address of an account created by your program (such as a PDA or state account).");
+            std::process::exit(1);
         }
     };
 
-    println!("🎯 Type Matched: {}", def.name);
+    ui::kv("type", &def.name);
 
     let mut offset = def.discriminator.len();
     let mut result_obj = Map::new();
@@ -174,6 +200,8 @@ pub fn execute(address: &str) {
         }
     }
 
-    let json_bytes = serde_json::to_string_pretty(&Value::Object(result_obj)).unwrap();
-    println!("\n{}", json_bytes);
+    let json_pretty = serde_json::to_string_pretty(&Value::Object(result_obj))
+        .unwrap_or_else(|e| ui::error(format!("JSON serialization failed: {e}")));
+    ui::info("");
+    ui::info(json_pretty);
 }

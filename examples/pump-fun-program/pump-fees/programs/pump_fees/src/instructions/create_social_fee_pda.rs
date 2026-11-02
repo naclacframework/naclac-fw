@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::{FeeProgramGlobal, SocialFeePda};
 use crate::constants::SOCIAL_FEE_PDA_SEED;
 use crate::errors::FeesError;
 use crate::events::SocialFeePdaCreated;
+use crate::state::{FeeProgramGlobal, SocialFeePda};
 
 // naclac bans on-chain `find_program_address`, so `social_fee_pda`'s seeds
 // (dynamic on `user_id`/`platform`) need an explicit, client-computed bump.

@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::FeeConfig;
 use crate::constants::{ADMIN_PUBKEY, FEE_CONFIG_SEED};
 use crate::events::InitializeFeeConfigEvent;
+use crate::state::FeeConfig;
 
 // `config_program_id` must be declared before `fee_config`: its seeds
 // reference `config_program_id.address()`, and sibling-field seed

@@ -1450,7 +1450,7 @@ fn spl_token_account_data(mint: &Address, owner: &Address, amount: u64) -> Vec<u
     data
 }
 
-/// `pump_amm`'s own `GlobalConfig` component is a scoped mirror (`bump`,
+/// `pump_amm`'s own `GlobalConfig` account is a scoped mirror (`bump`,
 /// `disable_flags`, `boost_enabled`, `admin`, `boost_authority`, not the
 /// full real-mainnet layout) — matches `pump_amm_test.rs`'s own helper of
 /// the same name/shape exactly.
@@ -3836,7 +3836,7 @@ fn migrate_moves_bonding_curve_reserves_into_a_new_pump_amm_pool() {
     // Enable migration. `15_000_001` is the real `pump.so`'s own real-world
     // value (confirmed via `probe33.rs`), but `pool_migration_fee` is a
     // runtime-configurable admin parameter, not a hardcoded constant, and
-    // our reimplementation's account sizes (e.g. `Pool`'s own component
+    // our reimplementation's account sizes (e.g. `Pool`'s own account
     // layout) aren't guaranteed byte-identical to the real bytecode's — so
     // this test uses a deliberately generous budget rather than the exact
     // real-world figure, to isolate migration-logic correctness from

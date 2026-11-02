@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::{Debouncer, EpochTracker};
+use crate::state::{Debouncer, EpochTracker};
 use crate::constants::{DEBOUNCER_V1_SEED, EPOCH_TRACKER_V1_SEED, WSOL_MINT, MAX_MESSAGE_LEN};
 use crate::errors::DonationRelayError;
 use crate::events::DonationMadeV1Event;

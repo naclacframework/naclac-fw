@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
-use crate::components::GlobalConfig;
 use crate::constants::GLOBAL_CONFIG_SEED;
 use crate::errors::PumpAmmError;
+use crate::state::GlobalConfig;
 
 #[derive(Accounts)]
 pub struct ToggleBoost {

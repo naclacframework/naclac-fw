@@ -1,5 +1,5 @@
 use naclac_lang::prelude::*;
-use crate::components::Shareholder;
+use crate::state::Shareholder;
 
 #[event(alloc)]
 pub struct CreateEvent {

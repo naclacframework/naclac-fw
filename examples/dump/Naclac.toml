@@ -1,0 +1,21 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+dump2 = "G7U8hK6QroSkXKenpY7dzgFXrUTApnaPNi6nfP2sF3Xw"
+dump = "7YJD4TnKJAGgRmS332DnMgtsF4RW5HqvL9N6RwqX8KXg"
+
+[framework]
+path = "../.."
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test-rust = "cargo test -- --show-output"
+test-node = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""

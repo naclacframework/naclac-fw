@@ -9,7 +9,7 @@ use {
         commands::{keypair, workspace},
         ui,
     },
-    dialoguer::{theme::ColorfulTheme, Confirm},
+    dialoguer::Confirm,
     flate2::{
         read::{GzDecoder, ZlibDecoder},
         write::ZlibEncoder,
@@ -302,7 +302,7 @@ fn confirm_irreversible(question: &str, yes: bool) -> Outcome {
     if yes {
         return Ok(());
     }
-    let confirmed = Confirm::with_theme(&ColorfulTheme::default())
+    let confirmed = Confirm::with_theme(&ui::DialogTheme)
         .with_prompt(question)
         .default(false)
         .interact()

@@ -1,8 +1,8 @@
 use naclac_lang::prelude::*;
-use crate::components::{FeeProgramGlobal, Global};
 use crate::constants::{FEE_PROGRAM_GLOBAL_SEED, PUMP_GLOBAL_SEED, PUMP_PROGRAM_ID};
 use crate::errors::FeesError;
 use crate::events::InitializeFeeProgramGlobalEvent;
+use crate::state::{FeeProgramGlobal, Global};
 
 #[derive(Accounts)]
 pub struct InitializeFeeProgramGlobal {
