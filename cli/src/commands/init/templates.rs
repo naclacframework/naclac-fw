@@ -180,7 +180,7 @@ pub fn parse_ts_framework(flag: &str) -> Option<TsFramework> {
 pub fn prompt_ts_framework() -> TsFramework {
     let selections = &[
         "Solana Kit (Recommended — modern @solana/kit client)",
-        "Legacy Web3.js (Classic @solana/web3.js v1 client)",
+        "Legacy Web3.js (Classic @solana/web3.js v3 client)",
     ];
 
     let choice = Select::with_theme(&ui::DialogTheme)
@@ -722,10 +722,7 @@ describe("Naclac {type_name} Test Suite (Legacy)", () => {{
       throw new Error("Count did not increment correctly");
     }}
 
-    const capturedEvents = client.parseCounterIncrementedEvents(
-      txResult!.logs,
-      txResult!.innerInstructions,
-    );
+    const capturedEvents = await client.parseCounterIncrementedEventsFromTransaction(txResult!);
     if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
 
     console.log(`      🔔 Event Fired! New Count: ${{capturedEvents[0].newCount}}`);

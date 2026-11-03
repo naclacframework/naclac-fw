@@ -255,7 +255,7 @@ jobs:
       - name: Create and build an empty program
         working-directory: ${{ runner.temp }}
         run: |
-          naclac init empty --empty --no-install --no-git \
+          naclac init empty --empty --no-install --no-git --random-address \
             --runtime ${{ matrix.runtime }} --mode ${{ matrix.mode }} --ts kit \
             --framework-path "$GITHUB_WORKSPACE"
           cd empty

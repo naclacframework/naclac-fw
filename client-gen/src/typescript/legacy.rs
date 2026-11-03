@@ -27,7 +27,7 @@ pub fn generate_legacy_client(
     client_content.push_str("import * as types from \"./types\";\n");
 
     // ── Class declaration ─────────────────────────────────────────────────────
-    client_content.push_str(&format!("\n/**\n * High-level client for the `{program_name}` program.\n * Uses the classic @solana/web3.js (v1) transaction model.\n */\nexport class {type_name}Client {{\n"));
+    client_content.push_str(&format!("\n/**\n * High-level client for the `{program_name}` program.\n * Uses the classic @solana/web3.js (v3) transaction model.\n */\nexport class {type_name}Client {{\n"));
     client_content.push_str("  public readonly program: naclac.LegacyProgram;\n");
     if !idl.instructions.is_empty() {
         client_content.push_str("  public readonly instructions = instructions;\n");
@@ -83,7 +83,6 @@ pub fn generate_legacy_client(
     }
 
     // ── PDA helpers ───────────────────────────────────────────────────────────
-    // Uses naclac.PublicKey.findProgramAddressSync — no direct @solana/web3.js needed.
     let mut account_pdas: std::collections::HashMap<String, Vec<(&IdlInstruction, &IdlPda)>> =
         std::collections::HashMap::new();
     for ix in &idl.instructions {
@@ -156,7 +155,7 @@ pub fn generate_legacy_client(
                  // primitive — naclac-syn couldn't resolve it from the backing\n\
                  // account's struct definition. Derive it manually — fetch the\n\
                  // account, read the field, and call\n\
-                 // naclac.PublicKey.findProgramAddressSync yourself with the correct\n\
+                 // naclac.PublicKey.findProgramAddress yourself with the correct\n\
                  // byte encoding for that field's type.\n\n",
                 acc_name.to_upper_camel_case(),
                 path
@@ -165,7 +164,7 @@ pub fn generate_legacy_client(
         }
 
         let type_name_pda = acc_name.to_upper_camel_case();
-        client_content.push_str(&format!("  /** Derives the PDA for a `{acc_name}` account. Returns `[PublicKey, bumpSeed]`. */\n  public get{type_name_pda}Pda(seeds: {{\n"));
+        client_content.push_str(&format!("  /** Derives the PDA for a `{acc_name}` account. Async because PDA derivation is async; resolves to `[PublicKey, bumpSeed]`. */\n  public async get{type_name_pda}Pda(seeds: {{\n"));
 
         let mut seen_seeds = std::collections::HashSet::new();
         for seed in &pda.seeds {
@@ -224,8 +223,7 @@ pub fn generate_legacy_client(
                 _ => {}
             }
         }
-        // Returns [PublicKey, number] — synchronous in web3.js v1
-        client_content.push_str("  }): [naclac.PublicKey, number] {\n");
+        client_content.push_str("  }): Promise<[naclac.PublicKey, number]> {\n");
 
         let mut seeds_exprs = Vec::new();
         for seed in &pda.seeds {
@@ -270,10 +268,9 @@ pub fn generate_legacy_client(
                             "new Uint8Array(naclac.getIdlCodec(JSON.parse('{ty_json}')).encode(seeds.{key}))"
                         ));
                     } else {
-                        // toBuffer() is a web3.js v1 PublicKey method — safe via naclac.PublicKey
                         let camel_path = path.to_lower_camel_case();
                         seeds_exprs.push(format!(
-                            "new naclac.PublicKey(seeds.{camel_path}).toBuffer()"
+                            "new naclac.PublicKey(seeds.{camel_path}).toBytes()"
                         ));
                     }
                 }
@@ -294,7 +291,7 @@ pub fn generate_legacy_client(
             _ => "this.programId".to_string(),
         };
         client_content.push_str(&format!(
-            "    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(\n      [\n        {}\n      ],\n      {owner_program_expr}\n    );\n    return [pda, bump];\n",
+            "    const [pda, bump] = await naclac.PublicKey.findProgramAddress(\n      [\n        {}\n      ],\n      {owner_program_expr}\n    );\n    return [pda, bump];\n",
             seeds_exprs.iter().map(|s| format!("        {s}")).collect::<Vec<String>>().join(",\n")
         ));
         client_content.push_str("  }\n\n");
@@ -338,11 +335,21 @@ pub fn generate_legacy_client(
         client_content.push_str("  }\n\n");
 
         client_content.push_str(&format!(
-            "  /** Decodes every `{}` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitFor{}` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */\n  public parse{}Events(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {{\n",
+            "  /** Decodes every `{}` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitFor{}` — prefer this when you already know which transaction you're checking. */\n  public parse{}Events(logs: readonly string[]) {{\n",
             event.name, event.name, event.name
         ));
         client_content.push_str(&format!(
-            "    return this.program.parseEvents<types.{}>(\"{}\", logs, innerInstructions);\n",
+            "    return this.program.parseEvents<types.{}>(\"{}\", logs);\n",
+            event.name, event.name
+        ));
+        client_content.push_str("  }\n\n");
+
+        client_content.push_str(&format!(
+            "  /** Like `parse{}Events`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */\n  public async parse{}EventsFromTransaction(tx: {{ logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }}): Promise<types.{}[]> {{\n",
+            event.name, event.name, event.name
+        ));
+        client_content.push_str(&format!(
+            "    return this.program.parseEventsFromTransaction<types.{}>(\"{}\", tx);\n",
             event.name, event.name
         ));
         client_content.push_str("  }\n\n");

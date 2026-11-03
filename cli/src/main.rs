@@ -8,6 +8,7 @@ mod account_decode;
 mod cargo_progress;
 mod commands;
 mod ui;
+mod vanity;
 
 #[derive(Parser)]
 #[command(name = "naclac")]
@@ -48,6 +49,8 @@ enum Commands {
         /// instead of the counter example
         #[arg(long)]
         empty: bool,
+        #[command(flatten)]
+        address: vanity::AddressArgs,
     },
     /// Adds a new program to an existing Naclac workspace
     Add {
@@ -65,6 +68,8 @@ enum Commands {
         /// instead of the counter example
         #[arg(long)]
         empty: bool,
+        #[command(flatten)]
+        address: vanity::AddressArgs,
     },
     /// Builds the SBF binary and generates the IDL JSON
     Build {
@@ -482,6 +487,7 @@ fn main() {
             no_git,
             framework_path,
             empty,
+            address,
         } => crate::commands::init::execute(crate::commands::init::InitOptions {
             name,
             runtime: runtime.as_deref(),
@@ -492,6 +498,7 @@ fn main() {
             no_git: *no_git,
             framework_path: framework_path.as_deref(),
             empty: *empty,
+            address,
         }),
         Commands::Add {
             name,
@@ -499,12 +506,14 @@ fn main() {
             mode,
             ts,
             empty,
+            address,
         } => commands::add::execute(
             name,
             runtime.as_deref(),
             mode.as_deref(),
             ts.as_deref(),
             *empty,
+            address,
         ),
         Commands::Build {
             program_id,

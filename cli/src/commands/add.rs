@@ -6,11 +6,12 @@ use {
                     generate_program, parse_ts_framework, prompt_ts_framework, resolve_mode,
                     TsFramework,
                 },
-                utils::generate_keypair,
+                utils::{generate_keypair, write_keypair},
             },
             programs, workspace,
         },
         ui,
+        vanity::{self, AddressArgs},
     },
     heck::ToSnakeCase,
     std::{fs, time::Instant},
@@ -22,6 +23,7 @@ pub fn execute(
     mode_flag: Option<&str>,
     ts_flag: Option<&str>,
     empty: bool,
+    address_args: &AddressArgs,
 ) {
     let workspace_root = workspace::root();
 
@@ -88,9 +90,14 @@ pub fn execute(
         ui::kv("typescript", ts_framework.as_str());
     }
 
+    let vanity_keypair = vanity::keypair_for(address_args);
+
     let keypair_path =
         naclac_client_gen::deploy_dir(&workspace_root).join(format!("{}-keypair.json", snake_name));
-    let address = generate_keypair(&keypair_path);
+    let address = match &vanity_keypair {
+        Some(keypair) => write_keypair(keypair, &keypair_path),
+        None => generate_keypair(&keypair_path),
+    };
     ui::kv("program", format!("{snake_name} ({})", ui::short(&address)));
 
     let scaffold_start = Instant::now();

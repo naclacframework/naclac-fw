@@ -368,7 +368,7 @@ pub fn generate_kit_client(
         if acct.discriminator.is_some() {
             let acct_name = &acct.name;
             client_content.push_str(&format!(
-                "  /** Fetches ALL `{acct_name}` accounts owned by this program. */\n  public fetchAll{acct_name}ByOwner(options?: {{ commitment?: any; filters?: unknown[] }}) {{\n    return accounts.fetchAll{acct_name}ByOwner(this.program.provider.rpc as any, this.programId, options);\n  }}\n\n"
+                "  /** Fetches ALL `{acct_name}` accounts owned by this program. */\n  public fetchAll{acct_name}ByOwner(options?: {{ commitment?: naclac.Commitment; filters?: unknown[] }}) {{\n    return accounts.fetchAll{acct_name}ByOwner(this.program.provider.rpc as any, this.programId, {{\n      commitment: options?.commitment ?? this.program.provider.commitment,\n      filters: options?.filters,\n    }});\n  }}\n\n"
             ));
         }
     }
@@ -435,7 +435,7 @@ pub fn generate_kit_client(
         // fetchAllXxxByOwner() — getProgramAccounts with discriminator filter
         if acct.discriminator.is_some() {
             f.push_str(&format!(
-                "/** Fetches ALL `{acct_name}` accounts owned by `programAddress`.\n * Uses the discriminator as a memcmp filter for precision.\n */\nexport async function fetchAll{acct_name}ByOwner(\n  rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],\n  programAddress: naclac.Address,\n  options?: {{ commitment?: any; filters?: unknown[] }},\n): Promise<Array<naclac.Account<{acct_name}>>> {{\n  return naclac.fetchAllAccountsByProgram(\n    rpc,\n    programAddress,\n    {acct_upper}_DISCRIMINATOR,\n    decode{acct_name},\n    options,\n  );\n}}\n",
+                "/** Fetches ALL `{acct_name}` accounts owned by `programAddress`.\n * Uses the discriminator as a memcmp filter for precision.\n */\nexport async function fetchAll{acct_name}ByOwner(\n  rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],\n  programAddress: naclac.Address,\n  options: {{ commitment: naclac.Commitment; filters?: unknown[] }},\n): Promise<Array<naclac.Account<{acct_name}>>> {{\n  return naclac.fetchAllAccountsByProgram(\n    rpc,\n    programAddress,\n    {acct_upper}_DISCRIMINATOR,\n    decode{acct_name},\n    options,\n  );\n}}\n",
                 acct_upper = acct_name.to_uppercase(),
                 acct_name = acct_name,
             ));

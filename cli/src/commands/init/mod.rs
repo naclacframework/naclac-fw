@@ -1,5 +1,8 @@
 use {
-    crate::ui,
+    crate::{
+        ui,
+        vanity::{self, AddressArgs},
+    },
     heck::ToSnakeCase,
     std::{fs, path::Path, process::Command, time::Instant},
 };
@@ -12,7 +15,7 @@ use self::{
         generate_program, parse_package_manager, parse_ts_framework, prompt_ts_framework,
         resolve_mode, PackageManager, TsFramework,
     },
-    utils::{ensure_dir, generate_keypair, write_file},
+    utils::{ensure_dir, generate_keypair, write_file, write_keypair},
 };
 
 /// The first of yarn, pnpm and npm that runs on this machine, in that order;
@@ -49,6 +52,8 @@ pub struct InitOptions<'a> {
     pub framework_path: Option<&'a str>,
     /// Generate the program with no instructions and no example code.
     pub empty: bool,
+    /// How the program's address is chosen: random, or a vanity pattern.
+    pub address: &'a AddressArgs,
 }
 
 pub fn execute(options: InitOptions) {
@@ -62,6 +67,7 @@ pub fn execute(options: InitOptions) {
         no_git,
         framework_path,
         empty,
+        address,
     } = options;
     let root = Path::new(name);
 
@@ -102,13 +108,18 @@ pub fn execute(options: InitOptions) {
     ui::kv("typescript", ts_framework.as_str());
     ui::kv("package", package_manager.as_str());
 
+    let vanity_keypair = vanity::keypair_for(address);
+
     let scaffold_start = Instant::now();
     ensure_dir(&root.join("tests"));
     let deploy_dir = naclac_client_gen::deploy_dir(root);
     ensure_dir(&deploy_dir);
 
     let keypair_path = deploy_dir.join(format!("{}-keypair.json", snake_name));
-    let program_id = generate_keypair(&keypair_path);
+    let program_id = match &vanity_keypair {
+        Some(keypair) => write_keypair(keypair, &keypair_path),
+        None => generate_keypair(&keypair_path),
+    };
     ui::kv(
         "program",
         format!("{snake_name} ({})", ui::short(&program_id)),
@@ -190,10 +201,10 @@ test-node = "{test_node_script}"
         naclac_client_gen::naclac_ts_dep_specs(root).unwrap_or_else(|e| ui::error(e));
     let ts_deps = match ts_framework {
         TsFramework::Kit => format!(
-            "    \"@naclac-fw/client\": \"{ts_client_dep}\",\n    \"@naclac-fw/litesvm\": \"{ts_litesvm_dep}\",\n    \"@solana-program/system\": \"^0.15\",\n    \"@solana/kit\": \"^8\""
+            "    \"@naclac-fw/client\": \"{ts_client_dep}\",\n    \"@naclac-fw/litesvm\": \"{ts_litesvm_dep}\",\n    \"@solana-program/system\": \"^0.16\",\n    \"@solana/kit\": \"^8.6\""
         ),
         TsFramework::Legacy => format!(
-            "    \"@naclac-fw/client\": \"{ts_client_dep}\",\n    \"@naclac-fw/litesvm\": \"{ts_litesvm_dep}\",\n    \"@solana/web3.js\": \"^1.99\""
+            "    \"@naclac-fw/client\": \"{ts_client_dep}\",\n    \"@naclac-fw/litesvm\": \"{ts_litesvm_dep}\",\n    \"@solana-program/token-2022\": \"^0.20\",\n    \"@solana/web3.js\": \"^3\""
         ),
     };
 
