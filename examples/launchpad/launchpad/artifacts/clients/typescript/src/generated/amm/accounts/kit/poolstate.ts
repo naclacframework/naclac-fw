@@ -2,41 +2,30 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/kit";
+import { IDL } from "../../program-idl";
 import type { PoolState } from "../../types";
 
-/** 8-byte on-chain discriminator for `PoolState` accounts. */
+/** On-chain discriminator for `PoolState` accounts. */
 export const POOLSTATE_DISCRIMINATOR = new Uint8Array([247, 237, 227, 245, 215, 195, 222, 70]);
 
-/** Gets the encoder for {@link PoolState} account data. */
-export function getPoolStateEncoder(): naclac.FixedSizeEncoder<PoolState> {
-  return naclac.getStructEncoder([
-    ["id", naclac.getU64Encoder()],
-    ["tokenAMint", naclac.getAddressEncoder()],
-    ["tokenBMint", naclac.getAddressEncoder()],
-    ["vaultA", naclac.getAddressEncoder()],
-    ["vaultB", naclac.getAddressEncoder()],
-    ["lpMint", naclac.getAddressEncoder()],
-    ["bump", naclac.getU8Encoder()],
-  ]) as naclac.FixedSizeEncoder<PoolState>;
+function stripPoolStateDiscriminator(data: Uint8Array): Uint8Array {
+  const disc = POOLSTATE_DISCRIMINATOR;
+  if (data.length < disc.length || !disc.every((byte, i) => data[i] === byte)) {
+    throw new Error("[Naclac] Account data does not start with the `PoolState` discriminator (wrong account type, or not initialized).");
+  }
+  return data.slice(disc.length);
 }
+
+/** Gets the codec (encoder + decoder) for {@link PoolState} account data, discriminator excluded. */
+export function getPoolStateCodec(): naclac.AccountCodec<PoolState> {
+  return naclac.getAccountCodec<PoolState>(IDL, "PoolState");
+}
+
+/** Gets the encoder for {@link PoolState} account data. */
+export const getPoolStateEncoder = getPoolStateCodec;
 
 /** Gets the decoder for {@link PoolState} account data. */
-export function getPoolStateDecoder(): naclac.FixedSizeDecoder<PoolState> {
-  return naclac.getStructDecoder([
-    ["id", naclac.getU64Decoder()],
-    ["tokenAMint", naclac.getAddressDecoder()],
-    ["tokenBMint", naclac.getAddressDecoder()],
-    ["vaultA", naclac.getAddressDecoder()],
-    ["vaultB", naclac.getAddressDecoder()],
-    ["lpMint", naclac.getAddressDecoder()],
-    ["bump", naclac.getU8Decoder()],
-  ]) as naclac.FixedSizeDecoder<PoolState>;
-}
-
-/** Gets the codec (encoder + decoder) for {@link PoolState} account data. */
-export function getPoolStateCodec(): naclac.FixedSizeCodec<PoolState> {
-  return naclac.combineCodec(getPoolStateEncoder(), getPoolStateDecoder());
-}
+export const getPoolStateDecoder = getPoolStateCodec;
 
 export function decodePoolState<TAddress extends string = string>(
   encodedAccount: naclac.EncodedAccount<TAddress>,
@@ -49,9 +38,9 @@ export function decodePoolState<TAddress extends string = string>(
 ): naclac.Account<PoolState, TAddress> | naclac.MaybeAccount<PoolState, TAddress> {
   return naclac.decodeAccount(
     ('data' in encodedAccount
-      ? { ...encodedAccount, data: encodedAccount.data.slice(8) }
+      ? { ...encodedAccount, data: stripPoolStateDiscriminator(encodedAccount.data) }
       : encodedAccount) as naclac.MaybeEncodedAccount<TAddress>,
-    getPoolStateDecoder(),
+    getPoolStateDecoder() as unknown as naclac.Decoder<PoolState>,
   );
 }
 
@@ -98,12 +87,12 @@ export async function fetchAllMaybePoolState(
 }
 
 /** Fetches ALL `PoolState` accounts owned by `programAddress`.
- * Uses the 8-byte discriminator as a memcmp filter for precision.
+ * Uses the discriminator as a memcmp filter for precision.
  */
 export async function fetchAllPoolStateByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],
   programAddress: naclac.Address,
-  options?: { commitment?: any; filters?: unknown[] },
+  options: { commitment: naclac.Commitment; filters?: unknown[] },
 ): Promise<Array<naclac.Account<PoolState>>> {
   return naclac.fetchAllAccountsByProgram(
     rpc,

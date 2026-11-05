@@ -1,3 +1,5 @@
+//! AMM pool state account layout.
+
 use naclac_lang::prelude::*;
 
 #[account]

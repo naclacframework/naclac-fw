@@ -1,65 +1,91 @@
-use naclac_lang::prelude::*;
-use crate::state::pool_state::PoolState;
-use crate::constants::SEED_POOL;
+//! AMM remove liquidity instruction.
+
+use {
+    crate::{
+        constants::SEED_POOL, events::LiquidityRemoved,
+        state::pool_state::PoolState, systems::process_remove_liquidity_math,
+    },
+    naclac_lang::prelude::*,
+};
 
 #[derive(Accounts)]
 pub struct RemoveLiquidity {
     #[account(mut)]
     pub user: Signer,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token_a_mint = token_a_mint,
+        token_b_mint = token_b_mint,
+        lp_mint = lp_mint,
+        vault_a = vault_a,
+        vault_b = vault_b,
+    )]
     pub pool_state: Account<PoolState>,
 
     pub token_a_mint: Account<Mint>,
     pub token_b_mint: Account<Mint>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_a_mint,
+        token::authority = pool_state,
+    )]
     pub vault_a: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_b_mint,
+        token::authority = pool_state,
+    )]
     pub vault_b: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        mint::authority = pool_state,
+    )]
     pub lp_mint: Account<Mint>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_a_mint,
+        token::authority = user,
+    )]
     pub user_token_a: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_b_mint,
+        token::authority = user,
+    )]
     pub user_token_b: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = lp_mint,
+        token::authority = user,
+    )]
     pub user_lp: Account<TokenAccount>,
 
     pub token_program: Program<Token>,
 }
 
+/// Removes liquidity by burning user's LP tokens and returning proportional pool assets.
 pub fn remove_liquidity(
     ctx: Context<RemoveLiquidity>,
     lp_amount: u64,
 ) -> Result {
-    require!(
-        ctx.accounts.token_a_mint.address() == ctx.accounts.pool_state.token_a_mint,
-        crate::errors::AmmError::InvalidMint
-    );
-    require!(
-        ctx.accounts.token_b_mint.address() == ctx.accounts.pool_state.token_b_mint,
-        crate::errors::AmmError::InvalidMint
-    );
-
     let x = ctx.accounts.vault_a.amount();
     let y = ctx.accounts.vault_b.amount();
     let lp_supply = ctx.accounts.lp_mint.supply();
 
-    // Call remove liquidity math system function
-    let (amount_a, amount_b) = crate::systems::process_remove_liquidity_math(
+    let (amount_a, amount_b) = process_remove_liquidity_math(
         x,
         y,
         lp_supply,
         lp_amount,
     )?;
 
-    // 1. Burn user's LP tokens
     ctx.accounts.token_program.burn(
         BurnAccounts {
             mint: &mut ctx.accounts.lp_mint,
@@ -69,7 +95,6 @@ pub fn remove_liquidity(
         lp_amount,
     )?;
 
-    // 2. Prepare signer seeds for the pool state PDA
     let token_a_ref = ctx.accounts.pool_state.token_a_mint;
     let token_b_ref = ctx.accounts.pool_state.token_b_mint;
     let id_bytes = ctx.accounts.pool_state.id.to_le_bytes();
@@ -85,7 +110,6 @@ pub fn remove_liquidity(
     let token_a_decimals = ctx.accounts.token_a_mint.decimals();
     let token_b_decimals = ctx.accounts.token_b_mint.decimals();
 
-    // 3. Transfer Token A and B from pool vaults to user
     ctx.accounts.token_program.transfer_checked_signed(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.vault_a,
@@ -110,7 +134,7 @@ pub fn remove_liquidity(
         signer_seeds,
     )?;
 
-    emit!(crate::events::LiquidityRemoved {
+    emit!(LiquidityRemoved {
         token_a_mint: ctx.accounts.pool_state.token_a_mint,
         token_b_mint: ctx.accounts.pool_state.token_b_mint,
         amount_a,

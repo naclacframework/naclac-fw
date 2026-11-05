@@ -3,8 +3,8 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `addLiquidity` instruction. */
-export const ADDLIQUIDITY_DISCRIMINATOR = new Uint8Array([181, 157, 89, 67, 143, 182, 52, 72]);
+/** Discriminator for the `add_liquidity` instruction. */
+export const ADD_LIQUIDITY_DISCRIMINATOR = new Uint8Array([181, 157, 89, 67, 143, 182, 52, 72]);
 
 /** Instruction arguments for `addLiquidity`. */
 export interface AddLiquidityArgs {
@@ -16,6 +16,8 @@ export interface AddLiquidityArgs {
 export interface AddLiquidityAccounts {
   user: naclac.Address | string;
   poolState: naclac.Address | string;
+  tokenAMint: naclac.Address | string;
+  tokenBMint: naclac.Address | string;
   vaultA: naclac.Address | string;
   vaultB: naclac.Address | string;
   lpMint: naclac.Address | string;
@@ -28,13 +30,15 @@ export interface AddLiquidityAccounts {
 /**
  * Builds the `addLiquidity` instruction pipeline.
  * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+ * 
+ * Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.
  */
 export function addLiquidity(
   program: any,
   args: AddLiquidityArgs,
   accounts?: Partial<AddLiquidityAccounts>
 ) {
-  const builder = program.methods.addLiquidity(args ?? {});
+  const builder = program.methods.add_liquidity(args ?? {});
   if (accounts) {
     return builder.accounts(accounts);
   }

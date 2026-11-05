@@ -40,23 +40,8 @@ import {
   resolveRpcInnerInstructions,
   eventFieldLayout,
   type NaclacInnerInstruction,
+  type NaclacRpcResult,
 } from "../events";
-
-/**
- * The result of `.rpc()`: the confirmed transaction's signature and logs,
- * plus a convenience method to decode any events it emitted. Reading events
- * this way (rather than via `Program.addEventListener`/`waitForEvent`, a live
- * websocket subscription) is race-free — these logs belong to a transaction
- * that has already confirmed, so there's no timing window where an event
- * could be missed.
- */
-export interface NaclacRpcResult {
-  signature: string;
-  logs: string[];
-  /** `undefined` when the backend couldn't supply them (not the same as `[]`). */
-  innerInstructions?: NaclacInnerInstruction[];
-  parseEvents<T = any>(eventName: string): T[];
-}
 
 /**
  * Inner instructions of a kit `getTransaction` result (fetched with
@@ -513,6 +498,7 @@ export class MethodsBuilder {
     // before the subscription handshake finishes connecting).
     let logs: string[] = [];
     let innerInstructions: NaclacInnerInstruction[] | undefined;
+    let logsError: Error | undefined;
     try {
       const txResult = await rpc
         .getTransaction(signature, {
@@ -522,9 +508,8 @@ export class MethodsBuilder {
         .send();
       logs = (txResult?.meta?.logMessages as string[] | undefined) ?? [];
       innerInstructions = innerInstructionsFromKitTransaction(txResult as any);
-    } catch {
-      // Logs are a best-effort convenience; a failure fetching them shouldn't
-      // fail an already-confirmed transaction.
+    } catch (err) {
+      logsError = err instanceof Error ? err : new Error(String(err));
     }
 
     const [eventAuthority] = await getProgramDerivedAddress({
@@ -535,13 +520,20 @@ export class MethodsBuilder {
       signature,
       logs,
       innerInstructions,
-      parseEvents: <T = any>(eventName: string) =>
-        parseEventsFromTransaction<T>(
+      logsError,
+      parseEvents: <T = any>(eventName: string) => {
+        if (logsError) {
+          throw new Error(
+            `[Naclac] Cannot parse events: fetching transaction ${signature} failed: ${logsError.message}`,
+          );
+        }
+        return parseEventsFromTransaction<T>(
           this.idl,
           eventName,
           { logs, innerInstructions, eventAuthority },
           eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
-        ),
+        );
+      },
     };
   }
 

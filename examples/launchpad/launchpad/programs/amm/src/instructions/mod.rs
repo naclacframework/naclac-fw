@@ -1,9 +1,13 @@
-pub mod initialize;
-pub mod swap;
-pub mod add_liquidity;
-pub mod remove_liquidity;
+//! AMM instruction definitions and handlers.
 
-pub use initialize::*;
-pub use swap::*;
-pub use add_liquidity::*;
-pub use remove_liquidity::*;
+pub mod add_liquidity;
+pub mod initialize;
+pub mod remove_liquidity;
+pub mod swap;
+
+pub use {
+    add_liquidity::*,
+    initialize::*,
+    remove_liquidity::*,
+    swap::*,
+};

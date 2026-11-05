@@ -9,7 +9,7 @@ pub fn execute() {
         ("rustc", &["--version"]),
         ("solana", &["--version"]),
         ("node", &["--version"]),
-        ("yarn", &["--version"]),
+        ("pnpm", &["--version"]),
     ];
 
     let mut passed = 0;

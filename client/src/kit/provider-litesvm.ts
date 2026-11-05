@@ -1,24 +1,16 @@
 import { getBase64EncodedWireTransaction, type Address, type TransactionSigner } from "@solana/kit";
 import type { NaclacProvider } from "./provider";
 
+const signerSecretKeys = new WeakMap<object, Uint8Array>();
+
 /**
- * Reads the same raw 64-byte `[secret(32) || public(32)]` keypair JSON
- * array `loadNodeWallet` does, but returns the bytes themselves instead of
- * an opaque `TransactionSigner` — litesvm's native binding needs the raw
- * bytes to construct a `solana_keypair::Keypair` on the Rust side, and a
- * `TransactionSigner` (often WebCrypto/`CryptoKeyPair`-backed) doesn't
- * generally expose its private key material back out once constructed.
+ * Records the raw 64-byte `[secret(32) || public(32)]` key of `signer`.
+ * litesvm's native binding funds its ledger from these bytes, and a
+ * `TransactionSigner` (WebCrypto-backed) does not expose them again, so the
+ * functions that create signers from known bytes must register them here.
  */
-function loadNodeWalletBytes(path?: string): Uint8Array {
-  let fs: any, os: any;
-  try {
-    fs = require("fs");
-    os = require("os");
-  } catch (e) {
-    throw new Error("[Naclac] loadNodeWalletBytes can only be used in Node.js environments.");
-  }
-  const defaultPath = `${os.homedir()}/.config/solana/id.json`;
-  return new Uint8Array(JSON.parse(fs.readFileSync(path ?? defaultPath, "utf8")));
+export function registerSignerSecretKey(signer: TransactionSigner, secretKey: Uint8Array): void {
+  signerSecretKeys.set(signer, secretKey);
 }
 
 /**
@@ -170,27 +162,21 @@ export interface LiteSvmProvider extends NaclacProvider {
  *
  * Synchronous on purpose (`require`, not a dynamic `import()`), so this
  * plugs directly into the generated client's synchronous constructor via
- * the `"litesvm"` cluster string, the same way `"devnet"`/`"localnet"`/etc.
- * already do — `signer` is the already-resolved payer the caller passes in
- * exactly like every other cluster already requires (e.g.
- * `payer = await loadNodeWallet(); new XClient("localnet", payer)`), so
- * there is no signer construction left to do here, async or otherwise.
- *
- * `signer` is used as `provider.signer` (what actually signs transactions);
- * separately, `walletPath` (defaulting to the same `~/.config/solana/id.json`
- * `loadNodeWallet` reads) is read again, synchronously, purely to fund
- * litesvm's ledger via the native binding's constructor. These two MUST
- * resolve to the same underlying keypair (the default: call
- * `loadNodeWallet()` for `signer` and leave `walletPath` unset) — if they
- * don't, transactions signed by `signer` will fail with insufficient funds,
- * since litesvm only auto-funds whichever identity its own constructor was
- * given.
+ * the `"litesvm"` cluster string. `signer` must come from `loadNodeWallet()`
+ * or `generateExtractableKeyPairSigner()`: litesvm's ledger is funded from
+ * that same signer's recorded secret key, so the account that signs is the
+ * account that has funds. Any other signer is rejected.
  */
-export function createLiteSvmProvider(signer: TransactionSigner, walletPath?: string): LiteSvmProvider {
+export function createLiteSvmProvider(signer: TransactionSigner): LiteSvmProvider {
+  const secretKey = signerSecretKeys.get(signer);
+  if (!secretKey) {
+    throw new Error(
+      '[Naclac] createProvider("litesvm") needs a signer created by loadNodeWallet() or generateExtractableKeyPairSigner(); the secret key of any other signer is not available to fund litesvm\'s ledger.',
+    );
+  }
   const { LiteSvm } = require("@naclac-fw/litesvm");
-  const payerBytes = loadNodeWalletBytes(walletPath);
 
-  const svm = new LiteSvm(Buffer.from(payerBytes));
+  const svm = new LiteSvm(Buffer.from(secretKey));
   const rpc = wrapNativeRpc(svm);
 
   return {

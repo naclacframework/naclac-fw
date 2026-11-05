@@ -49,6 +49,10 @@ pub mod accounts_constraints_borsh {
         touch_mut_vault::touch_mut_vault(ctx)
     }
 
+    pub fn check_duplicate_mut(ctx: Context<CheckDuplicateMut>) -> Result {
+        check_duplicate_mut::check_duplicate_mut(ctx)
+    }
+
     pub fn related_vault(ctx: Context<RelatedVault>) -> Result {
         related_vault::related_vault(ctx)
     }

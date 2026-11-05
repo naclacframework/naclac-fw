@@ -1,3 +1,5 @@
+//! AMM invariant and swap pricing mathematical routines.
+
 use naclac_lang::prelude::*;
 
 #[system]
@@ -33,22 +35,17 @@ pub fn process_add_liquidity_math(
         return Err(crate::errors::AmmError::ZeroAmount.into());
     }
 
-    // Calculate proportional amount of B for max_amount_a
-    // amount_b = max_amount_a * y / x
     let amount_b = (max_amount_a as u128 * y as u128 / x as u128) as u64;
 
     let (deposit_a, deposit_b) = if amount_b <= max_amount_b {
         (max_amount_a, amount_b)
     } else {
-        // Calculate proportional amount of A for max_amount_b
-        // amount_a = max_amount_b * x / y
         let amount_a = (max_amount_b as u128 * x as u128 / y as u128) as u64;
         (amount_a, max_amount_b)
     };
 
     require!(deposit_a > 0 && deposit_b > 0, crate::errors::AmmError::ZeroAmount);
 
-    // lp_to_mint = lp_supply * deposit_a / x
     let lp_to_mint = (lp_supply as u128 * deposit_a as u128 / x as u128) as u64;
 
     Ok((deposit_a, deposit_b, lp_to_mint))

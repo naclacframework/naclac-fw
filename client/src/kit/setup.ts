@@ -21,7 +21,7 @@ import {
   V1_DEFAULT_COMPUTE_UNIT_LIMIT,
   V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT,
 } from "../tx-config";
-import { createLiteSvmProvider } from "./provider-litesvm";
+import { createLiteSvmProvider, registerSignerSecretKey } from "./provider-litesvm";
 import { SYSTEM_PROGRAM_ID } from "../constants";
 
 export type Cluster =
@@ -124,7 +124,9 @@ export async function loadNodeWallet(path?: string) {
   }
   const defaultPath = `${os.homedir()}/.config/solana/id.json`;
   const keypairBytes = new Uint8Array(JSON.parse(fs.readFileSync(path ?? defaultPath, "utf8")));
-  return createKeyPairSignerFromBytes(keypairBytes);
+  const signer = await createKeyPairSignerFromBytes(keypairBytes);
+  registerSignerSecretKey(signer, keypairBytes);
+  return signer;
 }
 
 /**

@@ -424,7 +424,7 @@ pub fn generate_shared_files(
                 event_def.name, event_def.name, event_def.name, event_def.name, event_def.name, event_def.name, event_def.name
             ));
         }
-        events_content.push_str("/** Removes a previously registered event listener. */\nexport function removeListener(program: any, listenerId: number) {\n  program.removeEventListener(listenerId);\n}\n");
+        events_content.push_str("/** Removes a previously registered event listener. */\nexport function removeListener(program: any, listenerId: number) {\n  return program.removeEventListener(listenerId);\n}\n");
     }
     if !idl.events.is_empty() {
         fs::write(clients_dir.join("types/events.ts"), events_content)?;

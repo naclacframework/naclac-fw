@@ -1291,8 +1291,8 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
                         return Err(naclac_lang::prelude::NaclacError::NotEnoughAccountKeys.err(0));
                     }
                     if let Some(__dups) = __duplicates {
-                        if __dups.intersects(&Self::MUT_MASK) {
-                            return Err(naclac_lang::prelude::NaclacError::ConstraintDuplicateMutableAccount.err(0));
+                        if let Some(__slot) = __dups.first_intersection(&Self::MUT_MASK) {
+                            return Err(naclac_lang::prelude::NaclacError::ConstraintDuplicateMutableAccount.err(__slot));
                         }
                     }
                     let __views = accounts;

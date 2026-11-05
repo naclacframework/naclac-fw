@@ -1,21 +1,25 @@
+//! Automated market maker program entrypoint and instruction router.
+
 #![no_std]
-use naclac_lang::prelude::*;
 
-declare_id!("6WCKBWWvuGYDHA14FXBbWMFeTQzHYmNR3p2oiLct4G1F");
+use {
+    instructions::*,
+    naclac_lang::prelude::*,
+};
 
+declare_id!("3BpKpLxLuskuhh1xjK51dmTPpu5CmhekKTNg3RWBx3qo");
+
+pub mod constants;
+pub mod errors;
+pub mod events;
 pub mod instructions;
 pub mod state;
-pub mod events;
-pub mod errors;
-pub mod constants;
 pub mod systems;
-
-use instructions::*;
 
 #[program]
 pub mod amm {
-    pub fn initialize(ctx: Context<Initialize>, id: u64, pool_bump: u8, amount_a: u64, amount_b: u64) -> Result {
-        initialize::initialize(ctx, id, pool_bump, amount_a, amount_b)
+    pub fn initialize(ctx: Context<Initialize>, id: u64, amount_a: u64, amount_b: u64) -> Result {
+        initialize::initialize(ctx, id, amount_a, amount_b)
     }
 
     pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Result {

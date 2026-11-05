@@ -4,7 +4,7 @@ export { MethodsBuilder, innerInstructionsFromKitTransaction } from "./methods";
 export { AccountFetcher, fetchAllAccountsByProgram } from "./account";
 export { type NaclacProvider, type TxVersion, normalizeTxVersion } from "./provider";
 export { createProvider, loadNodeWallet, transferSol } from "./setup";
-export { createLiteSvmProvider, type LiteSvmProvider } from "./provider-litesvm";
+export { createLiteSvmProvider, registerSignerSecretKey, type LiteSvmProvider } from "./provider-litesvm";
 export * from "./token";
 
 // ─── Re-export all @solana/kit primitives needed by generated client code ───
@@ -83,21 +83,42 @@ export {
 } from "@solana/kit";
 
 
-import { generateKeyPairSigner as genKeyPairSigner, type KeyPairSigner } from "@solana/kit";
+import {
+  address as toAddress,
+  createKeyPairSignerFromBytes,
+  generateKeyPairSigner as genKeyPairSigner,
+  getAddressEncoder,
+  type KeyPairSigner,
+} from "@solana/kit";
+import { registerSignerSecretKey } from "./provider-litesvm";
 
 /**
  * Generates an extractable KeyPairSigner. By default @solana/kit generates
  * non-extractable keys; this helper enables extraction for testing and key
- * export scenarios.
+ * export scenarios, and records the secret key so the signer can fund a
+ * litesvm provider. Throws if the exported bytes do not rebuild a signer with
+ * the same address.
  */
 export async function generateExtractableKeyPairSigner(): Promise<KeyPairSigner> {
-  return genKeyPairSigner(true);
+  const signer = await genKeyPairSigner(true);
+  const pkcs8 = new Uint8Array(await globalThis.crypto.subtle.exportKey("pkcs8", signer.keyPair.privateKey));
+  if (pkcs8.length !== 48) {
+    throw new Error(`[Naclac] Unexpected PKCS#8 length ${pkcs8.length} exporting an Ed25519 key; expected 48.`);
+  }
+  const secretKey = new Uint8Array(64);
+  secretKey.set(pkcs8.subarray(16), 0);
+  secretKey.set(getAddressEncoder().encode(signer.address), 32);
+  const rebuilt = await createKeyPairSignerFromBytes(secretKey);
+  if (rebuilt.address !== signer.address) {
+    throw new Error("[Naclac] Exported secret key does not match the generated signer's address.");
+  }
+  registerSignerSecretKey(signer, secretKey);
+  return signer;
 }
 
 import { getBase58Codec } from "@solana/codecs";
 export { getBase58Codec };
 
-import { address as toAddress } from "@solana/kit";
 import {
   SYSTEM_PROGRAM_ID as SYSTEM_PROGRAM_ID_STR,
   TOKEN_PROGRAM_ID as TOKEN_PROGRAM_ID_STR,

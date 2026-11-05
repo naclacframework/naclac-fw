@@ -5,7 +5,8 @@ use accounts_constraints_client::{
     instructions::{
         build_check_min_value, build_check_min_value_unmet, CheckMinValueAccounts,
         CheckMinValueUnmetAccounts,
-        build_check_address, build_check_address_relational, build_check_executable,
+        build_check_address, build_check_address_relational, build_check_duplicate_mut,
+        build_check_executable, CheckDuplicateMutAccounts,
         build_check_external_pda, build_check_owner, build_check_owner_relational,
         build_check_rent_exempt, build_close_vault, build_close_vault_self,
         build_init_if_needed_ledger, build_init_seeded, build_init_vault, build_related_vault,
@@ -542,6 +543,84 @@ fn executable_constraint_rejects_non_executable_account() {
     // `CheckExecutable { target }` — `target` is field index 0 ->
     // 10000 + 0*100 + ConstraintExecutable(7) = 10007.
     assert_custom_code(non_executable_result, 10007);
+}
+
+/// A `mut` account passed in two slots is rejected with
+/// `ConstraintDuplicateMutableAccount`(25), reported at the `mut` account's own
+/// slot — 10000 + slot*100 + 25 — whether the other occurrence is `mut`, is
+/// read-only, comes before it, or comes after it.
+#[test]
+fn duplicate_mutable_account_reports_the_mut_slot() {
+    let provider = setup();
+    let authority = provider.payer.address();
+    let distinct = || Keypair::new().address();
+
+    build_check_duplicate_mut(
+        &provider,
+        PROGRAM_ID,
+        CheckDuplicateMutAccounts {
+            authority,
+            first: distinct(),
+            second: distinct(),
+            observer: distinct(),
+        },
+    )
+    .send_and_confirm()
+    .expect("four distinct accounts must be accepted");
+
+    let shared = distinct();
+
+    let both_mut = build_check_duplicate_mut(
+        &provider,
+        PROGRAM_ID,
+        CheckDuplicateMutAccounts {
+            authority,
+            first: shared,
+            second: shared,
+            observer: distinct(),
+        },
+    )
+    .send_and_confirm();
+    assert_custom_code(both_mut, 10125);
+
+    let read_only_alias_after = build_check_duplicate_mut(
+        &provider,
+        PROGRAM_ID,
+        CheckDuplicateMutAccounts {
+            authority,
+            first: distinct(),
+            second: shared,
+            observer: shared,
+        },
+    )
+    .send_and_confirm();
+    assert_custom_code(read_only_alias_after, 10225);
+
+    let read_only_alias_of_first = build_check_duplicate_mut(
+        &provider,
+        PROGRAM_ID,
+        CheckDuplicateMutAccounts {
+            authority,
+            first: shared,
+            second: distinct(),
+            observer: shared,
+        },
+    )
+    .send_and_confirm();
+    assert_custom_code(read_only_alias_of_first, 10125);
+
+    let read_only_alias_before = build_check_duplicate_mut(
+        &provider,
+        PROGRAM_ID,
+        CheckDuplicateMutAccounts {
+            authority,
+            first: authority,
+            second: distinct(),
+            observer: distinct(),
+        },
+    )
+    .send_and_confirm();
+    assert_custom_code(read_only_alias_before, 10125);
 }
 
 /// `rent_exempt`: rejects an account whose lamport balance is below the

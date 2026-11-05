@@ -1,59 +1,86 @@
-use naclac_lang::prelude::*;
-use crate::state::pool_state::PoolState;
-use crate::constants::SEED_POOL;
+//! AMM add liquidity instruction.
+
+use {
+    crate::{
+        constants::SEED_POOL, events::LiquidityAdded,
+        state::pool_state::PoolState, systems::process_add_liquidity_math,
+    },
+    naclac_lang::prelude::*,
+};
 
 #[derive(Accounts)]
 pub struct AddLiquidity {
     #[account(mut)]
     pub user: Signer,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token_a_mint = token_a_mint,
+        token_b_mint = token_b_mint,
+        lp_mint = lp_mint,
+        vault_a = vault_a,
+        vault_b = vault_b,
+    )]
     pub pool_state: Account<PoolState>,
 
     pub token_a_mint: Account<Mint>,
     pub token_b_mint: Account<Mint>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_a_mint,
+        token::authority = pool_state,
+    )]
     pub vault_a: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_b_mint,
+        token::authority = pool_state,
+    )]
     pub vault_b: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        mint::authority = pool_state,
+    )]
     pub lp_mint: Account<Mint>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_a_mint,
+        token::authority = user,
+    )]
     pub user_token_a: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_b_mint,
+        token::authority = user,
+    )]
     pub user_token_b: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = lp_mint,
+        token::authority = user,
+    )]
     pub user_lp: Account<TokenAccount>,
 
     pub token_program: Program<Token>,
 }
 
+/// Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.
 pub fn add_liquidity(
     ctx: Context<AddLiquidity>,
     max_amount_a: u64,
     max_amount_b: u64,
 ) -> Result {
-    require!(
-        ctx.accounts.token_a_mint.address() == ctx.accounts.pool_state.token_a_mint,
-        crate::errors::AmmError::InvalidMint
-    );
-    require!(
-        ctx.accounts.token_b_mint.address() == ctx.accounts.pool_state.token_b_mint,
-        crate::errors::AmmError::InvalidMint
-    );
-
     let x = ctx.accounts.vault_a.amount();
     let y = ctx.accounts.vault_b.amount();
     let lp_supply = ctx.accounts.lp_mint.supply();
 
-    // Call add liquidity math system function
-    let (deposit_a, deposit_b, lp_to_mint) = crate::systems::process_add_liquidity_math(
+    let (deposit_a, deposit_b, lp_to_mint) = process_add_liquidity_math(
         x,
         y,
         lp_supply,
@@ -64,7 +91,6 @@ pub fn add_liquidity(
     let token_a_decimals = ctx.accounts.token_a_mint.decimals();
     let token_b_decimals = ctx.accounts.token_b_mint.decimals();
 
-    // 1. Transfer Token A and B from user to pool vaults
     ctx.accounts.token_program.transfer_checked(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.user_token_a,
@@ -87,7 +113,6 @@ pub fn add_liquidity(
         token_b_decimals,
     )?;
 
-    // 2. Prepare signer seeds for the pool state PDA
     let token_a_ref = ctx.accounts.pool_state.token_a_mint;
     let token_b_ref = ctx.accounts.pool_state.token_b_mint;
     let id_bytes = ctx.accounts.pool_state.id.to_le_bytes();
@@ -100,7 +125,6 @@ pub fn add_liquidity(
     ];
     let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
 
-    // 3. Mint LP tokens to the user
     ctx.accounts.token_program.mint_to_signed(
         MintToAccounts {
             mint: &mut ctx.accounts.lp_mint,
@@ -111,7 +135,7 @@ pub fn add_liquidity(
         signer_seeds,
     )?;
 
-    emit!(crate::events::LiquidityAdded {
+    emit!(LiquidityAdded {
         token_a_mint: ctx.accounts.pool_state.token_a_mint,
         token_b_mint: ctx.accounts.pool_state.token_b_mint,
         amount_a: deposit_a,

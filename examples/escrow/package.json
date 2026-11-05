@@ -11,11 +11,10 @@
   "dependencies": {
     "@naclac-fw/client": "link:../../client",
     "@naclac-fw/litesvm": "link:../../litesvm-node",
-    "@solana/kit": "^8",
-    "@solana-program/system": "^0.15",
-    "@solana-program/token-2022": "^0.15.0",
-    "@solana/web3.js": "^1.99",
-    "@solana/spl-token": "^0.4"
+    "@solana/kit": "^8.6",
+    "@solana-program/system": "^0.16",
+    "@solana-program/token-2022": "^0.20",
+    "@solana/web3.js": "^3"
   },
   "devDependencies": {
     "@types/node": "^22.13.1",

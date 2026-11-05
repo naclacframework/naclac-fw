@@ -253,5 +253,11 @@ export interface NaclacRpcResult {
   logs: string[];
   /** `undefined` when the backend couldn't supply them (not the same as `[]`). */
   innerInstructions?: NaclacInnerInstruction[];
+  /**
+   * Set when fetching the confirmed transaction failed. `logs` is then empty
+   * and `innerInstructions` is `undefined` without being data from the chain,
+   * and `parseEvents` throws.
+   */
+  logsError?: Error;
   parseEvents<T = any>(eventName: string): T[];
 }

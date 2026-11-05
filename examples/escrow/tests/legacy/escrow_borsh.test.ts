@@ -24,13 +24,13 @@ describe("Naclac EscrowBorsh Test Suite (Legacy)", () => {
     console.log("🚀 Starting EscrowBorsh TypeScript Integration Test Setup (Legacy)...");
 
     // Create mints
-    const mintASigner = naclac.Keypair.generate();
-    const mintBSigner = naclac.Keypair.generate();
+    const mintASigner = await naclac.Keypair.generate();
+    const mintBSigner = await naclac.Keypair.generate();
 
     mintA = (await naclac.createMint(
       client.program.provider,
       mintASigner,
-      undefined,
+      new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID),
       payer.publicKey,
       9
     )).toBase58();
@@ -38,7 +38,7 @@ describe("Naclac EscrowBorsh Test Suite (Legacy)", () => {
     mintB = (await naclac.createMint(
       client.program.provider,
       mintBSigner,
-      undefined,
+      new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID),
       payer.publicKey,
       9
     )).toBase58();
@@ -47,11 +47,11 @@ describe("Naclac EscrowBorsh Test Suite (Legacy)", () => {
     console.log(`📦 Created Mint B: ${mintB}`);
 
     // Create maker ATAs and mint tokens
-    makerTokenAccountA = (await naclac.createAta(client.program.provider, new naclac.PublicKey(mintA), payer.publicKey)).toBase58();
-    makerTokenAccountB = (await naclac.createAta(client.program.provider, new naclac.PublicKey(mintB), payer.publicKey)).toBase58();
+    makerTokenAccountA = (await naclac.createAta(client.program.provider, new naclac.PublicKey(mintA), payer.publicKey, new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID))).toBase58();
+    makerTokenAccountB = (await naclac.createAta(client.program.provider, new naclac.PublicKey(mintB), payer.publicKey, new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID))).toBase58();
 
-    await naclac.mintTo(client.program.provider, new naclac.PublicKey(mintA), payer.publicKey, initialMakerA);
-    await naclac.mintTo(client.program.provider, new naclac.PublicKey(mintB), payer.publicKey, initialTakerB);
+    await naclac.mintTo(client.program.provider, new naclac.PublicKey(mintA), payer.publicKey, initialMakerA, new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID));
+    await naclac.mintTo(client.program.provider, new naclac.PublicKey(mintB), payer.publicKey, initialTakerB, new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID));
 
     console.log(`✅ Minted ${initialMakerA} tokens to Maker Token A`);
     console.log(`✅ Minted ${initialTakerB} tokens to Taker Token B`);
@@ -62,14 +62,15 @@ describe("Naclac EscrowBorsh Test Suite (Legacy)", () => {
   // ===========================================================================
   it("1. Run Make & Cancel Flow", async () => {
     const seedCancel = 789012n;
-    const [escrowPdaCancelPubkey, escrowBumpCancel] = client.getEscrowStatePda({ maker: makerAddress, seed: seedCancel });
+    const [escrowPdaCancelPubkey, escrowBumpCancel] = await client.getEscrowStatePda({ maker: makerAddress, seed: seedCancel });
     const escrowPdaCancel = escrowPdaCancelPubkey.toBase58();
 
     // Initialize the vault ATA (idempotent)
     const vaultTokenAccountCancel = (await naclac.createAta(
       client.program.provider,
       new naclac.PublicKey(mintA),
-      escrowPdaCancelPubkey
+      escrowPdaCancelPubkey,
+      new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID)
     )).toBase58();
 
     console.log(`      Derived Escrow PDA (Cancel): ${escrowPdaCancel} (Bump: ${escrowBumpCancel})`);
@@ -165,7 +166,7 @@ describe("Naclac EscrowBorsh Test Suite (Legacy)", () => {
   // ===========================================================================
   it("2. Run Make & Take Flow", async () => {
     const seedTake = 123456n;
-    const [escrowPdaTakePubkey, escrowBumpTake] = client.getEscrowStatePda({ maker: makerAddress, seed: seedTake });
+    const [escrowPdaTakePubkey, escrowBumpTake] = await client.getEscrowStatePda({ maker: makerAddress, seed: seedTake });
     const escrowPdaTake = escrowPdaTakePubkey.toBase58();
 
     console.log(`      Derived Escrow PDA (Take): ${escrowPdaTake} (Bump: ${escrowBumpTake})`);
@@ -189,8 +190,8 @@ describe("Naclac EscrowBorsh Test Suite (Legacy)", () => {
         effectiveMintB = existingState.mintB.toString();
 
         // Re-derive the correct ATAs for the stored mints
-        effectiveMakerTokenAccountA = (await naclac.createAta(client.program.provider, new naclac.PublicKey(effectiveMintA), payer.publicKey)).toBase58();
-        effectiveMakerTokenAccountB = (await naclac.createAta(client.program.provider, new naclac.PublicKey(effectiveMintB), payer.publicKey)).toBase58();
+        effectiveMakerTokenAccountA = (await naclac.createAta(client.program.provider, new naclac.PublicKey(effectiveMintA), payer.publicKey, new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID))).toBase58();
+        effectiveMakerTokenAccountB = (await naclac.createAta(client.program.provider, new naclac.PublicKey(effectiveMintB), payer.publicKey, new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID))).toBase58();
       }
     } catch (e) {}
 
@@ -198,7 +199,8 @@ describe("Naclac EscrowBorsh Test Suite (Legacy)", () => {
     const vaultTokenAccountTake = (await naclac.createAta(
       client.program.provider,
       new naclac.PublicKey(effectiveMintA),
-      escrowPdaTakePubkey
+      escrowPdaTakePubkey,
+      new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID)
     )).toBase58();
 
     console.log(`      Derived Vault Token Account (Take): ${vaultTokenAccountTake}`);
@@ -251,19 +253,21 @@ describe("Naclac EscrowBorsh Test Suite (Legacy)", () => {
 
     // The taker must be a distinct account from the maker: the program rejects
     // a transaction that passes the same account in two mutable positions.
-    const takerKeypair = naclac.Keypair.generate();
+    const takerKeypair = await naclac.Keypair.generate();
     await naclac.transferSol(client.program.provider, takerKeypair.publicKey, 1_000_000_000n);
     const takerTokenAccountA = (await naclac.createAta(
       client.program.provider,
       new naclac.PublicKey(effectiveMintA),
-      takerKeypair.publicKey
+      takerKeypair.publicKey,
+      new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID)
     )).toBase58();
     const takerTokenAccountB = (await naclac.createAta(
       client.program.provider,
       new naclac.PublicKey(effectiveMintB),
-      takerKeypair.publicKey
+      takerKeypair.publicKey,
+      new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID)
     )).toBase58();
-    await naclac.mintTo(client.program.provider, new naclac.PublicKey(effectiveMintB), takerKeypair.publicKey, initialTakerB);
+    await naclac.mintTo(client.program.provider, new naclac.PublicKey(effectiveMintB), takerKeypair.publicKey, initialTakerB, new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID));
 
     console.log("      🎬 Sending TAKE transaction...");
     const exchangedEventPromise = client.waitForEscrowExchanged({ timeoutMs: 10000 });

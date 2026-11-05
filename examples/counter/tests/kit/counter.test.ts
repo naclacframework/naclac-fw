@@ -9,7 +9,7 @@ describe("Naclac Counter Test Suite (Kit)", () => {
   before(async () => {
     payer = await naclac.loadNodeWallet();
     // Change this to "devnet" or an RPC URL to test against a live network!
-    client = new CounterClient("devnet", payer);
+    client = new CounterClient("litesvm", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 

@@ -32,34 +32,34 @@ describe("Fetcher Demo (Legacy)", () => {
   before(async () => {
     payer = await naclac.loadNodeWallet();
     client = new TokenVaultClient("localnet", payer);
-    user2 = naclac.Keypair.generate();
+    user2 = await naclac.Keypair.generate();
 
     // Generate random vault IDs to avoid collision with prior test runs
     vaultId1 = BigInt(Math.floor(Math.random() * 1_000_000_000) + 1);
     vaultId2 = BigInt(Math.floor(Math.random() * 1_000_000_000) + 1000000000);
     
     // Create mint
-    const mintSigner = naclac.Keypair.generate();
+    const mintSigner = await naclac.Keypair.generate();
     mint = (await naclac.createMint(client.program.provider, mintSigner, new naclac.PublicKey(naclac.TOKEN_PROGRAM_ID), payer.publicKey, 0)) as naclac.PublicKey;
 
     // Derive PDAs
-    const vault1Result = client.getVaultAccountPda({ vaultId: vaultId1 });
+    const vault1Result = await client.getVaultAccountPda({ vaultId: vaultId1 });
     vault1Pda = vault1Result[0];
     vault1Bump = vault1Result[1];
 
-    const vault2Result = client.getVaultAccountPda({ vaultId: vaultId2 });
+    const vault2Result = await client.getVaultAccountPda({ vaultId: vaultId2 });
     vault2Pda = vault2Result[0];
     vault2Bump = vault2Result[1];
 
-    const user1Vault1Result = client.getUserAccountPda({ vaultId: vaultId1, payer: payer.publicKey, mint });
+    const user1Vault1Result = await client.getUserAccountPda({ vaultId: vaultId1, payer: payer.publicKey, mint });
     user1Vault1Pda = user1Vault1Result[0];
     user1Vault1Bump = user1Vault1Result[1];
 
-    const user2Vault1Result = client.getUserAccountPda({ vaultId: vaultId1, payer: user2.publicKey, mint });
+    const user2Vault1Result = await client.getUserAccountPda({ vaultId: vaultId1, payer: user2.publicKey, mint });
     user2Vault1Pda = user2Vault1Result[0];
     user2Vault1Bump = user2Vault1Result[1];
 
-    const user1Vault2Result = client.getUserAccountPda({ vaultId: vaultId2, payer: payer.publicKey, mint });
+    const user1Vault2Result = await client.getUserAccountPda({ vaultId: vaultId2, payer: payer.publicKey, mint });
     user1Vault2Pda = user1Vault2Result[0];
     user1Vault2Bump = user1Vault2Result[1];
 
@@ -139,7 +139,7 @@ describe("Fetcher Demo (Legacy)", () => {
     console.log("Exists:", maybeVault1 !== null, "Data:", maybeVault1 !== null ? naclac.stringifyJson(maybeVault1, 2) : "N/A");
 
     console.log("\n--- fetchMaybeVault (Does NOT exist) ---");
-    const randomAddress = naclac.Keypair.generate().publicKey;
+    const randomAddress = (await naclac.Keypair.generate()).publicKey;
     const maybeFakeVault = await client.fetchMaybeVault(randomAddress);
     console.log("Exists:", maybeFakeVault !== null);
 

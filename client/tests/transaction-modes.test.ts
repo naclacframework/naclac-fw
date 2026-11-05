@@ -339,6 +339,33 @@ describe("Transaction Modes & V1 Serialization", () => {
       assert.equal(blockhashFetches, 1);
     });
 
+    it("rpc() reports a failed log fetch through logsError and parseEvents throws", async () => {
+      const { provider, payer } = await createMockLegacyProvider("v1");
+      const connection = provider.connection as any;
+      connection.sendRawTransaction = async () => "landedSignature";
+      connection.getTransaction = async () => {
+        throw new Error("rpc down");
+      };
+      provider.litesvm = {} as any;
+
+      const result = await new LegacyMethodsBuilder(
+        fixtureIdl,
+        fixtureIdl.instructions[0],
+        { amount: 10n },
+        provider,
+      )
+        .accounts({ authority: payer.publicKey, counterAccount: await randomPublicKey() })
+        .rpc();
+
+      assert.equal(result.signature, "landedSignature");
+      assert.deepEqual(result.logs, []);
+      assert.match(result.logsError!.message, /rpc down/);
+      assert.throws(
+        () => result.parseEvents("Anything"),
+        /Cannot parse events: fetching transaction landedSignature failed: rpc down/,
+      );
+    });
+
     it("createProvider(\"litesvm\") requires a payer", () => {
       assert.throws(() => createProvider("litesvm"), /requires a payer/);
     });

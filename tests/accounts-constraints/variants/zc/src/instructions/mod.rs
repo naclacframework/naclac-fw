@@ -1,5 +1,6 @@
 pub mod check_address;
 pub mod check_address_relational;
+pub mod check_duplicate_mut;
 pub mod check_executable;
 pub mod check_external_pda;
 pub mod check_min_value;
@@ -20,6 +21,7 @@ pub mod touch_seeded;
 
 pub use check_address::*;
 pub use check_address_relational::*;
+pub use check_duplicate_mut::*;
 pub use check_executable::*;
 pub use check_external_pda::*;
 pub use check_min_value::*;

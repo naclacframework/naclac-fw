@@ -1,3 +1,5 @@
+//! AMM custom error definitions.
+
 use naclac_lang::prelude::*;
 
 #[error_code]

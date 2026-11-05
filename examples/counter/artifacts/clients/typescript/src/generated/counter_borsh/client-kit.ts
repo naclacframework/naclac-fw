@@ -141,8 +141,11 @@ export class CounterBorshClient {
     return types.removeListener(this.program, listenerId);
   }
   /** Fetches ALL `Counter` accounts owned by this program. */
-  public fetchAllCounterByOwner(options?: { commitment?: any; filters?: unknown[] }) {
-    return accounts.fetchAllCounterByOwner(this.program.provider.rpc as any, this.programId, options);
+  public fetchAllCounterByOwner(options?: { commitment?: naclac.Commitment; filters?: unknown[] }) {
+    return accounts.fetchAllCounterByOwner(this.program.provider.rpc as any, this.programId, {
+      commitment: options?.commitment ?? this.program.provider.commitment,
+      filters: options?.filters,
+    });
   }
 
 }

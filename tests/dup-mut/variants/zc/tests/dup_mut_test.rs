@@ -124,10 +124,7 @@ fn duplicate_mutable_account_without_alias_is_rejected() {
     )
     .send_and_confirm();
 
-    // The `__duplicates` bitvec / `MUT_MASK` intersection check in
-    // `accounts.rs`'s generated `load_and_validate` runs before any field is
-    // loaded and always reports index 0, regardless of which declared `mut`
-    // fields actually collided (`.err(0)`, `accounts.rs`) ->
+    // The lowest collided `mut` slot is `a` (0):
     // 10000 + 0*100 + ConstraintDuplicateMutableAccount(25) = 10025.
     assert_custom_code(result, 10025);
 }
@@ -206,7 +203,9 @@ fn three_mut_slots_rejects_when_the_non_aliased_slot_collides() {
     )
     .send_and_confirm();
 
-    assert_custom_code(result, 10025);
+    // `a` is `alias`, so `c` (slot 2) is the only collided `mut` slot:
+    // 10000 + 2*100 + ConstraintDuplicateMutableAccount(25) = 10225.
+    assert_custom_code(result, 10225);
 }
 
 /// Appending an extra account in the transaction's trailing (non-declared)

@@ -41,7 +41,7 @@ describe("Naclac TokenCreator Test Suite (Legacy)", () => {
     ammClient = new AmmClient("localnet", payer);
 
     console.log("      Generating Quote Mint Keypair...");
-    const quoteMintKeypair = naclac.Keypair.generate();
+    const quoteMintKeypair = await naclac.Keypair.generate();
     quoteMint = (await naclac.createMint(creatorClient.program.provider, quoteMintKeypair, tokenProgramId, payer.publicKey, 6)) as naclac.PublicKey;
     console.log(`      Quote Mint: ${quoteMint.toBase58()}`);
 
@@ -50,11 +50,11 @@ describe("Naclac TokenCreator Test Suite (Legacy)", () => {
     console.log(`      Payer Token B (Quote) ATA: ${payerTokenB.toBase58()}`);
 
     console.log("      Deriving Token Creator PDAs...");
-    const [derivedMint, mBump] = creatorClient.getMintPda({ id });
+    const [derivedMint, mBump] = await creatorClient.getMintPda({ id });
     mintAddress = derivedMint;
     mintBump = mBump;
 
-    const [derivedLaunchRecord, lrBump] = creatorClient.getLaunchRecordPda({ payer: payer.publicKey, id });
+    const [derivedLaunchRecord, lrBump] = await creatorClient.getLaunchRecordPda({ payer: payer.publicKey, id });
     launchRecord = derivedLaunchRecord;
     launchRecordBump = lrBump;
 
@@ -86,7 +86,7 @@ describe("Naclac TokenCreator Test Suite (Legacy)", () => {
 
   it("2. Derive AMM Pool State and Create Vaults", async () => {
     console.log("      Deriving AMM Pool State PDA...");
-    const [derivedPoolState, pBump] = ammClient.getPoolStatePda({
+    const [derivedPoolState, pBump] = await ammClient.getPoolStatePda({
       tokenAMint: mintAddress,
       tokenBMint: quoteMint,
       id,
@@ -95,7 +95,7 @@ describe("Naclac TokenCreator Test Suite (Legacy)", () => {
     poolBump = pBump;
     console.log(`      AMM Pool State PDA: ${poolState.toBase58()} (Bump: ${poolBump})`);
 
-    const poolLpMintKeypair = naclac.Keypair.generate();
+    const poolLpMintKeypair = await naclac.Keypair.generate();
 
     poolVaultA = (await naclac.createAta(creatorClient.program.provider, mintAddress, poolState, tokenProgramId)) as naclac.PublicKey;
     poolVaultB = (await naclac.createAta(creatorClient.program.provider, quoteMint, poolState, tokenProgramId)) as naclac.PublicKey;

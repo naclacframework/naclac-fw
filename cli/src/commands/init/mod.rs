@@ -18,24 +18,21 @@ use self::{
     utils::{ensure_dir, generate_keypair, write_file, write_keypair},
 };
 
-/// The first of yarn, pnpm and npm that runs on this machine, in that order;
-/// an error when none does.
+/// The first of pnpm and npm that runs on this machine, in that order; an
+/// error when neither does. yarn and bun are only used when asked for with
+/// `--pm`.
 fn detect_package_manager() -> PackageManager {
-    [
-        PackageManager::Yarn,
-        PackageManager::Pnpm,
-        PackageManager::Npm,
-    ]
-    .into_iter()
-    .find(|pm| {
-        Command::new(pm.as_str())
-            .arg("--version")
-            .output()
-            .is_ok_and(|output| output.status.success())
-    })
-    .unwrap_or_else(|| {
-        ui::error("No package manager found. Install yarn, pnpm or npm, or choose one with --pm.")
-    })
+    [PackageManager::Pnpm, PackageManager::Npm]
+        .into_iter()
+        .find(|pm| {
+            Command::new(pm.as_str())
+                .arg("--version")
+                .output()
+                .is_ok_and(|output| output.status.success())
+        })
+        .unwrap_or_else(|| {
+            ui::error("No package manager found. Install pnpm or npm, or choose one with --pm.")
+        })
 }
 
 /// What `naclac init` was asked for on the command line.
@@ -215,7 +212,7 @@ test-node = "{test_node_script}"
   "description": "{name} — a Solana program built with the Naclac Framework",
   "license": "MIT",
   "scripts": {{
-    "test": "ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\"",
+    "test": "ts-mocha -p ./tsconfig.json --timeout 1000000 \"tests/**/*.ts\"",
     "lint:fix": "prettier */*.js \"*/**/*{{.js,.ts}}\" -w",
     "lint": "prettier */*.js \"*/**/*{{.js,.ts}}\" --check"
   }},
@@ -315,3 +312,4 @@ test-node = "{test_node_script}"
         ui::format_duration(start.elapsed())
     ));
 }
+ 

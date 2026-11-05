@@ -8,6 +8,7 @@ crate-type = ["cdylib"]
 
 [features]
 no-entrypoint = []
+cpi = ["no-entrypoint"]
 custom-heap = []
 custom-panic = []
 debug-mode = []
@@ -20,10 +21,7 @@ naclac-lang = { version = "0.1.0", path = "../../../../../lang", features = ["to
 
 [dev-dependencies]
 naclac-client = { version = "0.1.0", path = "../../../../../client-rs", features = ["litesvm"] }
-amm-client = { path = "../../artifacts/clients/rust/amm" }
+amm-client = { version = "0.1.0", path = "../../artifacts/clients/rust/amm" }
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))', 
-    'cfg(feature, values("pinocchio", "solana", "bytemuck", "borsh", "wincode"))'
-] }
+[lints]
+workspace = true

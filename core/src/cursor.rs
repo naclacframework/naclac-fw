@@ -307,9 +307,9 @@ impl AccountCursor {
     ///    and otherwise `ConstraintSigner`, `ConstraintMut` or
     ///    `ConstraintExecutable` (in that order of precedence) is returned for
     ///    the slot's index when a required flag is missing.
-    /// 2. Returns `ConstraintDuplicateMutableAccount` (index 0) if any
-    ///    duplicate recorded during the walk involves a slot set in
-    ///    `mut_mask`.
+    /// 2. Returns `ConstraintDuplicateMutableAccount` if any duplicate
+    ///    recorded during the walk involves a slot set in `mut_mask`, at the
+    ///    lowest such slot (see [`AccountBitvec::first_intersection`]).
     ///
     /// This is the only place duplicates can be recorded: the fast path only
     /// accepts non-duplicate headers, so a walk that never reaches this
@@ -349,8 +349,8 @@ impl AccountCursor {
             }
         }
         if let Some(duplicates) = &self.duplicate {
-            if duplicates.intersects(mut_mask) {
-                return Err(crate::error::NaclacError::ConstraintDuplicateMutableAccount.err(0));
+            if let Some(slot) = duplicates.first_intersection(mut_mask) {
+                return Err(crate::error::NaclacError::ConstraintDuplicateMutableAccount.err(slot));
             }
         }
         Ok(())
@@ -598,6 +598,84 @@ impl AccountBitvec {
             | (self.data[2] & mask[2])
             | (self.data[3] & mask[3])
             != 0
+    }
+
+    /// The lowest slot set in both `self` and `mask`, or `None` when they are
+    /// disjoint. Must agree with [`intersects`](AccountBitvec::intersects):
+    /// `Some` exactly when `intersects` is `true`.
+    #[inline]
+    pub fn first_intersection(&self, mask: &[u64; 4]) -> Option<usize> {
+        let mut word = 0;
+        while word < 4 {
+            let both = self.data[word] & mask[word];
+            if both != 0 {
+                return Some(word * 64 + both.trailing_zeros() as usize);
+            }
+            word += 1;
+        }
+        None
+    }
+}
+
+#[cfg(test)]
+mod account_bitvec_tests {
+    use super::AccountBitvec;
+
+    fn mask_of(slots: &[usize]) -> [u64; 4] {
+        let mut mask = [0u64; 4];
+        for &slot in slots {
+            mask[slot / 64] |= 1u64 << (slot % 64);
+        }
+        mask
+    }
+
+    fn bitvec_of(slots: &[u8]) -> AccountBitvec {
+        let mut bv = AccountBitvec::default();
+        for &slot in slots {
+            bv.set(slot);
+        }
+        bv
+    }
+
+    #[test]
+    fn disjoint_sets_have_no_first_intersection() {
+        let bv = bitvec_of(&[1, 70, 200]);
+        assert_eq!(bv.first_intersection(&mask_of(&[0, 2, 71, 255])), None);
+        assert_eq!(AccountBitvec::default().first_intersection(&mask_of(&[0, 1])), None);
+        assert_eq!(bv.first_intersection(&[0u64; 4]), None);
+    }
+
+    #[test]
+    fn reports_the_lowest_shared_slot() {
+        let bv = bitvec_of(&[3, 9, 70, 200]);
+        assert_eq!(bv.first_intersection(&mask_of(&[9, 70, 200])), Some(9));
+        assert_eq!(bv.first_intersection(&mask_of(&[70, 200])), Some(70));
+        assert_eq!(bv.first_intersection(&mask_of(&[200])), Some(200));
+    }
+
+    #[test]
+    fn ignores_set_slots_that_are_not_in_the_mask() {
+        let bv = bitvec_of(&[0, 1, 2]);
+        assert_eq!(bv.first_intersection(&mask_of(&[2, 64])), Some(2));
+    }
+
+    #[test]
+    fn covers_word_boundaries() {
+        for slot in [0u8, 63, 64, 127, 128, 191, 192, 255] {
+            let bv = bitvec_of(&[slot]);
+            assert_eq!(bv.first_intersection(&mask_of(&[slot as usize])), Some(slot as usize));
+        }
+    }
+
+    #[test]
+    fn agrees_with_intersects_for_every_single_slot_pair() {
+        for set_slot in 0..=255u8 {
+            let bv = bitvec_of(&[set_slot]);
+            for mask_slot in 0..=255usize {
+                let mask = mask_of(&[mask_slot]);
+                assert_eq!(bv.first_intersection(&mask).is_some(), bv.intersects(&mask));
+            }
+        }
     }
 }
 

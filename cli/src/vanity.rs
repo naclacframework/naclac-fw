@@ -5,13 +5,14 @@
 //! nothing but the search itself differs from a random address.
 
 use {
-    crate::ui,
+    crate::{commands::init::utils::write_keypair, ui},
     clap::Args,
     dialoguer::{Confirm, Input, Select},
     solana_keypair::Keypair,
     solana_signer::Signer,
     std::{
         fmt::{self, Display},
+        path::{Path, PathBuf},
         sync::{
             atomic::{AtomicBool, AtomicU64, Ordering},
             mpsc::{self, RecvTimeoutError},
@@ -40,13 +41,16 @@ const BATCH: u64 = 256;
 /// `add`. Without any of these, the question is asked at a prompt.
 #[derive(Args, Debug)]
 pub struct AddressArgs {
-    /// Grind a vanity program address: `Prefix...`, `...Suffix` or
-    /// `Prefix...Suffix`, at most 6 characters in all
-    #[arg(long, conflicts_with = "random_address")]
-    pub vanity: Option<String>,
-    /// Match the vanity pattern ignoring case
-    #[arg(long = "vanity-ignore-case", requires = "vanity")]
-    pub vanity_ignore_case: bool,
+    /// Grind a vanity program address that starts with these characters (at
+    /// most 6 characters with --ends-with)
+    #[arg(long = "starts-with", conflicts_with = "random_address")]
+    pub starts_with: Option<String>,
+    /// Grind a vanity program address that ends with these characters
+    #[arg(long = "ends-with", conflicts_with = "random_address")]
+    pub ends_with: Option<String>,
+    /// Match --starts-with / --ends-with ignoring case
+    #[arg(long = "ignore-case", conflicts_with = "random_address")]
+    pub ignore_case: bool,
     /// Use a random program address; skips the vanity question
     #[arg(long = "random-address")]
     pub random_address: bool,
@@ -70,15 +74,28 @@ impl Display for Pattern {
 }
 
 impl Pattern {
-    /// Parses `Prefix...Suffix`, `Prefix...` or `...Suffix`.
-    pub fn parse(text: &str, ignore_case: bool) -> Result<Pattern, String> {
-        let Some((prefix, suffix)) = text.split_once("...") else {
-            return Err(format!(
-                "The vanity pattern '{text}' must contain `...` between the start and the end \
-                 you want, e.g. `Nac...`, `...xyz` or `Nac...xyz`."
-            ));
-        };
-        Pattern::new(prefix, suffix, ignore_case)
+    /// The pattern the `--starts-with` / `--ends-with` / `--ignore-case`
+    /// flags describe; `None` when neither of the first two is given. A flag
+    /// that cannot make a pattern is an error.
+    pub fn from_flags(
+        starts_with: Option<&str>,
+        ends_with: Option<&str>,
+        ignore_case: bool,
+    ) -> Option<Pattern> {
+        if starts_with.is_none() && ends_with.is_none() {
+            if ignore_case {
+                ui::error("--ignore-case needs --starts-with or --ends-with.");
+            }
+            return None;
+        }
+        Some(
+            Pattern::new(
+                starts_with.unwrap_or_default(),
+                ends_with.unwrap_or_default(),
+                ignore_case,
+            )
+            .unwrap_or_else(|e| ui::error(e)),
+        )
     }
 
     fn new(prefix: &str, suffix: &str, ignore_case: bool) -> Result<Pattern, String> {
@@ -183,17 +200,60 @@ fn first_char_chance(c: char) -> f64 {
         }
 }
 
+/// `naclac keygen grind`: grinds a keypair whose address matches the pattern
+/// the flags describe, or the one asked for at a prompt when no flag names
+/// one, and writes it to `outfile`, or to `<address>.json` in the current
+/// folder. An existing file is only overwritten with `force`.
+pub fn execute(
+    starts_with: Option<&str>,
+    ends_with: Option<&str>,
+    ignore_case: bool,
+    outfile: Option<&str>,
+    force: bool,
+) {
+    if let Some(path) = outfile {
+        refuse_existing(Path::new(path), force);
+    }
+    ui::header("keygen", "grind");
+    let (pattern, asked) = match Pattern::from_flags(starts_with, ends_with, ignore_case) {
+        Some(pattern) => (pattern, false),
+        None => (ask_pattern(), true),
+    };
+    let keypair = grind(&pattern, asked);
+    let address = keypair.pubkey().to_string();
+    let path = outfile.map_or_else(|| PathBuf::from(format!("{address}.json")), PathBuf::from);
+    refuse_existing(&path, force);
+    write_keypair(&keypair, &path);
+    ui::kv("address", &address);
+    ui::kv("keypair", path.display());
+    ui::milestone("Keypair written. Keep the file safe: it controls this address.");
+}
+
+fn refuse_existing(path: &Path, force: bool) {
+    let exists = path
+        .try_exists()
+        .unwrap_or_else(|e| ui::error(format!("Cannot check for {}: {e}", path.display())));
+    if exists && !force {
+        ui::error(format!(
+            "{} already exists. Choose another file with --outfile, or pass --force to replace it.",
+            path.display()
+        ));
+    }
+}
+
 /// Resolves the address question for a new program: `None` for a random
 /// address, or a keypair whose address matches the chosen pattern, ground
-/// here before anything is created. With `--vanity` the pattern is taken from
-/// the flag; with `--random-address` there is nothing to ask; otherwise the
-/// question is asked at a prompt.
+/// here before anything is created. With `--starts-with` / `--ends-with` the
+/// pattern is taken from the flags; with `--random-address` there is nothing
+/// to ask; otherwise the question is asked at a prompt.
 pub fn keypair_for(args: &AddressArgs) -> Option<Keypair> {
-    let (pattern, asked) = match (&args.vanity, args.random_address) {
-        (Some(text), _) => (
-            Pattern::parse(text, args.vanity_ignore_case).unwrap_or_else(|e| ui::error(e)),
-            false,
-        ),
+    let from_flags = Pattern::from_flags(
+        args.starts_with.as_deref(),
+        args.ends_with.as_deref(),
+        args.ignore_case,
+    );
+    let (pattern, asked) = match (from_flags, args.random_address) {
+        (Some(pattern), _) => (pattern, false),
         (None, true) => return None,
         (None, false) => (prompt_pattern()?, true),
     };
@@ -202,8 +262,7 @@ pub fn keypair_for(args: &AddressArgs) -> Option<Keypair> {
 
 fn prompt_failed(error: dialoguer::Error) -> ! {
     ui::error(format!(
-        "Cannot ask for the program address: {error}. Choose without a prompt with \
-         --random-address or --vanity <PATTERN>."
+        "Cannot ask for the address: {error}. Pass the answers as flags instead (see --help)."
     ))
 }
 
@@ -220,6 +279,11 @@ fn prompt_pattern() -> Option<Pattern> {
     if choice == 0 {
         return None;
     }
+    Some(ask_pattern())
+}
+
+/// Asks for the start, the end and the case rule until they make a pattern.
+fn ask_pattern() -> Pattern {
     loop {
         let prefix = ask("Address starts with (empty for any)");
         let suffix = ask("Address ends with (empty for any)");
@@ -229,7 +293,7 @@ fn prompt_pattern() -> Option<Pattern> {
             .interact()
             .unwrap_or_else(|e| prompt_failed(e));
         match Pattern::new(&prefix, &suffix, ignore_case) {
-            Ok(pattern) => return Some(pattern),
+            Ok(pattern) => return pattern,
             Err(e) => ui::warn(e),
         }
     }
@@ -420,57 +484,56 @@ mod tests {
 
     #[test]
     fn a_pattern_gives_its_start_and_end() {
-        let pattern = Pattern::parse("Na...xyz", false).unwrap();
+        let pattern = Pattern::new("Na", "xyz", false).unwrap();
         assert!(pattern.matches("Na11111111111111111111111111111111111111xyz"));
         assert!(!pattern.matches("na11111111111111111111111111111111111111xyz"));
         assert!(!pattern.matches("Na11111111111111111111111111111111111111xyZ"));
-        let start = Pattern::parse("Nac...", false).unwrap();
+        let start = Pattern::new("Nac", "", false).unwrap();
         assert!(start.matches("Nac111111111111111111111111111111111111111"));
-        let end = Pattern::parse("...xyz", false).unwrap();
+        let end = Pattern::new("", "xyz", false).unwrap();
         assert!(end.matches("111111111111111111111111111111111111111xyz"));
     }
 
     #[test]
     fn ignoring_case_matches_either_case() {
-        let pattern = Pattern::parse("nac...", true).unwrap();
+        let pattern = Pattern::new("nac", "", true).unwrap();
         assert!(pattern.matches("NAC111111111111111111111111111111111111111"));
         assert!(pattern.matches("nAc111111111111111111111111111111111111111"));
     }
 
     #[test]
-    fn a_pattern_needs_the_dots_and_at_least_one_character() {
-        assert!(Pattern::parse("Nac", false).is_err());
-        assert!(Pattern::parse("...", false).is_err());
+    fn a_pattern_needs_at_least_one_character() {
+        assert!(Pattern::new("", "", false).is_err());
     }
 
     #[test]
     fn a_pattern_may_fix_six_characters_and_not_seven() {
-        assert!(Pattern::parse("Na...cxy", false).is_ok());
-        assert!(Pattern::parse("Nac...xyz", false).is_ok());
-        assert!(Pattern::parse("Nacxyzw...", false).is_err());
-        assert!(Pattern::parse("Nacx...xyz", false).is_err());
+        assert!(Pattern::new("Na", "cxy", false).is_ok());
+        assert!(Pattern::new("Nac", "xyz", false).is_ok());
+        assert!(Pattern::new("Nacxyzw", "", false).is_err());
+        assert!(Pattern::new("Nacx", "xyz", false).is_err());
     }
 
     #[test]
     fn a_character_base58_does_not_have_is_an_error() {
-        for pattern in ["0ab...", "Oab...", "Iab...", "lab...", "a_b..."] {
-            assert!(Pattern::parse(pattern, false).is_err(), "{pattern}");
+        for start in ["0ab", "Oab", "Iab", "lab", "a_b"] {
+            assert!(Pattern::new(start, "", false).is_err(), "{start}");
         }
-        assert!(Pattern::parse("lab...", true).is_ok());
+        assert!(Pattern::new("lab", "", true).is_ok());
     }
 
     #[test]
     fn each_character_makes_the_search_about_58_times_longer() {
-        let one = Pattern::parse("...a", false).unwrap().expected_attempts();
-        let three = Pattern::parse("...abc", false).unwrap().expected_attempts();
+        let one = Pattern::new("", "a", false).unwrap().expected_attempts();
+        let three = Pattern::new("", "abc", false).unwrap().expected_attempts();
         assert!((one - 58.0).abs() < 1e-6);
         assert!((three / one - 58.0 * 58.0).abs() < 1e-3);
     }
 
     #[test]
     fn ignoring_case_makes_the_search_shorter() {
-        let exact = Pattern::parse("...ab", false).unwrap().expected_attempts();
-        let any_case = Pattern::parse("...ab", true).unwrap().expected_attempts();
+        let exact = Pattern::new("", "ab", false).unwrap().expected_attempts();
+        let any_case = Pattern::new("", "ab", true).unwrap().expected_attempts();
         assert!((exact / any_case - 4.0).abs() < 1e-6);
     }
 
@@ -495,7 +558,7 @@ mod tests {
 
     #[test]
     fn a_search_finds_a_short_pattern() {
-        let pattern = Pattern::parse("...a", false).unwrap();
+        let pattern = Pattern::new("", "a", false).unwrap();
         let stop = AtomicBool::new(false);
         let tried = AtomicU64::new(0);
         let (sender, receiver) = mpsc::channel();

@@ -2,9 +2,7 @@
 // Re-run `naclac generate` to refresh this file.
 
 import * as naclac from "@naclac-fw/client/kit";
-import rawIDL from "./idl/amm.json";
-import type { Amm } from "./idl/amm";
-const IDL = rawIDL as unknown as Amm;
+import { IDL } from "./program-idl";
 import * as instructions from "./instructions";
 import * as accounts from "./accounts/kit";
 import * as types from "./types";
@@ -30,7 +28,7 @@ export class AmmClient {
   }
 
   constructor(
-    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet",
+    providerOrCluster: naclac.NaclacProvider | "devnet" | "mainnet" | "localnet" | "litesvm",
     payer?: naclac.KeyPairSigner
   ) {
     let provider: naclac.NaclacProvider;
@@ -75,18 +73,18 @@ export class AmmClient {
     return instructions.removeLiquidity(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `poolState` account. */
+  /** Derives the PDA for a `pool_state` account. */
   public async getPoolStatePda(seeds: {
-    token_a_mint: naclac.Address | string;
-    token_b_mint: naclac.Address | string;
+    tokenAMint: naclac.Address | string;
+    tokenBMint: naclac.Address | string;
     id: bigint | number;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([112, 111, 111, 108]),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token_a_mint === 'string' ? naclac.address(seeds.token_a_mint) : seeds.token_a_mint)),
-        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.token_b_mint === 'string' ? naclac.address(seeds.token_b_mint) : seeds.token_b_mint)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenAMint === 'string' ? naclac.address(seeds.tokenAMint) : seeds.tokenAMint)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenBMint === 'string' ? naclac.address(seeds.tokenBMint) : seeds.tokenBMint)),
         new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.id))
       ]
     });
@@ -112,26 +110,6 @@ export class AmmClient {
     return accounts.fetchAllMaybePoolState(this.program.provider.rpc as any, addresses.map((a) => naclac.address(a as string)));
   }
 
-  /** Subscribes to `PoolInitialized` events. Returns a listener ID. */
-  public onPoolInitialized(callback: (event: types.PoolInitialized, slot: number, signature: string) => void) {
-    return types.addPoolInitializedListener(this.program, callback);
-  }
-
-  /** Awaits the next `PoolInitialized` event. Resolves `null` on timeout. */
-  public waitForPoolInitialized(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.PoolInitialized>("PoolInitialized", options);
-  }
-
-  /** Subscribes to `SwapExecuted` events. Returns a listener ID. */
-  public onSwapExecuted(callback: (event: types.SwapExecuted, slot: number, signature: string) => void) {
-    return types.addSwapExecutedListener(this.program, callback);
-  }
-
-  /** Awaits the next `SwapExecuted` event. Resolves `null` on timeout. */
-  public waitForSwapExecuted(options?: { timeoutMs?: number }) {
-    return this.program.waitForEvent<types.SwapExecuted>("SwapExecuted", options);
-  }
-
   /** Subscribes to `LiquidityAdded` events. Returns a listener ID. */
   public onLiquidityAdded(callback: (event: types.LiquidityAdded, slot: number, signature: string) => void) {
     return types.addLiquidityAddedListener(this.program, callback);
@@ -140,6 +118,16 @@ export class AmmClient {
   /** Awaits the next `LiquidityAdded` event. Resolves `null` on timeout. */
   public waitForLiquidityAdded(options?: { timeoutMs?: number }) {
     return this.program.waitForEvent<types.LiquidityAdded>("LiquidityAdded", options);
+  }
+
+  /** Decodes every `LiquidityAdded` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForLiquidityAdded` — prefer this when you already know which transaction you're checking. */
+  public parseLiquidityAddedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.LiquidityAdded>("LiquidityAdded", logs);
+  }
+
+  /** Like `parseLiquidityAddedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseLiquidityAddedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.LiquidityAdded[]> {
+    return this.program.parseEventsFromTransaction<types.LiquidityAdded>("LiquidityAdded", tx);
   }
 
   /** Subscribes to `LiquidityRemoved` events. Returns a listener ID. */
@@ -152,13 +140,66 @@ export class AmmClient {
     return this.program.waitForEvent<types.LiquidityRemoved>("LiquidityRemoved", options);
   }
 
+  /** Decodes every `LiquidityRemoved` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForLiquidityRemoved` — prefer this when you already know which transaction you're checking. */
+  public parseLiquidityRemovedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.LiquidityRemoved>("LiquidityRemoved", logs);
+  }
+
+  /** Like `parseLiquidityRemovedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseLiquidityRemovedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.LiquidityRemoved[]> {
+    return this.program.parseEventsFromTransaction<types.LiquidityRemoved>("LiquidityRemoved", tx);
+  }
+
+  /** Subscribes to `PoolInitialized` events. Returns a listener ID. */
+  public onPoolInitialized(callback: (event: types.PoolInitialized, slot: number, signature: string) => void) {
+    return types.addPoolInitializedListener(this.program, callback);
+  }
+
+  /** Awaits the next `PoolInitialized` event. Resolves `null` on timeout. */
+  public waitForPoolInitialized(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.PoolInitialized>("PoolInitialized", options);
+  }
+
+  /** Decodes every `PoolInitialized` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForPoolInitialized` — prefer this when you already know which transaction you're checking. */
+  public parsePoolInitializedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.PoolInitialized>("PoolInitialized", logs);
+  }
+
+  /** Like `parsePoolInitializedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parsePoolInitializedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.PoolInitialized[]> {
+    return this.program.parseEventsFromTransaction<types.PoolInitialized>("PoolInitialized", tx);
+  }
+
+  /** Subscribes to `SwapExecuted` events. Returns a listener ID. */
+  public onSwapExecuted(callback: (event: types.SwapExecuted, slot: number, signature: string) => void) {
+    return types.addSwapExecutedListener(this.program, callback);
+  }
+
+  /** Awaits the next `SwapExecuted` event. Resolves `null` on timeout. */
+  public waitForSwapExecuted(options?: { timeoutMs?: number }) {
+    return this.program.waitForEvent<types.SwapExecuted>("SwapExecuted", options);
+  }
+
+  /** Decodes every `SwapExecuted` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForSwapExecuted` — prefer this when you already know which transaction you're checking. */
+  public parseSwapExecutedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.SwapExecuted>("SwapExecuted", logs);
+  }
+
+  /** Like `parseSwapExecutedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseSwapExecutedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.SwapExecuted[]> {
+    return this.program.parseEventsFromTransaction<types.SwapExecuted>("SwapExecuted", tx);
+  }
+
   /** Removes a registered event listener by its ID. */
   public removeEventListener(listenerId: number) {
     return types.removeListener(this.program, listenerId);
   }
   /** Fetches ALL `PoolState` accounts owned by this program. */
-  public fetchAllPoolStateByOwner(options?: { commitment?: any; filters?: unknown[] }) {
-    return accounts.fetchAllPoolStateByOwner(this.program.provider.rpc as any, this.programId, options);
+  public fetchAllPoolStateByOwner(options?: { commitment?: naclac.Commitment; filters?: unknown[] }) {
+    return accounts.fetchAllPoolStateByOwner(this.program.provider.rpc as any, this.programId, {
+      commitment: options?.commitment ?? this.program.provider.commitment,
+      filters: options?.filters,
+    });
   }
 
 }

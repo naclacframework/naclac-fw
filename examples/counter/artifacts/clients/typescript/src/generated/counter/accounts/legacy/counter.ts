@@ -5,16 +5,14 @@ import * as naclac from "@naclac-fw/client/legacy";
 import type { Counter } from "../../types";
 
 /** On-chain discriminator for `Counter` accounts. */
-export const COUNTER_DISCRIMINATOR = new Uint8Array([
-  255, 176, 4, 245, 188, 253, 124, 25,
-]);
+export const COUNTER_DISCRIMINATOR = new Uint8Array([255, 176, 4, 245, 188, 253, 124, 25]);
 
 /** Fetches a `Counter` account. Throws if it does not exist. */
 export async function fetchCounter(
   program: naclac.LegacyProgram,
   address: naclac.PublicKey | string,
 ): Promise<Counter> {
-  const result = await program.account["Counter"].fetch(address);
+  const result = await program.account['Counter'].fetch(address);
   return result as unknown as Counter;
 }
 
@@ -24,7 +22,7 @@ export async function fetchMaybeCounter(
   address: naclac.PublicKey | string,
 ): Promise<Counter | null> {
   try {
-    const result = await program.account["Counter"].fetch(address);
+    const result = await program.account['Counter'].fetch(address);
     return result as unknown as Counter;
   } catch {
     return null;
@@ -37,10 +35,7 @@ export async function fetchAllCounter(
   addresses: Array<naclac.PublicKey | string>,
   opts?: { dropCorrupted?: boolean },
 ): Promise<Array<Counter | null>> {
-  const results = await program.account["Counter"].fetchMultiple(
-    addresses,
-    opts,
-  );
+  const results = await program.account['Counter'].fetchMultiple(addresses, opts);
   return results as unknown as Array<Counter | null>;
 }
 
@@ -49,9 +44,6 @@ export async function fetchAllCounterByOwner(
   program: naclac.LegacyProgram,
   options?: { dropCorrupted?: boolean; filters?: any[] },
 ): Promise<Array<{ publicKey: naclac.PublicKey; account: Counter }>> {
-  const results = await program.account["Counter"].all(options);
-  return results as unknown as Array<{
-    publicKey: naclac.PublicKey;
-    account: Counter;
-  }>;
+  const results = await program.account['Counter'].all(options);
+  return results as unknown as Array<{ publicKey: naclac.PublicKey; account: Counter }>;
 }

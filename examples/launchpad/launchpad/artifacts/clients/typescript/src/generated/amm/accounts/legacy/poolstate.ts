@@ -4,7 +4,7 @@
 import * as naclac from "@naclac-fw/client/legacy";
 import type { PoolState } from "../../types";
 
-/** 8-byte on-chain discriminator for `PoolState` accounts. */
+/** On-chain discriminator for `PoolState` accounts. */
 export const POOLSTATE_DISCRIMINATOR = new Uint8Array([247, 237, 227, 245, 215, 195, 222, 70]);
 
 /** Fetches a `PoolState` account. Throws if it does not exist. */

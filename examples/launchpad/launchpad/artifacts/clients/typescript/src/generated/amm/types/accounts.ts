@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator prefix for `PoolState` accounts on-chain. */
+/** Discriminator prefix for `PoolState` accounts on-chain. */
 export const POOLSTATE_DISCRIMINATOR = new Uint8Array([247, 237, 227, 245, 215, 195, 222, 70]);
 
 /** Auto-generated account interface from the program IDL. */

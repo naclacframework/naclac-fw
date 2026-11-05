@@ -146,6 +146,11 @@ enum Commands {
     },
     /// Fetches and deserializes an on-chain account using the local IDL
     Account { address: String },
+    /// Keypair tools
+    Keygen {
+        #[command(subcommand)]
+        action: KeygenAction,
+    },
     /// Upgrades deployed Naclac programs and updates their IDLs
     Upgrade {
         program_id: Option<String>,
@@ -285,6 +290,31 @@ pub enum GenerateAction {
         /// Regenerate only the TypeScript client SDK
         #[arg(short, long, alias = "ts")]
         typescript: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum KeygenAction {
+    /// Grinds a keypair whose address starts and/or ends with chosen
+    /// characters (at most 6 in all) and writes it to a file. Without
+    /// --starts-with / --ends-with it asks for them.
+    Grind {
+        /// The address starts with these characters
+        #[arg(long = "starts-with")]
+        starts_with: Option<String>,
+        /// The address ends with these characters
+        #[arg(long = "ends-with")]
+        ends_with: Option<String>,
+        /// Match ignoring upper/lower case
+        #[arg(long = "ignore-case")]
+        ignore_case: bool,
+        /// Where to write the keypair (default: `<address>.json` in the
+        /// current folder)
+        #[arg(short, long)]
+        outfile: Option<String>,
+        /// Replace the keypair file if it already exists
+        #[arg(long)]
+        force: bool,
     },
 }
 
@@ -571,6 +601,21 @@ fn main() {
             ..
         } => commands::test::execute(file.as_deref(), programs, *rust, *node, *all),
         Commands::Account { address } => commands::account::execute(address),
+        Commands::Keygen { action } => match action {
+            KeygenAction::Grind {
+                starts_with,
+                ends_with,
+                ignore_case,
+                outfile,
+                force,
+            } => vanity::execute(
+                starts_with.as_deref(),
+                ends_with.as_deref(),
+                *ignore_case,
+                outfile.as_deref(),
+                *force,
+            ),
+        },
         Commands::Upgrade {
             program_id,
             programs,

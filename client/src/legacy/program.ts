@@ -571,6 +571,7 @@ export class LegacyMethodsBuilder {
     // subscription handshake finishes connecting).
     let logs: string[] = [];
     let innerInstructions: NaclacInnerInstruction[] | undefined;
+    let logsError: Error | undefined;
     try {
       const txResult = await connection.getTransaction(signature, {
         commitment: commitment === "finalized" ? "finalized" : "confirmed",
@@ -578,9 +579,8 @@ export class LegacyMethodsBuilder {
       });
       logs = [...(txResult?.meta?.logMessages ?? [])];
       innerInstructions = innerInstructionsFromLegacyTransaction(txResult);
-    } catch {
-      // Logs are a best-effort convenience; a failure fetching them shouldn't
-      // fail an already-confirmed transaction.
+    } catch (err) {
+      logsError = err instanceof Error ? err : new Error(String(err));
     }
 
     const eventAuthority = await this.eventAuthority();
@@ -588,13 +588,20 @@ export class LegacyMethodsBuilder {
       signature,
       logs,
       innerInstructions,
-      parseEvents: <T = any>(eventName: string) =>
-        parseEventsFromTransaction<T>(
+      logsError,
+      parseEvents: <T = any>(eventName: string) => {
+        if (logsError) {
+          throw new Error(
+            `[Naclac] Cannot parse events: fetching transaction ${signature} failed: ${logsError.message}`,
+          );
+        }
+        return parseEventsFromTransaction<T>(
           this.idl,
           eventName,
           { logs, innerInstructions, eventAuthority },
           eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
-        ),
+        );
+      },
     };
   }
 }
@@ -818,11 +825,10 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
     );
   }
 
-  removeEventListener(listenerId: number): void {
-    if (this._eventListeners.has(listenerId)) {
-      this.provider.connection.removeOnLogsListener(listenerId).catch(() => {});
-      this._eventListeners.delete(listenerId);
-    }
+  async removeEventListener(listenerId: number): Promise<void> {
+    if (!this._eventListeners.has(listenerId)) return;
+    this._eventListeners.delete(listenerId);
+    await this.provider.connection.removeOnLogsListener(listenerId);
   }
 
   async waitForEvent<T = any>(
@@ -830,21 +836,19 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
     options: { timeoutMs?: number } = {},
   ): Promise<T | null> {
     const timeoutMs = options.timeoutMs ?? 10000;
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let resolved = false;
       const listenerId = this.addEventListener(eventName, (event) => {
         if (!resolved) {
           resolved = true;
-          this.removeEventListener(listenerId);
-          resolve(event);
+          this.removeEventListener(listenerId).then(() => resolve(event), reject);
         }
       });
 
       setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          this.removeEventListener(listenerId);
-          resolve(null);
+          this.removeEventListener(listenerId).then(() => resolve(null), reject);
         }
       }, timeoutMs);
     });

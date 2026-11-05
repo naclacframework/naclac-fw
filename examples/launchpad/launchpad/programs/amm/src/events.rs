@@ -1,3 +1,5 @@
+//! AMM event log definitions.
+
 use naclac_lang::prelude::*;
 
 #[event]

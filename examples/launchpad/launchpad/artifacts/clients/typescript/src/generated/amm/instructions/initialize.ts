@@ -3,13 +3,12 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `initialize` instruction. */
+/** Discriminator for the `initialize` instruction. */
 export const INITIALIZE_DISCRIMINATOR = new Uint8Array([175, 175, 109, 31, 13, 152, 155, 237]);
 
 /** Instruction arguments for `initialize`. */
 export interface InitializeArgs {
   id: bigint | number;
-  poolBump: number;
   amountA: bigint | number;
   amountB: bigint | number;
 }
@@ -34,6 +33,8 @@ export interface InitializeAccounts {
 /**
  * Builds the `initialize` instruction pipeline.
  * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+ * 
+ * Initializes an AMM pool with initial liquidity and mints corresponding LP tokens to the depositor.
  */
 export function initialize(
   program: any,

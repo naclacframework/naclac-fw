@@ -28,7 +28,7 @@ function runLifecycleTest(tokenProgramId: naclac.PublicKey, name: string) {
     client = new TokenVaultBorshClient("localnet", payer);
 
     console.log(`      [${name}] Generating Mint Signer...`);
-    const mintSigner = naclac.Keypair.generate();
+    const mintSigner = await naclac.Keypair.generate();
 
     console.log(`      [${name}] Creating Mint with 0 decimals...`);
     mint = (await naclac.createMint(client.program.provider, mintSigner, tokenProgramId, payer.publicKey, 0)) as naclac.PublicKey;

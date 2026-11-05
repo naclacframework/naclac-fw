@@ -33,8 +33,8 @@ describe("Naclac AMM Test Suite (Legacy)", () => {
     client = new AmmClient("localnet", payer);
 
     console.log("      Generating Mint Keypairs...");
-    const mintAKeypair = naclac.Keypair.generate();
-    const mintBKeypair = naclac.Keypair.generate();
+    const mintAKeypair = await naclac.Keypair.generate();
+    const mintBKeypair = await naclac.Keypair.generate();
 
     tokenAMint = (await naclac.createMint(client.program.provider, mintAKeypair, tokenProgramId, payer.publicKey, 6)) as naclac.PublicKey;
     tokenBMint = (await naclac.createMint(client.program.provider, mintBKeypair, tokenProgramId, payer.publicKey, 6)) as naclac.PublicKey;
@@ -49,7 +49,7 @@ describe("Naclac AMM Test Suite (Legacy)", () => {
     console.log("      Minted initial Token A and B supply to user.");
 
     console.log("      Deriving Pool State PDA...");
-    const [derivedPoolState, bump] = client.getPoolStatePda({
+    const [derivedPoolState, bump] = await client.getPoolStatePda({
       tokenAMint,
       tokenBMint,
       id,
@@ -58,7 +58,7 @@ describe("Naclac AMM Test Suite (Legacy)", () => {
     poolBump = bump;
     console.log(`      Pool State PDA: ${poolState.toBase58()} (Bump: ${poolBump})`);
 
-    const lpMintKeypair = naclac.Keypair.generate();
+    const lpMintKeypair = await naclac.Keypair.generate();
 
     vaultA = (await naclac.createAta(client.program.provider, tokenAMint, poolState, tokenProgramId)) as naclac.PublicKey;
     vaultB = (await naclac.createAta(client.program.provider, tokenBMint, poolState, tokenProgramId)) as naclac.PublicKey;

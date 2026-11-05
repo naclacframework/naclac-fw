@@ -9,7 +9,7 @@ describe("Naclac Counter Test Suite (Legacy)", () => {
   before(async () => {
     payer = await naclac.loadNodeWallet();
     // Change this to "devnet" or an RPC URL to test against a live network!
-    client = new CounterClient("devnet", payer);
+    client = new CounterClient("litesvm", payer);
     [counterPda] = await client.getCounterAccountPda({});
   });
 
@@ -49,10 +49,10 @@ describe("Naclac Counter Test Suite (Legacy)", () => {
 
     // The event is a self-CPI (`emit_cpi!`), so it is in the transaction's
     // inner instructions, not its logs.
-    const capturedEvents = client.parseCounterIncrementedEvents(
-      txResult!.logs,
-      txResult!.innerInstructions,
-    );
+    const capturedEvents = await client.parseCounterIncrementedEventsFromTransaction({
+      logs: txResult!.logs,
+      innerInstructions: txResult!.innerInstructions,
+    });
     if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
 
     console.log(`      🔔 Event Fired! New Count: ${capturedEvents[0].newCount}`);
@@ -77,10 +77,10 @@ describe("Naclac Counter Test Suite (Legacy)", () => {
       throw new Error("Count did not decrement correctly");
     }
 
-    const capturedEvents = client.parseCounterDecrementedEvents(
-      txResult!.logs,
-      txResult!.innerInstructions,
-    );
+    const capturedEvents = await client.parseCounterDecrementedEventsFromTransaction({
+      logs: txResult!.logs,
+      innerInstructions: txResult!.innerInstructions,
+    });
     if (capturedEvents.length === 0) throw new Error("❌ Event was not captured!");
 
     console.log(`      🔔 Event Fired! New Count: ${capturedEvents[0].newCount}`);

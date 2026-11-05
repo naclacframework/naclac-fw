@@ -215,12 +215,7 @@ impl PackageManager {
     }
 
     pub fn test_node_script(&self) -> &'static str {
-        match self {
-            Self::Yarn => r#"yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""#,
-            Self::Npm => r#"npx ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""#,
-            Self::Pnpm => r#"pnpm exec ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""#,
-            Self::Bun => r#"bun x ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""#,
-        }
+        r#"node_modules/.bin/ts-mocha -p ./tsconfig.json --timeout 1000000 \"tests/**/*.ts\""#
     }
 }
 

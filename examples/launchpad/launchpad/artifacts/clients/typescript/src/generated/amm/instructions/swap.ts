@@ -3,7 +3,7 @@
 
 import * as naclac from "@naclac-fw/client";
 
-/** 8-byte discriminator for the `swap` instruction. */
+/** Discriminator for the `swap` instruction. */
 export const SWAP_DISCRIMINATOR = new Uint8Array([248, 198, 158, 145, 225, 117, 135, 200]);
 
 /** Instruction arguments for `swap`. */
@@ -16,6 +16,8 @@ export interface SwapArgs {
 export interface SwapAccounts {
   user: naclac.Address | string;
   poolState: naclac.Address | string;
+  tokenAMint: naclac.Address | string;
+  tokenBMint: naclac.Address | string;
   poolSourceVault: naclac.Address | string;
   poolDestinationVault: naclac.Address | string;
   userSourceToken: naclac.Address | string;
@@ -26,6 +28,8 @@ export interface SwapAccounts {
 /**
  * Builds the `swap` instruction pipeline.
  * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
+ * 
+ * Swaps an exact input amount of one pool token for output tokens of the other.
  */
 export function swap(
   program: any,

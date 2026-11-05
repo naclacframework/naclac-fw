@@ -9,7 +9,7 @@ import * as types from "./types";
 
 /**
  * High-level client for the `counter_zc` program.
- * Uses the classic @solana/web3.js (v1) transaction model.
+ * Uses the classic @solana/web3.js (v3) transaction model.
  */
 export class CounterZcClient {
   public readonly program: naclac.LegacyProgram;
@@ -64,10 +64,10 @@ export class CounterZcClient {
     return instructions.decrement(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `counter_account` account. Returns `[PublicKey, bumpSeed]`. */
-  public getCounterAccountPda(seeds: {
-  }): [naclac.PublicKey, number] {
-    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
+  /** Derives the PDA for a `counter_account` account. Async because PDA derivation is async; resolves to `[PublicKey, bumpSeed]`. */
+  public async getCounterAccountPda(seeds: {
+  }): Promise<[naclac.PublicKey, number]> {
+    const [pda, bump] = await naclac.PublicKey.findProgramAddress(
       [
                 new Uint8Array([99, 111, 117, 110, 116, 101, 114])
       ],
@@ -107,9 +107,14 @@ export class CounterZcClient {
     return this.program.waitForEvent<types.CounterDecremented>("CounterDecremented", options);
   }
 
-  /** Decodes every `CounterDecremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterDecremented` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
-  public parseCounterDecrementedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
-    return this.program.parseEvents<types.CounterDecremented>("CounterDecremented", logs, innerInstructions);
+  /** Decodes every `CounterDecremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterDecremented` — prefer this when you already know which transaction you're checking. */
+  public parseCounterDecrementedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.CounterDecremented>("CounterDecremented", logs);
+  }
+
+  /** Like `parseCounterDecrementedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseCounterDecrementedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.CounterDecremented[]> {
+    return this.program.parseEventsFromTransaction<types.CounterDecremented>("CounterDecremented", tx);
   }
 
   /** Subscribes to `CounterIncremented` events. Returns a listener ID. */
@@ -122,9 +127,14 @@ export class CounterZcClient {
     return this.program.waitForEvent<types.CounterIncremented>("CounterIncremented", options);
   }
 
-  /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
-  public parseCounterIncrementedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
-    return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs, innerInstructions);
+  /** Decodes every `CounterIncremented` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForCounterIncremented` — prefer this when you already know which transaction you're checking. */
+  public parseCounterIncrementedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.CounterIncremented>("CounterIncremented", logs);
+  }
+
+  /** Like `parseCounterIncrementedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseCounterIncrementedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.CounterIncremented[]> {
+    return this.program.parseEventsFromTransaction<types.CounterIncremented>("CounterIncremented", tx);
   }
 
   /** Removes a registered event listener by its ID. */

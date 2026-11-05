@@ -1,16 +1,20 @@
-use naclac_client::*;
-use amm_client::{
-    types::PROGRAM_ID as AMM_PROGRAM_ID,
-    get_pool_state_pda,
-    instructions::{
-        build_initialize,
-        InitializeAccounts,
-        build_add_liquidity,
-        AddLiquidityAccounts,
-        build_swap,
-        SwapAccounts,
-        build_remove_liquidity,
-        RemoveLiquidityAccounts,
+//! AMM full lifecycle integration test.
+
+use {
+    amm_client::{
+        get_pool_state_pda,
+        instructions::{
+            build_add_liquidity, build_initialize, build_remove_liquidity, build_swap,
+            AddLiquidityAccounts, InitializeAccounts, RemoveLiquidityAccounts, SwapAccounts,
+        },
+        types::PROGRAM_ID as AMM_PROGRAM_ID,
+    },
+    naclac_client::{
+        utils::{
+            create_ata, create_mint, create_token_account, load_node_wallet, mint_to,
+            SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID,
+        },
+        *,
     },
 };
 
@@ -42,7 +46,7 @@ fn test_amm_full_lifecycle() {
 
     // 2. Derive pool_state and setup vaults
     let id = 100u64;
-    let (pool_state, pool_bump) = get_pool_state_pda(&AMM_PROGRAM_ID, &token_a_mint, &token_b_mint, id);
+    let (pool_state, _pool_bump) = get_pool_state_pda(&AMM_PROGRAM_ID, &token_a_mint, &token_b_mint, id);
     println!("   🌊 Derived AMM Pool State PDA: {}", pool_state);
 
     let pool_vault_a_signer = Keypair::new();
@@ -65,7 +69,6 @@ fn test_amm_full_lifecycle() {
         &provider,
         AMM_PROGRAM_ID,
         id,
-        pool_bump,
         amount_a,
         amount_b,
         InitializeAccounts {
@@ -103,7 +106,6 @@ fn test_amm_full_lifecycle() {
 
     assert_eq!(vault_a_balance, amount_a);
     assert_eq!(vault_b_balance, amount_b);
-    // Initial LP tokens minted should match sqrt(amount_a * amount_b)
     let expected_lp = ((amount_a as f64) * (amount_b as f64)).sqrt() as u64;
     assert_eq!(user_lp_balance, expected_lp);
     println!("   📊 Initial balances verified. LP minted: {}", user_lp_balance);
@@ -151,7 +153,7 @@ fn test_amm_full_lifecycle() {
     // 5. Swap Token A for Token B
     println!("🔥 Executing swap...");
     let swap_in = 100_000_000;
-    let min_out = 150_000_000; // Expected output should be around 196M based on Constant Product
+    let min_out = 150_000_000;
     let tx_meta = build_swap(
         &provider,
         AMM_PROGRAM_ID,

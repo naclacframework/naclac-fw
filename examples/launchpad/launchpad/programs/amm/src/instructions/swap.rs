@@ -1,69 +1,80 @@
-use naclac_lang::prelude::*;
-use crate::state::pool_state::PoolState;
-use crate::constants::SEED_POOL;
+//! AMM token swap instruction.
+
+use {
+    crate::{
+        constants::SEED_POOL, errors::AmmError, events::SwapExecuted,
+        state::pool_state::PoolState, systems::process_swap_output,
+    },
+    naclac_lang::prelude::*,
+};
 
 #[derive(Accounts)]
 pub struct Swap {
     #[account(mut)]
     pub user: Signer,
 
+    #[account(
+        token_a_mint = token_a_mint,
+        token_b_mint = token_b_mint,
+    )]
     pub pool_state: Account<PoolState>,
 
     pub token_a_mint: Account<Mint>,
     pub token_b_mint: Account<Mint>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::authority = pool_state,
+    )]
     pub pool_source_vault: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::authority = pool_state,
+    )]
     pub pool_destination_vault: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::authority = user,
+    )]
     pub user_source_token: Account<TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        token::authority = user,
+    )]
     pub user_destination_token: Account<TokenAccount>,
 
     pub token_program: Program<Token>,
 }
 
+/// Swaps an exact input amount of one pool token for output tokens of the other.
 pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Result {
-    require!(amount_in > 0, crate::errors::AmmError::ZeroAmount);
+    require!(amount_in > 0, AmmError::ZeroAmount);
 
-    // Validate that the vaults belong to this pool
     require!(
-        (ctx.accounts.pool_source_vault.address() == ctx.accounts.pool_state.vault_a &&
-         ctx.accounts.pool_destination_vault.address() == ctx.accounts.pool_state.vault_b) ||
-        (ctx.accounts.pool_source_vault.address() == ctx.accounts.pool_state.vault_b &&
-         ctx.accounts.pool_destination_vault.address() == ctx.accounts.pool_state.vault_a),
-        crate::errors::AmmError::InvalidMint
+        (ctx.accounts.pool_source_vault.address() == ctx.accounts.pool_state.vault_a
+            && ctx.accounts.pool_destination_vault.address() == ctx.accounts.pool_state.vault_b)
+            || (ctx.accounts.pool_source_vault.address() == ctx.accounts.pool_state.vault_b
+                && ctx.accounts.pool_destination_vault.address() == ctx.accounts.pool_state.vault_a),
+        AmmError::InvalidMint
     );
 
-    // Validate ownership/mint details
     require!(
         ctx.accounts.user_source_token.mint() == ctx.accounts.pool_source_vault.mint(),
-        crate::errors::AmmError::InvalidMint
+        AmmError::InvalidMint
     );
     require!(
         ctx.accounts.user_destination_token.mint() == ctx.accounts.pool_destination_vault.mint(),
-        crate::errors::AmmError::InvalidMint
-    );
-    require!(
-        ctx.accounts.token_a_mint.address() == ctx.accounts.pool_state.token_a_mint,
-        crate::errors::AmmError::InvalidMint
-    );
-    require!(
-        ctx.accounts.token_b_mint.address() == ctx.accounts.pool_state.token_b_mint,
-        crate::errors::AmmError::InvalidMint
+        AmmError::InvalidMint
     );
 
     let x = ctx.accounts.pool_source_vault.amount();
     let y = ctx.accounts.pool_destination_vault.amount();
 
-    // Call swap math system function
-    let amount_out = crate::systems::process_swap_output(x, y, amount_in)?;
-
-    require!(amount_out >= minimum_amount_out, crate::errors::AmmError::SlippageExceeded);
+    let amount_out = process_swap_output(x, y, amount_in)?;
+    require!(amount_out >= minimum_amount_out, AmmError::SlippageExceeded);
 
     let source_is_token_a = ctx.accounts.pool_source_vault.mint() == ctx.accounts.token_a_mint.address();
     let source_mint = if source_is_token_a { &ctx.accounts.token_a_mint } else { &ctx.accounts.token_b_mint };
@@ -71,7 +82,6 @@ pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Resu
     let source_decimals = source_mint.decimals();
     let destination_decimals = destination_mint.decimals();
 
-    // 1. Transfer input tokens from user to the pool's source vault
     ctx.accounts.token_program.transfer_checked(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.user_source_token,
@@ -83,7 +93,6 @@ pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Resu
         source_decimals,
     )?;
 
-    // 2. Prepare signer seeds for the pool state PDA (including ID)
     let token_a_ref = ctx.accounts.pool_state.token_a_mint;
     let token_b_ref = ctx.accounts.pool_state.token_b_mint;
     let id_bytes = ctx.accounts.pool_state.id.to_le_bytes();
@@ -96,7 +105,6 @@ pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Resu
     ];
     let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
 
-    // 3. Transfer output tokens from the pool's destination vault to the user
     ctx.accounts.token_program.transfer_checked_signed(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.pool_destination_vault,
@@ -109,7 +117,7 @@ pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Resu
         signer_seeds,
     )?;
 
-    emit!(crate::events::SwapExecuted {
+    emit!(SwapExecuted {
         user: ctx.accounts.user.address(),
         amount_in,
         amount_out,

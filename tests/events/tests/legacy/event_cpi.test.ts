@@ -38,13 +38,12 @@ describe("emit_cpi! events (legacy client, litesvm)", () => {
       assert.equal(counters.length, 1);
       assert.equal(Number(counters[0].newCount), 7);
 
-      // The typed per-event helper: logs alone can't see a CPI event...
+      // Logs alone can't see a CPI event (the sync typed helper is logs-only)...
       assert.equal(client.parseCounterIncrementedEvents(result.logs).length, 0);
-      // ...but with the inner instructions it can.
-      assert.equal(
-        client.parseCounterIncrementedEvents(result.logs, result.innerInstructions).length,
-        1,
-      );
+      // ...but the async helper, given the inner instructions, can.
+      const fromTransaction = await client.parseCounterIncrementedEventsFromTransaction(result);
+      assert.equal(fromTransaction.length, 1);
+      assert.equal(Number(fromTransaction[0].newCount), 7);
 
       if (alloc) {
         const payloads = result.parseEvents("SizedPayload");

@@ -17,7 +17,7 @@ pub const DEFAULT_RUST_TEST_SCRIPT: &str = "cargo test -- --show-output";
 /// The test command a workspace runs for the Node tests when its Naclac.toml
 /// has neither a `test-node` nor a `test` script (`[scripts]`).
 pub const DEFAULT_NODE_TEST_SCRIPT: &str =
-    "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\"";
+    "node_modules/.bin/ts-mocha -p ./tsconfig.json --timeout 1000000 \"tests/**/*.ts\"";
 
 fn has_config(dir: &Path) -> bool {
     let path = dir.join("Naclac.toml");
