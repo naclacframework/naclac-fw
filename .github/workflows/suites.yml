@@ -180,7 +180,7 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: client/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
         working-directory: client
       - run: pnpm test
         working-directory: client

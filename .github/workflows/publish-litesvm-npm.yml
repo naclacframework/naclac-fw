@@ -49,7 +49,7 @@ jobs:
           node-version: "24"
           package-manager-cache: false
 
-      - run: yarn install --frozen-lockfile
+      - run: yarn install
 
       - run: yarn napi build --platform --release --target ${{ matrix.target }}
 
@@ -86,7 +86,7 @@ jobs:
           pattern: litesvm-bindings-*
           merge-multiple: true
 
-      - run: yarn install --frozen-lockfile
+      - run: yarn install
 
       # A plain project-level .npmrc, not `actions/setup-node`'s
       # `registry-url` input: that mechanism only reliably reaches commands

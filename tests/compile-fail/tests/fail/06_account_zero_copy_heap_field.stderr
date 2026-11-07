@@ -1,4 +1,4 @@
-error: Naclac Error: field 'bad' uses a heap-allocated type ('Vec'/'String') in a zero-copy #[account]. Persisted zero-copy account data is read via raw byte-casting, and a heap pointer cannot survive being written to an account and read back in a later transaction. Please use 'FixedVec<T, N>', 'FixedString<N>' or a fixed-size array (e.g. '[u8; 64]') instead.
+error: Naclac Error: field 'bad' is Vec/String, which can't be stored in zero-copy account data. Use FixedVec<T, N>, FixedString<N> or a fixed-size array like [u8; 64].
  --> tests/fail/06_account_zero_copy_heap_field.rs:9:1
   |
 9 | #[account]

@@ -28,8 +28,8 @@ fn unreachable_item_error(
     item: &naclac_syn::names::TaggedItem,
 ) -> proc_macro2::TokenStream {
     let message = format!(
-        "Naclac Error: the IDL cannot reach {kind} `{}::{}`. Declare it, and every module on \
-         its path, `pub` or `pub(crate)` so the `idl-build` assembler can name it.",
+        "Naclac Error: the IDL can't reach {kind} `{}::{}`. Make it and every module on its \
+         path `pub` or `pub(crate)`.",
         item.module_path, item.name
     );
     let cfgs = &item.cfgs;

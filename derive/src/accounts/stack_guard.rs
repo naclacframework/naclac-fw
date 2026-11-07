@@ -30,7 +30,8 @@ pub(super) fn size_guard_consts(
 
     let per_field_asserts = data_carrying_fields.iter().map(|(ident, ty)| {
         let msg = format!(
-            "naclac: field `{}` is large for a single stack frame — wrap it as `Box<{}>` to keep `load_and_validate` under the SBF 4KB stack limit",
+            "Naclac Error: field `{}` is too large for one stack frame; wrap it as `Box<{}>` to \
+             stay under the SBF 4KB stack limit.",
             ident,
             quote! { #ty }.to_string().replace(" ", "")
         );
@@ -52,7 +53,8 @@ pub(super) fn size_guard_consts(
             .iter()
             .map(|(_, ty)| quote! { core::mem::size_of::<#ty>() });
         let msg = format!(
-            "naclac: this Accounts struct's data-carrying fields ({}) sum to more than the safe stack budget for `load_and_validate` — box one or more of them as `Box<Account<T>>`",
+            "Naclac Error: this Accounts struct's data fields ({}) together exceed the stack \
+             budget for `load_and_validate`; box some as `Box<Account<T>>`.",
             field_list
         );
         quote! {

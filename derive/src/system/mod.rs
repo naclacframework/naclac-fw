@@ -163,12 +163,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         if !returns_result(&input_fn) {
             return Error::new_spanned(
                 &input_fn.sig.output,
-                "[naclac::system] Functions annotated with `#[system]` must return `Result<T>` \
-                 because the safe-math rewriter injects the `?` operator for every arithmetic \
-                 operation.\n\n\
-                 Options:\n\
-                 • Change the return type to `Result<T>` (recommended for on-chain math).\n\
-                 • Use `#[system(no_rewrite)]` to opt out of the automatic rewrite.",
+                "Naclac Error: a #[system] function must return `Result<T>`, as safe math \
+                 injects `?`. Change the return type, or use `#[system(no_rewrite)]`.",
             )
             .to_compile_error()
             .into();

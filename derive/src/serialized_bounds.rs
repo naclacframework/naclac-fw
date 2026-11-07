@@ -85,9 +85,8 @@ fn fields_bound(
 
 fn unbounded_size(type_name: &syn::Ident, field: &str) -> TokenStream {
     let message = format!(
-        "`{type_name}` has a `Vec`/`String` field `{field}` with no `#[max_len(N)]`, so its \
-         maximum size is unknown: add `#[max_len(N)]` to the field, or give the account an \
-         explicit `space = ..`"
+        "Naclac Error: `{type_name}.{field}` is Vec/String with no `#[max_len(N)]`, so its \
+         maximum size is unknown. Add `#[max_len(N)]`, or set `space = ..`."
     );
     quote! { panic!(#message) }
 }

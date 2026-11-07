@@ -50,7 +50,7 @@ fn check_fails(fixture: &str) -> String {
 fn a_vec_field_without_max_len_fails_where_space_is_used() {
     let stderr = check_fails("max_len_missing");
     assert!(
-        stderr.contains("`Ledger` has a `Vec`/`String` field `entries` with no `#[max_len(N)]`"),
+        stderr.contains("`Ledger.entries` is Vec/String with no `#[max_len(N)]`"),
         "{stderr}"
     );
 }
@@ -59,7 +59,7 @@ fn a_vec_field_without_max_len_fails_where_space_is_used() {
 fn a_defined_type_with_an_unbounded_field_fails_where_its_size_is_used() {
     let stderr = check_fails("max_len_nested_missing");
     assert!(
-        stderr.contains("`Inner` has a `Vec`/`String` field `items` with no `#[max_len(N)]`"),
+        stderr.contains("`Inner.items` is Vec/String with no `#[max_len(N)]`"),
         "{stderr}"
     );
 }

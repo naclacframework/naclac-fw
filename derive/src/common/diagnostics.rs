@@ -44,8 +44,7 @@ pub(crate) fn heap_collection_warning(
     suggested_ty: &str,
 ) -> proc_macro2::TokenStream {
     compiler_warning(&format!(
-        "Naclac: argument `{arg_name}` is `{found_ty}` in a zero-copy program — this heap-allocates \
-         and copies on every deserialize. Consider `{suggested_ty}` for zero-copy (no-allocation) \
-         parsing instead, or add `#[allow_heap]` to this argument to silence this warning."
+        "Naclac: argument `{arg_name}` is `{found_ty}`, which allocates and copies on every \
+         call. Use `{suggested_ty}`, or add `#[allow_heap]` to silence this."
     ))
 }

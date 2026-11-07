@@ -72,17 +72,13 @@ pub(super) fn expand_alloc(
     let borsh_error = quote! {
         #borsh_cfg
         compile_error!(
-            "Naclac Error: #[event(alloc)] is only for the zero-copy (`bytemuck`) layout. \
-             Under Borsh mode, plain #[event] already supports \
-             Vec/String/Option natively via real Borsh, so #[event(alloc)] is unnecessary \
-             there — use plain #[event] instead."
+            "Naclac Error: #[event(alloc)] is only for the zero-copy (`bytemuck`) layout; under \
+             Borsh, plain #[event] already supports Vec/String/Option."
         );
         #wincode_cfg
         compile_error!(
-            "Naclac Error: #[event(alloc)] is only for the zero-copy (`bytemuck`) layout. \
-             Under Wincode mode, plain #[event] already supports \
-             dynamic types natively via Wincode, so #[event(alloc)] is unnecessary \
-             there — use plain #[event] instead."
+            "Naclac Error: #[event(alloc)] is only for the zero-copy (`bytemuck`) layout; under \
+             Wincode, plain #[event] already supports dynamic types."
         );
     };
 

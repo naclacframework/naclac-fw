@@ -11,8 +11,8 @@ pub(crate) fn manifest_dir() -> std::path::PathBuf {
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| {
             panic!(
-                "naclac: CARGO_MANIFEST_DIR is not set; the naclac macros must be expanded by \
-                 cargo (or a tool that sets it, such as rust-analyzer)"
+                "Naclac Error: CARGO_MANIFEST_DIR is not set; naclac macros must be expanded by \
+                 cargo or a tool that sets it, such as rust-analyzer."
             )
         })
 }

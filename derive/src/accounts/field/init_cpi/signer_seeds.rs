@@ -92,9 +92,9 @@ pub(super) fn payer_signer_seeds_tokens(payer_field: &ParsedField) -> TokenStrea
         _ => {
             return syn::Error::new_spanned(
                 &payer_field.ident,
-                "Naclac Error: a `payer` field with `seeds = [...]` referenced by an ATA \
-                 `init_if_needed` with `extra_accounts` must also have an explicit `bump = <expr>` \
-                 — auto-derived `bump` isn't supported as a payer seed source yet.",
+                "Naclac Error: a `payer` with `seeds = [...]` used by an ATA `init_if_needed` \
+                 with `extra_accounts` needs an explicit `bump = <expr>`; an automatic bump \
+                 isn't supported there.",
             )
             .to_compile_error();
         }

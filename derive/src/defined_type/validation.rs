@@ -15,9 +15,7 @@ pub(super) fn field_error(original_data: &syn::Data) -> Option<syn::Error> {
     if let Some(error) = crate::type_classify::zc_view_field_error(
         declared_fields.into_iter(),
         "a #[defined_type]",
-        "A #[defined_type] is a fixed-size value stored in accounts and events: use a fixed-size \
-         array (e.g. '[u8; 64]'). To group instruction arguments that need ZcVec/ZcString, use \
-         #[instruction_args].",
+        "Use a fixed-size array like [u8; 64], or #[instruction_args] for arguments.",
     ) {
         return Some(error);
     }
@@ -38,8 +36,7 @@ pub(super) fn field_error(original_data: &syn::Data) -> Option<syn::Error> {
     crate::type_classify::fixed_capacity_field_error(
         variant_fields.iter(),
         "a #[defined_type] enum variant",
-        "Put the FixedVec/FixedString in a #[defined_type] struct and use that struct as the \
-         variant's field.",
+        "Wrap it in a #[defined_type] struct.",
     )
 }
 
@@ -59,9 +56,8 @@ pub(super) fn discriminant_range_conflict(
         return TokenStream::new();
     }
     let message = format!(
-        "Naclac Error: `#[defined_type]` enum `{ident}` has a discriminant outside \
-         0..=255. Borsh and Wincode encode an enum tag as a single unsigned byte; \
-         use discriminants in that range, or the zero-copy representation."
+        "Naclac Error: `#[defined_type]` enum `{ident}` has a discriminant outside 0..=255, \
+         which Borsh and Wincode can't encode as a one-byte tag. Use values in 0..=255."
     );
     quote::quote! {
         #borsh_cfg

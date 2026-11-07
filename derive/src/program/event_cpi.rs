@@ -70,9 +70,9 @@ pub(super) fn expand(
             .collect::<Vec<_>>()
             .join(", ");
         let msg = format!(
-            "Naclac Error: instruction(s) [{names}] use a discriminator equal to the reserved \
-             event-CPI dispatch tag ({event_tag_bytes:?}), and this program uses `#[event_cpi]`. \
-             Give the instruction a different `#[discriminator = ...]`."
+            "Naclac Error: instruction(s) [{names}] use the discriminator reserved for \
+             event-CPI ({event_tag_bytes:?}), which this program needs for `#[event_cpi]`. Set \
+             a different `#[discriminator = ...]`."
         );
         items.push(syn::parse_quote! {
             const _: () = {

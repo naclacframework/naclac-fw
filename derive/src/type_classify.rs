@@ -138,8 +138,8 @@ pub(crate) fn reserved_type_name_error(ident: &syn::Ident) -> Option<syn::Error>
     (ident == "Bool").then(|| {
         syn::Error::new_spanned(
             ident,
-            "Naclac Error: `Bool` is the name of naclac's one-byte boolean and of the IDL's \
-             `bool`; a type with this name would be read as that type. Rename it.",
+            "Naclac Error: `Bool` is reserved (naclac's one-byte boolean and the IDL's `bool`); \
+             rename this type.",
         )
     })
 }
@@ -223,8 +223,8 @@ pub(crate) fn zc_view_field_error<'a>(
         let error = syn::Error::new_spanned(
             &field.ty,
             format!(
-                "Naclac Error: '{view}' cannot be a field of {owner}. It is a view (pointer + \
-                 length) into the current instruction's bytes and owns no bytes of its own. {advice}"
+                "Naclac Error: '{view}' can't be a field of {owner}: it is a view into the \
+                 instruction data and owns no bytes. {advice}"
             ),
         );
         match &mut combined {
@@ -274,9 +274,8 @@ pub(crate) fn fixed_capacity_field_error<'a>(
         let error = syn::Error::new_spanned(
             &field.ty,
             format!(
-                "Naclac Error: 'FixedVec'/'FixedString' cannot be a field of {owner}. Generated \
-                 clients know a fixed-capacity field's capacity only for account, defined struct \
-                 and instruction argument fields. {advice}"
+                "Naclac Error: 'FixedVec'/'FixedString' can't be a field of {owner}: clients \
+                 only know their capacity for accounts, structs and arguments. {advice}"
             ),
         );
         match &mut combined {

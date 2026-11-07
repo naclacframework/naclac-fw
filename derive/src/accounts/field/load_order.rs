@@ -106,8 +106,8 @@ pub fn load_order(fields: &[ParsedField]) -> Result<Vec<usize>, syn::Error> {
         return Err(syn::Error::new_spanned(
             &fields[cycle[0]].ident,
             format!(
-                "Naclac Error: the account constraints of {} refer to each other in a cycle, \
-                 so none of them can be loaded first. Remove one of these references.",
+                "Naclac Error: the constraints of {} refer to each other in a cycle; remove one \
+                 of the references.",
                 listed.join(", ")
             ),
         ));

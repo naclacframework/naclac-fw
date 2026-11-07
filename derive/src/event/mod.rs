@@ -44,7 +44,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         if crate::type_classify::is_deprecated_pubkey(ty) {
             return syn::Error::new_spanned(
                 ty,
-                "Naclac Error: 'Pubkey' has been deprecated in favor of 'Address' in Solana v3. Please replace it with 'Address'."
+                "Naclac Error: 'Pubkey' is deprecated in Solana v3; use 'Address'.",
             )
             .to_compile_error()
             .into();
@@ -54,8 +54,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(error) = crate::type_classify::zc_view_field_error(
         ast.fields.iter(),
         "an #[event]",
-        "An event is written out, not read from an instruction: use a fixed-size array in a plain \
-         #[event], or 'Vec<T>'/'String' in #[event(alloc)].",
+        "Use a fixed-size array, or Vec<T>/String with #[event(alloc)].",
     ) {
         return error.to_compile_error().into();
     }
@@ -63,7 +62,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(error) = crate::type_classify::fixed_capacity_field_error(
         ast.fields.iter(),
         "an #[event]",
-        "Use a fixed-size array in a plain #[event], or 'Vec<T>'/'String' in #[event(alloc)].",
+        "Use a fixed-size array, or Vec/String with #[event(alloc)].",
     ) {
         return error.to_compile_error().into();
     }

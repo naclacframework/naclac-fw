@@ -112,11 +112,9 @@ impl ScaleTracker {
                                 self.errors.push(Error::new_spanned(
                                     bin,
                                     format!(
-                                        "[naclac::system] Decimal scale mismatch.\n\
-                                     Left operand has {l} decimal places, \
-                                     right operand has {r} decimal places.\n\
-                                     You cannot add or subtract values with different scales.\n\
-                                     Normalize both values to the same scale first."
+                                        "Naclac Error: decimal scale mismatch: left has {l} \
+                                         decimal places, right has {r}. Normalize both to one \
+                                         scale before adding or subtracting."
                                     ),
                                 ));
                                 Scale::Unknown

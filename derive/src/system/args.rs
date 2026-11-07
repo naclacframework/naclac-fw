@@ -63,8 +63,8 @@ impl Parse for ArgsParser {
                             return Err(Error::new(
                                 lit.span(),
                                 format!(
-                                    "[naclac::system] Unknown rounding mode '{other}'.\n\
-                                     Expected \"up\" (ceiling division) or \"down\" (floor division)."
+                                    "Naclac Error: unknown rounding mode '{other}'; expected \
+                                     \"up\" or \"down\"."
                                 ),
                             ))
                         }
@@ -84,8 +84,8 @@ impl Parse for ArgsParser {
                         Error::new(
                             lit.span(),
                             format!(
-                                "[naclac::system] Could not parse `error = \"{}\"` as a Rust \
-                                 path. Expected something like \"crate::errors::MyError::Variant\".",
+                                "Naclac Error: can't parse `error = \"{}\"` as a Rust path; \
+                                 expected e.g. \"crate::errors::MyError::Variant\".",
                                 lit.value()
                             ),
                         )
@@ -100,13 +100,12 @@ impl Parse for ArgsParser {
                         let param: syn::Ident = content.parse()?;
                         content.parse::<Token![=]>()?;
                         let scale_lit: LitInt = content.parse()?;
-                        let scale_val: u8 =
-                            scale_lit.base10_parse().map_err(|_| {
-                                Error::new(
-                                    scale_lit.span(),
-                                    "[naclac::system] scale value must be an integer in the range 0–255.",
-                                )
-                            })?;
+                        let scale_val: u8 = scale_lit.base10_parse().map_err(|_| {
+                            Error::new(
+                                scale_lit.span(),
+                                "Naclac Error: scale value must be an integer in 0..=255.",
+                            )
+                        })?;
                         args.scales.insert(param.to_string(), scale_val);
                         if !content.is_empty() {
                             content.parse::<Token![,]>()?;
@@ -118,8 +117,8 @@ impl Parse for ArgsParser {
                     return Err(Error::new(
                         ident.span(),
                         format!(
-                            "[naclac::system] Unknown attribute '{other}'.\n\
-                             Valid options: no_rewrite, kani, rounding, invariant, scale(...), error."
+                            "Naclac Error: unknown #[system] option '{other}'; valid options: \
+                             no_rewrite, kani, rounding, invariant, scale(...), error."
                         ),
                     ));
                 }

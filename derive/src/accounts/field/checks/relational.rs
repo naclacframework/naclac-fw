@@ -33,7 +33,8 @@ pub fn generate_relational_checks(fields: &[ParsedField], prefix: TokenStream) -
             if let Some(ref target_str) = target_name {
                 if !fields.iter().any(|f| f.ident == target_str) {
                     let error_msg = format!(
-                        "Field '{}' not found in struct for relation constraint on '{}'",
+                        "Naclac Error: relation target '{}' on '{}' is not a field of this \
+                         struct.",
                         target_str, field_name
                     );
                     checks.push(quote! {

@@ -56,7 +56,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         if crate::type_classify::is_deprecated_pubkey(ty) {
             return syn::Error::new_spanned(
                 ty,
-                "Naclac Error: 'Pubkey' has been deprecated in favor of 'Address' in Solana v3. Please replace it with 'Address'."
+                "Naclac Error: 'Pubkey' is deprecated in Solana v3; use 'Address'.",
             )
             .to_compile_error()
             .into();
@@ -66,8 +66,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(error) = crate::type_classify::zc_view_field_error(
         fields.iter(),
         "an #[account]",
-        "Persisted account data is plain bytes: use 'FixedVec<T, N>', 'FixedString<N>' or a \
-         fixed-size array (e.g. '[u8; 64]') instead.",
+        "Use FixedVec<T, N>, FixedString<N> or a fixed-size array like [u8; 64].",
     ) {
         return error.to_compile_error().into();
     }
@@ -113,11 +112,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                     .as_ref()
                     .map_or_else(|| index.to_string(), |i| i.to_string());
                 let msg = format!(
-                    "Naclac Error: field '{}' uses a heap-allocated type ('Vec'/'String') in a zero-copy \
-                     #[account]. Persisted zero-copy account data is read via raw byte-casting, and a \
-                     heap pointer cannot survive being written to an account and read back in a later \
-                     transaction. Please use 'FixedVec<T, N>', 'FixedString<N>' or a fixed-size \
-                     array (e.g. '[u8; 64]') instead.",
+                    "Naclac Error: field '{}' is Vec/String, which can't be stored in zero-copy \
+                     account data. Use FixedVec<T, N>, FixedString<N> or a fixed-size array \
+                     like [u8; 64].",
                     field_name
                 );
                 Some(quote! {
@@ -270,9 +267,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let space_value = match &unbounded_field {
         Some(name) => {
             let message = format!(
-                "`{struct_name}` has a `Vec`/`String` field `{name}` with no `#[max_len(N)]`, so \
-                 its space is unknown: add `#[max_len(N)]` to the field, or give the account an \
-                 explicit `space = ..` in `#[account(init, ..)]`"
+                "Naclac Error: `{struct_name}.{name}` is Vec/String with no `#[max_len(N)]`, so \
+                 its size is unknown. Add `#[max_len(N)]`, or set `space = ..` on the `init` \
+                 field."
             );
             quote! { panic!(#message) }
         }

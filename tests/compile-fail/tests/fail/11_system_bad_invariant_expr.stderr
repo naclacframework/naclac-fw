@@ -1,5 +1,4 @@
-error: [naclac::system] Could not parse invariant expression `result <=`.
-       It must be a valid Rust boolean expression that may reference `result` and any of the function's parameter names.
+error: Naclac Error: can't parse invariant `result <=`; it must be a Rust boolean expression using `result` and the function's parameters.
  --> tests/fail/11_system_bad_invariant_expr.rs:6:1
   |
 6 | #[system(invariant = "result <=")]

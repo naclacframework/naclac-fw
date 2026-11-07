@@ -73,15 +73,14 @@ fn user_code_range_asserts(
 ) -> proc_macro2::TokenStream {
     let default_offset = naclac_syn::idl_items::DEFAULT_ERROR_OFFSET;
     let offset_message = format!(
-        "#[error_code] on `{name}`: `offset = {offset}` is below naclac's user error range, which \
-         starts at USER_ERROR_BASE (6000)"
+        "Naclac Error: #[error_code] on `{name}`: `offset = {offset}` is below the user error \
+         range, which starts at 6000."
     );
     let asserts = variants.iter().map(|variant| {
         let variant_ident = &variant.ident;
         let message = format!(
-            "#[error_code] variant `{}::{}` has a negative or too-large discriminant: \
-             user error codes ({offset} + discriminant) must stay below 10000, where \
-             naclac's framework error codes begin",
+            "Naclac Error: #[error_code] variant `{}::{}` has a negative or too-large \
+             discriminant: `{offset} + discriminant` must stay below 10000.",
             name, variant_ident
         );
         quote! {

@@ -79,8 +79,8 @@ pub(super) fn finish(
     {
         return Err(syn::Error::new_spanned(
             &ident,
-            "Naclac Error: `init`, `init_if_needed`, and `init_unchecked` are mutually \
-                 exclusive on the same field — pick exactly one.",
+            "Naclac Error: `init`, `init_if_needed` and `init_unchecked` are mutually \
+             exclusive; use one.",
         ));
     }
 
@@ -100,17 +100,15 @@ pub(super) fn finish(
         (true, None) => {
             return Err(syn::Error::new_spanned(
                 &ident,
-                "Naclac Error: `init`/`init_if_needed`/`init_unchecked` requires \
-                     `payer = <account>` on the same field — without it, no account-creation \
-                     CPI is generated at all, and this field would silently behave as an \
-                     ordinary (non-created) account.",
+                "Naclac Error: `init`/`init_if_needed`/`init_unchecked` requires `payer = \
+                 <account>` on the same field.",
             ));
         }
         (false, Some(_)) => {
             return Err(syn::Error::new_spanned(
                 &ident,
-                "Naclac Error: `payer = ...` has no effect without `init`, `init_if_needed`, \
-                     or `init_unchecked` on the same field. Add one of them explicitly.",
+                "Naclac Error: `payer = ...` needs `init`, `init_if_needed` or `init_unchecked` \
+                 on the same field.",
             ));
         }
         (false, None) => {}
@@ -138,9 +136,8 @@ pub(super) fn finish(
         if !matches!(realloc_space_variant, Some(ReallocSpace::AnyOf(_))) {
             return Err(syn::Error::new_spanned(
                 path,
-                "Naclac Error: `realloc::grow_only` is only meaningful alongside \
-                     `realloc::any_of = [...]` — a plain `realloc = <expr>` already fully \
-                     controls its own size and direction.",
+                "Naclac Error: `realloc::grow_only` only applies with `realloc::any_of = \
+                 [...]`; a plain `realloc = <expr>` already controls its direction.",
             ));
         }
     }
@@ -160,9 +157,7 @@ pub(super) fn finish(
             return Err(syn::Error::new_spanned(
                 &ident,
                 "Naclac Error: `realloc = <expr>` / `realloc::any_of = [...]` requires \
-                     `realloc::payer = <account>` on the same field — without it, no resize \
-                     logic is generated at all, and this field would silently behave as an \
-                     ordinary (non-reallocating) account.",
+                 `realloc::payer = <account>` on the same field.",
             ));
         }
         (None, _) => {}
@@ -174,11 +169,9 @@ pub(super) fn finish(
     if (is_init || is_init_if_needed || is_init_unchecked) && pda_program.is_some() {
         return Err(syn::Error::new_spanned(
             &ident,
-            "Naclac Error: `init`/`init_if_needed`/`init_unchecked` cannot be combined with \
-                 `seeds::program = ...` on the same field — the account-creation CPI always \
-                 signs under the currently executing program, so a `seeds::program` pointing \
-                 anywhere else can never satisfy the signature check, and pointing at the \
-                 current program is redundant. Remove `seeds::program` here.",
+            "Naclac Error: `init`/`init_if_needed`/`init_unchecked` can't be combined with \
+             `seeds::program`, as creation always signs as this program. Remove \
+             `seeds::program`.",
         ));
     }
 
@@ -202,9 +195,8 @@ pub(super) fn finish(
     {
         return Err(syn::Error::new_spanned(
             &ident,
-            "Naclac Error: `AccountInfo` fields receive no automatic validation. \
-                 Add a `/// SAFETY: ...` doc comment directly above this field explaining \
-                 why skipping validation is safe here.",
+            "Naclac Error: `AccountInfo` fields get no automatic validation. Add a `/// SAFETY: \
+             ...` doc comment above the field explaining why that is safe.",
         ));
     }
 

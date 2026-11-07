@@ -60,6 +60,18 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         .to_compile_error()
         .into();
     };
+    let mut named_fields: Vec<(&syn::Ident, &syn::Type)> = Vec::new();
+    for field in &fields_named.named {
+        let Some(name) = field.ident.as_ref() else {
+            return syn::Error::new_spanned(
+                field,
+                "Naclac Error: #[instruction_args] requires named fields.",
+            )
+            .to_compile_error()
+            .into();
+        };
+        named_fields.push((name, &field.ty));
+    }
     let has_dynamic_field = fields_named.named.iter().any(|f| {
         !matches!(
             type_classify::classify_dynamic(&f.ty),
@@ -77,9 +89,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         if let Some(attr) = derive_attr_listing(&input.attrs, "Default") {
             let error = syn::Error::new_spanned(
                 attr,
-                "Naclac Error: `#[instruction_args]` already generates `Default` (via \
-                 `Zeroable::zeroed()`) for a fixed-field struct in zero-copy mode — remove \
-                 this `#[derive(Default)]`, it's redundant.",
+                "Naclac Error: remove this `#[derive(Default)]`; in the zero-copy layout \
+                 `#[instruction_args]` already generates `Default` for a fixed-field struct.",
             )
             .to_compile_error();
             default_derive_error = quote::quote! { #zero_copy_cfg #error };
@@ -89,9 +100,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     // no bytes of their own, so a struct holding one can never derive Borsh or
     // Wincode; the derive is replaced by a purpose-built error that only fires
     // when the calling crate selects that layout.
-    let zc_field = fields_named.named.iter().find(|f| {
+    let zc_field = named_fields.iter().find(|(_, ty)| {
         matches!(
-            type_classify::classify_dynamic(&f.ty),
+            type_classify::classify_dynamic(ty),
             type_classify::DynamicKind::ZcVec | type_classify::DynamicKind::ZcString
         )
     });
@@ -100,13 +111,10 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     // derives), never a `size_of::<Self>()` copy: a copy includes `repr(C)`
     // padding and diverges from the client's tightly packed Borsh encoding,
     // which only shows up on-chain as `InvalidInstructionData`.
-    let (borsh_derive_attr, borsh_error) = if let Some(field) = zc_field {
-        let field_name = field.ident.as_ref().expect("named field");
+    let (borsh_derive_attr, borsh_error) = if let Some((field_name, _)) = zc_field {
         let msg = format!(
-            "Naclac Error: field '{}' uses a zero-copy-only type ('ZcVec<T>'/'ZcString') \
-             in a Borsh-mode #[instruction_args]. These are views (pointer + length) into the \
-             current instruction's byte buffer with no bytes of their own to serialize — real \
-             Borsh already decodes 'Vec<T>'/'String' natively, so use one of those instead.",
+            "Naclac Error: field '{}' is ZcVec/ZcString, which Borsh can't encode. Use Vec<T> \
+             or String in an #[instruction_args] struct for the Borsh layout.",
             field_name
         );
         (
@@ -123,13 +131,10 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         )
     };
 
-    let (wincode_derive_attr, wincode_error) = if let Some(field) = zc_field {
-        let field_name = field.ident.as_ref().expect("named field");
+    let (wincode_derive_attr, wincode_error) = if let Some((field_name, _)) = zc_field {
         let msg = format!(
-            "Naclac Error: field '{}' uses a zero-copy-only type ('ZcVec<T>'/'ZcString') \
-             in a Wincode-mode #[instruction_args]. These are views (pointer + length) into the \
-             current instruction's byte buffer with no bytes of their own to serialize — use \
-             'Vec<T>'/'String' instead.",
+            "Naclac Error: field '{}' is ZcVec/ZcString, which Wincode can't encode. Use Vec<T> \
+             or String in an #[instruction_args] struct for the Wincode layout.",
             field_name
         );
         (
@@ -212,21 +217,15 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Zero-copy only: Borsh dispatch in `program.rs` reads this argument with
     // `BorshDeserialize::deserialize`, never `NaclacArgs`.
     let naclac_args_impl = {
-        let field_names: Vec<&syn::Ident> = fields_named
-            .named
-            .iter()
-            .map(|f| f.ident.as_ref().expect("named field"))
-            .collect();
+        let field_names: Vec<&syn::Ident> = named_fields.iter().map(|(name, _)| *name).collect();
         // A heap `Vec<T>`/`String` field is valid but allocates and copies on
         // every deserialize, so it gets the same silenceable warning a plain
         // `Vec<T>`/`String` instruction argument gets.
-        let field_reads: Vec<proc_macro2::TokenStream> = fields_named
-            .named
+        let field_reads: Vec<proc_macro2::TokenStream> = named_fields
             .iter()
-            .map(|f| {
-                let name = f.ident.as_ref().expect("named field");
-                let read = field_deserialize::field_deserialize_stmt(name, &f.ty);
-                let heap_shape = match type_classify::classify_dynamic(&f.ty) {
+            .map(|(name, ty)| {
+                let read = field_deserialize::field_deserialize_stmt(name, ty);
+                let heap_shape = match type_classify::classify_dynamic(ty) {
                     type_classify::DynamicKind::HeapVec => Some(("Vec<T>", "ZcVec<T>")),
                     type_classify::DynamicKind::HeapString => Some(("String", "ZcString")),
                     _ => None,

@@ -57,8 +57,7 @@ impl Shared<'_> {
     }
 }
 
-const PUBKEY_DEPRECATED: &str =
-    "Naclac Error: 'Pubkey' has been deprecated in favor of 'Address' in Solana v3. Please replace it with 'Address'.";
+const PUBKEY_DEPRECATED: &str = "Naclac Error: 'Pubkey' is deprecated in Solana v3; use 'Address'.";
 
 /// Entrypoint for `#[derive(Accounts)]` expansion.
 ///

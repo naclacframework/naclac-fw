@@ -33,8 +33,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         return syn::Error::new_spanned(
             &item_struct.ident,
             "Naclac Error: #[event_cpi] must be written directly above #[derive(Accounts)] on \
-             the same struct: it has to run before the derive sees the struct, since that is \
-             what lets it add the `event_authority` and `program` fields.",
+             the same struct, so it can add the `event_authority` and `program` fields first.",
         )
         .to_compile_error()
         .into();

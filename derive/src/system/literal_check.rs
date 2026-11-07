@@ -21,8 +21,8 @@ impl<'ast> Visit<'ast> for LiteralCheckVisitor {
                 if i.base10_digits() == "0" {
                     self.errors.push(Error::new_spanned(
                         expr,
-                        "[naclac::system] Division or remainder by literal zero detected.\n\
-                         This would cause a panic at runtime. Remove or guard this operation.",
+                        "Naclac Error: division or remainder by a literal zero panics at \
+                         runtime; remove or guard it.",
                     ));
                 }
             }
@@ -53,8 +53,8 @@ impl<'ast> Visit<'ast> for LiteralCheckVisitor {
                     self.errors.push(Error::new_spanned(
                         expr,
                         format!(
-                            "[naclac::system] Constant expression `{l} {sym} {r}` overflows \
-                             or is undefined at compile time."
+                            "Naclac Error: constant expression `{l} {sym} {r}` overflows or is \
+                             undefined at compile time."
                         ),
                     ));
                 }

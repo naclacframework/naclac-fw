@@ -38,12 +38,8 @@ pub(super) fn default_derive_conflict(
     };
     let error = syn::Error::new_spanned(
         attr,
-        "Naclac Error: in the zero-copy representation `#[defined_type]` already \
-         generates `Default` (via `Zeroable::zeroed()`) for every struct whose \
-         fields are all Pod-eligible — remove this `#[derive(Default)]`, it's \
-         redundant and, once an auto-padding field is added, incorrect (`std`'s \
-         derive is evaluated before that field exists). It is only needed under \
-         Borsh/Wincode, where no `Default` is generated.",
+        "Naclac Error: remove this `#[derive(Default)]`; in the zero-copy layout \
+         `#[defined_type]` already generates `Default`.",
     )
     .to_compile_error();
     quote::quote! { #cfg #error }

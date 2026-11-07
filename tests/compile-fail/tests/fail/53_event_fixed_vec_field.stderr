@@ -1,4 +1,4 @@
-error: Naclac Error: 'FixedVec'/'FixedString' cannot be a field of an #[event]. Generated clients know a fixed-capacity field's capacity only for account, defined struct and instruction argument fields. Use a fixed-size array in a plain #[event], or 'Vec<T>'/'String' in #[event(alloc)].
+error: Naclac Error: 'FixedVec'/'FixedString' can't be a field of an #[event]: clients only know their capacity for accounts, structs and arguments. Use a fixed-size array, or Vec/String with #[event(alloc)].
  --> tests/fail/53_event_fixed_vec_field.rs:5:16
   |
 5 |     pub items: FixedVec<u8, 4>,

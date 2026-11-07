@@ -118,22 +118,23 @@ const TOKEN_PROGRAM_TWICE: &str = "Naclac Error: this field names its token prog
 const TOKEN_PROGRAM: Filled = Filled {
     key: TOKEN_PROGRAM_KEY,
     from: &["Token", "Token2022", "TokenInterface"],
-    missing: "Naclac Error: token_program must be defined in the Accounts struct for account \
-              initialization (or point at one explicitly via `token::token_program`, \
-              `mint::token_program` or `associated_token::token_program`).",
+    missing: "Naclac Error: this `init` needs a token program: add a `Program<Token>` field, or \
+              name one with `token::token_program`, `mint::token_program` or \
+              `associated_token::token_program`.",
     ambiguous: "Naclac Error: more than one field could be this account's token program \
-                ({fields}); name the one to use with `token::token_program`, \
-                `mint::token_program` or `associated_token::token_program`.",
+                ({fields}); choose one with `token::token_program`, `mint::token_program` or \
+                `associated_token::token_program`.",
 };
 
 const TOKEN_PROGRAM_NOT_A_FIELD: &str = "Naclac Error: the token program must name a field of \
-     this Accounts struct, e.g. `token_program` for a field `token_program: Program<Token>`.";
+                                         this struct, e.g. `token_program` for `token_program: \
+                                         Program<Token>`.";
 
 const ASSOCIATED_TOKEN_PROGRAM: Filled = Filled {
     key: "associated_token_program",
     from: &["AssociatedToken"],
-    missing: "Naclac Error: associated_token_program (Program<AssociatedToken>) must be \
-              defined in the Accounts struct for associated token account initialization.",
+    missing: "Naclac Error: associated-token `init` needs a `Program<AssociatedToken>` field in \
+              the Accounts struct.",
     ambiguous: "Naclac Error: more than one `Program<AssociatedToken>` field ({fields}); an \
                 Accounts struct declares only one.",
 };
@@ -219,15 +220,15 @@ pub(crate) const NAMESPACES: &[Namespace] = &[
             together: &[
                 Required {
                     key: "mint",
-                    message: "Naclac Error: associated_token::mint must be specified alongside \
-                              associated_token::authority. Example: \
+                    message: "Naclac Error: `associated_token::mint` needs \
+                              `associated_token::authority`. Example: \
                               #[account(associated_token::mint = mint, \
                               associated_token::authority = owner)]",
                 },
                 Required {
                     key: "authority",
-                    message: "Naclac Error: associated_token::authority must be specified \
-                              alongside associated_token::mint. Example: \
+                    message: "Naclac Error: `associated_token::authority` needs \
+                              `associated_token::mint`. Example: \
                               #[account(associated_token::mint = mint, \
                               associated_token::authority = owner)]",
                 },
@@ -245,25 +246,18 @@ pub(crate) const NAMESPACES: &[Namespace] = &[
             filled: &[&TOKEN_PROGRAM, &ASSOCIATED_TOKEN_PROGRAM],
             forbidden: &[Required {
                 key: "bump",
-                message: "Naclac Error: `associated_token::bump` on field `{field}` is never \
-                          read here -- `init`/`init_if_needed` associated-token accounts are \
-                          verified by the real Associated Token Program's own CPI (it \
-                          re-derives and checks the canonical address internally on every \
-                          call), so naclac never reads this value for them. Remove the \
-                          `associated_token::bump = ...` line; it only matters on an existing \
-                          (non-init) associated_token field.",
+                message: "Naclac Error: `associated_token::bump` on `{field}` is never read: \
+                          `init`/`init_if_needed` ATAs are verified by the Associated Token \
+                          Program itself. Remove it.",
             }],
             extra_accounts: Some(
                 "Naclac Error: `extra_accounts` on an associated-token `init` field requires \
-                 `init_if_needed` (not plain `init`) — only \
-                 `create_idempotent_with_extra_accounts_signed` exists, since nothing in this \
-                 codebase needs the strict, non-idempotent variant padded.",
+                 `init_if_needed`; plain `init` doesn't support it.",
             ),
             rejects_init_unchecked: Some(
-                "Naclac Error: `init_unchecked` is not supported on an `associated_token::mint` \
-                 field — ATA creation CPIs into the Associated Token Program, which handles its \
-                 own account creation internally; there's no naclac-core `create_account_*` \
-                 call here to redirect. Use `init`/`init_if_needed` instead.",
+                "Naclac Error: `init_unchecked` isn't supported on `associated_token::mint` \
+                 fields, as the Associated Token Program creates the account. Use `init` or \
+                 `init_if_needed`.",
             ),
         }),
     },
@@ -276,9 +270,8 @@ const CREATION_ORDER: [&str; 3] = ["mint", "token", "associated_token"];
 /// The error for `extra_accounts` on an `init` field that no namespace which
 /// accepts them creates.
 pub(crate) const EXTRA_ACCOUNTS_ELSEWHERE: &str =
-    "Naclac Error: `extra_accounts` is only supported on an `init_if_needed` \
-     associated-token field (one with `associated_token::mint = ...`) — every other \
-     `init` path (`mint::`, `token::`, plain PDA `init`) doesn't wire it in yet.";
+    "Naclac Error: `extra_accounts` is only supported on an `init_if_needed` field with \
+     `associated_token::mint`; `mint::`, `token::` and plain `init` don't use it.";
 
 /// The program id a `Program<T>` field must have, for the `T` naclac's
 /// token crate defines.
@@ -610,7 +603,7 @@ mod tests {
     #[test]
     fn no_program_field_is_an_error() {
         let error = token_program_of(&vault_with("system: Signer", "")).unwrap_err();
-        assert!(error.contains("token_program must be defined"), "{error}");
+        assert!(error.contains("needs a token program"), "{error}");
     }
 
     /// Names that tie derive code to naclac's token crate. Outside this file

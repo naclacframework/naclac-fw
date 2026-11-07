@@ -16,10 +16,9 @@ impl<'ast> Visit<'ast> for FloatBanVisitor {
                     self.errors.push(Error::new_spanned(
                         ty,
                         format!(
-                            "[naclac::system] Floating-point type `{name}` is not allowed.\n\
-                             Floating-point arithmetic is non-deterministic across Solana/SBF \
-                             validators and will produce inconsistent state.\n\
-                             Use integer arithmetic with a fixed decimal scale instead."
+                            "Naclac Error: floating-point type `{name}` isn't allowed in \
+                             #[system] (non-deterministic on Solana); use integers with a fixed \
+                             decimal scale."
                         ),
                     ));
                 }
@@ -32,10 +31,9 @@ impl<'ast> Visit<'ast> for FloatBanVisitor {
         if let Lit::Float(f) = lit {
             self.errors.push(Error::new_spanned(
                 f,
-                "[naclac::system] Floating-point literal is not allowed.\n\
-                 Floating-point arithmetic is non-deterministic across Solana/SBF validators.\n\
-                 Use an integer literal with a fixed decimal scale instead\n\
-                 (e.g. `0.5` → `5_000u64` with scale 4, or use basis points).",
+                "Naclac Error: floating-point literals aren't allowed in #[system] \
+                 (non-deterministic on Solana); use integers with a fixed decimal scale, e.g. \
+                 0.5 as 5_000u64 at scale 4.",
             ));
         }
         syn::visit::visit_lit(self, lit);

@@ -16,11 +16,8 @@ use {
 };
 
 const HASH_ONLY_INELIGIBLE_MSG: &str =
-    "Naclac Error: this existing PDA field has no bump, and its type can't have one discovered \
-     on-chain. Bump discovery skips the curve check, which is only sound when the account type \
-     proves the program that derives it created the account: `Account<T>`/`InterfaceAccount<T>` \
-     (owner- and discriminator-validated). Use one of those types, or supply the bump explicitly. \
-     Example: #[account(seeds = [...], bump = <precomputed_bump>)]";
+    "Naclac Error: this existing PDA field has no bump, and its type can't discover one. Use \
+     Account<T>/InterfaceAccount<T>, or write `bump = <value>` on the field.";
 
 /// Which phase of a field's checks the PDA check belongs to.
 pub(super) enum PdaChecks {
@@ -147,8 +144,8 @@ fn precomputed_creation(
         if field.init_config.is_some() {
             return Err(syn::Error::new_spanned(
                 &field.ident,
-                "Naclac Error: `bump = <expr>` cannot be combined with `init` on a precomputed PDA. \
-                 Account creation must use the canonical bump (write `bump` without a value).",
+                "Naclac Error: `bump = <expr>` can't be used with `init` on a PDA known at \
+                 compile time; write `bump` and the canonical bump is used.",
             )
             .to_compile_error());
         }
@@ -239,13 +236,9 @@ fn dynamic_creation(
         }
         None if field.init_config.is_some() => {
             find_pda_error = Some(
-                "Naclac Error: PDA validation seeds constraint requires a 'bump' value or \
-                 attribute. This account is being freshly initialized ('init') under seeds \
-                 naclac can't resolve at compile time, so add 'bump' to perform a real, \
-                 bounded on-chain canonical search — the one case on-chain \
-                 'find_program_address' is actually used for — or supply \
-                 'bump = <precomputed_bump>' if you already know it off-chain. \
-                 Example: #[account(init, seeds = [...], bump)]"
+                "Naclac Error: `init` under seeds unknown at compile time needs `bump` \
+                 (canonical search) or `bump = <value>`. Example: #[account(init, seeds = \
+                 [...], bump)]"
                     .to_string(),
             );
         }
@@ -324,7 +317,9 @@ pub(super) fn pda_checks(
     let Some(seed_array) = &field.pda_seed else {
         if field.pda_bump.is_some() {
             return Ok(Some(PdaChecks::Constraint(quote! {
-                compile_error!("Naclac Error: `bump` requires `seeds = [...]` on the same field — a bare `bump` with no `seeds` has no PDA to verify against and would otherwise be silently ignored. Example: #[account(seeds = [...], bump)]");
+                compile_error!("Naclac Error: `bump` needs `seeds = [...]` on the same field, \
+                                as there is no PDA to verify without them. Example: \
+                                #[account(seeds = [...], bump)]");
             })));
         }
         return Ok(None);

@@ -95,8 +95,7 @@ pub fn generate_init_cpi(field: &ParsedField, all_fields: &[ParsedField]) -> Tok
         None => {
             return syn::Error::new_spanned(
                 &field.ident,
-                "Naclac Error: system_program (Program<System>) must be defined in the Accounts \
-                 struct for account initialization.",
+                "Naclac Error: `init` needs a `Program<System>` field in the Accounts struct.",
             )
             .to_compile_error();
         }

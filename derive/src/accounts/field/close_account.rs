@@ -17,8 +17,8 @@ pub fn generate_close_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
         if let Some(dest) = &field.close_destination {
             if !fields.iter().any(|f| f.ident == *dest) {
                 let error_msg = format!(
-                    "Field '{}' not found in struct for `close = {}` on '{}'",
-                    dest, dest, field.ident
+                    "Naclac Error: `close = {}` on '{}' names no field of this struct.",
+                    dest, field.ident
                 );
                 closes.push(quote! {
                     core::compile_error!(#error_msg);

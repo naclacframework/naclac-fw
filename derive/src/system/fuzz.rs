@@ -18,9 +18,8 @@ pub(super) fn generate_fuzz_tests(func: &ItemFn, args: &SystemArgs) -> TokenStre
         Ok(e) => e,
         Err(_) => {
             let msg = format!(
-                "[naclac::system] Could not parse invariant expression `{invariant_str}`.\n\
-                 It must be a valid Rust boolean expression that may reference `result` \
-                 and any of the function's parameter names."
+                "Naclac Error: can't parse invariant `{invariant_str}`; it must be a Rust \
+                 boolean expression using `result` and the function's parameters."
             );
             return quote! { compile_error!(#msg); };
         }
@@ -62,7 +61,7 @@ pub(super) fn generate_fuzz_tests(func: &ItemFn, args: &SystemArgs) -> TokenStre
                     if let Ok(result) = #fn_name(#(#param_names),*) {
                         proptest::prop_assert!(
                             { #invariant_expr },
-                            "[naclac::system] Invariant `{}` violated. result = {:?}",
+                            "Naclac: invariant `{}` violated, result = {:?}",
                             #invariant_lit,
                             result
                         );

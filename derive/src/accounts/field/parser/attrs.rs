@@ -105,8 +105,8 @@ impl RawAttrs {
                         if meta.path.is_ident("alias") {
                             return Err(syn::Error::new_spanned(
                                 &meta.path,
-                                "Naclac Error: bare `alias` is rejected for safety. \
-                                 Use `unsafe(alias)` to explicitly opt out of duplicate mutable account protection.",
+                                "Naclac Error: bare `alias` is rejected; write `unsafe(alias)` \
+                                 to opt out of duplicate-mutable-account protection.",
                             ));
                         }
                         if meta.path.is_ident("init") {
@@ -180,14 +180,15 @@ impl RawAttrs {
 
                         if !is_reserved {
                             let field_ident = path.get_ident().cloned().ok_or_else(|| {
-                                syn::Error::new_spanned(path, "Expected relation field name")
+                                syn::Error::new_spanned(path, "Naclac Error: expected a field \
+                                                               name for this relation \
+                                                               constraint.")
                             })?;
                             if field_ident == "has_one" {
                                 return Err(syn::Error::new_spanned(
                                     path,
-                                    "Naclac Error: `has_one` is not supported. To check that a field of \
-                                     this account equals another account, name the field itself, for \
-                                     example `#[account(maker = maker)]`.",
+                                    "Naclac Error: `has_one` is not supported; name the field \
+                                     instead, e.g. `#[account(maker = maker)]`.",
                                 ));
                             }
                             let value = meta.value()?;

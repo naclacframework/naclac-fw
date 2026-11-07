@@ -78,29 +78,31 @@ impl VisitMut for MathRewriter {
         if let Expr::Macro(expr_macro) = &expr {
             if expr_macro.mac.path.is_ident("with_error") {
                 match syn::parse2::<WithErrorArgs>(expr_macro.mac.tokens.clone()) {
-                    Ok(WithErrorArgs { error_lit, mut inner }) => {
-                        match syn::parse_str::<syn::Path>(&error_lit.value()) {
-                            Ok(path) => {
-                                let saved = core::mem::replace(&mut self.error_expr, quote! { #path });
-                                self.visit_expr_mut(&mut inner);
-                                self.error_expr = saved;
-                                *expr = inner;
-                            }
-                            Err(_) => {
-                                self.errors.push(Error::new(
-                                    error_lit.span(),
-                                    format!(
-                                        "[naclac::system] Could not parse `with_error!(\"{}\", ...)`'s \
-                                         first argument as a Rust path.",
-                                        error_lit.value()
-                                    ),
-                                ));
-                            }
+                    Ok(WithErrorArgs {
+                        error_lit,
+                        mut inner,
+                    }) => match syn::parse_str::<syn::Path>(&error_lit.value()) {
+                        Ok(path) => {
+                            let saved = core::mem::replace(&mut self.error_expr, quote! { #path });
+                            self.visit_expr_mut(&mut inner);
+                            self.error_expr = saved;
+                            *expr = inner;
                         }
-                    }
+                        Err(_) => {
+                            self.errors.push(Error::new(
+                                error_lit.span(),
+                                format!(
+                                    "Naclac Error: `with_error!(\"{}\", ...)` needs a Rust \
+                                         path as its first argument.",
+                                    error_lit.value()
+                                ),
+                            ));
+                        }
+                    },
                     Err(e) => self.errors.push(Error::new(
                         e.span(),
-                        "[naclac::system] `with_error!` expects exactly `with_error!(\"path::to::Error\", expr)`.",
+                        "Naclac Error: `with_error!` takes `with_error!(\"path::to::Error\", \
+                         expr)`.",
                     )),
                 }
                 return;

@@ -277,11 +277,8 @@ fn borsh_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
             "ZcString"
         };
         let msg = format!(
-            "Naclac Error: argument '{}' uses a zero-copy-only type ('{}') in a \
-                             Borsh-mode instruction. These are views (pointer + length) into the \
-                             current instruction's byte buffer with no bytes of their own to \
-                             serialize — real Borsh already decodes 'Vec<T>'/'String' natively, so \
-                             use one of those instead.",
+            "Naclac Error: argument '{}' has type '{}', which Borsh can't encode (it is a view \
+             into the instruction data). Use Vec<T> or String.",
             name, found_ty
         );
         quote! {
@@ -289,18 +286,13 @@ fn borsh_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
         }
     } else if let Some(field_name) = &opaque_zc_field {
         let msg = format!(
-                            "Naclac Error: argument '{}' has type '{}', whose own field '{}' uses a \
-                             zero-copy-only type ('ZcVec<T>'/'ZcString') in a Borsh-mode \
-                             instruction. These are views (pointer + length) into the current \
-                             instruction's byte buffer with no bytes of their own to serialize — real \
-                             Borsh already decodes 'Vec<T>'/'String' natively, so use one of those \
-                             instead of '{}' in '{}'.",
-                            name,
-                            quote! { #ty },
-                            field_name,
-                            field_name,
-                            quote! { #ty },
-                        );
+            "Naclac Error: argument '{}' has type '{}', whose field '{}' is \
+                             ZcVec/ZcString, which Borsh can't encode. Use Vec<T> or String \
+                             there.",
+            name,
+            quote! { #ty },
+            field_name,
+        );
         quote! {
             let #name: #ty = { compile_error!(#msg); (|| -> #ty { unreachable!() })() };
         }
@@ -330,10 +322,8 @@ fn wincode_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
             "ZcString"
         };
         let msg = format!(
-            "Naclac Error: argument '{}' uses a zero-copy-only type ('{}') in a \
-                             Wincode-mode instruction. These are views (pointer + length) into the \
-                             current instruction's byte buffer with no bytes of their own to \
-                             serialize — use 'Vec<T>'/'String' instead.",
+            "Naclac Error: argument '{}' has type '{}', which Wincode can't encode (it is a \
+             view into the instruction data). Use Vec<T> or String.",
             name, found_ty
         );
         quote! {
@@ -341,17 +331,13 @@ fn wincode_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
         }
     } else if let Some(field_name) = &opaque_zc_field {
         let msg = format!(
-                            "Naclac Error: argument '{}' has type '{}', whose own field '{}' uses a \
-                             zero-copy-only type ('ZcVec<T>'/'ZcString') in a Wincode-mode \
-                             instruction. These are views (pointer + length) into the current \
-                             instruction's byte buffer with no bytes of their own to serialize — use \
-                             'Vec<T>'/'String' instead of '{}' in '{}'.",
-                            name,
-                            quote! { #ty },
-                            field_name,
-                            field_name,
-                            quote! { #ty },
-                        );
+            "Naclac Error: argument '{}' has type '{}', whose field '{}' is \
+                             ZcVec/ZcString, which Wincode can't encode. Use Vec<T> or String \
+                             there.",
+            name,
+            quote! { #ty },
+            field_name,
+        );
         quote! {
             let #name: #ty = { compile_error!(#msg); (|| -> #ty { unreachable!() })() };
         }

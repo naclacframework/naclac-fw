@@ -64,9 +64,9 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
 
         #[cfg(not(any(feature = "bytemuck", feature = "borsh", feature = "wincode")))]
         compile_error!(
-            "naclac: this program declares no account-data layout. Add one of the `bytemuck`, \
-             `borsh` or `wincode` features to its Cargo.toml, forwarded to `naclac-lang` \
-             (for example `bytemuck = [\"naclac-lang/bytemuck\"]`), and enable it by default."
+            "Naclac Error: this program declares no account-data layout. Add a `bytemuck`, \
+             `borsh` or `wincode` feature forwarded to `naclac-lang` (e.g. `bytemuck = \
+             [\"naclac-lang/bytemuck\"]`), enabled by default."
         );
 
         #[cfg(feature = "solana")]
