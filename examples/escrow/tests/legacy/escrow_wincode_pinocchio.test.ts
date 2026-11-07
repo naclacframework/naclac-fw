@@ -61,8 +61,9 @@ describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
   // FLOW 1: Make & Cancel
   // ===========================================================================
   it("1. Run Make & Cancel Flow", async () => {
-    const seedCancel = 789012n;
-    const [escrowPdaCancelPubkey, escrowBumpCancel] = await client.getEscrowStatePda({ maker: makerAddress, seed: seedCancel });
+    let idCancel = 1n;
+    while ((await client.getEscrowStatePda({ maker: makerAddress, id: idCancel }))[1] !== 255) idCancel++;
+    const [escrowPdaCancelPubkey, escrowBumpCancel] = await client.getEscrowStatePda({ maker: makerAddress, id: idCancel });
     const escrowPdaCancel = escrowPdaCancelPubkey.toBase58();
 
     // Initialize the vault ATA (idempotent)
@@ -95,7 +96,7 @@ describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
 
       await client
         .make(
-          { seed: seedCancel, amountA: amountACancel, amountB: amountBCancel },
+          { id: idCancel, amountA: amountACancel, amountB: amountBCancel },
           {
             maker: makerAddress,
             mintA,
@@ -129,7 +130,7 @@ describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
 
     await client
       .cancel(
-        { seed: seedCancel },
+        { id: idCancel },
         {
           maker: makerAddress,
           mintA,
@@ -165,8 +166,9 @@ describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
   // FLOW 2: Make & Take
   // ===========================================================================
   it("2. Run Make & Take Flow", async () => {
-    const seedTake = 123456n;
-    const [escrowPdaTakePubkey, escrowBumpTake] = await client.getEscrowStatePda({ maker: makerAddress, seed: seedTake });
+    let idTake = 1000n;
+    while ((await client.getEscrowStatePda({ maker: makerAddress, id: idTake }))[1] !== 255) idTake++;
+    const [escrowPdaTakePubkey, escrowBumpTake] = await client.getEscrowStatePda({ maker: makerAddress, id: idTake });
     const escrowPdaTake = escrowPdaTakePubkey.toBase58();
 
     console.log(`      Derived Escrow PDA (Take): ${escrowPdaTake} (Bump: ${escrowBumpTake})`);
@@ -215,7 +217,7 @@ describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
 
       await client
         .make(
-          { seed: seedTake, amountA: amountATake, amountB: amountBTake },
+          { id: idTake, amountA: amountATake, amountB: amountBTake },
           {
             maker: makerAddress,
             mintA: effectiveMintA,
@@ -274,7 +276,7 @@ describe("Naclac EscrowWincodePinocchio Test Suite (Legacy)", () => {
 
     await client
       .take(
-        { seed: seedTake },
+        { id: idTake },
         {
           taker: takerKeypair.publicKey.toBase58(),
           maker: makerAddress,

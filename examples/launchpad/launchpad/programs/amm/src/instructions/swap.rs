@@ -2,8 +2,11 @@
 
 use {
     crate::{
-        constants::SEED_POOL, errors::AmmError, events::SwapExecuted,
-        state::pool_state::PoolState, systems::process_swap_output,
+        constants::SEED_POOL,
+        errors::AmmError,
+        events::SwapExecuted,
+        state::pool_state::PoolState,
+        systems::{process_swap_output, require_reserve_product_not_lower, SWAP_FEE_BPS},
     },
     naclac_lang::prelude::*,
 };
@@ -19,37 +22,43 @@ pub struct Swap {
     )]
     pub pool_state: Account<PoolState>,
 
-    pub token_a_mint: Account<Mint>,
-    pub token_b_mint: Account<Mint>,
+    #[account(mint::token_program = token_program_a)]
+    pub token_a_mint: InterfaceAccount<Mint>,
+
+    #[account(mint::token_program = token_program_b)]
+    pub token_b_mint: InterfaceAccount<Mint>,
 
     #[account(
         mut,
         token::authority = pool_state,
     )]
-    pub pool_source_vault: Account<TokenAccount>,
+    pub pool_source_vault: InterfaceAccount<TokenAccount>,
 
     #[account(
         mut,
         token::authority = pool_state,
     )]
-    pub pool_destination_vault: Account<TokenAccount>,
+    pub pool_destination_vault: InterfaceAccount<TokenAccount>,
 
     #[account(
         mut,
         token::authority = user,
     )]
-    pub user_source_token: Account<TokenAccount>,
+    pub user_source_token: InterfaceAccount<TokenAccount>,
 
     #[account(
         mut,
         token::authority = user,
     )]
-    pub user_destination_token: Account<TokenAccount>,
+    pub user_destination_token: InterfaceAccount<TokenAccount>,
 
-    pub token_program: Program<Token>,
+    pub token_program_a: Interface<TokenInterface>,
+    pub token_program_b: Interface<TokenInterface>,
 }
 
 /// Swaps an exact input amount of one pool token for output tokens of the other.
+/// The input leg moves through the token program of the input mint and the
+/// output leg through the token program of the output mint.
 pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Result {
     require!(amount_in > 0, AmmError::ZeroAmount);
 
@@ -73,16 +82,26 @@ pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Resu
     let x = ctx.accounts.pool_source_vault.amount();
     let y = ctx.accounts.pool_destination_vault.amount();
 
-    let amount_out = process_swap_output(x, y, amount_in)?;
+    let amount_out = process_swap_output(x, y, amount_in, SWAP_FEE_BPS)?;
+    require!(amount_out > 0, AmmError::ZeroAmount);
     require!(amount_out >= minimum_amount_out, AmmError::SlippageExceeded);
+    require_reserve_product_not_lower(x, y, amount_in, amount_out)?;
 
     let source_is_token_a = ctx.accounts.pool_source_vault.mint() == ctx.accounts.token_a_mint.address();
-    let source_mint = if source_is_token_a { &ctx.accounts.token_a_mint } else { &ctx.accounts.token_b_mint };
-    let destination_mint = if source_is_token_a { &ctx.accounts.token_b_mint } else { &ctx.accounts.token_a_mint };
+    let (source_mint, destination_mint) = if source_is_token_a {
+        (&ctx.accounts.token_a_mint, &ctx.accounts.token_b_mint)
+    } else {
+        (&ctx.accounts.token_b_mint, &ctx.accounts.token_a_mint)
+    };
+    let (source_program, destination_program) = if source_is_token_a {
+        (&ctx.accounts.token_program_a, &ctx.accounts.token_program_b)
+    } else {
+        (&ctx.accounts.token_program_b, &ctx.accounts.token_program_a)
+    };
     let source_decimals = source_mint.decimals();
     let destination_decimals = destination_mint.decimals();
 
-    ctx.accounts.token_program.transfer_checked(
+    source_program.transfer_checked(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.user_source_token,
             mint: source_mint,
@@ -105,7 +124,7 @@ pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Resu
     ];
     let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
 
-    ctx.accounts.token_program.transfer_checked_signed(
+    destination_program.transfer_checked_signed(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.pool_destination_vault,
             mint: destination_mint,

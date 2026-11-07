@@ -643,13 +643,15 @@ macro_rules! cpi_signers_from_seeds {
         if $seeds.len() > $crate::prelude::MAX_CPI_SIGNERS {
             return Err($crate::prelude::NaclacError::TooManyCpiSigners.into());
         }
-        let mut __signers: [::pinocchio::cpi::Signer; $crate::prelude::MAX_CPI_SIGNERS] =
-            unsafe { core::mem::zeroed() };
-        let mut __seeds_buffer: [::pinocchio::cpi::Seed;
-            $crate::prelude::MAX_CPI_SEEDS_PER_SIGNER * $crate::prelude::MAX_CPI_SIGNERS] =
-            unsafe { core::mem::zeroed() };
+        const __SIGNER_SLOTS: usize = $crate::prelude::MAX_CPI_SIGNERS;
+        const __SEED_SLOTS: usize = $crate::prelude::MAX_CPI_SEEDS_PER_SIGNER * __SIGNER_SLOTS;
+        let mut __signers: [core::mem::MaybeUninit<::pinocchio::cpi::Signer>; __SIGNER_SLOTS] =
+            [const { core::mem::MaybeUninit::uninit() }; __SIGNER_SLOTS];
+        let mut __seeds_buffer: [core::mem::MaybeUninit<::pinocchio::cpi::Seed>; __SEED_SLOTS] =
+            [const { core::mem::MaybeUninit::uninit() }; __SEED_SLOTS];
 
-        let mut __remaining: &mut [::pinocchio::cpi::Seed] = &mut __seeds_buffer;
+        let mut __remaining: &mut [core::mem::MaybeUninit<::pinocchio::cpi::Seed>] =
+            &mut __seeds_buffer;
         for (__slot, seed_parts) in __signers.iter_mut().zip($seeds.iter()) {
             if seed_parts.len() > $crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
                 return Err($crate::prelude::NaclacError::TooManyCpiSeeds.into());
@@ -660,15 +662,27 @@ macro_rules! cpi_signers_from_seeds {
                 return Err($crate::prelude::NaclacError::TooManyCpiSeeds.into());
             };
             for (__dst, part) in __mine.iter_mut().zip(seed_parts.iter()) {
-                *__dst = ::pinocchio::cpi::Seed::from(*part);
+                __dst.write(::pinocchio::cpi::Seed::from(*part));
             }
-            *__slot = ::pinocchio::cpi::Signer::from(&*__mine);
+            // SAFETY: `__mine` is `seed_parts.len()` long and the loop above
+            // wrote every element.
+            let __mine: &[::pinocchio::cpi::Seed] = unsafe {
+                core::slice::from_raw_parts(
+                    __mine.as_ptr() as *const ::pinocchio::cpi::Seed,
+                    __mine.len(),
+                )
+            };
+            __slot.write(::pinocchio::cpi::Signer::from(__mine));
             __remaining = __tail;
         }
 
-        let $signers_var: &[::pinocchio::cpi::Signer] = match __signers.get(..$seeds.len()) {
-            Some(signers) => signers,
-            None => return Err($crate::prelude::NaclacError::TooManyCpiSigners.into()),
+        // SAFETY: `$seeds.len() <= MAX_CPI_SIGNERS` was checked above, so the
+        // loop wrote the first `$seeds.len()` signers.
+        let $signers_var: &[::pinocchio::cpi::Signer] = unsafe {
+            core::slice::from_raw_parts(
+                __signers.as_ptr() as *const ::pinocchio::cpi::Signer,
+                $seeds.len(),
+            )
         };
     };
 }

@@ -8,7 +8,7 @@ export const TAKE_DISCRIMINATOR = new Uint8Array([149, 226, 52, 104, 6, 142, 230
 
 /** Instruction arguments for `take`. */
 export interface TakeArgs {
-  seed: bigint | number;
+  id: bigint | number;
 }
 
 /** Accounts for the `take` instruction. */

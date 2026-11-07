@@ -12,7 +12,7 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct CancelIxArgs {
-    pub seed: u64,
+    pub id: u64,
 }
 
 #[cfg(feature = "offchain")]
@@ -33,7 +33,7 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct CancelCpiIxArgs {
-    pub seed: u64,
+    pub id: u64,
 }
 
 #[cfg(feature = "cpi")]
@@ -58,12 +58,12 @@ pub struct CancelAccounts {
 pub fn build_cancel<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
-    seed: u64,
+    id: u64,
     accounts: CancelAccounts,
 ) -> naclac_client::InstructionBuilder<'a> {
     let mut ix_data = crate::sdk_core_offchain::vec![232, 219, 223, 41, 219, 236, 220, 190];
     let args = CancelIxArgs {
-        seed,
+        id,
     };
     #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
@@ -101,7 +101,7 @@ pub struct CancelCpiAccounts<'a> {
 #[cfg(feature = "cpi")]
 pub struct CancelCpiCall<'a> {
     pub accounts: CancelCpiAccounts<'a>,
-    pub seed: u64,
+    pub id: u64,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
@@ -111,11 +111,11 @@ pub trait CancelCpi<'info> {
     fn cancel<'a>(
         &self,
         accounts: CancelCpiAccounts<'a>,
-        seed: u64
+        id: u64
     ) -> crate::sdk_core_cpi::Result<()> {
         self.cancel_with_remaining_accounts(CancelCpiCall {
         accounts,
-        seed,
+        id,
         signer_seeds: &[],
         remaining_accounts: &[],
     })
@@ -124,12 +124,12 @@ pub trait CancelCpi<'info> {
     fn cancel_signed<'a>(
         &self,
         accounts: CancelCpiAccounts<'a>,
-        seed: u64,
+        id: u64,
         signer_seeds: &[&[&[u8]]]
     ) -> crate::sdk_core_cpi::Result<()> {
         self.cancel_with_remaining_accounts(CancelCpiCall {
         accounts,
-        seed,
+        id,
         signer_seeds,
         remaining_accounts: &[],
     })
@@ -148,9 +148,9 @@ impl<'info> CancelCpi<'info> for crate::sdk_core_cpi::Program<crate::EscrowBorsh
         &self,
         call: CancelCpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        let CancelCpiCall { accounts, seed, signer_seeds, remaining_accounts } = call;
+        let CancelCpiCall { accounts, id, signer_seeds, remaining_accounts } = call;
         let args = CancelCpiIxArgs {
-            seed,
+            id,
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[232, 219, 223, 41, 219, 236, 220, 190]);

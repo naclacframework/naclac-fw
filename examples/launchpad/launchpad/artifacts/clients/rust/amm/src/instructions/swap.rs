@@ -47,6 +47,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for SwapCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
 /// Swaps an exact input amount of one pool token for output tokens of the other.
+/// The input leg moves through the token program of the input mint and the
+/// output leg through the token program of the output mint.
 pub struct SwapAccounts {
     pub user: naclac_client::Address,
     pub pool_state: naclac_client::Address,
@@ -56,11 +58,14 @@ pub struct SwapAccounts {
     pub pool_destination_vault: naclac_client::Address,
     pub user_source_token: naclac_client::Address,
     pub user_destination_token: naclac_client::Address,
-    pub token_program: naclac_client::Address,
+    pub token_program_a: naclac_client::Address,
+    pub token_program_b: naclac_client::Address,
 }
 
 #[cfg(feature = "offchain")]
 /// Swaps an exact input amount of one pool token for output tokens of the other.
+/// The input leg moves through the token program of the input mint and the
+/// output leg through the token program of the output mint.
 pub fn build_swap<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
@@ -94,11 +99,14 @@ pub fn build_swap<'a>(
         .account(naclac_client::AccountMeta { address: accounts.pool_destination_vault, is_signer: false, is_writable: true }, "pool_destination_vault")
         .account(naclac_client::AccountMeta { address: accounts.user_source_token, is_signer: false, is_writable: true }, "user_source_token")
         .account(naclac_client::AccountMeta { address: accounts.user_destination_token, is_signer: false, is_writable: true }, "user_destination_token")
-        .account(naclac_client::AccountMeta { address: accounts.token_program, is_signer: false, is_writable: false }, "token_program")
+        .account(naclac_client::AccountMeta { address: accounts.token_program_a, is_signer: false, is_writable: false }, "token_program_a")
+        .account(naclac_client::AccountMeta { address: accounts.token_program_b, is_signer: false, is_writable: false }, "token_program_b")
 }
 
 #[cfg(feature = "cpi")]
 /// Swaps an exact input amount of one pool token for output tokens of the other.
+/// The input leg moves through the token program of the input mint and the
+/// output leg through the token program of the output mint.
 pub struct SwapCpiAccounts<'a> {
     pub user: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub pool_state: crate::sdk_core_cpi::CpiHandle<'a>,
@@ -108,7 +116,8 @@ pub struct SwapCpiAccounts<'a> {
     pub pool_destination_vault: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_source_token: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_destination_token: crate::sdk_core_cpi::CpiHandleMut<'a>,
-    pub token_program: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub token_program_a: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub token_program_b: crate::sdk_core_cpi::CpiHandle<'a>,
 }
 
 #[cfg(feature = "cpi")]
@@ -123,6 +132,8 @@ pub struct SwapCpiCall<'a> {
 #[cfg(feature = "cpi")]
 pub trait SwapCpi<'info> {
     /// Swaps an exact input amount of one pool token for output tokens of the other.
+    /// The input leg moves through the token program of the input mint and the
+    /// output leg through the token program of the output mint.
     fn swap<'a>(
         &self,
         accounts: SwapCpiAccounts<'a>,
@@ -206,7 +217,9 @@ impl<'info> SwapCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             idx += 1;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.user_destination_token.info.view.address()));
             idx += 1;
-            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program_a.info.view.address()));
+            idx += 1;
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program_b.info.view.address()));
             idx += 1;
             for (acc, is_writable, is_signer) in remaining_accounts {
                 if idx >= 32 { break; }
@@ -251,7 +264,9 @@ impl<'info> SwapCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.user_destination_token));
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.token_program);
+            handles_arr[h_idx].write(accounts.token_program_a);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.token_program_b);
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }
@@ -273,7 +288,8 @@ impl<'info> SwapCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.pool_destination_vault.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.user_source_token.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.user_destination_token.address(), false),
-                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program_a.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program_b.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
@@ -306,7 +322,9 @@ impl<'info> SwapCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.user_destination_token));
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.token_program);
+            handles_arr[h_idx].write(accounts.token_program_a);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.token_program_b);
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }

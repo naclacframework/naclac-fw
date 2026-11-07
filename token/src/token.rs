@@ -1312,7 +1312,7 @@ impl Mint {
 /// the account's raw data slice rather than a hydrated `&TokenAccount`/`&Mint`,
 /// since the generated constraint code runs immediately on `AccountInfo` data,
 /// before (and independent of) any typed zero-copy load. This is the single
-/// place naclac-macros' codegen defers to for the actual SPL Token/Token-2022
+/// place naclac-derive' codegen defers to for the actual SPL Token/Token-2022
 /// layout knowledge — the macro only resolves which expression to compare
 /// against and emits the call.
 impl TokenAccount {

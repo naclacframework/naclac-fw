@@ -7,7 +7,7 @@ use {
 };
 
 #[derive(Accounts)]
-#[instruction(seed: u64)]
+#[instruction(id: u64)]
 pub struct Take {
     #[account(mut)]
     pub taker: Signer,
@@ -21,7 +21,7 @@ pub struct Take {
 
     #[account(
         mut,
-        seeds = [SEED_ESCROW, maker.address().as_ref(), &seed.to_le_bytes()],
+        seeds = [SEED_ESCROW, maker.address().as_ref(), &id.to_le_bytes()],
         bump = escrow_state.bump,
         close = maker,
         mint_a = mint_a @ EscrowError::InvalidMint,
@@ -61,7 +61,7 @@ pub struct Take {
     pub system_program: Program<System>,
 }
 
-pub fn take(ctx: Context<Take>, seed: u64) -> Result {
+pub fn take(ctx: Context<Take>, id: u64) -> Result {
     // 1. Taker transfers Token B directly to the Maker
     let decimals_b = ctx.accounts.mint_b.decimals();
     ctx.accounts.token_program.transfer_checked(
@@ -77,7 +77,7 @@ pub fn take(ctx: Context<Take>, seed: u64) -> Result {
 
     // 2. Prepare signer seeds for the escrow state PDA
     let maker_addr = ctx.accounts.maker.address();
-    let seed_bytes = seed.to_le_bytes();
+    let seed_bytes = id.to_le_bytes();
     let seeds: &[&[u8]] = &[
         SEED_ESCROW,
         maker_addr.as_ref(),

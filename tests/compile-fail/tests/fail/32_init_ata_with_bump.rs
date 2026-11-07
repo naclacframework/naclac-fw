@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: macros/src/instruction/init_cpi.rs — an `init`/`init_if_needed`
+// Site: derive/src/accounts/field/init_cpi — an `init`/`init_if_needed`
 // associated-token field with `associated_token::bump = ...`. The real
 // Associated Token Program re-derives and checks the canonical address
 // itself on every `Create`/`CreateIdempotent` CPI, so naclac never reads

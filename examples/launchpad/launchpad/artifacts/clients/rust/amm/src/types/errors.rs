@@ -5,27 +5,30 @@
 pub enum ProgramError {
     /// Invalid mint for the pool.
     InvalidMint,
-    /// Unauthorized action.
-    Unauthorized,
     /// Overflow or math error.
     Overflow,
     /// Zero amount provided.
     ZeroAmount,
     /// Slippage limit exceeded.
     SlippageExceeded,
-    /// The pool is already initialized.
-    AlreadyInitialized,
+    /// The pool's reserves or LP supply cannot satisfy the request.
+    InsufficientLiquidity,
+    /// A Token-2022 mint carries an extension the pool does not accept.
+    UnsupportedMintExtension,
+    /// A swap would lower the product of the pool's reserves.
+    InvariantViolated,
 }
 
 impl ProgramError {
     pub fn from_code(code: u32) -> Option<Self> {
         match code {
             6000 => Some(Self::InvalidMint),
-            6001 => Some(Self::Unauthorized),
-            6002 => Some(Self::Overflow),
-            6003 => Some(Self::ZeroAmount),
-            6004 => Some(Self::SlippageExceeded),
-            6005 => Some(Self::AlreadyInitialized),
+            6001 => Some(Self::Overflow),
+            6002 => Some(Self::ZeroAmount),
+            6003 => Some(Self::SlippageExceeded),
+            6004 => Some(Self::InsufficientLiquidity),
+            6005 => Some(Self::UnsupportedMintExtension),
+            6006 => Some(Self::InvariantViolated),
             _ => None,
         }
     }
@@ -33,11 +36,12 @@ impl ProgramError {
     pub fn message(&self) -> &'static str {
         match self {
             Self::InvalidMint => "Invalid mint for the pool.",
-            Self::Unauthorized => "Unauthorized action.",
             Self::Overflow => "Overflow or math error.",
             Self::ZeroAmount => "Zero amount provided.",
             Self::SlippageExceeded => "Slippage limit exceeded.",
-            Self::AlreadyInitialized => "The pool is already initialized.",
+            Self::InsufficientLiquidity => "The pool's reserves or LP supply cannot satisfy the request.",
+            Self::UnsupportedMintExtension => "A Token-2022 mint carries an extension the pool does not accept.",
+            Self::InvariantViolated => "A swap would lower the product of the pool's reserves.",
         }
     }
 }

@@ -501,16 +501,16 @@ duplicated). Two real bugs found and fixed while first running this:
   `Program<Token>` check correctly rejected the mismatch. Not a framework
   bug — a wrong assumption in the test, generalized from a coincidence.
 - `init_mint_authority`'s bare `bump` never got auto-written back into the
-  account in solana-borsh mode — confirmed via `accounts.rs`'s
+  account in the borsh layout on the solana runtime — confirmed via `accounts.rs`'s
   `mut_zero_copy_fields` gate that the auto-write-back is genuinely
-  zero-copy-only, by design (real `Account<T>` in borsh mode isn't
+  bytemuck-only, by design (real `Account<T>` in the borsh layout isn't
   zero-copy). Fixed by manually writing
   `ctx.accounts.mint_authority.bump = ctx.bumps.mint_authority` in the
   handler — `Context::bumps` (`core/src/context.rs:45`) is populated
-  in every mode, so this is a portable no-op in the two modes where the
+  in every layout, so this is a portable no-op in the two layouts where the
   framework already did it automatically. Worth remembering for any future
   case: an instruction relying on bare `bump`'s auto-write-back needs this
-  explicit line if it's meant to run in solana-borsh mode too.
+  explicit line if it's meant to run in the borsh layout too.
 
 - `init_mint_authority` — sets up a PDA (`MintAuthority`) that owns every
   mint/vault this case creates, mirroring `examples/launchpad`'s
@@ -739,11 +739,11 @@ rather than guessing:
   instruction on the same accounts more than once per test.
 - `init_counter` never wrote `counter.bump` — same class of bug as
   `init_mint_authority` in `tests/token/` (bare `bump`'s auto-write-back is
-  zero-copy-only; solana-borsh mode needs
+  bytemuck-only; the borsh layout needs
   `ctx.accounts.counter.bump = ctx.bumps.counter;` written explicitly).
   This is now the *second* case to hit this exact gotcha — worth treating
   as a standing rule for any future case using bare `bump` on an `init`
-  field meant to run in solana-borsh mode.
+  field meant to run in the borsh layout.
 - Tracing *why* the explicit-bump test caught the bug that bare bump's own
   test didn't (rather than just patching and moving on) surfaced a real,
   confirmed-safe asymmetry: for a **pure-literal, precomputed-PDA seed**
@@ -870,7 +870,7 @@ be "run" the normal way, since an unboxed oversized field fails the whole
 crate's build. The `trybuild` crate has its own `Cargo.toml`/`[workspace]`
 with the `borsh` feature enabled (the asserts only exist when
 `is_zero_copy` is false), separate from the shared `tests/compile-fail/`
-crate, which has no `borsh` feature and is permanently in zero-copy mode —
+crate, which has no `borsh` feature and is permanently in the bytemuck layout —
 it could never reach this code path.
 
 **`compile-fail/` (2 fail + 2 pass fixtures):**

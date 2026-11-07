@@ -22,7 +22,8 @@ export interface SwapAccounts {
   poolDestinationVault: naclac.Address | string;
   userSourceToken: naclac.Address | string;
   userDestinationToken: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
+  tokenProgramA: naclac.Address | string;
+  tokenProgramB: naclac.Address | string;
 }
 
 /**
@@ -30,6 +31,8 @@ export interface SwapAccounts {
  * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
  * 
  * Swaps an exact input amount of one pool token for output tokens of the other.
+ * The input leg moves through the token program of the input mint and the
+ * output leg through the token program of the output mint.
  */
 export function swap(
   program: any,

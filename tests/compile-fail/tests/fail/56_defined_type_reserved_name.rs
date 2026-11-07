@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: macros/src/lib.rs — a `#[defined_type]` named `Bool`, the name
+// Site: derive/src/defined_type/mod.rs — a `#[defined_type]` named `Bool`, the name
 // naclac's IDL and generated clients give to its one-byte boolean.
 use naclac_lang::prelude::*;
 

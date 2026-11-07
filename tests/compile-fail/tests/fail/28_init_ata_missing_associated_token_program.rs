@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: macros/src/instruction/init_cpi.rs — an `init` field with
+// Site: derive/src/accounts/field/init_cpi — an `init` field with
 // `associated_token::mint =`/`associated_token::authority =` but no
 // `associated_token_program: Program<AssociatedToken>` anywhere in the
 // struct. Previously a raw proc-macro panic; now a spanned `syn::Error`.

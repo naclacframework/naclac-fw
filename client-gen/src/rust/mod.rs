@@ -314,7 +314,7 @@ pub fn render_docs(docs: &[String], indent: &str) -> String {
 }
 
 /// How a zero-copy instruction arg gets written into `ix_data`, mirroring
-/// `macros/src/accounts.rs`'s pod/dynamic split for reading it back
+/// `derive/src/accounts`'s pod/dynamic split for reading it back
 /// on-chain.
 pub enum ArgWireKind {
     Pod,

@@ -72,6 +72,37 @@ export class AmmClient {
     return instructions.removeLiquidity(this.program, args ?? {}, accounts);
   }
 
+  /** Derives the PDA for a `depositor_lp` account. Async because PDA derivation is async; resolves to `[PublicKey, bumpSeed]`. */
+  public async getDepositorLpPda(seeds: {
+    payer: naclac.PublicKey | string;
+    lpTokenProgram: naclac.PublicKey | string;
+    lpMint: naclac.PublicKey | string;
+  }): Promise<[naclac.PublicKey, number]> {
+    const [pda, bump] = await naclac.PublicKey.findProgramAddress(
+      [
+                new naclac.PublicKey(seeds.payer).toBytes(),
+        new naclac.PublicKey(seeds.lpTokenProgram).toBytes(),
+        new naclac.PublicKey(seeds.lpMint).toBytes()
+      ],
+      new naclac.PublicKey(new Uint8Array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]))
+    );
+    return [pda, bump];
+  }
+
+  /** Derives the PDA for a `lp_mint` account. Async because PDA derivation is async; resolves to `[PublicKey, bumpSeed]`. */
+  public async getLpMintPda(seeds: {
+    poolState: naclac.PublicKey | string;
+  }): Promise<[naclac.PublicKey, number]> {
+    const [pda, bump] = await naclac.PublicKey.findProgramAddress(
+      [
+                new Uint8Array([108, 112, 95, 109, 105, 110, 116]),
+        new naclac.PublicKey(seeds.poolState).toBytes()
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
   /** Derives the PDA for a `pool_state` account. Async because PDA derivation is async; resolves to `[PublicKey, bumpSeed]`. */
   public async getPoolStatePda(seeds: {
     tokenAMint: naclac.PublicKey | string;
@@ -84,6 +115,38 @@ export class AmmClient {
         new naclac.PublicKey(seeds.tokenAMint).toBytes(),
         new naclac.PublicKey(seeds.tokenBMint).toBytes(),
         new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.id))
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
+  /** Derives the PDA for a `vault_a` account. Async because PDA derivation is async; resolves to `[PublicKey, bumpSeed]`. */
+  public async getVaultAPda(seeds: {
+    poolState: naclac.PublicKey | string;
+    tokenAMint: naclac.PublicKey | string;
+  }): Promise<[naclac.PublicKey, number]> {
+    const [pda, bump] = await naclac.PublicKey.findProgramAddress(
+      [
+                new Uint8Array([118, 97, 117, 108, 116]),
+        new naclac.PublicKey(seeds.poolState).toBytes(),
+        new naclac.PublicKey(seeds.tokenAMint).toBytes()
+      ],
+      this.programId
+    );
+    return [pda, bump];
+  }
+
+  /** Derives the PDA for a `vault_b` account. Async because PDA derivation is async; resolves to `[PublicKey, bumpSeed]`. */
+  public async getVaultBPda(seeds: {
+    poolState: naclac.PublicKey | string;
+    tokenBMint: naclac.PublicKey | string;
+  }): Promise<[naclac.PublicKey, number]> {
+    const [pda, bump] = await naclac.PublicKey.findProgramAddress(
+      [
+                new Uint8Array([118, 97, 117, 108, 116]),
+        new naclac.PublicKey(seeds.poolState).toBytes(),
+        new naclac.PublicKey(seeds.tokenBMint).toBytes()
       ],
       this.programId
     );

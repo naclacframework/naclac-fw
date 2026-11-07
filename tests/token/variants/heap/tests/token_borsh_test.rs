@@ -1966,7 +1966,7 @@ fn token_group_lifecycle_mutates_real_on_chain_state() {
 /// Real end-to-end proof that `init_if_needed` re-validates `mint::decimals`
 /// against an already-existing mint rather than silently accepting whatever
 /// is already there — the gap fixed in
-/// `macros/src/instruction/security.rs`'s Token/Mint Validation block
+/// `derive/src/accounts/field/checks`'s Token/Mint Validation block
 /// (previously gated on `field.init_config.is_none()` alone, which is always
 /// false for an `init_if_needed` field, so this validation never ran for one
 /// at all). First call creates the mint with `decimals = 6`; second call

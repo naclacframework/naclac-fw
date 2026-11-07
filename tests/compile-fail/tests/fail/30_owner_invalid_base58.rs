@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: macros/src/instruction/security.rs — `owner = "..."` with a
+// Site: derive/src/accounts/field/checks/address_owner.rs — `owner = "..."` with a
 // string that doesn't decode as valid base58. Previously a raw proc-macro
 // panic (`.expect()`); now a spanned `syn::Error`.
 use naclac_lang::prelude::*;

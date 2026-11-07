@@ -73,6 +73,35 @@ export class AmmClient {
     return instructions.removeLiquidity(this.program, args ?? {}, accounts);
   }
 
+  /** Derives the PDA for a `depositor_lp` account. */
+  public async getDepositorLpPda(seeds: {
+    payer: naclac.Address | string;
+    lpTokenProgram: naclac.Address | string;
+    lpMint: naclac.Address | string;
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: naclac.address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+      seeds: [
+                new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.payer === 'string' ? naclac.address(seeds.payer) : seeds.payer)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.lpTokenProgram === 'string' ? naclac.address(seeds.lpTokenProgram) : seeds.lpTokenProgram)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.lpMint === 'string' ? naclac.address(seeds.lpMint) : seeds.lpMint))
+      ]
+    });
+  }
+
+  /** Derives the PDA for a `lp_mint` account. */
+  public async getLpMintPda(seeds: {
+    poolState: naclac.Address | string;
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([108, 112, 95, 109, 105, 110, 116]),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.poolState === 'string' ? naclac.address(seeds.poolState) : seeds.poolState))
+      ]
+    });
+  }
+
   /** Derives the PDA for a `pool_state` account. */
   public async getPoolStatePda(seeds: {
     tokenAMint: naclac.Address | string;
@@ -86,6 +115,36 @@ export class AmmClient {
         new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenAMint === 'string' ? naclac.address(seeds.tokenAMint) : seeds.tokenAMint)),
         new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenBMint === 'string' ? naclac.address(seeds.tokenBMint) : seeds.tokenBMint)),
         new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.id))
+      ]
+    });
+  }
+
+  /** Derives the PDA for a `vault_a` account. */
+  public async getVaultAPda(seeds: {
+    poolState: naclac.Address | string;
+    tokenAMint: naclac.Address | string;
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([118, 97, 117, 108, 116]),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.poolState === 'string' ? naclac.address(seeds.poolState) : seeds.poolState)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenAMint === 'string' ? naclac.address(seeds.tokenAMint) : seeds.tokenAMint))
+      ]
+    });
+  }
+
+  /** Derives the PDA for a `vault_b` account. */
+  public async getVaultBPda(seeds: {
+    poolState: naclac.Address | string;
+    tokenBMint: naclac.Address | string;
+  }): Promise<readonly [naclac.Address, number]> {
+    return naclac.getProgramDerivedAddress({
+      programAddress: this.programId,
+      seeds: [
+                new Uint8Array([118, 97, 117, 108, 116]),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.poolState === 'string' ? naclac.address(seeds.poolState) : seeds.poolState)),
+        new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.tokenBMint === 'string' ? naclac.address(seeds.tokenBMint) : seeds.tokenBMint))
       ]
     });
   }

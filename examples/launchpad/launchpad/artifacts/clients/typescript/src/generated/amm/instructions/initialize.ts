@@ -19,14 +19,34 @@ export interface InitializeAccounts {
   tokenAMint: naclac.Address | string;
   tokenBMint: naclac.Address | string;
   poolState?: naclac.Address | string;
-  vaultA: naclac.Address | string;
-  vaultB: naclac.Address | string;
-  lpMint: naclac.Address | string;
+  /**
+   * SAFETY: `init` + `mint::decimals`/`mint::authority` below construct and
+   * validate this account through a CPI to the classic Token program; it is
+   * a raw SPL `Mint` with no naclac discriminator to check.
+   */
+  lpMint?: naclac.Address | string;
+  /**
+   * SAFETY: `init` + `token::*` below create this account and initialise
+   * it through the named token program, at an address only this program can
+   * sign for; it is a raw SPL token account with no naclac discriminator to
+   * check.
+   */
+  vaultA?: naclac.Address | string;
+  /** SAFETY: same as `vault_a`. */
+  vaultB?: naclac.Address | string;
   depositorTokenA: naclac.Address | string;
   depositorTokenB: naclac.Address | string;
-  depositorLp: naclac.Address | string;
-  depositorAuthority: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
+  /**
+   * SAFETY: `init` + `associated_token::*` below have the Associated Token
+   * program create and address-check this account; it is a raw SPL token
+   * account with no naclac discriminator to check. The LP mint is created
+   * in this same instruction, so nobody can create this account first.
+   */
+  depositorLp?: naclac.Address | string;
+  tokenProgramA: naclac.Address | string;
+  tokenProgramB: naclac.Address | string;
+  lpTokenProgram?: naclac.Address | string;
+  associatedTokenProgram?: naclac.Address | string;
   systemProgram?: naclac.Address | string;
 }
 
@@ -34,7 +54,10 @@ export interface InitializeAccounts {
  * Builds the `initialize` instruction pipeline.
  * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
  * 
- * Initializes an AMM pool with initial liquidity and mints corresponding LP tokens to the depositor.
+ * Creates an AMM pool for two mints in ascending address order and seeds it
+ * with `amount_a` and `amount_b` from the payer's token accounts, minting the
+ * first LP shares to the payer. A mint's token program is the one that owns
+ * it, and a Token-2022 mint is accepted only with informational extensions.
  */
 export function initialize(
   program: any,

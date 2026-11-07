@@ -39,10 +39,12 @@ pub fn attach_oracle(ctx: Context<AttachOracle>) -> Result {
             system_program: ctx.accounts.system_program.to_cpi_handle(),
             log_wrapper: None,
         },
-        base_address,
-        lifecycle_checks,
-        base_address_config,
-        results_offset,
+        OracleAdapterArgs {
+            base_address,
+            lifecycle_checks,
+            base_address_config,
+            results_offset,
+        },
         &[],
     )?;
 

@@ -534,17 +534,29 @@ const UPDATE_ORACLE_IX_LEN: usize = 1
     + MAX_EXTRA_ACCOUNT_OPTION_LEN
     + MAX_VALIDATION_RESULTS_OFFSET_OPTION_LEN;
 
+/// The `Oracle` adapter configuration shared by `attach_asset_oracle_signed`
+/// and `attach_collection_oracle_signed`.
+#[derive(Clone, Copy)]
+pub struct OracleAdapterArgs<'a> {
+    pub base_address: Address,
+    pub lifecycle_checks: &'a [(HookableLifecycleEventArg, ExternalCheckResultArg)],
+    pub base_address_config: Option<ExtraAccountArg<'a>>,
+    pub results_offset: Option<ValidationResultsOffsetArg>,
+}
+
 /// Attaches `Oracle` to an `Asset` via `AddExternalPluginAdapterV1`.
-#[allow(clippy::too_many_arguments)]
 pub fn attach_asset_oracle_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
-    base_address: Address,
-    lifecycle_checks: &[(HookableLifecycleEventArg, ExternalCheckResultArg)],
-    base_address_config: Option<ExtraAccountArg<'_>>,
-    results_offset: Option<ValidationResultsOffsetArg>,
+    args: OracleAdapterArgs<'_>,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
+    let OracleAdapterArgs {
+        base_address,
+        lifecycle_checks,
+        base_address_config,
+        results_offset,
+    } = args;
     #[cfg(not(feature = "pinocchio"))]
     {
         let mut data = crate::prelude::Vec::new();
@@ -597,16 +609,18 @@ pub fn attach_asset_oracle_signed(
 }
 
 /// Attaches `Oracle` to a `Collection` via `AddCollectionExternalPluginAdapterV1`.
-#[allow(clippy::too_many_arguments)]
 pub fn attach_collection_oracle_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    base_address: Address,
-    lifecycle_checks: &[(HookableLifecycleEventArg, ExternalCheckResultArg)],
-    base_address_config: Option<ExtraAccountArg<'_>>,
-    results_offset: Option<ValidationResultsOffsetArg>,
+    args: OracleAdapterArgs<'_>,
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
+    let OracleAdapterArgs {
+        base_address,
+        lifecycle_checks,
+        base_address_config,
+        results_offset,
+    } = args;
     #[cfg(not(feature = "pinocchio"))]
     {
         let mut data = crate::prelude::Vec::new();

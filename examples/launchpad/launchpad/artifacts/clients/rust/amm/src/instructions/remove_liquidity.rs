@@ -13,6 +13,8 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct RemoveLiquidityIxArgs {
     pub lp_amount: u64,
+    pub min_amount_a: u64,
+    pub min_amount_b: u64,
 }
 
 #[cfg(feature = "offchain")]
@@ -34,6 +36,8 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct RemoveLiquidityCpiIxArgs {
     pub lp_amount: u64,
+    pub min_amount_a: u64,
+    pub min_amount_b: u64,
 }
 
 #[cfg(feature = "cpi")]
@@ -45,6 +49,7 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for RemoveLiquidityCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
 /// Removes liquidity by burning user's LP tokens and returning proportional pool assets.
+/// Fails unless at least `min_amount_a` and `min_amount_b` are returned.
 pub struct RemoveLiquidityAccounts {
     pub user: naclac_client::Address,
     pub pool_state: naclac_client::Address,
@@ -56,20 +61,27 @@ pub struct RemoveLiquidityAccounts {
     pub user_token_a: naclac_client::Address,
     pub user_token_b: naclac_client::Address,
     pub user_lp: naclac_client::Address,
-    pub token_program: naclac_client::Address,
+    pub token_program_a: naclac_client::Address,
+    pub token_program_b: naclac_client::Address,
+    pub lp_token_program: naclac_client::Address,
 }
 
 #[cfg(feature = "offchain")]
 /// Removes liquidity by burning user's LP tokens and returning proportional pool assets.
+/// Fails unless at least `min_amount_a` and `min_amount_b` are returned.
 pub fn build_remove_liquidity<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
     lp_amount: u64,
+    min_amount_a: u64,
+    min_amount_b: u64,
     accounts: RemoveLiquidityAccounts,
 ) -> naclac_client::InstructionBuilder<'a> {
     let mut ix_data = crate::sdk_core_offchain::vec![80, 85, 209, 72, 24, 206, 177, 108];
     let args = RemoveLiquidityIxArgs {
         lp_amount,
+        min_amount_a,
+        min_amount_b,
     };
     #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
@@ -94,11 +106,14 @@ pub fn build_remove_liquidity<'a>(
         .account(naclac_client::AccountMeta { address: accounts.user_token_a, is_signer: false, is_writable: true }, "user_token_a")
         .account(naclac_client::AccountMeta { address: accounts.user_token_b, is_signer: false, is_writable: true }, "user_token_b")
         .account(naclac_client::AccountMeta { address: accounts.user_lp, is_signer: false, is_writable: true }, "user_lp")
-        .account(naclac_client::AccountMeta { address: accounts.token_program, is_signer: false, is_writable: false }, "token_program")
+        .account(naclac_client::AccountMeta { address: accounts.token_program_a, is_signer: false, is_writable: false }, "token_program_a")
+        .account(naclac_client::AccountMeta { address: accounts.token_program_b, is_signer: false, is_writable: false }, "token_program_b")
+        .account(naclac_client::AccountMeta { address: accounts.lp_token_program, is_signer: false, is_writable: false }, "lp_token_program")
 }
 
 #[cfg(feature = "cpi")]
 /// Removes liquidity by burning user's LP tokens and returning proportional pool assets.
+/// Fails unless at least `min_amount_a` and `min_amount_b` are returned.
 pub struct RemoveLiquidityCpiAccounts<'a> {
     pub user: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub pool_state: crate::sdk_core_cpi::CpiHandleMut<'a>,
@@ -110,13 +125,17 @@ pub struct RemoveLiquidityCpiAccounts<'a> {
     pub user_token_a: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_token_b: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_lp: crate::sdk_core_cpi::CpiHandleMut<'a>,
-    pub token_program: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub token_program_a: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub token_program_b: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub lp_token_program: crate::sdk_core_cpi::CpiHandle<'a>,
 }
 
 #[cfg(feature = "cpi")]
 pub struct RemoveLiquidityCpiCall<'a> {
     pub accounts: RemoveLiquidityCpiAccounts<'a>,
     pub lp_amount: u64,
+    pub min_amount_a: u64,
+    pub min_amount_b: u64,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
@@ -124,14 +143,19 @@ pub struct RemoveLiquidityCpiCall<'a> {
 #[cfg(feature = "cpi")]
 pub trait RemoveLiquidityCpi<'info> {
     /// Removes liquidity by burning user's LP tokens and returning proportional pool assets.
+    /// Fails unless at least `min_amount_a` and `min_amount_b` are returned.
     fn remove_liquidity<'a>(
         &self,
         accounts: RemoveLiquidityCpiAccounts<'a>,
-        lp_amount: u64
+        lp_amount: u64,
+        min_amount_a: u64,
+        min_amount_b: u64
     ) -> crate::sdk_core_cpi::Result<()> {
         self.remove_liquidity_with_remaining_accounts(RemoveLiquidityCpiCall {
         accounts,
         lp_amount,
+        min_amount_a,
+        min_amount_b,
         signer_seeds: &[],
         remaining_accounts: &[],
     })
@@ -141,11 +165,15 @@ pub trait RemoveLiquidityCpi<'info> {
         &self,
         accounts: RemoveLiquidityCpiAccounts<'a>,
         lp_amount: u64,
+        min_amount_a: u64,
+        min_amount_b: u64,
         signer_seeds: &[&[&[u8]]]
     ) -> crate::sdk_core_cpi::Result<()> {
         self.remove_liquidity_with_remaining_accounts(RemoveLiquidityCpiCall {
         accounts,
         lp_amount,
+        min_amount_a,
+        min_amount_b,
         signer_seeds,
         remaining_accounts: &[],
     })
@@ -164,9 +192,11 @@ impl<'info> RemoveLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Am
         &self,
         call: RemoveLiquidityCpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        let RemoveLiquidityCpiCall { accounts, lp_amount, signer_seeds, remaining_accounts } = call;
+        let RemoveLiquidityCpiCall { accounts, lp_amount, min_amount_a, min_amount_b, signer_seeds, remaining_accounts } = call;
         let args = RemoveLiquidityCpiIxArgs {
             lp_amount,
+            min_amount_a,
+            min_amount_b,
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[80, 85, 209, 72, 24, 206, 177, 108]);
@@ -206,7 +236,11 @@ impl<'info> RemoveLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Am
             idx += 1;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.user_lp.info.view.address()));
             idx += 1;
-            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program_a.info.view.address()));
+            idx += 1;
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program_b.info.view.address()));
+            idx += 1;
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.lp_token_program.info.view.address()));
             idx += 1;
             for (acc, is_writable, is_signer) in remaining_accounts {
                 if idx >= 32 { break; }
@@ -255,7 +289,11 @@ impl<'info> RemoveLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Am
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.user_lp));
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.token_program);
+            handles_arr[h_idx].write(accounts.token_program_a);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.token_program_b);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.lp_token_program);
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }
@@ -279,7 +317,9 @@ impl<'info> RemoveLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Am
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.user_token_a.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.user_token_b.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.user_lp.address(), false),
-                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program_a.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program_b.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.lp_token_program.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
@@ -316,7 +356,11 @@ impl<'info> RemoveLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Am
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.user_lp));
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.token_program);
+            handles_arr[h_idx].write(accounts.token_program_a);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.token_program_b);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.lp_token_program);
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }

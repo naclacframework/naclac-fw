@@ -9,7 +9,7 @@ import * as types from "./types";
 
 /**
  * High-level client for the `escrow_borsh` program.
- * Uses the classic @solana/web3.js (v1) transaction model.
+ * Uses the classic @solana/web3.js (v3) transaction model.
  */
 export class EscrowBorshClient {
   public readonly program: naclac.LegacyProgram;
@@ -64,16 +64,16 @@ export class EscrowBorshClient {
     return instructions.cancel(this.program, args ?? {}, accounts);
   }
 
-  /** Derives the PDA for a `escrow_state` account. Returns `[PublicKey, bumpSeed]`. */
-  public getEscrowStatePda(seeds: {
+  /** Derives the PDA for a `escrow_state` account. Async because PDA derivation is async; resolves to `[PublicKey, bumpSeed]`. */
+  public async getEscrowStatePda(seeds: {
     maker: naclac.PublicKey | string;
-    seed: bigint | number;
-  }): [naclac.PublicKey, number] {
-    const [pda, bump] = naclac.PublicKey.findProgramAddressSync(
+    id: bigint | number;
+  }): Promise<[naclac.PublicKey, number]> {
+    const [pda, bump] = await naclac.PublicKey.findProgramAddress(
       [
                 new Uint8Array([101, 115, 99, 114, 111, 119]),
-        new naclac.PublicKey(seeds.maker).toBuffer(),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.seed))
+        new naclac.PublicKey(seeds.maker).toBytes(),
+        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.id))
       ],
       this.programId
     );
@@ -111,9 +111,14 @@ export class EscrowBorshClient {
     return this.program.waitForEvent<types.EscrowCancelled>("EscrowCancelled", options);
   }
 
-  /** Decodes every `EscrowCancelled` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowCancelled` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
-  public parseEscrowCancelledEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
-    return this.program.parseEvents<types.EscrowCancelled>("EscrowCancelled", logs, innerInstructions);
+  /** Decodes every `EscrowCancelled` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowCancelled` — prefer this when you already know which transaction you're checking. */
+  public parseEscrowCancelledEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.EscrowCancelled>("EscrowCancelled", logs);
+  }
+
+  /** Like `parseEscrowCancelledEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseEscrowCancelledEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.EscrowCancelled[]> {
+    return this.program.parseEventsFromTransaction<types.EscrowCancelled>("EscrowCancelled", tx);
   }
 
   /** Subscribes to `EscrowCreated` events. Returns a listener ID. */
@@ -126,9 +131,14 @@ export class EscrowBorshClient {
     return this.program.waitForEvent<types.EscrowCreated>("EscrowCreated", options);
   }
 
-  /** Decodes every `EscrowCreated` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowCreated` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
-  public parseEscrowCreatedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
-    return this.program.parseEvents<types.EscrowCreated>("EscrowCreated", logs, innerInstructions);
+  /** Decodes every `EscrowCreated` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowCreated` — prefer this when you already know which transaction you're checking. */
+  public parseEscrowCreatedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.EscrowCreated>("EscrowCreated", logs);
+  }
+
+  /** Like `parseEscrowCreatedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseEscrowCreatedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.EscrowCreated[]> {
+    return this.program.parseEventsFromTransaction<types.EscrowCreated>("EscrowCreated", tx);
   }
 
   /** Subscribes to `EscrowExchanged` events. Returns a listener ID. */
@@ -141,9 +151,14 @@ export class EscrowBorshClient {
     return this.program.waitForEvent<types.EscrowExchanged>("EscrowExchanged", options);
   }
 
-  /** Decodes every `EscrowExchanged` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowExchanged` — prefer this when you already know which transaction you're checking. Pass `.rpc()`'s returned `innerInstructions` as well to also decode events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. */
-  public parseEscrowExchangedEvents(logs: readonly string[], innerInstructions?: readonly naclac.NaclacInnerInstruction[]) {
-    return this.program.parseEvents<types.EscrowExchanged>("EscrowExchanged", logs, innerInstructions);
+  /** Decodes every `EscrowExchanged` event found in an already-fetched list of transaction log lines (e.g. `.rpc()`'s returned `logs`). Race-free, unlike `waitForEscrowExchanged` — prefer this when you already know which transaction you're checking. */
+  public parseEscrowExchangedEvents(logs: readonly string[]) {
+    return this.program.parseEvents<types.EscrowExchanged>("EscrowExchanged", logs);
+  }
+
+  /** Like `parseEscrowExchangedEvents`, but also decodes events the program emitted as self-CPIs (`emit_cpi!`), which never appear in the logs. Pass `.rpc()`'s returned `logs` and `innerInstructions`. Async because the program's `event_authority` PDA has to be derived. */
+  public async parseEscrowExchangedEventsFromTransaction(tx: { logs: readonly string[]; innerInstructions?: readonly naclac.NaclacInnerInstruction[] }): Promise<types.EscrowExchanged[]> {
+    return this.program.parseEventsFromTransaction<types.EscrowExchanged>("EscrowExchanged", tx);
   }
 
   /** Removes a registered event listener by its ID. */

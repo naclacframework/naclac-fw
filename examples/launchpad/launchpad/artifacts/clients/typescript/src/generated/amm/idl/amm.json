@@ -10,7 +10,10 @@
     {
       "name": "initialize",
       "docs": [
-        "Initializes an AMM pool with initial liquidity and mints corresponding LP tokens to the depositor."
+        "Creates an AMM pool for two mints in ascending address order and seeds it",
+        "with `amount_a` and `amount_b` from the payer's token accounts, minting the",
+        "first LP shares to the payer. A mint's token program is the one that owns",
+        "it, and a Token-2022 mint is accepted only with informational extensions."
       ],
       "discriminator": [175,175,109,31,13,152,155,237],
       "accounts": [
@@ -28,14 +31,76 @@
             ]
           }
         },
-        { "name": "vault_a", "writable": true },
-        { "name": "vault_b", "writable": true },
-        { "name": "lp_mint", "writable": true },
+        {
+          "name": "lp_mint",
+          "docs": [
+            "SAFETY: `init` + `mint::decimals`/`mint::authority` below construct and",
+            "validate this account through a CPI to the classic Token program; it is",
+            "a raw SPL `Mint` with no naclac discriminator to check."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [108,112,95,109,105,110,116], "name": "SEED_LP_MINT" },
+              { "kind": "account", "path": "pool_state" }
+            ]
+          }
+        },
+        {
+          "name": "vault_a",
+          "docs": [
+            "SAFETY: `init` + `token::*` below create this account and initialise",
+            "it through the named token program, at an address only this program can",
+            "sign for; it is a raw SPL token account with no naclac discriminator to",
+            "check."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [118,97,117,108,116], "name": "SEED_VAULT" },
+              { "kind": "account", "path": "pool_state" },
+              { "kind": "account", "path": "token_a_mint" }
+            ]
+          }
+        },
+        {
+          "name": "vault_b",
+          "docs": [
+            "SAFETY: same as `vault_a`."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "const", "value": [118,97,117,108,116], "name": "SEED_VAULT" },
+              { "kind": "account", "path": "pool_state" },
+              { "kind": "account", "path": "token_b_mint" }
+            ]
+          }
+        },
         { "name": "depositor_token_a", "writable": true },
         { "name": "depositor_token_b", "writable": true },
-        { "name": "depositor_lp", "writable": true },
-        { "name": "depositor_authority", "signer": true },
-        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        {
+          "name": "depositor_lp",
+          "docs": [
+            "SAFETY: `init` + `associated_token::*` below have the Associated Token",
+            "program create and address-check this account; it is a raw SPL token",
+            "account with no naclac discriminator to check. The LP mint is created",
+            "in this same instruction, so nobody can create this account first."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              { "kind": "account", "path": "payer" },
+              { "kind": "account", "path": "lp_token_program" },
+              { "kind": "account", "path": "lp_mint" }
+            ],
+            "program": { "kind": "const", "value": [140,151,37,143,78,36,137,241,187,61,16,41,20,142,13,131,11,90,19,153,218,255,16,132,4,142,123,216,219,233,248,89] }
+          }
+        },
+        { "name": "token_program_a" },
+        { "name": "token_program_b" },
+        { "name": "lp_token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "associated_token_program", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" },
         { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
@@ -47,7 +112,9 @@
     {
       "name": "swap",
       "docs": [
-        "Swaps an exact input amount of one pool token for output tokens of the other."
+        "Swaps an exact input amount of one pool token for output tokens of the other.",
+        "The input leg moves through the token program of the input mint and the",
+        "output leg through the token program of the output mint."
       ],
       "discriminator": [248,198,158,145,225,117,135,200],
       "accounts": [
@@ -59,7 +126,8 @@
         { "name": "pool_destination_vault", "writable": true },
         { "name": "user_source_token", "writable": true },
         { "name": "user_destination_token", "writable": true },
-        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
+        { "name": "token_program_a" },
+        { "name": "token_program_b" }
       ],
       "args": [
         { "name": "amount_in", "type": "u64" },
@@ -69,7 +137,9 @@
     {
       "name": "add_liquidity",
       "docs": [
-        "Adds liquidity to the AMM pool proportionally and mints LP tokens to the user."
+        "Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.",
+        "Takes at most `max_amount_a` and `max_amount_b`, and fails unless at least",
+        "`min_lp` shares are minted."
       ],
       "discriminator": [181,157,89,67,143,182,52,72],
       "accounts": [
@@ -83,17 +153,21 @@
         { "name": "user_token_a", "writable": true },
         { "name": "user_token_b", "writable": true },
         { "name": "user_lp", "writable": true },
-        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
+        { "name": "token_program_a" },
+        { "name": "token_program_b" },
+        { "name": "lp_token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
       ],
       "args": [
         { "name": "max_amount_a", "type": "u64" },
-        { "name": "max_amount_b", "type": "u64" }
+        { "name": "max_amount_b", "type": "u64" },
+        { "name": "min_lp", "type": "u64" }
       ]
     },
     {
       "name": "remove_liquidity",
       "docs": [
-        "Removes liquidity by burning user's LP tokens and returning proportional pool assets."
+        "Removes liquidity by burning user's LP tokens and returning proportional pool assets.",
+        "Fails unless at least `min_amount_a` and `min_amount_b` are returned."
       ],
       "discriminator": [80,85,209,72,24,206,177,108],
       "accounts": [
@@ -107,10 +181,14 @@
         { "name": "user_token_a", "writable": true },
         { "name": "user_token_b", "writable": true },
         { "name": "user_lp", "writable": true },
-        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
+        { "name": "token_program_a" },
+        { "name": "token_program_b" },
+        { "name": "lp_token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
       ],
       "args": [
-        { "name": "lp_amount", "type": "u64" }
+        { "name": "lp_amount", "type": "u64" },
+        { "name": "min_amount_a", "type": "u64" },
+        { "name": "min_amount_b", "type": "u64" }
       ]
     }
   ],
@@ -182,39 +260,70 @@
     },
     {
       "code": 6001,
-      "name": "Unauthorized",
-      "msg": "Unauthorized action."
-    },
-    {
-      "code": 6002,
       "name": "Overflow",
       "msg": "Overflow or math error."
     },
     {
-      "code": 6003,
+      "code": 6002,
       "name": "ZeroAmount",
       "msg": "Zero amount provided."
     },
     {
-      "code": 6004,
+      "code": 6003,
       "name": "SlippageExceeded",
       "msg": "Slippage limit exceeded."
     },
     {
+      "code": 6004,
+      "name": "InsufficientLiquidity",
+      "msg": "The pool's reserves or LP supply cannot satisfy the request."
+    },
+    {
       "code": 6005,
-      "name": "AlreadyInitialized",
-      "msg": "The pool is already initialized."
+      "name": "UnsupportedMintExtension",
+      "msg": "A Token-2022 mint carries an extension the pool does not accept."
+    },
+    {
+      "code": 6006,
+      "name": "InvariantViolated",
+      "msg": "A swap would lower the product of the pool's reserves."
     }
   ],
   "constants": [
     {
+      "name": "SEED_LP_MINT",
+      "type": "bytes",
+      "value": "[108, 112, 95, 109, 105, 110, 116]"
+    },
+    {
       "name": "SEED_POOL",
       "type": "bytes",
       "value": "[112, 111, 111, 108]"
+    },
+    {
+      "name": "SEED_VAULT",
+      "type": "bytes",
+      "value": "[118, 97, 117, 108, 116]"
     }
   ],
   "definedTypes": [],
   "pdas": [
+    {
+      "name": "depositor_lp",
+      "seeds": [
+        { "kind": "account", "path": "payer" },
+        { "kind": "account", "path": "lp_token_program" },
+        { "kind": "account", "path": "lp_mint" }
+      ],
+      "program": { "kind": "const", "value": [140,151,37,143,78,36,137,241,187,61,16,41,20,142,13,131,11,90,19,153,218,255,16,132,4,142,123,216,219,233,248,89] }
+    },
+    {
+      "name": "lp_mint",
+      "seeds": [
+        { "kind": "const", "value": [108,112,95,109,105,110,116], "name": "SEED_LP_MINT" },
+        { "kind": "account", "path": "pool_state" }
+      ]
+    },
     {
       "name": "pool_state",
       "seeds": [
@@ -222,6 +331,22 @@
         { "kind": "account", "path": "token_a_mint" },
         { "kind": "account", "path": "token_b_mint" },
         { "kind": "arg", "path": "id" }
+      ]
+    },
+    {
+      "name": "vault_a",
+      "seeds": [
+        { "kind": "const", "value": [118,97,117,108,116], "name": "SEED_VAULT" },
+        { "kind": "account", "path": "pool_state" },
+        { "kind": "account", "path": "token_a_mint" }
+      ]
+    },
+    {
+      "name": "vault_b",
+      "seeds": [
+        { "kind": "const", "value": [118,97,117,108,116], "name": "SEED_VAULT" },
+        { "kind": "account", "path": "pool_state" },
+        { "kind": "account", "path": "token_b_mint" }
       ]
     }
   ]

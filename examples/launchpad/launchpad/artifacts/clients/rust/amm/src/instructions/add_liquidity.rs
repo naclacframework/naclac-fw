@@ -14,6 +14,7 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 pub struct AddLiquidityIxArgs {
     pub max_amount_a: u64,
     pub max_amount_b: u64,
+    pub min_lp: u64,
 }
 
 #[cfg(feature = "offchain")]
@@ -36,6 +37,7 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 pub struct AddLiquidityCpiIxArgs {
     pub max_amount_a: u64,
     pub max_amount_b: u64,
+    pub min_lp: u64,
 }
 
 #[cfg(feature = "cpi")]
@@ -47,6 +49,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for AddLiquidityCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
 /// Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.
+/// Takes at most `max_amount_a` and `max_amount_b`, and fails unless at least
+/// `min_lp` shares are minted.
 pub struct AddLiquidityAccounts {
     pub user: naclac_client::Address,
     pub pool_state: naclac_client::Address,
@@ -58,22 +62,28 @@ pub struct AddLiquidityAccounts {
     pub user_token_a: naclac_client::Address,
     pub user_token_b: naclac_client::Address,
     pub user_lp: naclac_client::Address,
-    pub token_program: naclac_client::Address,
+    pub token_program_a: naclac_client::Address,
+    pub token_program_b: naclac_client::Address,
+    pub lp_token_program: naclac_client::Address,
 }
 
 #[cfg(feature = "offchain")]
 /// Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.
+/// Takes at most `max_amount_a` and `max_amount_b`, and fails unless at least
+/// `min_lp` shares are minted.
 pub fn build_add_liquidity<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
     max_amount_a: u64,
     max_amount_b: u64,
+    min_lp: u64,
     accounts: AddLiquidityAccounts,
 ) -> naclac_client::InstructionBuilder<'a> {
     let mut ix_data = crate::sdk_core_offchain::vec![181, 157, 89, 67, 143, 182, 52, 72];
     let args = AddLiquidityIxArgs {
         max_amount_a,
         max_amount_b,
+        min_lp,
     };
     #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
@@ -98,11 +108,15 @@ pub fn build_add_liquidity<'a>(
         .account(naclac_client::AccountMeta { address: accounts.user_token_a, is_signer: false, is_writable: true }, "user_token_a")
         .account(naclac_client::AccountMeta { address: accounts.user_token_b, is_signer: false, is_writable: true }, "user_token_b")
         .account(naclac_client::AccountMeta { address: accounts.user_lp, is_signer: false, is_writable: true }, "user_lp")
-        .account(naclac_client::AccountMeta { address: accounts.token_program, is_signer: false, is_writable: false }, "token_program")
+        .account(naclac_client::AccountMeta { address: accounts.token_program_a, is_signer: false, is_writable: false }, "token_program_a")
+        .account(naclac_client::AccountMeta { address: accounts.token_program_b, is_signer: false, is_writable: false }, "token_program_b")
+        .account(naclac_client::AccountMeta { address: accounts.lp_token_program, is_signer: false, is_writable: false }, "lp_token_program")
 }
 
 #[cfg(feature = "cpi")]
 /// Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.
+/// Takes at most `max_amount_a` and `max_amount_b`, and fails unless at least
+/// `min_lp` shares are minted.
 pub struct AddLiquidityCpiAccounts<'a> {
     pub user: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub pool_state: crate::sdk_core_cpi::CpiHandleMut<'a>,
@@ -114,7 +128,9 @@ pub struct AddLiquidityCpiAccounts<'a> {
     pub user_token_a: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_token_b: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_lp: crate::sdk_core_cpi::CpiHandleMut<'a>,
-    pub token_program: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub token_program_a: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub token_program_b: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub lp_token_program: crate::sdk_core_cpi::CpiHandle<'a>,
 }
 
 #[cfg(feature = "cpi")]
@@ -122,6 +138,7 @@ pub struct AddLiquidityCpiCall<'a> {
     pub accounts: AddLiquidityCpiAccounts<'a>,
     pub max_amount_a: u64,
     pub max_amount_b: u64,
+    pub min_lp: u64,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
@@ -129,16 +146,20 @@ pub struct AddLiquidityCpiCall<'a> {
 #[cfg(feature = "cpi")]
 pub trait AddLiquidityCpi<'info> {
     /// Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.
+    /// Takes at most `max_amount_a` and `max_amount_b`, and fails unless at least
+    /// `min_lp` shares are minted.
     fn add_liquidity<'a>(
         &self,
         accounts: AddLiquidityCpiAccounts<'a>,
         max_amount_a: u64,
-        max_amount_b: u64
+        max_amount_b: u64,
+        min_lp: u64
     ) -> crate::sdk_core_cpi::Result<()> {
         self.add_liquidity_with_remaining_accounts(AddLiquidityCpiCall {
         accounts,
         max_amount_a,
         max_amount_b,
+        min_lp,
         signer_seeds: &[],
         remaining_accounts: &[],
     })
@@ -149,12 +170,14 @@ pub trait AddLiquidityCpi<'info> {
         accounts: AddLiquidityCpiAccounts<'a>,
         max_amount_a: u64,
         max_amount_b: u64,
+        min_lp: u64,
         signer_seeds: &[&[&[u8]]]
     ) -> crate::sdk_core_cpi::Result<()> {
         self.add_liquidity_with_remaining_accounts(AddLiquidityCpiCall {
         accounts,
         max_amount_a,
         max_amount_b,
+        min_lp,
         signer_seeds,
         remaining_accounts: &[],
     })
@@ -173,10 +196,11 @@ impl<'info> AddLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> 
         &self,
         call: AddLiquidityCpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        let AddLiquidityCpiCall { accounts, max_amount_a, max_amount_b, signer_seeds, remaining_accounts } = call;
+        let AddLiquidityCpiCall { accounts, max_amount_a, max_amount_b, min_lp, signer_seeds, remaining_accounts } = call;
         let args = AddLiquidityCpiIxArgs {
             max_amount_a,
             max_amount_b,
+            min_lp,
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[181, 157, 89, 67, 143, 182, 52, 72]);
@@ -216,7 +240,11 @@ impl<'info> AddLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> 
             idx += 1;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.user_lp.info.view.address()));
             idx += 1;
-            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program_a.info.view.address()));
+            idx += 1;
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program_b.info.view.address()));
+            idx += 1;
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.lp_token_program.info.view.address()));
             idx += 1;
             for (acc, is_writable, is_signer) in remaining_accounts {
                 if idx >= 32 { break; }
@@ -265,7 +293,11 @@ impl<'info> AddLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> 
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.user_lp));
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.token_program);
+            handles_arr[h_idx].write(accounts.token_program_a);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.token_program_b);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.lp_token_program);
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }
@@ -289,7 +321,9 @@ impl<'info> AddLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> 
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.user_token_a.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.user_token_b.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.user_lp.address(), false),
-                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program_a.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program_b.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.lp_token_program.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
                 let meta = if *is_writable {
@@ -326,7 +360,11 @@ impl<'info> AddLiquidityCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> 
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.user_lp));
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.token_program);
+            handles_arr[h_idx].write(accounts.token_program_a);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.token_program_b);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.lp_token_program);
             h_idx += 1;
             for (acc, _, _) in remaining_accounts {
                 if h_idx >= 32 { break; }

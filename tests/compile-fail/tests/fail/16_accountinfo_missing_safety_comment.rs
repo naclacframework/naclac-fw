@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: macros/src/instruction/parser.rs:333 — a bare `AccountInfo`
+// Site: derive/src/accounts/field/parser/validate.rs — a bare `AccountInfo`
 // field receives no automatic validation and requires a `/// SAFETY: ...`
 // doc comment directly above it justifying why that's acceptable.
 use naclac_lang::prelude::*;

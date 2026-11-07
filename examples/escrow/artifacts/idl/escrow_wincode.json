@@ -20,7 +20,7 @@
             "seeds": [
               { "kind": "const", "value": [101,115,99,114,111,119], "name": "SEED_ESCROW" },
               { "kind": "account", "path": "maker" },
-              { "kind": "arg", "path": "seed" }
+              { "kind": "arg", "path": "id" }
             ]
           }
         },
@@ -30,7 +30,7 @@
         { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        { "name": "seed", "type": "u64" },
+        { "name": "id", "type": "u64" },
         { "name": "amount_a", "type": "u64" },
         { "name": "amount_b", "type": "u64" }
       ]
@@ -55,7 +55,7 @@
             "seeds": [
               { "kind": "const", "value": [101,115,99,114,111,119], "name": "SEED_ESCROW" },
               { "kind": "account", "path": "maker" },
-              { "kind": "arg", "path": "seed" }
+              { "kind": "arg", "path": "id" }
             ]
           }
         },
@@ -67,7 +67,7 @@
         { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        { "name": "seed", "type": "u64" }
+        { "name": "id", "type": "u64" }
       ]
     },
     {
@@ -82,7 +82,7 @@
             "seeds": [
               { "kind": "const", "value": [101,115,99,114,111,119], "name": "SEED_ESCROW" },
               { "kind": "account", "path": "maker" },
-              { "kind": "arg", "path": "seed" }
+              { "kind": "arg", "path": "id" }
             ]
           }
         },
@@ -92,7 +92,7 @@
         { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
       "args": [
-        { "name": "seed", "type": "u64" }
+        { "name": "id", "type": "u64" }
       ]
     }
   ],
@@ -177,7 +177,7 @@
       "seeds": [
         { "kind": "const", "value": [101,115,99,114,111,119], "name": "SEED_ESCROW" },
         { "kind": "account", "path": "maker" },
-        { "kind": "arg", "path": "seed" }
+        { "kind": "arg", "path": "id" }
       ]
     }
   ]

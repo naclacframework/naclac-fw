@@ -17,7 +17,7 @@ solana-sha256-hasher = { workspace = true, optional = true }
 solana-instruction = { workspace = true, optional = true }
 bytemuck = { workspace = true, features = ["derive"], optional = true }
 naclac-pod = { workspace = true, features = ["alloc"], optional = true }
-naclac-macros = { workspace = true }
+naclac-derive = { workspace = true }
 borsh = { workspace = true, features = ["derive"], optional = true }
 wincode = { version = "0.6.1", default-features = false, features = ["derive", "alloc"], optional = true }
 wincode-derive = { version = "0.5.1", optional = true }
@@ -71,7 +71,7 @@ pinocchio = [
     "dep:pinocchio-memo",
     "dep:solana-define-syscall",
 ]
-debug-mode = ["naclac-macros/debug-mode"]
+debug-mode = ["naclac-derive/debug-mode"]
 idl-build = []
 
 [dev-dependencies]

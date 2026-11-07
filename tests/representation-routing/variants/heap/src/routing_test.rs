@@ -1,5 +1,5 @@
 //! Permanent regression guard for the zero-copy/Borsh routing fix in
-//! naclac-macros — see `representation_routing`'s copy of this file for the
+//! naclac-derive — see `representation_routing`'s copy of this file for the
 //! full explanation of why this check is meaningful and not circular.
 //!
 //! This crate builds with `borsh` or `wincode` active (its own `default`) —

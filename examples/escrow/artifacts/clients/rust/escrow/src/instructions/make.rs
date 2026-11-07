@@ -12,7 +12,7 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct MakeIxArgs {
-    pub seed: u64,
+    pub id: u64,
     pub amount_a: u64,
     pub amount_b: u64,
 }
@@ -35,7 +35,7 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct MakeCpiIxArgs {
-    pub seed: u64,
+    pub id: u64,
     pub amount_a: u64,
     pub amount_b: u64,
 }
@@ -63,14 +63,14 @@ pub struct MakeAccounts {
 pub fn build_make<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
-    seed: u64,
+    id: u64,
     amount_a: u64,
     amount_b: u64,
     accounts: MakeAccounts,
 ) -> naclac_client::InstructionBuilder<'a> {
     let mut ix_data = crate::sdk_core_offchain::vec![138, 227, 232, 77, 223, 166, 96, 197];
     let args = MakeIxArgs {
-        seed,
+        id,
         amount_a,
         amount_b,
     };
@@ -112,7 +112,7 @@ pub struct MakeCpiAccounts<'a> {
 #[cfg(feature = "cpi")]
 pub struct MakeCpiCall<'a> {
     pub accounts: MakeCpiAccounts<'a>,
-    pub seed: u64,
+    pub id: u64,
     pub amount_a: u64,
     pub amount_b: u64,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
@@ -124,13 +124,13 @@ pub trait MakeCpi<'info> {
     fn make<'a>(
         &self,
         accounts: MakeCpiAccounts<'a>,
-        seed: u64,
+        id: u64,
         amount_a: u64,
         amount_b: u64
     ) -> crate::sdk_core_cpi::Result<()> {
         self.make_with_remaining_accounts(MakeCpiCall {
         accounts,
-        seed,
+        id,
         amount_a,
         amount_b,
         signer_seeds: &[],
@@ -141,14 +141,14 @@ pub trait MakeCpi<'info> {
     fn make_signed<'a>(
         &self,
         accounts: MakeCpiAccounts<'a>,
-        seed: u64,
+        id: u64,
         amount_a: u64,
         amount_b: u64,
         signer_seeds: &[&[&[u8]]]
     ) -> crate::sdk_core_cpi::Result<()> {
         self.make_with_remaining_accounts(MakeCpiCall {
         accounts,
-        seed,
+        id,
         amount_a,
         amount_b,
         signer_seeds,
@@ -169,9 +169,9 @@ impl<'info> MakeCpi<'info> for crate::sdk_core_cpi::Program<crate::Escrow> {
         &self,
         call: MakeCpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        let MakeCpiCall { accounts, seed, amount_a, amount_b, signer_seeds, remaining_accounts } = call;
+        let MakeCpiCall { accounts, id, amount_a, amount_b, signer_seeds, remaining_accounts } = call;
         let args = MakeCpiIxArgs {
-            seed,
+            id,
             amount_a,
             amount_b,
         };

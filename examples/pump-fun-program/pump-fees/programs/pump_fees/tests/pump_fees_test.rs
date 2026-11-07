@@ -2278,7 +2278,7 @@ fn update_fee_shares_v2_rejects_remaining_accounts_mismatch() {
 // this is the only runtime proof (rather than just a clean build) that
 // `DonateAddressConfigIdWithPayerV1Args`'s `message: ZcString` field
 // round-trips correctly through the real CPI call, closing out the
-// raw-pointer-cast soundness bug `naclac-macros`'s `#[instruction_args]`
+// raw-pointer-cast soundness bug `naclac-derive`'s `#[instruction_args]`
 // used to have for dynamic fields.
 
 /// Bypasses `initialize_fee_program_global` — that instruction needs a

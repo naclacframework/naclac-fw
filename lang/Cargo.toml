@@ -8,20 +8,20 @@ description = "The core Rust framework for writing hyper-optimized Solana smart 
 
 [dependencies]
 naclac-core = { workspace = true, default-features = false }
-naclac-macros = { workspace = true, default-features = false }
+naclac-derive = { workspace = true, default-features = false }
 naclac-token = { workspace = true, optional = true }
 naclac-metadata = { workspace = true, optional = true }
 # Optional: only pulled in under `idl-build` — the generated `NaclacIdlBuild`
 # impls (in the calling program crate itself, not this crate) reference
 # `naclac_lang::naclac_idl::...` paths, which need naclac-idl to actually be
 # in that program crate's dependency graph. A proc-macro's own dependencies
-# (naclac-macros') are never visible to the code it generates.
+# (naclac-derive') are never visible to the code it generates.
 naclac-idl = { workspace = true, optional = true }
 # Same reasoning as naclac-idl just above: the generated `idl-build`
 # assembler (in the calling program crate, not this crate) references
 # `naclac_lang::naclac_syn::...` paths (e.g. `discriminator::compute_discriminator`
 # for an account's discriminator) — a proc-macro's own dependencies
-# (naclac-macros'/naclac-idl's) are never visible to the code it generates.
+# (naclac-derive'/naclac-idl's) are never visible to the code it generates.
 naclac-syn = { workspace = true, optional = true }
 
 [features]
@@ -46,10 +46,10 @@ token = ["dep:naclac-token"]
 # Metaplex Core (NFT/collection/plugin) support.
 metadata = ["dep:naclac-metadata"]
 
-debug-mode = ["naclac-core/debug-mode", "naclac-macros/debug-mode"]
+debug-mode = ["naclac-core/debug-mode", "naclac-derive/debug-mode"]
 borsh = ["naclac-core/borsh", "naclac-token?/borsh"]
 wincode = ["naclac-core/wincode", "naclac-token?/wincode"]
-idl-build = ["naclac-macros/idl-build", "dep:naclac-idl", "dep:naclac-syn", "naclac-core/idl-build", "naclac-token?/idl-build"]
+idl-build = ["naclac-derive/idl-build", "dep:naclac-idl", "dep:naclac-syn", "naclac-core/idl-build", "naclac-token?/idl-build"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

@@ -34,14 +34,14 @@ declare_id!("GXHh7jtpFHtpvJRQWwgpU53diSw94MFoDTq2YeHmuDUu");
 pub fn get_escrow_state_pda(
     program_id: &naclac_client::Address,
     maker: &naclac_client::Address,
-    seed: u64
+    id: u64
 ) -> (naclac_client::Address, u8) {
-    let seed_bytes = seed.to_le_bytes();
+    let id_bytes = id.to_le_bytes();
     naclac_client::Address::find_program_address(
         &[
             &[101, 115, 99, 114, 111, 119],
             maker.as_ref(),
-            &seed_bytes,
+            &id_bytes,
         ],
         program_id,
     )

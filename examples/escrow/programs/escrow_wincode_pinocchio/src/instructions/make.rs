@@ -7,7 +7,7 @@ use {
 };
 
 #[derive(Accounts)]
-#[instruction(seed: u64)]
+#[instruction(id: u64)]
 pub struct Make {
     #[account(mut)]
     pub maker: Signer,
@@ -16,7 +16,7 @@ pub struct Make {
     #[account(
         init,
         payer = maker,
-        seeds = [SEED_ESCROW, maker.address().as_ref(), &seed.to_le_bytes()],
+        seeds = [SEED_ESCROW, maker.address().as_ref(), &id.to_le_bytes()],
         bump
     )]
     pub escrow_state: Account<EscrowState>,
@@ -35,7 +35,7 @@ pub struct Make {
     pub token_program: Program<Token>,
     pub system_program: Program<System>,
 }
-pub fn make(ctx: Context<Make>, _seed: u64, amount_a: u64, amount_b: u64) -> Result {
+pub fn make(ctx: Context<Make>, _id: u64, amount_a: u64, amount_b: u64) -> Result {
     require!(amount_a > 0 && amount_b > 0, EscrowError::ZeroAmount);
     require!(
         ctx.accounts.mint_a.address() != ctx.accounts.mint_b.address(),

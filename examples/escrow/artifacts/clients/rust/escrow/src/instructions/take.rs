@@ -12,7 +12,7 @@ use crate::sdk_core_offchain::borsh::BorshSerialize;
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct TakeIxArgs {
-    pub seed: u64,
+    pub id: u64,
 }
 
 #[cfg(feature = "offchain")]
@@ -33,7 +33,7 @@ use crate::sdk_core_cpi::borsh::BorshSerialize;
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), derive(Copy, Clone, Debug))]
 #[cfg_attr(not(any(feature = "borsh", feature = "wincode")), repr(C, packed))]
 pub struct TakeCpiIxArgs {
-    pub seed: u64,
+    pub id: u64,
 }
 
 #[cfg(feature = "cpi")]
@@ -63,12 +63,12 @@ pub struct TakeAccounts {
 pub fn build_take<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
-    seed: u64,
+    id: u64,
     accounts: TakeAccounts,
 ) -> naclac_client::InstructionBuilder<'a> {
     let mut ix_data = crate::sdk_core_offchain::vec![149, 226, 52, 104, 6, 142, 230, 39];
     let args = TakeIxArgs {
-        seed,
+        id,
     };
     #[cfg(not(any(feature = "borsh", feature = "wincode")))]
     {
@@ -115,7 +115,7 @@ pub struct TakeCpiAccounts<'a> {
 #[cfg(feature = "cpi")]
 pub struct TakeCpiCall<'a> {
     pub accounts: TakeCpiAccounts<'a>,
-    pub seed: u64,
+    pub id: u64,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
@@ -125,11 +125,11 @@ pub trait TakeCpi<'info> {
     fn take<'a>(
         &self,
         accounts: TakeCpiAccounts<'a>,
-        seed: u64
+        id: u64
     ) -> crate::sdk_core_cpi::Result<()> {
         self.take_with_remaining_accounts(TakeCpiCall {
         accounts,
-        seed,
+        id,
         signer_seeds: &[],
         remaining_accounts: &[],
     })
@@ -138,12 +138,12 @@ pub trait TakeCpi<'info> {
     fn take_signed<'a>(
         &self,
         accounts: TakeCpiAccounts<'a>,
-        seed: u64,
+        id: u64,
         signer_seeds: &[&[&[u8]]]
     ) -> crate::sdk_core_cpi::Result<()> {
         self.take_with_remaining_accounts(TakeCpiCall {
         accounts,
-        seed,
+        id,
         signer_seeds,
         remaining_accounts: &[],
     })
@@ -162,9 +162,9 @@ impl<'info> TakeCpi<'info> for crate::sdk_core_cpi::Program<crate::Escrow> {
         &self,
         call: TakeCpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        let TakeCpiCall { accounts, seed, signer_seeds, remaining_accounts } = call;
+        let TakeCpiCall { accounts, id, signer_seeds, remaining_accounts } = call;
         let args = TakeCpiIxArgs {
-            seed,
+            id,
         };
         let mut ix_data = crate::sdk_core_cpi::Vec::new();
         ix_data.extend_from_slice(&[149, 226, 52, 104, 6, 142, 230, 39]);

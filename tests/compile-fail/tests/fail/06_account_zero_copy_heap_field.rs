@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: macros/src/account.rs:94 — a heap-allocated field
+// Site: derive/src/account/mod.rs — a heap-allocated field
 // (`Vec`/`String`) inside a zero-copy `#[account]`. Persisted zero-copy
 // account data is round-tripped via raw byte-casting across separate
 // transactions; a heap pointer written in one transaction is meaningless

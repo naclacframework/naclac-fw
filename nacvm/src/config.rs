@@ -1,8 +1,6 @@
 use std::{fs, path::PathBuf};
 
 pub struct Config {
-    #[allow(dead_code)]
-    pub base_dir: PathBuf,
     pub versions_dir: PathBuf,
     pub bin_dir: PathBuf,
 }
@@ -20,7 +18,6 @@ impl Config {
         crate::utils::path_setup::ensure_in_path(&bin_dir);
 
         Self {
-            base_dir,
             versions_dir,
             bin_dir,
         }

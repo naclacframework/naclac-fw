@@ -6,6 +6,7 @@ use {
     },
     colored::Colorize,
     std::{
+        io::Read,
         path::PathBuf,
         process::{Command, Stdio},
         time::Instant,
@@ -85,8 +86,7 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
             .arg("--manifest-path")
             .arg(&cargo_toml_path)
             .env("CARGO_TERM_COLOR", "always")
-            .current_dir(&workspace_root)
-            .stdout(Stdio::inherit());
+            .current_dir(&workspace_root);
 
         if tests {
             cmd.arg("--tests");
@@ -106,6 +106,7 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
 
         if ui::show_output() {
             let status = cmd
+                .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .status()
                 .unwrap_or_else(|e| ui::error(clippy_spawn_error(&e)));
@@ -127,15 +128,20 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
         } else {
             let mut child = cmd
                 .envs(cargo_progress::ENV)
+                .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
                 .unwrap_or_else(|e| ui::error(clippy_spawn_error(&e)));
-            let stderr = child
-                .stderr
-                .take()
-                .unwrap_or_else(|| ui::error("Cannot read the output of cargo clippy."));
+            let (Some(mut stdout), Some(stderr)) = (child.stdout.take(), child.stderr.take())
+            else {
+                ui::error("Cannot read the output of cargo clippy.");
+            };
 
             let step = ui::Step::start(spinner_msg);
+            let stdout_thread = std::thread::spawn(move || {
+                let mut buffer = Vec::new();
+                stdout.read_to_end(&mut buffer).map(|_| buffer)
+            });
             let mut printed_output_header = false;
             let mut cargo_error_summary: Option<String> = None;
 
@@ -166,6 +172,16 @@ pub fn execute(requested: &[String], features: Vec<String>, tests: bool, deny_wa
 
             if let Err(e) = read {
                 step.fail(format!("Cannot read the output of cargo clippy: {e}"));
+            }
+            match stdout_thread.join() {
+                Ok(Ok(bytes)) => {
+                    let text = String::from_utf8_lossy(&bytes);
+                    if !text.trim().is_empty() {
+                        step.print_above(text.trim_end());
+                    }
+                }
+                Ok(Err(e)) => step.fail(format!("Cannot read the output of cargo clippy: {e}")),
+                Err(_) => step.fail("Reading the output of cargo clippy stopped unexpectedly."),
             }
 
             let status = child

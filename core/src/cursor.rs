@@ -204,46 +204,15 @@ impl AccountCursor {
     /// `self.ptr` must point at a non-duplicate account record.
     #[inline(always)]
     unsafe fn take_non_dup(&mut self) -> AccountView {
-        let slot = self.consumed as usize;
-        let view = self.advance_non_dup();
-        *self.lookup.add(slot) = view;
-        view
-    }
-
-    /// Advances past the non-duplicate account record at `self.ptr` without
-    /// storing its view in `lookup`.
-    ///
-    /// # Safety
-    ///
-    /// `self.ptr` must point at a non-duplicate account record.
-    #[inline(always)]
-    unsafe fn advance_non_dup(&mut self) -> AccountView {
         let account: *mut RuntimeAccount = self.ptr as *mut RuntimeAccount;
         // Store the original data_len in the padding slot so
         // `AccountView::resize()` can enforce MAX_PERMITTED_DATA_INCREASE.
         (*account).padding = u32::to_le_bytes((*account).data_len as u32);
         self.ptr = next_record(self.ptr, account);
+        let view = AccountView::new_unchecked(account);
+        *self.lookup.add(self.consumed as usize) = view;
         self.consumed = self.consumed.wrapping_add(1);
-        AccountView::new_unchecked(account)
-    }
-
-    /// Stores into `lookup[..consumed]` the views of the accounts already
-    /// walked by [`try_declared_fast`](AccountCursor::try_declared_fast),
-    /// which does not record them, by re-walking the records from `input`.
-    ///
-    /// # Safety
-    ///
-    /// `input` must be the entrypoint input buffer this cursor was created
-    /// from, and every slot before `consumed` must have been accepted by
-    /// `try_declared_fast` (so each is a non-duplicate record).
-    #[inline(always)]
-    unsafe fn record_fast_walked(&mut self, input: *mut u8) {
-        let mut ptr = input.add(size_of::<u64>());
-        for slot in 0..self.consumed as usize {
-            let account = ptr as *mut RuntimeAccount;
-            *self.lookup.add(slot) = AccountView::new_unchecked(account);
-            ptr = next_record(ptr, account);
-        }
+        view
     }
 
     /// Resolves the duplicate record at `self.ptr`, whose marker is `orig`,
@@ -272,32 +241,30 @@ impl AccountCursor {
     /// Fast path for the next declared field, whose required flags are
     /// encoded in `(expected, mask)` (see [`account_header_check`]): when the
     /// account is a non-duplicate carrying at least those flags, consumes it
-    /// with a single compare and returns its view, without storing it in
-    /// `lookup`. Otherwise consumes nothing and returns `None`; the caller
-    /// must then finish the walk with
-    /// [`finish_walk_slow`](AccountCursor::finish_walk_slow), which records
-    /// the views this method skipped.
+    /// with a single compare, stores its view at `lookup[consumed]` and
+    /// returns `true`. Otherwise consumes nothing and returns `false`; the
+    /// caller must then finish the walk with
+    /// [`finish_walk_slow`](AccountCursor::finish_walk_slow).
     ///
     /// # Safety
     ///
     /// Must not be called once `consumed` has reached the instruction's
     /// account count.
     #[inline(always)]
-    pub unsafe fn try_declared_fast(&mut self, expected: u32, mask: u32) -> Option<AccountView> {
+    pub unsafe fn try_declared_fast(&mut self, expected: u32, mask: u32) -> bool {
         let header = *(self.ptr as *const u32);
         if header & mask == expected {
-            return Some(self.advance_non_dup());
+            self.take_non_dup();
+            return true;
         }
-        None
+        false
     }
 
     /// Completes the account walk after the
     /// [`try_declared_fast`](AccountCursor::try_declared_fast) chain either
-    /// missed or left trailing accounts:
+    /// missed or left trailing accounts, so that `lookup[..num_accounts]`
+    /// holds every account's view when this returns `Ok`:
     ///
-    /// 0. Records into `lookup` the views of the slots the fast chain already
-    ///    walked (re-walked from `input`), so `lookup[..num_accounts]` holds
-    ///    every account's view when this returns `Ok`.
     /// 1. Walks every slot from `consumed` to `num_accounts`, resolving
     ///    duplicates (`AccountBorrowFailed` for that slot's index if a
     ///    duplicate marker does not point at an earlier slot). A slot below
@@ -318,8 +285,7 @@ impl AccountCursor {
     ///
     /// # Safety
     ///
-    /// `input` must be the entrypoint input buffer this cursor was created
-    /// from; `num_accounts` must be the instruction's account count, at least
+    /// `num_accounts` must be the instruction's account count, at least
     /// `checks.len()` and at most the `lookup` capacity; and every slot before
     /// `consumed` must have been accepted by `try_declared_fast` as a declared
     /// field of the same `checks`.
@@ -327,12 +293,10 @@ impl AccountCursor {
     #[inline(never)]
     pub unsafe fn finish_walk_slow(
         mut self,
-        input: *mut u8,
         checks: &[(u32, u32, bool)],
         num_accounts: usize,
         mut_mask: &[u64; 4],
     ) -> Result<(), crate::prelude::ProgramError> {
-        self.record_fast_walked(input);
         while (self.consumed as usize) < num_accounts {
             let slot = self.consumed as usize;
             let marker = *self.ptr;
@@ -641,7 +605,10 @@ mod account_bitvec_tests {
     fn disjoint_sets_have_no_first_intersection() {
         let bv = bitvec_of(&[1, 70, 200]);
         assert_eq!(bv.first_intersection(&mask_of(&[0, 2, 71, 255])), None);
-        assert_eq!(AccountBitvec::default().first_intersection(&mask_of(&[0, 1])), None);
+        assert_eq!(
+            AccountBitvec::default().first_intersection(&mask_of(&[0, 1])),
+            None
+        );
         assert_eq!(bv.first_intersection(&[0u64; 4]), None);
     }
 
@@ -663,7 +630,10 @@ mod account_bitvec_tests {
     fn covers_word_boundaries() {
         for slot in [0u8, 63, 64, 127, 128, 191, 192, 255] {
             let bv = bitvec_of(&[slot]);
-            assert_eq!(bv.first_intersection(&mask_of(&[slot as usize])), Some(slot as usize));
+            assert_eq!(
+                bv.first_intersection(&mask_of(&[slot as usize])),
+                Some(slot as usize)
+            );
         }
     }
 
@@ -752,6 +722,34 @@ mod kani_proofs {
             !bv.intersects(&other_mask),
             "non-matching bit must not be reported as intersecting"
         );
+    }
+
+    /// For every bitvec and mask, `first_intersection` does not panic and is
+    /// `Some` exactly when `intersects` is `true`: the slot-reporting path must
+    /// never accept a collision the boolean guard would have rejected, or the
+    /// reverse.
+    #[kani::proof]
+    fn prove_account_bitvec_first_intersection_agrees_with_intersects() {
+        let bv = AccountBitvec { data: kani::any() };
+        let mask: [u64; 4] = kani::any();
+        assert_eq!(bv.first_intersection(&mask).is_some(), bv.intersects(&mask));
+    }
+
+    /// A slot returned by `first_intersection` is set in both the bitvec and
+    /// the mask, and no lower slot is set in both — it is the lowest shared
+    /// slot, which is what the reported error index promises.
+    #[kani::proof]
+    fn prove_account_bitvec_first_intersection_is_lowest_shared_slot() {
+        let bv = AccountBitvec { data: kani::any() };
+        let mask: [u64; 4] = kani::any();
+        let in_mask = |i: usize| (mask[i / 64] >> (i % 64)) & 1 == 1;
+        if let Some(slot) = bv.first_intersection(&mask) {
+            assert!(slot < 256);
+            assert!(bv.get(slot as u8) && in_mask(slot));
+            let lower: usize = kani::any();
+            kani::assume(lower < slot);
+            assert!(!(bv.get(lower as u8) && in_mask(lower)));
+        }
     }
 
     /// `mut_mask_set_bit` is only ever called at macro-expansion time with a

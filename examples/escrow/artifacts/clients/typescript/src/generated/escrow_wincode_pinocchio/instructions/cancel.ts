@@ -8,7 +8,7 @@ export const CANCEL_DISCRIMINATOR = new Uint8Array([232, 219, 223, 41, 219, 236,
 
 /** Instruction arguments for `cancel`. */
 export interface CancelArgs {
-  seed: bigint | number;
+  id: bigint | number;
 }
 
 /** Accounts for the `cancel` instruction. */

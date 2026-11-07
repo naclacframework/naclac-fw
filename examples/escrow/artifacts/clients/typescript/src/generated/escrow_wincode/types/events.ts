@@ -106,5 +106,5 @@ export function parseEscrowExchangedEvents(
 
 /** Removes a previously registered event listener. */
 export function removeListener(program: any, listenerId: number) {
-  program.removeEventListener(listenerId);
+  return program.removeEventListener(listenerId);
 }

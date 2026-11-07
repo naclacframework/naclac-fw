@@ -2,20 +2,32 @@
 
 use {
     crate::{
-        constants::SEED_POOL, errors::AmmError, events::PoolInitialized,
-        state::pool_state::PoolState, systems::process_initialize_lp_amount,
+        constants::{LP_DECIMALS, SEED_LP_MINT, SEED_POOL, SEED_VAULT},
+        errors::AmmError,
+        events::PoolInitialized,
+        state::pool_state::PoolState,
+        systems::process_initialize_lp_amount,
+        validation::{is_ascending, require_supported_mint},
     },
     naclac_lang::prelude::*,
 };
 
+/// `payer` funds every account the pool creates and is also the depositor of
+/// the pool's first liquidity. The program creates both vaults, the LP mint and
+/// the depositor's LP token account itself, so none of them can arrive
+/// pre-configured by the caller. Each mint must be owned by its own token
+/// program account.
 #[derive(Accounts)]
 #[instruction(id: u64)]
 pub struct Initialize {
     #[account(mut)]
     pub payer: Signer,
 
-    pub token_a_mint: Account<Mint>,
-    pub token_b_mint: Account<Mint>,
+    #[account(mint::token_program = token_program_a)]
+    pub token_a_mint: InterfaceAccount<Mint>,
+
+    #[account(mint::token_program = token_program_b)]
+    pub token_b_mint: InterfaceAccount<Mint>,
 
     #[account(
         init,
@@ -25,56 +37,96 @@ pub struct Initialize {
     )]
     pub pool_state: Account<PoolState>,
 
+    /// SAFETY: `init` + `mint::decimals`/`mint::authority` below construct and
+    /// validate this account through a CPI to the classic Token program; it is
+    /// a raw SPL `Mint` with no naclac discriminator to check.
     #[account(
-        mut,
-        token::mint = token_a_mint,
-        token::authority = pool_state,
-    )]
-    pub vault_a: Account<TokenAccount>,
-
-    #[account(
-        mut,
-        token::mint = token_b_mint,
-        token::authority = pool_state,
-    )]
-    pub vault_b: Account<TokenAccount>,
-
-    #[account(
-        mut,
+        init,
+        payer = payer,
+        seeds = [SEED_LP_MINT, pool_state.address().as_ref()],
+        bump,
+        mint::decimals = LP_DECIMALS,
         mint::authority = pool_state,
+        mint::token_program = lp_token_program,
     )]
-    pub lp_mint: Account<Mint>,
+    pub lp_mint: AccountInfo,
+
+    /// SAFETY: `init` + `token::*` below create this account and initialise
+    /// it through the named token program, at an address only this program can
+    /// sign for; it is a raw SPL token account with no naclac discriminator to
+    /// check.
+    #[account(
+        init,
+        payer = payer,
+        seeds = [SEED_VAULT, pool_state.address().as_ref(), token_a_mint.address().as_ref()],
+        bump,
+        token::mint = token_a_mint,
+        token::authority = pool_state,
+        token::token_program = token_program_a,
+    )]
+    pub vault_a: AccountInfo,
+
+    /// SAFETY: same as `vault_a`.
+    #[account(
+        init,
+        payer = payer,
+        seeds = [SEED_VAULT, pool_state.address().as_ref(), token_b_mint.address().as_ref()],
+        bump,
+        token::mint = token_b_mint,
+        token::authority = pool_state,
+        token::token_program = token_program_b,
+    )]
+    pub vault_b: AccountInfo,
 
     #[account(
         mut,
         token::mint = token_a_mint,
-        token::authority = depositor_authority,
+        token::authority = payer,
     )]
-    pub depositor_token_a: Account<TokenAccount>,
+    pub depositor_token_a: InterfaceAccount<TokenAccount>,
 
     #[account(
         mut,
         token::mint = token_b_mint,
-        token::authority = depositor_authority,
+        token::authority = payer,
     )]
-    pub depositor_token_b: Account<TokenAccount>,
+    pub depositor_token_b: InterfaceAccount<TokenAccount>,
 
+    /// SAFETY: `init` + `associated_token::*` below have the Associated Token
+    /// program create and address-check this account; it is a raw SPL token
+    /// account with no naclac discriminator to check. The LP mint is created
+    /// in this same instruction, so nobody can create this account first.
     #[account(
-        mut,
-        token::mint = lp_mint,
-        token::authority = depositor_authority,
+        init,
+        payer = payer,
+        associated_token::mint = lp_mint,
+        associated_token::authority = payer,
+        associated_token::token_program = lp_token_program,
     )]
-    pub depositor_lp: Account<TokenAccount>,
+    pub depositor_lp: AccountInfo,
 
-    pub depositor_authority: Signer,
-
-    pub token_program: Program<Token>,
+    pub token_program_a: Interface<TokenInterface>,
+    pub token_program_b: Interface<TokenInterface>,
+    pub lp_token_program: Program<Token>,
+    pub associated_token_program: Program<AssociatedToken>,
     pub system_program: Program<System>,
 }
 
-/// Initializes an AMM pool with initial liquidity and mints corresponding LP tokens to the depositor.
+/// Creates an AMM pool for two mints in ascending address order and seeds it
+/// with `amount_a` and `amount_b` from the payer's token accounts, minting the
+/// first LP shares to the payer. A mint's token program is the one that owns
+/// it, and a Token-2022 mint is accepted only with informational extensions.
 pub fn initialize(ctx: Context<Initialize>, id: u64, amount_a: u64, amount_b: u64) -> Result {
     require!(amount_a > 0 && amount_b > 0, AmmError::ZeroAmount);
+    require!(
+        is_ascending(
+            &ctx.accounts.token_a_mint.address(),
+            &ctx.accounts.token_b_mint.address()
+        ),
+        AmmError::InvalidMint
+    );
+    require_supported_mint(&ctx.accounts.token_a_mint)?;
+    require_supported_mint(&ctx.accounts.token_b_mint)?;
 
     let pool = &mut ctx.accounts.pool_state;
     pool.id = id;
@@ -86,24 +138,24 @@ pub fn initialize(ctx: Context<Initialize>, id: u64, amount_a: u64, amount_b: u6
     pool.bump = ctx.bumps.pool_state;
 
     let token_a_decimals = ctx.accounts.token_a_mint.decimals();
-    ctx.accounts.token_program.transfer_checked(
+    ctx.accounts.token_program_a.transfer_checked(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.depositor_token_a,
             mint: &ctx.accounts.token_a_mint,
             to: &mut ctx.accounts.vault_a,
-            authority: &ctx.accounts.depositor_authority,
+            authority: &ctx.accounts.payer,
         },
         amount_a,
         token_a_decimals,
     )?;
 
     let token_b_decimals = ctx.accounts.token_b_mint.decimals();
-    ctx.accounts.token_program.transfer_checked(
+    ctx.accounts.token_program_b.transfer_checked(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.depositor_token_b,
             mint: &ctx.accounts.token_b_mint,
             to: &mut ctx.accounts.vault_b,
-            authority: &ctx.accounts.depositor_authority,
+            authority: &ctx.accounts.payer,
         },
         amount_b,
         token_b_decimals,
@@ -124,7 +176,7 @@ pub fn initialize(ctx: Context<Initialize>, id: u64, amount_a: u64, amount_b: u6
     ];
     let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
 
-    ctx.accounts.token_program.mint_to_signed(
+    ctx.accounts.lp_token_program.mint_to_signed(
         MintToAccounts {
             mint: &mut ctx.accounts.lp_mint,
             to: &mut ctx.accounts.depositor_lp,

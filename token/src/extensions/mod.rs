@@ -287,20 +287,187 @@ fn get_extension_from_info<Ext: Extension>(info: &AccountInfo, base_len: usize) 
     }
 }
 
+/// `ExtensionType::TokenMetadata`. Its value is variable-length, so it has no
+/// `Extension` impl of its own.
+pub const TOKEN_METADATA_EXTENSION_TYPE: u16 = 19;
+
+/// Mint extensions that only describe the token (metadata and group
+/// membership). They change neither balances, nor transfers, nor who may move
+/// funds, so a program that holds third-party tokens can accept them.
+pub const INFORMATIONAL_MINT_EXTENSIONS: &[u16] = &[
+    <MetadataPointer as Extension>::TYPE,
+    TOKEN_METADATA_EXTENSION_TYPE,
+    <GroupPointer as Extension>::TYPE,
+    <crate::spl_token_group_interface::state::TokenGroup as Extension>::TYPE,
+    <GroupMemberPointer as Extension>::TYPE,
+    <crate::spl_token_group_interface::state::TokenGroupMember as Extension>::TYPE,
+];
+
+/// The type of the first entry in `data`'s TLV extension region that is not in
+/// `allowed`, or `None` when every entry is allowed or `data` has no extension
+/// region. A region that is malformed (non-zero padding, wrong account type,
+/// truncated entry) is an error, never "no extensions". The end of the region
+/// is the first `Uninitialized` (type 0) entry, as in `find_extension_bytes`.
+fn first_extension_outside(
+    data: &[u8],
+    base_len: usize,
+    account_type: u8,
+    allowed: &[u16],
+) -> core::result::Result<Option<u16>, NaclacError> {
+    if data.len() <= EXTENSION_BASE_OFFSET {
+        return Ok(None);
+    }
+    if data[base_len..EXTENSION_BASE_OFFSET]
+        .iter()
+        .any(|&b| b != 0)
+    {
+        return Err(NaclacError::InvalidAccountDiscriminator);
+    }
+    if data[EXTENSION_BASE_OFFSET] != account_type {
+        return Err(NaclacError::InvalidAccountDiscriminator);
+    }
+
+    let tlv = &data[EXTENSION_BASE_OFFSET + 1..];
+    let mut offset = 0usize;
+    while offset < tlv.len() {
+        if tlv.len() < offset + 4 {
+            return Err(NaclacError::InvalidAccountDiscriminator);
+        }
+        let entry_type = u16::from_le_bytes([tlv[offset], tlv[offset + 1]]);
+        if entry_type == 0 {
+            return Ok(None);
+        }
+        let entry_len = usize::from(u16::from_le_bytes([tlv[offset + 2], tlv[offset + 3]]));
+        let value_end = (offset + 4)
+            .checked_add(entry_len)
+            .ok_or(NaclacError::InvalidAccountDiscriminator)?;
+        if value_end > tlv.len() {
+            return Err(NaclacError::InvalidAccountDiscriminator);
+        }
+        if !allowed.contains(&entry_type) {
+            return Ok(Some(entry_type));
+        }
+        offset = value_end;
+    }
+    Ok(None)
+}
+
+fn first_extension_outside_from_info(
+    info: &AccountInfo,
+    base_len: usize,
+    account_type: u8,
+    allowed: &[u16],
+) -> Result<Option<u16>> {
+    if Owner::program_owner(info) != TOKEN_2022_PROGRAM_ID {
+        return Ok(None);
+    }
+    #[cfg(not(feature = "pinocchio"))]
+    {
+        let data = info.try_borrow_data()?;
+        first_extension_outside(&data, base_len, account_type, allowed).map_err(|e| e.into())
+    }
+    #[cfg(feature = "pinocchio")]
+    {
+        first_extension_outside(info.data(), base_len, account_type, allowed).map_err(|e| e.into())
+    }
+}
+
 /// Reads a Token-2022 extension off an already-loaded `InterfaceAccount`.
 pub trait TokenInterfaceAccountExtensions {
     fn get_extension<Ext: Extension>(&self) -> Result<Ext>;
+
+    /// The type of the first extension on this account that is not in
+    /// `allowed`, or `None` when all of them are (an account owned by the
+    /// legacy Token program has none).
+    fn first_extension_outside(&self, allowed: &[u16]) -> Result<Option<u16>>;
 }
 
 impl TokenInterfaceAccountExtensions for InterfaceAccount<TokenAccount> {
     fn get_extension<Ext: Extension>(&self) -> Result<Ext> {
         get_extension_from_info(&self.info, 165)
     }
+
+    fn first_extension_outside(&self, allowed: &[u16]) -> Result<Option<u16>> {
+        first_extension_outside_from_info(&self.info, 165, 2, allowed)
+    }
 }
 
 impl TokenInterfaceAccountExtensions for InterfaceAccount<Mint> {
     fn get_extension<Ext: Extension>(&self) -> Result<Ext> {
         get_extension_from_info(&self.info, 82)
+    }
+
+    fn first_extension_outside(&self, allowed: &[u16]) -> Result<Option<u16>> {
+        first_extension_outside_from_info(&self.info, 82, 1, allowed)
+    }
+}
+
+#[cfg(test)]
+mod first_extension_outside_tests {
+    use super::{first_extension_outside, EXTENSION_BASE_OFFSET};
+
+    const MINT: u8 = 1;
+    const ALLOWED: &[u16] = &[18, 19];
+
+    fn mint_with(entries: &[(u16, usize)]) -> alloc::vec::Vec<u8> {
+        let mut data = alloc::vec![0u8; EXTENSION_BASE_OFFSET];
+        data.push(MINT);
+        for &(entry_type, len) in entries {
+            data.extend_from_slice(&entry_type.to_le_bytes());
+            data.extend_from_slice(&(len as u16).to_le_bytes());
+            data.resize(data.len() + len, 0);
+        }
+        data
+    }
+
+    fn outcome(data: &[u8]) -> Option<Option<u16>> {
+        first_extension_outside(data, 82, MINT, ALLOWED).ok()
+    }
+
+    #[test]
+    fn an_unextended_mint_has_nothing_outside() {
+        assert_eq!(outcome(&[0u8; 82]), Some(None));
+        assert_eq!(outcome(&[0u8; EXTENSION_BASE_OFFSET]), Some(None));
+    }
+
+    #[test]
+    fn allowed_entries_only_has_nothing_outside() {
+        let data = mint_with(&[(18, 64), (19, 10)]);
+        assert_eq!(outcome(&data), Some(None));
+    }
+
+    #[test]
+    fn reports_the_first_entry_outside_the_allowed_set() {
+        let data = mint_with(&[(18, 64), (12, 32), (1, 108)]);
+        assert_eq!(outcome(&data), Some(Some(12)));
+    }
+
+    #[test]
+    fn entries_after_the_uninitialized_marker_are_not_read() {
+        let mut data = mint_with(&[(18, 64)]);
+        data.extend_from_slice(&[0, 0, 0, 0]);
+        data.extend_from_slice(&1u16.to_le_bytes());
+        data.extend_from_slice(&0u16.to_le_bytes());
+        assert_eq!(outcome(&data), Some(None));
+    }
+
+    #[test]
+    fn a_malformed_region_is_an_error_not_an_empty_one() {
+        let mut padded = mint_with(&[(18, 64)]);
+        padded[100] = 1;
+        assert_eq!(outcome(&padded), None);
+
+        let mut wrong_type = mint_with(&[(18, 64)]);
+        wrong_type[EXTENSION_BASE_OFFSET] = 2;
+        assert_eq!(outcome(&wrong_type), None);
+
+        let mut truncated = mint_with(&[(18, 64)]);
+        truncated.truncate(truncated.len() - 1);
+        assert_eq!(outcome(&truncated), None);
+
+        let mut cut_header = mint_with(&[(18, 64)]);
+        cut_header.extend_from_slice(&[12, 0]);
+        assert_eq!(outcome(&cut_header), None);
     }
 }
 

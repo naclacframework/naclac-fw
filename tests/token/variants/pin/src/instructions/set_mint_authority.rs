@@ -8,7 +8,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 // — a single instruction covers both variants rather than duplicating the
 // whole shape twice. `new_authority` is passed as a bare `AccountInfo`
 // account (its key only), not a raw `Address`/`Address` instruction argument —
-// `macros/src/accounts.rs`'s zero-copy-mode compile check explicitly
+// `derive/src/accounts`'s zero-copy-mode compile check explicitly
 // bans a raw `Address`/`Address` as an `#[instruction(...)]` argument, so this
 // mirrors how every other cross-account key in this test case
 // (`check_mint_freeze_authority`'s `freeze_authority`, `create_ata`'s

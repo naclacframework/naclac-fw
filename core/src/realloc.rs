@@ -1,31 +1,48 @@
 //! # Manual Account Reallocation
 //!
 //! Runtime primitive backing the `#[account(realloc = space, realloc::payer
-//! = payer)]` constraint — `naclac-macros`' `instruction::realloc` module
+//! = payer)]` constraint — `naclac-derive`' `accounts::field::realloc` module
 //! generates a call into this same function, so the constraint and manual
 //! paths can never diverge. Exposed here for handlers that need to resize
 //! an account outside of the accounts-struct constraint system.
 
-use crate::prelude::{Result, ToAccountInfo, ToCpiHandleMut};
+use {
+    crate::prelude::{Rent, Result, Sysvar, ToAccountInfo, ToCpiHandleMut},
+    core::cell::OnceCell,
+};
 
-/// Rent-exempt minimum balance for an account of `space` bytes:
-/// `(ACCOUNT_STORAGE_OVERHEAD + space) * DEFAULT_LAMPORTS_PER_BYTE` with the
-/// default rent parameters (128 bytes, 6960 lamports/byte), the same value
-/// the `Rent` sysvar's `minimum_balance` returns under them. Every rent
-/// computation on both backends goes through this function instead of the
-/// sysvar, so a change to the cluster's rent parameters must be applied
-/// here.
-pub fn const_rent_lamports(space: usize) -> u64 {
-    const STORAGE_OVERHEAD: u64 = 128;
-    const LAMPORTS_PER_BYTE: u64 = 6960;
-    // `saturating_add`, not a bare `+`: a `space` near `usize::MAX` (nothing
-    // in this function's signature rules that out, even though no real
-    // Solana account is ever that large) would otherwise panic here —
-    // confirmed by Kani, present in all 6 of this formula's original
-    // call-site copies before this extraction, never caught until now.
-    STORAGE_OVERHEAD
-        .saturating_add(space as u64)
-        .wrapping_mul(LAMPORTS_PER_BYTE)
+/// Rent-exempt minimum balances from the cluster's `Rent` sysvar, read on
+/// first use and reused afterwards, so an instruction that creates several
+/// accounts pays for one sysvar read. Fails if the sysvar cannot be read, or
+/// with `InvalidArgument` if `space` or the rent parameters are out of range.
+#[derive(Default)]
+pub struct LazyRent {
+    rent: OnceCell<Rent>,
+}
+
+impl LazyRent {
+    pub fn minimum_balance(&self, space: usize) -> Result<u64> {
+        match self.rent.get() {
+            Some(rent) => minimum_balance_under(rent, space),
+            None => {
+                let rent = <Rent as Sysvar>::get()?;
+                let balance = minimum_balance_under(&rent, space);
+                let _ = self.rent.set(rent);
+                balance
+            }
+        }
+    }
+}
+
+#[cfg(feature = "pinocchio")]
+fn minimum_balance_under(rent: &Rent, space: usize) -> Result<u64> {
+    rent.try_minimum_balance(space)
+}
+
+#[cfg(not(feature = "pinocchio"))]
+fn minimum_balance_under(rent: &Rent, space: usize) -> Result<u64> {
+    rent.try_minimum_balance(space)
+        .ok_or(crate::prelude::ProgramError::InvalidArgument)
 }
 
 /// Resizes `target` to `new_space`, funding the rent-exemption shortfall
@@ -46,7 +63,7 @@ where
     }
 
     let current_lamports = target_info.lamports();
-    let required_lamports = const_rent_lamports(new_space);
+    let required_lamports = LazyRent::default().minimum_balance(new_space)?;
 
     if required_lamports > current_lamports {
         // Growing: the payer is owned by the System Program, so it must be
@@ -67,19 +84,4 @@ where
 
     target_info.resize(new_space)?;
     Ok(())
-}
-
-#[cfg(kani)]
-mod kani_proofs {
-    use super::*;
-
-    /// Proves `const_rent_lamports` never panics for any `space` —
-    /// `wrapping_mul` was chosen deliberately over `checked_mul` here, so
-    /// this also confirms that choice is actually safe (no panic path
-    /// exists to trigger regardless) rather than merely convenient.
-    #[kani::proof]
-    fn prove_const_rent_lamports_never_panics() {
-        let space: usize = kani::any();
-        let _ = const_rent_lamports(space);
-    }
 }

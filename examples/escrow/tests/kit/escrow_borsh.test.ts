@@ -63,8 +63,9 @@ describe("Naclac EscrowBorsh Test Suite", () => {
   // FLOW 1: Make & Cancel
   // ===========================================================================
   it("1. Run Make & Cancel Flow", async () => {
-    const seedCancel = 789012n;
-    const [escrowPdaCancel, escrowBumpCancel] = await client.getEscrowStatePda({ maker: makerAddress, seed: seedCancel });
+    let idCancel = 1n;
+    while ((await client.getEscrowStatePda({ maker: makerAddress, id: idCancel }))[1] !== 255) idCancel++;
+    const [escrowPdaCancel, escrowBumpCancel] = await client.getEscrowStatePda({ maker: makerAddress, id: idCancel });
 
     // Initialize the vault ATA (idempotent)
     const vaultTokenAccountCancel = await naclac.createAta(
@@ -96,7 +97,7 @@ describe("Naclac EscrowBorsh Test Suite", () => {
 
       await client
         .make(
-          { seed: seedCancel, amountA: amountACancel, amountB: amountBCancel },
+          { id: idCancel, amountA: amountACancel, amountB: amountBCancel },
           {
             maker: makerAddress,
             mintA,
@@ -132,7 +133,7 @@ describe("Naclac EscrowBorsh Test Suite", () => {
 
     await client
       .cancel(
-        { seed: seedCancel },
+        { id: idCancel },
         {
           maker: makerAddress,
           mintA,
@@ -170,8 +171,9 @@ describe("Naclac EscrowBorsh Test Suite", () => {
   // FLOW 2: Make & Take
   // ===========================================================================
   it("2. Run Make & Take Flow", async () => {
-    const seedTake = 123456n;
-    const [escrowPdaTake, escrowBumpTake] = await client.getEscrowStatePda({ maker: makerAddress, seed: seedTake });
+    let idTake = 1000n;
+    while ((await client.getEscrowStatePda({ maker: makerAddress, id: idTake }))[1] !== 255) idTake++;
+    const [escrowPdaTake, escrowBumpTake] = await client.getEscrowStatePda({ maker: makerAddress, id: idTake });
 
     console.log(`      Derived Escrow PDA (Take): ${escrowPdaTake} (Bump: ${escrowBumpTake})`);
 
@@ -221,7 +223,7 @@ describe("Naclac EscrowBorsh Test Suite", () => {
 
       await client
         .make(
-          { seed: seedTake, amountA: amountATake, amountB: amountBTake },
+          { id: idTake, amountA: amountATake, amountB: amountBTake },
           {
             maker: makerAddress,
             mintA: effectiveMintA,
@@ -281,7 +283,7 @@ describe("Naclac EscrowBorsh Test Suite", () => {
 
     await client
       .take(
-        { seed: seedTake },
+        { id: idTake },
         {
           taker: takerSigner.address,
           maker: makerAddress,

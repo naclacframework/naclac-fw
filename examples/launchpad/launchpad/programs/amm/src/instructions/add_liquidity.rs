@@ -2,8 +2,11 @@
 
 use {
     crate::{
-        constants::SEED_POOL, events::LiquidityAdded,
-        state::pool_state::PoolState, systems::process_add_liquidity_math,
+        constants::SEED_POOL,
+        errors::AmmError,
+        events::LiquidityAdded,
+        state::pool_state::PoolState,
+        systems::process_add_liquidity_math,
     },
     naclac_lang::prelude::*,
 };
@@ -23,22 +26,25 @@ pub struct AddLiquidity {
     )]
     pub pool_state: Account<PoolState>,
 
-    pub token_a_mint: Account<Mint>,
-    pub token_b_mint: Account<Mint>,
+    #[account(mint::token_program = token_program_a)]
+    pub token_a_mint: InterfaceAccount<Mint>,
+
+    #[account(mint::token_program = token_program_b)]
+    pub token_b_mint: InterfaceAccount<Mint>,
 
     #[account(
         mut,
         token::mint = token_a_mint,
         token::authority = pool_state,
     )]
-    pub vault_a: Account<TokenAccount>,
+    pub vault_a: InterfaceAccount<TokenAccount>,
 
     #[account(
         mut,
         token::mint = token_b_mint,
         token::authority = pool_state,
     )]
-    pub vault_b: Account<TokenAccount>,
+    pub vault_b: InterfaceAccount<TokenAccount>,
 
     #[account(
         mut,
@@ -51,14 +57,14 @@ pub struct AddLiquidity {
         token::mint = token_a_mint,
         token::authority = user,
     )]
-    pub user_token_a: Account<TokenAccount>,
+    pub user_token_a: InterfaceAccount<TokenAccount>,
 
     #[account(
         mut,
         token::mint = token_b_mint,
         token::authority = user,
     )]
-    pub user_token_b: Account<TokenAccount>,
+    pub user_token_b: InterfaceAccount<TokenAccount>,
 
     #[account(
         mut,
@@ -67,14 +73,19 @@ pub struct AddLiquidity {
     )]
     pub user_lp: Account<TokenAccount>,
 
-    pub token_program: Program<Token>,
+    pub token_program_a: Interface<TokenInterface>,
+    pub token_program_b: Interface<TokenInterface>,
+    pub lp_token_program: Program<Token>,
 }
 
 /// Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.
+/// Takes at most `max_amount_a` and `max_amount_b`, and fails unless at least
+/// `min_lp` shares are minted.
 pub fn add_liquidity(
     ctx: Context<AddLiquidity>,
     max_amount_a: u64,
     max_amount_b: u64,
+    min_lp: u64,
 ) -> Result {
     let x = ctx.accounts.vault_a.amount();
     let y = ctx.accounts.vault_b.amount();
@@ -87,11 +98,12 @@ pub fn add_liquidity(
         max_amount_a,
         max_amount_b,
     )?;
+    require!(lp_to_mint >= min_lp, AmmError::SlippageExceeded);
 
     let token_a_decimals = ctx.accounts.token_a_mint.decimals();
     let token_b_decimals = ctx.accounts.token_b_mint.decimals();
 
-    ctx.accounts.token_program.transfer_checked(
+    ctx.accounts.token_program_a.transfer_checked(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.user_token_a,
             mint: &ctx.accounts.token_a_mint,
@@ -102,7 +114,7 @@ pub fn add_liquidity(
         token_a_decimals,
     )?;
 
-    ctx.accounts.token_program.transfer_checked(
+    ctx.accounts.token_program_b.transfer_checked(
         TransferCheckedAccounts {
             from: &mut ctx.accounts.user_token_b,
             mint: &ctx.accounts.token_b_mint,
@@ -125,7 +137,7 @@ pub fn add_liquidity(
     ];
     let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
 
-    ctx.accounts.token_program.mint_to_signed(
+    ctx.accounts.lp_token_program.mint_to_signed(
         MintToAccounts {
             mint: &mut ctx.accounts.lp_mint,
             to: &mut ctx.accounts.user_lp,

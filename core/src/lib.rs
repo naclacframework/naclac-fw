@@ -1,7 +1,7 @@
 //! # Naclac Language Library
 //!
 //! The `naclac-lang` crate provides the runtime abstractions, structural types, and zero-copy
-//! pointer management utilities required by the `naclac-macros` engine.
+//! pointer management utilities required by the `naclac-derive` engine.
 //!
 //! ## Execution Mode Abstraction
 //! A program picks one runtime and one account-data layout, independently:
@@ -44,7 +44,7 @@ compile_error!(
      `naclac-lang`, `pinocchio` is the default)."
 );
 // A program selects exactly one account-data layout: `bytemuck` (zero-copy),
-// `borsh` or `wincode`. `naclac-macros` emits all three representations,
+// `borsh` or `wincode`. `naclac-derive` emits all three representations,
 // each behind its own layout feature in the program's crate, so two active
 // layouts would compile two definitions of the same account into one
 // program. Cargo features only ever turn on, never off, so a dependency edge
@@ -143,5 +143,5 @@ pub mod realloc;
 // system_program helper module
 pub mod system_program;
 
-// Re-export all macros from naclac-macros
-pub use naclac_macros::*;
+// Re-export all macros from naclac-derive
+pub use naclac_derive::*;

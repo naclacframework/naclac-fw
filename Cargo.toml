@@ -9,7 +9,7 @@ members = [
     "metadata",
     "lang",
     "syn",
-    "macros",
+    "derive",
     "nacvm",
     "client-rs",
     "litesvm-node"
@@ -35,7 +35,7 @@ repository = "https://github.com/naclacframework/naclac-fw"
 naclac-syn = { version = "0.1.0", path = "syn" }
 naclac-idl = { version = "0.1.0", path = "idl" }
 naclac-client-gen = { version = "0.1.0", path = "client-gen" }
-naclac-macros = { version = "0.1.0", path = "macros", default-features = false }
+naclac-derive = { version = "0.1.0", path = "derive", default-features = false }
 naclac-core = { version = "0.1.0", path = "core", default-features = false }
 naclac-pod = { version = "0.1.0", path = "pod", default-features = false }
 naclac-token = { version = "0.1.0", path = "token", default-features = false }

@@ -10,6 +10,7 @@ export const ADD_LIQUIDITY_DISCRIMINATOR = new Uint8Array([181, 157, 89, 67, 143
 export interface AddLiquidityArgs {
   maxAmountA: bigint | number;
   maxAmountB: bigint | number;
+  minLp: bigint | number;
 }
 
 /** Accounts for the `addLiquidity` instruction. */
@@ -24,7 +25,9 @@ export interface AddLiquidityAccounts {
   userTokenA: naclac.Address | string;
   userTokenB: naclac.Address | string;
   userLp: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
+  tokenProgramA: naclac.Address | string;
+  tokenProgramB: naclac.Address | string;
+  lpTokenProgram?: naclac.Address | string;
 }
 
 /**
@@ -32,6 +35,8 @@ export interface AddLiquidityAccounts {
  * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
  * 
  * Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.
+ * Takes at most `max_amount_a` and `max_amount_b`, and fails unless at least
+ * `min_lp` shares are minted.
  */
 export function addLiquidity(
   program: any,

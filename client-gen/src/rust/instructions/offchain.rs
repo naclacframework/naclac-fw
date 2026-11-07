@@ -11,7 +11,7 @@ pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     // Accounts struct for off-chain. `Option<Address>` only for a genuinely
     // optional account (`acc.optional`). Every declared account gets exactly
     // one meta in declared order, matching `#[derive(Accounts)]`'s own
-    // sentinel scheme (`macros/src/accounts.rs`): a `None` optional
+    // sentinel scheme (`derive/src/accounts`): a `None` optional
     // is filled with `program_id` rather than omitted, since omitting it
     // would shift every subsequent account's position — same requirement
     // the CPI generator's builder already honors (`instructions/cpi.rs`).

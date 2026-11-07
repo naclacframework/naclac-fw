@@ -68,14 +68,14 @@ export class EscrowClient {
   /** Derives the PDA for a `escrow_state` account. */
   public async getEscrowStatePda(seeds: {
     maker: naclac.Address | string;
-    seed: bigint | number;
+    id: bigint | number;
   }): Promise<readonly [naclac.Address, number]> {
     return naclac.getProgramDerivedAddress({
       programAddress: this.programId,
       seeds: [
                 new Uint8Array([101, 115, 99, 114, 111, 119]),
         new Uint8Array(naclac.getAddressEncoder().encode(typeof seeds.maker === 'string' ? naclac.address(seeds.maker) : seeds.maker)),
-        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.seed))
+        new Uint8Array(naclac.getIdlCodec(JSON.parse('"u64"')).encode(seeds.id))
       ]
     });
   }
@@ -165,8 +165,11 @@ export class EscrowClient {
     return types.removeListener(this.program, listenerId);
   }
   /** Fetches ALL `EscrowState` accounts owned by this program. */
-  public fetchAllEscrowStateByOwner(options?: { commitment?: any; filters?: unknown[] }) {
-    return accounts.fetchAllEscrowStateByOwner(this.program.provider.rpc as any, this.programId, options);
+  public fetchAllEscrowStateByOwner(options?: { commitment?: naclac.Commitment; filters?: unknown[] }) {
+    return accounts.fetchAllEscrowStateByOwner(this.program.provider.rpc as any, this.programId, {
+      commitment: options?.commitment ?? this.program.provider.commitment,
+      filters: options?.filters,
+    });
   }
 
 }

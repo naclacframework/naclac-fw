@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release --locked -p naclac
+      - run: cargo build --release -p naclac
       - uses: actions/upload-artifact@v7
         with:
           name: naclac-bin
@@ -197,7 +197,7 @@ jobs:
         with:
           workspaces: tests/compile-fail
           save-if: ${{ github.ref_name == 'main' || github.ref_name == 'pending' }}
-      - run: cargo test --locked --test compile_fail
+      - run: cargo test --test compile_fail
         working-directory: tests/compile-fail
 
   empty-program:

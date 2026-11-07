@@ -21,7 +21,7 @@ pub use {
         },
         cpi::{self, AccountMeta, ToAccountMetas},
     },
-    naclac_macros::*,
+    naclac_derive::*,
 };
 
 // --- Wrappers: common types (shared by both backends) ---
@@ -52,7 +52,7 @@ pub use crate::wrappers::{
 
 pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};
 
-pub use crate::realloc::{const_rent_lamports, resize_with_rent};
+pub use crate::realloc::{resize_with_rent, LazyRent};
 
 // ---------------------------------------------------------------------------
 // CPI Stack-Allocation Limits
@@ -533,7 +533,7 @@ fn build_pda_hash_inputs<'a, 's>(
 /// (`create_program_address`-equivalent minus the on-curve rejection), so the
 /// caller must already know `bump` and must not rely on this alone to prove
 /// the result is off-curve. The one shared implementation behind the
-/// `#[account(seeds = [...], bump = ...)]` constraint naclac-macros generates
+/// `#[account(seeds = [...], bump = ...)]` constraint naclac-derive generates
 /// and `associated_token::derive_ata_address`. Also what hand-written
 /// instruction code uses to verify an arbitrary `AccountInfo` (e.g. one of
 /// `ctx.remaining_accounts`) against an expected PDA, which no declarative
@@ -1262,7 +1262,7 @@ pub use NaclacResult as Result;
 /// on `Ok(value)` and passes the bytes to `set_return_data` automatically —
 /// handlers never call `set_return_data` themselves. An `Option<T>` outer
 /// wrapper (e.g. a handler that may or may not have anything to return) is
-/// detected at macro-expansion time in `naclac-macros`, not via a blanket
+/// detected at macro-expansion time in `naclac-derive`, not via a blanket
 /// trait impl here, since a blanket `impl<T: Pod> for T` and a blanket
 /// `impl<T: NaclacReturnData> for Option<T>` are rejected by Rust's coherence
 /// checker as potentially overlapping.
@@ -1328,7 +1328,6 @@ pub fn next_account_info<'a, I: Iterator<Item = &'a AccountInfo>>(
 }
 
 #[cfg(feature = "pinocchio")]
-#[allow(unused_variables)]
 pub fn sol_log_data(data: &[&[u8]]) {
     #[cfg(any(target_os = "solana", target_arch = "bpf"))]
     // SAFETY: sol_log_data is a native Solana SBF syscall. The runtime guarantees it handles pointer boundaries securely.
@@ -1338,6 +1337,8 @@ pub fn sol_log_data(data: &[&[u8]]) {
             data.len() as u64,
         );
     }
+    #[cfg(not(any(target_os = "solana", target_arch = "bpf")))]
+    let _ = data;
 }
 
 /// Logs `Program consumption: N units remaining`. Calling it before and after

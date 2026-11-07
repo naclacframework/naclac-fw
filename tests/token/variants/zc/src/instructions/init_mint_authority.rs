@@ -20,7 +20,7 @@ pub struct InitMintAuthority {
 
 pub fn init_mint_authority(ctx: Context<InitMintAuthority>) -> Result {
     // Bare `bump` only auto-writes the derived bump back into the account
-    // for zero-copy fields (`macros/src/accounts.rs`'s
+    // for zero-copy fields (`derive/src/accounts`'s
     // `mut_zero_copy_fields`) — genuine `Account<T>` in solana-borsh mode
     // isn't zero-copy, so the write has to happen here explicitly.
     // `ctx.bumps.mint_authority` (`Context::bumps`, `core/src/context.rs`)

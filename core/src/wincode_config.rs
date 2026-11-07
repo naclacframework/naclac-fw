@@ -7,7 +7,7 @@
 //! defaults every `#[defined_type]` enum to a 1-byte (`#[repr(u8)]`)
 //! discriminant. `Config` matches that existing convention instead of
 //! wincode's bincode-compatible default, so every naclac call site
-//! (`naclac-core`, `naclac-macros`-generated code) must go through the
+//! (`naclac-core`, `naclac-derive`-generated code) must go through the
 //! `wincode::config::*` functions with this value rather than the
 //! `DefaultConfig`-bound crate-root functions, or the two config surfaces
 //! will silently disagree on wire format.

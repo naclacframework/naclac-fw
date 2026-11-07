@@ -11,4 +11,6 @@ pub const PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Ad
     32, 124, 177, 28, 10, 93, 172, 47, 227, 100, 84, 95, 176, 108, 234, 157, 10, 125, 226, 53, 211, 142, 90, 58, 58, 149, 157, 181, 86, 251, 117, 174
 ]);
 
+pub const SEED_LP_MINT: &[u8] = &[108, 112, 95, 109, 105, 110, 116];
 pub const SEED_POOL: &[u8] = &[112, 111, 111, 108];
+pub const SEED_VAULT: &[u8] = &[118, 97, 117, 108, 116];

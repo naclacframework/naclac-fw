@@ -7,6 +7,7 @@ use {
     colored::Colorize,
     std::{
         fs,
+        io::Read,
         path::PathBuf,
         process::{Command, Stdio},
     },
@@ -270,8 +271,7 @@ pub fn execute(
             .arg("--sbf-out-dir")
             .arg(&deploy_dir)
             .env("CARGO_TERM_COLOR", "always")
-            .current_dir(&workspace_root)
-            .stdout(Stdio::inherit());
+            .current_dir(&workspace_root);
         if !features.is_empty() {
             cmd.arg("--features").arg(features.join(","));
         }
@@ -283,6 +283,7 @@ pub fn execute(
             // progress bar, instead of the piped-stderr plain-line mode the
             // spinner path below relies on.
             let build_status = cmd
+                .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .status()
                 .unwrap_or_else(|e| ui::error(build_spawn_error(&e)));
@@ -293,15 +294,20 @@ pub fn execute(
         } else {
             let mut child = cmd
                 .envs(cargo_progress::ENV)
+                .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
                 .unwrap_or_else(|e| ui::error(build_spawn_error(&e)));
-            let stderr = child
-                .stderr
-                .take()
-                .unwrap_or_else(|| ui::error("Cannot read the output of cargo build-sbf."));
+            let (Some(mut stdout), Some(stderr)) = (child.stdout.take(), child.stderr.take())
+            else {
+                ui::error("Cannot read the output of cargo build-sbf.");
+            };
 
             let step = ui::Step::start("Compiling the program");
+            let stdout_thread = std::thread::spawn(move || {
+                let mut buffer = Vec::new();
+                stdout.read_to_end(&mut buffer).map(|_| buffer)
+            });
             let mut combined = String::new();
             let mut compiled = 0u32;
             let mut last_progress_total: Option<u32> = None;
@@ -344,6 +350,16 @@ pub fn execute(
 
             if let Err(e) = read {
                 step.fail(format!("Cannot read the output of cargo build-sbf: {e}"));
+            }
+            match stdout_thread.join() {
+                Ok(Ok(bytes)) => {
+                    let text = String::from_utf8_lossy(&bytes);
+                    if !text.trim().is_empty() {
+                        step.print_above(text.trim_end());
+                    }
+                }
+                Ok(Err(e)) => step.fail(format!("Cannot read the output of cargo build-sbf: {e}")),
+                Err(_) => step.fail("Reading the output of cargo build-sbf stopped unexpectedly."),
             }
 
             let build_status = match child.wait() {

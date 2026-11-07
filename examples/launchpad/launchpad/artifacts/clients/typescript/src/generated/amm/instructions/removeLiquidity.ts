@@ -9,6 +9,8 @@ export const REMOVE_LIQUIDITY_DISCRIMINATOR = new Uint8Array([80, 85, 209, 72, 2
 /** Instruction arguments for `removeLiquidity`. */
 export interface RemoveLiquidityArgs {
   lpAmount: bigint | number;
+  minAmountA: bigint | number;
+  minAmountB: bigint | number;
 }
 
 /** Accounts for the `removeLiquidity` instruction. */
@@ -23,7 +25,9 @@ export interface RemoveLiquidityAccounts {
   userTokenA: naclac.Address | string;
   userTokenB: naclac.Address | string;
   userLp: naclac.Address | string;
-  tokenProgram?: naclac.Address | string;
+  tokenProgramA: naclac.Address | string;
+  tokenProgramB: naclac.Address | string;
+  lpTokenProgram?: naclac.Address | string;
 }
 
 /**
@@ -31,6 +35,7 @@ export interface RemoveLiquidityAccounts {
  * Call `.rpc()` to send or `.instruction()` to get the raw instruction.
  * 
  * Removes liquidity by burning user's LP tokens and returning proportional pool assets.
+ * Fails unless at least `min_amount_a` and `min_amount_b` are returned.
  */
 export function removeLiquidity(
   program: any,

@@ -1,0 +1,236 @@
+//! Validates the combinations of keys read into `RawAttrs` (mutually exclusive
+//! creation modes, `payer` with `init`, `realloc` with its payer, and so on),
+//! fills the implicit program address, and builds the `ParsedField`.
+
+use {
+    super::{attrs::RawAttrs, InitConfig, ParsedField, ReallocConfig, ReallocSpace},
+    crate::accounts::field::builtin_namespaces,
+    syn::{Ident, Type},
+};
+
+/// True if any doc-comment line on this field (once desugared from `///`/`#[doc = "..."]`
+/// and trimmed of leading whitespace) starts with `SAFETY:`. Used to require an explicit,
+/// human-written justification on every unchecked `AccountInfo` field — mirroring the
+/// `// SAFETY:` convention this codebase already uses for `unsafe` blocks.
+fn has_safety_doc_comment(attrs: &[syn::Attribute]) -> bool {
+    attrs.iter().any(|attr| {
+        if !attr.path().is_ident("doc") {
+            return false;
+        }
+        let syn::Meta::NameValue(nv) = &attr.meta else {
+            return false;
+        };
+        let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) = &nv.value
+        else {
+            return false;
+        };
+        s.value().trim_start().starts_with("SAFETY:")
+    })
+}
+
+pub(super) fn finish(
+    raw: RawAttrs,
+    idx: usize,
+    ident: Ident,
+    ty: Type,
+    is_optional: bool,
+    field_attrs: &[syn::Attribute],
+) -> syn::Result<ParsedField> {
+    let RawAttrs {
+        is_signer,
+        is_mut,
+        is_alias,
+        is_executable,
+        is_rent_exempt,
+        pda_program,
+        pda_seed,
+        pda_bump,
+        is_init,
+        is_init_if_needed,
+        is_init_unchecked,
+        close_destination,
+        init_payer,
+        init_space,
+        realloc_space,
+        realloc_any_of,
+        realloc_grow_only,
+        realloc_grow_only_path,
+        realloc_payer,
+        realloc_zero,
+        relations,
+        owner,
+        address,
+        extra_accounts,
+        plugin_constraints,
+    } = raw;
+    let mut init_config = None;
+    let mut realloc = None;
+
+    // The three creation modes are mutually exclusive: combining them leaves
+    // unclear which existence check and which CreateAccount CPI applies.
+    if [is_init, is_init_if_needed, is_init_unchecked]
+        .iter()
+        .filter(|b| **b)
+        .count()
+        > 1
+    {
+        return Err(syn::Error::new_spanned(
+            &ident,
+            "Naclac Error: `init`, `init_if_needed`, and `init_unchecked` are mutually \
+                 exclusive on the same field — pick exactly one.",
+        ));
+    }
+
+    // A creation mode and `payer =` must appear together: `payer` alone would
+    // run a creation CPI on a field left non-mutable, and a creation mode alone
+    // would generate no creation logic.
+    match (
+        is_init || is_init_if_needed || is_init_unchecked,
+        init_payer,
+    ) {
+        (true, Some(payer)) => {
+            init_config = Some(InitConfig {
+                payer,
+                space: init_space,
+            });
+        }
+        (true, None) => {
+            return Err(syn::Error::new_spanned(
+                &ident,
+                "Naclac Error: `init`/`init_if_needed`/`init_unchecked` requires \
+                     `payer = <account>` on the same field — without it, no account-creation \
+                     CPI is generated at all, and this field would silently behave as an \
+                     ordinary (non-created) account.",
+            ));
+        }
+        (false, Some(_)) => {
+            return Err(syn::Error::new_spanned(
+                &ident,
+                "Naclac Error: `payer = ...` has no effect without `init`, `init_if_needed`, \
+                     or `init_unchecked` on the same field. Add one of them explicitly.",
+            ));
+        }
+        (false, None) => {}
+    }
+    if is_init_unchecked {
+        if let Some(message) = builtin_namespaces::init_unchecked_error(&plugin_constraints) {
+            return Err(syn::Error::new_spanned(&ident, message));
+        }
+    }
+    let realloc_space_variant = match (realloc_space, realloc_any_of) {
+        (Some(_), Some(_)) => {
+            return Err(syn::Error::new_spanned(
+                &ident,
+                "Naclac Error: `realloc = <expr>` and `realloc::any_of = [...]` are mutually \
+                     exclusive on the same field.",
+            ));
+        }
+        (Some(expr), None) => Some(ReallocSpace::Expr(expr)),
+        (None, Some(types)) => Some(ReallocSpace::AnyOf(types)),
+        (None, None) => None,
+    };
+    // `grow_only` only means something with `any_of`, where the size is
+    // discriminator-driven; it is rejected elsewhere rather than ignored.
+    if let Some(path) = &realloc_grow_only_path {
+        if !matches!(realloc_space_variant, Some(ReallocSpace::AnyOf(_))) {
+            return Err(syn::Error::new_spanned(
+                path,
+                "Naclac Error: `realloc::grow_only` is only meaningful alongside \
+                     `realloc::any_of = [...]` — a plain `realloc = <expr>` already fully \
+                     controls its own size and direction.",
+            ));
+        }
+    }
+    // `realloc` needs an explicit `realloc::payer`: there is no safe default,
+    // as a wrong guess would move lamports through an account the author never
+    // named.
+    match (realloc_space_variant, realloc_payer) {
+        (Some(space), Some(payer)) => {
+            realloc = Some(ReallocConfig {
+                space,
+                payer,
+                zero: realloc_zero,
+                grow_only: realloc_grow_only,
+            });
+        }
+        (Some(_), None) => {
+            return Err(syn::Error::new_spanned(
+                &ident,
+                "Naclac Error: `realloc = <expr>` / `realloc::any_of = [...]` requires \
+                     `realloc::payer = <account>` on the same field — without it, no resize \
+                     logic is generated at all, and this field would silently behave as an \
+                     ordinary (non-reallocating) account.",
+            ));
+        }
+        (None, _) => {}
+    }
+
+    // The creation CPI always signs as the executing program, so
+    // `seeds::program` with a creation mode either can never satisfy the
+    // signature or is redundant; it is rejected at compile time.
+    if (is_init || is_init_if_needed || is_init_unchecked) && pda_program.is_some() {
+        return Err(syn::Error::new_spanned(
+            &ident,
+            "Naclac Error: `init`/`init_if_needed`/`init_unchecked` cannot be combined with \
+                 `seeds::program = ...` on the same field — the account-creation CPI always \
+                 signs under the currently executing program, so a `seeds::program` pointing \
+                 anywhere else can never satisfy the signature check, and pointing at the \
+                 current program is redundant. Remove `seeds::program` here.",
+        ));
+    }
+
+    let mut final_address = address;
+    if final_address.is_none() {
+        if crate::type_classify::is_exactly(&ty, "Program") {
+            let builtin = builtin_namespaces::PROGRAM_ADDRESSES
+                .iter()
+                .find(|(marker, _)| crate::type_classify::inner_is(&ty, marker));
+            if let Some((_, address)) = builtin {
+                final_address = Some(syn::parse_str(address)?);
+            } else if crate::type_classify::inner_is(&ty, "System") {
+                final_address = Some(syn::parse_str("naclac_lang::prelude::SYSTEM_PROGRAM_ID")?);
+            }
+        } else if crate::type_classify::is_exactly(&ty, "Rent") {
+            final_address = Some(syn::parse_str("naclac_lang::prelude::RENT_SYSVAR_ID")?);
+        }
+    }
+
+    if crate::type_classify::is_exactly(&ty, "AccountInfo") && !has_safety_doc_comment(field_attrs)
+    {
+        return Err(syn::Error::new_spanned(
+            &ident,
+            "Naclac Error: `AccountInfo` fields receive no automatic validation. \
+                 Add a `/// SAFETY: ...` doc comment directly above this field explaining \
+                 why skipping validation is safe here.",
+        ));
+    }
+
+    Ok(ParsedField {
+        ident,
+        ty,
+        is_optional,
+        is_signer,
+        is_mut,
+        is_alias,
+        is_executable,
+        is_rent_exempt,
+        pda_program,
+        pda_seed,
+        pda_bump,
+        init_config,
+        is_init_if_needed,
+        is_init_unchecked,
+        close_destination,
+        relations,
+        owner,
+        address: final_address,
+        realloc,
+        extra_accounts,
+        plugin_constraints,
+        index: idx,
+        parse_error: None,
+    })
+}

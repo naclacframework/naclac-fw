@@ -96,9 +96,11 @@ fn test_escrow_lifecycle() {
     // =========================================================================
     // FLOW 1: Make & Cancel
     // =========================================================================
-    let seed_cancel = 789012u64;
+    let id_cancel = (1u64..)
+        .find(|id| get_escrow_state_pda(&PROGRAM_ID, &maker_address, *id).1 == 255)
+        .expect("no seed with bump 255");
     let (escrow_pda_cancel, _escrow_bump_cancel) =
-        get_escrow_state_pda(&PROGRAM_ID, &maker_address, seed_cancel);
+        get_escrow_state_pda(&PROGRAM_ID, &maker_address, id_cancel);
 
     let mut already_initialized_cancel = false;
     if let Ok(account) = provider.get_account(&escrow_pda_cancel) {
@@ -124,7 +126,7 @@ fn test_escrow_lifecycle() {
         let tx_meta = build_make(
             &provider,
             PROGRAM_ID,
-            seed_cancel,
+            id_cancel,
             amount_a_cancel,
             amount_b_cancel,
             MakeAccounts {
@@ -164,7 +166,7 @@ fn test_escrow_lifecycle() {
     let tx_meta_cancel = build_cancel(
         &provider,
         PROGRAM_ID,
-        seed_cancel,
+        id_cancel,
         CancelAccounts {
             maker: maker_address,
             mint_a,
@@ -215,9 +217,11 @@ fn test_escrow_lifecycle() {
     // =========================================================================
     // FLOW 2: Make & Take
     // =========================================================================
-    let seed_take = 123456u64;
+    let id_take = ((id_cancel + 1)..)
+        .find(|id| get_escrow_state_pda(&PROGRAM_ID, &maker_address, *id).1 == 255)
+        .expect("no seed with bump 255");
     let (escrow_pda_take, _escrow_bump_take) =
-        get_escrow_state_pda(&PROGRAM_ID, &maker_address, seed_take);
+        get_escrow_state_pda(&PROGRAM_ID, &maker_address, id_take);
 
     let mut already_initialized_take = false;
     if let Ok(account) = provider.get_account(&escrow_pda_take) {
@@ -243,7 +247,7 @@ fn test_escrow_lifecycle() {
         let tx_meta = build_make(
             &provider,
             PROGRAM_ID,
-            seed_take,
+            id_take,
             amount_a_take,
             amount_b_take,
             MakeAccounts {
@@ -303,7 +307,7 @@ fn test_escrow_lifecycle() {
     let tx_meta_take = build_take(
         &provider,
         PROGRAM_ID,
-        seed_take,
+        id_take,
         TakeAccounts {
             taker: taker_address,
             maker: maker_address,

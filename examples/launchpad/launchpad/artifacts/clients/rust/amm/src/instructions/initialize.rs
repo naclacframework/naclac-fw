@@ -48,25 +48,45 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for InitializeCpiIxArgs {}
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for InitializeCpiIxArgs {}
 
 #[cfg(feature = "offchain")]
-/// Initializes an AMM pool with initial liquidity and mints corresponding LP tokens to the depositor.
+/// Creates an AMM pool for two mints in ascending address order and seeds it
+/// with `amount_a` and `amount_b` from the payer's token accounts, minting the
+/// first LP shares to the payer. A mint's token program is the one that owns
+/// it, and a Token-2022 mint is accepted only with informational extensions.
 pub struct InitializeAccounts {
     pub payer: naclac_client::Address,
     pub token_a_mint: naclac_client::Address,
     pub token_b_mint: naclac_client::Address,
     pub pool_state: naclac_client::Address,
-    pub vault_a: naclac_client::Address,
-    pub vault_b: naclac_client::Address,
+    /// SAFETY: `init` + `mint::decimals`/`mint::authority` below construct and
+    /// validate this account through a CPI to the classic Token program; it is
+    /// a raw SPL `Mint` with no naclac discriminator to check.
     pub lp_mint: naclac_client::Address,
+    /// SAFETY: `init` + `token::*` below create this account and initialise
+    /// it through the named token program, at an address only this program can
+    /// sign for; it is a raw SPL token account with no naclac discriminator to
+    /// check.
+    pub vault_a: naclac_client::Address,
+    /// SAFETY: same as `vault_a`.
+    pub vault_b: naclac_client::Address,
     pub depositor_token_a: naclac_client::Address,
     pub depositor_token_b: naclac_client::Address,
+    /// SAFETY: `init` + `associated_token::*` below have the Associated Token
+    /// program create and address-check this account; it is a raw SPL token
+    /// account with no naclac discriminator to check. The LP mint is created
+    /// in this same instruction, so nobody can create this account first.
     pub depositor_lp: naclac_client::Address,
-    pub depositor_authority: naclac_client::Address,
-    pub token_program: naclac_client::Address,
+    pub token_program_a: naclac_client::Address,
+    pub token_program_b: naclac_client::Address,
+    pub lp_token_program: naclac_client::Address,
+    pub associated_token_program: naclac_client::Address,
     pub system_program: naclac_client::Address,
 }
 
 #[cfg(feature = "offchain")]
-/// Initializes an AMM pool with initial liquidity and mints corresponding LP tokens to the depositor.
+/// Creates an AMM pool for two mints in ascending address order and seeds it
+/// with `amount_a` and `amount_b` from the payer's token accounts, minting the
+/// first LP shares to the payer. A mint's token program is the one that owns
+/// it, and a Token-2022 mint is accepted only with informational extensions.
 pub fn build_initialize<'a>(
     provider: &'a naclac_client::NaclacProvider,
     program_id: naclac_client::Address,
@@ -98,32 +118,51 @@ pub fn build_initialize<'a>(
         .account(naclac_client::AccountMeta { address: accounts.token_a_mint, is_signer: false, is_writable: false }, "token_a_mint")
         .account(naclac_client::AccountMeta { address: accounts.token_b_mint, is_signer: false, is_writable: false }, "token_b_mint")
         .account(naclac_client::AccountMeta { address: accounts.pool_state, is_signer: false, is_writable: true }, "pool_state")
+        .account(naclac_client::AccountMeta { address: accounts.lp_mint, is_signer: false, is_writable: true }, "lp_mint")
         .account(naclac_client::AccountMeta { address: accounts.vault_a, is_signer: false, is_writable: true }, "vault_a")
         .account(naclac_client::AccountMeta { address: accounts.vault_b, is_signer: false, is_writable: true }, "vault_b")
-        .account(naclac_client::AccountMeta { address: accounts.lp_mint, is_signer: false, is_writable: true }, "lp_mint")
         .account(naclac_client::AccountMeta { address: accounts.depositor_token_a, is_signer: false, is_writable: true }, "depositor_token_a")
         .account(naclac_client::AccountMeta { address: accounts.depositor_token_b, is_signer: false, is_writable: true }, "depositor_token_b")
         .account(naclac_client::AccountMeta { address: accounts.depositor_lp, is_signer: false, is_writable: true }, "depositor_lp")
-        .account(naclac_client::AccountMeta { address: accounts.depositor_authority, is_signer: true, is_writable: false }, "depositor_authority")
-        .account(naclac_client::AccountMeta { address: accounts.token_program, is_signer: false, is_writable: false }, "token_program")
+        .account(naclac_client::AccountMeta { address: accounts.token_program_a, is_signer: false, is_writable: false }, "token_program_a")
+        .account(naclac_client::AccountMeta { address: accounts.token_program_b, is_signer: false, is_writable: false }, "token_program_b")
+        .account(naclac_client::AccountMeta { address: accounts.lp_token_program, is_signer: false, is_writable: false }, "lp_token_program")
+        .account(naclac_client::AccountMeta { address: accounts.associated_token_program, is_signer: false, is_writable: false }, "associated_token_program")
         .account(naclac_client::AccountMeta { address: accounts.system_program, is_signer: false, is_writable: false }, "system_program")
 }
 
 #[cfg(feature = "cpi")]
-/// Initializes an AMM pool with initial liquidity and mints corresponding LP tokens to the depositor.
+/// Creates an AMM pool for two mints in ascending address order and seeds it
+/// with `amount_a` and `amount_b` from the payer's token accounts, minting the
+/// first LP shares to the payer. A mint's token program is the one that owns
+/// it, and a Token-2022 mint is accepted only with informational extensions.
 pub struct InitializeCpiAccounts<'a> {
     pub payer: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub token_a_mint: crate::sdk_core_cpi::CpiHandle<'a>,
     pub token_b_mint: crate::sdk_core_cpi::CpiHandle<'a>,
     pub pool_state: crate::sdk_core_cpi::CpiHandleMut<'a>,
-    pub vault_a: crate::sdk_core_cpi::CpiHandleMut<'a>,
-    pub vault_b: crate::sdk_core_cpi::CpiHandleMut<'a>,
+    /// SAFETY: `init` + `mint::decimals`/`mint::authority` below construct and
+    /// validate this account through a CPI to the classic Token program; it is
+    /// a raw SPL `Mint` with no naclac discriminator to check.
     pub lp_mint: crate::sdk_core_cpi::CpiHandleMut<'a>,
+    /// SAFETY: `init` + `token::*` below create this account and initialise
+    /// it through the named token program, at an address only this program can
+    /// sign for; it is a raw SPL token account with no naclac discriminator to
+    /// check.
+    pub vault_a: crate::sdk_core_cpi::CpiHandleMut<'a>,
+    /// SAFETY: same as `vault_a`.
+    pub vault_b: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub depositor_token_a: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub depositor_token_b: crate::sdk_core_cpi::CpiHandleMut<'a>,
+    /// SAFETY: `init` + `associated_token::*` below have the Associated Token
+    /// program create and address-check this account; it is a raw SPL token
+    /// account with no naclac discriminator to check. The LP mint is created
+    /// in this same instruction, so nobody can create this account first.
     pub depositor_lp: crate::sdk_core_cpi::CpiHandleMut<'a>,
-    pub depositor_authority: crate::sdk_core_cpi::CpiHandle<'a>,
-    pub token_program: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub token_program_a: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub token_program_b: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub lp_token_program: crate::sdk_core_cpi::CpiHandle<'a>,
+    pub associated_token_program: crate::sdk_core_cpi::CpiHandle<'a>,
     pub system_program: crate::sdk_core_cpi::CpiHandle<'a>,
 }
 
@@ -139,7 +178,10 @@ pub struct InitializeCpiCall<'a> {
 
 #[cfg(feature = "cpi")]
 pub trait InitializeCpi<'info> {
-    /// Initializes an AMM pool with initial liquidity and mints corresponding LP tokens to the depositor.
+    /// Creates an AMM pool for two mints in ascending address order and seeds it
+    /// with `amount_a` and `amount_b` from the payer's token accounts, minting the
+    /// first LP shares to the payer. A mint's token program is the one that owns
+    /// it, and a Token-2022 mint is accepted only with informational extensions.
     fn initialize<'a>(
         &self,
         accounts: InitializeCpiAccounts<'a>,
@@ -220,11 +262,11 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             idx += 1;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.pool_state.info.view.address()));
             idx += 1;
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.lp_mint.info.view.address()));
+            idx += 1;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.vault_a.info.view.address()));
             idx += 1;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.vault_b.info.view.address()));
-            idx += 1;
-            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.lp_mint.info.view.address()));
             idx += 1;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.depositor_token_a.info.view.address()));
             idx += 1;
@@ -232,9 +274,13 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             idx += 1;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(accounts.depositor_lp.info.view.address()));
             idx += 1;
-            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly_signer(accounts.depositor_authority.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program_a.info.view.address()));
             idx += 1;
-            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program.info.view.address()));
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.token_program_b.info.view.address()));
+            idx += 1;
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.lp_token_program.info.view.address()));
+            idx += 1;
+            metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.associated_token_program.info.view.address()));
             idx += 1;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(accounts.system_program.info.view.address()));
             idx += 1;
@@ -273,11 +319,11 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.pool_state));
             h_idx += 1;
+            handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.lp_mint));
+            h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.vault_a));
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.vault_b));
-            h_idx += 1;
-            handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.lp_mint));
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.depositor_token_a));
             h_idx += 1;
@@ -285,9 +331,13 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.depositor_lp));
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.depositor_authority);
+            handles_arr[h_idx].write(accounts.token_program_a);
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.token_program);
+            handles_arr[h_idx].write(accounts.token_program_b);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.lp_token_program);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.associated_token_program);
             h_idx += 1;
             handles_arr[h_idx].write(accounts.system_program);
             h_idx += 1;
@@ -307,14 +357,16 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
                 ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_a_mint.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_b_mint.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.pool_state.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.lp_mint.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.vault_a.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.vault_b.address(), false),
-                ::naclac_lang::solana_instruction::AccountMeta::new(accounts.lp_mint.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.depositor_token_a.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.depositor_token_b.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.depositor_lp.address(), false),
-                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.depositor_authority.address(), true),
-                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program_a.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.token_program_b.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.lp_token_program.address(), false),
+                ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.associated_token_program.address(), false),
                 ::naclac_lang::solana_instruction::AccountMeta::new_readonly(accounts.system_program.address(), false),
             ];
             for (acc, is_writable, is_signer) in remaining_accounts {
@@ -340,11 +392,11 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.pool_state));
             h_idx += 1;
+            handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.lp_mint));
+            h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.vault_a));
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.vault_b));
-            h_idx += 1;
-            handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.lp_mint));
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.depositor_token_a));
             h_idx += 1;
@@ -352,9 +404,13 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             h_idx += 1;
             handles_arr[h_idx].write(crate::sdk_core_cpi::CpiHandle::from(accounts.depositor_lp));
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.depositor_authority);
+            handles_arr[h_idx].write(accounts.token_program_a);
             h_idx += 1;
-            handles_arr[h_idx].write(accounts.token_program);
+            handles_arr[h_idx].write(accounts.token_program_b);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.lp_token_program);
+            h_idx += 1;
+            handles_arr[h_idx].write(accounts.associated_token_program);
             h_idx += 1;
             handles_arr[h_idx].write(accounts.system_program);
             h_idx += 1;

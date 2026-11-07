@@ -250,7 +250,7 @@ pub fn generate(
                 // heap allocation or are a zero-copy *view* (pointer +
                 // length) into someone else's buffer, neither of which is a
                 // plain, arbitrary-bytes-safe in-place representation. Same
-                // check as `naclac-macros`'s `#[instruction_args]` uses for
+                // check as `naclac-derive`'s `#[instruction_args]` uses for
                 // the on-chain struct this type mirrors.
                 let is_pod = fields.iter().all(|f| {
                     if idl.is_zero_copy {

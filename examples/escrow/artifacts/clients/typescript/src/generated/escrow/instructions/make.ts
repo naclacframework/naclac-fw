@@ -8,7 +8,7 @@ export const MAKE_DISCRIMINATOR = new Uint8Array([138, 227, 232, 77, 223, 166, 9
 
 /** Instruction arguments for `make`. */
 export interface MakeArgs {
-  seed: bigint | number;
+  id: bigint | number;
   amountA: bigint | number;
   amountB: bigint | number;
 }

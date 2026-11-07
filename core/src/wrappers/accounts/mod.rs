@@ -39,7 +39,7 @@ pub(crate) fn discard_error<E>(error: E) {
 /// is a thin alias for `try_from` (both call `load`), and nothing else calls
 /// the trait's `load_mut`. The only other `load_mut`
 /// in the repo is a separate, macro-generated *inherent* method
-/// (`macros/src/account.rs`) that duplicates this logic for
+/// (`derive/src/account/mod.rs`) that duplicates this logic for
 /// off-chain use — it doesn't call this trait method either.
 #[cfg(feature = "bytemuck")]
 pub trait NaclacZeroCopy:

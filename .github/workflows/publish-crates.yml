@@ -23,8 +23,8 @@ jobs:
       - name: Package every publishable crate
         run: |
           set -xeuo pipefail
-          for crate in naclac-syn naclac-idl naclac-pod naclac-macros naclac-core naclac-token naclac-lang naclac-client-gen naclac-client naclac nacvm; do
-            cargo package -p "$crate" --locked
+          for crate in naclac-syn naclac-idl naclac-pod naclac-derive naclac-core naclac-token naclac-lang naclac-client-gen naclac-client naclac nacvm; do
+            cargo package -p "$crate"
           done
 
   publish-crates:
@@ -53,8 +53,8 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: |
           set -xeuo pipefail
-          for crate in naclac-syn naclac-idl naclac-pod naclac-macros naclac-core naclac-token naclac-lang naclac-client-gen naclac-client naclac nacvm; do
-            cargo publish -p "$crate" --locked || echo "::warning::$crate publish failed or already published at this version"
+          for crate in naclac-syn naclac-idl naclac-pod naclac-derive naclac-core naclac-token naclac-lang naclac-client-gen naclac-client naclac nacvm; do
+            cargo publish -p "$crate" || echo "::warning::$crate publish failed or already published at this version"
             # crates.io index needs a moment to propagate before the next
             # crate's path+version dependency can resolve against it.
             sleep 20

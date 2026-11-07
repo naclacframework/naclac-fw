@@ -31,6 +31,37 @@ macro_rules! declare_id {
 declare_id!("3BpKpLxLuskuhh1xjK51dmTPpu5CmhekKTNg3RWBx3qo");
 
 #[cfg(feature = "offchain")]
+pub fn get_depositor_lp_pda(
+    payer: &naclac_client::Address,
+    lp_token_program: &naclac_client::Address,
+    lp_mint: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    let __derivation_program = naclac_client::Address::new_from_array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]);
+    naclac_client::Address::find_program_address(
+        &[
+            payer.as_ref(),
+            lp_token_program.as_ref(),
+            lp_mint.as_ref(),
+        ],
+        &__derivation_program,
+    )
+}
+
+#[cfg(feature = "offchain")]
+pub fn get_lp_mint_pda(
+    program_id: &naclac_client::Address,
+    pool_state: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[108, 112, 95, 109, 105, 110, 116],
+            pool_state.as_ref(),
+        ],
+        program_id,
+    )
+}
+
+#[cfg(feature = "offchain")]
 pub fn get_pool_state_pda(
     program_id: &naclac_client::Address,
     token_a_mint: &naclac_client::Address,
@@ -44,6 +75,38 @@ pub fn get_pool_state_pda(
             token_a_mint.as_ref(),
             token_b_mint.as_ref(),
             &id_bytes,
+        ],
+        program_id,
+    )
+}
+
+#[cfg(feature = "offchain")]
+pub fn get_vault_a_pda(
+    program_id: &naclac_client::Address,
+    pool_state: &naclac_client::Address,
+    token_a_mint: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[118, 97, 117, 108, 116],
+            pool_state.as_ref(),
+            token_a_mint.as_ref(),
+        ],
+        program_id,
+    )
+}
+
+#[cfg(feature = "offchain")]
+pub fn get_vault_b_pda(
+    program_id: &naclac_client::Address,
+    pool_state: &naclac_client::Address,
+    token_b_mint: &naclac_client::Address
+) -> (naclac_client::Address, u8) {
+    naclac_client::Address::find_program_address(
+        &[
+            &[118, 97, 117, 108, 116],
+            pool_state.as_ref(),
+            token_b_mint.as_ref(),
         ],
         program_id,
     )

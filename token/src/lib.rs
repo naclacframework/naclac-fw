@@ -73,6 +73,9 @@ pub mod prelude {
     };
 
     #[cfg(any(feature = "solana", feature = "pinocchio"))]
+    pub use crate::extensions::{INFORMATIONAL_MINT_EXTENSIONS, TOKEN_METADATA_EXTENSION_TYPE};
+
+    #[cfg(any(feature = "solana", feature = "pinocchio"))]
     pub use crate::extensions::{
         emit_token_metadata, initialize_token_group, initialize_token_group_member,
         initialize_token_group_member_signed, initialize_token_group_signed,

@@ -12,7 +12,7 @@ pub mod idl_build;
 pub mod idl_build_accounts;
 pub mod program_metadata;
 
-/// Re-exports used only by `naclac-macros`' generated `idl-build` code, so a
+/// Re-exports used only by `naclac-derive`' generated `idl-build` code, so a
 /// program crate doesn't need `serde_json`/`std::collections` as its own
 /// direct dependencies just to compile the generated `NaclacIdlBuild` impls
 /// — mirrors Anchor's own `anchor_lang::__private` re-export shim.

@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// Site: macros/src/account.rs:29 — `#[account]` field typed
+// Site: derive/src/account/mod.rs — `#[account]` field typed
 // `Pubkey` (deprecated in favor of `Address`).
 use naclac_lang::prelude::*;
 

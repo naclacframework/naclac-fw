@@ -6,6 +6,7 @@ use {
     },
     colored::Colorize,
     std::{
+        io::Read,
         process::{Command, Stdio},
         time::Instant,
     },
@@ -192,16 +193,21 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
             } else {
                 let mut child = command
                     .envs(cargo_progress::ENV)
-                    .stdout(Stdio::inherit())
+                    .stdout(Stdio::piped())
                     .stderr(Stdio::piped())
                     .spawn()
                     .unwrap_or_else(|e| ui::error(test_spawn_error(&e)));
 
-                let stderr = child
-                    .stderr
-                    .take()
-                    .unwrap_or_else(|| ui::error("Cannot read the output of the test script."));
+                let (Some(mut stdout), Some(stderr)) = (child.stdout.take(), child.stderr.take())
+                else {
+                    ui::error("Cannot read the output of the test script.");
+                };
                 let step = ui::Step::start("Compiling & running tests");
+
+                let stdout_thread = std::thread::spawn(move || {
+                    let mut buffer = Vec::new();
+                    stdout.read_to_end(&mut buffer).map(|_| buffer)
+                });
 
                 let mut printed_header = false;
                 let read = cargo_progress::read_updates(stderr, |line| {
@@ -230,6 +236,17 @@ pub fn execute(target_file: Option<&str>, requested: &[String], rust: bool, node
                     Ok(status) => status,
                     Err(e) => step.fail(format!("Cannot wait for the test script: {e}")),
                 };
+
+                let test_output = match stdout_thread.join() {
+                    Ok(Ok(bytes)) => String::from_utf8_lossy(&bytes).into_owned(),
+                    Ok(Err(e)) => {
+                        step.fail(format!("Cannot read the output of the test script: {e}"))
+                    }
+                    Err(_) => step.fail("Reading the test output stopped unexpectedly."),
+                };
+                if !test_output.trim().is_empty() {
+                    step.print_above(test_output.trim_end());
+                }
 
                 if !status.success() {
                     step.fail(format!("Tests failed for '{prog_name}'."));

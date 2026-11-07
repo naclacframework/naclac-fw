@@ -7,7 +7,7 @@ use {
 };
 
 #[derive(Accounts)]
-#[instruction(seed: u64)]
+#[instruction(id: u64)]
 pub struct Cancel {
     #[account(mut)]
     pub maker: Signer,
@@ -16,7 +16,7 @@ pub struct Cancel {
 
     #[account(
         mut,
-        seeds = [SEED_ESCROW, maker.address().as_ref(), &seed.to_le_bytes()],
+        seeds = [SEED_ESCROW, maker.address().as_ref(), &id.to_le_bytes()],
         bump = escrow_state.bump,
         close = maker,
         mint_a = mint_a @ EscrowError::InvalidMint,
@@ -41,10 +41,10 @@ pub struct Cancel {
     pub system_program: Program<System>,
 }
 
-pub fn cancel(ctx: Context<Cancel>, seed: u64) -> Result {
+pub fn cancel(ctx: Context<Cancel>, id: u64) -> Result {
     // 1. Prepare signer seeds for the escrow state PDA
     let maker_addr = ctx.accounts.maker.address();
-    let seed_bytes = seed.to_le_bytes();
+    let seed_bytes = id.to_le_bytes();
     let seeds: &[&[u8]] = &[
         SEED_ESCROW,
         maker_addr.as_ref(),

@@ -69,10 +69,10 @@ jobs:
         run: |
           set -e
           for combo in solana,bytemuck solana,borsh solana,wincode pinocchio,bytemuck pinocchio,wincode; do
-            cargo test -p naclac-core --locked --no-default-features --features "$combo"
+            cargo test -p naclac-core --no-default-features --features "$combo"
           done
       - name: Everything else
         run: |
           set -e
-          cargo build --workspace --exclude naclac-core --exclude naclac-lang --exclude naclac-token --exclude naclac-metadata --locked
-          cargo test --workspace --exclude naclac-core --exclude naclac-lang --exclude naclac-token --exclude naclac-metadata --locked
+          cargo build --workspace --exclude naclac-core --exclude naclac-lang --exclude naclac-token --exclude naclac-metadata
+          cargo test --workspace --exclude naclac-core --exclude naclac-lang --exclude naclac-token --exclude naclac-metadata

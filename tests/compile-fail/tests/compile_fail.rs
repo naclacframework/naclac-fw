@@ -1,7 +1,7 @@
 //! Drives `trybuild` over every fixture in `tests/fail/` and `tests/pass/`.
 //!
 //! `tests/fail/*.rs` — one fixture per `compile_error!`/`syn::Error` site in
-//! `naclac-macros` (see `tests/TEST_PLAN.md` section 5 for the full site
+//! `naclac-derive` (see `tests/TEST_PLAN.md` section 5 for the full site
 //! list this is meant to track). Each must fail to compile, and each has a
 //! committed `tests/fail/*.stderr` snapshot that trybuild compares exactly
 //! — without one, trybuild writes the actual output to `wip/*.stderr` and

@@ -4,11 +4,12 @@
 /** All program errors keyed by their numeric error code. */
 export const ProgramErrors = {
   6000: { code: 6000, name: "InvalidMint", message: "Invalid mint for the pool." },
-  6001: { code: 6001, name: "Unauthorized", message: "Unauthorized action." },
-  6002: { code: 6002, name: "Overflow", message: "Overflow or math error." },
-  6003: { code: 6003, name: "ZeroAmount", message: "Zero amount provided." },
-  6004: { code: 6004, name: "SlippageExceeded", message: "Slippage limit exceeded." },
-  6005: { code: 6005, name: "AlreadyInitialized", message: "The pool is already initialized." },
+  6001: { code: 6001, name: "Overflow", message: "Overflow or math error." },
+  6002: { code: 6002, name: "ZeroAmount", message: "Zero amount provided." },
+  6003: { code: 6003, name: "SlippageExceeded", message: "Slippage limit exceeded." },
+  6004: { code: 6004, name: "InsufficientLiquidity", message: "The pool's reserves or LP supply cannot satisfy the request." },
+  6005: { code: 6005, name: "UnsupportedMintExtension", message: "A Token-2022 mint carries an extension the pool does not accept." },
+  6006: { code: 6006, name: "InvariantViolated", message: "A swap would lower the product of the pool's reserves." },
 } as const;
 
 export type ProgramErrorCode = keyof typeof ProgramErrors;

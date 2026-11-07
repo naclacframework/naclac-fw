@@ -8,7 +8,7 @@ use {
     std::{fs, path::Path},
 };
 
-/// Mirrors naclac-macros' `classify_field_type` — structural (not
+/// Mirrors naclac-derive' `classify_field_type` — structural (not
 /// string-matching) detection of `String`/`Vec<T>`/`Option<T>` from an IDL
 /// field's JSON type, so the client decoder reads fields in exactly the
 /// shape `expand_alloc`'s `emit()` wrote them.

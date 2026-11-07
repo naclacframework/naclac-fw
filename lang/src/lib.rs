@@ -54,9 +54,9 @@ compile_error!("the `metadata` feature requires `solana` or `pinocchio` to also 
 #[cfg(feature = "metadata")]
 pub use naclac_metadata as metadata;
 
-/// Re-exported so `naclac-macros`' generated `idl-build` code
+/// Re-exported so `naclac-derive`' generated `idl-build` code
 /// (`naclac_lang::naclac_idl::...`) resolves in the calling program crate —
-/// a proc-macro's own dependencies (naclac-macros') are never visible to the
+/// a proc-macro's own dependencies (naclac-derive') are never visible to the
 /// code it generates, only this crate's are.
 #[cfg(feature = "idl-build")]
 pub use naclac_idl;

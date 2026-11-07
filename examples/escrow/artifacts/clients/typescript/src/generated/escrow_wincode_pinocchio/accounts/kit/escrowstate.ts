@@ -92,7 +92,7 @@ export async function fetchAllMaybeEscrowState(
 export async function fetchAllEscrowStateByOwner(
   rpc: Parameters<typeof naclac.fetchEncodedAccounts>[0],
   programAddress: naclac.Address,
-  options?: { commitment?: any; filters?: unknown[] },
+  options: { commitment: naclac.Commitment; filters?: unknown[] },
 ): Promise<Array<naclac.Account<EscrowState>>> {
   return naclac.fetchAllAccountsByProgram(
     rpc,
