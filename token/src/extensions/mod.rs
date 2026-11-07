@@ -402,75 +402,6 @@ impl TokenInterfaceAccountExtensions for InterfaceAccount<Mint> {
     }
 }
 
-#[cfg(test)]
-mod first_extension_outside_tests {
-    use super::{first_extension_outside, EXTENSION_BASE_OFFSET};
-
-    const MINT: u8 = 1;
-    const ALLOWED: &[u16] = &[18, 19];
-
-    fn mint_with(entries: &[(u16, usize)]) -> alloc::vec::Vec<u8> {
-        let mut data = alloc::vec![0u8; EXTENSION_BASE_OFFSET];
-        data.push(MINT);
-        for &(entry_type, len) in entries {
-            data.extend_from_slice(&entry_type.to_le_bytes());
-            data.extend_from_slice(&(len as u16).to_le_bytes());
-            data.resize(data.len() + len, 0);
-        }
-        data
-    }
-
-    fn outcome(data: &[u8]) -> Option<Option<u16>> {
-        first_extension_outside(data, 82, MINT, ALLOWED).ok()
-    }
-
-    #[test]
-    fn an_unextended_mint_has_nothing_outside() {
-        assert_eq!(outcome(&[0u8; 82]), Some(None));
-        assert_eq!(outcome(&[0u8; EXTENSION_BASE_OFFSET]), Some(None));
-    }
-
-    #[test]
-    fn allowed_entries_only_has_nothing_outside() {
-        let data = mint_with(&[(18, 64), (19, 10)]);
-        assert_eq!(outcome(&data), Some(None));
-    }
-
-    #[test]
-    fn reports_the_first_entry_outside_the_allowed_set() {
-        let data = mint_with(&[(18, 64), (12, 32), (1, 108)]);
-        assert_eq!(outcome(&data), Some(Some(12)));
-    }
-
-    #[test]
-    fn entries_after_the_uninitialized_marker_are_not_read() {
-        let mut data = mint_with(&[(18, 64)]);
-        data.extend_from_slice(&[0, 0, 0, 0]);
-        data.extend_from_slice(&1u16.to_le_bytes());
-        data.extend_from_slice(&0u16.to_le_bytes());
-        assert_eq!(outcome(&data), Some(None));
-    }
-
-    #[test]
-    fn a_malformed_region_is_an_error_not_an_empty_one() {
-        let mut padded = mint_with(&[(18, 64)]);
-        padded[100] = 1;
-        assert_eq!(outcome(&padded), None);
-
-        let mut wrong_type = mint_with(&[(18, 64)]);
-        wrong_type[EXTENSION_BASE_OFFSET] = 2;
-        assert_eq!(outcome(&wrong_type), None);
-
-        let mut truncated = mint_with(&[(18, 64)]);
-        truncated.truncate(truncated.len() - 1);
-        assert_eq!(outcome(&truncated), None);
-
-        let mut cut_header = mint_with(&[(18, 64)]);
-        cut_header.extend_from_slice(&[12, 0]);
-        assert_eq!(outcome(&cut_header), None);
-    }
-}
-
 /// Shared little-endian byte-reading helpers for TLV extension values —
 /// every extension file in this directory reads its fields through these
 /// rather than typed `#[repr(C)]` struct fields, since TLV value offsets
@@ -664,5 +595,74 @@ mod kani_proofs {
                 "a non-zero window must decode to exactly those bytes"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod first_extension_outside_tests {
+    use super::{first_extension_outside, EXTENSION_BASE_OFFSET};
+
+    const MINT: u8 = 1;
+    const ALLOWED: &[u16] = &[18, 19];
+
+    fn mint_with(entries: &[(u16, usize)]) -> alloc::vec::Vec<u8> {
+        let mut data = alloc::vec![0u8; EXTENSION_BASE_OFFSET];
+        data.push(MINT);
+        for &(entry_type, len) in entries {
+            data.extend_from_slice(&entry_type.to_le_bytes());
+            data.extend_from_slice(&(len as u16).to_le_bytes());
+            data.resize(data.len() + len, 0);
+        }
+        data
+    }
+
+    fn outcome(data: &[u8]) -> Option<Option<u16>> {
+        first_extension_outside(data, 82, MINT, ALLOWED).ok()
+    }
+
+    #[test]
+    fn an_unextended_mint_has_nothing_outside() {
+        assert_eq!(outcome(&[0u8; 82]), Some(None));
+        assert_eq!(outcome(&[0u8; EXTENSION_BASE_OFFSET]), Some(None));
+    }
+
+    #[test]
+    fn allowed_entries_only_has_nothing_outside() {
+        let data = mint_with(&[(18, 64), (19, 10)]);
+        assert_eq!(outcome(&data), Some(None));
+    }
+
+    #[test]
+    fn reports_the_first_entry_outside_the_allowed_set() {
+        let data = mint_with(&[(18, 64), (12, 32), (1, 108)]);
+        assert_eq!(outcome(&data), Some(Some(12)));
+    }
+
+    #[test]
+    fn entries_after_the_uninitialized_marker_are_not_read() {
+        let mut data = mint_with(&[(18, 64)]);
+        data.extend_from_slice(&[0, 0, 0, 0]);
+        data.extend_from_slice(&1u16.to_le_bytes());
+        data.extend_from_slice(&0u16.to_le_bytes());
+        assert_eq!(outcome(&data), Some(None));
+    }
+
+    #[test]
+    fn a_malformed_region_is_an_error_not_an_empty_one() {
+        let mut padded = mint_with(&[(18, 64)]);
+        padded[100] = 1;
+        assert_eq!(outcome(&padded), None);
+
+        let mut wrong_type = mint_with(&[(18, 64)]);
+        wrong_type[EXTENSION_BASE_OFFSET] = 2;
+        assert_eq!(outcome(&wrong_type), None);
+
+        let mut truncated = mint_with(&[(18, 64)]);
+        truncated.truncate(truncated.len() - 1);
+        assert_eq!(outcome(&truncated), None);
+
+        let mut cut_header = mint_with(&[(18, 64)]);
+        cut_header.extend_from_slice(&[12, 0]);
+        assert_eq!(outcome(&cut_header), None);
     }
 }
