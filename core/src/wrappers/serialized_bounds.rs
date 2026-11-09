@@ -215,12 +215,14 @@ mod max_len_tests {
 
     #[test]
     fn sizes_match_the_literal_shapes() {
-        assert!(<String as MaxLen1<8>>::MAX_SIZE == 4 + 8);
-        assert!(<Label as MaxLen1<8>>::MAX_SIZE == 4 + 8);
-        assert!(<Vec<u16> as MaxLen1<3>>::MAX_SIZE == 4 + 3 * 2);
-        assert!(<Option<String> as MaxLen1<3>>::MAX_SIZE == 1 + 4 + 3);
-        assert!(<Vec<String> as MaxLen2<2, 5>>::MAX_SIZE == 4 + 2 * (4 + 5));
-        assert!(<Vec<Vec<String>> as MaxLen3<2, 3, 4>>::MAX_SIZE == 4 + 2 * (4 + 3 * (4 + 4)));
+        const {
+            assert!(<String as MaxLen1<8>>::MAX_SIZE == 4 + 8);
+            assert!(<Label as MaxLen1<8>>::MAX_SIZE == 4 + 8);
+            assert!(<Vec<u16> as MaxLen1<3>>::MAX_SIZE == 4 + 3 * 2);
+            assert!(<Option<String> as MaxLen1<3>>::MAX_SIZE == 1 + 4 + 3);
+            assert!(<Vec<String> as MaxLen2<2, 5>>::MAX_SIZE == 4 + 2 * (4 + 5));
+            assert!(<Vec<Vec<String>> as MaxLen3<2, 3, 4>>::MAX_SIZE == 4 + 2 * (4 + 3 * (4 + 4)));
+        }
     }
 
     #[test]

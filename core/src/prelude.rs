@@ -625,10 +625,12 @@ mod float_probe_tests {
 
     #[test]
     fn only_floats_are_floats_under_any_name() {
-        assert!(FloatProbe::<f32>::IS_FLOAT);
-        assert!(FloatProbe::<Price>::IS_FLOAT);
-        assert!(!FloatProbe::<u64>::IS_FLOAT);
-        assert!(!FloatProbe::<[f64; 2]>::IS_FLOAT);
+        const {
+            assert!(FloatProbe::<f32>::IS_FLOAT);
+            assert!(FloatProbe::<Price>::IS_FLOAT);
+            assert!(!FloatProbe::<u64>::IS_FLOAT);
+            assert!(!FloatProbe::<[f64; 2]>::IS_FLOAT);
+        }
     }
 }
 
@@ -661,7 +663,7 @@ mod find_program_address_const_tests {
                         b"config",
                         &[1u8, 2, 3, 4],
                         b"name",
-                        &[b'x'],
+                        b"x",
                         OTHER_PROGRAM.as_ref(),
                     ],
                     &PROGRAM,
