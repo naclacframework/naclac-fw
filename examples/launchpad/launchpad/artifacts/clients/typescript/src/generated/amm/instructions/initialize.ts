@@ -44,7 +44,9 @@ export interface InitializeAccounts {
    */
   depositorLp?: naclac.Address | string;
   tokenProgramA: naclac.Address | string;
+  /** SAFETY: repeats `token_program_a` when both mints use one token program. */
   tokenProgramB: naclac.Address | string;
+  /** SAFETY: repeats a pool mint's token program when that mint is classic Token. */
   lpTokenProgram?: naclac.Address | string;
   associatedTokenProgram?: naclac.Address | string;
   systemProgram?: naclac.Address | string;

@@ -36,10 +36,8 @@ fn enum_impl(
     let repr_tokens = quote::quote! { Some(#repr.to_string()) };
 
     let discriminants = naclac_syn::discriminator::variant_discriminants(variants.iter());
-    let constants = crate::common::crate_source::crate_constants();
-    let aliases = crate::common::crate_source::crate_aliases();
     let mut idl_variants = Vec::new();
-    let mut defined_refs: Vec<syn::Type> = Vec::new();
+    let mut field_types: Vec<syn::Type> = Vec::new();
 
     for (variant, discriminant) in variants.iter().zip(discriminants.iter()) {
         let variant_name = variant.ident.to_string();
@@ -54,21 +52,16 @@ fn enum_impl(
                     let fname =
                         naclac_syn::parser::idl_name(&f.ident.as_ref().unwrap().to_string());
                     let field_docs = naclac_syn::parser::extract_docs(&f.attrs);
-                    let field_ty = aliases.resolve(&f.ty);
-                    let ty_value = naclac_syn::parser::rust_type_to_idl(&field_ty, &constants);
-                    let ty_json = ty_value.to_string();
+                    let field_ty = &f.ty;
                     field_ts_list.push(quote::quote! {
                         naclac_lang::naclac_idl::IdlField {
                             name: #fname.into(),
                             docs: vec![#(#field_docs.into()),*],
-                            ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
-                                .expect("naclac idl-build: generated field type JSON must parse"),
+                            ty: <#field_ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::idl_type(),
                             slots: None,
                         }
                     });
-                    if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&field_ty) {
-                        defined_refs.push(defined_ty);
-                    }
+                    field_types.push(field_ty.clone());
                 }
                 quote::quote! {
                     Some(naclac_lang::naclac_idl::IdlEnumFields::Named(vec![#(#field_ts_list),*]))
@@ -77,16 +70,11 @@ fn enum_impl(
             syn::Fields::Unnamed(unnamed) => {
                 let mut ty_ts_list = Vec::new();
                 for f in &unnamed.unnamed {
-                    let field_ty = aliases.resolve(&f.ty);
-                    let ty_value = naclac_syn::parser::rust_type_to_idl(&field_ty, &constants);
-                    let ty_json = ty_value.to_string();
+                    let field_ty = &f.ty;
                     ty_ts_list.push(quote::quote! {
-                        naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
-                            .expect("naclac idl-build: generated field type JSON must parse")
+                        <#field_ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::idl_type()
                     });
-                    if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&field_ty) {
-                        defined_refs.push(defined_ty);
-                    }
+                    field_types.push(field_ty.clone());
                 }
                 quote::quote! {
                     Some(naclac_lang::naclac_idl::IdlEnumFields::Tuple(vec![#(#ty_ts_list),*]))
@@ -124,18 +112,23 @@ fn enum_impl(
                 >,
             ) {
                 #(
-                    if let Some(ty) = <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::create_type() {
-                        types.insert(
-                            <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
-                            ty,
-                        );
-                        <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::insert_types(types);
-                    }
+                    <#field_types as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::chase(types);
                 )*
             }
 
             fn get_full_path() -> naclac_lang::naclac_idl::__private::String {
                 #ident_str.into()
+            }
+        }
+
+        #[cfg(feature = "idl-build")]
+        impl naclac_lang::naclac_idl::idl_type::NaclacIdlType for #ident {
+            fn idl_type() -> naclac_lang::naclac_idl::idl_type::IdlJson {
+                naclac_lang::naclac_idl::idl_type::defined(#ident_str)
+            }
+
+            fn chase(types: &mut naclac_lang::naclac_idl::idl_type::Types) {
+                naclac_lang::naclac_idl::idl_type::chase_defined::<Self>(types);
             }
         }
     }

@@ -17,6 +17,7 @@ solana-sha256-hasher = { workspace = true, optional = true }
 solana-instruction = { workspace = true, optional = true }
 bytemuck = { workspace = true, features = ["derive"], optional = true }
 naclac-pod = { workspace = true, features = ["alloc"], optional = true }
+naclac-idl = { workspace = true, optional = true }
 naclac-derive = { workspace = true }
 borsh = { workspace = true, features = ["derive"], optional = true }
 wincode = { version = "0.6.1", default-features = false, features = ["derive", "alloc"], optional = true }
@@ -30,6 +31,7 @@ pinocchio-log-macro = { workspace = true, optional = true }
 pinocchio-memo = { workspace = true, optional = true }
 solana-address = { workspace = true, optional = true }
 five8 = { workspace = true }
+const-crypto = { workspace = true }
 solana-define-syscall = { workspace = true, optional = true }
 
 [features]
@@ -72,7 +74,7 @@ pinocchio = [
     "dep:solana-define-syscall",
 ]
 debug-mode = ["naclac-derive/debug-mode"]
-idl-build = []
+idl-build = ["dep:naclac-idl", "naclac-pod?/idl-build"]
 
 [dev-dependencies]
 solana-stable-layout = "=3.0.1"

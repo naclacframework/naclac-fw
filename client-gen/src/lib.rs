@@ -192,10 +192,8 @@ pub struct IdlEnumVariant {
     pub docs: Vec<String>,
     #[serde(default)]
     pub fields: Option<IdlEnumFields>,
-    /// This variant's real, fully-resolved discriminant value (decimal
-    /// string, possibly negative) — see `naclac_syn::types::
-    /// NaclacEnumVariant::discriminant`'s doc comment for the full
-    /// rationale.
+    /// This variant's fully-resolved discriminant value, as a decimal string
+    /// that may be negative.
     #[serde(default)]
     pub discriminant: String,
 }

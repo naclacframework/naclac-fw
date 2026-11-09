@@ -64,7 +64,7 @@ pub(crate) fn idl_build_accounts_impl(
                         .iter()
                         .map(|e| build_idl_seed_expr(e, &account_names, instr_names, parsed_fields))
                         .collect();
-                    let program_tokens = splice_const_fallback(&program, None);
+                    let program_tokens = splice_const_fallback(&program);
                     quote! {
                         Some(naclac_lang::naclac_idl::idl_build_accounts::IdlPdaBuild {
                             seeds: vec![#(#seed_tokens),*],

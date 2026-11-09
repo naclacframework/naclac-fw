@@ -10,13 +10,18 @@ use {
 pub mod converter;
 pub mod idl_build;
 pub mod idl_build_accounts;
+pub mod idl_type;
 pub mod program_metadata;
+#[cfg(feature = "idl-build")]
+pub mod registry;
 
 /// Re-exports used only by `naclac-derive`' generated `idl-build` code, so a
 /// program crate doesn't need `serde_json`/`std::collections` as its own
 /// direct dependencies just to compile the generated `NaclacIdlBuild` impls
 /// — mirrors Anchor's own `anchor_lang::__private` re-export shim.
 pub mod __private {
+    #[cfg(feature = "idl-build")]
+    pub use inventory;
     pub use {
         serde_json,
         std::{collections::BTreeMap, string::String},
@@ -207,10 +212,8 @@ pub struct IdlEnumVariant {
     pub docs: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fields: Option<IdlEnumFields>,
-    /// This variant's real, fully-resolved discriminant value (decimal
-    /// string, possibly negative) — see `naclac_syn::types::
-    /// NaclacEnumVariant::discriminant`'s doc comment for the full
-    /// rationale; carried through unchanged here.
+    /// This variant's fully-resolved discriminant value, as a decimal string
+    /// that may be negative.
     pub discriminant: String,
 }
 

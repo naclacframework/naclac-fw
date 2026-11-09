@@ -4,12 +4,14 @@
 // raw proc-macro panic; now a spanned `syn::Error`.
 use naclac_lang::prelude::*;
 
+declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
+
 #[derive(Accounts)]
 pub struct Foo {
     #[account(mut)]
     pub payer: Signer,
 
-    #[account(init, payer = payer, seeds = [b"foo"], bump = 255)]
+    #[account(init, payer = payer, seeds = [b"foo"], bump)]
     pub account: Account<FooData>,
 }
 

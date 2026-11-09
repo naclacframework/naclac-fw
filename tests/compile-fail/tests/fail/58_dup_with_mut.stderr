@@ -1,0 +1,5 @@
+error: Naclac Error: a `dup` field is read-only, so it cannot be `mut`, `init`, `close` or `realloc`. Use `unsafe(alias)` for a mutable duplicate.
+  --> tests/fail/58_dup_with_mut.rs:11:9
+   |
+11 |     pub b: Signer,
+   |         ^

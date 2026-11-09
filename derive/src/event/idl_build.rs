@@ -24,30 +24,23 @@ pub(super) fn idl_build_event_impl(
     alloc: bool,
 ) -> proc_macro2::TokenStream {
     let struct_docs = naclac_syn::parser::extract_docs(struct_attrs);
-    let constants = crate::common::crate_source::crate_constants();
-    let aliases = crate::common::crate_source::crate_aliases();
     let mut field_ts_list = Vec::new();
-    let mut defined_refs: Vec<Type> = Vec::new();
+    let mut field_types: Vec<Type> = Vec::new();
     for (index, f) in fields.iter().enumerate() {
         let fname = f.ident.as_ref().map_or_else(
             || index.to_string(),
             |i| naclac_syn::parser::idl_name(&i.to_string()),
         );
         let docs = naclac_syn::parser::extract_docs(&f.attrs);
-        let field_ty = aliases.resolve(&f.ty);
-        let ty_value = naclac_syn::parser::rust_type_to_idl(&field_ty, &constants);
-        let ty_json = ty_value.to_string();
+        let field_ty = &f.ty;
         field_ts_list.push(quote! {
             naclac_lang::naclac_idl::IdlEventField {
                 name: #fname.into(),
                 docs: vec![#(#docs.into()),*],
-                ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
-                    .expect("naclac idl-build: generated field type JSON must parse"),
+                ty: <#field_ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::idl_type(),
             }
         });
-        if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&field_ty) {
-            defined_refs.push(defined_ty);
-        }
+        field_types.push(field_ty.clone());
     }
 
     let struct_name_str = struct_name.to_string();
@@ -62,13 +55,7 @@ pub(super) fn idl_build_event_impl(
                 >,
             ) -> naclac_lang::naclac_idl::IdlEvent {
                 #(
-                    if let Some(ty) = <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::create_type() {
-                        types.insert(
-                            <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
-                            ty,
-                        );
-                        <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::insert_types(types);
-                    }
+                    <#field_types as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::chase(types);
                 )*
                 naclac_lang::naclac_idl::IdlEvent {
                     name: #struct_name_str.into(),
@@ -79,6 +66,21 @@ pub(super) fn idl_build_event_impl(
                 }
             }
         }
+
+        #[cfg(feature = "idl-build")]
+        const _: () = {
+            fn build(
+                types: &mut naclac_lang::naclac_idl::idl_type::Types,
+            ) -> naclac_lang::naclac_idl::IdlEvent {
+                #struct_name::__naclac_idl_event(types)
+            }
+            naclac_lang::naclac_idl::__private::inventory::submit! {
+                naclac_lang::naclac_idl::registry::IdlFragment::Event {
+                    name: #struct_name_str,
+                    build,
+                }
+            }
+        };
     }
 }
 

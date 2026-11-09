@@ -61,7 +61,11 @@ pub struct SellV2 {
     pub quote_mint: InterfaceAccount<Mint>,
 
     pub base_token_program: Interface<TokenInterface>,
+
+    /// SAFETY: repeats `base_token_program` when both mints use one token program.
+    #[account(dup)]
     pub quote_token_program: Interface<TokenInterface>,
+
     pub associated_token_program: Program<AssociatedToken>,
 
     /// SAFETY: validated in the handler body against

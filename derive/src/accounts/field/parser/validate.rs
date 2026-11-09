@@ -12,7 +12,7 @@ use {
 /// and trimmed of leading whitespace) starts with `SAFETY:`. Used to require an explicit,
 /// human-written justification on every unchecked `AccountInfo` field — mirroring the
 /// `// SAFETY:` convention this codebase already uses for `unsafe` blocks.
-fn has_safety_doc_comment(attrs: &[syn::Attribute]) -> bool {
+pub(super) fn has_safety_doc_comment(attrs: &[syn::Attribute]) -> bool {
     attrs.iter().any(|attr| {
         if !attr.path().is_ident("doc") {
             return false;
@@ -31,6 +31,49 @@ fn has_safety_doc_comment(attrs: &[syn::Attribute]) -> bool {
     })
 }
 
+/// The most seeds a PDA derivation takes; mirrors `naclac_lang`'s
+/// `MAX_PDA_SEEDS`, which the derivation functions `assert!` at runtime.
+const MAX_PDA_SEEDS: usize = 16;
+
+/// The longest single PDA seed, in bytes.
+const MAX_PDA_SEED_LEN: usize = 32;
+
+/// Rejects a `seeds = [...]` list with more than `MAX_PDA_SEEDS` entries or a
+/// literal entry (`b"..."` or `"..."`) longer than `MAX_PDA_SEED_LEN` bytes.
+/// Non-literal entries can't be measured at expansion time and are not checked.
+fn check_seed_limits(seed_array: &syn::ExprArray) -> syn::Result<()> {
+    if seed_array.elems.len() > MAX_PDA_SEEDS {
+        return Err(syn::Error::new_spanned(
+            seed_array,
+            format!(
+                "Naclac Error: `seeds` lists {} seeds, but a PDA takes at most {MAX_PDA_SEEDS}. \
+                 Remove some or combine them into one seed.",
+                seed_array.elems.len()
+            ),
+        ));
+    }
+    for elem in &seed_array.elems {
+        let syn::Expr::Lit(syn::ExprLit { lit, .. }) = elem else {
+            continue;
+        };
+        let len = match lit {
+            syn::Lit::ByteStr(bytes) => bytes.value().len(),
+            syn::Lit::Str(text) => text.value().len(),
+            _ => continue,
+        };
+        if len > MAX_PDA_SEED_LEN {
+            return Err(syn::Error::new_spanned(
+                elem,
+                format!(
+                    "Naclac Error: this seed is {len} bytes, but a PDA seed is at most \
+                     {MAX_PDA_SEED_LEN}. Shorten it or hash it down to 32 bytes."
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn finish(
     raw: RawAttrs,
     idx: usize,
@@ -43,6 +86,7 @@ pub(super) fn finish(
         is_signer,
         is_mut,
         is_alias,
+        is_dup,
         is_executable,
         is_rent_exempt,
         pda_program,
@@ -68,6 +112,38 @@ pub(super) fn finish(
     } = raw;
     let mut init_config = None;
     let mut realloc = None;
+
+    if let Some(seed_array) = &pda_seed {
+        check_seed_limits(seed_array)?;
+    }
+
+    if is_dup {
+        if is_alias {
+            return Err(syn::Error::new_spanned(
+                &ident,
+                "Naclac Error: `dup` and `unsafe(alias)` are mutually exclusive; `dup` is for \
+                 read-only fields, `unsafe(alias)` for `mut` fields.",
+            ));
+        }
+        if is_mut
+            || close_destination.is_some()
+            || realloc_space.is_some()
+            || realloc_any_of.is_some()
+        {
+            return Err(syn::Error::new_spanned(
+                &ident,
+                "Naclac Error: a `dup` field is read-only, so it cannot be `mut`, `init`, \
+                 `close` or `realloc`. Use `unsafe(alias)` for a mutable duplicate.",
+            ));
+        }
+        if !has_safety_doc_comment(field_attrs) {
+            return Err(syn::Error::new_spanned(
+                &ident,
+                "Naclac Error: `dup` lets this field repeat another account. Add a `/// SAFETY: \
+                 ...` doc comment above the field explaining why that is safe.",
+            ));
+        }
+    }
 
     // The three creation modes are mutually exclusive: combining them leaves
     // unclear which existence check and which CreateAccount CPI applies.
@@ -207,6 +283,7 @@ pub(super) fn finish(
         is_signer,
         is_mut,
         is_alias,
+        is_dup,
         is_executable,
         is_rent_exempt,
         pda_program,
@@ -223,6 +300,7 @@ pub(super) fn finish(
         extra_accounts,
         plugin_constraints,
         index: idx,
+        has_safety_doc: has_safety_doc_comment(field_attrs),
         parse_error: None,
     })
 }

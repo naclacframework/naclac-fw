@@ -7,6 +7,7 @@ pub struct CheckAuthority {
 
     /// SAFETY: only this account's own address is compared against
     /// `payer`'s — its data is never read or deserialized.
+    #[account(dup)]
     pub required: AccountInfo,
 }
 

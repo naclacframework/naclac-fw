@@ -82,6 +82,159 @@ impl<T: SerializedBounds> SerializedBounds for Option<T> {
     }
 }
 
+/// The bound of a type whose outermost `Vec`/`String` level takes the
+/// `#[max_len]` limit `A`, for a field type `naclac-syn`'s bounds generator
+/// cannot see into, such as an alias of `String`. Sizes and checks must equal
+/// the ones that generator writes out for a literal `String`, `Vec` and
+/// `Option`.
+#[diagnostic::on_unimplemented(
+    message = "Naclac Error: this `#[max_len]` has more limits than the field has `Vec` or \
+               `String` levels to apply them to (`{Self}`)",
+    label = "this type takes fewer `#[max_len]` limits"
+)]
+pub trait MaxLen1<const A: usize> {
+    /// The most bytes a value of this type serializes to.
+    const MAX_SIZE: usize;
+
+    /// False when a `Vec` or `String` inside the value exceeds its limit.
+    fn within_limits(&self) -> bool;
+}
+
+/// [`MaxLen1`] for two levels: `A` for the outer `Vec`, `B` for its elements.
+#[diagnostic::on_unimplemented(
+    message = "Naclac Error: this `#[max_len]` has more limits than the field has `Vec` or \
+               `String` levels to apply them to (`{Self}`)",
+    label = "this type takes fewer `#[max_len]` limits"
+)]
+pub trait MaxLen2<const A: usize, const B: usize> {
+    /// The most bytes a value of this type serializes to.
+    const MAX_SIZE: usize;
+
+    /// False when a `Vec` or `String` inside the value exceeds its limit.
+    fn within_limits(&self) -> bool;
+}
+
+/// [`MaxLen1`] for three levels, outermost first.
+#[diagnostic::on_unimplemented(
+    message = "Naclac Error: this `#[max_len]` has more limits than the field has `Vec` or \
+               `String` levels to apply them to (`{Self}`)",
+    label = "this type takes fewer `#[max_len]` limits"
+)]
+pub trait MaxLen3<const A: usize, const B: usize, const C: usize> {
+    /// The most bytes a value of this type serializes to.
+    const MAX_SIZE: usize;
+
+    /// False when a `Vec` or `String` inside the value exceeds its limit.
+    fn within_limits(&self) -> bool;
+}
+
+impl<const A: usize> MaxLen1<A> for alloc::string::String {
+    const MAX_SIZE: usize = 4 + A;
+
+    #[inline(always)]
+    fn within_limits(&self) -> bool {
+        self.len() <= A
+    }
+}
+
+impl<T: SerializedBounds, const A: usize> MaxLen1<A> for alloc::vec::Vec<T> {
+    const MAX_SIZE: usize = 4 + A * T::MAX_SIZE;
+
+    #[inline(always)]
+    fn within_limits(&self) -> bool {
+        self.len() <= A && self.iter().all(SerializedBounds::within_bounds)
+    }
+}
+
+impl<T: MaxLen1<A>, const A: usize> MaxLen1<A> for Option<T> {
+    const MAX_SIZE: usize = 1 + T::MAX_SIZE;
+
+    #[inline(always)]
+    fn within_limits(&self) -> bool {
+        match self {
+            Some(value) => value.within_limits(),
+            None => true,
+        }
+    }
+}
+
+impl<T: MaxLen1<B>, const A: usize, const B: usize> MaxLen2<A, B> for alloc::vec::Vec<T> {
+    const MAX_SIZE: usize = 4 + A * <T as MaxLen1<B>>::MAX_SIZE;
+
+    #[inline(always)]
+    fn within_limits(&self) -> bool {
+        self.len() <= A && self.iter().all(MaxLen1::within_limits)
+    }
+}
+
+impl<T: MaxLen2<A, B>, const A: usize, const B: usize> MaxLen2<A, B> for Option<T> {
+    const MAX_SIZE: usize = 1 + T::MAX_SIZE;
+
+    #[inline(always)]
+    fn within_limits(&self) -> bool {
+        match self {
+            Some(value) => value.within_limits(),
+            None => true,
+        }
+    }
+}
+
+impl<T: MaxLen2<B, C>, const A: usize, const B: usize, const C: usize> MaxLen3<A, B, C>
+    for alloc::vec::Vec<T>
+{
+    const MAX_SIZE: usize = 4 + A * <T as MaxLen2<B, C>>::MAX_SIZE;
+
+    #[inline(always)]
+    fn within_limits(&self) -> bool {
+        self.len() <= A && self.iter().all(MaxLen2::within_limits)
+    }
+}
+
+impl<T: MaxLen3<A, B, C>, const A: usize, const B: usize, const C: usize> MaxLen3<A, B, C>
+    for Option<T>
+{
+    const MAX_SIZE: usize = 1 + T::MAX_SIZE;
+
+    #[inline(always)]
+    fn within_limits(&self) -> bool {
+        match self {
+            Some(value) => value.within_limits(),
+            None => true,
+        }
+    }
+}
+
+#[cfg(test)]
+mod max_len_tests {
+    use {
+        super::{MaxLen1, MaxLen2, MaxLen3},
+        alloc::{string::String, vec, vec::Vec},
+    };
+
+    type Label = String;
+
+    #[test]
+    fn sizes_match_the_literal_shapes() {
+        assert!(<String as MaxLen1<8>>::MAX_SIZE == 4 + 8);
+        assert!(<Label as MaxLen1<8>>::MAX_SIZE == 4 + 8);
+        assert!(<Vec<u16> as MaxLen1<3>>::MAX_SIZE == 4 + 3 * 2);
+        assert!(<Option<String> as MaxLen1<3>>::MAX_SIZE == 1 + 4 + 3);
+        assert!(<Vec<String> as MaxLen2<2, 5>>::MAX_SIZE == 4 + 2 * (4 + 5));
+        assert!(<Vec<Vec<String>> as MaxLen3<2, 3, 4>>::MAX_SIZE == 4 + 2 * (4 + 3 * (4 + 4)));
+    }
+
+    #[test]
+    fn limits_are_checked_at_every_level() {
+        assert!(<Label as MaxLen1<3>>::within_limits(&String::from("abc")));
+        assert!(!<Label as MaxLen1<3>>::within_limits(&String::from("abcd")));
+        let names: Vec<String> = vec![String::from("ab"), String::from("abc")];
+        assert!(<Vec<String> as MaxLen2<2, 3>>::within_limits(&names));
+        assert!(!<Vec<String> as MaxLen2<1, 3>>::within_limits(&names));
+        assert!(!<Vec<String> as MaxLen2<2, 2>>::within_limits(&names));
+        assert!(<Option<String> as MaxLen1<1>>::within_limits(&None));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

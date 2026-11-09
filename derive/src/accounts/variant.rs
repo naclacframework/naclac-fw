@@ -31,10 +31,10 @@ impl Variant {
         let cfg = layout.cfg();
         Variant {
             ix_deserializer: args.deserializer(layout),
-            field_loaders: field_loaders::build(fields, load_order, layout),
+            field_loaders: field_loaders::build(fields, load_order),
             size_guard_consts: size_guard_consts(fields, layout, &cfg),
             save_logic: save_logic(fields, layout, &cfg),
-            mut_bump_writeback: mut_bump_writeback(fields, layout, &cfg),
+            mut_bump_writeback: mut_bump_writeback(fields, &cfg),
         }
     }
 }

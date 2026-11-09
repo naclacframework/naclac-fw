@@ -93,7 +93,7 @@ pub(super) fn dispatch_items(
                         program_id: &naclac_lang::prelude::Address,
                         accounts: &[naclac_lang::prelude::AccountInfo],
                         instruction_data: &[u8],
-                        __duplicates: Option<&naclac_lang::prelude::AccountBitvec>,
+                        __duplicates: Option<&naclac_lang::prelude::DuplicateSlots>,
                     ) -> naclac_lang::prelude::Result {
                         #args_deserialization
                         let (mut accounts, remaining_accounts, bumps) = #ctx_struct::load_and_validate::<#ix_disc_len>(

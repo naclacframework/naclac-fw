@@ -1,7 +1,7 @@
 //! Must FAIL to build: `Foo`'s explicit discriminator is all-zero, which
-//! `validate_category` rejects for accounts (an all-zero prefix is how an
-//! uninitialized account is recognized — see syn/src/discriminator.rs).
-//! Same crate-scan dependency as dup_account_disc/ — see its doc comment.
+//! `#[account]` rejects (an all-zero prefix is how an uninitialized account is
+//! recognized), in every build and without the `idl-build` feature.
+#![no_std]
 use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");

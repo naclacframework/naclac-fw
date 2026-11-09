@@ -1,10 +1,11 @@
 use naclac_client::*;
 use dup_mut_zc_client::{
     instructions::{
-        build_init_vault_a, build_init_vault_b, build_init_vault_c, build_touch_pair_no_alias,
-        build_touch_pair_with_alias, build_touch_triple_partial_alias, build_write_note,
-        InitVaultAAccounts, InitVaultBAccounts, InitVaultCAccounts, TouchPairNoAliasAccounts,
-        TouchPairWithAliasAccounts, TouchTriplePartialAliasAccounts, WriteNoteAccounts,
+        build_check_read_only_dup, build_init_vault_a, build_init_vault_b, build_init_vault_c,
+        build_touch_pair_no_alias, build_touch_pair_with_alias, build_touch_triple_partial_alias,
+        build_write_note, CheckReadOnlyDupAccounts, InitVaultAAccounts, InitVaultBAccounts,
+        InitVaultCAccounts, TouchPairNoAliasAccounts, TouchPairWithAliasAccounts,
+        TouchTriplePartialAliasAccounts, WriteNoteAccounts,
     },
     fetch_note, get_note_pda, get_vault_a_pda, get_vault_b_pda, get_vault_c_pda,
     types::PROGRAM_ID,
@@ -231,6 +232,127 @@ fn duplicate_mutable_account_via_remaining_accounts_is_rejected() {
     }])
     .send_and_confirm();
 
+    assert_custom_code(result, 10025);
+}
+
+/// `CheckReadOnlyDup` with every slot distinct, `program_repeat` holding the
+/// executable System Program. Slots: `written` 0, `plain` 1, `repeat` 2,
+/// `program_repeat` 3, `unmarked` 4.
+fn distinct_read_only_accounts() -> CheckReadOnlyDupAccounts {
+    CheckReadOnlyDupAccounts {
+        written: Keypair::new().address(),
+        plain: Keypair::new().address(),
+        repeat: Keypair::new().address(),
+        program_repeat: SYSTEM_PROGRAM_ID,
+        unmarked: Keypair::new().address(),
+    }
+}
+
+#[test]
+fn distinct_read_only_accounts_are_accepted() {
+    let (provider, _, _) = setup();
+    build_check_read_only_dup(&provider, PROGRAM_ID, distinct_read_only_accounts())
+        .send_and_confirm()
+        .expect("distinct accounts must be accepted");
+}
+
+#[test]
+fn a_dup_field_may_repeat_a_read_only_account() {
+    let (provider, _, _) = setup();
+    let mut accounts = distinct_read_only_accounts();
+    accounts.repeat = accounts.plain;
+    build_check_read_only_dup(&provider, PROGRAM_ID, accounts)
+        .send_and_confirm()
+        .expect("a `dup` field must accept a repeated read-only account");
+}
+
+#[test]
+fn a_dup_field_accepts_a_repeat_that_carries_its_required_flags() {
+    let (provider, _, _) = setup();
+    let mut accounts = distinct_read_only_accounts();
+    accounts.plain = SYSTEM_PROGRAM_ID;
+    build_check_read_only_dup(&provider, PROGRAM_ID, accounts)
+        .send_and_confirm()
+        .expect("an executable repeat must satisfy `dup, executable`");
+}
+
+/// ConstraintExecutable(7) at `program_repeat`: 10000 + 3*100 + 7.
+#[test]
+fn a_dup_field_still_checks_the_flags_of_what_it_repeats() {
+    let (provider, _, _) = setup();
+    let mut accounts = distinct_read_only_accounts();
+    accounts.program_repeat = accounts.plain;
+    let result = build_check_read_only_dup(&provider, PROGRAM_ID, accounts).send_and_confirm();
+    assert_custom_code(result, 10307);
+}
+
+/// ConstraintDuplicateMutableAccount(25) at `written`: 10000 + 0*100 + 25.
+#[test]
+fn a_dup_field_may_not_repeat_a_mutable_account() {
+    let (provider, _, _) = setup();
+    let mut accounts = distinct_read_only_accounts();
+    accounts.repeat = accounts.written;
+    let result = build_check_read_only_dup(&provider, PROGRAM_ID, accounts).send_and_confirm();
+    assert_custom_code(result, 10025);
+}
+
+/// ConstraintDuplicateAccount(34) at `unmarked`: 10000 + 4*100 + 34.
+#[test]
+fn an_unmarked_field_may_not_repeat_a_read_only_account() {
+    let (provider, _, _) = setup();
+    let mut accounts = distinct_read_only_accounts();
+    accounts.unmarked = accounts.plain;
+    let result = build_check_read_only_dup(&provider, PROGRAM_ID, accounts).send_and_confirm();
+    assert_custom_code(result, 10434);
+}
+
+#[test]
+fn an_unmarked_repeat_is_rejected_after_a_dup_field_accepted_the_same_account() {
+    let (provider, _, _) = setup();
+    let mut accounts = distinct_read_only_accounts();
+    accounts.repeat = accounts.plain;
+    accounts.unmarked = accounts.plain;
+    let result = build_check_read_only_dup(&provider, PROGRAM_ID, accounts).send_and_confirm();
+    assert_custom_code(result, 10434);
+}
+
+#[test]
+fn a_repeated_mutable_account_is_reported_as_mutable_on_an_unmarked_field() {
+    let (provider, _, _) = setup();
+    let mut accounts = distinct_read_only_accounts();
+    accounts.unmarked = accounts.written;
+    let result = build_check_read_only_dup(&provider, PROGRAM_ID, accounts).send_and_confirm();
+    assert_custom_code(result, 10025);
+}
+
+#[test]
+fn a_trailing_account_may_repeat_a_read_only_account() {
+    let (provider, _, _) = setup();
+    let accounts = distinct_read_only_accounts();
+    let plain = accounts.plain;
+    build_check_read_only_dup(&provider, PROGRAM_ID, accounts)
+        .remaining_accounts(vec![AccountMeta {
+            address: plain,
+            is_signer: false,
+            is_writable: false,
+        }])
+        .send_and_confirm()
+        .expect("a trailing repeat of a read-only account must be accepted");
+}
+
+#[test]
+fn a_trailing_repeat_of_a_mutable_account_is_rejected_after_an_inline_dup() {
+    let (provider, _, _) = setup();
+    let mut accounts = distinct_read_only_accounts();
+    accounts.repeat = accounts.plain;
+    let written = accounts.written;
+    let result = build_check_read_only_dup(&provider, PROGRAM_ID, accounts)
+        .remaining_accounts(vec![AccountMeta {
+            address: written,
+            is_signer: false,
+            is_writable: false,
+        }])
+        .send_and_confirm();
     assert_custom_code(result, 10025);
 }
 

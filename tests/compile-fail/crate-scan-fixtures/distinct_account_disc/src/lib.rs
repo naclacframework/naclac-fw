@@ -1,9 +1,10 @@
 //! Must PASS: the positive-path counterpart to dup_account_disc/ and
-//! zero_account_disc/ — `Foo` and `Bar` have distinct, non-zero
-//! discriminators, so the crate-wide scan must find no violation and let
-//! this build succeed. Without this, a bug that made the scan reject
-//! everything (a false positive) would look identical from the outside to
-//! it correctly rejecting only real collisions.
+//! zero_account_disc/. `Foo` and `Bar` have distinct, non-zero
+//! discriminators, so the IDL step must report no clash and
+//! `cargo test --features idl-build` must pass. Without this, a bug that made
+//! the IDL step reject everything would look identical from the outside to it
+//! correctly rejecting only real collisions.
+#![no_std]
 use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
@@ -27,5 +28,16 @@ pub struct Noop {
 pub mod distinct_account_disc {
     pub fn noop(_ctx: Context<Noop>) -> Result {
         Ok(())
+    }
+}
+
+#[cfg(all(test, feature = "idl-build"))]
+extern crate std;
+
+#[cfg(all(test, feature = "idl-build"))]
+mod idl_step {
+    #[test]
+    fn distinct_discriminators_assemble_an_idl() {
+        crate::__naclac_print_idl();
     }
 }

@@ -93,6 +93,17 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         }
     };
 
+    for param in &ast.generics.params {
+        if !matches!(param, syn::GenericParam::Lifetime(_)) {
+            return syn::Error::new_spanned(
+                param,
+                "Naclac Error: an Accounts struct can only have lifetime parameters, not type or const ones.",
+            )
+            .to_compile_error()
+            .into();
+        }
+    }
+
     for field in &fields_named.named {
         let ty = &field.ty;
         if type_classify::is_deprecated_pubkey(ty) {
@@ -140,6 +151,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
     let bumps_struct_name = &bumps.struct_name;
     let bumps_struct_def = &bumps.struct_def;
     let mut_mask_body = loadable::mut_mask_body(&shared);
+    let unique_mask_body = loadable::unique_mask_body(&shared);
     let pinocchio_fns = pinocchio::load_and_validate_fns(&shared, &variants);
     let teardown_fn = teardown::teardown_fn(&parsed_fields, &bumps, &variants);
     let loadable_impls = loadable::loadable_impls(&shared, &variants);
@@ -151,8 +163,6 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
 
     let idl_build_accounts_tokens =
         idl_build::idl_build_accounts_impl(struct_name, &parsed_fields, fields_named, &args.names);
-    let idl_insert_account_types_tokens =
-        idl_build::idl_insert_account_types_impl(struct_name, &parsed_fields);
 
     let needs_event_cpi = ast
         .attrs
@@ -174,6 +184,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
 
         impl #impl_generics #struct_name #ty_generics #where_clause {
             pub const MUT_MASK: [u64; 4] = #mut_mask_body;
+            pub const UNIQUE_MASK: [u64; 4] = #unique_mask_body;
             #pinocchio_fns
             #teardown_fn
         }
@@ -185,7 +196,6 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         #loadable_impls
 
         #idl_build_accounts_tokens
-        #idl_insert_account_types_tokens
     };
     expanded.into()
 }

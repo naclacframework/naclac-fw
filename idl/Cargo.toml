@@ -13,6 +13,13 @@ serde_json = { workspace = true, features = ["preserve_order"] }
 solana-address = { workspace = true }
 solana-instruction = { workspace = true }
 solana-system-interface = { workspace = true }
+inventory = { workspace = true, optional = true }
+
+[features]
+# The registry a program's items submit their IDL fragments to, collected by the
+# `idl-build` binary. Off everywhere else, so the CLI and clients link no
+# link-section machinery.
+idl-build = ["dep:inventory"]
 
 [lints]
 workspace = true

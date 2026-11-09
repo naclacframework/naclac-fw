@@ -23,18 +23,8 @@ pub(super) fn field_error(original_data: &syn::Data) -> Option<syn::Error> {
     let syn::Data::Enum(data) = original_data else {
         return None;
     };
-    let aliases = crate::common::crate_source::crate_aliases();
-    let variant_fields: Vec<syn::Field> = data
-        .variants
-        .iter()
-        .flat_map(|v| v.fields.iter())
-        .map(|field| syn::Field {
-            ty: aliases.resolve(&field.ty),
-            ..field.clone()
-        })
-        .collect();
     crate::type_classify::fixed_capacity_field_error(
-        variant_fields.iter(),
+        data.variants.iter().flat_map(|v| v.fields.iter()),
         "a #[defined_type] enum variant",
         "Wrap it in a #[defined_type] struct.",
     )

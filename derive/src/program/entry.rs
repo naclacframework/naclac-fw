@@ -6,7 +6,7 @@
 use {
     super::{
         discriminators::disc_read_tokens,
-        idl_build::{build_idl_assembler, idl_rule_errors, IdlBuildIx},
+        idl_build::{build_idl_assembler, IdlBuildIx},
         runtime_support::panic_support_tokens,
     },
     proc_macro2::TokenStream,
@@ -57,11 +57,7 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
     let disc_read = disc_read_tokens(ix_disc_len);
     let panic_support = panic_support_tokens();
 
-    let idl_rule_errors = idl_rule_errors();
-
     quote! {
-        #idl_rule_errors
-
         #[cfg(not(any(feature = "bytemuck", feature = "borsh", feature = "wincode")))]
         compile_error!(
             "Naclac Error: this program declares no account-data layout. Add a `bytemuck`, \
@@ -149,6 +145,7 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
             program_id: &naclac_lang::solana_address::Address,
             accounts: &[naclac_lang::solana_account_info::AccountInfo<'_>],
             instruction_data: &[u8],
+            duplicates: Option<&naclac_lang::prelude::DuplicateSlots>,
         ) -> naclac_lang::prelude::Result {
             // SAFETY: The Solana runtime guarantees these references are valid for the
             // entire program invocation. We transmute the lifetime to 'static so the
@@ -161,6 +158,7 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
                     program_id,
                     naclac_lang::prelude::account_handles(accounts),
                     instruction_data,
+                    duplicates,
                 )
             }
         }
@@ -224,28 +222,12 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
             program_id: &'static naclac_lang::prelude::Address,
             accounts: &'static [naclac_lang::prelude::AccountInfo],
             instruction_data: &'static [u8],
+            __dups_opt: Option<&naclac_lang::prelude::DuplicateSlots>,
         ) -> naclac_lang::prelude::Result {
             if instruction_data.len() < #ix_disc_len {
                 return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
             }
             let instruction_discriminator = #disc_read;
-            let mut __has_dups = false;
-            let mut __dups = naclac_lang::prelude::AccountBitvec::default();
-            // A repeat of the program's own address is an absent optional
-            // account's sentinel, not an alias of a real account. Two entries
-            // alias one account exactly when they share a key pointer: the
-            // entrypoint clones the first entry for every loader-marked
-            // duplicate, and the runtime never lists a key twice.
-            for i in 0..accounts.len() {
-                for j in 0..i {
-                    if core::ptr::eq(accounts[i].key, accounts[j].key) && accounts[i].key != program_id {
-                        __dups.set(i as u8);
-                        __dups.set(j as u8);
-                        __has_dups = true;
-                    }
-                }
-            }
-            let __dups_opt = if __has_dups { Some(&__dups) } else { None };
             match instruction_discriminator {
                 #(#match_arms),*
                 _ => Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0)),

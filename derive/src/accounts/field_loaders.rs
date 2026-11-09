@@ -3,31 +3,21 @@
 //! field that another field's constraint reads is loaded first.
 
 use {
-    super::layout::Layout,
     crate::accounts::field::{checks, init_cpi, parser},
     proc_macro2::TokenStream,
     quote::quote,
 };
 
 /// One loader block per field, in `load_order` (indices into `fields`).
-pub(super) fn build(
-    fields: &[parser::ParsedField],
-    load_order: &[usize],
-    layout: Layout,
-) -> Vec<TokenStream> {
-    let is_zero_copy = layout == Layout::ZeroCopy;
+pub(super) fn build(fields: &[parser::ParsedField], load_order: &[usize]) -> Vec<TokenStream> {
     let loaders: Vec<TokenStream> = fields
         .iter()
-        .map(|field| field_loader(field, fields, is_zero_copy))
+        .map(|field| field_loader(field, fields))
         .collect();
     load_order.iter().map(|&i| loaders[i].clone()).collect()
 }
 
-fn field_loader(
-    field: &parser::ParsedField,
-    fields: &[parser::ParsedField],
-    is_zero_copy: bool,
-) -> TokenStream {
+fn field_loader(field: &parser::ParsedField, fields: &[parser::ParsedField]) -> TokenStream {
     let field_name = &field.ident;
     let ty = &field.ty;
     let idx = field.index;
@@ -39,7 +29,21 @@ fn field_loader(
     let (metadata_checks, constraint_checks) = if let Some(err) = &field.parse_error {
         (err.to_compile_error(), quote! {})
     } else {
-        checks::generate_security_checks(field, fields, is_zero_copy)
+        checks::generate_security_checks(field, fields)
+    };
+    // The SAFETY-doc rule decided by the field's type, which also catches an
+    // alias of `AccountInfo`; the literal spelling is reported earlier, with
+    // the field's span, as a parse error.
+    let metadata_checks = if field.parse_error.is_none() && !field.has_safety_doc {
+        let msg = "Naclac Error: this field's type gets no automatic validation (like \
+                   `AccountInfo`). Add a `/// SAFETY: ...` doc comment above the field explaining \
+                   why that is safe.";
+        quote! {
+            const _: () = assert!(!<#ty as naclac_lang::prelude::NaclacAccount>::UNCHECKED, #msg);
+            #metadata_checks
+        }
+    } else {
+        metadata_checks
     };
     let init_logic = if field.parse_error.is_some() {
         quote! {}

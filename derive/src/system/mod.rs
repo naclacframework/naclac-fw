@@ -123,14 +123,28 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let mut phase1_errors: Vec<Error> = Vec::new();
 
-    {
+    let float_probes = {
+        let generics = input_fn
+            .sig
+            .generics
+            .params
+            .iter()
+            .filter_map(|param| match param {
+                syn::GenericParam::Type(param) => Some(param.ident.to_string()),
+                syn::GenericParam::Const(param) => Some(param.ident.to_string()),
+                syn::GenericParam::Lifetime(_) => None,
+            })
+            .collect();
         let mut v = FloatBanVisitor {
             errors: Vec::new(),
-            aliases: crate::common::crate_source::crate_aliases(),
+            generics,
+            probed: Vec::new(),
         };
         v.visit_item_fn(&input_fn);
+        let probes = v.probe_items();
         phase1_errors.extend(v.errors);
-    }
+        probes
+    };
 
     {
         let mut v = LiteralCheckVisitor { errors: Vec::new() };
@@ -203,6 +217,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             quote! {}
         }
     };
+
+    input_fn.block.stmts.splice(0..0, float_probes);
 
     let fn_vis = &input_fn.vis;
     let fn_sig = &input_fn.sig;

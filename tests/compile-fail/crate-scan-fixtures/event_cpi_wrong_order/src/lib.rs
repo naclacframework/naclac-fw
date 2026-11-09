@@ -1,6 +1,7 @@
 //! `#[event_cpi]` written *below* `#[derive(Accounts)]` instead of above it.
 //! The attribute macro can only inject its fields if it runs before the
 //! derive sees the struct — this fixture records what actually happens.
+#![no_std]
 use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");

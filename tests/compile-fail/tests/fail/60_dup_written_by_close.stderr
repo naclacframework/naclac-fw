@@ -1,0 +1,5 @@
+error: Naclac Error: a `dup` field is read-only, but `close` or `realloc::payer` writes this one. Use `unsafe(alias)` for a mutable duplicate.
+  --> tests/fail/60_dup_written_by_close.rs:12:9
+   |
+12 |     pub b: AccountInfo,
+   |         ^

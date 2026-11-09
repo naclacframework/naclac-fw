@@ -1,8 +1,10 @@
 //! The `LoadableAccounts` impls of the solana runtime (one per layout) and the
-//! `MUT_MASK` constant that marks which declared slots must not be duplicated.
+//! `MUT_MASK` and `UNIQUE_MASK` constants that mark which declared slots must
+//! not be duplicated.
 
 use {
     super::{
+        field::parser::ParsedField,
         variant::{Variant, Variants},
         Shared,
     },
@@ -10,15 +12,14 @@ use {
     quote::quote,
 };
 
-/// The `MUT_MASK` value: a bit per declared slot that is mutable and not an
-/// `alias`.
-pub(super) fn mut_mask_body(shared: &Shared) -> TokenStream {
-    let mut_mask_steps: Vec<_> = shared
+/// A `[u64; 4]` slot mask with a bit per declared field accepted by `selected`.
+fn slot_mask_body(shared: &Shared, selected: fn(&ParsedField) -> bool) -> TokenStream {
+    let mask_steps: Vec<_> = shared
         .fields
         .iter()
         .enumerate()
         .filter_map(|(i, field)| {
-            if field.is_mut && !field.is_alias {
+            if selected(field) {
                 Some(quote! {
                     __mask = naclac_lang::prelude::mut_mask_set_bit(__mask, #i);
                 })
@@ -28,15 +29,27 @@ pub(super) fn mut_mask_body(shared: &Shared) -> TokenStream {
         })
         .collect();
 
-    if mut_mask_steps.is_empty() {
+    if mask_steps.is_empty() {
         quote! { [0u64; 4] }
     } else {
         quote! {{
             let mut __mask = [0u64; 4];
-            #(#mut_mask_steps)*
+            #(#mask_steps)*
             __mask
         }}
     }
+}
+
+/// The `MUT_MASK` value: a bit per declared slot that is mutable and not an
+/// `alias`. No account in such a slot may appear in any other slot.
+pub(super) fn mut_mask_body(shared: &Shared) -> TokenStream {
+    slot_mask_body(shared, |field| field.is_mut && !field.is_alias)
+}
+
+/// The `UNIQUE_MASK` value: a bit per declared slot that is neither `dup` nor
+/// an `alias`. Such a slot may not repeat an earlier account.
+pub(super) fn unique_mask_body(shared: &Shared) -> TokenStream {
+    slot_mask_body(shared, |field| !field.is_dup && !field.is_alias)
 }
 
 /// The check that no trailing account repeats a declared mutable one. An
@@ -108,16 +121,14 @@ fn loadable_impl(shared: &Shared, cfg: &TokenStream, variant: &Variant) -> Token
                 program_id: &naclac_lang::prelude::Address,
                 accounts: &'a [naclac_lang::prelude::AccountType],
                 instruction_data: &[u8],
-                __duplicates: Option<&naclac_lang::prelude::AccountBitvec>,
+                __duplicates: Option<&naclac_lang::prelude::DuplicateSlots>,
             ) -> naclac_lang::prelude::ValidationResult<'a, Self::Payload, #bumps_struct_name> {
                 // Single upfront bounds check.
                 if accounts.len() < #n_declared_accounts {
                     return Err(naclac_lang::prelude::NaclacError::NotEnoughAccountKeys.err(0));
                 }
                 if let Some(__dups) = __duplicates {
-                    if let Some(__slot) = __dups.first_intersection(&Self::MUT_MASK) {
-                        return Err(naclac_lang::prelude::NaclacError::ConstraintDuplicateMutableAccount.err(__slot));
-                    }
+                    __dups.check(&Self::MUT_MASK, &Self::UNIQUE_MASK)?;
                 }
                 let __views = accounts;
                 #ix_deserializer

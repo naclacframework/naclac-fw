@@ -76,7 +76,9 @@ pub struct InitializeAccounts {
     /// in this same instruction, so nobody can create this account first.
     pub depositor_lp: naclac_client::Address,
     pub token_program_a: naclac_client::Address,
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
     pub token_program_b: naclac_client::Address,
+    /// SAFETY: repeats a pool mint's token program when that mint is classic Token.
     pub lp_token_program: naclac_client::Address,
     pub associated_token_program: naclac_client::Address,
     pub system_program: naclac_client::Address,
@@ -160,7 +162,9 @@ pub struct InitializeCpiAccounts<'a> {
     /// in this same instruction, so nobody can create this account first.
     pub depositor_lp: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub token_program_a: crate::sdk_core_cpi::CpiHandle<'a>,
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
     pub token_program_b: crate::sdk_core_cpi::CpiHandle<'a>,
+    /// SAFETY: repeats a pool mint's token program when that mint is classic Token.
     pub lp_token_program: crate::sdk_core_cpi::CpiHandle<'a>,
     pub associated_token_program: crate::sdk_core_cpi::CpiHandle<'a>,
     pub system_program: crate::sdk_core_cpi::CpiHandle<'a>,

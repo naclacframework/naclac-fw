@@ -3,10 +3,11 @@
 //!
 //! A type's name is read only to find the structure that `#[max_len]` limits:
 //! `String`, `Vec<_>` and `Option<_>`. Every other type is resolved by the
-//! compiler through `SerializedBounds`, so a type alias gives the same answer
-//! as the type it names, and a type with no known maximum size is a compile
-//! error rather than a guess. A `String` or `Vec` with no limit left to apply
-//! is reported as unbounded.
+//! compiler, through `SerializedBounds` when no limit is left and through
+//! `MaxLen1`/`MaxLen2`/`MaxLen3` when one is, so a type alias gives the same
+//! answer as the type it names, and a type with no known maximum size is a
+//! compile error rather than a guess. A literal `String` or `Vec` with no limit
+//! left to apply is reported as unbounded.
 
 use {
     proc_macro2::TokenStream,
@@ -133,10 +134,32 @@ fn bound(
                 },
             })
         }
-        Shape::Other => Ok(Bound {
-            size: quote! { <#ty as #core::SerializedBounds>::MAX_SIZE },
-            check: quote! { #core::SerializedBounds::within_bounds(#value) },
-        }),
+        Shape::Other => {
+            let remaining = &limits[*used..];
+            let bounds_trait = match remaining.len() {
+                0 => {
+                    return Ok(Bound {
+                        size: quote! { <#ty as #core::SerializedBounds>::MAX_SIZE },
+                        check: quote! { #core::SerializedBounds::within_bounds(#value) },
+                    });
+                }
+                1 => quote! { MaxLen1 },
+                2 => quote! { MaxLen2 },
+                3 => quote! { MaxLen3 },
+                _ => {
+                    return Err(Problem::Invalid(syn::Error::new_spanned(
+                        &remaining[3],
+                        "Naclac Error: at most 3 `#[max_len]` limits can apply to a type written \
+                         as a name, such as an alias; write the `Vec`/`String` levels out instead",
+                    )));
+                }
+            };
+            *used = limits.len();
+            Ok(Bound {
+                size: quote! { <#ty as #core::#bounds_trait<#(#remaining),*>>::MAX_SIZE },
+                check: quote! { <#ty as #core::#bounds_trait<#(#remaining),*>>::within_limits(#value) },
+            })
+        }
     }
 }
 

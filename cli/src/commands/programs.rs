@@ -183,6 +183,18 @@ pub fn declared_id(lib_code: &str) -> Option<&str> {
     Some(&lib_code[start..start + end])
 }
 
+/// Whether a program's `lib.rs` declares itself `no_std`, as the inner
+/// attribute `#![no_std]` or `#![cfg_attr(<predicate>, no_std)]` on a line of
+/// its own (whitespace ignored). A program crate must be `no_std`: naclac
+/// supplies its panic handler.
+pub fn declares_no_std(lib_code: &str) -> bool {
+    lib_code.lines().any(|line| {
+        let line: String = line.chars().filter(|c| !c.is_whitespace()).collect();
+        line.starts_with("#![no_std]")
+            || (line.starts_with("#![cfg_attr(") && line.contains("no_std"))
+    })
+}
+
 fn keypair_address(path: &Path) -> String {
     let keypair = keypair::read(path).unwrap_or_else(|e| {
         ui::error(format!(
@@ -220,7 +232,8 @@ pub fn require_synced_ids(workspace_root: &Path, name: &str, table_address: &str
 #[cfg(test)]
 mod tests {
     use super::{
-        declared_id, has_programs_table, listed, select, with_added_program, with_synced_address,
+        declared_id, declares_no_std, has_programs_table, listed, select, with_added_program,
+        with_synced_address,
     };
 
     fn config(text: &str) -> toml::Value {
@@ -294,5 +307,15 @@ mod tests {
             Some("Abc123")
         );
         assert_eq!(declared_id("fn main() {}"), None);
+    }
+
+    #[test]
+    fn a_no_std_program_is_recognised_in_either_spelling() {
+        assert!(declares_no_std("#![no_std]\nuse x;\n"));
+        assert!(declares_no_std("//! docs\n#![ no_std ]\n"));
+        assert!(declares_no_std("#![cfg_attr(not(test), no_std)]\n"));
+        assert!(!declares_no_std("use x;\n"));
+        assert!(!declares_no_std("// #![no_std]\nuse x;\n"));
+        assert!(!declares_no_std("#![allow(dead_code)]\n"));
     }
 }

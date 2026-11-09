@@ -38,4 +38,8 @@ pub mod dup_mut {
     pub fn write_note(ctx: Context<WriteNote>, text: ZcString) -> Result {
         write_note::write_note(ctx, text)
     }
+
+    pub fn check_read_only_dup(ctx: Context<CheckReadOnlyDup>) -> Result {
+        check_read_only_dup::check_read_only_dup(ctx)
+    }
 }

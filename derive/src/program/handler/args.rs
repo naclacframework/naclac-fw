@@ -29,11 +29,6 @@ struct ArgKind {
     zero_copy_string: bool,
     heap_vec: bool,
     heap_string: bool,
-    /// Set when the type is an opaque struct name (for example an
-    /// `#[instruction_args]` type) that contains a `ZcVec`/`ZcString` field:
-    /// the name of that field. Found by a source scan, so it cannot be seen
-    /// from the type alone.
-    opaque_zc_field: Option<String>,
 }
 
 impl ArgKind {
@@ -44,9 +39,6 @@ impl ArgKind {
             zero_copy_string: matches!(kind, DynamicKind::ZcString),
             heap_vec: matches!(kind, DynamicKind::HeapVec),
             heap_string: matches!(kind, DynamicKind::HeapString),
-            opaque_zc_field: type_classify::base_ident(ty).and_then(|id| {
-                crate::accounts::field::compile_time::dynamic_view_field_of(&id.to_string())
-            }),
         }
     }
 
@@ -155,24 +147,29 @@ fn zero_copy_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
         let inner_ty = type_classify::first_generic_type(ty);
 
         let __v_logic = if is_zero_copy_collection {
+            let bounded_end = quote! {
+                let __end = match __ix_offset.checked_add(__len) {
+                    Some(end) if end <= instruction_data.len() => end,
+                    _ => return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0)),
+                };
+            };
             if is_zero_copy_vec {
-                if let Some(inner) = &inner_ty {
-                    quote! {
-                        let __v = <naclac_lang::prelude::ZcVec<#inner>>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])?;
-                        __ix_offset += __len;
-                        __v
-                    }
-                } else {
-                    quote! {
-                        let __v = <naclac_lang::prelude::ZcVec<u8>>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])?;
-                        __ix_offset += __len;
-                        __v
-                    }
+                let Some(inner) = &inner_ty else {
+                    return quote! {
+                        compile_error!("Naclac Error: `ZcVec` needs an element type, e.g. `ZcVec<u8>`.");
+                    };
+                };
+                quote! {
+                    #bounded_end
+                    let __v = <naclac_lang::prelude::ZcVec<#inner>>::from_bytes(&instruction_data[__ix_offset..__end])?;
+                    __ix_offset = __end;
+                    __v
                 }
             } else {
                 quote! {
-                    let __v = <naclac_lang::prelude::ZcString>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])?;
-                    __ix_offset += __len;
+                    #bounded_end
+                    let __v = <naclac_lang::prelude::ZcString>::from_bytes(&instruction_data[__ix_offset..__end])?;
+                    __ix_offset = __end;
                     __v
                 }
             }
@@ -239,7 +236,7 @@ fn zero_copy_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
                     }
                 } else {
                     quote! {
-                        return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
+                        compile_error!("Naclac Error: `Vec` needs an element type, e.g. `Vec<u8>`.");
                     }
                 }
             }
@@ -269,7 +266,6 @@ fn zero_copy_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
 fn borsh_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
     let is_zero_copy_vec = kind.zero_copy_vec;
     let is_zero_copy_collection = kind.is_zero_copy_collection();
-    let opaque_zc_field = &kind.opaque_zc_field;
     if is_zero_copy_collection {
         let found_ty = if is_zero_copy_vec {
             "ZcVec<T>"
@@ -280,18 +276,6 @@ fn borsh_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
             "Naclac Error: argument '{}' has type '{}', which Borsh can't encode (it is a view \
              into the instruction data). Use Vec<T> or String.",
             name, found_ty
-        );
-        quote! {
-            let #name: #ty = { compile_error!(#msg); (|| -> #ty { unreachable!() })() };
-        }
-    } else if let Some(field_name) = &opaque_zc_field {
-        let msg = format!(
-            "Naclac Error: argument '{}' has type '{}', whose field '{}' is \
-                             ZcVec/ZcString, which Borsh can't encode. Use Vec<T> or String \
-                             there.",
-            name,
-            quote! { #ty },
-            field_name,
         );
         quote! {
             let #name: #ty = { compile_error!(#msg); (|| -> #ty { unreachable!() })() };
@@ -314,7 +298,6 @@ fn borsh_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
 fn wincode_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
     let is_zero_copy_vec = kind.zero_copy_vec;
     let is_zero_copy_collection = kind.is_zero_copy_collection();
-    let opaque_zc_field = &kind.opaque_zc_field;
     if is_zero_copy_collection {
         let found_ty = if is_zero_copy_vec {
             "ZcVec<T>"
@@ -325,18 +308,6 @@ fn wincode_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
             "Naclac Error: argument '{}' has type '{}', which Wincode can't encode (it is a \
              view into the instruction data). Use Vec<T> or String.",
             name, found_ty
-        );
-        quote! {
-            let #name: #ty = { compile_error!(#msg); (|| -> #ty { unreachable!() })() };
-        }
-    } else if let Some(field_name) = &opaque_zc_field {
-        let msg = format!(
-            "Naclac Error: argument '{}' has type '{}', whose field '{}' is \
-                             ZcVec/ZcString, which Wincode can't encode. Use Vec<T> or String \
-                             there.",
-            name,
-            quote! { #ty },
-            field_name,
         );
         quote! {
             let #name: #ty = { compile_error!(#msg); (|| -> #ty { unreachable!() })() };

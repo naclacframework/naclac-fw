@@ -203,6 +203,16 @@ pub fn execute(
                     lib_path.display()
                 ));
             }
+            if crate::commands::generate::depends_on_naclac_lang(program_dir)
+                && !programs::declares_no_std(&lib_code)
+            {
+                ui::error(format!(
+                    "'{}' must be a `no_std` crate: add `#![no_std]` at the top of {}. naclac \
+                     supplies the panic handler of the program.",
+                    program_name,
+                    lib_path.display()
+                ));
+            }
             if let Some(start) = lib_code.find("declare_id!(\"") {
                 let addr_start = start + 13;
                 if let Some(end_offset) = lib_code[addr_start..].find("\")") {

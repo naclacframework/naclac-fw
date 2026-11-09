@@ -65,8 +65,9 @@ pub(super) struct ResolvedDiscriminators {
 
 /// Resolves the discriminator of every public handler in `content_items`
 /// (its `#[discriminator]` override, else the name-derived default) and checks
-/// them, together with the crate's account and event discriminators, for
-/// invalid or clashing values. `Err` holds the compile errors to emit.
+/// them for invalid or clashing values. `Err` holds the compile errors to emit.
+/// The crate's account and event discriminators are checked when the `idl-build`
+/// binary assembles the IDL (`naclac_idl::registry::collect`).
 pub(super) fn resolve(
     content_items: &[syn::Item],
 ) -> Result<ResolvedDiscriminators, proc_macro2::TokenStream> {
@@ -97,34 +98,11 @@ pub(super) fn resolve(
         |entry| entry.bytes.len(),
     );
 
-    let mut discriminator_errors: Vec<String> = Vec::new();
     if let Err(errs) = naclac_syn::discriminator::validate_category(
         naclac_syn::discriminator::DiscriminatorKind::Instruction,
         &ix_disc_entries,
     ) {
-        discriminator_errors.extend(errs);
-    }
-    {
-        let found = naclac_syn::discriminator::scan_crate_discriminators(
-            &crate::common::crate_source::manifest_dir(),
-        );
-        for (kind, entries) in [
-            (
-                naclac_syn::discriminator::DiscriminatorKind::Account,
-                &found.accounts,
-            ),
-            (
-                naclac_syn::discriminator::DiscriminatorKind::Event,
-                &found.events,
-            ),
-        ] {
-            if let Err(errs) = naclac_syn::discriminator::validate_category(kind, entries) {
-                discriminator_errors.extend(errs);
-            }
-        }
-    }
-    if !discriminator_errors.is_empty() {
-        let errors = discriminator_errors
+        let errors = errs
             .iter()
             .map(|msg| syn::Error::new(proc_macro2::Span::call_site(), msg).to_compile_error());
         return Err(quote! { #(#errors)* });

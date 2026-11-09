@@ -74,13 +74,16 @@ pub struct AddLiquidity {
     pub user_lp: Account<TokenAccount>,
 
     pub token_program_a: Interface<TokenInterface>,
+
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
+    #[account(dup)]
     pub token_program_b: Interface<TokenInterface>,
+
+    /// SAFETY: repeats a pool mint's token program when that mint is classic Token.
+    #[account(dup)]
     pub lp_token_program: Program<Token>,
 }
 
-/// Adds liquidity to the AMM pool proportionally and mints LP tokens to the user.
-/// Takes at most `max_amount_a` and `max_amount_b`, and fails unless at least
-/// `min_lp` shares are minted.
 pub fn add_liquidity(
     ctx: Context<AddLiquidity>,
     max_amount_a: u64,

@@ -1,0 +1,5 @@
+error: Naclac Error: `dup` lets this field repeat another account. Add a `/// SAFETY: ...` doc comment above the field explaining why that is safe.
+  --> tests/fail/59_dup_without_safety_comment.rs:10:9
+   |
+10 |     pub b: Signer,
+   |         ^

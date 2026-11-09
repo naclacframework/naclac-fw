@@ -38,11 +38,12 @@ pub enum NaclacError {
     TooManyAccountEntries = 31,
     CapacityExceeded = 32,
     InvalidUtf8 = 33,
+    ConstraintDuplicateAccount = 34,
 }
 
 impl NaclacError {
     /// Every framework error, in code order.
-    pub const ALL: [NaclacError; 33] = [
+    pub const ALL: [NaclacError; 34] = [
         NaclacError::ConstraintMut,
         NaclacError::ConstraintSigner,
         NaclacError::ConstraintAddress,
@@ -76,6 +77,7 @@ impl NaclacError {
         NaclacError::TooManyAccountEntries,
         NaclacError::CapacityExceeded,
         NaclacError::InvalidUtf8,
+        NaclacError::ConstraintDuplicateAccount,
     ];
 
     pub fn description(&self) -> &'static str {
@@ -131,6 +133,9 @@ impl NaclacError {
             }
             NaclacError::CapacityExceeded => "Fixed-capacity vector or string is full",
             NaclacError::InvalidUtf8 => "Fixed-capacity string holds invalid UTF-8",
+            NaclacError::ConstraintDuplicateAccount => {
+                "Account repeated in a slot not marked `dup`"
+            }
         }
     }
 }
@@ -181,6 +186,7 @@ pub fn decode_custom_error(code: u32) -> Option<(NaclacError, usize)> {
         31 => NaclacError::TooManyAccountEntries,
         32 => NaclacError::CapacityExceeded,
         33 => NaclacError::InvalidUtf8,
+        34 => NaclacError::ConstraintDuplicateAccount,
         _ => return None,
     };
     Some((error, index))
@@ -373,6 +379,7 @@ mod table_parity_tests {
             TooManyAccountEntries,
             CapacityExceeded,
             InvalidUtf8,
+            ConstraintDuplicateAccount,
         );
     }
 

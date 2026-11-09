@@ -11,9 +11,11 @@ bytemuck = { workspace = true }
 solana-program-error = { workspace = true, optional = true }
 solana-address = { workspace = true, optional = true }
 pinocchio = { workspace = true, optional = true }
+naclac-idl = { workspace = true, optional = true }
 
 [features]
 default = []
+idl-build = ["dep:naclac-idl"]
 solana = ["dep:solana-program-error", "dep:solana-address", "solana-address?/bytemuck"]
 pinocchio = ["dep:pinocchio", "dep:solana-program-error"]
 alloc = []

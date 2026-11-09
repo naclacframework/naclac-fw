@@ -51,6 +51,9 @@ pub struct BoostBuyAndBurn {
     pub boost_vault: InterfaceAccount<TokenAccount>,
 
     pub base_token_program: Interface<TokenInterface>,
+
+    /// SAFETY: repeats `base_token_program` when both mints use one token program.
+    #[account(dup)]
     pub quote_token_program: Interface<TokenInterface>,
 }
 

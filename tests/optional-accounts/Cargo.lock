@@ -1582,7 +1582,7 @@ dependencies = [
  "borsh",
  "bytemuck",
  "five8",
- "naclac-macros",
+ "naclac-derive",
  "naclac-pod",
  "pinocchio 0.11.2",
  "pinocchio-log",
@@ -1606,6 +1606,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "naclac-derive"
+version = "0.1.0"
+dependencies = [
+ "bs58",
+ "heck",
+ "naclac-idl",
+ "naclac-syn",
+ "proc-macro2",
+ "quote",
+ "serde_json",
+ "sha2 0.11.0",
+ "solana-address 2.9.0",
+ "syn 3.0.3",
+]
+
+[[package]]
 name = "naclac-idl"
 version = "0.1.0"
 dependencies = [
@@ -1622,27 +1638,11 @@ name = "naclac-lang"
 version = "0.1.0"
 dependencies = [
  "naclac-core",
+ "naclac-derive",
  "naclac-idl",
- "naclac-macros",
  "naclac-metadata",
  "naclac-syn",
  "naclac-token",
-]
-
-[[package]]
-name = "naclac-macros"
-version = "0.1.0"
-dependencies = [
- "bs58",
- "heck",
- "naclac-idl",
- "naclac-syn",
- "proc-macro2",
- "quote",
- "serde_json",
- "sha2 0.11.0",
- "solana-address 2.9.0",
- "syn 3.0.3",
 ]
 
 [[package]]

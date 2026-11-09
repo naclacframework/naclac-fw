@@ -1,12 +1,10 @@
-//! Must FAIL to build: `Foo` and `Bar` are two different `#[account]`
-//! accounts with the identical explicit discriminator. This is only
-//! catchable by `#[program]`'s crate-wide scan (naclac_syn::discriminator::
-//! scan_crate_discriminators + validate_category) — it can't be caught by
-//! either struct's own macro expansion in isolation, since neither knows
-//! the other exists. A real `src/` tree (unlike a single-file trybuild
-//! fixture) is required for that scan to see both structs at once — see
-//! docs/plan/custom-discriminators.md for why this can't live in
-//! tests/compile-fail/tests/fail/ alongside the other fixtures.
+//! Builds, but assembling the IDL must FAIL: `Foo` and `Bar` are two different
+//! `#[account]` accounts with the identical explicit discriminator, which
+//! neither struct's own macro expansion can see. The IDL step
+//! (`naclac_idl::registry::collect`) reports it, and the test below runs that
+//! step: `cargo test --features idl-build` passes only if it panics with the
+//! clash.
+#![no_std]
 use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
@@ -30,5 +28,17 @@ pub struct Noop {
 pub mod dup_account_disc {
     pub fn noop(_ctx: Context<Noop>) -> Result {
         Ok(())
+    }
+}
+
+#[cfg(all(test, feature = "idl-build"))]
+extern crate std;
+
+#[cfg(all(test, feature = "idl-build"))]
+mod idl_step {
+    #[test]
+    #[should_panic(expected = "have the same discriminator")]
+    fn two_accounts_with_one_discriminator_fail_the_idl_step() {
+        crate::__naclac_print_idl();
     }
 }

@@ -193,6 +193,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "const-crypto"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c06f1eb05f06cf2e380fdded278fbf056a38974299d77960555a311dcf91a52"
+dependencies = [
+ "keccak-const",
+ "sha2-const-stable",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -534,6 +544,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "keccak-const"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57d8d8ce877200136358e0bbff3a77965875db3af755a11e1fa6b1b3e2df13ea"
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -597,8 +613,9 @@ name = "naclac-core"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "const-crypto",
  "five8",
- "naclac-macros",
+ "naclac-derive",
  "naclac-pod",
  "solana-account-info",
  "solana-address 2.6.1",
@@ -614,17 +631,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "naclac-lang"
-version = "0.1.0"
-dependencies = [
- "naclac-core",
- "naclac-macros",
- "naclac-metadata",
- "naclac-token",
-]
-
-[[package]]
-name = "naclac-macros"
+name = "naclac-derive"
 version = "0.1.0"
 dependencies = [
  "bs58",
@@ -633,8 +640,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "sha2 0.11.0",
- "solana-address 2.6.1",
  "syn 3.0.3",
+]
+
+[[package]]
+name = "naclac-lang"
+version = "0.1.0"
+dependencies = [
+ "naclac-core",
+ "naclac-derive",
+ "naclac-metadata",
+ "naclac-token",
 ]
 
 [[package]]
@@ -663,7 +679,6 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "syn 3.0.3",
- "toml",
 ]
 
 [[package]]

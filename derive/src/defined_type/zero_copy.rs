@@ -45,12 +45,30 @@ pub(super) fn default_derive_conflict(
     quote::quote! { #cfg #error }
 }
 
-/// Adds the `repr` and `Clone`/`Copy` derives the zero-copy representation
-/// needs to `input`, then returns the item and its impls, gated by `cfg`.
+/// The compile error for a zero-copy enum with no integer `repr`, followed by
+/// the enum unchanged so its uses don't also fail to resolve, both gated by `cfg`.
+fn missing_repr(input: &syn::DeriveInput, cfg: &TokenStream) -> TokenStream {
+    let error = syn::Error::new_spanned(
+        &input.ident,
+        "Naclac Error: a zero-copy `#[defined_type]` enum needs an explicit `#[repr(u8)]` (or another integer type) to fix its tag width.",
+    )
+    .to_compile_error();
+    quote::quote! {
+        #cfg
+        #error
+
+        #cfg
+        #input
+    }
+}
+
+/// Adds the struct `repr` and the `Clone`/`Copy` derives the zero-copy
+/// representation needs to `input`, then returns the item and its impls, gated
+/// by `cfg`. An enum must already carry an integer `repr`; without one the
+/// result is a compile error gated by `cfg`.
 ///
-/// `input.attrs` is left holding the final attributes, including the `repr`
-/// added here, which is the enum's real compiled discriminant width and what
-/// the `idl-build` output must record.
+/// `input.attrs` is left holding the final attributes, which `idl-build`
+/// reads.
 pub(super) fn variant(input: &mut syn::DeriveInput, cfg: &TokenStream) -> TokenStream {
     let ident = input.ident.clone();
     let generics = input.generics.clone();
@@ -60,7 +78,7 @@ pub(super) fn variant(input: &mut syn::DeriveInput, cfg: &TokenStream) -> TokenS
     match &input.data {
         syn::Data::Enum(_) => {
             if naclac_syn::discriminator::detect_enum_repr(&input.attrs).is_none() {
-                input.attrs.push(syn::parse_quote!(#[repr(u8)]));
+                return missing_repr(input, cfg);
             }
         }
         syn::Data::Struct(_) => {
@@ -90,8 +108,10 @@ pub(super) fn variant(input: &mut syn::DeriveInput, cfg: &TokenStream) -> TokenS
     match &input.data {
         syn::Data::Enum(data_enum) => {
             let tag_ty: syn::Type = {
-                let named = naclac_syn::discriminator::detect_enum_repr(&input.attrs);
-                match syn::parse_str(named.as_deref().unwrap_or("u8")) {
+                let Some(named) = naclac_syn::discriminator::detect_enum_repr(&input.attrs) else {
+                    return missing_repr(input, cfg);
+                };
+                match syn::parse_str(&named) {
                     Ok(tag_ty) => tag_ty,
                     Err(error) => return error.to_compile_error(),
                 }
@@ -180,5 +200,27 @@ pub(super) fn variant(input: &mut syn::DeriveInput, cfg: &TokenStream) -> TokenS
             }
         }
         syn::Data::Union(_) => TokenStream::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::variant;
+
+    fn expansion(source: &str) -> String {
+        let mut input: syn::DeriveInput = syn::parse_str(source).unwrap();
+        variant(&mut input, &proc_macro2::TokenStream::new()).to_string()
+    }
+
+    #[test]
+    fn an_enum_without_an_integer_repr_is_rejected() {
+        let output = expansion("enum Mode { Off, On }");
+        assert!(output.contains("needs an explicit"), "{output}");
+    }
+
+    #[test]
+    fn an_enum_with_an_integer_repr_is_accepted() {
+        let output = expansion("#[repr(u16)] enum Mode { Off, On }");
+        assert!(!output.contains("needs an explicit"), "{output}");
     }
 }

@@ -76,6 +76,16 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         &struct_name.to_string(),
         args.discriminator.as_deref(),
     );
+    if disc_bytes.iter().all(|byte| *byte == 0) {
+        return syn::Error::new_spanned(
+            struct_name,
+            format!(
+                "Naclac Error: account `{struct_name}` has an all-zero discriminator, which marks an uninitialized account. Give it at least one non-zero byte."
+            ),
+        )
+        .to_compile_error()
+        .into();
+    }
     let disc_tokens = quote! { &[#(#disc_bytes),*] };
 
     let mut cleaned_ast = ast.clone();
@@ -134,6 +144,25 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     // `DeriveInput` that already has its own semicolon token.
     let struct_semi = if matches!(cleaned_fields, syn::Fields::Unnamed(_)) {
         quote! { ; }
+    } else {
+        quote! {}
+    };
+
+    let declares_bump = fields
+        .iter()
+        .any(|field| field.ident.as_ref().is_some_and(|ident| ident == "bump"));
+    let bump_methods = if declares_bump {
+        quote! {
+            #[inline(always)]
+            fn stored_bump(&self) -> Option<u8> {
+                Some(self.bump)
+            }
+
+            #[inline(always)]
+            fn store_bump(&mut self, bump: u8) {
+                self.bump = bump;
+            }
+        }
     } else {
         quote! {}
     };
@@ -208,6 +237,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #zero_copy_cfg
         impl naclac_lang::prelude::Discriminator for #struct_name {
             const DISCRIMINATOR: &'static [u8] = #disc_tokens;
+            #bump_methods
         }
     };
 
@@ -223,7 +253,6 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     let core_path: syn::Path = syn::parse_quote!(naclac_lang::prelude);
-    let aliases = crate::common::crate_source::crate_aliases();
     let mut field_sizes: Vec<proc_macro2::TokenStream> = Vec::new();
     let mut max_len_checks: Vec<proc_macro2::TokenStream> = Vec::new();
     let mut unbounded_field: Option<String> = None;
@@ -239,8 +268,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! { self.#index }
             }
         };
-        let field_ty = aliases.resolve(&field.ty);
-        match naclac_syn::bounds::field_bound(&field_ty, &limits, &quote! { &#access }, &core_path)
+        match naclac_syn::bounds::field_bound(&field.ty, &limits, &quote! { &#access }, &core_path)
         {
             Ok(bound) => {
                 field_sizes.push(bound.size);
@@ -318,6 +346,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl naclac_lang::prelude::Discriminator for #struct_name {
             const DISCRIMINATOR: &'static [u8] = #disc_tokens;
             #max_len_method
+            #bump_methods
         }
     };
 
@@ -357,6 +386,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl naclac_lang::prelude::Discriminator for #struct_name {
             const DISCRIMINATOR: &'static [u8] = #disc_tokens;
             #max_len_method
+            #bump_methods
         }
     };
 

@@ -60,8 +60,3 @@ pub use naclac_metadata as metadata;
 /// code it generates, only this crate's are.
 #[cfg(feature = "idl-build")]
 pub use naclac_idl;
-
-/// Same reasoning as `naclac_idl` just above, for `naclac_lang::naclac_syn::...`
-/// paths the generated `idl-build` assembler also references directly.
-#[cfg(feature = "idl-build")]
-pub use naclac_syn;

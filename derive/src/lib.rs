@@ -61,6 +61,9 @@ pub fn system(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// This generates the overarching instruction dispatcher and handles Cross-Program
 /// Invocation (CPI) module generation. The layout is detected from the crate's own
 /// feature flags, not from an argument here.
+///
+/// An instruction's IDL docs are the doc comments written on its handler
+/// inside this module; docs on a function the handler calls are not read.
 #[proc_macro_attribute]
 pub fn program(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(err) = common::diagnostics::reject_nonempty_attr(&attr, "program") {
@@ -117,8 +120,7 @@ pub fn emit_cpi(input: TokenStream) -> TokenStream {
 }
 
 /// Marks a `const` for the IDL; the item itself is never modified. Under
-/// `idl-build` it also generates the constant's print function, which
-/// `#[program]` discovers by a crate-wide scan.
+/// `idl-build` it also registers the constant for the IDL.
 #[proc_macro_attribute]
 pub fn constant(attr: TokenStream, item: TokenStream) -> TokenStream {
     constant::expand(attr, item)

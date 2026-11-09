@@ -2,6 +2,7 @@
 //! (`Plain`) has no `#[event_cpi]`, so it has no `EventCpiAuthority` impl.
 //! Checked by `tests/diagnostics.rs` (the error's note points into naclac-core
 //! with an absolute path, so it can't be a `trybuild` snapshot).
+#![no_std]
 use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");

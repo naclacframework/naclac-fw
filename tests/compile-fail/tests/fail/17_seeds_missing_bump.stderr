@@ -1,17 +1,17 @@
 error: Naclac Error: this existing PDA field has no bump, and its type can't discover one. Use Account<T>/InterfaceAccount<T>, or write `bump = <value>` on the field.
   --> tests/fail/17_seeds_missing_bump.rs:14:23
    |
-14 |     #[account(seeds = [b"foo"])]
-   |                       ^^^^^^^^
+14 |     #[account(seeds = [b"foo", &[1u8]])]
+   |                       ^^^^^^^^^^^^^^^^
 
 error[E0425]: cannot find value `expected_pda` in this scope
   --> tests/fail/17_seeds_missing_bump.rs:14:23
    |
-14 |     #[account(seeds = [b"foo"])]
-   |                       ^^^^^^^^ not found in this scope
+14 |     #[account(seeds = [b"foo", &[1u8]])]
+   |                       ^^^^^^^^^^^^^^^^ not found in this scope
 
 error[E0425]: cannot find value `expected_bump` in this scope
   --> tests/fail/17_seeds_missing_bump.rs:14:23
    |
-14 |     #[account(seeds = [b"foo"])]
-   |                       ^^^^^^^^ not found in this scope
+14 |     #[account(seeds = [b"foo", &[1u8]])]
+   |                       ^^^^^^^^^^^^^^^^ not found in this scope

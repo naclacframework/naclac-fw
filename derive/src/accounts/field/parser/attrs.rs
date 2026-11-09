@@ -22,6 +22,7 @@ pub(super) struct RawAttrs {
     pub(super) is_signer: bool,
     pub(super) is_mut: bool,
     pub(super) is_alias: bool,
+    pub(super) is_dup: bool,
     pub(super) is_executable: bool,
     pub(super) is_rent_exempt: bool,
     pub(super) pda_program: Option<syn::Expr>,
@@ -51,6 +52,7 @@ impl RawAttrs {
         let mut is_signer = false;
         let mut is_mut = false;
         let mut is_alias = false;
+        let mut is_dup = false;
         let mut is_executable = false;
         let mut is_rent_exempt = false;
         let mut pda_program = None;
@@ -83,6 +85,10 @@ impl RawAttrs {
                         }
                         if meta.path.is_ident("mut") {
                             is_mut = true;
+                            return Ok(());
+                        }
+                        if meta.path.is_ident("dup") {
+                            is_dup = true;
                             return Ok(());
                         }
                         if meta.path.is_ident("executable") {
@@ -138,6 +144,7 @@ impl RawAttrs {
                             || path.is_ident("executable")
                             || path.is_ident("unsafe")
                             || path.is_ident("alias")
+                            || path.is_ident("dup")
                             || path.is_ident("payer")
                             || path.is_ident("space")
                             || path.is_ident("close")
@@ -359,6 +366,7 @@ impl RawAttrs {
             is_signer,
             is_mut,
             is_alias,
+            is_dup,
             is_executable,
             is_rent_exempt,
             pda_program,

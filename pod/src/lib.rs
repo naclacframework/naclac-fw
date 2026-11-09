@@ -34,6 +34,8 @@ mod bool_;
 mod error;
 mod fixed_string;
 mod fixed_vec;
+#[cfg(feature = "idl-build")]
+mod idl_type;
 mod opt;
 mod unaligned;
 mod zc_enum;

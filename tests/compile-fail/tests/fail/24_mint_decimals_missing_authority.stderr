@@ -1,5 +1,5 @@
 error: Naclac Error: `mint::authority` must be specified alongside `mint::decimals`.
-  --> tests/fail/24_mint_decimals_missing_authority.rs:22:9
+  --> tests/fail/24_mint_decimals_missing_authority.rs:24:9
    |
-22 |     pub mint: AccountInfo,
+24 |     pub mint: AccountInfo,
    |         ^^^^

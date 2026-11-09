@@ -64,6 +64,7 @@ export const NACLAC_FRAMEWORK_ERRORS: readonly NaclacFrameworkError[] = [
   { code: 31, name: "TooManyAccountEntries", message: "Instruction carries more than 64 account entries" },
   { code: 32, name: "CapacityExceeded", message: "Fixed-capacity vector or string is full" },
   { code: 33, name: "InvalidUtf8", message: "Fixed-capacity string holds invalid UTF-8" },
+  { code: 34, name: "ConstraintDuplicateAccount", message: "Account repeated in a slot not marked `dup`" },
 ];
 
 /** A decoded program error from the IDL. */

@@ -12,6 +12,7 @@ pub struct CheckAddressRelational {
 
     /// SAFETY: only its own address is read, as the expected value; never
     /// deserialized.
+    #[account(dup)]
     pub expected_address: AccountInfo,
 }
 

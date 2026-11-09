@@ -1,4 +1,4 @@
-error: Field 'does_not_exist' not found in struct for relation constraint on 'account'
+error: Naclac Error: relation target 'does_not_exist' on 'account' is not a field of this struct.
  --> tests/fail/18_relation_unknown_field.rs:7:10
   |
 7 | #[derive(Accounts)]

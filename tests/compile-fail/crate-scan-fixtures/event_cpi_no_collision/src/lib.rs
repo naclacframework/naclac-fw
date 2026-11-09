@@ -2,6 +2,7 @@
 //! its default (non-colliding) discriminator. Proves `#[event_cpi]` itself
 //! compiles in a standalone crate, so the sibling fixture's failure is
 //! attributable to the tag collision alone.
+#![no_std]
 use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");

@@ -24,7 +24,9 @@ use {
 ///
 /// It finds the public functions of the module, which are the instructions,
 /// and generates a `match` dispatcher over their discriminators. It handles
-/// routing and the signature rewrites for the program's layout and runtime:
+/// routing and the signature rewrites for the program's layout and runtime.
+/// The program crate must be `#![no_std]`: the macro emits the program's panic
+/// handler for the Solana target, and a crate linking `std` brings its own.
 /// - **`borsh`** (`solana` runtime): emits `BorshDeserialize` logic.
 /// - **`wincode`**: emits Wincode argument decoding, on either runtime.
 /// - **`bytemuck`**: emits native zero-copy slicing logic, on either runtime.
@@ -32,16 +34,6 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let module = parse_macro_input!(item as ItemMod);
     let mod_name = &module.ident;
     let mod_vis = &module.vis;
-
-    let (declared_address, declaring_file) =
-        match crate::accounts::field::compile_time::declared_program_id() {
-            Ok(declared) => declared,
-            Err(message) => {
-                return syn::Error::new_spanned(&module.ident, format!("Naclac Error: {message}"))
-                    .to_compile_error()
-                    .into();
-            }
-        };
 
     let Some((_, content_items)) = &module.content else {
         return syn::Error::new_spanned(
@@ -79,15 +71,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> TokenStream {
         processed_content_items.push(Item::Fn(new_func));
     }
 
-    let event_cpi = match event_cpi::expand(
-        &ctx,
-        &out.event_cpi_ctx_structs,
-        &declared_address,
-        &declaring_file,
-    ) {
-        Ok(event_cpi) => event_cpi,
-        Err(err) => return err.to_compile_error().into(),
-    };
+    let event_cpi = event_cpi::expand(&ctx, &out.event_cpi_ctx_structs);
     processed_content_items.extend(event_cpi.items);
     out.dispatch_arms.push(event_cpi.dispatch_arm);
 

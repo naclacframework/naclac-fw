@@ -51,6 +51,7 @@ pub enum NaclacError {
     TooManyAccountEntries = 31,
     CapacityExceeded = 32,
     InvalidUtf8 = 33,
+    ConstraintDuplicateAccount = 34,
 }
 
 /// Largest account index a framework error code can name. The runtime

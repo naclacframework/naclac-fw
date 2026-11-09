@@ -42,6 +42,7 @@ fn idl_build_errors_impl(
         });
     }
 
+    let name_str = name.to_string();
     quote! {
         #[cfg(feature = "idl-build")]
         impl #name {
@@ -49,6 +50,16 @@ fn idl_build_errors_impl(
                 vec![#(#error_ts_list),*]
             }
         }
+
+        #[cfg(feature = "idl-build")]
+        const _: () = {
+            naclac_lang::naclac_idl::__private::inventory::submit! {
+                naclac_lang::naclac_idl::registry::IdlFragment::Errors {
+                    name: #name_str,
+                    build: #name::__naclac_idl_errors,
+                }
+            }
+        };
     }
 }
 

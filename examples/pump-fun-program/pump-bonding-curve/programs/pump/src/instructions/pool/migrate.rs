@@ -85,7 +85,11 @@ pub struct Migrate {
 
     pub system_program: Program<System>,
     pub token_program: Interface<TokenInterface>,
+
+    /// SAFETY: repeats `token_program` when the mint is Token-2022.
+    #[account(dup)]
     pub token_2022_program: Program<Token2022>,
+
     pub associated_token_program: Program<AssociatedToken>,
     pub pump_amm: Program<PumpAmm>,
 

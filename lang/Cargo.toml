@@ -17,12 +17,6 @@ naclac-metadata = { workspace = true, optional = true }
 # in that program crate's dependency graph. A proc-macro's own dependencies
 # (naclac-derive') are never visible to the code it generates.
 naclac-idl = { workspace = true, optional = true }
-# Same reasoning as naclac-idl just above: the generated `idl-build`
-# assembler (in the calling program crate, not this crate) references
-# `naclac_lang::naclac_syn::...` paths (e.g. `discriminator::compute_discriminator`
-# for an account's discriminator) — a proc-macro's own dependencies
-# (naclac-derive'/naclac-idl's) are never visible to the code it generates.
-naclac-syn = { workspace = true, optional = true }
 
 [features]
 # The default runtime; the account-data layout is always chosen explicitly.
@@ -49,7 +43,7 @@ metadata = ["dep:naclac-metadata"]
 debug-mode = ["naclac-core/debug-mode", "naclac-derive/debug-mode"]
 borsh = ["naclac-core/borsh", "naclac-token?/borsh"]
 wincode = ["naclac-core/wincode", "naclac-token?/wincode"]
-idl-build = ["naclac-derive/idl-build", "dep:naclac-idl", "dep:naclac-syn", "naclac-core/idl-build", "naclac-token?/idl-build"]
+idl-build = ["naclac-derive/idl-build", "dep:naclac-idl", "naclac-idl/idl-build", "naclac-core/idl-build", "naclac-token?/idl-build"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

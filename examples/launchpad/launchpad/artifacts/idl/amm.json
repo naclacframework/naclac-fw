@@ -94,12 +94,23 @@
               { "kind": "account", "path": "lp_token_program" },
               { "kind": "account", "path": "lp_mint" }
             ],
-            "program": { "kind": "const", "value": [140,151,37,143,78,36,137,241,187,61,16,41,20,142,13,131,11,90,19,153,218,255,16,132,4,142,123,216,219,233,248,89] }
+            "program": { "kind": "const", "value": [140,151,37,143,78,36,137,241,187,61,16,41,20,142,13,131,11,90,19,153,218,255,16,132,4,142,123,216,219,233,248,89], "name": "ASSOCIATED_TOKEN_PROGRAM_ID" }
           }
         },
         { "name": "token_program_a" },
-        { "name": "token_program_b" },
-        { "name": "lp_token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        {
+          "name": "token_program_b",
+          "docs": [
+            "SAFETY: repeats `token_program_a` when both mints use one token program."
+          ]
+        },
+        {
+          "name": "lp_token_program",
+          "docs": [
+            "SAFETY: repeats a pool mint's token program when that mint is classic Token."
+          ],
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
         { "name": "associated_token_program", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" },
         { "name": "system_program", "address": "11111111111111111111111111111111" }
       ],
@@ -127,7 +138,12 @@
         { "name": "user_source_token", "writable": true },
         { "name": "user_destination_token", "writable": true },
         { "name": "token_program_a" },
-        { "name": "token_program_b" }
+        {
+          "name": "token_program_b",
+          "docs": [
+            "SAFETY: repeats `token_program_a` when both mints use one token program."
+          ]
+        }
       ],
       "args": [
         { "name": "amount_in", "type": "u64" },
@@ -154,8 +170,19 @@
         { "name": "user_token_b", "writable": true },
         { "name": "user_lp", "writable": true },
         { "name": "token_program_a" },
-        { "name": "token_program_b" },
-        { "name": "lp_token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
+        {
+          "name": "token_program_b",
+          "docs": [
+            "SAFETY: repeats `token_program_a` when both mints use one token program."
+          ]
+        },
+        {
+          "name": "lp_token_program",
+          "docs": [
+            "SAFETY: repeats a pool mint's token program when that mint is classic Token."
+          ],
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
       ],
       "args": [
         { "name": "max_amount_a", "type": "u64" },
@@ -182,8 +209,19 @@
         { "name": "user_token_b", "writable": true },
         { "name": "user_lp", "writable": true },
         { "name": "token_program_a" },
-        { "name": "token_program_b" },
-        { "name": "lp_token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
+        {
+          "name": "token_program_b",
+          "docs": [
+            "SAFETY: repeats `token_program_a` when both mints use one token program."
+          ]
+        },
+        {
+          "name": "lp_token_program",
+          "docs": [
+            "SAFETY: repeats a pool mint's token program when that mint is classic Token."
+          ],
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
       ],
       "args": [
         { "name": "lp_amount", "type": "u64" },
@@ -291,6 +329,11 @@
   ],
   "constants": [
     {
+      "name": "ASSOCIATED_TOKEN_PROGRAM_ID",
+      "type": "publicKey",
+      "value": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+    },
+    {
       "name": "SEED_LP_MINT",
       "type": "bytes",
       "value": "[108, 112, 95, 109, 105, 110, 116]"
@@ -315,7 +358,7 @@
         { "kind": "account", "path": "lp_token_program" },
         { "kind": "account", "path": "lp_mint" }
       ],
-      "program": { "kind": "const", "value": [140,151,37,143,78,36,137,241,187,61,16,41,20,142,13,131,11,90,19,153,218,255,16,132,4,142,123,216,219,233,248,89] }
+      "program": { "kind": "const", "value": [140,151,37,143,78,36,137,241,187,61,16,41,20,142,13,131,11,90,19,153,218,255,16,132,4,142,123,216,219,233,248,89], "name": "ASSOCIATED_TOKEN_PROGRAM_ID" }
     },
     {
       "name": "lp_mint",

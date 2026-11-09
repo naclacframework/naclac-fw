@@ -208,6 +208,17 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
 {
     const PROGRAM_OWNED: bool = <T as crate::wrappers::Discriminator>::PROGRAM_OWNED;
     const OWNER_VALIDATED: bool = true;
+    const CARRIES_DATA: bool = true;
+
+    #[inline(always)]
+    fn stored_bump(&self) -> Option<u8> {
+        <T as crate::wrappers::Discriminator>::stored_bump(&self.data)
+    }
+
+    #[inline(always)]
+    fn store_bump(&mut self, bump: u8) {
+        <T as crate::wrappers::Discriminator>::store_bump(&mut self.data, bump)
+    }
 
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
@@ -450,6 +461,17 @@ impl<
 {
     const PROGRAM_OWNED: bool = <T as crate::wrappers::Discriminator>::PROGRAM_OWNED;
     const OWNER_VALIDATED: bool = true;
+    const CARRIES_DATA: bool = true;
+
+    #[inline(always)]
+    fn stored_bump(&self) -> Option<u8> {
+        <T as crate::wrappers::Discriminator>::stored_bump(&self.data)
+    }
+
+    #[inline(always)]
+    fn store_bump(&mut self, bump: u8) {
+        <T as crate::wrappers::Discriminator>::store_bump(&mut self.data, bump)
+    }
 
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
@@ -719,6 +741,17 @@ impl<T: NaclacZeroCopy> crate::wrappers::AsRefByteSlice for Account<T> {
 impl<T: NaclacZeroCopy> crate::wrappers::NaclacAccount for Account<T> {
     const PROGRAM_OWNED: bool = <T as crate::wrappers::Discriminator>::PROGRAM_OWNED;
     const OWNER_VALIDATED: bool = true;
+    const CARRIES_DATA: bool = true;
+
+    #[inline(always)]
+    fn stored_bump(&self) -> Option<u8> {
+        <T as crate::wrappers::Discriminator>::stored_bump(self)
+    }
+
+    #[inline(always)]
+    fn store_bump(&mut self, bump: u8) {
+        <T as crate::wrappers::Discriminator>::store_bump(self, bump)
+    }
 
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {

@@ -1,5 +1,5 @@
 error: Naclac Error: `token::authority` must be specified alongside `token::mint`.
-  --> tests/fail/25_token_mint_missing_authority.rs:23:9
+  --> tests/fail/25_token_mint_missing_authority.rs:25:9
    |
-23 |     pub vault: AccountInfo,
+25 |     pub vault: AccountInfo,
    |         ^^^^^

@@ -14,7 +14,7 @@
 //! type by looking it up in that already-assembled map, via [`resolve`].
 
 use {
-    crate::{IdlAccount, IdlPda, IdlSeed, IdlTypeDef},
+    crate::{IdlAccount, IdlConstant, IdlPda, IdlSeed, IdlTypeDef},
     std::collections::BTreeMap,
 };
 
@@ -34,9 +34,12 @@ pub struct IdlPdaBuild {
 }
 
 pub enum IdlSeedBuild {
+    /// `constant` is set exactly when `name` is: the named constant's IDL entry,
+    /// which the assembler adds to the IDL's constants.
     Const {
         value: Vec<u8>,
         name: Option<String>,
+        constant: Option<IdlConstant>,
     },
     Arg {
         path: String,
@@ -50,7 +53,7 @@ pub enum IdlSeedBuild {
 impl IdlSeedBuild {
     pub fn resolve(self, types: &BTreeMap<String, IdlTypeDef>) -> IdlSeed {
         match self {
-            IdlSeedBuild::Const { value, name } => IdlSeed::Const { value, name },
+            IdlSeedBuild::Const { value, name, .. } => IdlSeed::Const { value, name },
             IdlSeedBuild::Arg { path } => IdlSeed::Arg { path },
             IdlSeedBuild::Account { path, account_type } => {
                 let field_type = account_type.and_then(|ty_name| {
@@ -70,6 +73,21 @@ impl IdlSeedBuild {
 }
 
 impl IdlAccountBuild {
+    /// The IDL entries of the named constants this account's PDA seeds use.
+    pub fn seed_constants(&self) -> Vec<IdlConstant> {
+        let Some(pda) = &self.pda else {
+            return Vec::new();
+        };
+        pda.seeds
+            .iter()
+            .chain(pda.program.iter())
+            .filter_map(|seed| match seed {
+                IdlSeedBuild::Const { constant, .. } => constant.clone(),
+                _ => None,
+            })
+            .collect()
+    }
+
     pub fn resolve(self, types: &BTreeMap<String, IdlTypeDef>) -> IdlAccount {
         IdlAccount {
             name: self.name,

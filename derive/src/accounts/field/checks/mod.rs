@@ -6,7 +6,7 @@
 mod address_owner;
 mod header;
 mod namespaces;
-mod pda;
+pub(in crate::accounts) mod pda;
 mod plugin;
 mod relational;
 mod seeds;
@@ -23,15 +23,6 @@ pub(crate) use {
     plugin::plugin_args_tokens, relational::generate_relational_checks, seeds::seed_binding_tokens,
 };
 
-/// True if this field's declared type is an account wrapper
-/// (`Account<T>`/`InterfaceAccount<T>`) *and* the whole crate is in the
-/// `bytemuck` layout, the condition both wrapper types route on internally
-/// (see `core/src/wrappers/accounts/`). `program_is_zero_copy` is computed once
-/// by the caller and passed in.
-pub(crate) fn is_zero_copy_account_field(ty: &syn::Type, program_is_zero_copy: bool) -> bool {
-    crate::type_classify::is_account_wrapper(ty) && program_is_zero_copy
-}
-
 /// The checks that run as `field`'s account is loaded: `(metadata_checks,
 /// constraint_checks)`. The metadata checks run before the account is loaded
 /// and the constraint checks after. The tokens carry spans pointing at the
@@ -39,7 +30,6 @@ pub(crate) fn is_zero_copy_account_field(ty: &syn::Type, program_is_zero_copy: b
 pub fn generate_security_checks(
     field: &ParsedField,
     all_fields: &[ParsedField],
-    is_zero_copy: bool,
 ) -> (TokenStream, TokenStream) {
     let mut metadata_checks = Vec::new();
     let mut constraint_checks = Vec::new();
@@ -48,7 +38,7 @@ pub fn generate_security_checks(
     metadata_checks.extend(address_owner::address_checks(field, all_fields));
     metadata_checks.extend(address_owner::owner_checks(field, all_fields));
 
-    match pda::pda_checks(field, is_zero_copy) {
+    match pda::pda_checks(field) {
         Err(error) => return (error.clone(), error),
         Ok(Some(PdaChecks::Metadata(tokens))) => metadata_checks.push(tokens),
         Ok(Some(PdaChecks::Constraint(tokens))) => constraint_checks.push(tokens),

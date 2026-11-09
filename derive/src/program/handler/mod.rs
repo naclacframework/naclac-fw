@@ -50,7 +50,7 @@ pub(super) fn expand(
         .attrs
         .retain(|attr| !attr.path().is_ident("discriminator"));
 
-    let heap_allowed_args = signature::rewrite_signature(new_func);
+    let heap_allowed_args = signature::rewrite_signature(new_func)?;
 
     let Some(ix_disc_bytes) = ctx.ix_disc_by_name.get(&func_name.to_string()) else {
         return Err(syn::Error::new_spanned(
@@ -74,6 +74,7 @@ pub(super) fn expand(
     #[cfg(feature = "idl-build")]
     out.idl_build_ixs.push(IdlBuildIx {
         name: func_name.clone(),
+        docs: naclac_syn::parser::extract_docs(&func.attrs),
         disc: ix_disc_bytes.clone(),
         ctx_struct: sig.ctx_struct.clone(),
         arg_names: sig.arg_names.iter().map(|n| (*n).clone()).collect(),

@@ -153,7 +153,7 @@ mod plugin_tests {
 
     fn constraint_code(fields: &str) -> String {
         let parsed = parse(fields);
-        generate_security_checks(&parsed[0], &parsed, false)
+        generate_security_checks(&parsed[0], &parsed)
             .1
             .to_string()
             .replace(' ', "")

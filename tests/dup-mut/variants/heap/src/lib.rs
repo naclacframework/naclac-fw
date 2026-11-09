@@ -38,4 +38,8 @@ pub mod dup_mut {
     pub fn touch_boxed_vault(ctx: Context<TouchBoxedVault>) -> Result {
         touch_boxed_vault::touch_boxed_vault(ctx)
     }
+
+    pub fn check_read_only_dup(ctx: Context<CheckReadOnlyDup>) -> Result {
+        check_read_only_dup::check_read_only_dup(ctx)
+    }
 }

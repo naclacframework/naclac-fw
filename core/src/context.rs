@@ -51,7 +51,7 @@ pub trait LoadableAccounts<'a>: Bumps {
         program_id: &Address,
         accounts: &'a [AccountType],
         instruction_data: &[u8],
-        __duplicates: Option<&crate::prelude::AccountBitvec>,
+        __duplicates: Option<&crate::prelude::DuplicateSlots>,
     ) -> ValidationResult<'a, Self::Payload, Self::BumpsStruct>;
 
     fn as_mut_payload(payload: &mut Self::Payload) -> &mut Self;

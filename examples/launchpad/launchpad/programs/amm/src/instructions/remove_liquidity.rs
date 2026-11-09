@@ -74,12 +74,16 @@ pub struct RemoveLiquidity {
     pub user_lp: Account<TokenAccount>,
 
     pub token_program_a: Interface<TokenInterface>,
+
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
+    #[account(dup)]
     pub token_program_b: Interface<TokenInterface>,
+
+    /// SAFETY: repeats a pool mint's token program when that mint is classic Token.
+    #[account(dup)]
     pub lp_token_program: Program<Token>,
 }
 
-/// Removes liquidity by burning user's LP tokens and returning proportional pool assets.
-/// Fails unless at least `min_amount_a` and `min_amount_b` are returned.
 pub fn remove_liquidity(
     ctx: Context<RemoveLiquidity>,
     lp_amount: u64,

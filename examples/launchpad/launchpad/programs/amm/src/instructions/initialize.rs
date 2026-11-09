@@ -106,16 +106,19 @@ pub struct Initialize {
     pub depositor_lp: AccountInfo,
 
     pub token_program_a: Interface<TokenInterface>,
+
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
+    #[account(dup)]
     pub token_program_b: Interface<TokenInterface>,
+
+    /// SAFETY: repeats a pool mint's token program when that mint is classic Token.
+    #[account(dup)]
     pub lp_token_program: Program<Token>,
+
     pub associated_token_program: Program<AssociatedToken>,
     pub system_program: Program<System>,
 }
 
-/// Creates an AMM pool for two mints in ascending address order and seeds it
-/// with `amount_a` and `amount_b` from the payer's token accounts, minting the
-/// first LP shares to the payer. A mint's token program is the one that owns
-/// it, and a Token-2022 mint is accepted only with informational extensions.
 pub fn initialize(ctx: Context<Initialize>, id: u64, amount_a: u64, amount_b: u64) -> Result {
     require!(amount_a > 0 && amount_b > 0, AmmError::ZeroAmount);
     require!(

@@ -20,6 +20,11 @@ pub struct ParsedField {
     pub is_signer: bool,
     pub is_mut: bool,
     pub is_alias: bool,
+    /// `dup`: this read-only field may repeat an earlier account of the
+    /// instruction, unless that account is in a `mut` slot not marked
+    /// `unsafe(alias)`. Any other field that repeats an earlier account is
+    /// rejected at runtime.
+    pub is_dup: bool,
     pub is_executable: bool,
     pub is_rent_exempt: bool,
     pub pda_program: Option<syn::Expr>,
@@ -56,6 +61,8 @@ pub struct ParsedField {
     /// `T`, so code reading `ty` needs no `Option`-awareness; the loader gates
     /// this field behind a sentinel check instead.
     pub is_optional: bool,
+    /// True if a doc comment line of the field starts with `SAFETY:`.
+    pub has_safety_doc: bool,
     /// Set when this field's own `#[account(...)]` failed to parse. The field
     /// still gets a `ParsedField` (constraint data at safe defaults) so one
     /// field's mistake does not abort the whole struct; the codegen sites that
@@ -112,20 +119,18 @@ pub struct ReallocConfig {
 /// rest of the struct — see `parse_one_field`'s doc and `ParsedField::parse_error`.
 pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>> {
     let mut parsed_fields = Vec::new();
-    let aliases = crate::common::crate_source::crate_aliases();
 
     for (idx, field) in fields.named.iter().enumerate() {
-        let parsed = match parse_one_field(idx, field, &aliases) {
+        let parsed = match parse_one_field(idx, field) {
             Ok(parsed) => parsed,
             Err(err) => {
                 // `ty` and `is_optional` come from the type alone, so the
                 // loader code, which always reads them, still compiles for a
                 // field whose attribute failed to parse.
-                let raw_ty = aliases.resolve(&field.ty);
-                let is_optional = crate::type_classify::is_option_account(&raw_ty);
-                let ty = crate::type_classify::option_inner_type(&raw_ty)
+                let is_optional = crate::type_classify::is_option_account(&field.ty);
+                let ty = crate::type_classify::option_inner_type(&field.ty)
                     .cloned()
-                    .unwrap_or(raw_ty);
+                    .unwrap_or_else(|| field.ty.clone());
                 let Some(ident) = field.ident.clone() else {
                     return Err(syn::Error::new_spanned(
                         field,
@@ -139,6 +144,7 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                     is_signer: false,
                     is_mut: false,
                     is_alias: false,
+                    is_dup: false,
                     is_executable: false,
                     is_rent_exempt: false,
                     pda_program: None,
@@ -155,6 +161,7 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
                     extra_accounts: None,
                     plugin_constraints: Vec::new(),
                     index: idx,
+                    has_safety_doc: validate::has_safety_doc_comment(&field.attrs),
                     parse_error: Some(err),
                 }
             }
@@ -184,6 +191,27 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
         }
     }
 
+    // A field's mutability is only final here, after the forcing above.
+    for field in &mut parsed_fields {
+        if field.parse_error.is_some() {
+            continue;
+        }
+        if field.is_dup && field.is_mut {
+            field.parse_error = Some(syn::Error::new_spanned(
+                &field.ident,
+                "Naclac Error: a `dup` field is read-only, but `close` or `realloc::payer` writes \
+                 this one. Use `unsafe(alias)` for a mutable duplicate.",
+            ));
+        }
+        if field.is_alias && !field.is_mut {
+            field.parse_error = Some(syn::Error::new_spanned(
+                &field.ident,
+                "Naclac Error: `unsafe(alias)` is for `mut` fields. Use `dup` on a read-only \
+                 field that may repeat another account.",
+            ));
+        }
+    }
+
     Ok(parsed_fields)
 }
 
@@ -191,25 +219,19 @@ pub fn parse_struct_fields(fields: &FieldsNamed) -> syn::Result<Vec<ParsedField>
 /// substitutes a safe-defaults `ParsedField` carrying the error in
 /// `parse_error` for any field this returns `Err` for, so one field's mistake
 /// does not discard the other fields' parsed data.
-fn parse_one_field(
-    idx: usize,
-    field: &syn::Field,
-    aliases: &naclac_syn::aliases::Aliases,
-) -> syn::Result<ParsedField> {
+fn parse_one_field(idx: usize, field: &syn::Field) -> syn::Result<ParsedField> {
     let Some(ident) = field.ident.clone() else {
         return Err(syn::Error::new_spanned(
             field,
             "Naclac Error: Accounts struct fields must be named.",
         ));
     };
-    // Crate-local type aliases are replaced by their targets first, so the
-    // name-based checks see the real type. `Option<>` is unwrapped once, so
-    // every later check reads `ty` as the inner type.
-    let raw_ty = aliases.resolve(&field.ty);
-    let is_optional = crate::type_classify::is_option_account(&raw_ty);
-    let ty = crate::type_classify::option_inner_type(&raw_ty)
+    // `Option<>` is unwrapped once, so every later check reads `ty` as the
+    // inner type.
+    let is_optional = crate::type_classify::is_option_account(&field.ty);
+    let ty = crate::type_classify::option_inner_type(&field.ty)
         .cloned()
-        .unwrap_or(raw_ty);
+        .unwrap_or_else(|| field.ty.clone());
 
     let raw = attrs::RawAttrs::parse(&field.attrs)?;
     validate::finish(raw, idx, ident, ty, is_optional, &field.attrs)
@@ -351,10 +373,121 @@ mod tests {
     }
 
     #[test]
+    fn a_documented_read_only_dup_is_accepted() {
+        let fields = parse("/// SAFETY: read-only.\n#[account(dup)] a: Interface<TokenInterface>");
+        assert!(fields[0].parse_error.is_none());
+        assert!(fields[0].is_dup);
+        assert!(!fields[0].is_mut);
+    }
+
+    #[test]
+    fn dup_needs_a_safety_comment() {
+        let message = error_of("#[account(dup)] a: Interface<TokenInterface>");
+        assert!(message.contains("`/// SAFETY:"), "{message}");
+        let message = error_of("/// Not a reason.\n#[account(dup)] a: Interface<TokenInterface>");
+        assert!(message.contains("`/// SAFETY:"), "{message}");
+    }
+
+    #[test]
+    fn dup_rejects_everything_that_writes_the_account() {
+        for attr in [
+            "dup, mut",
+            "dup, init, payer = p",
+            "dup, init_if_needed, payer = p",
+            "dup, init_unchecked, payer = p",
+            "dup, close = p",
+            "dup, realloc = 8, realloc::payer = p",
+        ] {
+            let message = error_of(&format!(
+                "/// SAFETY: test.\n#[account({attr})] a: Account<A>"
+            ));
+            assert!(message.contains("is read-only"), "{attr}: {message}");
+        }
+    }
+
+    #[test]
+    fn dup_rejects_being_written_by_another_field() {
+        for attr in ["close = a", "realloc = 8, realloc::payer = a"] {
+            let fields = parse(&format!(
+                "/// SAFETY: test.\n#[account(dup)] a: AccountInfo,
+                 #[account({attr})] b: Account<B>"
+            ));
+            let message = fields[0]
+                .parse_error
+                .as_ref()
+                .expect("the attribute must be rejected")
+                .to_string();
+            assert!(message.contains("is read-only"), "{attr}: {message}");
+        }
+    }
+
+    #[test]
+    fn dup_and_alias_are_mutually_exclusive() {
+        let message = error_of("/// SAFETY: test.\n#[account(dup, unsafe(alias))] a: Account<A>");
+        assert!(message.contains("mutually exclusive"), "{message}");
+    }
+
+    #[test]
+    fn alias_needs_a_mutable_field() {
+        let fields = parse("#[account(unsafe(alias))] a: Account<A>");
+        let message = fields[0]
+            .parse_error
+            .as_ref()
+            .expect("the attribute must be rejected")
+            .to_string();
+        assert!(message.contains("Use `dup`"), "{message}");
+        let fields = parse(
+            "#[account(unsafe(alias))] a: Account<A>,
+             #[account(close = a)] b: Account<B>",
+        );
+        assert!(fields[0].parse_error.is_none());
+    }
+
+    #[test]
     fn a_field_names_its_token_program_once() {
         let message = error_of(
             "#[account(token::token_program = a, mint::token_program = b)] t: Account<TokenAccount>",
         );
         assert!(message.contains("more than once"), "{message}");
+    }
+
+    #[test]
+    fn seed_lists_past_the_pda_limits_are_rejected() {
+        let seeds = vec!["b\"s\""; 17].join(", ");
+        let message = error_of(&format!(
+            "#[account(seeds = [{seeds}], bump)] a: Account<A>"
+        ));
+        assert!(message.contains("takes at most 16"), "{message}");
+
+        let long = "x".repeat(33);
+        let message = error_of(&format!(
+            "#[account(seeds = [b\"{long}\"], bump)] a: Account<A>"
+        ));
+        assert!(message.contains("at most 32"), "{message}");
+        let message = error_of(&format!(
+            "#[account(seeds = [\"{long}\"], bump)] a: Account<A>"
+        ));
+        assert!(message.contains("at most 32"), "{message}");
+
+        let seeds = vec!["b\"s\""; 16].join(", ");
+        let fields = parse(&format!(
+            "#[account(seeds = [{seeds}], bump)] a: Account<A>"
+        ));
+        assert!(fields[0].parse_error.is_none());
+        let fields = parse(
+            "#[account(seeds = [b\"01234567890123456789012345678901\"], bump)] a: Account<A>",
+        );
+        assert!(fields[0].parse_error.is_none());
+    }
+
+    #[test]
+    fn a_safety_doc_is_recorded_whatever_the_type_is_called() {
+        let fields = parse(
+            "/// SAFETY: only the address is read.
+             raw: Raw,
+             plain: Raw",
+        );
+        assert!(fields[0].has_safety_doc);
+        assert!(!fields[1].has_safety_doc);
     }
 }

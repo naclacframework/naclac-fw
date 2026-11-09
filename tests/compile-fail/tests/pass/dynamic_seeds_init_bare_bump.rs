@@ -9,10 +9,8 @@
 // precomputation is possible for seeds not known until runtime, so this is
 // the only way to establish canonicality for a fresh dynamic-seed PDA.
 //
-// This fixture crate has no `Naclac.toml`, so the literal-seed
-// compile-time-precompute path never activates here (see
-// tests/fail/17_seeds_missing_bump.rs's own note) — `[b"foo"]` still
-// exercises the dynamic-PDA branch despite looking literal.
+// `&[1u8]` is neither a literal nor a constant, so this field takes the
+// dynamic-PDA branch.
 use naclac_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -23,7 +21,7 @@ pub struct Foo {
     #[account(
         init,
         payer = payer,
-        seeds = [b"foo"],
+        seeds = [b"foo", &[1u8]],
         bump
     )]
     pub account: Account<FooData>,

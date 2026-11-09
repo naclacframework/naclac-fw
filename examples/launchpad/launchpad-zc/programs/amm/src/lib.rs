@@ -1,3 +1,4 @@
+#![no_std]
 use naclac_lang::prelude::*;
 
 declare_id!("9Ka4d8GiqS72JDJNqNFvUpXBS1LZ6BTCskjCaCS34vuE");

@@ -53,12 +53,12 @@ pub struct Swap {
     pub user_destination_token: InterfaceAccount<TokenAccount>,
 
     pub token_program_a: Interface<TokenInterface>,
+
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
+    #[account(dup)]
     pub token_program_b: Interface<TokenInterface>,
 }
 
-/// Swaps an exact input amount of one pool token for output tokens of the other.
-/// The input leg moves through the token program of the input mint and the
-/// output leg through the token program of the output mint.
 pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Result {
     require!(amount_in > 0, AmmError::ZeroAmount);
 

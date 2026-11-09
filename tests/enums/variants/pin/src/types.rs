@@ -3,6 +3,7 @@
 use naclac_lang::prelude::*;
 
 #[defined_type]
+#[repr(u8)]
 #[derive(PartialEq, Eq)]
 pub enum Color {
     Red,
@@ -11,6 +12,7 @@ pub enum Color {
 }
 
 #[defined_type]
+#[repr(u8)]
 pub enum Action {
     Pause,
     SetFee { fee_bps: u16 },

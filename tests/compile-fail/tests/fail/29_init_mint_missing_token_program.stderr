@@ -1,5 +1,5 @@
 error: Naclac Error: this `init` needs a token program: add a `Program<Token>` field, or name one with `token::token_program`, `mint::token_program` or `associated_token::token_program`.
-  --> tests/fail/29_init_mint_missing_token_program.rs:28:9
+  --> tests/fail/29_init_mint_missing_token_program.rs:30:9
    |
-28 |     pub mint: AccountInfo,
+30 |     pub mint: AccountInfo,
    |         ^^^^

@@ -59,6 +59,7 @@ pub struct SwapAccounts {
     pub user_source_token: naclac_client::Address,
     pub user_destination_token: naclac_client::Address,
     pub token_program_a: naclac_client::Address,
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
     pub token_program_b: naclac_client::Address,
 }
 
@@ -117,6 +118,7 @@ pub struct SwapCpiAccounts<'a> {
     pub user_source_token: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_destination_token: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub token_program_a: crate::sdk_core_cpi::CpiHandle<'a>,
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
     pub token_program_b: crate::sdk_core_cpi::CpiHandle<'a>,
 }
 

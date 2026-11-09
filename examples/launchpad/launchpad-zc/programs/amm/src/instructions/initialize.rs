@@ -37,6 +37,9 @@ pub struct Initialize {
     #[account(mut)]
     pub depositor_lp: Account<TokenAccount>,
 
+    /// SAFETY: repeats `payer` when the payer deposits its own tokens; only its
+    /// signature is used.
+    #[account(dup)]
     pub depositor_authority: Signer,
 
     pub token_program: Program<Token>,

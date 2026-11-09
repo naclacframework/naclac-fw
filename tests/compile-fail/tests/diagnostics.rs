@@ -79,6 +79,24 @@ fn a_type_alias_of_string_takes_the_max_len_like_string() {
 }
 
 #[test]
+fn a_float_behind_an_alias_is_rejected_by_system() {
+    let stderr = check_fails("alias_float_in_system");
+    assert!(
+        stderr.contains("this type is `f32`/`f64`, which isn't allowed in #[system]"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn an_alias_of_account_info_needs_a_safety_doc() {
+    let stderr = check_fails("alias_account_info_without_safety_doc");
+    assert!(
+        stderr.contains("this field's type gets no automatic validation"),
+        "{stderr}"
+    );
+}
+
+#[test]
 fn a_struct_without_defined_type_has_no_known_maximum_size() {
     let stderr = check_fails("max_len_unknown_type");
     assert!(
@@ -104,7 +122,7 @@ fn emit_cpi_without_event_cpi_names_the_missing_attribute() {
 fn a_program_without_declare_id_fails_to_compile() {
     let stderr = check_fails("event_cpi_missing_program_id");
     assert!(
-        stderr.contains("the program must declare its address with `declare_id!"),
+        stderr.contains("cannot find value `ID` in the crate root"),
         "{stderr}"
     );
 }

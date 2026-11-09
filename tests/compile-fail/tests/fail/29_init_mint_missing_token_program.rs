@@ -6,6 +6,8 @@
 // proc-macro panic; now a spanned `syn::Error`.
 use naclac_lang::prelude::*;
 
+declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");
+
 #[derive(Accounts)]
 pub struct Foo {
     #[account(mut)]
@@ -21,7 +23,7 @@ pub struct Foo {
         init,
         payer = payer,
         seeds = [b"mint"],
-        bump = 255,
+        bump,
         mint::decimals = 6,
         mint::authority = authority,
     )]

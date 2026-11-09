@@ -3,7 +3,8 @@
 //! [`AccountCursor`] yields [`AccountView`]s on demand so dispatch can
 //! happen first: each instruction's pinocchio `load_and_validate` walks its
 //! declared accounts through [`AccountCursor::try_declared_fast`] (one header
-//! compare per account on the common path), and
+//! compare per account on the common path) or, for a `dup` field,
+//! [`AccountCursor::try_declared_dup_fast`], and
 //! [`AccountCursor::finish_walk_slow`] takes over on the first miss or when
 //! trailing accounts follow. A lookup array resolves duplicate account
 //! references: when the BPF loader writes a dup index into `borrow_state`,
@@ -95,7 +96,7 @@ pub struct AccountCursor {
 
     /// Tracks accounts that are duplicates — lazily initialized on first dup.
     /// `None` for transactions with no duplicates (the common case).
-    duplicate: Option<AccountBitvec>,
+    duplicate: Option<DuplicateSlots>,
 
     /// The executing program's id. An optional account slot that is absent
     /// holds this address, so duplicates resolving to it are not aliases of a
@@ -228,9 +229,9 @@ impl AccountCursor {
     unsafe fn take_dup(&mut self, orig: u8) -> AccountView {
         let view = *self.lookup.add(orig as usize);
         if crate::prelude::Address::from_address_ref(view.address()) != self.program_id {
-            let bv = self.duplicate.get_or_insert_with(AccountBitvec::default);
-            bv.set(self.consumed);
-            bv.set(orig);
+            self.duplicate
+                .get_or_insert_with(DuplicateSlots::default)
+                .record(self.consumed, orig);
         }
         self.ptr = self.ptr.add(size_of::<u64>());
         *self.lookup.add(self.consumed as usize) = view;
@@ -260,8 +261,51 @@ impl AccountCursor {
         false
     }
 
-    /// Completes the account walk after the
-    /// [`try_declared_fast`](AccountCursor::try_declared_fast) chain either
+    /// [`try_declared_fast`](AccountCursor::try_declared_fast) for a `dup`
+    /// field: also consumes a duplicate record, when it points at an earlier
+    /// slot that is not set in `mut_slots` and whose account carries the
+    /// required flags. Every other record consumes nothing and returns
+    /// `false`, leaving [`finish_walk_slow`](AccountCursor::finish_walk_slow)
+    /// to accept it or report it. A duplicate accepted here is not recorded:
+    /// neither of its slots can be in the masks `finish_walk_slow` checks,
+    /// because a `dup` field is neither mutable nor unique.
+    ///
+    /// # Safety
+    ///
+    /// Must not be called once `consumed` has reached the instruction's
+    /// account count, which must be at most 64, and no account may be
+    /// borrowed yet. `mut_slots` is the first word of the `MUT_MASK` that
+    /// `finish_walk_slow` receives.
+    #[inline(always)]
+    pub unsafe fn try_declared_dup_fast(
+        &mut self,
+        expected: u32,
+        mask: u32,
+        mut_slots: u64,
+    ) -> bool {
+        let header = *(self.ptr as *const u32);
+        if header & mask == expected {
+            self.take_non_dup();
+            return true;
+        }
+        let marker = header as u8;
+        if marker >= self.consumed {
+            return false;
+        }
+        let view = *self.lookup.add(marker as usize);
+        let aliased_header = *(view.account_ptr() as *const u32);
+        if (mut_slots >> marker) & 1 != 0 || aliased_header & mask != expected {
+            return false;
+        }
+        self.ptr = self.ptr.add(size_of::<u64>());
+        *self.lookup.add(self.consumed as usize) = view;
+        self.consumed = self.consumed.wrapping_add(1);
+        true
+    }
+
+    /// Completes the account walk after the fast chain
+    /// ([`try_declared_fast`](AccountCursor::try_declared_fast) and
+    /// [`try_declared_dup_fast`](AccountCursor::try_declared_dup_fast)) either
     /// missed or left trailing accounts, so that `lookup[..num_accounts]`
     /// holds every account's view when this returns `Ok`:
     ///
@@ -274,20 +318,19 @@ impl AccountCursor {
     ///    and otherwise `ConstraintSigner`, `ConstraintMut` or
     ///    `ConstraintExecutable` (in that order of precedence) is returned for
     ///    the slot's index when a required flag is missing.
-    /// 2. Returns `ConstraintDuplicateMutableAccount` if any duplicate
-    ///    recorded during the walk involves a slot set in `mut_mask`, at the
-    ///    lowest such slot (see [`AccountBitvec::first_intersection`]).
+    /// 2. Applies [`DuplicateSlots::check`] with `mut_mask` and `unique_mask`
+    ///    to the duplicates recorded during the walk.
     ///
-    /// This is the only place duplicates can be recorded: the fast path only
-    /// accepts non-duplicate headers, so a walk that never reaches this
-    /// function has no duplicates to check. Takes the cursor by value so the
+    /// A walk that never reaches this function has no duplicate to reject: the
+    /// fast chain only accepts non-duplicates and the duplicates
+    /// `try_declared_dup_fast` allows. Takes the cursor by value so the
     /// caller's cursor never has its address taken and can stay in registers.
     ///
     /// # Safety
     ///
     /// `num_accounts` must be the instruction's account count, at least
     /// `checks.len()` and at most the `lookup` capacity; and every slot before
-    /// `consumed` must have been accepted by `try_declared_fast` as a declared
+    /// `consumed` must have been accepted by the fast chain as a declared
     /// field of the same `checks`.
     #[cold]
     #[inline(never)]
@@ -296,6 +339,7 @@ impl AccountCursor {
         checks: &[(u32, u32, bool)],
         num_accounts: usize,
         mut_mask: &[u64; 4],
+        unique_mask: &[u64; 4],
     ) -> Result<(), crate::prelude::ProgramError> {
         while (self.consumed as usize) < num_accounts {
             let slot = self.consumed as usize;
@@ -312,12 +356,10 @@ impl AccountCursor {
                 self.check_declared_flags(&view, slot, expected, mask, optional)?;
             }
         }
-        if let Some(duplicates) = &self.duplicate {
-            if let Some(slot) = duplicates.first_intersection(mut_mask) {
-                return Err(crate::error::NaclacError::ConstraintDuplicateMutableAccount.err(slot));
-            }
+        match &self.duplicate {
+            Some(duplicates) => duplicates.check(mut_mask, unique_mask),
+            None => Ok(()),
         }
-        Ok(())
     }
 
     /// Checks a declared field's account `view` at index `slot` against its
@@ -365,9 +407,9 @@ impl AccountCursor {
         self.consumed
     }
 
-    /// Current duplicate-tracking bitvec, if any duplicates have been seen.
+    /// The duplicates recorded so far, if any.
     #[inline(always)]
-    pub fn duplicates(&self) -> Option<&AccountBitvec> {
+    pub fn duplicates(&self) -> Option<&DuplicateSlots> {
         self.duplicate.as_ref()
     }
 
@@ -381,7 +423,7 @@ impl AccountCursor {
     ///
     /// Caller must ensure `n` does not exceed the remaining unread accounts.
     #[inline(always)]
-    pub unsafe fn walk_n(&mut self, n: usize) -> (&[AccountView], Option<&AccountBitvec>) {
+    pub unsafe fn walk_n(&mut self, n: usize) -> (&[AccountView], Option<&DuplicateSlots>) {
         let start = self.consumed as usize;
         for _ in 0..n {
             self.next();
@@ -552,6 +594,17 @@ impl AccountBitvec {
         self.data[arr_index] |= 1 << bit_index;
     }
 
+    #[inline]
+    pub fn clear(&mut self, index: u8) {
+        let index = index as usize;
+        self.data[index / 64] &= !(1 << (index % 64));
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        (self.data[0] | self.data[1] | self.data[2] | self.data[3]) == 0
+    }
+
     /// Returns `true` iff any bit set in `self` is also set in `mask`.
     /// Used to check if a trailing account's dup index resolves to a
     /// declared mutable slot — catches aliasing across remaining_accounts.
@@ -578,6 +631,141 @@ impl AccountBitvec {
             word += 1;
         }
         None
+    }
+}
+
+/// The slots of an instruction's account list that repeat one account. Both
+/// runtimes record every repeat here, except a repeat of the executing
+/// program's own address: that address is an absent optional account's
+/// sentinel, so it is not an alias of a real account.
+#[derive(Default, Clone)]
+pub struct DuplicateSlots {
+    /// Both slots of every repeat.
+    involved: AccountBitvec,
+    /// The later slot of every repeat.
+    repeats: AccountBitvec,
+}
+
+impl DuplicateSlots {
+    /// Records that slot `later` repeats the account of slot `earlier`.
+    #[inline]
+    pub fn record(&mut self, later: u8, earlier: u8) {
+        self.involved.set(later);
+        self.involved.set(earlier);
+        self.repeats.set(later);
+    }
+
+    /// Whether `slot` is part of a recorded repeat, as the repeating slot or
+    /// as the slot it repeats.
+    #[inline]
+    pub fn involves(&self, slot: u8) -> bool {
+        self.involved.get(slot)
+    }
+
+    /// Removes `slot` from every recorded repeat. Only correct for a slot
+    /// whose account is the one shared by all of its repeats (an absent
+    /// optional account's sentinel), since the other slots of a repeat are
+    /// left recorded.
+    #[inline]
+    pub fn forget(&mut self, slot: u8) {
+        self.involved.clear(slot);
+        self.repeats.clear(slot);
+    }
+
+    /// Whether no repeat is recorded.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.involved.is_empty()
+    }
+
+    /// Rejects a repeat that involves a slot of `mut_mask`, with
+    /// `ConstraintDuplicateMutableAccount` at the lowest such slot, then a
+    /// repeat whose later slot is in `unique_mask`, with
+    /// `ConstraintDuplicateAccount` at the lowest such slot.
+    pub fn check(
+        &self,
+        mut_mask: &[u64; 4],
+        unique_mask: &[u64; 4],
+    ) -> Result<(), crate::prelude::ProgramError> {
+        if let Some(slot) = self.involved.first_intersection(mut_mask) {
+            return Err(crate::error::NaclacError::ConstraintDuplicateMutableAccount.err(slot));
+        }
+        if let Some(slot) = self.repeats.first_intersection(unique_mask) {
+            return Err(crate::error::NaclacError::ConstraintDuplicateAccount.err(slot));
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod duplicate_slots_tests {
+    use {
+        super::{mut_mask_set_bit, DuplicateSlots},
+        crate::error::NaclacError,
+    };
+
+    fn mask_of(slots: &[usize]) -> [u64; 4] {
+        slots
+            .iter()
+            .fold([0u64; 4], |mask, &slot| mut_mask_set_bit(mask, slot))
+    }
+
+    fn repeat(later: u8, earlier: u8) -> DuplicateSlots {
+        let mut duplicates = DuplicateSlots::default();
+        duplicates.record(later, earlier);
+        duplicates
+    }
+
+    #[test]
+    fn a_repeat_on_a_marked_slot_of_read_only_accounts_is_accepted() {
+        assert!(repeat(3, 1)
+            .check(&mask_of(&[0]), &mask_of(&[0, 1, 2]))
+            .is_ok());
+    }
+
+    #[test]
+    fn a_repeat_on_an_unmarked_slot_is_reported_at_the_later_slot() {
+        let result = repeat(3, 1).check(&mask_of(&[0]), &mask_of(&[0, 1, 2, 3]));
+        assert!(result == Err(NaclacError::ConstraintDuplicateAccount.err(3)));
+    }
+
+    #[test]
+    fn only_the_later_slot_needs_a_marker() {
+        assert!(repeat(3, 1).check(&[0u64; 4], &mask_of(&[1])).is_ok());
+    }
+
+    #[test]
+    fn a_mutable_slot_wins_over_an_unmarked_repeat_on_either_side() {
+        let unique = mask_of(&[0, 1, 2, 3]);
+        let result = repeat(3, 1).check(&mask_of(&[1]), &unique);
+        assert!(result == Err(NaclacError::ConstraintDuplicateMutableAccount.err(1)));
+        let result = repeat(3, 1).check(&mask_of(&[3]), &unique);
+        assert!(result == Err(NaclacError::ConstraintDuplicateMutableAccount.err(3)));
+    }
+
+    #[test]
+    fn forgetting_every_slot_of_a_repeat_empties_the_record() {
+        let mut duplicates = repeat(3, 1);
+        assert!(duplicates.involves(1) && duplicates.involves(3) && !duplicates.is_empty());
+        duplicates.forget(1);
+        duplicates.forget(3);
+        assert!(duplicates.is_empty());
+        assert!(duplicates
+            .check(&mask_of(&[1, 3]), &mask_of(&[1, 3]))
+            .is_ok());
+    }
+
+    #[test]
+    fn a_trailing_repeat_of_a_read_only_slot_is_accepted() {
+        assert!(repeat(9, 1)
+            .check(&mask_of(&[0]), &mask_of(&[0, 1, 2]))
+            .is_ok());
+    }
+
+    #[test]
+    fn a_trailing_repeat_of_a_mutable_slot_is_rejected() {
+        let result = repeat(9, 0).check(&mask_of(&[0]), &mask_of(&[0, 1, 2]));
+        assert!(result == Err(NaclacError::ConstraintDuplicateMutableAccount.err(0)));
     }
 }
 

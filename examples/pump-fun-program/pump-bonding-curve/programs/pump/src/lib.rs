@@ -113,6 +113,27 @@ pub mod pump {
         set_metaplex_creator::set_metaplex_creator(ctx, metadata_bump, bonding_curve_bump)
     }
 
+    /// Sweeps `creator_vault` down to its rent-exempt minimum, paying the swept
+    /// amount pro-rata by `share_bps` to `remaining_accounts` — one entry per
+    /// `sharing_config.shareholders`, in order, bare pubkeys (native SOL only;
+    /// `_v2` handles non-native quotes). Rounding: every shareholder but the last
+    /// gets `floor(available * share_bps / 10_000)`; the last gets the exact
+    /// remainder, so the vault never retains dust above its rent-exempt floor.
+    /// This rounding rule is a reasonable implementation choice, not verified
+    /// against the real bytecode's exact behavior for >1 shareholder.
+    ///
+    /// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+    /// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+    /// without it, `creator_vault` (derived from `bonding_curve.creator`) and the
+    /// payout list (`sharing_config.shareholders`, from whichever `sharing_config`
+    /// the caller passes) would have nothing tying them together, letting anyone
+    /// redirect any bonding curve's real accumulated fees to an unrelated
+    /// `sharing_config` they control. Also rejects any executable shareholder
+    /// recipient (real, live-confirmed check, `reference/fee-tier-probe/src/bin/probe73.rs`)
+    /// — an executable account can't receive lamports, so a stale shareholder
+    /// entry that's since become a program account must be removed via
+    /// `update_fee_shares(_v2)` first rather than silently failing the whole
+    /// distribution at the transfer step.
     pub fn distribute_creator_fees(
         ctx: Context<DistributeCreatorFees>,
         bonding_curve_bump: u8,
@@ -121,6 +142,19 @@ pub mod pump {
         distribute_creator_fees::distribute_creator_fees(ctx, bonding_curve_bump, creator_vault_bump)
     }
 
+    /// Real `distribute_creator_fees_v2` supports arbitrary `quote_mint`s; this
+    /// scoped pass only implements the wrapped-SOL path (matches
+    /// `bonding-curve-01-overview.md`'s SOL-quote-only scope decision), and
+    /// reverts `UnsupportedQuoteMint` for anything else. The WSOL path's
+    /// distribution math and rounding rule are identical to `distribute_creator_fees`
+    /// (v1) — see that instruction's doc comment.
+    ///
+    /// Requires `bonding_curve.creator == sharing_config`'s own address (real,
+    /// live-confirmed check, `reference/fee-tier-probe/src/bin/probe71.rs`) --
+    /// see `distribute_creator_fees`'s own doc comment for why. Also rejects any
+    /// executable shareholder recipient (real, live-confirmed check,
+    /// `reference/fee-tier-probe/src/bin/probe73.rs`) — see that same doc
+    /// comment for why.
     pub fn distribute_creator_fees_v2(
         ctx: Context<DistributeCreatorFeesV2>,
         bonding_curve_bump: u8,
@@ -135,6 +169,11 @@ pub mod pump {
         )
     }
 
+    /// Sweeps `creator_vault` down to its rent-exempt minimum, paying the full
+    /// swept amount to `creator` — the native-SOL sibling of
+    /// `distribute_creator_fees`'s own rent-exempt-floor sweep, just without a
+    /// shareholder split (100% to `creator`). Permissionless: anyone may crank
+    /// it, funds always land at the fixed `creator_vault` -> `creator` PDA pair.
     pub fn collect_creator_fee(
         ctx: Context<CollectCreatorFee>,
         creator_vault_bump: u8,
@@ -142,6 +181,13 @@ pub mod pump {
         collect_creator_fee::collect_creator_fee(ctx, creator_vault_bump)
     }
 
+    /// Sweeps `creator_vault_token_account`'s full SPL-token balance to
+    /// `creator_token_account` — the SPL-token sibling of `collect_creator_fee`
+    /// (native SOL). Permissionless: anyone may crank it, funds always land at
+    /// the fixed `creator_vault_token_account` -> `creator_token_account` pair.
+    /// Unlike the native path there's no rent-exempt floor to preserve (an SPL
+    /// token account's rent is a fixed lamport reserve separate from its token
+    /// balance), so the entire token balance is swept.
     pub fn collect_creator_fee_v2(
         ctx: Context<CollectCreatorFeeV2>,
         args: CollectCreatorFeeV2Args,
@@ -149,6 +195,18 @@ pub mod pump {
         collect_creator_fee_v2::collect_creator_fee_v2(ctx, args)
     }
 
+    /// Permissionless view instruction (confirmed via real IDL doc comment) that
+    /// reports whether `creator_vault` currently holds enough to be worth
+    /// cranking via `distribute_creator_fees(_v2)`. Real formula, empirically
+    /// confirmed against real deployed `pump.so` (`reference/fee-tier-probe/src/bin/probe71.rs`,
+    /// not inferred): `minimum_required` is a constant `2 *
+    /// CREATOR_VAULT_RENT_EXEMPT_MINIMUM`; `distributable_fees` is
+    /// `creator_vault`'s raw lamport balance down to the single rent-exempt
+    /// floor (matching `distribute_creator_fees`'s own calculation exactly);
+    /// `can_distribute` compares the *raw* `creator_vault` balance (not
+    /// `distributable_fees`) against `minimum_required`, inclusive (`>=`). Like
+    /// `pump_fees::get_fees`, this is a plain returned value, never `emit!`'d,
+    /// despite the real IDL naming the return type `*Event`.
     pub fn get_minimum_distributable_fee(
         ctx: Context<GetMinimumDistributableFee>,
         bonding_curve_bump: u8,
@@ -189,6 +247,16 @@ pub mod pump {
         migrate_v2::migrate_v2(ctx, args)
     }
 
+    /// Grows a pump-owned account's data buffer to match its currently
+    /// compiled-in size, funding the extra rent from `user`. `account` stays a
+    /// raw `AccountInfo` (never a typed `Account<T>`) deliberately: a
+    /// still-undersized account -- the very thing being extended -- fails
+    /// `Account<T>`'s own size check before this instruction's `realloc`
+    /// constraint (let alone its body) ever runs (confirmed empirically:
+    /// `AccountDataTooSmall` from a typed field against this exact scenario).
+    /// Recognizes every account this program itself owns; add a new type to
+    /// the `realloc::any_of` list above when a new account needs the same
+    /// treatment.
     pub fn extend_account(ctx: Context<ExtendAccount>) -> Result {
         extend_account::extend_account(ctx)
     }
@@ -208,6 +276,9 @@ pub mod pump {
         set_virtual_quote_reserves::set_virtual_quote_reserves(ctx, initial_virtual_quote_reserves)
     }
 
+    /// Creates a brand-new, zeroed `UserVolumeAccumulator` PDA for `user`,
+    /// funded by `payer` -- permissionless, matching the real program's own
+    /// account list (no signer requirement on `user` at all).
     pub fn init_user_volume_accumulator(
         ctx: Context<InitUserVolumeAccumulator>,
         user_volume_accumulator_bump: u8,
@@ -215,18 +286,45 @@ pub mod pump {
         init_user_volume_accumulator::init_user_volume_accumulator(ctx, user_volume_accumulator_bump)
     }
 
+    /// Closes `user`'s own `UserVolumeAccumulator`, reclaiming its rent to
+    /// `user`. Unconditional -- no precondition on any pending reward field,
+    /// confirmed against the real deployed program.
     pub fn close_user_volume_accumulator(ctx: Context<CloseUserVolumeAccumulator>) -> Result {
         close_user_volume_accumulator::close_user_volume_accumulator(ctx)
     }
 
+    /// Sweeps `user_volume_accumulator`'s native-SOL cashback balance down to
+    /// its rent-exempt minimum, paying the swept amount to `user` -- confirmed
+    /// mechanism (`fees-07-donation-relay-progress.md`'s `probe16`): cashback
+    /// lives as real native lamports directly in `user_volume_accumulator`'s
+    /// own account balance (topped up by `buy`/`sell` on cashback-enabled
+    /// coins); `cashback_earned` is only a running-total tracker, not itself
+    /// spendable. `user_volume_accumulator` is owned by this program, so the
+    /// debit is a direct `sub_lamports` (no signed CPI needed, unlike
+    /// `creator_vault`'s System-owned sweep in `distribute_creator_fees`).
+    /// Permissionless, matching the real account list (no signer requirement
+    /// on `user`).
     pub fn claim_cashback(ctx: Context<ClaimCashback>) -> Result<Option<ClaimCashbackEvent>> {
         claim_cashback::claim_cashback(ctx)
     }
 
+    /// Sweeps `associated_user_volume_accumulator`'s full SPL-token "stable
+    /// cashback" balance to `associated_quote_user` -- the SPL-token sibling of
+    /// `claim_cashback` (native SOL). No rent-exempt floor to preserve (an SPL
+    /// token account's rent is a fixed lamport reserve separate from its token
+    /// balance), so the entire balance is swept, matching
+    /// `collect_creator_fee_v2`'s identical shape. Permissionless (no signer
+    /// requirement on `user`).
     pub fn claim_cashback_v2(ctx: Context<ClaimCashbackV2>, args: ClaimCashbackV2Args) -> Result<Option<ClaimCashbackEvent>> {
         claim_cashback_v2::claim_cashback_v2(ctx, args)
     }
 
+    /// Sweeps `user_volume_accumulator`'s full `total_unclaimed_tokens` balance
+    /// out of the shared `global_incentive_token_account` pool into `user_ata`,
+    /// signed by `global_volume_accumulator`'s own literal-seed PDA authority
+    /// (same `bare bump` + `ctx.bumps.*` idiom already established for
+    /// `pump_fees_authority` elsewhere in this program). Mirrors
+    /// `collect_creator_fee_v2`'s full-balance-sweep shape (no partial claims).
     pub fn claim_token_incentives(ctx: Context<ClaimTokenIncentives>, args: ClaimTokenIncentivesArgs) -> Result<Option<ClaimTokenIncentivesEvent>> {
         claim_token_incentives::claim_token_incentives(ctx, args)
     }

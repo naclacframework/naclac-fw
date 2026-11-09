@@ -919,6 +919,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "const-crypto"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c06f1eb05f06cf2e380fdded278fbf056a38974299d77960555a311dcf91a52"
+dependencies = [
+ "keccak-const",
+ "sha2-const-stable",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1948,6 +1958,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6928282826c822ad91bf1c9a1cb90a30ba1c26770749929b4656cd6be829cd7c"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2068,6 +2087,12 @@ checksum = "cb26cec98cce3a3d96cbb7bced3c4b16e3d13f27ec56dbd62cbc8f39cfb9d653"
 dependencies = [
  "cpufeatures 0.2.17",
 ]
+
+[[package]]
+name = "keccak-const"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57d8d8ce877200136358e0bbff3a77965875db3af755a11e1fa6b1b3e2df13ea"
 
 [[package]]
 name = "lazy_static"
@@ -2404,8 +2429,10 @@ version = "0.1.0"
 dependencies = [
  "borsh",
  "bytemuck",
+ "const-crypto",
  "five8",
  "naclac-derive",
+ "naclac-idl",
  "naclac-pod",
  "pinocchio 0.11.2",
  "pinocchio-log",
@@ -2437,13 +2464,10 @@ version = "0.1.0"
 dependencies = [
  "bs58",
  "heck",
- "naclac-idl",
  "naclac-syn",
  "proc-macro2",
  "quote",
- "serde_json",
  "sha2 0.11.0",
- "solana-address 2.8.0",
  "syn 3.0.3",
 ]
 
@@ -2451,6 +2475,7 @@ dependencies = [
 name = "naclac-idl"
 version = "0.1.0"
 dependencies = [
+ "inventory",
  "naclac-syn",
  "serde",
  "serde_json",
@@ -2467,7 +2492,6 @@ dependencies = [
  "naclac-derive",
  "naclac-idl",
  "naclac-metadata",
- "naclac-syn",
  "naclac-token",
 ]
 
@@ -2500,6 +2524,7 @@ name = "naclac-pod"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "naclac-idl",
  "naclac-pod",
  "pinocchio 0.11.2",
  "solana-address 2.8.0",
@@ -2515,7 +2540,6 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "syn 3.0.3",
- "toml",
 ]
 
 [[package]]

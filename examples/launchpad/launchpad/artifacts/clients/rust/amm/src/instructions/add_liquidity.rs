@@ -63,7 +63,9 @@ pub struct AddLiquidityAccounts {
     pub user_token_b: naclac_client::Address,
     pub user_lp: naclac_client::Address,
     pub token_program_a: naclac_client::Address,
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
     pub token_program_b: naclac_client::Address,
+    /// SAFETY: repeats a pool mint's token program when that mint is classic Token.
     pub lp_token_program: naclac_client::Address,
 }
 
@@ -129,7 +131,9 @@ pub struct AddLiquidityCpiAccounts<'a> {
     pub user_token_b: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_lp: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub token_program_a: crate::sdk_core_cpi::CpiHandle<'a>,
+    /// SAFETY: repeats `token_program_a` when both mints use one token program.
     pub token_program_b: crate::sdk_core_cpi::CpiHandle<'a>,
+    /// SAFETY: repeats a pool mint's token program when that mint is classic Token.
     pub lp_token_program: crate::sdk_core_cpi::CpiHandle<'a>,
 }
 

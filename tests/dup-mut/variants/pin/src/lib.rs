@@ -34,4 +34,8 @@ pub mod dup_mut {
     pub fn touch_triple_partial_alias(ctx: Context<TouchTriplePartialAlias>) -> Result {
         touch_triple_partial_alias::touch_triple_partial_alias(ctx)
     }
+
+    pub fn check_read_only_dup(ctx: Context<CheckReadOnlyDup>) -> Result {
+        check_read_only_dup::check_read_only_dup(ctx)
+    }
 }

@@ -1,24 +1,18 @@
-//! The `idl-build` `NaclacIdlBuild` impl of an `#[account]` struct (and of an
-//! `#[instruction_args]` struct, which reuses it). With the feature off it
-//! emits nothing.
+//! The `idl-build` IDL impls of an `#[account]` struct (and of an
+//! `#[instruction_args]` struct, which reuses it): `NaclacIdlBuild`,
+//! `NaclacIdlType`, and for an account a registered `IdlFragment`. With the
+//! feature off it emits nothing.
 
 use quote::quote;
 
-/// Builds `impl NaclacIdlBuild for #struct_name`, gated
-/// `#[cfg(feature = "idl-build")]` in the OUTPUT tokens. Built once, from
-/// `fields` (the struct's own already-parsed `syn::Fields`, before padding/
-/// `#[max_len]` stripping) — never re-parses anything from disk, and is
-/// identical regardless of which representation (Pod/Borsh) the calling
-/// crate actually compiles, since the IDL-visible shape doesn't depend on
-/// representation. Field type classification reuses
-/// `naclac_syn::parser::rust_type_to_idl` — a pure matcher on the
-/// already-in-hand syntax for a field's *own* shape — computed here, now, at this struct's macro-expansion time,
-/// since a field's own top-level type is fully known from its syntax alone.
-/// Only a *referenced* type's internal shape is deferred to real trait
-/// dispatch at `idl-build` test-runtime (via `insert_types`, chasing
-/// `<Referenced>::create_type()`), since that's the part a from-syntax-alone
-/// mapper cannot know without either re-parsing elsewhere or waiting for the
-/// referenced type's own compiled impl to exist.
+/// Builds `impl NaclacIdlBuild` and `impl NaclacIdlType for #struct_name`, plus
+/// an `IdlFragment::Account` registration when `account_disc` is given, all
+/// gated `#[cfg(feature = "idl-build")]` in the OUTPUT tokens.
+///
+/// Every field type is described through `NaclacIdlType`, so the compiler
+/// resolves aliases and constants; the macro never inspects a type's name.
+/// The IDL shape is the same whichever representation (Pod/Borsh) the crate
+/// compiles.
 #[cfg(feature = "idl-build")]
 pub(crate) fn idl_build_impl(
     struct_name: &syn::Ident,
@@ -37,10 +31,8 @@ pub(crate) fn idl_build_impl(
         },
         None => quote! {},
     };
-    let constants = crate::common::crate_source::crate_constants();
-    let aliases = crate::common::crate_source::crate_aliases();
     let mut idl_fields = Vec::new();
-    let mut defined_refs: Vec<syn::Type> = Vec::new();
+    let mut field_types: Vec<&syn::Type> = Vec::new();
 
     for (index, field) in fields.iter().enumerate() {
         let name = field.ident.as_ref().map_or_else(
@@ -48,30 +40,49 @@ pub(crate) fn idl_build_impl(
             |ident| naclac_syn::parser::idl_name(&ident.to_string()),
         );
         let docs = naclac_syn::parser::extract_docs(&field.attrs);
-        let field_ty = aliases.resolve(&field.ty);
-        let ty_value = naclac_syn::parser::rust_type_to_idl(&field_ty, &constants);
-        let ty_json = ty_value.to_string();
-        let slots = match naclac_syn::parser::rust_type_slots(&field_ty, &constants) {
-            Some(slots) => quote! { Some(#slots) },
-            None => quote! { None },
-        };
-
+        let ty = &field.ty;
         idl_fields.push(quote! {
             naclac_lang::naclac_idl::IdlField {
                 name: #name.into(),
                 docs: vec![#(#docs.into()),*],
-                ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
-                    .expect("naclac idl-build: generated field type JSON must parse"),
-                slots: #slots,
+                ty: <#ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::idl_type(),
+                slots: <#ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::slots(),
             }
         });
-
-        if let Some(defined_ty) = naclac_syn::parser::defined_type_leaf(&field_ty) {
-            defined_refs.push(defined_ty);
-        }
+        field_types.push(ty);
     }
 
     let struct_name_str = struct_name.to_string();
+
+    let registration = match account_disc {
+        Some(_) => quote! {
+            #[cfg(feature = "idl-build")]
+            const _: () = {
+                fn build(
+                    account_types: &mut naclac_lang::naclac_idl::idl_type::Types,
+                    discriminators: &mut naclac_lang::naclac_idl::registry::Discriminators,
+                    defined_types: &mut naclac_lang::naclac_idl::idl_type::Types,
+                ) {
+                    use naclac_lang::naclac_idl::idl_build::NaclacIdlBuild;
+                    let name = <#struct_name as NaclacIdlBuild>::get_full_path();
+                    if let Some(definition) = <#struct_name as NaclacIdlBuild>::create_type() {
+                        account_types.insert(name.clone(), definition);
+                    }
+                    if let Some(disc) = <#struct_name as NaclacIdlBuild>::account_discriminator() {
+                        discriminators.insert(name, disc);
+                    }
+                    <#struct_name as NaclacIdlBuild>::insert_types(defined_types);
+                }
+                naclac_lang::naclac_idl::__private::inventory::submit! {
+                    naclac_lang::naclac_idl::registry::IdlFragment::Account {
+                        name: #struct_name_str,
+                        build,
+                    }
+                }
+            };
+        },
+        None => quote! {},
+    };
 
     quote! {
         #[cfg(feature = "idl-build")]
@@ -90,13 +101,7 @@ pub(crate) fn idl_build_impl(
                 >,
             ) {
                 #(
-                    if let Some(ty) = <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::create_type() {
-                        types.insert(
-                            <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::get_full_path(),
-                            ty,
-                        );
-                        <#defined_refs as naclac_lang::naclac_idl::idl_build::NaclacIdlBuild>::insert_types(types);
-                    }
+                    <#field_types as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::chase(types);
                 )*
             }
 
@@ -106,6 +111,19 @@ pub(crate) fn idl_build_impl(
 
             #account_disc_fn
         }
+
+        #[cfg(feature = "idl-build")]
+        impl #impl_generics naclac_lang::naclac_idl::idl_type::NaclacIdlType for #struct_name #ty_generics #where_clause {
+            fn idl_type() -> naclac_lang::naclac_idl::idl_type::IdlJson {
+                naclac_lang::naclac_idl::idl_type::defined(#struct_name_str)
+            }
+
+            fn chase(types: &mut naclac_lang::naclac_idl::idl_type::Types) {
+                naclac_lang::naclac_idl::idl_type::chase_defined::<Self>(types);
+            }
+        }
+
+        #registration
     }
 }
 

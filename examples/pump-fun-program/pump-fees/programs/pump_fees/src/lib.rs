@@ -16,6 +16,7 @@ use state::{Fees, FeeTier, Shareholder};
 
 #[program]
 pub mod pump_fees {
+    /// Get Fees
     pub fn get_fees(
         ctx: Context<GetFees>,
         is_pump_pool: Bool,
@@ -26,6 +27,7 @@ pub mod pump_fees {
         get_fees::get_fees(ctx, is_pump_pool, market_cap_lamports, trade_size_lamports, is_new_quote_mint)
     }
 
+    /// Initialize FeeConfig admin
     pub fn initialize_fee_config(ctx: Context<InitializeFeeConfig>, fee_config_bump: u8) -> Result {
         initialize_fee_config::initialize_fee_config(ctx, fee_config_bump)
     }
@@ -75,14 +77,19 @@ pub mod pump_fees {
         )
     }
 
+    /// Update admin (only callable by admin)
     pub fn update_admin(ctx: Context<UpdateAdmin>) -> Result {
         update_admin::update_admin(ctx)
     }
 
+    /// Realloc the `fee_config` PDA to `FeeConfig::CURRENT_SIZE`. Callable by
+    /// any signer (`user` pays the rent delta, per the real program's IDL —
+    /// there's no admin/ownership check on this instruction).
     pub fn extend_fee_config(ctx: Context<ExtendFeeConfig>) -> Result {
         extend_fee_config::extend_fee_config(ctx)
     }
 
+    /// Set/Replace fee parameters entirely (only callable by admin)
     pub fn update_fee_config(
         ctx: Context<UpdateFeeConfig>,
         fee_tiers: ZcVec<FeeTier>,
@@ -91,6 +98,7 @@ pub mod pump_fees {
         update_fee_config::update_fee_config(ctx, fee_tiers, flat_fees)
     }
 
+    /// Set/Replace fee parameters entirely (only callable by admin)
     pub fn update_stable_fee_config(
         ctx: Context<UpdateStableFeeConfig>,
         stable_fee_tiers: ZcVec<FeeTier>,
@@ -98,6 +106,7 @@ pub mod pump_fees {
         update_stable_fee_config::update_stable_fee_config(ctx, stable_fee_tiers)
     }
 
+    /// Update or expand fee tiers (only callable by admin)
     pub fn upsert_fee_tiers(
         ctx: Context<UpsertFeeTiers>,
         fee_tiers: ZcVec<FeeTier>,
@@ -106,6 +115,7 @@ pub mod pump_fees {
         upsert_fee_tiers::upsert_fee_tiers(ctx, fee_tiers, offset)
     }
 
+    /// Update or expand fee tiers (only callable by admin)
     pub fn upsert_stable_fee_tiers(
         ctx: Context<UpsertStableFeeTiers>,
         stable_fee_tiers: ZcVec<FeeTier>,
@@ -149,6 +159,8 @@ pub mod pump_fees {
         sweep_buyback::sweep_buyback(ctx, index, buyback_vault_bump)
     }
 
+    /// Gated by the *global* `fee_program_global.authority`, not the vault's own
+    /// `authority` — an intentional admin-override design (fees-05).
     pub fn update_buyback_authority(
         ctx: Context<UpdateBuybackAuthority>,
         index: u8,
@@ -158,6 +170,8 @@ pub mod pump_fees {
         update_buyback_authority::update_buyback_authority(ctx, index, buyback_vault_bump, new_authority)
     }
 
+    /// Gated by the *global* `fee_program_global.authority`, not the vault's own
+    /// `authority` — an intentional admin-override design (fees-05).
     pub fn update_buyback_claim_rate_limit(
         ctx: Context<UpdateBuybackClaimRateLimit>,
         index: u8,
@@ -172,10 +186,20 @@ pub mod pump_fees {
         )
     }
 
+    /// Revoke Fee Sharing Authority
+    ///
+    /// confirmed via direct execution against the real bytecode —
+    /// this instruction always reverts with DeprecatedInstruction, checked
+    /// before touching any accounts.
     pub fn revoke_fee_sharing_authority(ctx: Context<RevokeFeeSharingAuthority>) -> Result {
         revoke_fee_sharing_authority::revoke_fee_sharing_authority(ctx)
     }
 
+    /// Transfer Fee Sharing Authority
+    ///
+    /// confirmed via direct execution against the real bytecode —
+    /// this instruction always reverts with DeprecatedInstruction, checked
+    /// before touching any accounts.
     pub fn transfer_fee_sharing_authority(ctx: Context<TransferFeeSharingAuthority>) -> Result {
         transfer_fee_sharing_authority::transfer_fee_sharing_authority(ctx)
     }
@@ -205,6 +229,12 @@ pub mod pump_fees {
         claim_social_fee_pda_v2::claim_social_fee_pda_v2(ctx, user_id, platform)
     }
 
+    /// Reset Fee Sharing Config and distribute pending fees first. Sweeps any AMM-side
+    /// coin-creator fees into the bonding-curve vault, distributes the vault's full
+    /// pending balance to the *current* shareholder list (one `remaining_accounts`
+    /// entry per shareholder, in order), then overwrites `sharing_config` with a single
+    /// 100%-share `new_admin` entry and bumps its version to 2 — confirmed end-to-end
+    /// via `reference/fee-tier-probe/src/bin/probe11.rs` against the real bytecode.
     pub fn reset_fee_sharing_config(
         ctx: Context<ResetFeeSharingConfig>,
         bonding_curve_bump: u8,
@@ -219,6 +249,11 @@ pub mod pump_fees {
         )
     }
 
+    /// Same confirmed mechanics as `reset_fee_sharing_config`, generalized to any
+    /// quote mint: sweeps AMM-side coin-creator fees, distributes the vault's full
+    /// pending balance to the *current* shareholder list, then overwrites
+    /// `sharing_config` with a single 100%-share `new_admin` entry and bumps its
+    /// version to 2.
     pub fn reset_fee_sharing_config_v2(
         ctx: Context<ResetFeeSharingConfigV2>,
         bonding_curve_bump: u8,
@@ -233,6 +268,8 @@ pub mod pump_fees {
         )
     }
 
+    /// Update Fee Shares, make sure to distribute all the fees before calling this.
+    /// Same confirmed mechanics as `update_fee_shares_v2`, WSOL-only.
     pub fn update_fee_shares(
         ctx: Context<UpdateFeeShares>,
         bonding_curve_bump: u8,
@@ -249,6 +286,12 @@ pub mod pump_fees {
         )
     }
 
+    /// Sets the final, one-shot shareholder list on `sharing_config`. Before applying
+    /// it: (1) CPIs into `pump_amm` to sweep any AMM-side coin-creator fees into the
+    /// bonding-curve vault, (2) CPIs into `pump::distribute_creator_fees_v2` to pay out
+    /// any currently pending bonding-curve creator fees to the *current* (pre-update)
+    /// shareholder list, then (3) overwrites `sharing_config.shareholders` and sets
+    /// `admin_revoked = true` so no further call can succeed.
     pub fn update_fee_shares_v2(
         ctx: Context<UpdateFeeSharesV2>,
         bonding_curve_bump: u8,

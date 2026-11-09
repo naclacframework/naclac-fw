@@ -3,6 +3,7 @@
 //! real crate (with a discoverable program ID in `Naclac.toml`) because
 //! `#[event_cpi]`'s `event_authority` PDA is precomputed from that ID, which a
 //! single-file trybuild fixture cannot provide.
+#![no_std]
 use naclac_lang::prelude::*;
 
 declare_id!("6queAeH2Cq6WPuq6tpgRFBtFBanSNW3zdc9Y8dm4g7oF");

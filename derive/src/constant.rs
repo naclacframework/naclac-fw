@@ -1,58 +1,36 @@
 //! `#[constant]`: marks a `const` for the IDL. Without `idl-build` the item
-//! is returned untouched; with it, a print function for the constant is
-//! emitted next to it.
+//! is returned untouched; with it, the constant is also registered as an
+//! `IdlFragment::Constant`.
 
 use proc_macro::TokenStream;
 
 use crate::common::diagnostics::reject_nonempty_attr;
 
-/// Tokens evaluating to the IDL `value` string of a constant of type `ty`
-/// whose value is `expr`: an `Address` as base58 on every backend, anything
-/// else as its `Debug` text.
-#[cfg(feature = "idl-build")]
-pub(crate) fn constant_value_tokens(
-    ty: &syn::Type,
-    expr: &proc_macro2::TokenStream,
-) -> proc_macro2::TokenStream {
-    if crate::type_classify::is_exactly(ty, "Address") {
-        quote::quote! { naclac_lang::prelude::base58::encode_address_to_string(&#expr) }
-    } else {
-        quote::quote! { format!("{:?}", #expr) }
-    }
-}
-
-/// Builds the print function for one `#[constant]` const, returning its
-/// `IdlConstant`. `#[program]` calls it from the `idl-build` `main()` by name:
-/// `__naclac_idl_print_const_<lowercased const name>`, which must match the
-/// name `program.rs` generates its calls with.
+/// Registers one `#[constant]` const as an `IdlFragment::Constant`, which the
+/// `idl-build` binary collects through `naclac_idl::registry::collect`.
 #[cfg(feature = "idl-build")]
 fn constant_idl_build_impl(item: &syn::ItemConst) -> proc_macro2::TokenStream {
-    let name = item.ident.to_string();
-    let expr = &item.expr;
+    let ident = &item.ident;
+    let name = ident.to_string();
     let docs = naclac_syn::parser::extract_docs(&item.attrs);
-    let item_ty = crate::common::crate_source::crate_aliases().resolve(&item.ty);
-    let ty_value = naclac_syn::parser::rust_type_to_idl(
-        &item_ty,
-        &crate::common::crate_source::crate_constants(),
-    );
-    let ty_json = ty_value.to_string();
-    let fn_name = quote::format_ident!(
-        "__naclac_idl_print_const_{}",
-        item.ident.to_string().to_lowercase()
-    );
-    let value = constant_value_tokens(&item_ty, &quote::quote! { #expr });
+    let item_ty = &*item.ty;
     quote::quote! {
         #[cfg(feature = "idl-build")]
-        #[doc(hidden)]
-        pub fn #fn_name() -> naclac_lang::naclac_idl::IdlConstant {
-            naclac_lang::naclac_idl::IdlConstant {
-                name: #name.into(),
-                docs: vec![#(#docs.into()),*],
-                ty: naclac_lang::naclac_idl::serde_json::from_str(#ty_json)
-                    .expect("naclac idl-build: generated constant type JSON must parse"),
-                value: #value,
+        const _: () = {
+            fn build() -> naclac_lang::naclac_idl::IdlConstant {
+                naclac_lang::naclac_idl::idl_type::constant_of::<#item_ty>(
+                    #name,
+                    vec![#(#docs.into()),*],
+                    &#ident,
+                )
             }
-        }
+            naclac_lang::naclac_idl::__private::inventory::submit! {
+                naclac_lang::naclac_idl::registry::IdlFragment::Constant {
+                    name: #name,
+                    build,
+                }
+            }
+        };
     }
 }
 

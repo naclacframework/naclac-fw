@@ -1,0 +1,5 @@
+error: Naclac Error: `unsafe(alias)` is for `mut` fields. Use `dup` on a read-only field that may repeat another account.
+  --> tests/fail/61_alias_without_mut.rs:10:9
+   |
+10 |     pub b: Signer,
+   |         ^

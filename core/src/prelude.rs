@@ -36,8 +36,9 @@ pub use crate::error::NaclacError;
 pub use crate::wrappers::{Account, InterfaceAccount};
 pub use crate::wrappers::{
     AsRefByteSlice, AssociatedToken, CpiHandle, CpiHandleMut, Discriminator, Id, Ids, Interface,
-    NaclacAccount, Owner, Program, SerializedBounds, Signer, System, ToAccountInfo, ToAddress,
-    ToCpiHandle, ToCpiHandleMut, Token, Token2022, TokenInterface, ValidateInterfaceLayout,
+    MaxLen1, MaxLen2, MaxLen3, NaclacAccount, Owner, Program, SerializedBounds, Signer, System,
+    ToAccountInfo, ToAddress, ToCpiHandle, ToCpiHandleMut, Token, Token2022, TokenInterface,
+    ValidateInterfaceLayout,
 };
 
 // The zero-copy layout's plain-data types, from `naclac-pod`; they exist only
@@ -426,7 +427,7 @@ pub use pinocchio::{
 
 #[cfg(feature = "pinocchio")]
 pub use crate::cursor::{account_count_error, parse_ix_context, AccountCursor};
-pub use crate::cursor::{account_header_check, mut_mask_set_bit, AccountBitvec};
+pub use crate::cursor::{account_header_check, mut_mask_set_bit, AccountBitvec, DuplicateSlots};
 
 /// Converts an instruction's result into the value the entrypoint returns to
 /// the runtime. Inlined into each dispatch arm so a successful arm returns
@@ -465,6 +466,17 @@ impl From<PinocchioAddress> for Address {
     }
 }
 
+#[cfg(all(feature = "pinocchio", feature = "idl-build"))]
+impl naclac_idl::idl_type::NaclacIdlType for Address {
+    fn idl_type() -> naclac_idl::idl_type::IdlJson {
+        naclac_idl::idl_type::public_key()
+    }
+
+    fn idl_value(&self) -> alloc::string::String {
+        crate::base58::encode_address_to_string(&self.0)
+    }
+}
+
 #[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 unsafe impl bytemuck::Zeroable for Address {}
 #[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
@@ -498,6 +510,166 @@ impl naclac_pod::ZcCodec for Address {
 /// since `derive_program_address` below needs a fixed-size scratch buffer
 /// (no heap allocation, so it works under pinocchio's `no_std`).
 pub const MAX_PDA_SEEDS: usize = 16;
+
+/// The longest a single PDA seed may be, in bytes.
+pub const MAX_PDA_SEED_LEN: usize = 32;
+
+#[cfg(not(feature = "pinocchio"))]
+const fn address_bytes(address: &Address) -> &[u8; 32] {
+    address.as_array()
+}
+
+#[cfg(feature = "pinocchio")]
+const fn address_bytes(address: &Address) -> &[u8; 32] {
+    &address.0
+}
+
+#[cfg(not(feature = "pinocchio"))]
+const fn address_from_bytes(bytes: [u8; 32]) -> Address {
+    Address::new_from_array(bytes)
+}
+
+#[cfg(feature = "pinocchio")]
+const fn address_from_bytes(bytes: [u8; 32]) -> Address {
+    Address(bytes)
+}
+
+/// The canonical PDA of `seeds` under `program_id`, evaluated while the
+/// compiler computes a `const` item. Returns the same `(address, bump)` as
+/// `Address::find_program_address`. Evaluation is slow, so use it only to
+/// initialise a `const`. A `const` that passes more than `MAX_PDA_SEEDS` seeds
+/// or a seed longer than `MAX_PDA_SEED_LEN` bytes fails to compile.
+pub const fn find_program_address_const(seeds: &[&[u8]], program_id: &Address) -> (Address, u8) {
+    assert!(seeds.len() <= MAX_PDA_SEEDS, "a PDA takes at most 16 seeds");
+    let mut index = 0;
+    while index < seeds.len() {
+        assert!(
+            seeds[index].len() <= MAX_PDA_SEED_LEN,
+            "a PDA seed is at most 32 bytes"
+        );
+        index += 1;
+    }
+    let (address, bump) =
+        const_crypto::ed25519::derive_program_address(seeds, address_bytes(program_id));
+    (address_from_bytes(address), bump)
+}
+
+/// A seed constant's bytes inside a `const` initializer: `ConstSeed(SEED).bytes()`.
+/// `bytes` exists for the types a seed is written with (`&[u8]`, `&[u8; N]`,
+/// `[u8; N]`, `&str`, `u8` and `Address`), so a constant of another type fails
+/// to compile and no case is guessed.
+pub struct ConstSeed<T>(pub T);
+
+impl<'a> ConstSeed<&'a [u8]> {
+    pub const fn bytes(&self) -> &'a [u8] {
+        self.0
+    }
+}
+
+impl<'a, const N: usize> ConstSeed<&'a [u8; N]> {
+    pub const fn bytes(&self) -> &'a [u8] {
+        self.0
+    }
+}
+
+impl<const N: usize> ConstSeed<[u8; N]> {
+    pub const fn bytes(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl<'a> ConstSeed<&'a str> {
+    pub const fn bytes(&self) -> &'a [u8] {
+        self.0.as_bytes()
+    }
+}
+
+impl ConstSeed<u8> {
+    pub const fn bytes(&self) -> &[u8] {
+        core::slice::from_ref(&self.0)
+    }
+}
+
+impl ConstSeed<Address> {
+    pub const fn bytes(&self) -> &[u8] {
+        address_bytes(&self.0)
+    }
+}
+
+/// `FloatProbe::<T>::IS_FLOAT` is true exactly when `T` is `f32` or `f64`,
+/// under any name, an alias included. Read it with [`NotFloat`] in scope: the
+/// inherent constant of `FloatProbe<f32>` and `FloatProbe<f64>` shadows the
+/// trait's `false` for every other concrete type.
+pub struct FloatProbe<T: ?Sized>(core::marker::PhantomData<T>);
+
+/// The `false` default of [`FloatProbe::IS_FLOAT`].
+pub trait NotFloat {
+    const IS_FLOAT: bool = false;
+}
+
+impl<T: ?Sized> NotFloat for FloatProbe<T> {}
+
+impl FloatProbe<f32> {
+    pub const IS_FLOAT: bool = true;
+}
+
+impl FloatProbe<f64> {
+    pub const IS_FLOAT: bool = true;
+}
+
+#[cfg(test)]
+mod float_probe_tests {
+    use super::{FloatProbe, NotFloat as _};
+
+    type Price = f64;
+
+    #[test]
+    fn only_floats_are_floats_under_any_name() {
+        assert!(FloatProbe::<f32>::IS_FLOAT);
+        assert!(FloatProbe::<Price>::IS_FLOAT);
+        assert!(!FloatProbe::<u64>::IS_FLOAT);
+        assert!(!FloatProbe::<[f64; 2]>::IS_FLOAT);
+    }
+}
+
+#[cfg(all(test, not(feature = "pinocchio")))]
+mod find_program_address_const_tests {
+    use super::{find_program_address_const, Address, ConstSeed};
+
+    const PROGRAM: Address = Address::new_from_array([7u8; 32]);
+    const OTHER_PROGRAM: Address = Address::new_from_array([201u8; 32]);
+    const ONE_SEED: (Address, u8) = find_program_address_const(&[b"vault"], &PROGRAM);
+    const MIXED_SEEDS: (Address, u8) = find_program_address_const(
+        &[
+            b"config",
+            ConstSeed([1u8, 2, 3, 4]).bytes(),
+            ConstSeed("name").bytes(),
+            ConstSeed(b'x').bytes(),
+            ConstSeed(OTHER_PROGRAM).bytes(),
+        ],
+        &PROGRAM,
+    );
+    const NO_SEEDS: (Address, u8) = find_program_address_const(&[], &OTHER_PROGRAM);
+
+    #[test]
+    fn matches_the_host_derivation() {
+        assert!(ONE_SEED == Address::find_program_address(&[b"vault"], &PROGRAM));
+        assert!(
+            MIXED_SEEDS
+                == Address::find_program_address(
+                    &[
+                        b"config",
+                        &[1u8, 2, 3, 4],
+                        b"name",
+                        &[b'x'],
+                        OTHER_PROGRAM.as_ref(),
+                    ],
+                    &PROGRAM,
+                )
+        );
+        assert!(NO_SEEDS == Address::find_program_address(&[], &OTHER_PROGRAM));
+    }
+}
 
 /// Writes `seeds` followed by `bump_slice`, `program_id`'s bytes, and the
 /// `"ProgramDerivedAddress"` domain tag into the front of `scratch`, and

@@ -9,10 +9,7 @@ use {
         layout::Layout,
         variant::{Variant, Variants},
     },
-    crate::{
-        accounts::field::{checks, close_account, compile_time, parser, realloc},
-        type_classify,
-    },
+    crate::accounts::field::{close_account, parser, realloc},
     proc_macro2::TokenStream,
     quote::quote,
 };
@@ -52,57 +49,39 @@ pub(super) fn save_logic(
 }
 
 /// The statements writing a PDA's computed bump back into the account's own
-/// `bump` field, gated by `cfg`, so later reads of that account, including from
-/// a different instruction that has no access to this call's `Bumps`, see it.
+/// data through `NaclacAccount::store_bump`, gated by `cfg`, so later reads of
+/// that account, including from a different instruction that has no access to
+/// this call's `Bumps`, see it.
 ///
-/// A field qualifies when it is mutable, has seeds with an automatic bump, and
-/// its `#[account]` struct declares a `bump` field at all. The write-back does
-/// not depend on whether the PDA was precomputed at compile time: that only
-/// means the program knows the bump, not that the account's data holds it.
+/// A field qualifies when it is mutable and has seeds with an automatic bump,
+/// whatever its type: `store_bump` does nothing for an account type that
+/// stores no bump. The write-back does not depend on whether the PDA was
+/// precomputed at compile time: that only means the program knows the bump,
+/// not that the account's data holds it.
 pub(super) fn mut_bump_writeback(
     fields: &[parser::ParsedField],
-    layout: Layout,
     cfg: &TokenStream,
 ) -> Vec<TokenStream> {
-    let is_zero_copy = layout == Layout::ZeroCopy;
     let mut statements = Vec::new();
     for field in fields {
         let name = &field.ident;
-        let is_zero_copy_field = checks::is_zero_copy_account_field(&field.ty, is_zero_copy);
-        let is_borsh_field =
-            layout == Layout::Borsh && type_classify::is_exactly(&field.ty, "Account");
-        let is_wincode_field =
-            layout == Layout::Wincode && type_classify::is_exactly(&field.ty, "Account");
-        let has_bump_field = type_classify::wrapped_data_ident(&field.ty)
-            .is_some_and(|ident| compile_time::account_declares_bump_field(&ident.to_string()));
-
-        if (is_zero_copy_field || is_borsh_field || is_wincode_field)
-            && field.is_mut
+        if field.is_mut
             && field.pda_seed.is_some()
             && matches!(field.pda_bump, Some(parser::PdaBump::Auto))
-            && has_bump_field
         {
-            // A zero-copy `Account<T>` derefs into the account's data; the
-            // heap layouts keep it behind `.data`.
-            let bump_field = if is_zero_copy_field {
-                quote! { bump }
-            } else {
-                quote! { data.bump }
-            };
-
             if field.is_optional {
                 // Write back only when the sentinel gate loaded the account
                 // and produced its bump.
                 statements.push(quote! {
                     #cfg
                     if let (Some(__acc), Some(__b)) = (self.#name.as_mut(), bumps.#name) {
-                        __acc.#bump_field = __b;
+                        naclac_lang::prelude::NaclacAccount::store_bump(__acc, __b);
                     }
                 });
             } else {
                 statements.push(quote! {
                     #cfg
-                    { self.#name.#bump_field = bumps.#name; }
+                    naclac_lang::prelude::NaclacAccount::store_bump(&mut self.#name, bumps.#name);
                 });
             }
         }

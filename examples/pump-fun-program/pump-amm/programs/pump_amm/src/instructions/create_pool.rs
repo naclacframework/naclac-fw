@@ -124,8 +124,15 @@ pub struct CreatePool {
 
     pub system_program: Program<System>,
     pub token_2022_program: Program<Token2022>,
+
+    /// SAFETY: repeats `token_2022_program` when the base mint is Token-2022.
+    #[account(dup)]
     pub base_token_program: Interface<TokenInterface>,
+
+    /// SAFETY: repeats an earlier token program when the quote mint uses it.
+    #[account(dup)]
     pub quote_token_program: Interface<TokenInterface>,
+
     pub associated_token_program: Program<AssociatedToken>,
 }
 

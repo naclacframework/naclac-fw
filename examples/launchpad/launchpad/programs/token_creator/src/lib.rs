@@ -1,6 +1,6 @@
 #![no_std]
 use naclac_lang::prelude::*;
-  declare_id!("5tvHojSaQxviPhuiRaMETnNhUowEA4aM1k23K1mREx7z");
+  declare_id!("BXzs8zHVJBk7EwgBkpbTXsFq7RMZahhGduehdJd49hg4");
 
 pub mod instructions;
 pub mod state;

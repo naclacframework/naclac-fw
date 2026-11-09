@@ -21,7 +21,11 @@ use crate::prelude::Address;
 #[cfg(feature = "pinocchio")]
 use crate::prelude::{AccountInfo, AccountView, PinocchioAddress};
 pub use {
-    accounts::*, cpi_handle::*, interface::*, program::*, serialized_bounds::SerializedBounds,
+    accounts::*,
+    cpi_handle::*,
+    interface::*,
+    program::*,
+    serialized_bounds::{MaxLen1, MaxLen2, MaxLen3, SerializedBounds},
     signer::*,
 };
 
@@ -82,6 +86,20 @@ pub trait Discriminator {
     fn within_max_len(&self) -> bool {
         true
     }
+
+    /// The PDA bump the account stores in its own data, or `None` for a type
+    /// that stores none. `#[account]` overrides it for a struct with a `bump`
+    /// field.
+    #[inline(always)]
+    fn stored_bump(&self) -> Option<u8> {
+        None
+    }
+
+    /// Writes `bump` into the account's own data. Does nothing for a type that
+    /// stores no bump. `#[account]` overrides it for a struct with a `bump`
+    /// field.
+    #[inline(always)]
+    fn store_bump(&mut self, _bump: u8) {}
 }
 
 /// What `InterfaceAccount<T>` needs from `T`: the programs allowed to own
@@ -150,6 +168,14 @@ pub trait NaclacAccount: Sized {
     /// emit an `address` check for it.
     const CHECKS_PROGRAM_ID: bool = false;
 
+    /// Whether the type accepts any account without validating it, so a field
+    /// of this type must carry a `/// SAFETY:` doc comment.
+    const UNCHECKED: bool = false;
+
+    /// Whether a value of this type holds the account's deserialized data, so
+    /// its size counts against the stack frame of `load_and_validate`.
+    const CARRIES_DATA: bool = false;
+
     /// Hydrate and validate the account wrapper from an `AccountInfo`.
     fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self>;
 
@@ -165,6 +191,20 @@ pub trait NaclacAccount: Sized {
     fn exit(&self, _program_id: &crate::prelude::Address) -> crate::prelude::Result<()> {
         Ok(())
     }
+
+    /// The PDA bump stored in the wrapped account's data, or `None` when the
+    /// type stores none. Wrappers of an `#[account]` type return its
+    /// `Discriminator::stored_bump`.
+    #[inline(always)]
+    fn stored_bump(&self) -> Option<u8> {
+        None
+    }
+
+    /// Writes `bump` into the wrapped account's data, and does nothing when the
+    /// type stores none. Wrappers of an `#[account]` type forward to its
+    /// `Discriminator::store_bump`.
+    #[inline(always)]
+    fn store_bump(&mut self, _bump: u8) {}
 }
 
 /// Declares the on-chain address for a program marker type.
@@ -178,6 +218,8 @@ pub trait Ids {
 }
 
 impl NaclacAccount for AccountInfo {
+    const UNCHECKED: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, _index: usize) -> crate::prelude::Result<Self> {
         Ok(*info)
@@ -186,6 +228,8 @@ impl NaclacAccount for AccountInfo {
 
 #[cfg(feature = "pinocchio")]
 impl NaclacAccount for AccountView {
+    const UNCHECKED: bool = true;
+
     #[inline(always)]
     fn try_from(info: &AccountInfo, _index: usize) -> crate::prelude::Result<Self> {
         Ok(info.view)
@@ -202,6 +246,8 @@ impl<T: NaclacAccount> NaclacAccount for Box<T> {
     const PROGRAM_OWNED: bool = T::PROGRAM_OWNED;
     const OWNER_VALIDATED: bool = T::OWNER_VALIDATED;
     const CHECKS_PROGRAM_ID: bool = T::CHECKS_PROGRAM_ID;
+    const UNCHECKED: bool = T::UNCHECKED;
+    const CARRIES_DATA: bool = T::CARRIES_DATA;
 
     #[inline(always)]
     fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
@@ -211,6 +257,16 @@ impl<T: NaclacAccount> NaclacAccount for Box<T> {
     #[inline(always)]
     fn try_from_mut(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
         Ok(Box::new(T::try_from_mut(info, index)?))
+    }
+
+    #[inline(always)]
+    fn stored_bump(&self) -> Option<u8> {
+        <T as NaclacAccount>::stored_bump(self)
+    }
+
+    #[inline(always)]
+    fn store_bump(&mut self, bump: u8) {
+        <T as NaclacAccount>::store_bump(self, bump)
     }
 
     #[inline(always)]

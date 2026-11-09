@@ -23,6 +23,7 @@ export interface SwapAccounts {
   userSourceToken: naclac.Address | string;
   userDestinationToken: naclac.Address | string;
   tokenProgramA: naclac.Address | string;
+  /** SAFETY: repeats `token_program_a` when both mints use one token program. */
   tokenProgramB: naclac.Address | string;
 }
 

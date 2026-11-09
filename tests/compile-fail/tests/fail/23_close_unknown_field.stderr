@@ -1,4 +1,4 @@
-error: Field 'nonexistent_field' not found in struct for `close = nonexistent_field` on 'account'
+error: Naclac Error: `close = nonexistent_field` on 'account' names no field of this struct.
   --> tests/fail/23_close_unknown_field.rs:10:10
    |
 10 | #[derive(Accounts)]

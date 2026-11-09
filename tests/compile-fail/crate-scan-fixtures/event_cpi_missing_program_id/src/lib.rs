@@ -1,5 +1,6 @@
 //! Must FAIL: this program never declares its address with `declare_id!`, so
 //! there is no program id to build for.
+#![no_std]
 use naclac_lang::prelude::*;
 
 #[event_cpi]

@@ -33,10 +33,20 @@ fn account_walk(shared: &Shared) -> TokenStream {
             }
         })
         .collect();
-    let mut declared_fast_checks = (0..shared.fields.len()).map(|i| {
+    let mut declared_fast_checks = shared.fields.iter().enumerate().map(|(i, field)| {
         let i = proc_macro2::Literal::usize_unsuffixed(i);
-        quote! {
-            __cursor.try_declared_fast(__DECLARED_CHECKS[#i].0, __DECLARED_CHECKS[#i].1)
+        if field.is_dup {
+            quote! {
+                __cursor.try_declared_dup_fast(
+                    __DECLARED_CHECKS[#i].0,
+                    __DECLARED_CHECKS[#i].1,
+                    Self::MUT_MASK[0],
+                )
+            }
+        } else {
+            quote! {
+                __cursor.try_declared_fast(__DECLARED_CHECKS[#i].0, __DECLARED_CHECKS[#i].1)
+            }
         }
     });
     let needs_slow_walk = if let Some(first_fast_check) = declared_fast_checks.next() {
@@ -54,11 +64,17 @@ fn account_walk(shared: &Shared) -> TokenStream {
         // SAFETY: `__num_accounts >= N` was checked before the walk, so every
         // declared slot exists in the input buffer; the fast checks stop at
         // the first miss, leaving `consumed` at the first slot the slow walk
-        // has not yet seen; `__num_accounts <= 64` is the lookup capacity.
+        // has not yet seen; `__num_accounts <= 64` is the lookup capacity, and
+        // nothing has borrowed an account yet.
         // On `Ok`, `finish_walk_slow` has filled `__lookup[..__num_accounts]`.
         if #needs_slow_walk {
             unsafe {
-                __cursor.finish_walk_slow(&__DECLARED_CHECKS, __num_accounts, &Self::MUT_MASK)
+                __cursor.finish_walk_slow(
+                    &__DECLARED_CHECKS,
+                    __num_accounts,
+                    &Self::MUT_MASK,
+                    &Self::UNIQUE_MASK,
+                )
             }?;
         }
         // SAFETY: every declared slot of `__lookup` was written, by its fast

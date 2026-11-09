@@ -40,7 +40,6 @@ fn fields_bound(
     fields: &Fields,
     access: impl Fn(usize, &syn::Field) -> TokenStream,
     core: &syn::Path,
-    aliases: &naclac_syn::aliases::Aliases,
 ) -> syn::Result<FieldsBound> {
     let mut sizes = Vec::new();
     let mut checks = Vec::new();
@@ -53,7 +52,7 @@ fn fields_bound(
             .ident
             .as_ref()
             .map_or_else(|| position.to_string(), syn::Ident::to_string);
-        match field_bound(&aliases.resolve(&field.ty), &limits, &value, core) {
+        match field_bound(&field.ty, &limits, &value, core) {
             Ok(bound) => {
                 sizes.push(bound.size);
                 checks.push(bound.check);
@@ -102,7 +101,6 @@ pub(crate) fn generate(input: &DeriveInput, cfg: &TokenStream) -> syn::Result<To
     }
     let name = &input.ident;
     let core: syn::Path = syn::parse_quote!(naclac_lang::prelude);
-    let aliases = crate::common::crate_source::crate_aliases();
 
     let (max_size, within_bounds) = match &input.data {
         Data::Struct(data) => {
@@ -116,7 +114,6 @@ pub(crate) fn generate(input: &DeriveInput, cfg: &TokenStream) -> syn::Result<To
                     }
                 },
                 &core,
-                &aliases,
             )?;
             let size = match &bound.unbounded {
                 Some(field) => unbounded_size(name, field),
@@ -141,7 +138,6 @@ pub(crate) fn generate(input: &DeriveInput, cfg: &TokenStream) -> syn::Result<To
                         }
                     },
                     &core,
-                    &aliases,
                 )?;
                 if unbounded.is_none() {
                     unbounded = bound

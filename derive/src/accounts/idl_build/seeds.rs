@@ -12,6 +12,7 @@ fn literal_seed_tokens(value: &[u8]) -> proc_macro2::TokenStream {
         naclac_lang::naclac_idl::idl_build_accounts::IdlSeedBuild::Const {
             value: vec![#(#value),*],
             name: None,
+            constant: None,
         }
     }
 }
@@ -19,26 +20,41 @@ fn literal_seed_tokens(value: &[u8]) -> proc_macro2::TokenStream {
 /// A seed expression this macro cannot prove is an instruction arg or an
 /// account field of this struct is spliced into the generated `idl-build` code
 /// as real Rust source, so the calling crate's compiler resolves it and its
-/// real value lands in the JSON. The seed carries `name` as its constant name
-/// only when it names a constant of this crate; a framework constant such as
-/// `SYSTEM_PROGRAM_ID` is reported unnamed.
-pub(super) fn splice_const_fallback(
-    expr: &syn::Expr,
-    name: Option<&str>,
-) -> proc_macro2::TokenStream {
-    let is_crate_constant = |candidate: &str| {
-        crate::common::crate_source::crate_constants()
-            .iter()
-            .any(|constant| constant.name == candidate)
-    };
-    let name_tokens = match name.filter(|candidate| is_crate_constant(candidate)) {
-        Some(n) => quote! { Some(#n.into()) },
-        None => quote! { None },
+/// real value lands in the JSON. When the expression is an ALL_CAPS constant
+/// path (possibly under `&`, `.as_ref()` or `.as_bytes()`), the seed carries
+/// that constant's name and an IDL entry typed by the compiler; the
+/// framework's own constants such as `SYSTEM_PROGRAM_ID` are named too.
+pub(super) fn splice_const_fallback(expr: &syn::Expr) -> proc_macro2::TokenStream {
+    let constant_path = crate::accounts::field::checks::pda::const_seed_root(expr)
+        .filter(|root| matches!(root, syn::Expr::Path(_)));
+    let (name_tokens, constant_tokens) = match constant_path {
+        Some(syn::Expr::Path(path)) => {
+            let Some(last) = path.path.segments.last() else {
+                return syn::Error::new_spanned(
+                    path,
+                    "Naclac Error: a seed path must have at least one segment.",
+                )
+                .to_compile_error();
+            };
+            let name = last.ident.to_string();
+            (
+                quote! { Some(#name.into()) },
+                quote! {
+                    Some(naclac_lang::naclac_idl::idl_type::constant_of(
+                        #name,
+                        vec![],
+                        &#path,
+                    ))
+                },
+            )
+        }
+        _ => (quote! { None }, quote! { None }),
     };
     quote! {
         naclac_lang::naclac_idl::idl_build_accounts::IdlSeedBuild::Const {
             value: AsRef::<[u8]>::as_ref(&(#expr)).to_vec(),
             name: #name_tokens,
+            constant: #constant_tokens,
         }
     }
 }
@@ -82,7 +98,7 @@ fn classify_named_seed(
             }
         };
     }
-    splice_const_fallback(original_expr, Some(root))
+    splice_const_fallback(original_expr)
 }
 
 /// Builds the `idl-build` tokens for one seed expression: literal, path,
@@ -101,7 +117,7 @@ pub(super) fn build_idl_seed_expr(
             syn::Lit::Int(int_lit) => {
                 literal_seed_tokens(&naclac_syn::pda::int_literal_seed_byte(int_lit))
             }
-            _ => splice_const_fallback(expr, None),
+            _ => splice_const_fallback(expr),
         },
         syn::Expr::Path(expr_path) => {
             let Some(segment) = expr_path.path.segments.last() else {
@@ -196,7 +212,7 @@ pub(super) fn build_idl_seed_expr(
             instr_names,
             parsed_fields,
         ),
-        _ => splice_const_fallback(expr, None),
+        _ => splice_const_fallback(expr),
     }
 }
 

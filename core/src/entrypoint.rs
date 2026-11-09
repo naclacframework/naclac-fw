@@ -12,7 +12,7 @@
 //! offset arithmetic can overflow `usize`.
 
 use {
-    crate::prelude::Vec,
+    crate::{cursor::DuplicateSlots, prelude::Vec},
     core::{
         alloc::{GlobalAlloc, Layout},
         mem::size_of,
@@ -78,6 +78,7 @@ const BPF_ALIGN_OF_U128: usize = 8;
 /// (`solana_transaction_context::MAX_ACCOUNTS_PER_INSTRUCTION`). Bounding the
 /// count keeps the account list's allocation size provably small.
 const MAX_ACCOUNTS: usize = 255;
+const _: () = assert!(MAX_ACCOUNTS <= u8::MAX as usize);
 
 /// # Safety
 ///
@@ -138,24 +139,38 @@ unsafe fn deserialize_account_info<'a>(
     )
 }
 
-/// Parses `input` into the program id, the accounts and the instruction data.
-/// Returns `None` if the account count exceeds [`MAX_ACCOUNTS`] or a
-/// duplicate marker does not name an earlier account, neither of which the
-/// loader produces.
+/// What [`deserialize`] returns: the program id, the accounts, the instruction
+/// data and the repeats among the accounts, `None` when no real account
+/// repeats.
+pub type Deserialized<'a> = (
+    &'a Address,
+    Vec<AccountInfo<'a>>,
+    &'a [u8],
+    Option<DuplicateSlots>,
+);
+
+/// Parses `input` into the program id, the accounts, the instruction data and
+/// the repeated accounts. Returns `None` if the account count exceeds
+/// [`MAX_ACCOUNTS`] or a duplicate marker does not name an earlier account,
+/// neither of which the loader produces.
+///
+/// A slot with a duplicate marker repeats the slot the marker names, which
+/// the loader always sets to the first slot holding that account. A repeat of
+/// the program's own address is an absent optional account's sentinel, not an
+/// alias of a real account, so it is not reported.
 ///
 /// # Safety
 ///
 /// `input` must be the 8-byte-aligned input buffer the loader passes to the
 /// program entrypoint, valid and exclusively owned for `'a`.
-pub unsafe fn deserialize<'a>(
-    input: *mut u8,
-) -> Option<(&'a Address, Vec<AccountInfo<'a>>, &'a [u8])> {
+pub unsafe fn deserialize<'a>(input: *mut u8) -> Option<Deserialized<'a>> {
     let num_accounts = *(input as *const u64) as usize;
     if num_accounts > MAX_ACCOUNTS {
         return None;
     }
     let mut offset = size_of::<u64>();
 
+    let mut duplicates: Option<DuplicateSlots> = None;
     let mut accounts: Vec<AccountInfo<'a>> = Vec::with_capacity(num_accounts);
     let slots = accounts.as_mut_ptr();
     for i in 0..num_accounts {
@@ -179,6 +194,9 @@ pub unsafe fn deserialize<'a>(
             // SAFETY: `dup_info < i`, so that slot is written; `i` is unwritten.
             let original = (*slots.add(dup_info as usize)).clone();
             slots.add(i).write(original);
+            duplicates
+                .get_or_insert_with(DuplicateSlots::default)
+                .record(i as u8, dup_info);
         }
     }
     // SAFETY: all `num_accounts` slots were written above.
@@ -191,11 +209,24 @@ pub unsafe fn deserialize<'a>(
 
     let program_id: &Address = &*(input.add(offset) as *const Address);
 
-    Some((program_id, accounts, instruction_data))
+    if let Some(repeats) = &mut duplicates {
+        for (slot, account) in accounts.iter().enumerate() {
+            if repeats.involves(slot as u8) && account.key == program_id {
+                repeats.forget(slot as u8);
+            }
+        }
+        if repeats.is_empty() {
+            duplicates = None;
+        }
+    }
+
+    Some((program_id, accounts, instruction_data, duplicates))
 }
 
 /// Defines the program's `entrypoint` around `$process_instruction`, using
-/// [`deserialize`] for the input. A malformed input buffer returns
+/// [`deserialize`] for the input. `$process_instruction` takes the program id,
+/// the accounts, the instruction data and the repeated accounts that
+/// [`deserialize`] reports. A malformed input buffer returns
 /// `InvalidAccountData` without running the program. The parsed account list
 /// is deliberately never dropped: the program's memory is discarded when the
 /// entrypoint returns, so releasing the `Rc`s would only cost compute.
@@ -210,12 +241,17 @@ macro_rules! naclac_solana_entrypoint {
     ($process_instruction:ident) => {
         #[no_mangle]
         pub unsafe extern "C" fn entrypoint(input: *mut u8) -> u64 {
-            let Some((program_id, accounts, instruction_data)) =
+            let Some((program_id, accounts, instruction_data, duplicates)) =
                 (unsafe { $crate::entrypoint::deserialize(input) })
             else {
                 return $crate::prelude::ProgramError::InvalidAccountData.into();
             };
-            let result = match $process_instruction(program_id, &accounts, instruction_data) {
+            let result = match $process_instruction(
+                program_id,
+                &accounts,
+                instruction_data,
+                duplicates.as_ref(),
+            ) {
                 Ok(()) => $crate::entrypoint::SUCCESS,
                 Err(error) => error.into(),
             };
@@ -263,7 +299,7 @@ mod tests {
     ) -> Record {
         Record::Account {
             key,
-            owner: 0xA0 + key,
+            owner: 0xA0u8.wrapping_add(key),
             signer,
             writable,
             executable: key % 2 == 1,
@@ -346,7 +382,7 @@ mod tests {
         let mut ours_input = serialize(&records, &[1, 2, 3, 4, 5], 0x77);
         let mut stock_input = ours_input.clone();
 
-        let (our_program, our_accounts, our_data) =
+        let (our_program, our_accounts, our_data, _) =
             unsafe { deserialize(ours_input.as_mut_ptr() as *mut u8) }.unwrap();
         let (stock_program, stock_accounts, stock_data) =
             unsafe { solana_program_entrypoint::deserialize(stock_input.as_mut_ptr() as *mut u8) };
@@ -368,11 +404,139 @@ mod tests {
     #[test]
     fn parses_an_empty_account_list() {
         let mut input = serialize(&[], &[9], 0x11);
-        let (program, accounts, data) =
+        let (program, accounts, data, duplicates) =
             unsafe { deserialize(input.as_mut_ptr() as *mut u8) }.unwrap();
         assert!(accounts.is_empty());
         assert!(data == [9]);
         assert!(program.to_bytes() == [0x11u8; 32]);
+        assert!(duplicates.is_none());
+    }
+
+    fn slot_mask(slots: &[usize]) -> [u64; 4] {
+        slots.iter().fold([0u64; 4], |mask, &slot| {
+            crate::cursor::mut_mask_set_bit(mask, slot)
+        })
+    }
+
+    /// The repeats `deserialize` reports for `records`, as the slots involved
+    /// in any repeat and the slots that repeat an earlier one.
+    fn reported(records: &[Record], program_id: u8) -> (Vec<usize>, Vec<usize>) {
+        let mut input = serialize(records, &[], program_id);
+        let (_, accounts, _, duplicates) =
+            unsafe { deserialize(input.as_mut_ptr() as *mut u8) }.unwrap();
+        let Some(duplicates) = duplicates else {
+            return (Vec::new(), Vec::new());
+        };
+        let involved = (0..accounts.len())
+            .filter(|&slot| duplicates.check(&slot_mask(&[slot]), &[0; 4]).is_err())
+            .collect();
+        let repeating = (0..accounts.len())
+            .filter(|&slot| duplicates.check(&[0; 4], &slot_mask(&[slot])).is_err())
+            .collect();
+        (involved, repeating)
+    }
+
+    /// The pairwise comparison the solana runtime's dispatch used before the
+    /// deserializer reported repeats.
+    fn by_pointer_comparison(
+        accounts: &[AccountInfo<'_>],
+        program_id: &Address,
+    ) -> (Vec<usize>, Vec<usize>) {
+        let (mut involved, mut repeating) = (Vec::new(), Vec::new());
+        for i in 0..accounts.len() {
+            for j in 0..i {
+                if core::ptr::eq(accounts[i].key, accounts[j].key) && accounts[i].key != program_id
+                {
+                    for slot in [i, j] {
+                        if !involved.contains(&slot) {
+                            involved.push(slot);
+                        }
+                    }
+                    if !repeating.contains(&i) {
+                        repeating.push(i);
+                    }
+                }
+            }
+        }
+        involved.sort_unstable();
+        repeating.sort_unstable();
+        (involved, repeating)
+    }
+
+    #[test]
+    fn no_repeats_are_reported_for_distinct_accounts() {
+        let records = [
+            account(1, false, false, 0, b""),
+            account(2, false, true, 0, b""),
+        ];
+        assert!(reported(&records, 0x77) == (Vec::new(), Vec::new()));
+    }
+
+    #[test]
+    fn a_repeat_involves_both_slots_and_names_the_later_one() {
+        let records = [
+            account(1, false, false, 0, b""),
+            account(2, false, false, 0, b""),
+            Record::Duplicate(0),
+        ];
+        assert!(reported(&records, 0x77) == (vec![0, 2], vec![2]));
+    }
+
+    #[test]
+    fn an_account_repeated_twice_reports_every_slot_it_occupies() {
+        let records = [
+            account(1, false, false, 0, b""),
+            Record::Duplicate(0),
+            account(2, false, false, 0, b""),
+            Record::Duplicate(0),
+        ];
+        assert!(reported(&records, 0x77) == (vec![0, 1, 3], vec![1, 3]));
+    }
+
+    #[test]
+    fn a_repeat_of_the_program_id_is_not_reported() {
+        let records = [
+            account(0x77, false, false, 0, b""),
+            Record::Duplicate(0),
+            account(2, false, false, 0, b""),
+        ];
+        assert!(reported(&records, 0x77) == (Vec::new(), Vec::new()));
+    }
+
+    #[test]
+    fn a_program_id_repeat_does_not_hide_another_accounts_repeat() {
+        let records = [
+            account(0x77, false, false, 0, b""),
+            account(2, false, false, 0, b""),
+            Record::Duplicate(0),
+            Record::Duplicate(1),
+        ];
+        assert!(reported(&records, 0x77) == (vec![1, 3], vec![3]));
+    }
+
+    #[test]
+    fn the_report_equals_the_pairwise_pointer_comparison() {
+        let layouts: [&[Option<usize>]; 5] = [
+            &[None, None, Some(0), None, Some(1), Some(0)],
+            &[None, Some(0), Some(0), Some(0)],
+            &[None, None, None, Some(2), Some(2)],
+            &[None, Some(0), None, Some(2), Some(1)],
+            &[None, None, None],
+        ];
+        for layout in layouts {
+            let records: Vec<Record> = layout
+                .iter()
+                .enumerate()
+                .map(|(slot, repeats)| match repeats {
+                    Some(first) => Record::Duplicate(*first as u8),
+                    None => account(slot as u8 + 1, false, false, 0, b""),
+                })
+                .collect();
+            let mut input = serialize(&records, &[], 0x77);
+            let (program_id, accounts, _, _) =
+                unsafe { deserialize(input.as_mut_ptr() as *mut u8) }.unwrap();
+            assert!(reported(&records, 0x77) == by_pointer_comparison(&accounts, program_id));
+        }
     }
 
     #[test]
@@ -381,7 +545,7 @@ mod tests {
             .map(|_| account(1, false, false, 0, b""))
             .collect();
         let mut input = serialize(&records, &[], 0);
-        let (_, accounts, _) = unsafe { deserialize(input.as_mut_ptr() as *mut u8) }.unwrap();
+        let (_, accounts, _, _) = unsafe { deserialize(input.as_mut_ptr() as *mut u8) }.unwrap();
         assert!(accounts.len() == MAX_ACCOUNTS);
 
         let mut over_limit = vec![(MAX_ACCOUNTS as u64) + 1];

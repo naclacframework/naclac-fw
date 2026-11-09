@@ -318,10 +318,14 @@ pub fn read_package_name(program_dir: &Path) -> String {
 ///
 /// The program is compiled in place, from its own manifest, as an `rlib`
 /// regardless of the `crate-type` it declares. It must be built from its real
-/// directory: the proc-macros locate `src/` and `Naclac.toml` through
-/// `CARGO_MANIFEST_DIR`, and the program workspace's `Cargo.lock` must apply.
-/// A throwaway runner source file linked against that `rlib` prints the IDL
-/// JSON. The program's own `Cargo.toml`/`src` tree is never modified.
+/// directory so the program workspace's `Cargo.lock` applies. A throwaway
+/// runner source file linked against that `rlib` prints the IDL JSON. The
+/// program's own `Cargo.toml`/`src` tree is never modified.
+///
+/// The program crate is compiled as one codegen unit with incremental
+/// compilation off: its items register their IDL fragments from link-time
+/// constructors, which reach the runner only if the object holding
+/// `__naclac_print_idl` is the object holding every registration.
 fn generate_idl_via_idl_build(
     target_dir: &Path,
     program_dir: &Path,
@@ -349,6 +353,8 @@ fn generate_idl_via_idl_build(
             .args(["--lib", "--crate-type", "rlib", "--features", "idl-build"])
             .arg("--target-dir")
             .arg(&cargo_target_dir)
+            .args(["--", "-C", "codegen-units=1"])
+            .env("CARGO_INCREMENTAL", "0")
             .current_dir(&program_dir_abs);
         if !show_output {
             build.envs(cargo_progress::ENV);

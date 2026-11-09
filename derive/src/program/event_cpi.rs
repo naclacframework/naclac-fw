@@ -26,12 +26,7 @@ pub(super) struct EventCpi {
 /// `EventCpiAccounts::NEEDS_EVENT_CPI`. The tag takes part in dispatch like a
 /// real discriminator of the same width, so a handler using the same bytes is a
 /// compile error in a program that uses `#[event_cpi]`.
-pub(super) fn expand(
-    ctx: &ProgramCtx,
-    event_cpi_ctx_structs: &[syn::Path],
-    declared_address: &str,
-    declaring_file: &str,
-) -> syn::Result<EventCpi> {
+pub(super) fn expand(ctx: &ProgramCtx, event_cpi_ctx_structs: &[syn::Path]) -> EventCpi {
     let ix_disc_len = ctx.ix_disc_len;
     let mod_name = ctx.mod_name;
     let ix_disc_by_name = ctx.ix_disc_by_name;
@@ -83,31 +78,6 @@ pub(super) fn expand(
         });
     }
 
-    let event_authority_seed = b"__event_authority".to_vec();
-    let Some((event_authority_pda, _bump)) =
-        crate::accounts::field::compile_time::find_pda_at_compile_time(
-            std::slice::from_ref(&event_authority_seed),
-            declared_address,
-        )
-    else {
-        return Err(syn::Error::new(
-            proc_macro2::Span::call_site(),
-            format!(
-                "Naclac Error: the address `declare_id!` declares in {declaring_file} is not a \
-                 valid 32-byte base58 address"
-            ),
-        ));
-    };
-    let event_authority_bytes = bs58::decode(event_authority_pda).into_vec().map_err(|_| {
-        syn::Error::new(
-            proc_macro2::Span::call_site(),
-            "Naclac Error: the event authority address is not valid base58.",
-        )
-    })?;
-    let expected_authority = quote! {
-        naclac_lang::prelude::Address::new_from_array([ #(#event_authority_bytes),* ])
-    };
-    let track_program_id = quote! { const _: &[u8] = include_bytes!(#declaring_file); };
     let event_tag_literal = disc_arm_literal(ix_disc_len, &event_tag_bytes);
     let dispatch_arm = (
         quote! { #event_tag_literal if #mod_name::__NACLAC_NEEDS_EVENT_CPI },
@@ -119,12 +89,14 @@ pub(super) fn expand(
         },
     );
     let event_cpi_receive_fns = quote! {
+        const __NACLAC_EVENT_AUTHORITY: (naclac_lang::prelude::Address, u8) =
+            naclac_lang::prelude::find_program_address_const(&[b"__event_authority"], &crate::ID);
+
         /// Handles an `emit_cpi!` self-invocation: succeeds only when the
         /// first account is the program's event authority PDA and signed.
         #[cfg(not(feature = "solana"))]
         #[inline(always)]
         fn __naclac_receive_event_cpi(input: *mut u8, num_accounts: usize) -> naclac_lang::prelude::ProgramResult {
-            #track_program_id
             {
                 if num_accounts == 0 {
                     return Err(naclac_lang::prelude::NaclacError::NotEnoughAccountKeys.err(0));
@@ -140,7 +112,7 @@ pub(super) fn expand(
                 if !__ea.is_signer() {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintSigner.err(0));
                 }
-                if naclac_lang::prelude::Address::from_address_ref(__ea.address()) != &#expected_authority {
+                if naclac_lang::prelude::Address::from_address_ref(__ea.address()) != &__NACLAC_EVENT_AUTHORITY.0 {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(0));
                 }
                 Ok(())
@@ -152,7 +124,6 @@ pub(super) fn expand(
         #[cfg(feature = "solana")]
         #[inline(always)]
         fn __naclac_receive_event_cpi(accounts: &[naclac_lang::prelude::AccountType]) -> naclac_lang::prelude::Result {
-            #track_program_id
             {
                 let __ea_slice: &[naclac_lang::prelude::AccountType] = accounts;
                 let Some(__ea) = __ea_slice.first() else {
@@ -161,7 +132,7 @@ pub(super) fn expand(
                 if !__ea.is_signer {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintSigner.err(0));
                 }
-                if __ea.address() != #expected_authority {
+                if __ea.address() != __NACLAC_EVENT_AUTHORITY.0 {
                     return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(0));
                 }
                 Ok(())
@@ -169,10 +140,10 @@ pub(super) fn expand(
         }
     };
 
-    Ok(EventCpi {
+    EventCpi {
         event_tag_bytes,
         items,
         dispatch_arm,
         receive_fns: event_cpi_receive_fns,
-    })
+    }
 }

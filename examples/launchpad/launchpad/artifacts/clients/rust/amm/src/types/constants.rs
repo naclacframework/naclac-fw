@@ -11,6 +11,10 @@ pub const PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Ad
     32, 124, 177, 28, 10, 93, 172, 47, 227, 100, 84, 95, 176, 108, 234, 157, 10, 125, 226, 53, 211, 142, 90, 58, 58, 149, 157, 181, 86, 251, 117, 174
 ]);
 
+#[cfg(feature = "offchain")]
+pub const ASSOCIATED_TOKEN_PROGRAM_ID: naclac_client::Address = naclac_client::Address::new_from_array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]);
+#[cfg(feature = "cpi")]
+pub const ASSOCIATED_TOKEN_PROGRAM_ID_CPI: crate::sdk_core_cpi::Address = crate::sdk_core_cpi::Address::new_from_array([140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89]);
 pub const SEED_LP_MINT: &[u8] = &[108, 112, 95, 109, 105, 110, 116];
 pub const SEED_POOL: &[u8] = &[112, 111, 111, 108];
 pub const SEED_VAULT: &[u8] = &[118, 97, 117, 108, 116];

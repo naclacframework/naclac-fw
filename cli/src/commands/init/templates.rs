@@ -299,11 +299,7 @@ workspace = true
     );
     write_file(&program_dir.join("Cargo.toml"), &cargo_toml);
 
-    let lib_header = if mode.runtime == Runtime::Pinocchio && mode.layout == Layout::Bytemuck {
-        "#![no_std]\n"
-    } else {
-        ""
-    };
+    let lib_header = "#![no_std]\n";
 
     let lib_rs = if empty {
         format!(

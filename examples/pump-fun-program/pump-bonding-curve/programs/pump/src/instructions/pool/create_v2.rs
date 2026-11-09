@@ -126,7 +126,9 @@ pub struct CreateV2 {
     /// specifically here (confirmed via `probe64.rs`, `Custom(6064)`
     /// `InvalidQuoteTokenProgram` for Token-2022), so this stays a raw
     /// `AccountInfo` rather than a typed `Program<Token>` to preserve that
-    /// exact real error instead of a generic constraint-mismatch one.
+    /// exact real error instead of a generic constraint-mismatch one. Repeats
+    /// `token_program` when a client passes Token-2022, which the handler rejects.
+    #[account(dup)]
     pub quote_token_program: Option<AccountInfo>,
 
     /// SAFETY: created by hand in the handler body below, mirroring

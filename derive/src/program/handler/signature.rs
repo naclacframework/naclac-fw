@@ -15,7 +15,7 @@ use {
 /// `ZcVec<T>`/`ZcString` are re-qualified to their prelude paths (only the
 /// spelling changes), and a `Context<T>` parameter, possibly behind a
 /// reference and with lifetimes, becomes plain `Context<T>`.
-pub(super) fn rewrite_signature(new_func: &mut ItemFn) -> HashSet<Ident> {
+pub(super) fn rewrite_signature(new_func: &mut ItemFn) -> syn::Result<HashSet<Ident>> {
     let mut heap_allowed_args: HashSet<Ident> = HashSet::new();
     for arg in &mut new_func.sig.inputs {
         if let FnArg::Typed(pat_type) = arg {
@@ -36,12 +36,13 @@ pub(super) fn rewrite_signature(new_func: &mut ItemFn) -> HashSet<Ident> {
             // resolves to.
             let ty = &pat_type.ty;
             if type_classify::is_exactly(ty, "ZcVec") {
-                let new_ty: syn::Type = match type_classify::first_generic_type(ty) {
-                    Some(inner) => {
-                        syn::parse_quote! { naclac_lang::prelude::ZcVec<#inner> }
-                    }
-                    None => syn::parse_quote! { naclac_lang::prelude::ZcVec<u8> },
+                let Some(inner) = type_classify::first_generic_type(ty) else {
+                    return Err(syn::Error::new_spanned(
+                        ty,
+                        "Naclac Error: `ZcVec` needs an element type, e.g. `ZcVec<u8>`.",
+                    ));
                 };
+                let new_ty: syn::Type = syn::parse_quote! { naclac_lang::prelude::ZcVec<#inner> };
                 *pat_type.ty = new_ty;
             } else if type_classify::is_exactly(ty, "ZcString") {
                 let new_ty: syn::Type = syn::parse_quote!(naclac_lang::prelude::ZcString);
@@ -96,7 +97,7 @@ pub(super) fn rewrite_signature(new_func: &mut ItemFn) -> HashSet<Ident> {
             }
         }
     }
-    heap_allowed_args
+    Ok(heap_allowed_args)
 }
 
 /// What a handler's signature declares: its accounts struct and the
@@ -113,17 +114,36 @@ pub(super) fn parse_signature(func: &ItemFn) -> syn::Result<HandlerSignature<'_>
     let mut arg_names = Vec::new();
     let mut arg_types = Vec::new();
 
-    for arg in &func.sig.inputs {
-        if let FnArg::Typed(pat_type) = arg {
-            if let Pat::Ident(pat_ident) = &*pat_type.pat {
-                let arg_name = &pat_ident.ident;
-                if let Some(ctx_path) = extract_context_struct(&pat_type.ty) {
-                    context_struct_name = Some(ctx_path);
-                } else {
-                    arg_names.push(arg_name);
-                    arg_types.push(&*pat_type.ty);
-                }
+    for (position, arg) in func.sig.inputs.iter().enumerate() {
+        let FnArg::Typed(pat_type) = arg else {
+            return Err(syn::Error::new_spanned(
+                arg,
+                "Naclac Error: an instruction handler can't take `self`.",
+            ));
+        };
+        let Pat::Ident(pat_ident) = &*pat_type.pat else {
+            return Err(syn::Error::new_spanned(
+                &pat_type.pat,
+                "Naclac Error: instruction arguments must be plain names, like `amount: u64`.",
+            ));
+        };
+        if let Some(ctx_path) = extract_context_struct(&pat_type.ty) {
+            if context_struct_name.is_some() {
+                return Err(syn::Error::new_spanned(
+                    &pat_type.ty,
+                    "Naclac Error: an instruction handler takes exactly one `Context` argument.",
+                ));
             }
+            if position != 0 {
+                return Err(syn::Error::new_spanned(
+                    &pat_type.ty,
+                    "Naclac Error: the `Context` argument must come first.",
+                ));
+            }
+            context_struct_name = Some(ctx_path);
+        } else {
+            arg_names.push(&pat_ident.ident);
+            arg_types.push(&*pat_type.ty);
         }
     }
 
@@ -179,4 +199,43 @@ fn extract_context_struct(ty: &Type) -> Option<syn::Path> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_signature, rewrite_signature};
+
+    fn signature_error(source: &str) -> String {
+        let func: syn::ItemFn = syn::parse_str(source).unwrap();
+        match parse_signature(&func) {
+            Ok(_) => panic!("the signature must be rejected"),
+            Err(err) => err.to_string(),
+        }
+    }
+
+    #[test]
+    fn the_context_must_be_the_single_first_argument() {
+        let message = signature_error("pub fn f(amount: u64, ctx: Context<A>) {}");
+        assert!(message.contains("must come first"), "{message}");
+        let message = signature_error("pub fn f(a: Context<A>, b: Context<B>) {}");
+        assert!(message.contains("exactly one `Context`"), "{message}");
+        let message = signature_error("pub fn f(amount: u64) {}");
+        assert!(message.contains("must have a Context"), "{message}");
+    }
+
+    #[test]
+    fn arguments_must_be_plain_names() {
+        let message = signature_error("pub fn f(ctx: Context<A>, _: u64) {}");
+        assert!(message.contains("plain names"), "{message}");
+        let message = signature_error("pub fn f(ctx: Context<A>, (a, b): (u64, u64)) {}");
+        assert!(message.contains("plain names"), "{message}");
+    }
+
+    #[test]
+    fn a_zc_vec_without_an_element_type_is_rejected() {
+        let mut func: syn::ItemFn =
+            syn::parse_str("pub fn f(ctx: Context<A>, v: ZcVec) {}").unwrap();
+        let message = rewrite_signature(&mut func).unwrap_err().to_string();
+        assert!(message.contains("needs an element type"), "{message}");
+    }
 }
