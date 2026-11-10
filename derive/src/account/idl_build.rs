@@ -47,6 +47,7 @@ pub(crate) fn idl_build_impl(
                 docs: vec![#(#docs.into()),*],
                 ty: <#ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::idl_type(),
                 slots: <#ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::slots(),
+                max_len: <#ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::max_len(),
             }
         });
         field_types.push(ty);

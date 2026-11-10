@@ -60,9 +60,21 @@ impl<E: NaclacIdlType, const SIZE: usize> NaclacIdlType for ZcStorage<E, SIZE> {
     }
 }
 
+fn limit<const MAX: usize>() -> Option<u64> {
+    if MAX == usize::MAX {
+        None
+    } else {
+        Some(MAX as u64)
+    }
+}
+
 impl<T: Pod + NaclacIdlType, const MAX: usize> NaclacIdlType for ZcVec<'_, T, MAX> {
     fn idl_type() -> IdlJson {
         idl::vec_of(T::idl_type())
+    }
+
+    fn max_len() -> Option<u64> {
+        limit::<MAX>()
     }
 
     fn chase(types: &mut Types) {
@@ -73,6 +85,10 @@ impl<T: Pod + NaclacIdlType, const MAX: usize> NaclacIdlType for ZcVec<'_, T, MA
 impl<const MAX: usize> NaclacIdlType for ZcString<'_, MAX> {
     fn idl_type() -> IdlJson {
         idl::string()
+    }
+
+    fn max_len() -> Option<u64> {
+        limit::<MAX>()
     }
 }
 
@@ -109,6 +125,17 @@ mod tests {
         assert!(Vec::<u8>::slots().is_none());
         assert!(String::slots().is_none());
         assert!(<[u8; 32]>::slots().is_none());
+    }
+
+    #[test]
+    fn a_zc_view_reports_its_limit_and_looks_like_the_plain_type() {
+        assert!(ZcVec::<u64, 8>::max_len() == Some(8));
+        assert!(<ZcVec<u64>>::max_len().is_none());
+        assert!(ZcString::<32>::max_len() == Some(32));
+        assert!(<ZcString>::max_len().is_none());
+        assert!(ZcVec::<u64, 8>::idl_type() == Vec::<u64>::idl_type());
+        assert!(ZcString::<32>::idl_type() == String::idl_type());
+        assert!(ZcString::<32>::slots().is_none());
     }
 
     #[test]

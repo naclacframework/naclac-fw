@@ -59,6 +59,7 @@ fn enum_impl(
                             docs: vec![#(#field_docs.into()),*],
                             ty: <#field_ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::idl_type(),
                             slots: None,
+                            max_len: None,
                         }
                     });
                     field_types.push(field_ty.clone());

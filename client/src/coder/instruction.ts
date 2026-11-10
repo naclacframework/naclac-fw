@@ -3,6 +3,39 @@ import { getIdlCodec, getStructFieldsCodec, getZeroCopyArgCodec, type StructLayo
 import { toCamelCase } from "../utils/case";
 
 /**
+ * Throws when a `string` argument has more UTF-8 bytes, or a `vec` argument
+ * more elements, than the program accepts (`maxLen` in the IDL). The program
+ * enforces the same limit; this only reports it before a transaction is sent.
+ */
+function assertWithinMaxLen(
+  instructionName: string,
+  argName: string,
+  type: unknown,
+  value: unknown,
+  maxLen: number
+): void {
+  let length: number | undefined;
+  let unit = "elements";
+  if (type === "string" && typeof value === "string") {
+    length = new TextEncoder().encode(value).length;
+    unit = "bytes";
+  } else if (
+    typeof type === "object" &&
+    type !== null &&
+    "vec" in type &&
+    (Array.isArray(value) || value instanceof Uint8Array)
+  ) {
+    length = value.length;
+  }
+  if (length !== undefined && length > maxLen) {
+    throw new Error(
+      `[Naclac] Argument "${argName}" for instruction "${instructionName}" is ${length} ${unit} long, ` +
+      `but the program accepts at most ${maxLen}.`
+    );
+  }
+}
+
+/**
  * Serializes the arguments for a single instruction into a Uint8Array.
  *
  * Layout: [ discriminator | arg0 | arg1 | ... ]
@@ -34,6 +67,9 @@ export function encodeInstructionData(
         `[Naclac] Missing argument "${camelName}" for instruction "${instruction.name}". ` +
         `Expected arguments: [${instruction.args.map((a) => toCamelCase(a.name)).join(", ")}].`
       );
+    }
+    if (argDef.maxLen !== undefined) {
+      assertWithinMaxLen(instruction.name, camelName, argDef.type, value, argDef.maxLen);
     }
     const codec = isZeroCopy
       ? getZeroCopyArgCodec(argDef.type, definedTypes)

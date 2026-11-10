@@ -56,6 +56,7 @@ pub(super) fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStrea
                     docs: vec![],
                     ty: <#arg_ty as #idl::idl_type::NaclacIdlType>::idl_type(),
                     slots: <#arg_ty as #idl::idl_type::NaclacIdlType>::slots(),
+                    max_len: <#arg_ty as #idl::idl_type::NaclacIdlType>::max_len(),
                 }
             });
             chase_calls.push(quote! {

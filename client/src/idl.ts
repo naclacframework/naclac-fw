@@ -62,6 +62,13 @@ export interface IdlField {
    * `string`'s slots are bytes.
    */
   slots?: number;
+  /**
+   * Set only on an instruction argument typed `ZcVec<T, N>` or `ZcString<N>`:
+   * the most elements (`vec`) or UTF-8 bytes (`string`) the program accepts.
+   * The program rejects more; the client checks first so the caller sees
+   * which argument was too long.
+   */
+  maxLen?: number;
 }
 
 /** A single instruction definition. */

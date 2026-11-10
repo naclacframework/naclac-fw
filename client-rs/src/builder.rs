@@ -26,6 +26,9 @@ pub struct InstructionBuilder<'a> {
     pub compute_unit_limit: Option<u32>,
     pub loaded_accounts_data_size_limit: Option<u32>,
     pub priority_fee: Option<u64>,
+    /// The first argument found longer than the program accepts; sending
+    /// fails with it before any transaction is built.
+    pub arg_error: Option<String>,
 }
 
 impl<'a> InstructionBuilder<'a> {
@@ -44,7 +47,32 @@ impl<'a> InstructionBuilder<'a> {
             compute_unit_limit: None,
             loaded_accounts_data_size_limit: None,
             priority_fee: None,
+            arg_error: None,
         }
+    }
+
+    /// Checks each `(name, maximum, actual)` argument length against the limit
+    /// the program declares for it, and remembers the first one over. Sending
+    /// then returns that error instead of a transaction the program would
+    /// reject. This is a convenience: the program enforces the same limit.
+    pub fn arg_limits(mut self, limits: &[(&'static str, usize, usize)]) -> Self {
+        if self.arg_error.is_none() {
+            if let Some((name, maximum, actual)) =
+                limits.iter().find(|(_, maximum, actual)| actual > maximum)
+            {
+                self.arg_error = Some(format!(
+                    "argument `{name}` is {actual} long, but the program accepts at most {maximum}"
+                ));
+            }
+        }
+        self
+    }
+
+    /// Forgets any argument-limit error, so an over-long argument is sent to
+    /// the program, which rejects it. For tests of the program's own check.
+    pub fn without_arg_limits(mut self) -> Self {
+        self.arg_error = None;
+        self
     }
 
     pub fn account(mut self, meta: AccountMeta, name: &'static str) -> Self {
@@ -150,6 +178,9 @@ impl<'a> InstructionBuilder<'a> {
 
     /// Builds a signed `VersionedTransaction` using the configured transaction version.
     pub fn transaction(&self) -> Result<VersionedTransaction, NaclacClientError> {
+        if let Some(message) = &self.arg_error {
+            return Err(NaclacClientError::SerializationError(message.clone()));
+        }
         let ixs = self.all_instructions();
         let payer_pubkey = self.provider.payer.pubkey();
         let recent_blockhash = self.provider.get_latest_blockhash()?;

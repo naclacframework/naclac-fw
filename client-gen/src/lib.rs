@@ -308,6 +308,10 @@ pub struct IdlField {
     /// into `ty`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub slots: Option<u64>,
+    /// The most elements or bytes the program accepts for this instruction
+    /// argument; see `naclac_idl::IdlField::max_len`.
+    #[serde(default, rename = "maxLen", skip_serializing_if = "Option::is_none")]
+    pub max_len: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize)]

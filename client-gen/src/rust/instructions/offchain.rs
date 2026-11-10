@@ -83,6 +83,19 @@ pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         ));
     }
 
+    let limited_args: Vec<(String, u64)> = ix
+        .args
+        .iter()
+        .filter(|arg| is_sized_arg(&arg.ty))
+        .filter_map(|arg| {
+            arg.max_len
+                .map(|max| (AsSnakeCase(&arg.name).to_string(), max))
+        })
+        .collect();
+    for (arg_snake, _) in &limited_args {
+        offchain_content.push_str(&format!("    let {arg_snake}_len = {arg_snake}.len();\n"));
+    }
+
     if !ix.args.is_empty() {
         offchain_content.push_str(&format!("    let args = {}IxArgs {{\n", ix_camel));
         for arg in &ix.args {
@@ -130,7 +143,66 @@ pub fn generate_offchain_ix(ix: &IdlInstruction, idl: &Idl) -> String {
             acc.signer, acc.writable, acc.name
         ));
     }
+    if !limited_args.is_empty() {
+        let limits = limited_args
+            .iter()
+            .map(|(arg_snake, max)| format!("(\"{arg_snake}\", {max}, {arg_snake}_len)"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        offchain_content.push_str(&format!("        .arg_limits(&[{limits}])\n"));
+    }
     offchain_content.push_str("}\n\n");
 
     offchain_content
+}
+
+/// True for an argument whose IDL type has a length: a `string` or a `vec`.
+/// Only such an argument can carry a `maxLen` the builder checks.
+fn is_sized_arg(ty: &serde_json::Value) -> bool {
+    ty.as_str() == Some("string") || ty.get("vec").is_some()
+}
+
+#[cfg(test)]
+mod tests {
+    use {super::*, serde_json::json};
+
+    fn generated(args: serde_json::Value) -> String {
+        let idl = json!({
+            "address": "11111111111111111111111111111111",
+            "metadata": {
+                "name": "p", "version": "0.1.0", "description": "d",
+                "serialization": "bytemuck"
+            },
+            "instructions": [{
+                "name": "set_title", "discriminator": [1], "accounts": [], "args": args
+            }],
+            "accounts": [], "events": [], "errors": [], "constants": [],
+        })
+        .to_string();
+        let idl = Idl::from_json(&idl).unwrap();
+        generate_offchain_ix(&idl.instructions[0], &idl)
+    }
+
+    #[test]
+    fn a_limited_string_and_vec_are_length_checked_before_sending() {
+        let code = generated(json!([
+            { "name": "title", "type": "string", "maxLen": 32 },
+            { "name": "tags", "type": { "vec": "u8" }, "maxLen": 8 },
+            { "name": "free", "type": { "vec": "u8" } }
+        ]));
+        assert!(code.contains("let title_len = title.len();"), "{code}");
+        assert!(code.contains("let tags_len = tags.len();"), "{code}");
+        assert!(!code.contains("free_len"), "{code}");
+        assert!(
+            code.contains(".arg_limits(&[(\"title\", 32, title_len), (\"tags\", 8, tags_len)])"),
+            "{code}"
+        );
+    }
+
+    #[test]
+    fn an_instruction_without_limits_is_generated_as_before() {
+        let code = generated(json!([{ "name": "title", "type": "string" }]));
+        assert!(!code.contains("arg_limits"), "{code}");
+        assert!(!code.contains("_len"), "{code}");
+    }
 }

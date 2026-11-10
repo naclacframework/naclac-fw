@@ -109,6 +109,7 @@ impl Idl {
                             docs: Vec::new(),
                             ty,
                             slots: None,
+                            max_len: None,
                         })
                         .collect(),
                     docs: Vec::new(),
@@ -323,6 +324,11 @@ pub struct IdlField {
     /// the bytes are `N` inline slots, and a `string`'s slots are bytes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub slots: Option<u64>,
+    /// Set only on an instruction argument typed `ZcVec<T, N>` or
+    /// `ZcString<N>`: the most elements (`vec`) or bytes (`string`) the program
+    /// accepts. The program rejects more; a client may check it first.
+    #[serde(default, rename = "maxLen", skip_serializing_if = "Option::is_none")]
+    pub max_len: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

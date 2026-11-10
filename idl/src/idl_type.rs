@@ -98,6 +98,12 @@ pub trait NaclacIdlType {
         None
     }
 
+    /// The most elements or bytes an instruction argument of this type may
+    /// carry (`ZcVec<T, N>`, `ZcString<N>`); `None` for no limit.
+    fn max_len() -> Option<u64> {
+        None
+    }
+
     /// Inserts into `types` the definition of every defined type the type
     /// reaches through `Option`, `Vec`, arrays, references and the like.
     fn chase(_types: &mut BTreeMap<String, IdlTypeDef>) {}
@@ -157,6 +163,10 @@ impl<T: NaclacIdlType + ?Sized> NaclacIdlType for &T {
         T::slots()
     }
 
+    fn max_len() -> Option<u64> {
+        T::max_len()
+    }
+
     fn chase(types: &mut BTreeMap<String, IdlTypeDef>) {
         T::chase(types);
     }
@@ -173,6 +183,10 @@ impl<T: NaclacIdlType + ?Sized> NaclacIdlType for Box<T> {
 
     fn slots() -> Option<u64> {
         T::slots()
+    }
+
+    fn max_len() -> Option<u64> {
+        T::max_len()
     }
 
     fn chase(types: &mut BTreeMap<String, IdlTypeDef>) {
