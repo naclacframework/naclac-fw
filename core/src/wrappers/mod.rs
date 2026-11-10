@@ -466,7 +466,7 @@ impl AsRefByteSlice for &str {
 }
 
 #[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
-impl AsRefByteSlice for crate::wrappers::ZcString<'_> {
+impl<const MAX: usize> AsRefByteSlice for crate::wrappers::ZcString<'_, MAX> {
     #[inline(always)]
     fn as_ref_byte_slice(&self) -> &[u8] {
         self.as_bytes()

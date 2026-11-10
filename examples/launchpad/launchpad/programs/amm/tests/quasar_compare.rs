@@ -798,56 +798,6 @@ fn probe_section(
     );
 }
 
-/// Gives the one trace the last transaction produced in `dir` the name
-/// `label`. litesvm names traces by a hash of their contents, so nothing else
-/// ties a trace to its transaction. Fails unless exactly one new trace exists,
-/// which also proves `SBF_TRACE_FILTER` excluded the token programs.
-fn label_new_trace(dir: &str, label: &str) {
-    let mut new_traces = Vec::new();
-    for entry in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("cannot read {dir}: {e}")) {
-        let name = entry.expect("Failed to read a trace entry").file_name();
-        let name = name.to_string_lossy().to_string();
-        let is_labelled = name.starts_with("naclac-") || name.starts_with("quasar-");
-        if !is_labelled {
-            new_traces.push(name);
-        }
-    }
-    let regs = new_traces.iter().filter(|n| n.ends_with(".regs")).count();
-    assert_eq!(regs, 1, "{label}: expected one new trace, found {new_traces:?}");
-    for name in new_traces {
-        let (_, extension) = name.split_once('.').expect("a trace file has an extension");
-        std::fs::rename(format!("{dir}/{name}"), format!("{dir}/{label}.{extension}"))
-            .expect("Failed to label a trace file");
-    }
-}
-
-#[test]
-#[ignore = "needs QUASAR_AMM_SO, SBF_TRACE_DIR and SBF_TRACE_FILTER; run with --ignored"]
-fn trace_each_instruction() {
-    let dir = std::env::var("SBF_TRACE_DIR").unwrap_or_else(|_| {
-        panic!("SBF_TRACE_DIR is not set; point it at an empty directory for the traces")
-    });
-    for framework in [Framework::Naclac, Framework::Quasar] {
-        let env = Env::new(framework, &TOKEN_PROGRAM_ID, &TOKEN_PROGRAM_ID);
-        let id = env.grounded_id();
-        let (pool, _) = env.derive(id);
-        let name = framework.name();
-        let step = |label: &str, result: Result<NaclacTransactionMetadata, NaclacClientError>| {
-            let cu = trace(&framework.program_id(), &logs_of(&result)).total;
-            label_new_trace(&dir, &format!("{name}-{label}"));
-            println!("   {name}-{label}: {cu} CU");
-        };
-        step("initialize", env.initialize(&pool, id, SEED_AMOUNT_A, SEED_AMOUNT_B));
-        step("swap_rejected", env.swap(&pool, true, 0, 0));
-        step(
-            "add_liquidity",
-            env.add_liquidity(&pool, ADD_AMOUNT_A, ADD_AMOUNT_B, 707_106_781),
-        );
-        step("swap", env.swap(&pool, true, SWAP_IN, 150_000_000));
-        step("remove_liquidity", env.remove_liquidity(&pool, REMOVE_LP, 1, 1));
-    }
-}
-
 #[test]
 #[ignore = "needs QUASAR_AMM_SO; run with --ignored"]
 fn locate_the_cu_difference() {

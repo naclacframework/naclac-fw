@@ -39,10 +39,9 @@ pub fn generate_security_checks(
     metadata_checks.extend(address_owner::owner_checks(field, all_fields));
 
     match pda::pda_checks(field) {
-        Err(error) => return (error.clone(), error),
-        Ok(Some(PdaChecks::Metadata(tokens))) => metadata_checks.push(tokens),
-        Ok(Some(PdaChecks::Constraint(tokens))) => constraint_checks.push(tokens),
-        Ok(None) => {}
+        Some(PdaChecks::Metadata(tokens)) => metadata_checks.push(tokens),
+        Some(PdaChecks::Constraint(tokens)) => constraint_checks.push(tokens),
+        None => {}
     }
 
     constraint_checks.extend(namespaces::namespace_checks(field, all_fields));

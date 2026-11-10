@@ -153,25 +153,17 @@ fn zero_copy_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
                     _ => return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0)),
                 };
             };
-            if is_zero_copy_vec {
-                let Some(inner) = &inner_ty else {
-                    return quote! {
-                        compile_error!("Naclac Error: `ZcVec` needs an element type, e.g. `ZcVec<u8>`.");
-                    };
+            if is_zero_copy_vec && inner_ty.is_none() {
+                return quote! {
+                    compile_error!("Naclac Error: `ZcVec` needs an element type, e.g. `ZcVec<u8>`.");
                 };
-                quote! {
-                    #bounded_end
-                    let __v = <naclac_lang::prelude::ZcVec<#inner>>::from_bytes(&instruction_data[__ix_offset..__end])?;
-                    __ix_offset = __end;
-                    __v
-                }
-            } else {
-                quote! {
-                    #bounded_end
-                    let __v = <naclac_lang::prelude::ZcString>::from_bytes(&instruction_data[__ix_offset..__end])?;
-                    __ix_offset = __end;
-                    __v
-                }
+            }
+            let view_ty = type_classify::zc_view_type(ty);
+            quote! {
+                #bounded_end
+                let __v = <#view_ty>::from_bytes_bounded(&instruction_data[__ix_offset..__end])?;
+                __ix_offset = __end;
+                __v
             }
         } else {
             let is_nested_vec = is_heap_vec

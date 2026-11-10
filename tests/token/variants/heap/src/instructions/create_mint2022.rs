@@ -28,7 +28,7 @@ pub struct CreateMint2022 {
         init,
         payer = payer,
         seeds = [SEED_MINT, &id.to_le_bytes()],
-        bump = mint_bump,
+        bump,
         mint::decimals = decimals,
         mint::authority = mint_authority,
     )]

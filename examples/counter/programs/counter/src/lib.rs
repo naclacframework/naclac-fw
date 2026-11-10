@@ -1,4 +1,5 @@
 #![no_std]
+
 use {
     instructions::*,
     naclac_lang::prelude::*,

@@ -6,10 +6,7 @@ use crate::constants::SEED_MINT;
 // itself is a bare `AccountInfo` (not `Account<Mint>`), since `init` +
 // `mint::*` routes through `init_cpi.rs`'s real CPI-based mint creation,
 // not naclac's own Discriminator-prefixed layout. Mirrors
-// `examples/launchpad/.../create_mint.rs` exactly. The seed includes a
-// dynamic `id` component (not a pure literal) specifically so the explicit
-// `bump = mint_bump` is allowed — a pure-literal seed + `init` requires
-// bare `bump` instead (`security.rs`'s precomputed-PDA restriction).
+// `examples/launchpad/.../create_mint.rs` exactly.
 #[derive(Accounts)]
 #[instruction(id: u64, mint_bump: u8, decimals: u8)]
 pub struct CreateMint {
@@ -25,7 +22,7 @@ pub struct CreateMint {
         init,
         payer = payer,
         seeds = [SEED_MINT, &id.to_le_bytes()],
-        bump = mint_bump,
+        bump,
         mint::decimals = decimals,
         mint::authority = mint_authority,
     )]

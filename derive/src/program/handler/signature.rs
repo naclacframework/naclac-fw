@@ -13,7 +13,8 @@ use {
 /// stripped here, as it is not an attribute rustc knows.
 ///
 /// `ZcVec<T>`/`ZcString` are re-qualified to their prelude paths (only the
-/// spelling changes), and a `Context<T>` parameter, possibly behind a
+/// spelling changes; a written limit, as in `ZcVec<u64, 8>`, is kept), and a
+/// `Context<T>` parameter, possibly behind a
 /// reference and with lifetimes, becomes plain `Context<T>`.
 pub(super) fn rewrite_signature(new_func: &mut ItemFn) -> syn::Result<HashSet<Ident>> {
     let mut heap_allowed_args: HashSet<Ident> = HashSet::new();
@@ -35,22 +36,20 @@ pub(super) fn rewrite_signature(new_func: &mut ItemFn) -> syn::Result<HashSet<Id
             // this only changes spelling, never the type the signature
             // resolves to.
             let ty = &pat_type.ty;
-            if type_classify::is_exactly(ty, "ZcVec") {
-                let Some(inner) = type_classify::first_generic_type(ty) else {
-                    return Err(syn::Error::new_spanned(
-                        ty,
-                        "Naclac Error: `ZcVec` needs an element type, e.g. `ZcVec<u8>`.",
-                    ));
-                };
-                let new_ty: syn::Type = syn::parse_quote! { naclac_lang::prelude::ZcVec<#inner> };
-                *pat_type.ty = new_ty;
-            } else if type_classify::is_exactly(ty, "ZcString") {
-                let new_ty: syn::Type = syn::parse_quote!(naclac_lang::prelude::ZcString);
-                *pat_type.ty = new_ty;
+            if type_classify::is_exactly(ty, "ZcVec")
+                && type_classify::first_generic_type(ty).is_none()
+            {
+                return Err(syn::Error::new_spanned(
+                    ty,
+                    "Naclac Error: `ZcVec` needs an element type, e.g. `ZcVec<u8>`.",
+                ));
             }
-            // Standard Vec<T> and String: leave as-is, they use heap allocation.
+            if type_classify::is_exactly(ty, "ZcVec") || type_classify::is_exactly(ty, "ZcString") {
+                if let Some(view_ty) = type_classify::zc_view_type(ty) {
+                    *pat_type.ty = syn::parse2(view_ty)?;
+                }
+            }
 
-            // Strip any references to get to the underlying Context type
             let mut inner_ty = (*pat_type.ty).clone();
 
             if let Type::Reference(r) = &inner_ty {
@@ -61,7 +60,6 @@ pub(super) fn rewrite_signature(new_func: &mut ItemFn) -> syn::Result<HashSet<Id
                 if let Some(segment) = type_path.path.segments.last_mut() {
                     if segment.ident == "Context" {
                         if let syn::PathArguments::AngleBracketed(args) = &mut segment.arguments {
-                            // Find the account struct type arg
                             let mut type_arg_idx = None;
                             for (i, arg) in args.args.iter().enumerate() {
                                 if let syn::GenericArgument::Type(_) = arg {
@@ -79,7 +77,6 @@ pub(super) fn rewrite_signature(new_func: &mut ItemFn) -> syn::Result<HashSet<Id
                                     }
                                 }
 
-                                // Ensure Context has precisely <T> (lifetime-free)
                                 let mut new_args = syn::punctuated::Punctuated::<
                                     syn::GenericArgument,
                                     syn::Token![,],
@@ -229,6 +226,17 @@ mod tests {
         assert!(message.contains("plain names"), "{message}");
         let message = signature_error("pub fn f(ctx: Context<A>, (a, b): (u64, u64)) {}");
         assert!(message.contains("plain names"), "{message}");
+    }
+
+    #[test]
+    fn a_written_limit_survives_the_rewrite() {
+        let mut func: syn::ItemFn =
+            syn::parse_str("pub fn f(ctx: Context<A>, v: ZcVec<u64, 8>, s: ZcString<32>) {}")
+                .unwrap();
+        rewrite_signature(&mut func).unwrap();
+        let emitted = quote::quote!(#func).to_string();
+        assert!(emitted.contains("ZcVec < u64 , 8 >"), "{emitted}");
+        assert!(emitted.contains("ZcString < 32 >"), "{emitted}");
     }
 
     #[test]

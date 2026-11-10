@@ -32,8 +32,12 @@ use {
 ///
 /// `'a` is the lifetime of the bytes the view was built from; a view, and
 /// everything it hands out, cannot outlive them.
+///
+/// `MAX` is the most elements an instruction argument of this type may carry:
+/// write `ZcVec<u64, 8>` to cap the argument at eight elements, or plain
+/// `ZcVec<u64>` for no cap. Only [`ZcVec::from_bytes_bounded`] enforces it.
 #[derive(Clone, Copy)]
-pub struct ZcVec<'a, T: Pod> {
+pub struct ZcVec<'a, T: Pod, const MAX: usize = { usize::MAX }> {
     ptr: *const u8,
     len: usize,
     _borrow: PhantomData<&'a [T]>,
@@ -49,14 +53,23 @@ impl<'a, T: Pod> ZcVec<'a, T> {
         }
     }
 
+    /// Creates an uncapped ZcVec from raw bytes; see
+    /// [`ZcVec::from_bytes_bounded`].
+    pub fn from_bytes(data: &'a [u8]) -> Result<Self, PodError> {
+        Self::from_bytes_bounded(data)
+    }
+}
+
+impl<'a, T: Pod, const MAX: usize> ZcVec<'a, T, MAX> {
     /// Creates a ZcVec from raw bytes, performing a bounds check only — no
     /// alignment check, since element access never requires `T`-alignment
-    /// (see this type's own doc comment).
-    pub fn from_bytes(data: &'a [u8]) -> Result<Self, PodError> {
+    /// (see this type's own doc comment). More than `MAX` elements is an
+    /// error.
+    pub fn from_bytes_bounded(data: &'a [u8]) -> Result<Self, PodError> {
         let len = data.len();
         let item_size = core::mem::size_of::<T>();
 
-        if item_size == 0 || !len.is_multiple_of(item_size) {
+        if item_size == 0 || !len.is_multiple_of(item_size) || len / item_size > MAX {
             return Err(PodError::InvalidInstructionData);
         }
 
@@ -88,7 +101,7 @@ impl<'a, T: Pod> ZcVec<'a, T> {
         Some(bytemuck::pod_read_unaligned(bytes))
     }
 
-    pub fn iter(&self) -> ZcVecIter<'a, T> {
+    pub fn iter(&self) -> ZcVecIter<'a, T, MAX> {
         ZcVecIter { vec: *self, idx: 0 }
     }
 
@@ -102,12 +115,12 @@ impl<'a, T: Pod> ZcVec<'a, T> {
 /// Yields elements by value (unaligned reads — see [`ZcVec`]'s doc comment),
 /// not by reference: unlike a real slice iterator, there is no `&T` to hand
 /// out without first materializing a properly aligned copy.
-pub struct ZcVecIter<'a, T: Pod> {
-    vec: ZcVec<'a, T>,
+pub struct ZcVecIter<'a, T: Pod, const MAX: usize = { usize::MAX }> {
+    vec: ZcVec<'a, T, MAX>,
     idx: usize,
 }
 
-impl<T: Pod> Iterator for ZcVecIter<'_, T> {
+impl<T: Pod, const MAX: usize> Iterator for ZcVecIter<'_, T, MAX> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
         let v = self.vec.get(self.idx);
@@ -121,7 +134,7 @@ impl<T: Pod> Iterator for ZcVecIter<'_, T> {
 /// `u8` has no alignment requirement — any pointer is valid for a `&[u8]`
 /// reference regardless of how this `ZcVec` was constructed, so this one
 /// element type gets a real zero-copy byte-slice accessor.
-impl<'a> ZcVec<'a, u8> {
+impl<'a, const MAX: usize> ZcVec<'a, u8, MAX> {
     pub fn as_bytes(&self) -> &'a [u8] {
         // SAFETY: u8's alignment requirement is 1, always satisfied; `ptr`
         // covers `len` bytes (see `get`'s SAFETY note), borrowed for `'a`.
@@ -129,19 +142,19 @@ impl<'a> ZcVec<'a, u8> {
     }
 }
 
-impl<T: Pod + core::fmt::Debug> core::fmt::Debug for ZcVec<'_, T> {
+impl<T: Pod + core::fmt::Debug, const MAX: usize> core::fmt::Debug for ZcVec<'_, T, MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_list().entries(self.iter()).finish()
     }
 }
 
-impl<T: Pod + PartialEq> PartialEq for ZcVec<'_, T> {
+impl<T: Pod + PartialEq, const MAX: usize> PartialEq for ZcVec<'_, T, MAX> {
     fn eq(&self, other: &Self) -> bool {
         self.len == other.len && self.iter().eq(other.iter())
     }
 }
 
-impl<T: Pod + Eq> Eq for ZcVec<'_, T> {}
+impl<T: Pod + Eq, const MAX: usize> Eq for ZcVec<'_, T, MAX> {}
 
 /// A zero-copy view into a UTF-8 string.
 ///
@@ -154,13 +167,30 @@ impl<T: Pod + Eq> Eq for ZcVec<'_, T> {}
 /// for stored text.
 /// Backed by a `ZcVec<u8>` into the instruction data — no heap allocation or
 /// copying.
+///
+/// `MAX` is the most bytes an instruction argument of this type may carry:
+/// write `ZcString<32>` to cap the argument at 32 bytes, or plain `ZcString`
+/// for no cap. Only [`ZcString::from_bytes_bounded`] enforces it.
 #[derive(Clone, Copy)]
-pub struct ZcString<'a> {
+pub struct ZcString<'a, const MAX: usize = { usize::MAX }> {
     inner: ZcVec<'a, u8>,
 }
 
 impl<'a> ZcString<'a> {
+    /// Creates an uncapped ZcString from raw bytes; see
+    /// [`ZcString::from_bytes_bounded`].
     pub fn from_bytes(data: &'a [u8]) -> Result<Self, PodError> {
+        Self::from_bytes_bounded(data)
+    }
+}
+
+impl<'a, const MAX: usize> ZcString<'a, MAX> {
+    /// Creates a ZcString from raw bytes that must be valid UTF-8. More than
+    /// `MAX` bytes is an error, checked before the UTF-8 validation.
+    pub fn from_bytes_bounded(data: &'a [u8]) -> Result<Self, PodError> {
+        if data.len() > MAX {
+            return Err(PodError::InvalidInstructionData);
+        }
         core::str::from_utf8(data).map_err(|_| PodError::InvalidInstructionData)?;
         Ok(Self {
             inner: ZcVec::new(data),
@@ -185,20 +215,20 @@ impl<'a> ZcString<'a> {
     }
 }
 
-impl Deref for ZcString<'_> {
+impl<const MAX: usize> Deref for ZcString<'_, MAX> {
     type Target = str;
     fn deref(&self) -> &Self::Target {
         self.as_str()
     }
 }
 
-impl core::fmt::Display for ZcString<'_> {
+impl<const MAX: usize> core::fmt::Display for ZcString<'_, MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         core::fmt::Display::fmt(self.as_str(), f)
     }
 }
 
-impl core::fmt::Debug for ZcString<'_> {
+impl<const MAX: usize> core::fmt::Debug for ZcString<'_, MAX> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         core::fmt::Debug::fmt(self.as_str(), f)
     }
@@ -313,6 +343,34 @@ mod tests {
         assert!(s.is_empty());
         assert_eq!(s.len(), 0);
         assert_eq!(s.as_str(), "");
+    }
+
+    #[test]
+    fn a_capped_zc_vec_accepts_up_to_its_limit_and_no_more() {
+        let values: [u32; 4] = [1, 2, 3, 4];
+        let bytes = bytemuck::cast_slice::<u32, u8>(&values);
+        assert!(ZcVec::<u32, 4>::from_bytes_bounded(bytes).is_ok());
+        assert!(ZcVec::<u32, 5>::from_bytes_bounded(bytes).is_ok());
+        assert!(
+            ZcVec::<u32, 3>::from_bytes_bounded(bytes).err()
+                == Some(PodError::InvalidInstructionData)
+        );
+        assert!(ZcVec::<u32, 0>::from_bytes_bounded(&[]).is_ok());
+    }
+
+    #[test]
+    fn an_uncapped_zc_vec_has_no_limit() {
+        let values = [7u8; 1000];
+        assert!(ZcVec::<u8>::from_bytes(&values).is_ok());
+        assert!(ZcVec::<u8>::from_bytes_bounded(&values).is_ok());
+    }
+
+    #[test]
+    fn a_capped_zc_string_counts_bytes_not_characters() {
+        assert!(ZcString::<5>::from_bytes_bounded("hello".as_bytes()).is_ok());
+        assert!(ZcString::<4>::from_bytes_bounded("hello".as_bytes()).is_err());
+        assert!(ZcString::<2>::from_bytes_bounded("é".as_bytes()).is_ok());
+        assert!(ZcString::<1>::from_bytes_bounded("é".as_bytes()).is_err());
     }
 }
 

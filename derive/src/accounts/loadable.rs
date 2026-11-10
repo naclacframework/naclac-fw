@@ -1,6 +1,6 @@
-//! The `LoadableAccounts` impls of the solana runtime (one per layout) and the
+//! The `LoadableAccounts` impls of the solana runtime (one per layout), the
 //! `MUT_MASK` and `UNIQUE_MASK` constants that mark which declared slots must
-//! not be duplicated.
+//! not be duplicated, and the per-field `<FIELD>_INDEX` slot constants.
 
 use {
     super::{
@@ -9,8 +9,26 @@ use {
         Shared,
     },
     proc_macro2::TokenStream,
-    quote::quote,
+    quote::{format_ident, quote},
+    syn::ext::IdentExt,
 };
+
+/// One `pub const <FIELD>_INDEX: usize` per declared field, equal to the slot
+/// number the generated loader passes to that field's account wrapper. Code
+/// that builds a wrapper by hand passes it, so the wrapper's errors name the
+/// right account.
+pub(super) fn field_index_consts(shared: &Shared) -> TokenStream {
+    let consts = shared.fields.iter().map(|field| {
+        let name = format_ident!(
+            "{}_INDEX",
+            field.ident.unraw().to_string().to_uppercase(),
+            span = field.ident.span()
+        );
+        let index = field.index;
+        quote! { pub const #name: usize = #index; }
+    });
+    quote! { #(#consts)* }
+}
 
 /// A `[u64; 4]` slot mask with a bit per declared field accepted by `selected`.
 fn slot_mask_body(shared: &Shared, selected: fn(&ParsedField) -> bool) -> TokenStream {

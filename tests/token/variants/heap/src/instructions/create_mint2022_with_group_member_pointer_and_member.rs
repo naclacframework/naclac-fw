@@ -61,7 +61,9 @@ pub fn create_mint2022_with_group_member_pointer_and_member(
     let mint_authority_address = ctx.accounts.mint_authority.address();
     let member_mint_address = ctx.accounts.member_mint.address();
     let seed_bytes = args.member_seed.to_le_bytes();
-    let member_seeds: &[&[u8]] = &[b"member_mint", &seed_bytes, &[args.member_mint_bump]];
+    let (_, member_mint_bump) =
+        find_program_address(&[b"member_mint", &seed_bytes], ctx.program_id)?;
+    let member_seeds: &[&[u8]] = &[b"member_mint", &seed_bytes, &[member_mint_bump]];
     let member_signer: &[&[&[u8]]] = &[member_seeds];
 
     let rent = Rent::get()?;

@@ -6,15 +6,16 @@
 
 mod field_deserialize;
 
-use proc_macro::TokenStream;
-
-use crate::{
-    common::{
-        cfg_gates,
-        derive_attrs::derive_attr_listing,
-        diagnostics::{heap_collection_warning, reject_nonempty_attr},
+use {
+    crate::{
+        common::{
+            cfg_gates,
+            derive_attrs::derive_attr_listing,
+            diagnostics::{heap_collection_warning, reject_nonempty_attr},
+        },
+        pod_struct_checks, type_classify,
     },
-    pod_struct_checks, type_classify,
+    proc_macro::TokenStream,
 };
 
 pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {

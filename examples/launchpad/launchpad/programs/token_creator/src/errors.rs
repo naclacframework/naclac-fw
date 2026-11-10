@@ -1,15 +1,9 @@
+//! Token creator custom error definitions.
+
 use naclac_lang::prelude::*;
 
 #[error_code]
 pub enum LaunchpadError {
-    /// Invalid program ID.
-    InvalidProgramId,
-    /// Unauthorized action.
-    Unauthorized,
-    /// Overflow or math error.
+    /// The pool and launcher token amounts add up past `u64::MAX`.
     Overflow,
-    /// Zero amount provided.
-    ZeroAmount,
-    /// Mint failed.
-    MintFailed,
 }

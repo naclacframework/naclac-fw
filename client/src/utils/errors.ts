@@ -65,6 +65,8 @@ export const NACLAC_FRAMEWORK_ERRORS: readonly NaclacFrameworkError[] = [
   { code: 32, name: "CapacityExceeded", message: "Fixed-capacity vector or string is full" },
   { code: 33, name: "InvalidUtf8", message: "Fixed-capacity string holds invalid UTF-8" },
   { code: 34, name: "ConstraintDuplicateAccount", message: "Account repeated in a slot not marked `dup`" },
+  { code: 35, name: "ConstraintTokenMint", message: "Token account mint mismatch" },
+  { code: 36, name: "ConstraintTokenAuthority", message: "Token account authority mismatch" },
 ];
 
 /** A decoded program error from the IDL. */

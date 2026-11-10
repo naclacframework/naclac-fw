@@ -85,13 +85,12 @@ fn seed_expression_shapes_all_resolve_correctly() {
     // --- Case 2: dynamic seed via whole-account `.as_ref()`, init ---
     // On-chain, `registry.as_ref()` yields the registry PDA's own address
     // bytes (Account<T>: AsRefByteSlice) — mirror that here.
-    let (entry_pda, entry_bump) =
+    let (entry_pda, _) =
         Address::find_program_address(&[SEED_ENTRY, registry_pda.as_ref()], &PROGRAM_ID);
 
     build_init_entry(
         &provider,
         PROGRAM_ID,
-        entry_bump,
         InitEntryAccounts {
             payer: provider.payer.address(),
             registry: registry_pda,
@@ -153,13 +152,12 @@ fn seed_expression_shapes_all_resolve_correctly() {
     // whole-account access; exercises the generic seed-normalization
     // fallback's handling of a field-then-method chain.
     let registry_bump_bytes = registry_bump.to_le_bytes();
-    let (child_pda, child_bump) =
+    let (child_pda, _) =
         Address::find_program_address(&[SEED_CHILD, registry_bump_bytes.as_ref()], &PROGRAM_ID);
 
     build_init_child(
         &provider,
         PROGRAM_ID,
-        child_bump,
         InitChildAccounts {
             payer: provider.payer.address(),
             registry: registry_pda,
@@ -225,7 +223,6 @@ fn generated_pda_helpers_agree_with_on_chain_program() {
     build_init_entry(
         &provider,
         PROGRAM_ID,
-        entry_bump,
         InitEntryAccounts {
             payer: provider.payer.address(),
             registry: registry_pda,
@@ -254,7 +251,6 @@ fn generated_pda_helpers_agree_with_on_chain_program() {
     build_init_child(
         &provider,
         PROGRAM_ID,
-        child_bump,
         InitChildAccounts {
             payer: provider.payer.address(),
             registry: registry_pda,
@@ -302,13 +298,12 @@ fn non_primitive_field_seed_pda_helper_is_correctly_skipped() {
     // seed shape fine; only the *generated client helper* is intentionally
     // absent.
     let registry_label = [0u8, 0, 0, 0];
-    let (tagged_child_pda, tagged_child_bump) =
+    let (tagged_child_pda, _) =
         Address::find_program_address(&[SEED_TAGGED_CHILD, registry_label.as_ref()], &PROGRAM_ID);
 
     build_init_tagged_child(
         &provider,
         PROGRAM_ID,
-        tagged_child_bump,
         InitTaggedChildAccounts {
             payer: provider.payer.address(),
             registry: registry_pda,
@@ -491,7 +486,7 @@ fn read_only_bare_bump_verify_with_account_info_seed_reference() {
 /// instead. The client here only ever computes the expected *address* (via
 /// `find_program_address`, exactly as any real client already must, since
 /// Solana requires every account be listed up front) — no bump is passed in
-/// the instruction at all, unlike `init_child`'s `bump = bump` above.
+/// the instruction at all.
 #[test]
 fn dynamic_seeds_init_bare_bump_establishes_canonical_bump_on_chain() {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");

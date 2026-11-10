@@ -29,9 +29,15 @@ pub(super) fn namespace_checks(
             continue;
         }
         let written = builtin_namespaces::written(field, namespace);
-        let triggered = written
-            .iter()
-            .any(|(key, _)| namespace.check.trigger.iter().any(|t| *key == t));
+        let program_index = if namespace.check.written_token_program {
+            builtin_namespaces::written_token_program_index(field, all_fields)
+        } else {
+            None
+        };
+        let triggered = program_index.is_some()
+            || written
+                .iter()
+                .any(|(key, _)| namespace.check.trigger.iter().any(|t| *key == t));
         if !triggered {
             continue;
         }
@@ -48,6 +54,14 @@ pub(super) fn namespace_checks(
 
         let mut filled_values: Vec<(Ident, syn::Expr)> = Vec::new();
         let mut unresolved = None;
+        match program_index {
+            Some(Ok(idx)) => filled_values.push((
+                format_ident!("{}", builtin_namespaces::TOKEN_PROGRAM_KEY),
+                syn::parse_quote! { accounts[#idx] },
+            )),
+            Some(Err(err)) => unresolved = Some(err),
+            None => {}
+        }
         for filled in namespace.check.filled {
             match builtin_namespaces::resolve_filled(filled, field, all_fields) {
                 Ok(idx) => filled_values.push((

@@ -54,6 +54,10 @@ pub(crate) struct Check {
     pub together: &'static [Required],
     /// Keys given to the check from another field when not written.
     pub filled: &'static [&'static Filled],
+    /// A token program written on the field is given to the check and is
+    /// enough to run it, so the account must be owned by that program. Not
+    /// set where `filled` already supplies the token program.
+    pub written_token_program: bool,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -157,6 +161,7 @@ pub(crate) const NAMESPACES: &[Namespace] = &[
             trigger: &["mint", "authority"],
             together: &[],
             filled: &[],
+            written_token_program: true,
         },
         create: Some(Create {
             by: CreatedBy::Derive,
@@ -184,6 +189,7 @@ pub(crate) const NAMESPACES: &[Namespace] = &[
             trigger: &["decimals", "authority", "freeze_authority"],
             together: &[],
             filled: &[],
+            written_token_program: true,
         },
         create: Some(Create {
             by: CreatedBy::Derive,
@@ -234,6 +240,7 @@ pub(crate) const NAMESPACES: &[Namespace] = &[
                 },
             ],
             filled: &[&TOKEN_PROGRAM],
+            written_token_program: false,
         },
         create: Some(Create {
             by: CreatedBy::Program,
@@ -317,6 +324,16 @@ fn has(written: &[(&Ident, &syn::Expr)], key: &str) -> bool {
 /// The token program written on `field` in any builtin namespace.
 pub(crate) fn written_token_program(field: &ParsedField) -> Option<&syn::Expr> {
     written_token_program_in(&field.plugin_constraints)
+}
+
+/// The index of the field a written token program names, or the compile
+/// error when it names no field. `None` when no token program is written.
+pub(crate) fn written_token_program_index(
+    field: &ParsedField,
+    all_fields: &[ParsedField],
+) -> Option<Result<usize, TokenStream>> {
+    written_token_program(field)?;
+    Some(resolve_filled(&TOKEN_PROGRAM, field, all_fields))
 }
 
 fn written_token_program_in(constraints: &[PluginConstraint]) -> Option<&syn::Expr> {

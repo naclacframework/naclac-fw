@@ -358,9 +358,9 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     )
     .send_and_confirm();
     // `CheckVaultConstraints { mint, mint_authority, vault }` — `vault` is
-    // field index 2; `token::mint` mismatch emits `ConstraintAddress`
-    // (3) -> 10000 + 2*100 + 3 = 10203.
-    assert_custom_code(wrong_mint_result, 10203);
+    // field index 2; `token::mint` mismatch emits `ConstraintTokenMint`
+    // (35) -> 10000 + 2*100 + 35 = 10235.
+    assert_custom_code(wrong_mint_result, 10235);
 
     let wrong_authority_result = build_check_vault_constraints(
         &provider,
@@ -373,9 +373,9 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     )
     .send_and_confirm();
     // `CheckVaultConstraints { mint, mint_authority, vault }` — `vault` is
-    // field index 2; `token::authority` mismatch emits `ConstraintAddress`
-    // (3) -> 10000 + 2*100 + 3 = 10203.
-    assert_custom_code(wrong_authority_result, 10203);
+    // field index 2; `token::authority` mismatch emits `ConstraintTokenAuthority`
+    // (36) -> 10000 + 2*100 + 36 = 10236.
+    assert_custom_code(wrong_authority_result, 10236);
 
     // `TokenAccount`'s own baked-in owner check (`Discriminator::validate_account`,
     // `token/src/token.rs`) — distinct from the `token::mint`/
@@ -3150,6 +3150,77 @@ fn cpi_guard_blocks_a_cpi_approve_and_is_readable_after_a_real_top_level_enable(
     .signer(&plain_owner)
     .send_and_confirm()
     .expect("a CPI-issued Approve against a vault with no CpiGuard must succeed");
+}
+
+/// A mint the program allocates by hand is created at the canonical bump only:
+/// for an id whose next-lower bump also gives a valid PDA, the client naming
+/// that lower bump and address is refused, while the canonical call succeeds.
+#[test]
+fn a_hand_created_mint_refuses_a_non_canonical_bump() {
+    let provider = setup();
+    let (mint_authority_pda, _bump) = get_mint_authority_pda(&PROGRAM_ID);
+    build_init_mint_authority(
+        &provider,
+        PROGRAM_ID,
+        InitMintAuthorityAccounts {
+            payer: provider.payer.address(),
+            mint_authority: mint_authority_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_mint_authority should succeed");
+
+    let (id, twin_pda, twin_bump) = (0u64..)
+        .find_map(|id| {
+            let id_bytes = id.to_le_bytes();
+            let (_, canonical) = Address::find_program_address(&[b"mint", &id_bytes], &PROGRAM_ID);
+            let lower = canonical.checked_sub(1)?;
+            let twin =
+                Address::create_program_address(&[b"mint", &id_bytes, &[lower]], &PROGRAM_ID)
+                    .ok()?;
+            Some((id, twin, lower))
+        })
+        .expect("an id with a valid non-canonical bump exists");
+
+    let twin_result = build_create_mint2022_with_pausable(
+        &provider,
+        PROGRAM_ID,
+        id,
+        twin_bump,
+        6,
+        CreateMint2022WithPausableAccounts {
+            payer: provider.payer.address(),
+            mint: twin_pda,
+            mint_authority: mint_authority_pda,
+            token_program: TOKEN_2022_PROGRAM_ID,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm();
+    assert!(
+        twin_result.is_err(),
+        "a mint at a non-canonical bump must not be created"
+    );
+
+    let (mint_pda, mint_bump) =
+        Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
+    build_create_mint2022_with_pausable(
+        &provider,
+        PROGRAM_ID,
+        id,
+        mint_bump,
+        6,
+        CreateMint2022WithPausableAccounts {
+            payer: provider.payer.address(),
+            mint: mint_pda,
+            mint_authority: mint_authority_pda,
+            token_program: TOKEN_2022_PROGRAM_ID,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("the same id at its canonical bump must succeed");
 }
 
 /// Real end-to-end proof of `PausableConfig`'s three CPIs

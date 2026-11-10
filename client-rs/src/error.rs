@@ -39,11 +39,13 @@ pub enum NaclacError {
     CapacityExceeded = 32,
     InvalidUtf8 = 33,
     ConstraintDuplicateAccount = 34,
+    ConstraintTokenMint = 35,
+    ConstraintTokenAuthority = 36,
 }
 
 impl NaclacError {
     /// Every framework error, in code order.
-    pub const ALL: [NaclacError; 34] = [
+    pub const ALL: [NaclacError; 36] = [
         NaclacError::ConstraintMut,
         NaclacError::ConstraintSigner,
         NaclacError::ConstraintAddress,
@@ -78,6 +80,8 @@ impl NaclacError {
         NaclacError::CapacityExceeded,
         NaclacError::InvalidUtf8,
         NaclacError::ConstraintDuplicateAccount,
+        NaclacError::ConstraintTokenMint,
+        NaclacError::ConstraintTokenAuthority,
     ];
 
     pub fn description(&self) -> &'static str {
@@ -136,6 +140,8 @@ impl NaclacError {
             NaclacError::ConstraintDuplicateAccount => {
                 "Account repeated in a slot not marked `dup`"
             }
+            NaclacError::ConstraintTokenMint => "Token account mint mismatch",
+            NaclacError::ConstraintTokenAuthority => "Token account authority mismatch",
         }
     }
 }
@@ -187,6 +193,8 @@ pub fn decode_custom_error(code: u32) -> Option<(NaclacError, usize)> {
         32 => NaclacError::CapacityExceeded,
         33 => NaclacError::InvalidUtf8,
         34 => NaclacError::ConstraintDuplicateAccount,
+        35 => NaclacError::ConstraintTokenMint,
+        36 => NaclacError::ConstraintTokenAuthority,
         _ => return None,
     };
     Some((error, index))
@@ -380,6 +388,8 @@ mod table_parity_tests {
             CapacityExceeded,
             InvalidUtf8,
             ConstraintDuplicateAccount,
+            ConstraintTokenMint,
+            ConstraintTokenAuthority,
         );
     }
 

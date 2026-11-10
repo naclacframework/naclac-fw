@@ -64,6 +64,13 @@ pub fn system(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// An instruction's IDL docs are the doc comments written on its handler
 /// inside this module; docs on a function the handler calls are not read.
+///
+/// A `ZcVec` or `ZcString` parameter may carry a limit in its type:
+/// `ZcVec<u64, 8>` holds at most 8 elements and `ZcString<32>` at most 32
+/// bytes; plain `ZcVec<u64>` and `ZcString` have none. Longer data fails with
+/// `InvalidInstructionData` before the handler runs. The same works on the
+/// fields of an `#[instruction_args]` struct. Write the same type wherever
+/// the value is passed on.
 #[proc_macro_attribute]
 pub fn program(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(err) = common::diagnostics::reject_nonempty_attr(&attr, "program") {

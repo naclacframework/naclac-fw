@@ -152,6 +152,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
     let bumps_struct_def = &bumps.struct_def;
     let mut_mask_body = loadable::mut_mask_body(&shared);
     let unique_mask_body = loadable::unique_mask_body(&shared);
+    let field_index_consts = loadable::field_index_consts(&shared);
     let pinocchio_fns = pinocchio::load_and_validate_fns(&shared, &variants);
     let teardown_fn = teardown::teardown_fn(&parsed_fields, &bumps, &variants);
     let loadable_impls = loadable::loadable_impls(&shared, &variants);
@@ -185,6 +186,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
         impl #impl_generics #struct_name #ty_generics #where_clause {
             pub const MUT_MASK: [u64; 4] = #mut_mask_body;
             pub const UNIQUE_MASK: [u64; 4] = #unique_mask_body;
+            #field_index_consts
             #pinocchio_fns
             #teardown_fn
         }

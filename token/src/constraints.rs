@@ -36,6 +36,22 @@ fn require_token_program_owner(info: &AccountInfo) -> core::result::Result<(), N
     Ok(())
 }
 
+/// Errors unless `info` is owned by `token_program`, when a token program is
+/// named.
+#[inline(always)]
+fn require_owned_by(
+    info: &AccountInfo,
+    token_program: Option<&AccountInfo>,
+) -> core::result::Result<(), NaclacError> {
+    if let Some(token_program) = token_program {
+        let expected = crate::wrappers::ToAddress::address(token_program);
+        if crate::prelude::Owner::program_owner(info) != expected {
+            return Err(NaclacError::ProgramIdMismatch);
+        }
+    }
+    Ok(())
+}
+
 /// The address of `token_program`, which must be the Token or Token-2022
 /// program: the owner of an account created for one of these namespaces.
 #[inline(always)]
@@ -58,7 +74,7 @@ fn token_program_address(
 /// prove its owner must be owned by the Token or Token-2022 program.
 pub mod token {
     use {
-        super::{require_token_program_owner, token_program_address},
+        super::{require_owned_by, require_token_program_owner, token_program_address},
         crate::{
             prelude::{AccountInfo, Address, CpiHandle, CpiHandleMut, NaclacError},
             token::{initialize_account_with_owner_signed, TokenAccount},
@@ -97,6 +113,7 @@ pub mod token {
             if let Some(authority) = &args.authority {
                 TokenAccount::check_authority(data, authority)?;
             }
+            require_owned_by(&info, args.token_program.as_ref())?;
             Ok(())
         }
     }
@@ -151,7 +168,7 @@ pub mod token {
 /// already prove its owner must be owned by the Token or Token-2022 program.
 pub mod mint {
     use {
-        super::{require_token_program_owner, token_program_address},
+        super::{require_owned_by, require_token_program_owner, token_program_address},
         crate::{
             prelude::{AccountInfo, Address, CpiHandle, CpiHandleMut, NaclacError},
             token::{initialize_mint_signed, Mint},
@@ -194,6 +211,7 @@ pub mod mint {
             if let Some(freeze_authority) = &args.freeze_authority {
                 Mint::check_freeze_authority(data, freeze_authority)?;
             }
+            require_owned_by(&info, args.token_program.as_ref())?;
             Ok(())
         }
     }

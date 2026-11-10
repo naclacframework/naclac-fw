@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["offchain"]
+default = ["offchain", "bytemuck"]
 offchain = ["dep:naclac-client"]
 cpi = ["dep:naclac-lang"]
 solana = ["naclac-lang?/solana"]

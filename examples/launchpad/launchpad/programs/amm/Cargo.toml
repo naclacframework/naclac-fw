@@ -23,7 +23,6 @@ naclac-lang = { version = "0.1.0", path = "../../../../../lang", features = ["to
 naclac-client = { version = "0.1.0", path = "../../../../../client-rs", features = ["litesvm"] }
 amm-client = { version = "0.1.0", path = "../../artifacts/clients/rust/amm" }
 proptest = "1"
-litesvm = { path = "../../../../../litesvm/crates/litesvm", features = ["register-tracing"] }
 
 [lints]
 workspace = true

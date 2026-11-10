@@ -169,14 +169,13 @@ impl InstructionArgs {
             };
         }
 
-        let value = if is_zc_vec {
-            if let Some(inner) = inner_ty {
-                quote! { <naclac_lang::prelude::ZcVec<#inner>>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])? }
-            } else {
-                quote! { <naclac_lang::prelude::ZcVec<u8>>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])? }
+        let value = if is_zc_vec && inner_ty.is_none() {
+            quote! {
+                compile_error!("Naclac Error: `ZcVec` needs an element type, e.g. `ZcVec<u8>`.")
             }
-        } else if is_zc_string {
-            quote! { <naclac_lang::prelude::ZcString>::from_bytes(&instruction_data[__ix_offset..__ix_offset + __len])? }
+        } else if is_zc_vec || is_zc_string {
+            let view_ty = type_classify::zc_view_type(ty);
+            quote! { <#view_ty>::from_bytes_bounded(&instruction_data[__ix_offset..__ix_offset + __len])? }
         } else if is_heap_string {
             quote! {
                 naclac_lang::prelude::String::from_utf8(instruction_data[__ix_offset..__ix_offset+__len].to_vec())

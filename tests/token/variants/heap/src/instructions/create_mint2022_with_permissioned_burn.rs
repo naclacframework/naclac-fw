@@ -33,11 +33,12 @@ const MINT_WITH_PERMISSIONED_BURN_SPACE: u64 = 82 + 83 + 1 + 4 + 32;
 pub fn create_mint2022_with_permissioned_burn(
     ctx: Context<CreateMint2022WithPermissionedBurn>,
     id: u64,
-    mint_bump: u8,
+    _mint_bump: u8,
     decimals: u8,
 ) -> Result {
     let mint_authority_address = ctx.accounts.mint_authority.address();
     let id_bytes = id.to_le_bytes();
+    let (_, mint_bump) = find_program_address(&[SEED_MINT, &id_bytes], ctx.program_id)?;
     let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
     let mint_signer: &[&[&[u8]]] = &[mint_seeds];
 

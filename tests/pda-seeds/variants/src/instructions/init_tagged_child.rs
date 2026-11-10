@@ -11,7 +11,6 @@ use crate::constants::SEED_TAGGED_CHILD;
 // correctly SKIP generating `get_tagged_child_pda` rather than guess at a
 // wrong conversion. See the matching assertion in `pda_seeds_test.rs`.
 #[derive(Accounts)]
-#[instruction(bump: u8)]
 pub struct InitTaggedChild {
     #[account(mut)]
     pub payer: Signer,
@@ -22,16 +21,16 @@ pub struct InitTaggedChild {
         init,
         payer = payer,
         seeds = [SEED_TAGGED_CHILD, registry.label.as_ref()],
-        bump = bump
+        bump
     )]
     pub tagged_child: Account<TaggedChild>,
 
     pub system_program: Program<System>,
 }
 
-pub fn init_tagged_child(ctx: Context<InitTaggedChild>, bump: u8) -> Result {
+pub fn init_tagged_child(ctx: Context<InitTaggedChild>) -> Result {
     let tagged_child = &mut ctx.accounts.tagged_child;
-    tagged_child.bump = bump;
+    tagged_child.bump = ctx.bumps.tagged_child;
     tagged_child.value = 0;
     Ok(())
 }

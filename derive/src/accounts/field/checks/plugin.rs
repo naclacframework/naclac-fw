@@ -299,6 +299,36 @@ mod plugin_tests {
     }
 
     #[test]
+    fn a_written_token_program_alone_triggers_the_check_on_an_existing_account() {
+        for (namespace, ty) in [
+            ("mint", "InterfaceAccount<Mint>"),
+            ("token", "InterfaceAccount<TokenAccount>"),
+        ] {
+            let generated = constraint_code(&format!(
+                "#[account({namespace}::token_program = program)] account: {ty},
+                 program: Interface<TokenInterface>"
+            ));
+            let call = format!("token_constraints::{namespace}::Constraintas");
+            assert_eq!(generated.matches(&call).count(), 1, "{generated}");
+            assert!(
+                sets(&generated, "token_program", "&(accounts[1usize])"),
+                "{generated}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_written_token_program_is_not_checked_on_a_created_account() {
+        let generated = constraint_code(
+            "#[account(init, payer = payer, mint::decimals = 6, mint::authority = payer, mint::token_program = program)]
+             mint: AccountInfo,
+             #[account(mut)] payer: Signer,
+             program: Interface<TokenInterface>",
+        );
+        assert!(!generated.contains("token_constraints"), "{generated}");
+    }
+
+    #[test]
     fn one_token_key_is_passed_alone() {
         let generated = constraint_code(
             "#[account(token::authority = owner)] vault: Account<TokenAccount>,

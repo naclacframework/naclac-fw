@@ -19,7 +19,7 @@ pub struct CreateMint2022DualTokenProgram {
         init,
         payer = payer,
         seeds = [SEED_MINT, &id.to_le_bytes()],
-        bump = mint_bump,
+        bump,
         mint::decimals = decimals,
         mint::authority = mint_authority,
         mint::token_program = token_2022_program,

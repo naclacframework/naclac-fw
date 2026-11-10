@@ -15,8 +15,8 @@ pub mod pda_seeds {
         init_registry::init_registry(ctx)
     }
 
-    pub fn init_entry(ctx: Context<InitEntry>, bump: u8) -> Result {
-        init_entry::init_entry(ctx, bump)
+    pub fn init_entry(ctx: Context<InitEntry>) -> Result {
+        init_entry::init_entry(ctx)
     }
 
     pub fn touch_entry_bare_bump(ctx: Context<TouchEntryBareBump>) -> Result {
@@ -30,16 +30,16 @@ pub mod pda_seeds {
         touch_registry_explicit_bump::touch_registry_explicit_bump(ctx, bump)
     }
 
-    pub fn init_child(ctx: Context<InitChild>, bump: u8) -> Result {
-        init_child::init_child(ctx, bump)
+    pub fn init_child(ctx: Context<InitChild>) -> Result {
+        init_child::init_child(ctx)
     }
 
     pub fn init_child_safe(ctx: Context<InitChildSafe>) -> Result {
         init_child_safe::init_child_safe(ctx)
     }
 
-    pub fn init_tagged_child(ctx: Context<InitTaggedChild>, bump: u8) -> Result {
-        init_tagged_child::init_tagged_child(ctx, bump)
+    pub fn init_tagged_child(ctx: Context<InitTaggedChild>) -> Result {
+        init_tagged_child::init_tagged_child(ctx)
     }
 
     pub fn init_child_late(ctx: Context<InitChildLate>) -> Result {

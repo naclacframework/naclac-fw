@@ -181,6 +181,34 @@ pub(crate) fn classify_dynamic(ty: &Type) -> DynamicKind {
     }
 }
 
+/// The prelude path of a written `ZcVec<..>` or `ZcString<..>` with its
+/// lifetime dropped and every other generic argument kept, so a capped
+/// `ZcVec<u64, 8>` or `ZcString<32>` stays capped wherever generated code
+/// names the type. Any other type yields `None`.
+pub(crate) fn zc_view_type(ty: &Type) -> Option<proc_macro2::TokenStream> {
+    let Type::Path(type_path) = ty else {
+        return None;
+    };
+    let segment = type_path.path.segments.last()?;
+    if segment.ident != "ZcVec" && segment.ident != "ZcString" {
+        return None;
+    }
+    let ident = &segment.ident;
+    let arguments: Vec<&GenericArgument> = match &segment.arguments {
+        PathArguments::AngleBracketed(args) => args
+            .args
+            .iter()
+            .filter(|argument| !matches!(argument, GenericArgument::Lifetime(_)))
+            .collect(),
+        _ => Vec::new(),
+    };
+    Some(if arguments.is_empty() {
+        quote::quote! { naclac_lang::prelude::#ident }
+    } else {
+        quote::quote! { naclac_lang::prelude::#ident<#(#arguments),*> }
+    })
+}
+
 /// An error spanned at each `ZcVec<T>`/`ZcString` field in `fields`, or `None`
 /// when there is none. Those types are views into the current instruction's
 /// bytes and own no bytes themselves, so no stored or emitted type (`owner`)

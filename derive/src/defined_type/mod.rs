@@ -10,11 +10,12 @@ mod validation;
 mod wincode_repr;
 mod zero_copy;
 
-use proc_macro::TokenStream;
-
-use crate::{
-    common::{cfg_gates, diagnostics::reject_nonempty_attr},
-    serialized_bounds, type_classify,
+use {
+    crate::{
+        common::{cfg_gates, diagnostics::reject_nonempty_attr},
+        serialized_bounds, type_classify,
+    },
+    proc_macro::TokenStream,
 };
 
 pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {

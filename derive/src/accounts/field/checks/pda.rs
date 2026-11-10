@@ -148,7 +148,7 @@ fn precomputed_creation(
     field: &ParsedField,
     seeds: &[TokenStream],
     program: &TokenStream,
-) -> Result<Creation, TokenStream> {
+) -> Creation {
     let idx = field.index;
     let pda_const = format_ident!("__NACLAC_PDA_{}", idx);
     let logic = quote! {
@@ -160,25 +160,17 @@ fn precomputed_creation(
 
     let mut bump_verification = quote! {};
     if let Some(PdaBump::Explicit(bump_expr)) = &field.pda_bump {
-        if field.init_config.is_some() {
-            return Err(syn::Error::new_spanned(
-                &field.ident,
-                "Naclac Error: `bump = <expr>` can't be used with `init` on a PDA known at \
-                 compile time; write `bump` and the canonical bump is used.",
-            )
-            .to_compile_error());
-        }
         bump_verification = quote! {
             if expected_bump != (#bump_expr) {
                 return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
             }
         };
     }
-    Ok(Creation {
+    Creation {
         logic,
         bump_verification,
         skip_address_check: false,
-    })
+    }
 }
 
 /// The runtime derivation, used when the PDA cannot be precomputed.
@@ -345,18 +337,34 @@ fn dynamic_creation(field: &ParsedField, seed_array: &syn::ExprArray) -> Creatio
 }
 
 /// The PDA check for `field`, or `None` when it has neither `seeds` nor
-/// `bump`. `Err` is a compile error that replaces the field's checks.
-pub(super) fn pda_checks(field: &ParsedField) -> Result<Option<PdaChecks>, TokenStream> {
+/// `bump`. A field that creates its account and writes `bump = <expr>` gets a
+/// compile error plus placeholder `expected_bump` and `__bump_<field>` locals,
+/// so the code generated after it still compiles and the error stands alone.
+pub(super) fn pda_checks(field: &ParsedField) -> Option<PdaChecks> {
     let Some(seed_array) = &field.pda_seed else {
         if field.pda_bump.is_some() {
-            return Ok(Some(PdaChecks::Constraint(quote! {
+            return Some(PdaChecks::Constraint(quote! {
                 compile_error!("Naclac Error: `bump` needs `seeds = [...]` on the same field, \
                                 as there is no PDA to verify without them. Example: \
                                 #[account(seeds = [...], bump)]");
-            })));
+            }));
         }
-        return Ok(None);
+        return None;
     };
+
+    if field.init_config.is_some() && matches!(field.pda_bump, Some(PdaBump::Explicit(_))) {
+        let error = syn::Error::new_spanned(
+            &field.ident,
+            "Naclac Error: `init` takes a bare `bump`, not `bump = <expr>`.",
+        )
+        .to_compile_error();
+        let bump_cap = format_ident!("__bump_{}", field.ident);
+        return Some(PdaChecks::Metadata(quote! {
+            #error
+            let expected_bump = 0u8;
+            let #bump_cap = expected_bump;
+        }));
+    }
 
     let idx = field.index;
     let field_ident = &field.ident;
@@ -364,7 +372,7 @@ pub(super) fn pda_checks(field: &ParsedField) -> Result<Option<PdaChecks>, Token
     let actual_address_ref = actual_address_ref();
 
     let creation = match const_pda(field, seed_array) {
-        Some((seeds, program)) => precomputed_creation(field, &seeds, &program)?,
+        Some((seeds, program)) => precomputed_creation(field, &seeds, &program),
         None => dynamic_creation(field, seed_array),
     };
     let Creation {
@@ -375,13 +383,13 @@ pub(super) fn pda_checks(field: &ParsedField) -> Result<Option<PdaChecks>, Token
 
     if field.init_config.is_none() {
         if skip_address_check {
-            Ok(Some(PdaChecks::Constraint(quote! {
+            Some(PdaChecks::Constraint(quote! {
                 #logic
                 #bump_verification
                 let #bump_cap = expected_bump;
-            })))
+            }))
         } else {
-            Ok(Some(PdaChecks::Constraint(quote! {
+            Some(PdaChecks::Constraint(quote! {
                 #logic
                 #[cfg(not(feature = "solana"))]
                 {
@@ -398,10 +406,10 @@ pub(super) fn pda_checks(field: &ParsedField) -> Result<Option<PdaChecks>, Token
                 }
                 #bump_verification
                 let #bump_cap = expected_bump;
-            })))
+            }))
         }
     } else {
-        Ok(Some(PdaChecks::Metadata(quote! {
+        Some(PdaChecks::Metadata(quote! {
             #logic
             #[cfg(not(feature = "solana"))]
             {
@@ -419,13 +427,13 @@ pub(super) fn pda_checks(field: &ParsedField) -> Result<Option<PdaChecks>, Token
             }
             #bump_verification
             let #bump_cap = expected_bump;
-        })))
+        }))
     }
 }
 
 #[cfg(test)]
 mod const_pda_tests {
-    use super::{const_pda, const_seed_root, is_const_path};
+    use super::{const_pda, const_seed_root, is_const_path, pda_checks, PdaChecks};
     use crate::accounts::field::parser::parse_struct_fields;
 
     fn expr(source: &str) -> syn::Expr {
@@ -513,5 +521,46 @@ mod const_pda_tests {
         );
         let seeds = runtime_program.pda_seed.clone().unwrap();
         assert!(const_pda(&runtime_program, &seeds).is_none());
+    }
+
+    fn rendered(field: &crate::accounts::field::parser::ParsedField) -> String {
+        match pda_checks(field) {
+            Some(PdaChecks::Metadata(tokens) | PdaChecks::Constraint(tokens)) => {
+                tokens.to_string()
+            }
+            None => String::new(),
+        }
+    }
+
+    #[test]
+    fn every_creation_takes_a_bare_bump_for_every_kind_of_seed() {
+        for seeds in ["SEED_A", "SEED_A, user.address().as_ref()"] {
+            for creation in ["init", "init_if_needed", "init_unchecked"] {
+                let explicit = field(&format!(
+                    "#[account({creation}, payer = payer, seeds = [{seeds}], bump = args.bump)] \
+                     a: Account<A>"
+                ));
+                assert!(
+                    rendered(&explicit).contains("takes a bare"),
+                    "{creation} with {seeds}"
+                );
+                let bare = field(&format!(
+                    "#[account({creation}, payer = payer, seeds = [{seeds}], bump)] a: Account<A>"
+                ));
+                assert!(
+                    !rendered(&bare).contains("compile_error"),
+                    "{creation} with {seeds}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn an_existing_account_may_still_check_an_explicit_bump() {
+        let existing = field(
+            "#[account(seeds = [SEED_A, user.address().as_ref()], bump = args.bump)] \
+             a: Account<A>",
+        );
+        assert!(!rendered(&existing).contains("compile_error"));
     }
 }

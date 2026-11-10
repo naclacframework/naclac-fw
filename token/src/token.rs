@@ -1327,7 +1327,7 @@ impl TokenAccount {
                 .unwrap_or_else(|_| panic!("slice length mismatch")),
         );
         if &actual != expected {
-            return Err(NaclacError::ConstraintAddress);
+            return Err(NaclacError::ConstraintTokenMint);
         }
         Ok(())
     }
@@ -1346,7 +1346,7 @@ impl TokenAccount {
                 .unwrap_or_else(|_| panic!("slice length mismatch")),
         );
         if &actual != expected {
-            return Err(NaclacError::ConstraintAddress);
+            return Err(NaclacError::ConstraintTokenAuthority);
         }
         Ok(())
     }

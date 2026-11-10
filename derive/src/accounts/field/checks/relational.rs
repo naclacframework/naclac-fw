@@ -1,12 +1,8 @@
 //! Relational checks, run once every account of the struct is loaded:
-//! `field = target` relations, an `owner = other_field` constraint and a
-//! written token program, each comparing one account against another.
+//! `field = target` relations and an `owner = other_field` constraint, each
+//! comparing one account against another.
 
-use {
-    crate::accounts::field::{builtin_namespaces, parser::ParsedField},
-    proc_macro2::TokenStream,
-    quote::quote,
-};
+use {crate::accounts::field::parser::ParsedField, proc_macro2::TokenStream, quote::quote};
 
 /// Relational checks for every field of the struct.
 ///
@@ -82,18 +78,6 @@ pub fn generate_relational_checks(fields: &[ParsedField], prefix: TokenStream) -
                     });
                 }
             }
-        }
-
-        // A written token program must own the account once it is loaded.
-        if let Some(prog_expr) = builtin_namespaces::written_token_program(field) {
-            let idx = field.index;
-            checks.push(quote! {
-                let __expected_prog = naclac_lang::prelude::ToAddress::address(&#prefix.#prog_expr);
-                let __actual_owner = naclac_lang::prelude::Owner::program_owner(&#prefix.#field_name);
-                if __actual_owner != __expected_prog {
-                    return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#idx));
-                }
-            });
         }
     }
 

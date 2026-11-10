@@ -60,7 +60,7 @@ impl<E: NaclacIdlType, const SIZE: usize> NaclacIdlType for ZcStorage<E, SIZE> {
     }
 }
 
-impl<T: Pod + NaclacIdlType> NaclacIdlType for ZcVec<'_, T> {
+impl<T: Pod + NaclacIdlType, const MAX: usize> NaclacIdlType for ZcVec<'_, T, MAX> {
     fn idl_type() -> IdlJson {
         idl::vec_of(T::idl_type())
     }
@@ -70,7 +70,7 @@ impl<T: Pod + NaclacIdlType> NaclacIdlType for ZcVec<'_, T> {
     }
 }
 
-impl NaclacIdlType for ZcString<'_> {
+impl<const MAX: usize> NaclacIdlType for ZcString<'_, MAX> {
     fn idl_type() -> IdlJson {
         idl::string()
     }

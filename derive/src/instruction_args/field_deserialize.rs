@@ -13,6 +13,9 @@ use crate::type_classify;
 /// `generate_zero_copy_arg_bytes` on the write side. `Vec<Vec<u8>>` and
 /// `Vec<String>` instead carry an element count, with each element
 /// length-prefixed.
+///
+/// A `ZcVec<T, MAX>` or `ZcString<MAX>` field is read with its `MAX`: a longer
+/// value is an `InvalidInstructionData` error.
 pub(super) fn field_deserialize_stmt(
     field_name: &syn::Ident,
     field_ty: &syn::Type,
@@ -33,7 +36,9 @@ pub(super) fn field_deserialize_stmt(
                 __val
             };
         },
-        DynamicKind::ZcString => quote::quote! {
+        DynamicKind::ZcString => {
+            let view_ty = type_classify::zc_view_type(field_ty);
+            quote::quote! {
             let #field_name = {
                 if data.len() < *offset + 4 {
                     return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
@@ -45,13 +50,14 @@ pub(super) fn field_deserialize_stmt(
                 if data.len() < *offset + __len {
                     return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
                 }
-                let __val = <naclac_lang::prelude::ZcString>::from_bytes(&data[*offset..*offset + __len])?;
+                let __val = <#view_ty>::from_bytes_bounded(&data[*offset..*offset + __len])?;
                 *offset += __len;
                 __val
             };
-        },
+            }
+        }
         DynamicKind::ZcVec => {
-            let inner = type_classify::first_generic_type(field_ty);
+            let view_ty = type_classify::zc_view_type(field_ty);
             quote::quote! {
                 let #field_name = {
                     if data.len() < *offset + 4 {
@@ -64,7 +70,7 @@ pub(super) fn field_deserialize_stmt(
                     if data.len() < *offset + __len {
                         return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0));
                     }
-                    let __val = <naclac_lang::prelude::ZcVec<#inner>>::from_bytes(&data[*offset..*offset + __len])?;
+                    let __val = <#view_ty>::from_bytes_bounded(&data[*offset..*offset + __len])?;
                     *offset += __len;
                     __val
                 };

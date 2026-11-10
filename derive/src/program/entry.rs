@@ -86,9 +86,7 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
 
         #panic_support
 
-        // Pinocchio SIMD-0321 entrypoint — two-parameter form.
-        // The BPF loader passes r1=input (accounts), r2=ix_data_ptr (instruction data).
-        // This eliminates parse_ix_context: we get ix_data directly without scanning accounts.
+        // SIMD-0321 entrypoint: the loader passes r1 = account input, r2 = instruction-data pointer.
         #[cfg(all(not(feature = "no-entrypoint"), not(feature = "solana")))]
         #[no_mangle]
         pub unsafe extern "C" fn entrypoint(input: *mut u8, ix_data_ptr: *const u8) -> u64 {
@@ -139,7 +137,6 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
         #[cfg(all(not(feature = "no-entrypoint"), not(feature = "solana")))]
         naclac_lang::pinocchio::default_allocator!();
 
-        // Unified Entrypoint — standard signature required by solana/pinocchio entrypoint! macro
         #[cfg(feature = "solana")]
         pub fn process_instruction(
             program_id: &naclac_lang::solana_address::Address,
@@ -175,18 +172,12 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
         /// supplied directly by the Solana runtime BPF loader. The caller must ensure these
         /// pointers point to valid, aligned, and initialized memory.
         pub unsafe fn process_instruction(input: *mut u8, ix_data_ptr: *const u8) -> naclac_lang::prelude::ProgramResult {
-            // 1. Read num_accounts from the first 8 bytes.
             let num_accounts = unsafe { *(input as *const u64) } as usize;
-            // 2. Decode instruction data directly from r2 — no account scan needed.
-            let instruction_data: &'static [u8] = unsafe {
-                let len = *(ix_data_ptr.sub(8) as *const u64) as usize;
-                core::slice::from_raw_parts(ix_data_ptr, len)
-            };
-            // 3. Program ID immediately follows instruction data bytes.
-            let program_id: &'static naclac_lang::prelude::Address = unsafe {
-                let len = *(ix_data_ptr.sub(8) as *const u64) as usize;
-                &*(ix_data_ptr.add(len) as *const naclac_lang::prelude::Address)
-            };
+            let len = unsafe { *(ix_data_ptr.sub(8) as *const u64) } as usize;
+            let instruction_data: &'static [u8] =
+                unsafe { core::slice::from_raw_parts(ix_data_ptr, len) };
+            let program_id: &'static naclac_lang::prelude::Address =
+                unsafe { &*(ix_data_ptr.add(len) as *const naclac_lang::prelude::Address) };
             process_instruction_inner(program_id, input, num_accounts, instruction_data)
         }
 
@@ -234,11 +225,8 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
             }
         }
 
-
-
         #idl_assembler_tokens
 
-        // Re-inject the developer's original module logic.
         #mod_vis mod #mod_name {
             use super::*;
             #(#processed_content_items)*

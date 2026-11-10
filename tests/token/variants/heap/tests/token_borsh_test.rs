@@ -311,9 +311,9 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     )
     .send_and_confirm();
     // `CheckVaultConstraints { mint, mint_authority, vault }` — `vault` is
-    // field index 2; `token::mint` mismatch emits `ConstraintAddress`
-    // (3) -> 10000 + 2*100 + 3 = 10203.
-    assert_custom_code(wrong_mint_result, 10203);
+    // field index 2; `token::mint` mismatch emits `ConstraintTokenMint`
+    // (35) -> 10000 + 2*100 + 35 = 10235.
+    assert_custom_code(wrong_mint_result, 10235);
 
     let wrong_authority_result = build_check_vault_constraints(
         &provider,
@@ -326,9 +326,9 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     )
     .send_and_confirm();
     // `CheckVaultConstraints { mint, mint_authority, vault }` — `vault` is
-    // field index 2; `token::authority` mismatch emits `ConstraintAddress`
-    // (3) -> 10000 + 2*100 + 3 = 10203.
-    assert_custom_code(wrong_authority_result, 10203);
+    // field index 2; `token::authority` mismatch emits `ConstraintTokenAuthority`
+    // (36) -> 10000 + 2*100 + 36 = 10236.
+    assert_custom_code(wrong_authority_result, 10236);
 
     // `TokenAccount`'s own baked-in owner check (`Discriminator::validate_account`,
     // `token/src/token.rs`) — distinct from the `token::mint`/

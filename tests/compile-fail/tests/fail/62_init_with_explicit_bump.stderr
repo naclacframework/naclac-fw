@@ -1,0 +1,5 @@
+error: Naclac Error: `init` takes a bare `bump`, not `bump = <expr>`.
+  --> tests/fail/62_init_with_explicit_bump.rs:20:9
+   |
+20 |     pub entry: Account<Entry>,
+   |         ^^^^^

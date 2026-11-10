@@ -8,7 +8,9 @@ mod validate;
 use syn::{FieldsNamed, Ident, Type};
 
 /// A field's `bump = ...` constraint: either bare `bump` (auto-derive/
-/// auto-verify the canonical bump) or an explicit `bump = <expr>`.
+/// auto-verify the canonical bump) or an explicit `bump = <expr>`, which a
+/// field that creates its account (`init`, `init_if_needed`, `init_unchecked`)
+/// cannot use.
 pub enum PdaBump {
     Auto,
     Explicit(syn::Expr),
