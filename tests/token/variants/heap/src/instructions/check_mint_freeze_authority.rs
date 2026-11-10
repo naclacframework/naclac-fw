@@ -7,10 +7,7 @@ use naclac_lang::prelude::*;
 // discriminant (`[1, 0, 0, 0]` = Some), bytes `[50..82]` are the freeze
 // authority pubkey if present. No freeze authority set at all ->
 // `NaclacError::Unauthorized`; a freeze authority set but not matching the
-// expected one -> `NaclacError::ConstraintAddress` — deliberately distinct
-// error variants, confirmed by reading the codegen directly rather than
-// assumed (mirrors the `Unauthorized`/`ConstraintAddress` split already
-// proven for `mint::authority`).
+// expected one -> `NaclacError::ConstraintMintFreezeAuthority`.
 #[derive(Accounts)]
 pub struct CheckMintFreezeAuthority {
     /// SAFETY: only used as an address to compare the mint's freeze

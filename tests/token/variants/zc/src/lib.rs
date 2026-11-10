@@ -18,19 +18,17 @@ pub mod token_zc {
     pub fn create_mint(
         ctx: Context<CreateMint>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
-        create_mint::create_mint(ctx, id, mint_bump, decimals)
+        create_mint::create_mint(ctx, id, decimals)
     }
 
     pub fn create_mint_with_freeze(
         ctx: Context<CreateMintWithFreeze>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
-        create_mint_with_freeze::create_mint_with_freeze(ctx, id, mint_bump, decimals)
+        create_mint_with_freeze::create_mint_with_freeze(ctx, id, decimals)
     }
 
     pub fn check_vault_constraints(ctx: Context<CheckVaultConstraints>) -> Result {
@@ -108,10 +106,9 @@ pub mod token_zc {
     pub fn create_mint2022(
         ctx: Context<CreateMint2022>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
-        create_mint2022::create_mint2022(ctx, id, mint_bump, decimals)
+        create_mint2022::create_mint2022(ctx, id, decimals)
     }
 
     pub fn mint_to_vault2022(ctx: Context<MintToVault2022>, amount: u64) -> Result {

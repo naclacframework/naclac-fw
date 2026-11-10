@@ -54,6 +54,9 @@ pub enum NaclacError {
     ConstraintDuplicateAccount = 34,
     ConstraintTokenMint = 35,
     ConstraintTokenAuthority = 36,
+    ConstraintMintDecimals = 37,
+    ConstraintMintAuthority = 38,
+    ConstraintMintFreezeAuthority = 39,
 }
 
 /// Largest account index a framework error code can name. The runtime

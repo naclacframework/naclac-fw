@@ -194,14 +194,13 @@ fn mint_creation_and_token_cpis_work_end_to_end() {
     assert_eq!(fetched_authority.bump, mint_authority_bump);
 
     let id: u64 = 0;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -284,13 +283,12 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     .expect("init_mint_authority should succeed");
 
     let id_a: u64 = 10;
-    let (mint_a, mint_a_bump) =
+    let (mint_a, _) =
         Address::find_program_address(&[b"mint", &id_a.to_le_bytes()], &PROGRAM_ID);
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id_a,
-        mint_a_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -304,13 +302,12 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     .expect("create_mint (mint_a) should succeed");
 
     let id_b: u64 = 11;
-    let (mint_b, mint_b_bump) =
+    let (mint_b, _) =
         Address::find_program_address(&[b"mint", &id_b.to_le_bytes()], &PROGRAM_ID);
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id_b,
-        mint_b_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -467,11 +464,11 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
 
 /// `token::token_program`: validates an existing account's owning program against
 /// an expected `Program<Token>` field
-/// (`generate_relational_checks`/`security.rs`, post account-load). A real
-/// SPL token account genuinely owned by the Token program is accepted; an
-/// account owned by our own program (the `mint_authority` PDA) is rejected
-/// with `NaclacError::ProgramIdMismatch`, a different error variant from the
-/// `ConstraintAddress` that `token::mint` and `token::authority` return.
+/// (checked when the field loads). A real SPL token account genuinely owned
+/// by the Token program is accepted; an account owned by our own program (the
+/// `mint_authority` PDA) is rejected with `NaclacError::ProgramIdMismatch`, a
+/// different error variant from the `ConstraintTokenMint` and
+/// `ConstraintTokenAuthority` that `token::mint` and `token::authority` return.
 #[test]
 fn token_program_constraint_rejects_wrong_owning_program() {
     let provider = setup();
@@ -490,13 +487,12 @@ fn token_program_constraint_rejects_wrong_owning_program() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 50;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -535,8 +531,8 @@ fn token_program_constraint_rejects_wrong_owning_program() {
     )
     .send_and_confirm();
     // `CheckVaultProgram { token_program, vault }` — `vault` is field index
-    // 1; `token::token_program` mismatch emits `ProgramIdMismatch` (9), checked
-    // post-load in `generate_relational_checks` -> 10000 + 1*100 + 9 = 10109.
+    // 1; `token::token_program` mismatch emits `ProgramIdMismatch` (9):
+    // 10000 + 1*100 + 9 = 10109.
     assert_custom_code(wrong_program_result, 10109);
 }
 
@@ -571,13 +567,12 @@ fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {
 
     // Mint with no freeze authority at all (the original `create_mint`).
     let no_freeze_id: u64 = 60;
-    let (no_freeze_mint, no_freeze_bump) =
+    let (no_freeze_mint, _) =
         Address::find_program_address(&[b"mint", &no_freeze_id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint(
         &provider,
         PROGRAM_ID,
         no_freeze_id,
-        no_freeze_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -592,13 +587,12 @@ fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {
 
     // Mint with a real freeze authority set at creation time.
     let freeze_id: u64 = 61;
-    let (freeze_mint, freeze_bump) =
+    let (freeze_mint, _) =
         Address::find_program_address(&[b"mint", &freeze_id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint_with_freeze(
         &provider,
         PROGRAM_ID,
         freeze_id,
-        freeze_bump,
         6,
         CreateMintWithFreezeAccounts {
             payer: provider.payer.address(),
@@ -637,8 +631,8 @@ fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {
     .send_and_confirm();
     // `CheckMintFreezeAuthority { freeze_authority, mint }` — `mint` is
     // field index 1; a mismatched (but present) freeze authority emits
-    // `ConstraintAddress` (3) -> 10000 + 1*100 + 3 = 10103.
-    assert_custom_code(wrong_authority_result, 10103);
+    // `ConstraintMintFreezeAuthority` (39) -> 10000 + 1*100 + 39 = 10139.
+    assert_custom_code(wrong_authority_result, 10139);
 
     let missing_authority_result = build_check_mint_freeze_authority(
         &provider,
@@ -686,14 +680,13 @@ fn create_ata_creates_a_real_associated_token_account() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 70;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -781,14 +774,13 @@ fn create_ata_idempotent_is_a_noop_on_second_call() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 71;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -877,14 +869,13 @@ fn check_ata_constraints_validates_mint_authority_and_pda_bump() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 90;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -989,13 +980,12 @@ fn setup_mint_authority_and_mint(
     )
     .send_and_confirm();
 
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint(
         provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -1152,13 +1142,12 @@ fn set_freeze_authority_updates_raw_mint_layout() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 102;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint_with_freeze(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintWithFreezeAccounts {
             payer: provider.payer.address(),
@@ -1225,13 +1214,12 @@ fn freeze_blocks_transfer_and_thaw_allows_it_again() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 110;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint_with_freeze(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintWithFreezeAccounts {
             payer: provider.payer.address(),
@@ -1621,13 +1609,12 @@ fn token_2022_mint_creation_and_cpis_work_end_to_end() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 150;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022Accounts {
             payer: provider.payer.address(),
@@ -1737,13 +1724,12 @@ fn create_mint2022_dual_token_program_targets_the_pointed_field() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 250;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022_dual_token_program(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022DualTokenProgramAccounts {
             payer: provider.payer.address(),
@@ -1786,13 +1772,12 @@ fn create_mint2022_dual_token_program_rejects_wrong_program_in_targeted_slot() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 251;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     let result = build_create_mint2022_dual_token_program(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022DualTokenProgramAccounts {
             payer: provider.payer.address(),
@@ -2131,13 +2116,12 @@ fn check_account_fields_reads_base_token_layout_correctly() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 200;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint_with_freeze(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintWithFreezeAccounts {
             payer: provider.payer.address(),
@@ -2270,7 +2254,7 @@ fn create_mint2022_with_transfer_fee_produces_a_real_readable_extension() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 300;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint2022_with_transfer_fee(
@@ -2278,7 +2262,6 @@ fn create_mint2022_with_transfer_fee_produces_a_real_readable_extension() {
         PROGRAM_ID,
         CreateMint2022WithTransferFeeArgs {
             id,
-            mint_bump,
             decimals: 6,
             transfer_fee_basis_points: 150, // 1.5%
             maximum_fee: 5_000,
@@ -2351,7 +2334,7 @@ fn exercise_transfer_fee_cpis_moves_real_balances_and_fees() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 301;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint2022_with_transfer_fee(
@@ -2359,7 +2342,6 @@ fn exercise_transfer_fee_cpis_moves_real_balances_and_fees() {
         PROGRAM_ID,
         CreateMint2022WithTransferFeeArgs {
             id,
-            mint_bump,
             decimals: 6,
             transfer_fee_basis_points: 1_000, // 10%, so fees below divide evenly
             maximum_fee: 1_000_000,           // high enough to never cap
@@ -2491,7 +2473,7 @@ fn exercise_transfer_hook_update_changes_the_real_hook_program() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 302;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     let initial_hook_program = Keypair::new().address();
@@ -2500,7 +2482,6 @@ fn exercise_transfer_hook_update_changes_the_real_hook_program() {
         PROGRAM_ID,
         CreateMint2022WithTransferHookArgs {
             id,
-            mint_bump,
             decimals: 6,
             hook_program_id: initial_hook_program,
         },
@@ -2559,7 +2540,7 @@ fn default_account_state_controls_new_account_freeze_state_and_update_changes_it
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 303;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint2022_with_default_account_state(
@@ -2567,7 +2548,6 @@ fn default_account_state_controls_new_account_freeze_state_and_update_changes_it
         PROGRAM_ID,
         CreateMint2022WithDefaultAccountStateArgs {
             id,
-            mint_bump,
             decimals: 6,
             initial_state: 2, // AccountState::Frozen
         },
@@ -2685,13 +2665,12 @@ fn immutable_owner_blocks_set_authority_and_normal_vault_allows_it() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 304;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022Accounts {
             payer: provider.payer.address(),
@@ -2811,13 +2790,12 @@ fn memo_transfer_enable_and_disable_toggle_the_real_extension_flag() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 505;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022Accounts {
             payer: provider.payer.address(),
@@ -2906,13 +2884,12 @@ fn memo_transfer_blocks_a_transfer_without_a_memo_and_allows_one_with_a_memo() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 506;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022Accounts {
             payer: provider.payer.address(),
@@ -3035,13 +3012,12 @@ fn cpi_guard_blocks_a_cpi_approve_and_is_readable_after_a_real_top_level_enable(
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 507;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022Accounts {
             payer: provider.payer.address(),
@@ -3152,11 +3128,12 @@ fn cpi_guard_blocks_a_cpi_approve_and_is_readable_after_a_real_top_level_enable(
     .expect("a CPI-issued Approve against a vault with no CpiGuard must succeed");
 }
 
-/// A mint the program allocates by hand is created at the canonical bump only:
-/// for an id whose next-lower bump also gives a valid PDA, the client naming
-/// that lower bump and address is refused, while the canonical call succeeds.
+/// A mint the program allocates by hand is created at the canonical PDA only:
+/// for an id whose next-lower bump also gives a valid PDA, naming that other
+/// address as the mint fails with `ConstraintSeeds` at the `mint` field, while
+/// the canonical address succeeds.
 #[test]
-fn a_hand_created_mint_refuses_a_non_canonical_bump() {
+fn a_hand_created_mint_refuses_a_non_canonical_address() {
     let provider = setup();
     let (mint_authority_pda, _bump) = get_mint_authority_pda(&PROGRAM_ID);
     build_init_mint_authority(
@@ -3171,7 +3148,7 @@ fn a_hand_created_mint_refuses_a_non_canonical_bump() {
     .send_and_confirm()
     .expect("init_mint_authority should succeed");
 
-    let (id, twin_pda, twin_bump) = (0u64..)
+    let (id, twin_pda) = (0u64..)
         .find_map(|id| {
             let id_bytes = id.to_le_bytes();
             let (_, canonical) = Address::find_program_address(&[b"mint", &id_bytes], &PROGRAM_ID);
@@ -3179,7 +3156,7 @@ fn a_hand_created_mint_refuses_a_non_canonical_bump() {
             let twin =
                 Address::create_program_address(&[b"mint", &id_bytes, &[lower]], &PROGRAM_ID)
                     .ok()?;
-            Some((id, twin, lower))
+            Some((id, twin))
         })
         .expect("an id with a valid non-canonical bump exists");
 
@@ -3187,7 +3164,6 @@ fn a_hand_created_mint_refuses_a_non_canonical_bump() {
         &provider,
         PROGRAM_ID,
         id,
-        twin_bump,
         6,
         CreateMint2022WithPausableAccounts {
             payer: provider.payer.address(),
@@ -3198,18 +3174,16 @@ fn a_hand_created_mint_refuses_a_non_canonical_bump() {
         },
     )
     .send_and_confirm();
-    assert!(
-        twin_result.is_err(),
-        "a mint at a non-canonical bump must not be created"
-    );
+    // `CreateMint2022WithPausable { payer, mint, .. }` — `mint` is field index
+    // 1; `ConstraintSeeds` (6) -> 10000 + 1*100 + 6 = 10106.
+    assert_custom_code(twin_result, 10106);
 
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022_with_pausable(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022WithPausableAccounts {
             payer: provider.payer.address(),
@@ -3246,13 +3220,12 @@ fn pausable_config_pause_blocks_minting_and_resume_allows_it_again() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 508;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022_with_pausable(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022WithPausableAccounts {
             payer: provider.payer.address(),
@@ -3400,13 +3373,12 @@ fn mint_close_authority_closes_a_supply_zero_mint_and_rejects_a_plain_mint() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 509;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022_with_mint_close_authority(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022WithMintCloseAuthorityAccounts {
             payer: provider.payer.address(),
@@ -3472,13 +3444,12 @@ fn mint_close_authority_closes_a_supply_zero_mint_and_rejects_a_plain_mint() {
     // Negative baseline: an otherwise-identical mint with no
     // MintCloseAuthority extension must reject the same close attempt.
     let plain_id: u64 = 510;
-    let (plain_mint_pda, plain_mint_bump) =
+    let (plain_mint_pda, _) =
         Address::find_program_address(&[b"mint", &plain_id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022(
         &provider,
         PROGRAM_ID,
         plain_id,
-        plain_mint_bump,
         6,
         CreateMint2022Accounts {
             payer: provider.payer.address(),
@@ -3530,7 +3501,7 @@ fn interest_bearing_mint_produces_a_real_readable_extension_and_update_changes_t
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 305;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint2022_with_interest_bearing_mint(
@@ -3538,7 +3509,6 @@ fn interest_bearing_mint_produces_a_real_readable_extension_and_update_changes_t
         PROGRAM_ID,
         CreateMint2022WithInterestBearingMintArgs {
             id,
-            mint_bump,
             decimals: 6,
             rate: 500,
         },
@@ -3616,7 +3586,7 @@ fn metadata_pointer_produces_a_real_readable_extension_and_update_changes_it() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 306;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     let initial_metadata_address = Keypair::new().address();
@@ -3625,7 +3595,6 @@ fn metadata_pointer_produces_a_real_readable_extension_and_update_changes_it() {
         PROGRAM_ID,
         CreateMint2022WithMetadataPointerArgs {
             id,
-            mint_bump,
             decimals: 6,
             metadata_address: initial_metadata_address,
         },
@@ -3698,7 +3667,7 @@ fn group_pointer_produces_a_real_readable_extension_and_update_changes_it() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 307;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     let initial_group_address = Keypair::new().address();
@@ -3707,7 +3676,6 @@ fn group_pointer_produces_a_real_readable_extension_and_update_changes_it() {
         PROGRAM_ID,
         CreateMint2022WithGroupPointerArgs {
             id,
-            mint_bump,
             decimals: 6,
             group_address: initial_group_address,
         },
@@ -3780,7 +3748,7 @@ fn group_member_pointer_produces_a_real_readable_extension_and_update_changes_it
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 308;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     let initial_member_address = Keypair::new().address();
@@ -3789,7 +3757,6 @@ fn group_member_pointer_produces_a_real_readable_extension_and_update_changes_it
         PROGRAM_ID,
         CreateMint2022WithGroupMemberPointerArgs {
             id,
-            mint_bump,
             decimals: 6,
             member_address: initial_member_address,
         },
@@ -3874,13 +3841,13 @@ fn permanent_delegate_lets_the_delegate_burn_from_an_account_it_does_not_own() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 309;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint2022_with_permanent_delegate(
         &provider,
         PROGRAM_ID,
-        CreateMint2022WithPermanentDelegateArgs { id, mint_bump, decimals: 6 },
+        CreateMint2022WithPermanentDelegateArgs { id, decimals: 6 },
         CreateMint2022WithPermanentDelegateAccounts {
             payer: provider.payer.address(),
             mint: mint_pda,
@@ -3941,13 +3908,12 @@ fn permanent_delegate_lets_the_delegate_burn_from_an_account_it_does_not_own() {
     // Negative baseline: an otherwise-identical mint with no PermanentDelegate
     // extension must reject the exact same burn attempt.
     let plain_id: u64 = 310;
-    let (plain_mint_pda, plain_mint_bump) =
+    let (plain_mint_pda, _) =
         Address::find_program_address(&[b"mint", &plain_id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022(
         &provider,
         PROGRAM_ID,
         plain_id,
-        plain_mint_bump,
         6,
         CreateMint2022Accounts {
             payer: provider.payer.address(),
@@ -4032,13 +3998,13 @@ fn non_transferable_blocks_transfers_and_plain_mint_allows_it() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 311;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint2022_with_non_transferable(
         &provider,
         PROGRAM_ID,
-        CreateMint2022WithNonTransferableArgs { id, mint_bump, decimals: 6 },
+        CreateMint2022WithNonTransferableArgs { id, decimals: 6 },
         CreateMint2022WithNonTransferableAccounts {
             payer: provider.payer.address(),
             mint: mint_pda,
@@ -4122,13 +4088,12 @@ fn non_transferable_blocks_transfers_and_plain_mint_allows_it() {
     // Negative baseline: an otherwise-identical mint with no NonTransferable
     // extension must accept the exact same transfer.
     let plain_id: u64 = 312;
-    let (plain_mint_pda, plain_mint_bump) =
+    let (plain_mint_pda, _) =
         Address::find_program_address(&[b"mint", &plain_id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022(
         &provider,
         PROGRAM_ID,
         plain_id,
-        plain_mint_bump,
         6,
         CreateMint2022Accounts {
             payer: provider.payer.address(),
@@ -4210,7 +4175,7 @@ fn token_metadata_lifecycle_mutates_real_on_chain_state() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 503;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint2022_with_metadata_pointer_and_metadata(
@@ -4218,7 +4183,6 @@ fn token_metadata_lifecycle_mutates_real_on_chain_state() {
         PROGRAM_ID,
         CreateMint2022WithMetadataPointerAndMetadataArgs {
             id,
-            mint_bump,
             decimals: 6,
             name: "Original Name".to_string(),
             symbol: "ORIG".to_string(),
@@ -4315,7 +4279,7 @@ fn token_group_lifecycle_mutates_real_on_chain_state() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 504;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint2022_with_group_pointer_and_group(
@@ -4323,7 +4287,6 @@ fn token_group_lifecycle_mutates_real_on_chain_state() {
         PROGRAM_ID,
         CreateMint2022WithGroupPointerAndGroupArgs {
             id,
-            mint_bump,
             decimals: 6,
             max_size: 10,
         },
@@ -4354,7 +4317,7 @@ fn token_group_lifecycle_mutates_real_on_chain_state() {
     // `initialize_token_group_member`'s own authority check reject a
     // member-join signed by the now-stale `mint_authority_pda`.
     let member_seed: u64 = 505;
-    let (member_mint_pda, member_mint_bump) =
+    let (member_mint_pda, _) =
         Address::find_program_address(&[b"member_mint", &member_seed.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint2022_with_group_member_pointer_and_member(
@@ -4362,7 +4325,6 @@ fn token_group_lifecycle_mutates_real_on_chain_state() {
         PROGRAM_ID,
         CreateMint2022WithGroupMemberPointerAndMemberArgs {
             member_seed,
-            member_mint_bump,
             decimals: 6,
         },
         CreateMint2022WithGroupMemberPointerAndMemberAccounts {
@@ -4432,14 +4394,13 @@ fn scaled_ui_amount_config_produces_a_real_readable_extension_and_update_changes
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 511;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     let multiplier: f64 = 1.5;
     build_create_mint2022_with_scaled_ui_amount(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         multiplier.to_bits(),
         CreateMint2022WithScaledUiAmountAccounts {
@@ -4507,13 +4468,12 @@ fn permissioned_burn_blocks_ordinary_burn_and_allows_permissioned_burn() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 512;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint2022_with_permissioned_burn(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMint2022WithPermissionedBurnAccounts {
             payer: provider.payer.address(),

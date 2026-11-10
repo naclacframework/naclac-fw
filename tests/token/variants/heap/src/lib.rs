@@ -18,19 +18,17 @@ pub mod token_borsh {
     pub fn create_mint(
         ctx: Context<CreateMint>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
-        create_mint::create_mint(ctx, id, mint_bump, decimals)
+        create_mint::create_mint(ctx, id, decimals)
     }
 
     pub fn create_mint_with_freeze(
         ctx: Context<CreateMintWithFreeze>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
-        create_mint_with_freeze::create_mint_with_freeze(ctx, id, mint_bump, decimals)
+        create_mint_with_freeze::create_mint_with_freeze(ctx, id, decimals)
     }
 
     pub fn check_vault_constraints(ctx: Context<CheckVaultConstraints>) -> Result {
@@ -108,19 +106,17 @@ pub mod token_borsh {
     pub fn create_mint2022(
         ctx: Context<CreateMint2022>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
-        create_mint2022::create_mint2022(ctx, id, mint_bump, decimals)
+        create_mint2022::create_mint2022(ctx, id, decimals)
     }
 
     pub fn create_mint2022_init_if_needed(
         ctx: Context<CreateMint2022InitIfNeeded>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
-        create_mint2022_init_if_needed::create_mint2022_init_if_needed(ctx, id, mint_bump, decimals)
+        create_mint2022_init_if_needed::create_mint2022_init_if_needed(ctx, id, decimals)
     }
 
     pub fn mint_to_vault2022(ctx: Context<MintToVault2022>, amount: u64) -> Result {
@@ -324,10 +320,9 @@ pub mod token_borsh {
     pub fn create_mint2022_with_pausable(
         ctx: Context<CreateMint2022WithPausable>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
-        create_mint2022_with_pausable::create_mint2022_with_pausable(ctx, id, mint_bump, decimals)
+        create_mint2022_with_pausable::create_mint2022_with_pausable(ctx, id, decimals)
     }
 
     pub fn check_pausable_config(
@@ -349,11 +344,10 @@ pub mod token_borsh {
     pub fn create_mint2022_with_mint_close_authority(
         ctx: Context<CreateMint2022WithMintCloseAuthority>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
         create_mint2022_with_mint_close_authority::create_mint2022_with_mint_close_authority(
-            ctx, id, mint_bump, decimals,
+            ctx, id, decimals,
         )
     }
 
@@ -371,12 +365,11 @@ pub mod token_borsh {
     pub fn create_mint2022_with_scaled_ui_amount(
         ctx: Context<CreateMint2022WithScaledUiAmount>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
         multiplier_bits: u64,
     ) -> Result {
         create_mint2022_with_scaled_ui_amount::create_mint2022_with_scaled_ui_amount(
-            ctx, id, mint_bump, decimals, multiplier_bits,
+            ctx, id, decimals, multiplier_bits,
         )
     }
 
@@ -403,11 +396,10 @@ pub mod token_borsh {
     pub fn create_mint2022_with_permissioned_burn(
         ctx: Context<CreateMint2022WithPermissionedBurn>,
         id: u64,
-        mint_bump: u8,
         decimals: u8,
     ) -> Result {
         create_mint2022_with_permissioned_burn::create_mint2022_with_permissioned_burn(
-            ctx, id, mint_bump, decimals,
+            ctx, id, decimals,
         )
     }
 

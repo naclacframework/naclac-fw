@@ -1359,7 +1359,7 @@ impl Mint {
             return Err(NaclacError::AccountDataTooSmall);
         }
         if data[44] != expected {
-            return Err(NaclacError::Unauthorized);
+            return Err(NaclacError::ConstraintMintDecimals);
         }
         Ok(())
     }
@@ -1382,7 +1382,7 @@ impl Mint {
                 .unwrap_or_else(|_| panic!("slice length mismatch")),
         );
         if &actual != expected {
-            return Err(NaclacError::ConstraintAddress);
+            return Err(NaclacError::ConstraintMintAuthority);
         }
         Ok(())
     }
@@ -1405,7 +1405,7 @@ impl Mint {
                 .unwrap_or_else(|_| panic!("slice length mismatch")),
         );
         if &actual != expected {
-            return Err(NaclacError::ConstraintAddress);
+            return Err(NaclacError::ConstraintMintFreezeAuthority);
         }
         Ok(())
     }

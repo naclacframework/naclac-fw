@@ -14,7 +14,7 @@ use crate::constants::SEED_MINT;
 /// again inside this handler's own body, and when calling
 /// `initialize_scaled_ui_amount_config` below.
 #[derive(Accounts)]
-#[instruction(id: u64, mint_bump: u8, decimals: u8, multiplier_bits: u64)]
+#[instruction(id: u64, decimals: u8, multiplier_bits: u64)]
 pub struct CreateMint2022WithScaledUiAmount {
     #[account(mut)]
     pub payer: Signer,
@@ -23,7 +23,7 @@ pub struct CreateMint2022WithScaledUiAmount {
     /// body below (`create_account_signed` then two CPIs) — there is no
     /// naclac `Discriminator` to check since this is a raw SPL `Mint` +
     /// `ScaledUiAmountConfig` extension layout, not a naclac account.
-    #[account(mut, seeds = [SEED_MINT, &id.to_le_bytes()], bump = mint_bump)]
+    #[account(mut)]
     pub mint: AccountInfo,
 
     pub mint_authority: Account<MintAuthority>,
@@ -39,14 +39,17 @@ const MINT_WITH_SCALED_UI_AMOUNT_SPACE: u64 = 82 + 83 + 1 + 4 + 56;
 pub fn create_mint2022_with_scaled_ui_amount(
     ctx: Context<CreateMint2022WithScaledUiAmount>,
     id: u64,
-    _mint_bump: u8,
     decimals: u8,
     multiplier_bits: u64,
 ) -> Result {
     let multiplier = f64::from_bits(multiplier_bits);
     let mint_authority_address = ctx.accounts.mint_authority.address();
     let id_bytes = id.to_le_bytes();
-    let (_, mint_bump) = find_program_address(&[SEED_MINT, &id_bytes], ctx.program_id)?;
+    let (mint_pda, mint_bump) = find_program_address(&[SEED_MINT, &id_bytes], ctx.program_id)?;
+    if ctx.accounts.mint.address() != mint_pda {
+        return Err(NaclacError::ConstraintSeeds
+            .err(CreateMint2022WithScaledUiAmount::MINT_INDEX));
+    }
     let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
     let mint_signer: &[&[&[u8]]] = &[mint_seeds];
 

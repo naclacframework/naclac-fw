@@ -67,6 +67,9 @@ export const NACLAC_FRAMEWORK_ERRORS: readonly NaclacFrameworkError[] = [
   { code: 34, name: "ConstraintDuplicateAccount", message: "Account repeated in a slot not marked `dup`" },
   { code: 35, name: "ConstraintTokenMint", message: "Token account mint mismatch" },
   { code: 36, name: "ConstraintTokenAuthority", message: "Token account authority mismatch" },
+  { code: 37, name: "ConstraintMintDecimals", message: "Mint decimals mismatch" },
+  { code: 38, name: "ConstraintMintAuthority", message: "Mint authority mismatch" },
+  { code: 39, name: "ConstraintMintFreezeAuthority", message: "Mint freeze authority mismatch" },
 ];
 
 /** A decoded program error from the IDL. */

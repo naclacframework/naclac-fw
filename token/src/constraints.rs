@@ -37,7 +37,9 @@ fn require_token_program_owner(info: &AccountInfo) -> core::result::Result<(), N
 }
 
 /// Errors unless `info` is owned by `token_program`, when a token program is
-/// named.
+/// named. Callers run it before any check that reads the account's data or
+/// tests its owner against the Token programs, so a named program that does
+/// not own the account is always reported as `ProgramIdMismatch`.
 #[inline(always)]
 fn require_owned_by(
     info: &AccountInfo,
@@ -104,6 +106,7 @@ pub mod token {
         #[inline(always)]
         fn check(account: &A, args: &Args) -> core::result::Result<(), NaclacError> {
             account_data!(account => info, data);
+            require_owned_by(&info, args.token_program.as_ref())?;
             if !A::OWNER_VALIDATED {
                 require_token_program_owner(&info)?;
             }
@@ -113,7 +116,6 @@ pub mod token {
             if let Some(authority) = &args.authority {
                 TokenAccount::check_authority(data, authority)?;
             }
-            require_owned_by(&info, args.token_program.as_ref())?;
             Ok(())
         }
     }
@@ -199,6 +201,7 @@ pub mod mint {
         #[inline(always)]
         fn check(account: &A, args: &Args) -> core::result::Result<(), NaclacError> {
             account_data!(account => info, data);
+            require_owned_by(&info, args.token_program.as_ref())?;
             if !A::OWNER_VALIDATED {
                 require_token_program_owner(&info)?;
             }
@@ -211,7 +214,6 @@ pub mod mint {
             if let Some(freeze_authority) = &args.freeze_authority {
                 Mint::check_freeze_authority(data, freeze_authority)?;
             }
-            require_owned_by(&info, args.token_program.as_ref())?;
             Ok(())
         }
     }

@@ -525,9 +525,7 @@ mod const_pda_tests {
 
     fn rendered(field: &crate::accounts::field::parser::ParsedField) -> String {
         match pda_checks(field) {
-            Some(PdaChecks::Metadata(tokens) | PdaChecks::Constraint(tokens)) => {
-                tokens.to_string()
-            }
+            Some(PdaChecks::Metadata(tokens) | PdaChecks::Constraint(tokens)) => tokens.to_string(),
             None => String::new(),
         }
     }

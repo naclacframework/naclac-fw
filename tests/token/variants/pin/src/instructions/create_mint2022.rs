@@ -14,7 +14,7 @@ use crate::constants::SEED_MINT;
 // (`Token2022::id()` resolves to `TOKEN_2022_PROGRAM_ID`,
 // `core/src/wrappers/program.rs`).
 #[derive(Accounts)]
-#[instruction(id: u64, mint_bump: u8, decimals: u8)]
+#[instruction(id: u64, decimals: u8)]
 pub struct CreateMint2022 {
     #[account(mut)]
     pub payer: Signer,
@@ -43,7 +43,6 @@ pub struct CreateMint2022 {
 pub fn create_mint2022(
     _ctx: Context<CreateMint2022>,
     _id: u64,
-    _mint_bump: u8,
     _decimals: u8,
 ) -> Result {
     Ok(())

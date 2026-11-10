@@ -2,12 +2,10 @@ use naclac_lang::prelude::*;
 
 // `token::token_program`: validates an existing (non-`init`) account's owning
 // program against an expected `Program<Token>` field expression
-// (`token::token_program = token_program`). Checked in
-// `generate_relational_checks` (`security.rs`), which runs post
-// account-load, not as part of the per-account metadata checks:
-// `Owner::program_owner(&vault) == ToAddress::address(&token_program)`.
-// Mismatch is `NaclacError::ProgramIdMismatch`, a different error variant
-// from the `ConstraintAddress` that `token::mint`/`token::authority` return.
+// (`token::token_program = token_program`). Checked when the `vault` field
+// loads: a mismatch is `NaclacError::ProgramIdMismatch`, a different error
+// variant from the `ConstraintTokenMint`/`ConstraintTokenAuthority` that
+// `token::mint`/`token::authority` return.
 // Uses a bare `AccountInfo` for
 // `vault` (not `Account<TokenAccount>`) since only the owning-program
 // metadata is inspected here, never the account's data.

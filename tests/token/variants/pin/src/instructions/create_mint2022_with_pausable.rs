@@ -8,7 +8,7 @@ use crate::constants::SEED_MINT;
 /// run *before* `InitializeMint`, same pattern as
 /// `create_mint2022_with_transfer_fee.rs`.
 #[derive(Accounts)]
-#[instruction(id: u64, mint_bump: u8, decimals: u8)]
+#[instruction(id: u64, decimals: u8)]
 pub struct CreateMint2022WithPausable {
     #[account(mut)]
     pub payer: Signer,
@@ -17,7 +17,7 @@ pub struct CreateMint2022WithPausable {
     /// body below (`create_account_signed` then two CPIs) — there is no
     /// naclac `Discriminator` to check since this is a raw SPL `Mint` +
     /// `PausableConfig` extension layout, not a naclac account.
-    #[account(mut, seeds = [SEED_MINT, &id.to_le_bytes()], bump = mint_bump)]
+    #[account(mut)]
     pub mint: AccountInfo,
 
     pub mint_authority: Account<MintAuthority>,
@@ -33,12 +33,14 @@ const MINT_WITH_PAUSABLE_SPACE: u64 = 82 + 83 + 1 + 4 + 33;
 pub fn create_mint2022_with_pausable(
     ctx: Context<CreateMint2022WithPausable>,
     id: u64,
-    _mint_bump: u8,
     decimals: u8,
 ) -> Result {
     let mint_authority_address = ctx.accounts.mint_authority.address();
     let id_bytes = id.to_le_bytes();
-    let (_, mint_bump) = find_program_address(&[SEED_MINT, &id_bytes], ctx.program_id)?;
+    let (mint_pda, mint_bump) = find_program_address(&[SEED_MINT, &id_bytes], ctx.program_id)?;
+    if ctx.accounts.mint.address() != mint_pda {
+        return Err(NaclacError::ConstraintSeeds.err(CreateMint2022WithPausable::MINT_INDEX));
+    }
     let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
     let mint_signer: &[&[&[u8]]] = &[mint_seeds];
 

@@ -12,7 +12,6 @@ use crate::constants::SEED_MINT_AUTHORITY;
 #[instruction_args]
 pub struct CreateMint2022WithGroupMemberPointerAndMemberArgs {
     pub member_seed: u64,
-    pub member_mint_bump: u8,
     pub decimals: u8,
 }
 
@@ -25,7 +24,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMember {
     /// SAFETY: allocated and initialized entirely by hand in the handler
     /// body below — raw SPL `Mint` + `GroupMemberPointer` +
     /// `TokenGroupMember` layout, not a naclac account.
-    #[account(mut, seeds = [b"member_mint", &args.member_seed.to_le_bytes()], bump = args.member_mint_bump)]
+    #[account(mut)]
     pub member_mint: AccountInfo,
 
     #[account(mut)]
@@ -61,8 +60,12 @@ pub fn create_mint2022_with_group_member_pointer_and_member(
     let mint_authority_address = ctx.accounts.mint_authority.address();
     let member_mint_address = ctx.accounts.member_mint.address();
     let seed_bytes = args.member_seed.to_le_bytes();
-    let (_, member_mint_bump) =
+    let (member_mint_pda, member_mint_bump) =
         find_program_address(&[b"member_mint", &seed_bytes], ctx.program_id)?;
+    if ctx.accounts.member_mint.address() != member_mint_pda {
+        return Err(NaclacError::ConstraintSeeds
+            .err(CreateMint2022WithGroupMemberPointerAndMember::MEMBER_MINT_INDEX));
+    }
     let member_seeds: &[&[u8]] = &[b"member_mint", &seed_bytes, &[member_mint_bump]];
     let member_signer: &[&[&[u8]]] = &[member_seeds];
 

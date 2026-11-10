@@ -6,7 +6,7 @@ use crate::constants::SEED_MINT;
 // `mint::token_program = token_2022_program` must route its `init` CPI to
 // Token-2022, not to the first token-program field.
 #[derive(Accounts)]
-#[instruction(id: u64, mint_bump: u8, decimals: u8)]
+#[instruction(id: u64, decimals: u8)]
 pub struct CreateMint2022DualTokenProgram {
     #[account(mut)]
     pub payer: Signer,
@@ -36,7 +36,6 @@ pub struct CreateMint2022DualTokenProgram {
 pub fn create_mint2022_dual_token_program(
     _ctx: Context<CreateMint2022DualTokenProgram>,
     _id: u64,
-    _mint_bump: u8,
     _decimals: u8,
 ) -> Result {
     Ok(())

@@ -16,7 +16,7 @@ use crate::constants::SEED_MINT;
 /// ordering was previously required (a real compile error otherwise); see
 /// `derive/docs/derive-accounts-gaps-audit.md`'s gap #10.
 #[derive(Accounts)]
-#[instruction(id: u64, mint_bump: u8, decimals: u8)]
+#[instruction(id: u64, decimals: u8)]
 pub struct CreateMint2022InitIfNeeded {
     #[account(mut)]
     pub payer: Signer,
@@ -44,7 +44,6 @@ pub struct CreateMint2022InitIfNeeded {
 pub fn create_mint2022_init_if_needed(
     _ctx: Context<CreateMint2022InitIfNeeded>,
     _id: u64,
-    _mint_bump: u8,
     _decimals: u8,
 ) -> Result {
     Ok(())

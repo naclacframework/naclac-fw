@@ -12,7 +12,7 @@ use crate::constants::SEED_MINT;
 // PDA uniqueness still comes from the dynamic `id` seed component, same as
 // `create_mint`.
 #[derive(Accounts)]
-#[instruction(id: u64, mint_bump: u8, decimals: u8)]
+#[instruction(id: u64, decimals: u8)]
 pub struct CreateMintWithFreeze {
     #[account(mut)]
     pub payer: Signer,
@@ -42,7 +42,6 @@ pub struct CreateMintWithFreeze {
 pub fn create_mint_with_freeze(
     _ctx: Context<CreateMintWithFreeze>,
     _id: u64,
-    _mint_bump: u8,
     _decimals: u8,
 ) -> Result {
     Ok(())

@@ -20,7 +20,6 @@ use crate::constants::{SEED_MINT, SEED_MINT_AUTHORITY};
 #[instruction_args]
 pub struct CreateMint2022WithGroupPointerAndGroupArgs {
     pub id: u64,
-    pub mint_bump: u8,
     pub decimals: u8,
     pub max_size: u64,
 }
@@ -35,7 +34,7 @@ pub struct CreateMint2022WithGroupPointerAndGroup {
     /// body below — there is no naclac `Discriminator` to check since this
     /// is a raw SPL `Mint` + `GroupPointer` + `TokenGroup` layout, not a
     /// naclac account.
-    #[account(mut, seeds = [SEED_MINT, &args.id.to_le_bytes()], bump = args.mint_bump)]
+    #[account(mut)]
     pub mint: AccountInfo,
 
     pub mint_authority: Account<MintAuthority>,
@@ -65,7 +64,11 @@ pub fn create_mint2022_with_group_pointer_and_group(
     let mint_authority_address = ctx.accounts.mint_authority.address();
     let mint_address = ctx.accounts.mint.address();
     let id_bytes = args.id.to_le_bytes();
-    let (_, mint_bump) = find_program_address(&[SEED_MINT, &id_bytes], ctx.program_id)?;
+    let (mint_pda, mint_bump) = find_program_address(&[SEED_MINT, &id_bytes], ctx.program_id)?;
+    if mint_address != mint_pda {
+        return Err(NaclacError::ConstraintSeeds
+            .err(CreateMint2022WithGroupPointerAndGroup::MINT_INDEX));
+    }
     let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
     let mint_signer: &[&[&[u8]]] = &[mint_seeds];
 

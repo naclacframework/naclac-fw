@@ -67,14 +67,13 @@ fn mint_creation_and_token_cpis_work_end_to_end() {
     assert_eq!(fetched_authority.bump, mint_authority_bump);
 
     let id: u64 = 0;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -157,13 +156,12 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     .expect("init_mint_authority should succeed");
 
     let id_a: u64 = 10;
-    let (mint_a, mint_a_bump) =
+    let (mint_a, _) =
         Address::find_program_address(&[b"mint", &id_a.to_le_bytes()], &PROGRAM_ID);
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id_a,
-        mint_a_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -177,13 +175,12 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     .expect("create_mint (mint_a) should succeed");
 
     let id_b: u64 = 11;
-    let (mint_b, mint_b_bump) =
+    let (mint_b, _) =
         Address::find_program_address(&[b"mint", &id_b.to_le_bytes()], &PROGRAM_ID);
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id_b,
-        mint_b_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -340,11 +337,11 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
 
 /// `token::token_program`: validates an existing account's owning program against
 /// an expected `Program<Token>` field
-/// (`generate_relational_checks`/`security.rs`, post account-load). A real
-/// SPL token account genuinely owned by the Token program is accepted; an
-/// account owned by our own program (the `mint_authority` PDA) is rejected
-/// with `NaclacError::ProgramIdMismatch`, a different error variant from the
-/// `ConstraintAddress` that `token::mint` and `token::authority` return.
+/// (checked when the field loads). A real SPL token account genuinely owned
+/// by the Token program is accepted; an account owned by our own program (the
+/// `mint_authority` PDA) is rejected with `NaclacError::ProgramIdMismatch`, a
+/// different error variant from the `ConstraintTokenMint` and
+/// `ConstraintTokenAuthority` that `token::mint` and `token::authority` return.
 #[test]
 fn token_program_constraint_rejects_wrong_owning_program() {
     let provider = setup();
@@ -363,13 +360,12 @@ fn token_program_constraint_rejects_wrong_owning_program() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 50;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -408,8 +404,8 @@ fn token_program_constraint_rejects_wrong_owning_program() {
     )
     .send_and_confirm();
     // `CheckVaultProgram { token_program, vault }` — `vault` is field index
-    // 1; `token::token_program` mismatch emits `ProgramIdMismatch` (9), checked
-    // post-load in `generate_relational_checks` -> 10000 + 1*100 + 9 = 10109.
+    // 1; `token::token_program` mismatch emits `ProgramIdMismatch` (9):
+    // 10000 + 1*100 + 9 = 10109.
     assert_custom_code(wrong_program_result, 10109);
 }
 
@@ -444,13 +440,12 @@ fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {
 
     // Mint with no freeze authority at all (the original `create_mint`).
     let no_freeze_id: u64 = 60;
-    let (no_freeze_mint, no_freeze_bump) =
+    let (no_freeze_mint, _) =
         Address::find_program_address(&[b"mint", &no_freeze_id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint(
         &provider,
         PROGRAM_ID,
         no_freeze_id,
-        no_freeze_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -465,13 +460,12 @@ fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {
 
     // Mint with a real freeze authority set at creation time.
     let freeze_id: u64 = 61;
-    let (freeze_mint, freeze_bump) =
+    let (freeze_mint, _) =
         Address::find_program_address(&[b"mint", &freeze_id.to_le_bytes()], &PROGRAM_ID);
     build_create_mint_with_freeze(
         &provider,
         PROGRAM_ID,
         freeze_id,
-        freeze_bump,
         6,
         CreateMintWithFreezeAccounts {
             payer: provider.payer.address(),
@@ -510,8 +504,8 @@ fn mint_freeze_authority_distinguishes_missing_and_wrong_authority() {
     .send_and_confirm();
     // `CheckMintFreezeAuthority { freeze_authority, mint }` — `mint` is
     // field index 1; a mismatched (but present) freeze authority emits
-    // `ConstraintAddress` (3) -> 10000 + 1*100 + 3 = 10103.
-    assert_custom_code(wrong_authority_result, 10103);
+    // `ConstraintMintFreezeAuthority` (39) -> 10000 + 1*100 + 39 = 10139.
+    assert_custom_code(wrong_authority_result, 10139);
 
     let missing_authority_result = build_check_mint_freeze_authority(
         &provider,
@@ -559,14 +553,13 @@ fn create_ata_creates_a_real_associated_token_account() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 70;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -654,14 +647,13 @@ fn create_ata_idempotent_is_a_noop_on_second_call() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 71;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),
@@ -750,14 +742,13 @@ fn check_ata_constraints_validates_mint_authority_and_pda_bump() {
     .expect("init_mint_authority should succeed");
 
     let id: u64 = 90;
-    let (mint_pda, mint_bump) =
+    let (mint_pda, _) =
         Address::find_program_address(&[b"mint", &id.to_le_bytes()], &PROGRAM_ID);
 
     build_create_mint(
         &provider,
         PROGRAM_ID,
         id,
-        mint_bump,
         6,
         CreateMintAccounts {
             payer: provider.payer.address(),

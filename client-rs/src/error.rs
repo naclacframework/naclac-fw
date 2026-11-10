@@ -41,11 +41,14 @@ pub enum NaclacError {
     ConstraintDuplicateAccount = 34,
     ConstraintTokenMint = 35,
     ConstraintTokenAuthority = 36,
+    ConstraintMintDecimals = 37,
+    ConstraintMintAuthority = 38,
+    ConstraintMintFreezeAuthority = 39,
 }
 
 impl NaclacError {
     /// Every framework error, in code order.
-    pub const ALL: [NaclacError; 36] = [
+    pub const ALL: [NaclacError; 39] = [
         NaclacError::ConstraintMut,
         NaclacError::ConstraintSigner,
         NaclacError::ConstraintAddress,
@@ -82,6 +85,9 @@ impl NaclacError {
         NaclacError::ConstraintDuplicateAccount,
         NaclacError::ConstraintTokenMint,
         NaclacError::ConstraintTokenAuthority,
+        NaclacError::ConstraintMintDecimals,
+        NaclacError::ConstraintMintAuthority,
+        NaclacError::ConstraintMintFreezeAuthority,
     ];
 
     pub fn description(&self) -> &'static str {
@@ -142,6 +148,9 @@ impl NaclacError {
             }
             NaclacError::ConstraintTokenMint => "Token account mint mismatch",
             NaclacError::ConstraintTokenAuthority => "Token account authority mismatch",
+            NaclacError::ConstraintMintDecimals => "Mint decimals mismatch",
+            NaclacError::ConstraintMintAuthority => "Mint authority mismatch",
+            NaclacError::ConstraintMintFreezeAuthority => "Mint freeze authority mismatch",
         }
     }
 }
@@ -195,6 +204,9 @@ pub fn decode_custom_error(code: u32) -> Option<(NaclacError, usize)> {
         34 => NaclacError::ConstraintDuplicateAccount,
         35 => NaclacError::ConstraintTokenMint,
         36 => NaclacError::ConstraintTokenAuthority,
+        37 => NaclacError::ConstraintMintDecimals,
+        38 => NaclacError::ConstraintMintAuthority,
+        39 => NaclacError::ConstraintMintFreezeAuthority,
         _ => return None,
     };
     Some((error, index))
@@ -390,6 +402,9 @@ mod table_parity_tests {
             ConstraintDuplicateAccount,
             ConstraintTokenMint,
             ConstraintTokenAuthority,
+            ConstraintMintDecimals,
+            ConstraintMintAuthority,
+            ConstraintMintFreezeAuthority,
         );
     }
 

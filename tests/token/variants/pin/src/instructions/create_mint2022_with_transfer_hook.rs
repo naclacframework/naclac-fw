@@ -11,7 +11,6 @@ use crate::constants::SEED_MINT;
 #[instruction_args]
 pub struct CreateMint2022WithTransferHookArgs {
     pub id: u64,
-    pub mint_bump: u8,
     pub decimals: u8,
     pub hook_program_id: Address,
 }
@@ -24,7 +23,7 @@ pub struct CreateMint2022WithTransferHook {
 
     /// SAFETY: allocated and initialized entirely by hand in the handler
     /// body below — see `CreateMint2022WithTransferFee::mint`'s SAFETY note.
-    #[account(mut, seeds = [SEED_MINT, &args.id.to_le_bytes()], bump = args.mint_bump)]
+    #[account(mut)]
     pub mint: AccountInfo,
 
     pub mint_authority: Account<MintAuthority>,
@@ -43,7 +42,11 @@ pub fn create_mint2022_with_transfer_hook(
 ) -> Result {
     let mint_authority_address = ctx.accounts.mint_authority.address();
     let id_bytes = args.id.to_le_bytes();
-    let (_, mint_bump) = find_program_address(&[SEED_MINT, &id_bytes], ctx.program_id)?;
+    let (mint_pda, mint_bump) = find_program_address(&[SEED_MINT, &id_bytes], ctx.program_id)?;
+    if ctx.accounts.mint.address() != mint_pda {
+        return Err(NaclacError::ConstraintSeeds
+            .err(CreateMint2022WithTransferHook::MINT_INDEX));
+    }
     let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
     let mint_signer: &[&[&[u8]]] = &[mint_seeds];
 

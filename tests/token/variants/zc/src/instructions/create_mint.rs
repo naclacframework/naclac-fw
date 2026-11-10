@@ -8,7 +8,7 @@ use crate::constants::SEED_MINT;
 // not naclac's own Discriminator-prefixed layout. Mirrors
 // `examples/launchpad/.../create_mint.rs` exactly.
 #[derive(Accounts)]
-#[instruction(id: u64, mint_bump: u8, decimals: u8)]
+#[instruction(id: u64, decimals: u8)]
 pub struct CreateMint {
     #[account(mut)]
     pub payer: Signer,
@@ -34,6 +34,6 @@ pub struct CreateMint {
     pub system_program: Program<System>,
 }
 
-pub fn create_mint(_ctx: Context<CreateMint>, _id: u64, _mint_bump: u8, _decimals: u8) -> Result {
+pub fn create_mint(_ctx: Context<CreateMint>, _id: u64, _decimals: u8) -> Result {
     Ok(())
 }
