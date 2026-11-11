@@ -2,7 +2,7 @@
 //! any combination is validated.
 
 use {
-    super::{PdaBump, PluginConstraint, RelationConfig},
+    super::{PdaBump, PdaSeeds, PluginConstraint, RelationConfig},
     crate::accounts::field::builtin_namespaces,
     syn::Ident,
 };
@@ -11,6 +11,33 @@ use {
 /// these, or with a builtin namespace, but is not one of its keys is a
 /// mistake, never a plugin constraint.
 const CORE_NAMESPACES: [&str; 2] = ["realloc", "seeds"];
+
+/// The `seeds = ..` value: a list `[..]`, or a call of a path ending in
+/// `seeds`, like `PoolState::seeds(a, b)`. Anything else is an error.
+fn parse_pda_seeds(expr: syn::Expr) -> syn::Result<PdaSeeds> {
+    match expr {
+        syn::Expr::Array(array) => Ok(PdaSeeds::List(array)),
+        syn::Expr::Call(call) if is_seeds_function(&call.func) => Ok(PdaSeeds::Typed(call)),
+        other => Err(syn::Error::new_spanned(
+            other,
+            "Naclac Error: `seeds` takes a list like `seeds = [SEED, owner.address().as_ref()]` \
+             or a call like `seeds = Vault::seeds(owner)` of an `#[account]` with `#[seeds(..)]`.",
+        )),
+    }
+}
+
+/// True for a path of at least two segments whose last is `seeds`.
+fn is_seeds_function(func: &syn::Expr) -> bool {
+    let syn::Expr::Path(path) = func else {
+        return false;
+    };
+    path.path.segments.len() >= 2
+        && path
+            .path
+            .segments
+            .last()
+            .is_some_and(|segment| segment.ident == "seeds")
+}
 
 fn is_builtin_namespace(segment: &syn::PathSegment) -> bool {
     builtin_namespaces::namespace(&segment.ident.to_string()).is_some()
@@ -26,7 +53,7 @@ pub(super) struct RawAttrs {
     pub(super) is_executable: bool,
     pub(super) is_rent_exempt: bool,
     pub(super) pda_program: Option<syn::Expr>,
-    pub(super) pda_seed: Option<syn::ExprArray>,
+    pub(super) pda_seed: Option<super::PdaSeeds>,
     pub(super) pda_bump: Option<PdaBump>,
     pub(super) is_init: bool,
     pub(super) is_init_if_needed: bool,
@@ -250,7 +277,7 @@ impl RawAttrs {
                         }
 
                         if meta.path.is_ident("seeds") {
-                            pda_seed = Some(meta.value()?.parse::<syn::ExprArray>()?);
+                            pda_seed = Some(parse_pda_seeds(meta.value()?.parse::<syn::Expr>()?)?);
                             return Ok(());
                         }
 

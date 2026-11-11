@@ -242,6 +242,47 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         )
     };
 
+    let pinocchio_data_code = if ix.args.is_empty() {
+        format!("            let ix_data = [{}];\n", disc_str)
+    } else if crate::rust::is_pod_only_args(ix, &idl.defined_types) {
+        format!(
+            "            #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
+             \x20           #[derive(Clone, Copy)]\n\
+             \x20           #[repr(C, packed)]\n\
+             \x20           struct IxData {{\n\
+             \x20               discriminator: [u8; {len}],\n\
+             \x20               args: {camel}CpiIxArgs,\n\
+             \x20           }}\n\
+             \x20           #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
+             \x20           unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for IxData {{}}\n\
+             \x20           #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
+             \x20           unsafe impl crate::sdk_core_cpi::bytemuck::Pod for IxData {{}}\n\
+             \x20           #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
+             \x20           let ix_wire = IxData {{ discriminator: [{disc}], args }};\n\
+             \x20           #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
+             \x20           let ix_data = crate::sdk_core_cpi::bytemuck::bytes_of(&ix_wire);\n\
+             \x20           #[cfg(any(feature = \"borsh\", feature = \"wincode\"))]\n\
+             \x20           let ix_data = {{\n\
+             \x20               let mut ix_data = crate::sdk_core_cpi::Vec::new();\n\
+             \x20               ix_data.extend_from_slice(&[{disc}]);\n\
+             \x20               #[cfg(feature = \"borsh\")]\n\
+             \x20               {{\n\
+             \x20                   crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();\n\
+             \x20               }}\n\
+             \x20               #[cfg(feature = \"wincode\")]\n\
+             \x20               {{\n\
+             \x20                   crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();\n\
+             \x20               }}\n\
+             \x20               ix_data\n\
+             \x20           }};\n",
+            len = ix.discriminator.len(),
+            camel = ix_camel,
+            disc = disc_str
+        )
+    } else {
+        serializing_code.clone()
+    };
+
     let has_optional_accounts = ix.accounts.iter().any(|a| a.optional.unwrap_or(false));
 
     let mut pinocchio_metas = Vec::new();
@@ -290,10 +331,10 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
 
     let mut impl_body = String::new();
     impl_body.push_str(&args_struct_init);
-    impl_body.push_str(&serializing_code);
 
     // Pinocchio CPI
     impl_body.push_str("        #[cfg(feature = \"pinocchio\")]\n        {\n");
+    impl_body.push_str(&pinocchio_data_code);
     impl_body.push_str("            let mut metas_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount>::uninit() }; 32];\n");
     impl_body.push_str("            let mut idx = 0;\n");
     if has_optional_accounts {
@@ -383,6 +424,7 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
 
     // Solana CPI
     impl_body.push_str("        #[cfg(feature = \"solana\")]\n        {\n");
+    impl_body.push_str(&serializing_code);
     impl_body.push_str("            use crate::sdk_core_cpi::ToAddress;\n");
     // Every declared account gets exactly one meta, in declared order — same
     // sentinel-scheme requirement as the offchain builder above: an absent

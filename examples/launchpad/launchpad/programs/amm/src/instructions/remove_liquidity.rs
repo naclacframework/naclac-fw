@@ -2,7 +2,6 @@
 
 use {
     crate::{
-        constants::SEED_POOL,
         errors::AmmError,
         events::LiquidityRemoved,
         state::pool_state::PoolState,
@@ -114,44 +113,34 @@ pub fn remove_liquidity(
         lp_amount,
     )?;
 
-    let token_a_ref = ctx.accounts.pool_state.token_a_mint;
-    let token_b_ref = ctx.accounts.pool_state.token_b_mint;
-    let id_bytes = ctx.accounts.pool_state.id.to_le_bytes();
-    let pool_seeds: &[&[u8]] = &[
-        SEED_POOL,
-        token_a_ref.as_ref(),
-        token_b_ref.as_ref(),
-        &id_bytes,
-        &[ctx.accounts.pool_state.bump],
-    ];
-    let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
-
     let token_a_decimals = ctx.accounts.token_a_mint.decimals();
     let token_b_decimals = ctx.accounts.token_b_mint.decimals();
 
-    ctx.accounts.token_program_a.transfer_checked_signed(
-        TransferCheckedAccounts {
-            from: &mut ctx.accounts.vault_a,
-            mint: &ctx.accounts.token_a_mint,
-            to: &mut ctx.accounts.user_token_a,
-            authority: &ctx.accounts.pool_state,
-        },
-        amount_a,
-        token_a_decimals,
-        signer_seeds,
-    )?;
+    ctx.accounts.pool_state.with_signer_seeds(|signer_seeds| {
+        ctx.accounts.token_program_a.transfer_checked_signed(
+            TransferCheckedAccounts {
+                from: &mut ctx.accounts.vault_a,
+                mint: &ctx.accounts.token_a_mint,
+                to: &mut ctx.accounts.user_token_a,
+                authority: &ctx.accounts.pool_state,
+            },
+            amount_a,
+            token_a_decimals,
+            signer_seeds,
+        )?;
 
-    ctx.accounts.token_program_b.transfer_checked_signed(
-        TransferCheckedAccounts {
-            from: &mut ctx.accounts.vault_b,
-            mint: &ctx.accounts.token_b_mint,
-            to: &mut ctx.accounts.user_token_b,
-            authority: &ctx.accounts.pool_state,
-        },
-        amount_b,
-        token_b_decimals,
-        signer_seeds,
-    )?;
+        ctx.accounts.token_program_b.transfer_checked_signed(
+            TransferCheckedAccounts {
+                from: &mut ctx.accounts.vault_b,
+                mint: &ctx.accounts.token_b_mint,
+                to: &mut ctx.accounts.user_token_b,
+                authority: &ctx.accounts.pool_state,
+            },
+            amount_b,
+            token_b_decimals,
+            signer_seeds,
+        )
+    })?;
 
     emit!(LiquidityRemoved {
         token_a_mint: ctx.accounts.pool_state.token_a_mint,

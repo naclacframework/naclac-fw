@@ -1,8 +1,9 @@
 //! AMM pool state account layout.
 
-use naclac_lang::prelude::*;
+use {crate::constants::SEED_POOL, naclac_lang::prelude::*};
 
 #[account]
+#[seeds(SEED_POOL, token_a_mint, token_b_mint, id, bump = bump)]
 pub struct PoolState {
     pub id: u64,
     pub token_a_mint: Address,

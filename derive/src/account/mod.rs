@@ -6,6 +6,7 @@
 //! the serialization/deserialization traits based on the active execution mode.
 
 mod idl_build;
+mod seeds;
 
 pub(crate) use idl_build::idl_build_impl;
 
@@ -87,6 +88,15 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         .into();
     }
     let disc_tokens = quote! { &[#(#disc_bytes),*] };
+
+    let seeds_impl = match seeds::parse(&ast).and_then(|spec| {
+        spec.map(|spec| seeds::generate(&ast, &spec))
+            .transpose()
+            .map(Option::unwrap_or_default)
+    }) {
+        Ok(tokens) => tokens,
+        Err(error) => return error.to_compile_error().into(),
+    };
 
     let mut cleaned_ast = ast.clone();
     if let syn::Fields::Named(fields_named) = &mut cleaned_ast.fields {
@@ -403,5 +413,6 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #borsh_block
         #wincode_block
         #idl_build_impl
+        #seeds_impl
     })
 }

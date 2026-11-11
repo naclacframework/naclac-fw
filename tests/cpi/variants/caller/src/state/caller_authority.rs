@@ -1,4 +1,4 @@
-use naclac_lang::prelude::*;
+use {crate::constants::SEED_CALLER_AUTHORITY, naclac_lang::prelude::*};
 
 // A PDA owned by cpi_caller, used purely as a CPI-signing authority — its
 // address is what cpi_callee's `Counter.authority` gets set to, and its
@@ -6,6 +6,7 @@ use naclac_lang::prelude::*;
 // call with. Exercises the real "signed CPI with PDA seeds" path: a PDA
 // belonging to *this* program authorizing an action in *another* program.
 #[account]
+#[seeds(SEED_CALLER_AUTHORITY, bump = bump)]
 pub struct CallerAuthority {
     pub bump: u8,
 }

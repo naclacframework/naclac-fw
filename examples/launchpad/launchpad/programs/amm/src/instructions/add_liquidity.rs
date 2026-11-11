@@ -2,7 +2,6 @@
 
 use {
     crate::{
-        constants::SEED_POOL,
         errors::AmmError,
         events::LiquidityAdded,
         state::pool_state::PoolState,
@@ -128,27 +127,17 @@ pub fn add_liquidity(
         token_b_decimals,
     )?;
 
-    let token_a_ref = ctx.accounts.pool_state.token_a_mint;
-    let token_b_ref = ctx.accounts.pool_state.token_b_mint;
-    let id_bytes = ctx.accounts.pool_state.id.to_le_bytes();
-    let pool_seeds: &[&[u8]] = &[
-        SEED_POOL,
-        token_a_ref.as_ref(),
-        token_b_ref.as_ref(),
-        &id_bytes,
-        &[ctx.accounts.pool_state.bump],
-    ];
-    let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
-
-    ctx.accounts.lp_token_program.mint_to_signed(
-        MintToAccounts {
-            mint: &mut ctx.accounts.lp_mint,
-            to: &mut ctx.accounts.user_lp,
-            authority: &ctx.accounts.pool_state,
-        },
-        lp_to_mint,
-        signer_seeds,
-    )?;
+    ctx.accounts.pool_state.with_signer_seeds(|signer_seeds| {
+        ctx.accounts.lp_token_program.mint_to_signed(
+            MintToAccounts {
+                mint: &mut ctx.accounts.lp_mint,
+                to: &mut ctx.accounts.user_lp,
+                authority: &ctx.accounts.pool_state,
+            },
+            lp_to_mint,
+            signer_seeds,
+        )
+    })?;
 
     emit!(LiquidityAdded {
         token_a_mint: ctx.accounts.pool_state.token_a_mint,

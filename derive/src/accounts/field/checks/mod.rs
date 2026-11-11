@@ -20,7 +20,9 @@ use {
 };
 
 pub(crate) use {
-    plugin::plugin_args_tokens, relational::generate_relational_checks, seeds::seed_binding_tokens,
+    plugin::plugin_args_tokens,
+    relational::generate_relational_checks,
+    seeds::{seed_binding_tokens, typed_seeds_call},
 };
 
 /// The checks that run as `field`'s account is loaded: `(metadata_checks,

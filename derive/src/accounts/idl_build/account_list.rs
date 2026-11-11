@@ -17,7 +17,10 @@ pub(crate) fn idl_build_accounts_impl(
     fields_named: &syn::FieldsNamed,
     instr_names: &[syn::Ident],
 ) -> proc_macro2::TokenStream {
-    use super::seeds::{build_idl_seed_expr, mentions_any_name, splice_const_fallback};
+    use {
+        super::seeds::{build_idl_seed_expr, mentions_any_name, splice_const_fallback},
+        parser::PdaSeeds,
+    };
 
     let account_names: Vec<String> = parsed_fields.iter().map(|f| f.ident.to_string()).collect();
     let valueless_names: Vec<String> = account_names
@@ -35,12 +38,27 @@ pub(crate) fn idl_build_accounts_impl(
             crate::accounts::signer::signer_flag(field, &syn::Generics::default(), false);
         let is_optional = field.is_optional;
 
-        let pda_tokens = if let Some(seed_array) = &field.pda_seed {
-            let seed_tokens: Vec<_> = seed_array
-                .elems
-                .iter()
-                .map(|e| build_idl_seed_expr(e, &account_names, instr_names, parsed_fields))
-                .collect();
+        let pda_tokens = if let Some(pda_seeds) = &field.pda_seed {
+            let mut seed_tokens: Vec<proc_macro2::TokenStream> = Vec::new();
+            if let PdaSeeds::Typed(call) = pda_seeds {
+                let syn::Expr::Path(function) = &*call.func else {
+                    return syn::Error::new_spanned(
+                        &call.func,
+                        "Naclac Error: a typed `seeds` is called as `Type::seeds(..)`.",
+                    )
+                    .to_compile_error();
+                };
+                let mut account_type = function.clone();
+                account_type.path.segments.pop();
+                account_type.path.segments.pop_punct();
+                seed_tokens.push(quote! { #account_type::__naclac_idl_prefix_seed() });
+            }
+            seed_tokens.extend(
+                pda_seeds
+                    .exprs()
+                    .into_iter()
+                    .map(|e| build_idl_seed_expr(e, &account_names, instr_names, parsed_fields)),
+            );
             let program_tokens = match &field.pda_program {
                 Some(prog_expr) => {
                     let t =

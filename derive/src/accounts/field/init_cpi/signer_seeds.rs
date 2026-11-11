@@ -3,64 +3,118 @@
 
 use {
     crate::accounts::field::{
-        checks::seed_binding_tokens,
-        parser::{ParsedField, PdaBump},
+        checks::{seed_binding_tokens, typed_seeds_call},
+        parser::{ParsedField, PdaBump, PdaSeeds},
     },
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
 };
 
-pub(super) fn signer_seeds_tokens(field: &ParsedField) -> TokenStream {
-    if let Some(seed_array) = &field.pda_seed {
-        let field_ident = &field.ident;
-        let seed_bindings: Vec<TokenStream> = seed_array
-            .elems
-            .iter()
-            .enumerate()
-            .map(|(i, expr)| {
-                let ident = format_ident!("__seed_{}_{}", field_ident, i);
-                seed_binding_tokens(expr, &ident)
-            })
-            .collect();
-        let seed_refs: Vec<TokenStream> = seed_array
-            .elems
-            .iter()
-            .enumerate()
-            .map(|(i, _)| {
-                let ident = format_ident!("__seed_{}_{}", field_ident, i);
-                quote! { naclac_lang::prelude::AsRefByteSlice::as_ref_byte_slice(&#ident) }
-            })
-            .collect();
+/// The locals that hold a field's seeds, and the seed slices with the bump
+/// last: `with_bump` is an expression of type `&[&[u8]]`-compatible array
+/// built from `bump_array`, a local `[u8; 1]`.
+struct BoundSeeds {
+    bindings: TokenStream,
+    with_bump: TokenStream,
+    /// One `&[u8]` expression per seed, for the pinocchio `Seed` list; `None`
+    /// for a typed seed set, whose slices are an array mapped as a whole.
+    refs: Option<Vec<TokenStream>>,
+}
 
-        quote! {
-            let __expected_bump_arr = [expected_bump];
-            #(#seed_bindings)*
-
-            // signer_seeds (Solana-program format) is only needed on the non-pinocchio path.
-            // In pinocchio mode we use pinocchio_seeds / pinocchio_signer_seeds exclusively.
-            #[cfg(feature = "solana")]
-            let signer_seeds: &[&[&[u8]]] = &[&[
-                #(#seed_refs),*,
-                &__expected_bump_arr
-            ]];
-
-            #[cfg(not(feature = "solana"))]
-            let pinocchio_seeds = [
-                #(naclac_lang::prelude::pinocchio::cpi::Seed::from(#seed_refs)),*,
-                naclac_lang::prelude::pinocchio::cpi::Seed::from(&__expected_bump_arr[..])
-            ];
-            #[cfg(not(feature = "solana"))]
-            let __pinocchio_signer = naclac_lang::prelude::pinocchio::cpi::Signer::from(&pinocchio_seeds);
-            #[cfg(not(feature = "solana"))]
-            let pinocchio_signer_seeds: &[naclac_lang::prelude::pinocchio::cpi::Signer] = &[__pinocchio_signer];
+fn bind_seeds(
+    seeds: &PdaSeeds,
+    field_ident: &syn::Ident,
+    tag: &str,
+    bump_array: &syn::Ident,
+) -> BoundSeeds {
+    match seeds {
+        PdaSeeds::List(array) => {
+            let bindings: Vec<TokenStream> = array
+                .elems
+                .iter()
+                .enumerate()
+                .map(|(i, expr)| {
+                    let ident = format_ident!("{}_{}_{}", tag, field_ident, i);
+                    seed_binding_tokens(expr, &ident)
+                })
+                .collect();
+            let refs: Vec<TokenStream> = (0..array.elems.len())
+                .map(|i| {
+                    let ident = format_ident!("{}_{}_{}", tag, field_ident, i);
+                    quote! { naclac_lang::prelude::AsRefByteSlice::as_ref_byte_slice(&#ident) }
+                })
+                .collect();
+            BoundSeeds {
+                bindings: quote! { #(#bindings)* },
+                with_bump: quote! { [ #(#refs,)* &#bump_array[..] ] },
+                refs: Some(refs),
+            }
         }
-    } else {
-        quote! {
+        PdaSeeds::Typed(call) => {
+            let set = format_ident!("{}_{}_set", tag, field_ident);
+            let call = typed_seeds_call(call);
+            BoundSeeds {
+                bindings: quote! { let #set = #call; },
+                with_bump: quote! { #set.as_slices_with_bump(&#bump_array) },
+                refs: None,
+            }
+        }
+    }
+}
+
+pub(super) fn signer_seeds_tokens(field: &ParsedField) -> TokenStream {
+    let Some(seeds) = &field.pda_seed else {
+        return quote! {
             #[cfg(feature = "solana")]
             let signer_seeds: &[&[&[u8]]] = &[];
             #[cfg(not(feature = "solana"))]
             let pinocchio_signer_seeds: &[naclac_lang::prelude::pinocchio::cpi::Signer] = &[];
+        };
+    };
+    let bump_array = format_ident!("__expected_bump_arr");
+    let bound = bind_seeds(seeds, &field.ident, "__seed", &bump_array);
+    let BoundSeeds {
+        bindings,
+        with_bump,
+        refs,
+    } = bound;
+
+    let seeds_with_bump = if refs.is_some() {
+        quote! {
+            #[cfg(feature = "solana")]
+            let __seeds_with_bump = #with_bump;
         }
+    } else {
+        quote! { let __seeds_with_bump = #with_bump; }
+    };
+    let pinocchio_seeds = match refs {
+        Some(refs) => quote! {
+            [
+                #(naclac_lang::prelude::pinocchio::cpi::Seed::from(#refs)),*,
+                naclac_lang::prelude::pinocchio::cpi::Seed::from(&#bump_array[..])
+            ]
+        },
+        None => quote! {
+            __seeds_with_bump.map(naclac_lang::prelude::pinocchio::cpi::Seed::from)
+        },
+    };
+
+    // `signer_seeds` (Solana-program format) is only needed on the non-pinocchio
+    // path; pinocchio uses `pinocchio_signer_seeds` exclusively.
+    quote! {
+        let #bump_array = [expected_bump];
+        #bindings
+        #seeds_with_bump
+
+        #[cfg(feature = "solana")]
+        let signer_seeds: &[&[&[u8]]] = &[&__seeds_with_bump];
+
+        #[cfg(not(feature = "solana"))]
+        let pinocchio_seeds = #pinocchio_seeds;
+        #[cfg(not(feature = "solana"))]
+        let __pinocchio_signer = naclac_lang::prelude::pinocchio::cpi::Signer::from(&pinocchio_seeds);
+        #[cfg(not(feature = "solana"))]
+        let pinocchio_signer_seeds: &[naclac_lang::prelude::pinocchio::cpi::Signer] = &[__pinocchio_signer];
     }
 }
 
@@ -81,8 +135,8 @@ pub(super) fn signer_seeds_tokens(field: &ParsedField) -> TokenStream {
 /// never runs an on-chain bump-search loop), so this isn't a regression
 /// against anything currently expressible.
 pub(super) fn payer_signer_seeds_tokens(payer_field: &ParsedField) -> TokenStream {
-    let seed_array = match &payer_field.pda_seed {
-        Some(seed_array) => seed_array,
+    let seeds = match &payer_field.pda_seed {
+        Some(seeds) => seeds,
         None => {
             return quote! { let __payer_signer_seeds: &[&[&[u8]]] = &[]; };
         }
@@ -100,32 +154,17 @@ pub(super) fn payer_signer_seeds_tokens(payer_field: &ParsedField) -> TokenStrea
         }
     };
 
-    let field_ident = &payer_field.ident;
-    let seed_bindings: Vec<TokenStream> = seed_array
-        .elems
-        .iter()
-        .enumerate()
-        .map(|(i, expr)| {
-            let ident = format_ident!("__payer_seed_{}_{}", field_ident, i);
-            seed_binding_tokens(expr, &ident)
-        })
-        .collect();
-    let seed_refs: Vec<TokenStream> = seed_array
-        .elems
-        .iter()
-        .enumerate()
-        .map(|(i, _)| {
-            let ident = format_ident!("__payer_seed_{}_{}", field_ident, i);
-            quote! { naclac_lang::prelude::AsRefByteSlice::as_ref_byte_slice(&#ident) }
-        })
-        .collect();
+    let bump_array = format_ident!("__payer_bump_arr");
+    let BoundSeeds {
+        bindings,
+        with_bump,
+        ..
+    } = bind_seeds(seeds, &payer_field.ident, "__payer_seed", &bump_array);
 
     quote! {
-        let __payer_bump_arr = [#bump_expr];
-        #(#seed_bindings)*
-        let __payer_signer_seeds: &[&[&[u8]]] = &[&[
-            #(#seed_refs),*,
-            &__payer_bump_arr
-        ]];
+        let #bump_array = [#bump_expr];
+        #bindings
+        let __payer_seeds_with_bump = #with_bump;
+        let __payer_signer_seeds: &[&[&[u8]]] = &[&__payer_seeds_with_bump];
     }
 }

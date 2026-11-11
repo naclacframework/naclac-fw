@@ -40,6 +40,17 @@ use proc_macro::TokenStream;
 ///
 /// Takes an optional `discriminator = <int | [ints]>` argument (1 to 8 bytes)
 /// replacing the default name-derived 8-byte discriminator.
+///
+/// A `#[seeds(PREFIX, field, .., bump = field)]` written below `#[account]`
+/// names the seeds of the PDA that holds the account: a constant or literal
+/// prefix, then the account's own fields in order (integers, `Address` and
+/// `[u8; N]` of at most 32 bytes), then the `u8` bump field. It generates
+/// `with_signer_seeds`, which passes those seeds to a closure as the
+/// `&[&[&[u8]]]` a `*_signed` CPI takes, so the program signs as the PDA
+/// from the stored fields without writing the seeds out again. It also
+/// generates `Account::seeds(..)`, taking the named fields' values, so a
+/// field can write `seeds = Account::seeds(a, b, id), bump` and use the same
+/// definition to create and verify the account.
 #[proc_macro_attribute]
 pub fn account(attr: TokenStream, item: TokenStream) -> TokenStream {
     account::expand(attr, item)

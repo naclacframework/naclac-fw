@@ -113,7 +113,7 @@ pub(super) fn finish(
     let mut init_config = None;
     let mut realloc = None;
 
-    if let Some(seed_array) = &pda_seed {
+    if let Some(super::PdaSeeds::List(seed_array)) = &pda_seed {
         check_seed_limits(seed_array)?;
     }
 

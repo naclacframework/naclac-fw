@@ -596,6 +596,74 @@ impl ConstSeed<Address> {
     }
 }
 
+/// A field value used as one PDA seed by an `#[account]` with `#[seeds(..)]`:
+/// its owned bytes, which the generated signer helper borrows for a signed
+/// CPI. Integers are little-endian; `Address` and `[u8; N]` are themselves.
+pub trait SeedPart {
+    type Bytes: AsRef<[u8]>;
+
+    /// The length of `Bytes`; one PDA seed may be at most `MAX_PDA_SEED_LEN`.
+    const LEN: usize;
+
+    fn seed_part(&self) -> Self::Bytes;
+}
+
+macro_rules! integer_seed_part {
+    ($($int:ty),* $(,)?) => {
+        $(
+            impl SeedPart for $int {
+                type Bytes = [u8; core::mem::size_of::<$int>()];
+
+                const LEN: usize = core::mem::size_of::<$int>();
+
+                #[inline(always)]
+                fn seed_part(&self) -> Self::Bytes {
+                    self.to_le_bytes()
+                }
+            }
+        )*
+    };
+}
+
+integer_seed_part!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
+
+impl<const N: usize> SeedPart for [u8; N] {
+    type Bytes = [u8; N];
+
+    const LEN: usize = N;
+
+    #[inline(always)]
+    fn seed_part(&self) -> Self::Bytes {
+        *self
+    }
+}
+
+impl SeedPart for Address {
+    type Bytes = [u8; 32];
+
+    const LEN: usize = 32;
+
+    #[inline(always)]
+    fn seed_part(&self) -> Self::Bytes {
+        *address_bytes(self)
+    }
+}
+
+#[cfg(test)]
+mod seed_part_tests {
+    use super::{Address, SeedPart};
+
+    #[test]
+    fn integers_are_little_endian_and_arrays_and_addresses_are_themselves() {
+        assert!(7u8.seed_part() == [7]);
+        assert!(0x0102u16.seed_part() == [2, 1]);
+        assert!(42u64.seed_part() == 42u64.to_le_bytes());
+        assert!((-2i32).seed_part() == (-2i32).to_le_bytes());
+        assert!([1u8, 2, 3].seed_part() == [1, 2, 3]);
+        assert!(Address::default().seed_part() == [0u8; 32]);
+    }
+}
+
 /// `FloatProbe::<T>::IS_FLOAT` is true exactly when `T` is `f32` or `f64`,
 /// under any name, an alias included. Read it with [`NotFloat`] in scope: the
 /// inherent constant of `FloatProbe<f32>` and `FloatProbe<f64>` shadows the

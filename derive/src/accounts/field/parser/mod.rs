@@ -16,6 +16,33 @@ pub enum PdaBump {
     Explicit(syn::Expr),
 }
 
+/// A field's `seeds = ...` constraint: the seed list written out, or a call
+/// of the `seeds` function an `#[account]` with `#[seeds(..)]` generates, as
+/// in `seeds = PoolState::seeds(token_a_mint, token_b_mint, id)`.
+#[derive(Clone)]
+pub enum PdaSeeds {
+    List(syn::ExprArray),
+    Typed(syn::ExprCall),
+}
+
+impl PdaSeeds {
+    /// The expressions the seeds are computed from: the elements of a list,
+    /// or the arguments of a typed call.
+    pub fn exprs(&self) -> Vec<&syn::Expr> {
+        match self {
+            PdaSeeds::List(array) => array.elems.iter().collect(),
+            PdaSeeds::Typed(call) => call.args.iter().collect(),
+        }
+    }
+
+    pub fn span(&self) -> proc_macro2::Span {
+        match self {
+            PdaSeeds::List(array) => syn::spanned::Spanned::span(array),
+            PdaSeeds::Typed(call) => syn::spanned::Spanned::span(call),
+        }
+    }
+}
+
 pub struct ParsedField {
     pub ident: Ident,
     pub ty: Type,
@@ -30,7 +57,7 @@ pub struct ParsedField {
     pub is_executable: bool,
     pub is_rent_exempt: bool,
     pub pda_program: Option<syn::Expr>,
-    pub pda_seed: Option<syn::ExprArray>,
+    pub pda_seed: Option<PdaSeeds>,
     pub pda_bump: Option<PdaBump>,
     pub init_config: Option<InitConfig>,
     pub is_init_if_needed: bool,

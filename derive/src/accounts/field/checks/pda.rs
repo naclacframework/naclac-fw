@@ -3,8 +3,8 @@
 //! are constants, else at runtime) and compares it with the field's account.
 
 use {
-    super::seeds::seed_binding_tokens,
-    crate::accounts::field::parser::{ParsedField, PdaBump},
+    super::seeds::seed_slice_tokens,
+    crate::accounts::field::parser::{ParsedField, PdaBump, PdaSeeds},
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
 };
@@ -124,10 +124,10 @@ pub(in crate::accounts) fn const_seed_root(expr: &syn::Expr) -> Option<&syn::Exp
 /// a PDA the compiler can evaluate: every seed a literal or constant, and the
 /// program the crate's own `crate::ID` or an ALL_CAPS `seeds::program`.
 /// `None` when any part depends on runtime values.
-fn const_pda(
-    field: &ParsedField,
-    seed_array: &syn::ExprArray,
-) -> Option<(Vec<TokenStream>, TokenStream)> {
+fn const_pda(field: &ParsedField, pda_seeds: &PdaSeeds) -> Option<(Vec<TokenStream>, TokenStream)> {
+    let PdaSeeds::List(seed_array) = pda_seeds else {
+        return None;
+    };
     let seeds = seed_array
         .elems
         .iter()
@@ -174,31 +174,14 @@ fn precomputed_creation(
 }
 
 /// The runtime derivation, used when the PDA cannot be precomputed.
-fn dynamic_creation(field: &ParsedField, seed_array: &syn::ExprArray) -> Creation {
+fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
     let idx = field.index;
     let field_ident = &field.ident;
     let pda_program_ref = pda_program_ref(field);
     let actual_address_ref = actual_address_ref();
 
     // Each seed is bound to a local first to avoid temporary-drop errors (E0716).
-    let seed_bindings: Vec<TokenStream> = seed_array
-        .elems
-        .iter()
-        .enumerate()
-        .map(|(i, expr)| {
-            let ident = format_ident!("__seed_{}_{}", field_ident, i);
-            seed_binding_tokens(expr, &ident)
-        })
-        .collect();
-    let seed_refs: Vec<TokenStream> = seed_array
-        .elems
-        .iter()
-        .enumerate()
-        .map(|(i, _)| {
-            let ident = format_ident!("__seed_{}_{}", field_ident, i);
-            quote! { naclac_lang::prelude::AsRefByteSlice::as_ref_byte_slice(&#ident) }
-        })
-        .collect();
+    let (seed_bindings, seeds_slice) = seed_slice_tokens(pda_seeds, field_ident, "__seed");
 
     let mut bump_expr = quote! {};
     let mut bump_verification = quote! {};
@@ -258,10 +241,10 @@ fn dynamic_creation(field: &ParsedField, seed_array: &syn::ExprArray) -> Creatio
                 <#ty as naclac_lang::prelude::NaclacAccount>::OWNER_VALIDATED,
                 #HASH_ONLY_INELIGIBLE_MSG
             );
-            #(#seed_bindings)*
+            #seed_bindings
             #pda_program_ref
             #actual_address_ref
-            let __seeds: &[&[u8]] = &[ #( #seed_refs, )* ];
+            let __seeds: &[&[u8]] = #seeds_slice;
             let (expected_pda, expected_bump) =
                 match naclac_lang::prelude::NaclacAccount::stored_bump(&#field_ident) {
                     Some(__stored) => (
@@ -290,10 +273,10 @@ fn dynamic_creation(field: &ParsedField, seed_array: &syn::ExprArray) -> Creatio
                 <#ty as naclac_lang::prelude::NaclacAccount>::OWNER_VALIDATED,
                 #HASH_ONLY_INELIGIBLE_MSG
             );
-            #(#seed_bindings)*
+            #seed_bindings
             #pda_program_ref
             #actual_address_ref
-            let __seeds: &[&[u8]] = &[ #( #seed_refs, )* ];
+            let __seeds: &[&[u8]] = #seeds_slice;
             let expected_bump = naclac_lang::prelude::find_bump_for_address(
                 __seeds,
                 __pda_program,
@@ -305,9 +288,9 @@ fn dynamic_creation(field: &ParsedField, seed_array: &syn::ExprArray) -> Creatio
         // The one place a bounded on-chain canonical search is allowed,
         // delegated to the shared `find_program_address`.
         quote! {
-            #(#seed_bindings)*
+            #seed_bindings
             #pda_program_ref
-            let __seeds: &[&[u8]] = &[ #( #seed_refs, )* ];
+            let __seeds: &[&[u8]] = #seeds_slice;
             let (expected_pda, expected_bump) =
                 naclac_lang::prelude::find_program_address(__seeds, __pda_program)
                     .map_err(|_| naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
@@ -315,10 +298,10 @@ fn dynamic_creation(field: &ParsedField, seed_array: &syn::ExprArray) -> Creatio
     } else {
         // Hash-and-compare against the shared `derive_program_address`.
         quote! {
-            #(#seed_bindings)*
+            #seed_bindings
             let expected_bump = #bump_expr;
             #pda_program_ref
-            let __seeds: &[&[u8]] = &[ #( #seed_refs, )* ];
+            let __seeds: &[&[u8]] = #seeds_slice;
             let expected_pda = naclac_lang::prelude::derive_program_address(
                 __seeds,
                 expected_bump,
@@ -341,7 +324,7 @@ fn dynamic_creation(field: &ParsedField, seed_array: &syn::ExprArray) -> Creatio
 /// compile error plus placeholder `expected_bump` and `__bump_<field>` locals,
 /// so the code generated after it still compiles and the error stands alone.
 pub(super) fn pda_checks(field: &ParsedField) -> Option<PdaChecks> {
-    let Some(seed_array) = &field.pda_seed else {
+    let Some(seeds) = &field.pda_seed else {
         if field.pda_bump.is_some() {
             return Some(PdaChecks::Constraint(quote! {
                 compile_error!("Naclac Error: `bump` needs `seeds = [...]` on the same field, \
@@ -371,9 +354,9 @@ pub(super) fn pda_checks(field: &ParsedField) -> Option<PdaChecks> {
     let bump_cap = format_ident!("__bump_{}", field_ident);
     let actual_address_ref = actual_address_ref();
 
-    let creation = match const_pda(field, seed_array) {
+    let creation = match const_pda(field, seeds) {
         Some((seeds, program)) => precomputed_creation(field, &seeds, &program),
-        None => dynamic_creation(field, seed_array),
+        None => dynamic_creation(field, seeds),
     };
     let Creation {
         logic,
@@ -433,7 +416,7 @@ pub(super) fn pda_checks(field: &ParsedField) -> Option<PdaChecks> {
 
 #[cfg(test)]
 mod const_pda_tests {
-    use super::{const_pda, const_seed_root, is_const_path, pda_checks, PdaChecks};
+    use super::{const_pda, const_seed_root, is_const_path, pda_checks, PdaChecks, PdaSeeds};
     use crate::accounts::field::parser::parse_struct_fields;
 
     fn expr(source: &str) -> syn::Expr {
@@ -528,6 +511,39 @@ mod const_pda_tests {
             Some(PdaChecks::Metadata(tokens) | PdaChecks::Constraint(tokens)) => tokens.to_string(),
             None => String::new(),
         }
+    }
+
+    #[test]
+    fn a_typed_seeds_call_is_derived_at_runtime_from_the_types_own_seed_set() {
+        let typed =
+            field("#[account(seeds = Vault::seeds(owner.address(), id), bump)] a: Account<A>");
+        let seeds = typed.pda_seed.clone().unwrap();
+        assert!(matches!(seeds, PdaSeeds::Typed(_)));
+        assert!(const_pda(&typed, &seeds).is_none());
+        let code = rendered(&typed);
+        assert!(code.contains("Vault :: seeds"), "{code}");
+        assert!(
+            code.contains("ToAddress :: address (& (owner . address ()))"),
+            "{code}"
+        );
+        assert!(code.contains("as_slices ()"), "{code}");
+    }
+
+    #[test]
+    fn a_typed_seeds_value_must_be_a_list_or_a_seeds_call() {
+        let item: syn::ItemStruct =
+            syn::parse_str("struct S { #[account(seeds = some_value, bump)] a: Account<A> }")
+                .unwrap();
+        let syn::Fields::Named(named) = &item.fields else {
+            panic!("a struct with named fields");
+        };
+        let message = parse_struct_fields(named)
+            .unwrap()
+            .remove(0)
+            .parse_error
+            .expect("rejected")
+            .to_string();
+        assert!(message.contains("takes a list"), "{message}");
     }
 
     #[test]

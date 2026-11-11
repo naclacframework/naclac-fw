@@ -2,7 +2,7 @@
 
 use {
     crate::{
-        constants::{LP_DECIMALS, SEED_LP_MINT, SEED_POOL, SEED_VAULT},
+        constants::{LP_DECIMALS, SEED_LP_MINT, SEED_VAULT},
         errors::AmmError,
         events::PoolInitialized,
         state::pool_state::PoolState,
@@ -32,7 +32,7 @@ pub struct Initialize {
     #[account(
         init,
         payer = payer,
-        seeds = [SEED_POOL, token_a_mint.address().as_ref(), token_b_mint.address().as_ref(), &id.to_le_bytes()],
+        seeds = PoolState::seeds(token_a_mint.address(), token_b_mint.address(), id),
         bump
     )]
     pub pool_state: Account<PoolState>,
@@ -166,18 +166,14 @@ pub fn initialize(ctx: Context<Initialize>, id: u64, amount_a: u64, amount_b: u6
 
     let lp_amount = process_initialize_lp_amount(amount_a, amount_b)?;
 
-    let token_a_ref = ctx.accounts.token_a_mint.address();
-    let token_b_ref = ctx.accounts.token_b_mint.address();
-    let id_bytes = id.to_le_bytes();
-    let pool_bump = ctx.bumps.pool_state;
-    let pool_seeds: &[&[u8]] = &[
-        SEED_POOL,
-        token_a_ref.as_ref(),
-        token_b_ref.as_ref(),
-        &id_bytes,
-        &[pool_bump],
-    ];
-    let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
+    let pool_seed_set = PoolState::seeds(
+        ctx.accounts.token_a_mint.address(),
+        ctx.accounts.token_b_mint.address(),
+        id,
+    );
+    let pool_bump = [ctx.bumps.pool_state];
+    let pool_seeds = pool_seed_set.as_slices_with_bump(&pool_bump);
+    let signer_seeds: &[&[&[u8]]] = &[&pool_seeds];
 
     ctx.accounts.lp_token_program.mint_to_signed(
         MintToAccounts {

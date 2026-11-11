@@ -2,7 +2,6 @@
 
 use {
     crate::{
-        constants::SEED_POOL,
         errors::AmmError,
         events::SwapExecuted,
         state::pool_state::PoolState,
@@ -112,29 +111,19 @@ pub fn swap(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u64) -> Resu
         source_decimals,
     )?;
 
-    let token_a_ref = ctx.accounts.pool_state.token_a_mint;
-    let token_b_ref = ctx.accounts.pool_state.token_b_mint;
-    let id_bytes = ctx.accounts.pool_state.id.to_le_bytes();
-    let pool_seeds: &[&[u8]] = &[
-        SEED_POOL,
-        token_a_ref.as_ref(),
-        token_b_ref.as_ref(),
-        &id_bytes,
-        &[ctx.accounts.pool_state.bump],
-    ];
-    let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
-
-    destination_program.transfer_checked_signed(
-        TransferCheckedAccounts {
-            from: &mut ctx.accounts.pool_destination_vault,
-            mint: destination_mint,
-            to: &mut ctx.accounts.user_destination_token,
-            authority: &ctx.accounts.pool_state,
-        },
-        amount_out,
-        destination_decimals,
-        signer_seeds,
-    )?;
+    ctx.accounts.pool_state.with_signer_seeds(|signer_seeds| {
+        destination_program.transfer_checked_signed(
+            TransferCheckedAccounts {
+                from: &mut ctx.accounts.pool_destination_vault,
+                mint: destination_mint,
+                to: &mut ctx.accounts.user_destination_token,
+                authority: &ctx.accounts.pool_state,
+            },
+            amount_out,
+            destination_decimals,
+            signer_seeds,
+        )
+    })?;
 
     emit!(SwapExecuted {
         user: ctx.accounts.user.address(),

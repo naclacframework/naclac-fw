@@ -67,3 +67,63 @@ pub(crate) fn seed_binding_tokens(expr: &syn::Expr, ident: &syn::Ident) -> Token
         },
     }
 }
+
+/// A typed `seeds = Type::seeds(args)` call with every argument that ends in
+/// `.address()` routed through `ToAddress::address`, as a list seed is, so it
+/// reads the same on both runtimes.
+pub(crate) fn typed_seeds_call(call: &syn::ExprCall) -> TokenStream {
+    let func = &call.func;
+    let args = call.args.iter().map(|arg| {
+        let (peeled, op) = peel_seed_wrapper(arg);
+        match op {
+            SeedTrailingOp::Address => {
+                quote! { naclac_lang::prelude::ToAddress::address(&(#peeled)) }
+            }
+            SeedTrailingOp::Other => quote! { #arg },
+        }
+    });
+    quote! { #func(#(#args),*) }
+}
+
+/// The `let` statements that build `seeds`, and an expression of type
+/// `&[&[u8]]` over its seed slices (without the bump). `tag` and the field's
+/// name make the locals unique, so one function can hold several PDAs.
+pub(crate) fn seed_slice_tokens(
+    seeds: &crate::accounts::field::parser::PdaSeeds,
+    field_ident: &syn::Ident,
+    tag: &str,
+) -> (TokenStream, TokenStream) {
+    use crate::accounts::field::parser::PdaSeeds;
+    match seeds {
+        PdaSeeds::List(array) => {
+            let bindings: Vec<TokenStream> = array
+                .elems
+                .iter()
+                .enumerate()
+                .map(|(i, expr)| {
+                    let ident = quote::format_ident!("{}_{}_{}", tag, field_ident, i);
+                    seed_binding_tokens(expr, &ident)
+                })
+                .collect();
+            let refs: Vec<TokenStream> = (0..array.elems.len())
+                .map(|i| {
+                    let ident = quote::format_ident!("{}_{}_{}", tag, field_ident, i);
+                    quote! { naclac_lang::prelude::AsRefByteSlice::as_ref_byte_slice(&#ident) }
+                })
+                .collect();
+            (quote! { #(#bindings)* }, quote! { &[ #( #refs, )* ] })
+        }
+        PdaSeeds::Typed(call) => {
+            let set = quote::format_ident!("{}_{}_set", tag, field_ident);
+            let slices = quote::format_ident!("{}_{}_slices", tag, field_ident);
+            let call = typed_seeds_call(call);
+            (
+                quote! {
+                    let #set = #call;
+                    let #slices = #set.as_slices();
+                },
+                quote! { &#slices },
+            )
+        }
+    }
+}

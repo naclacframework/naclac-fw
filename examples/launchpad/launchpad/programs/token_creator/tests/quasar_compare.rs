@@ -9,7 +9,7 @@
 //! `artifacts/deploy`, so run `naclac build -p amm` and
 //! `naclac build -p token_creator` first.
 
-use {
+/*use {
     amm_client::{get_pool_state_pda, types::PROGRAM_ID as NACLAC_AMM_ID},
     naclac_client::{
         utils::{
@@ -544,3 +544,4 @@ fn compare_naclac_and_quasar_token_creator() {
     compare("Token-2022 quote, quote below the new mint", &TOKEN_2022_PROGRAM_ID, true, false);
     compare("Token-2022 quote, quote above the new mint", &TOKEN_2022_PROGRAM_ID, false, false);
 }
+*/

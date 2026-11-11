@@ -1,6 +1,5 @@
 use naclac_lang::prelude::*;
 use crate::state::CallerAuthority;
-use crate::constants::SEED_CALLER_AUTHORITY;
 
 #[derive(Accounts)]
 pub struct InitCallerAuthority {
@@ -10,7 +9,7 @@ pub struct InitCallerAuthority {
     #[account(
         init,
         payer = payer,
-        seeds = [SEED_CALLER_AUTHORITY],
+        seeds = CallerAuthority::seeds(),
         bump
     )]
     pub caller_authority: Account<CallerAuthority>,

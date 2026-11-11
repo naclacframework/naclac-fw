@@ -31,7 +31,7 @@ impl<'ast> Visit<'ast> for PathIdents<'_> {
 fn load_time_exprs(field: &ParsedField) -> Vec<&syn::Expr> {
     let mut exprs: Vec<&syn::Expr> = Vec::new();
     if let Some(seeds) = &field.pda_seed {
-        exprs.extend(seeds.elems.iter());
+        exprs.extend(seeds.exprs());
     }
     if let Some(PdaBump::Explicit(bump)) = &field.pda_bump {
         exprs.push(bump);
