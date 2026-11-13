@@ -37,7 +37,7 @@
 //! `RemoveKey`/`Emit`, both real, separately-dispatched interface
 //! instructions it omits.
 
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, Result, String};
+use crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result, String};
 pub use spl_token_metadata_interface::state::Field;
 
 /// Borsh-serializes `data`, prefixed by its real `SPL_DISCRIMINATOR_SLICE` —
@@ -100,7 +100,7 @@ pub fn initialize_token_metadata_signed(
     mint: CpiHandle<'_>,
     mint_authority: CpiHandle<'_>,
     params: TokenMetadataInitializeParams,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     let TokenMetadataInitializeParams { name, symbol, uri } = params;
@@ -144,7 +144,7 @@ pub fn update_token_metadata_field_signed(
     update_authority: CpiHandle<'_>,
     field: Field,
     value: String,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     let data = spl_token_metadata_interface::instruction::UpdateField { field, value };
@@ -180,7 +180,7 @@ pub fn remove_token_metadata_key_signed(
     update_authority: CpiHandle<'_>,
     key: String,
     idempotent: bool,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     let data = spl_token_metadata_interface::instruction::RemoveKey { idempotent, key };
@@ -212,7 +212,7 @@ pub fn update_token_metadata_authority_signed(
     metadata: CpiHandleMut<'_>,
     current_authority: CpiHandle<'_>,
     new_authority: Option<&Address>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     let new_authority = solana_nullable::MaybeNull::try_from(new_authority.map(super::ix_addr_ref))

@@ -67,7 +67,7 @@ pub fn attach_collection_linked_app_data_signed(
     accounts: AddCollectionPluginAccounts<'_>,
     data_authority: PluginAuthorityArg,
     schema: ExternalPluginAdapterSchemaArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -102,7 +102,7 @@ pub fn update_collection_linked_app_data_schema_signed(
     accounts: AddCollectionPluginAccounts<'_>,
     data_authority: PluginAuthorityArg,
     new_schema: ExternalPluginAdapterSchemaArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -139,7 +139,7 @@ pub fn write_collection_linked_app_data_signed(
     accounts: WriteCollectionExternalAdapterAccounts<'_>,
     data_authority: PluginAuthorityArg,
     bytes: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     write_collection_external_adapter_signed(
         program,
@@ -156,7 +156,7 @@ pub fn remove_collection_linked_app_data_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     data_authority: PluginAuthorityArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     remove_collection_external_adapter_signed(
         program,

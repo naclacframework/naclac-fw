@@ -63,8 +63,10 @@ impl PluginInit<'_> {
             #existence_check
             if info.data_is_empty() {
                 #signer_seeds_logic
+                #[cfg(feature = "solana")]
+                let __initialize_signers = signer_seeds;
                 #[cfg(not(feature = "solana"))]
-                let signer_seeds: &[&[&[u8]]] = &[];
+                let __initialize_signers: &[naclac_lang::prelude::CpiSigner] = &[];
 
                 let __sys_info = &accounts[#system_program_idx];
                 if (__sys_info).address() != naclac_lang::prelude::SYSTEM_PROGRAM_ID {
@@ -98,11 +100,11 @@ impl PluginInit<'_> {
                         __lamports,
                         __space as u64,
                         &__owner,
-                        pinocchio_signer_seeds,
+                        signer_seeds,
                     )?;
                 }
 
-                #init::initialize(info, #idx, &__init_args, signer_seeds)?;
+                #init::initialize(info, #idx, &__init_args, __initialize_signers)?;
             }
         }
     }

@@ -46,11 +46,13 @@ use proc_macro::TokenStream;
 /// prefix, then the account's own fields in order (integers, `Address` and
 /// `[u8; N]` of at most 32 bytes), then the `u8` bump field. It generates
 /// `with_signer_seeds`, which passes those seeds to a closure as the
-/// `&[&[&[u8]]]` a `*_signed` CPI takes, so the program signs as the PDA
+/// `&[CpiSigner]` a `*_signed` CPI takes, so the program signs as the PDA
 /// from the stored fields without writing the seeds out again. It also
-/// generates `Account::seeds(..)`, taking the named fields' values, so a
-/// field can write `seeds = Account::seeds(a, b, id), bump` and use the same
-/// definition to create and verify the account.
+/// generates `Account::seeds(..)`, taking references to the named fields'
+/// values and returning a seed set that borrows them. A field writes
+/// `seeds = Account::seeds(a, b, id), bump` with the values, and the derive
+/// passes references to them, so the same definition creates and verifies the
+/// account.
 #[proc_macro_attribute]
 pub fn account(attr: TokenStream, item: TokenStream) -> TokenStream {
     account::expand(attr, item)

@@ -105,7 +105,9 @@ pub(super) fn tokens(ctx: &InitCtx, namespace: &Namespace, create: &Create) -> T
     let (payer_seeds_logic, payer_seeds) = if field.extra_accounts.is_some() {
         let logic = match payer_field {
             Some(pf) if pf.pda_seed.is_some() => payer_signer_seeds_tokens(pf),
-            _ => quote! { let __payer_signer_seeds: &[&[&[u8]]] = &[]; },
+            _ => quote! {
+                let __payer_signer_seeds: &[naclac_lang::prelude::CpiSigner] = &[];
+            },
         };
         (logic, quote! { __payer_signer_seeds })
     } else {

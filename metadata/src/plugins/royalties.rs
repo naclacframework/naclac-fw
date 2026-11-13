@@ -109,7 +109,7 @@ pub fn attach_royalties_signed(
     basis_points: u16,
     creators: &[RoyaltyCreator],
     rule_set: RuleSetArg<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -139,7 +139,7 @@ pub fn attach_collection_royalties_signed(
     basis_points: u16,
     creators: &[RoyaltyCreator],
     rule_set: RuleSetArg<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

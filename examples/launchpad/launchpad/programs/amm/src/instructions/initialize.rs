@@ -166,14 +166,11 @@ pub fn initialize(ctx: Context<Initialize>, id: u64, amount_a: u64, amount_b: u6
 
     let lp_amount = process_initialize_lp_amount(amount_a, amount_b)?;
 
-    let pool_seed_set = PoolState::seeds(
-        ctx.accounts.token_a_mint.address(),
-        ctx.accounts.token_b_mint.address(),
-        id,
-    );
+    let token_a_address = ctx.accounts.token_a_mint.address();
+    let token_b_address = ctx.accounts.token_b_mint.address();
+    let pool_seed_set = PoolState::seeds(&token_a_address, &token_b_address, &id);
     let pool_bump = [ctx.bumps.pool_state];
-    let pool_seeds = pool_seed_set.as_slices_with_bump(&pool_bump);
-    let signer_seeds: &[&[&[u8]]] = &[&pool_seeds];
+    let pool_seeds = pool_seed_set.signer_seeds(&pool_bump);
 
     ctx.accounts.lp_token_program.mint_to_signed(
         MintToAccounts {
@@ -182,7 +179,7 @@ pub fn initialize(ctx: Context<Initialize>, id: u64, amount_a: u64, amount_b: u6
             authority: &ctx.accounts.pool_state,
         },
         lp_amount,
-        signer_seeds,
+        &[pool_seeds.signer()],
     )?;
 
     emit!(PoolInitialized {

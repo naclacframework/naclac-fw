@@ -25,6 +25,135 @@
 //! borrow-safety themselves and want to skip that CU cost — never what
 //! naclac's own CPI-caller codegen generates.
 
+/// The seeds of one PDA signer, bump included, held in the form the runtime's
+/// CPI syscall reads (`pinocchio::cpi::Seed` on pinocchio, `&[u8]` on the
+/// Solana runtime), so signing a CPI with them copies nothing. A PDA takes at
+/// most `MAX_PDA_SEEDS` seeds; more fails to compile.
+pub struct SignerSeeds<'a, const N: usize> {
+    #[cfg(feature = "pinocchio")]
+    seeds: [::pinocchio::cpi::Seed<'a>; N],
+    #[cfg(not(feature = "pinocchio"))]
+    seeds: [&'a [u8]; N],
+}
+
+impl<'a, const N: usize> SignerSeeds<'a, N> {
+    #[inline(always)]
+    pub fn new(parts: [&'a [u8]; N]) -> Self {
+        const { assert!(N <= crate::prelude::MAX_PDA_SEEDS, "a PDA takes at most 16 seeds") };
+        #[cfg(feature = "pinocchio")]
+        {
+            Self {
+                seeds: parts.map(::pinocchio::cpi::Seed::from),
+            }
+        }
+        #[cfg(not(feature = "pinocchio"))]
+        {
+            Self { seeds: parts }
+        }
+    }
+
+    /// The signer a `*_signed` CPI takes, borrowing these seeds.
+    #[inline(always)]
+    pub fn signer(&self) -> CpiSigner<'a, '_> {
+        #[cfg(feature = "pinocchio")]
+        {
+            CpiSigner {
+                inner: ::pinocchio::cpi::Signer::from(&self.seeds[..]),
+            }
+        }
+        #[cfg(not(feature = "pinocchio"))]
+        {
+            CpiSigner { inner: &self.seeds }
+        }
+    }
+}
+
+/// One PDA signer of a signed CPI, borrowing a [`SignerSeeds`]. It has the
+/// exact layout of the runtime's own signer entry, so a `&[CpiSigner]` is
+/// handed to the CPI syscall as it is.
+#[repr(transparent)]
+pub struct CpiSigner<'a, 'b> {
+    #[cfg(feature = "pinocchio")]
+    inner: ::pinocchio::cpi::Signer<'a, 'b>,
+    #[cfg(not(feature = "pinocchio"))]
+    inner: &'b [&'a [u8]],
+}
+
+impl<'a, 'b> CpiSigner<'a, 'b> {
+    /// `signers` as pinocchio's own signer slice.
+    #[cfg(feature = "pinocchio")]
+    #[inline(always)]
+    pub fn as_pinocchio<'s>(signers: &'s [CpiSigner<'a, 'b>]) -> &'s [::pinocchio::cpi::Signer<'a, 'b>] {
+        // SAFETY: `CpiSigner` is `repr(transparent)` over `pinocchio::cpi::Signer`.
+        unsafe {
+            core::slice::from_raw_parts(
+                signers.as_ptr() as *const ::pinocchio::cpi::Signer<'a, 'b>,
+                signers.len(),
+            )
+        }
+    }
+
+    /// `signers` as the `&[&[&[u8]]]` the Solana runtime's CPI takes.
+    #[cfg(not(feature = "pinocchio"))]
+    #[inline(always)]
+    pub fn as_seed_slices<'s>(signers: &'s [CpiSigner<'a, 'b>]) -> &'s [&'b [&'a [u8]]] {
+        // SAFETY: `CpiSigner` is `repr(transparent)` over `&'b [&'a [u8]]`.
+        unsafe {
+            core::slice::from_raw_parts(
+                signers.as_ptr() as *const &'b [&'a [u8]],
+                signers.len(),
+            )
+        }
+    }
+}
+
+#[cfg(test)]
+mod signer_seeds_tests {
+    use super::{CpiSigner, SignerSeeds};
+
+    #[test]
+    fn a_signer_is_its_seeds_in_order() {
+        let prefix: &[u8] = b"pool";
+        let id = 7u64.to_le_bytes();
+        let bump = [254u8];
+        let seeds = SignerSeeds::new([prefix, &id, &bump]);
+        let signers = [seeds.signer()];
+
+        #[cfg(feature = "pinocchio")]
+        {
+            let runtime = CpiSigner::as_pinocchio(&signers);
+            assert!(runtime.len() == 1);
+            let parts: [&[u8]; 3] = [&seeds.seeds[0], &seeds.seeds[1], &seeds.seeds[2]];
+            assert!(parts == [prefix, &id[..], &bump[..]]);
+        }
+        #[cfg(not(feature = "pinocchio"))]
+        {
+            let runtime = CpiSigner::as_seed_slices(&signers);
+            assert!(runtime == [&[prefix, &id[..], &bump[..]][..]]);
+        }
+    }
+
+    #[test]
+    fn a_signer_has_the_runtime_layout() {
+        #[cfg(feature = "pinocchio")]
+        {
+            assert!(
+                core::mem::size_of::<CpiSigner<'_, '_>>()
+                    == core::mem::size_of::<::pinocchio::cpi::Signer<'_, '_>>()
+            );
+            assert!(
+                core::mem::align_of::<CpiSigner<'_, '_>>()
+                    == core::mem::align_of::<::pinocchio::cpi::Signer<'_, '_>>()
+            );
+        }
+        #[cfg(not(feature = "pinocchio"))]
+        {
+            assert!(core::mem::size_of::<CpiSigner<'_, '_>>() == core::mem::size_of::<&[&[u8]]>());
+            assert!(core::mem::align_of::<CpiSigner<'_, '_>>() == core::mem::align_of::<&[&[u8]]>());
+        }
+    }
+}
+
 /// Unified AccountMeta for cross-backend CPI usage.
 #[derive(Clone, Debug)]
 pub struct AccountMeta {
@@ -47,6 +176,282 @@ impl AccountMeta {
             is_signer,
             is_writable: false,
         }
+    }
+}
+
+/// CPI instruction data written into an `N`-byte stack buffer, with the
+/// `push`/`extend_from_slice` surface the generated CPI builders write
+/// through. A write that does not fit is recorded instead of truncated, and
+/// [`Self::bytes`] then fails, so a partly written payload is never sent.
+pub struct CpiDataBuffer<const N: usize> {
+    bytes: [u8; N],
+    len: usize,
+    overflowed: bool,
+}
+
+impl<const N: usize> CpiDataBuffer<N> {
+    #[inline(always)]
+    pub const fn new() -> Self {
+        Self {
+            bytes: [0; N],
+            len: 0,
+            overflowed: false,
+        }
+    }
+
+    #[inline(always)]
+    pub fn push(&mut self, byte: u8) {
+        self.extend_from_slice(&[byte]);
+    }
+
+    #[inline(always)]
+    pub fn extend_from_slice(&mut self, src: &[u8]) {
+        let start = self.len;
+        let Some(end) = start.checked_add(src.len()) else {
+            self.overflowed = true;
+            return;
+        };
+        let Some(dst) = self.bytes.get_mut(start..end) else {
+            self.overflowed = true;
+            return;
+        };
+        for (d, s) in dst.iter_mut().zip(src) {
+            *d = *s;
+        }
+        self.len = end;
+    }
+
+    /// The bytes written so far, or `SerializationFailed` if any write did
+    /// not fit in `N` bytes.
+    #[inline(always)]
+    pub fn bytes(&self) -> crate::prelude::Result<&[u8]> {
+        if self.overflowed {
+            return Err(crate::prelude::NaclacError::SerializationFailed.into());
+        }
+        self.bytes
+            .get(..self.len)
+            .ok_or_else(|| crate::prelude::NaclacError::SerializationFailed.into())
+    }
+}
+
+impl<const N: usize> Default for CpiDataBuffer<N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// CPI instruction data whose length is known only at runtime, written into
+/// one zeroed heap allocation of exactly that length, freed on drop. Unlike a
+/// `Vec` it never grows. [`Self::bytes`] fails unless exactly the allocated
+/// length was written, so neither a short nor an overflowing payload is ever
+/// sent.
+pub struct CpiHeapBuffer {
+    ptr: core::ptr::NonNull<u8>,
+    cap: usize,
+    len: usize,
+    overflowed: bool,
+}
+
+impl CpiHeapBuffer {
+    /// Allocates `len` zeroed bytes, failing with `SerializationFailed` when
+    /// the heap cannot provide them.
+    #[inline(always)]
+    pub fn with_len(len: usize) -> crate::prelude::Result<Self> {
+        if len == 0 {
+            return Ok(Self {
+                ptr: core::ptr::NonNull::dangling(),
+                cap: 0,
+                len: 0,
+                overflowed: false,
+            });
+        }
+        let layout = core::alloc::Layout::from_size_align(len, 1)
+            .map_err(|_| crate::prelude::NaclacError::SerializationFailed)?;
+        // SAFETY: `layout` has a non-zero size.
+        let raw = unsafe { alloc::alloc::alloc_zeroed(layout) };
+        let ptr =
+            core::ptr::NonNull::new(raw).ok_or(crate::prelude::NaclacError::SerializationFailed)?;
+        Ok(Self {
+            ptr,
+            cap: len,
+            len: 0,
+            overflowed: false,
+        })
+    }
+
+    #[inline(always)]
+    fn storage(&mut self) -> &mut [u8] {
+        // SAFETY: `ptr` is either dangling with `cap == 0`, or owns `cap`
+        // zero-initialised bytes allocated in `with_len` and borrowed
+        // mutably through `self` here.
+        unsafe { core::slice::from_raw_parts_mut(self.ptr.as_ptr(), self.cap) }
+    }
+
+    #[inline(always)]
+    pub fn push(&mut self, byte: u8) {
+        self.extend_from_slice(&[byte]);
+    }
+
+    #[inline(always)]
+    pub fn extend_from_slice(&mut self, src: &[u8]) {
+        let start = self.len;
+        let Some(end) = start.checked_add(src.len()) else {
+            self.overflowed = true;
+            return;
+        };
+        let Some(dst) = self.storage().get_mut(start..end) else {
+            self.overflowed = true;
+            return;
+        };
+        for (d, s) in dst.iter_mut().zip(src) {
+            *d = *s;
+        }
+        self.len = end;
+    }
+
+    /// Hands every byte not yet written to `write`, which must fill all of
+    /// them, and counts them as written once it succeeds.
+    #[inline(always)]
+    pub fn fill_rest(
+        &mut self,
+        write: impl FnOnce(&mut [u8]) -> crate::prelude::Result<()>,
+    ) -> crate::prelude::Result<()> {
+        let start = self.len;
+        let cap = self.cap;
+        let rest = self
+            .storage()
+            .get_mut(start..)
+            .ok_or(crate::prelude::NaclacError::SerializationFailed)?;
+        write(rest)?;
+        self.len = cap;
+        Ok(())
+    }
+
+    /// The written bytes, or `SerializationFailed` unless exactly the
+    /// allocated length was written.
+    #[inline(always)]
+    pub fn bytes(&self) -> crate::prelude::Result<&[u8]> {
+        if self.overflowed || self.len != self.cap {
+            return Err(crate::prelude::NaclacError::SerializationFailed.into());
+        }
+        // SAFETY: same allocation as `storage`, all `len == cap` bytes
+        // initialised, borrowed shared through `&self`.
+        Ok(unsafe { core::slice::from_raw_parts(self.ptr.as_ptr(), self.len) })
+    }
+}
+
+impl Drop for CpiHeapBuffer {
+    fn drop(&mut self) {
+        if self.cap != 0 {
+            // SAFETY: allocated in `with_len` with exactly this size and
+            // alignment, and freed only here.
+            unsafe {
+                alloc::alloc::dealloc(
+                    self.ptr.as_ptr(),
+                    core::alloc::Layout::from_size_align_unchecked(self.cap, 1),
+                );
+            }
+        }
+    }
+}
+
+/// `discriminator` followed by the wincode encoding of `args`, in one heap
+/// allocation sized by `wincode::config::serialized_size`.
+#[cfg(feature = "wincode")]
+pub fn wincode_cpi_data<T>(discriminator: &[u8], args: &T) -> crate::prelude::Result<CpiHeapBuffer>
+where
+    T: crate::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>,
+{
+    let args_len = crate::wincode::config::serialized_size(args, crate::wincode_config::CONFIG)
+        .map_err(|_| crate::prelude::NaclacError::SerializationFailed)?;
+    let len = usize::try_from(args_len)
+        .ok()
+        .and_then(|args_len| discriminator.len().checked_add(args_len))
+        .ok_or(crate::prelude::NaclacError::SerializationFailed)?;
+    let mut buf = CpiHeapBuffer::with_len(len)?;
+    buf.extend_from_slice(discriminator);
+    buf.fill_rest(|rest| {
+        crate::wincode::config::serialize_into(rest, args, crate::wincode_config::CONFIG)
+            .map_err(|_| crate::prelude::NaclacError::SerializationFailed.into())
+    })?;
+    Ok(buf)
+}
+
+#[cfg(test)]
+mod cpi_heap_buffer_tests {
+    use super::CpiHeapBuffer;
+
+    #[test]
+    fn exactly_filled_returns_the_bytes() {
+        let mut buf = CpiHeapBuffer::with_len(4).ok().unwrap();
+        buf.push(1);
+        buf.extend_from_slice(&[2, 3]);
+        buf.push(4);
+        assert!(buf.bytes().ok() == Some(&[1u8, 2, 3, 4][..]));
+    }
+
+    #[test]
+    fn a_short_payload_is_never_returned() {
+        let mut buf = CpiHeapBuffer::with_len(4).ok().unwrap();
+        buf.extend_from_slice(&[1, 2, 3]);
+        assert!(buf.bytes().is_err());
+    }
+
+    #[test]
+    fn an_overflowing_payload_is_never_returned() {
+        let mut buf = CpiHeapBuffer::with_len(2).ok().unwrap();
+        buf.extend_from_slice(&[1, 2, 3]);
+        assert!(buf.bytes().is_err());
+    }
+
+    #[test]
+    fn fill_rest_counts_the_remainder_as_written() {
+        let mut buf = CpiHeapBuffer::with_len(3).ok().unwrap();
+        buf.push(9);
+        let filled = buf.fill_rest(|rest| {
+            for (i, b) in rest.iter_mut().enumerate() {
+                *b = i as u8 + 1;
+            }
+            Ok(())
+        });
+        assert!(filled.is_ok());
+        assert!(buf.bytes().ok() == Some(&[9u8, 1, 2][..]));
+    }
+
+    #[test]
+    fn an_empty_payload_needs_no_allocation() {
+        let buf = CpiHeapBuffer::with_len(0).ok().unwrap();
+        assert!(buf.bytes().ok() == Some(&[][..]));
+    }
+}
+
+#[cfg(test)]
+mod cpi_data_buffer_tests {
+    use super::CpiDataBuffer;
+
+    #[test]
+    fn writes_up_to_capacity_in_order() {
+        let mut buf = CpiDataBuffer::<5>::new();
+        buf.extend_from_slice(&[1, 2]);
+        buf.push(3);
+        buf.extend_from_slice(&[4, 5]);
+        assert!(buf.bytes().ok() == Some(&[1u8, 2, 3, 4, 5][..]));
+    }
+
+    #[test]
+    fn a_write_past_capacity_fails_instead_of_truncating() {
+        let mut buf = CpiDataBuffer::<4>::new();
+        buf.extend_from_slice(&[1, 2, 3]);
+        buf.extend_from_slice(&[4, 5]);
+        assert!(buf.bytes().is_err());
+        buf.push(6);
+        assert!(buf.bytes().is_err());
+    }
+
+    #[test]
+    fn nothing_written_is_empty() {
+        let buf = CpiDataBuffer::<0>::new();
+        assert!(buf.bytes().ok() == Some(&[][..]));
     }
 }
 
@@ -74,7 +479,7 @@ pub fn invoke(
 pub fn invoke_signed(
     instruction: &solana_instruction::Instruction,
     account_handles: &[crate::prelude::CpiHandle<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
     let mut infos = crate::prelude::Vec::with_capacity(account_handles.len());
     for handle in account_handles {
@@ -82,7 +487,7 @@ pub fn invoke_signed(
             infos.push(handle.info.to_lifetime());
         }
     }
-    sdk::invoke_signed(instruction, &infos, signer_seeds)
+    sdk::invoke_signed(instruction, &infos, CpiSigner::as_seed_slices(signers))
 }
 
 /// Raw, no-borrow-check CPI — bypasses the `RefCell` borrow checks
@@ -100,7 +505,7 @@ pub fn invoke_unchecked(
 pub fn invoke_signed_unchecked(
     instruction: &solana_instruction::Instruction,
     account_handles: &[crate::prelude::CpiHandle<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
     let mut infos = crate::prelude::Vec::with_capacity(account_handles.len());
     for handle in account_handles {
@@ -108,7 +513,7 @@ pub fn invoke_signed_unchecked(
             infos.push(handle.info.to_lifetime());
         }
     }
-    sdk::invoke_signed_unchecked(instruction, &infos, signer_seeds)
+    sdk::invoke_signed_unchecked(instruction, &infos, CpiSigner::as_seed_slices(signers))
 }
 
 /// The runtime-facing CPI ABI of the `solana_program` backend, built from
@@ -616,77 +1021,6 @@ impl<'a> AsRef<::pinocchio::AccountView> for crate::prelude::CpiHandle<'a> {
     }
 }
 
-/// Converts naclac's backend-uniform `&[&[&[u8]]]` signer seeds into
-/// pinocchio's own `Signer`/`Seed` types without a heap allocation, binding
-/// the result to `$signers_var`. A macro rather than a function: each
-/// `Signer` built here borrows from the seed buffer built in the same scope,
-/// and threading that self-reference across a function boundary risks a
-/// subtly wrong lifetime signature (same reasoning as
-/// `system_program.rs`'s own `pinocchio_signers_from_seeds!`). Must be
-/// invoked directly inside a function returning `crate::prelude::Result<()>`
-/// — it returns early on overflow.
-///
-/// `#[macro_export]`'d so `naclac-token` (and any other downstream crate)
-/// can reuse this exact, single implementation instead of hand-rolling the
-/// same unsafe signer/seed-array construction independently at each CPI call
-/// site — which is what `token/src/token.rs` used to do, 9 times
-/// over, via raw `get_unchecked`/`as_mut_ptr().add(j)` writes into
-/// `MaybeUninit` arrays (functionally the same job, more unsafe surface,
-/// nine separate places to keep in sync). Every `crate::` reference inside
-/// is `$crate::` instead — required for a macro invoked from a different
-/// crate to still resolve against naclac-core's own `prelude`, not the
-/// caller's.
-#[cfg(feature = "pinocchio")]
-#[macro_export]
-macro_rules! cpi_signers_from_seeds {
-    ($seeds:expr, $signers_var:ident) => {
-        if $seeds.len() > $crate::prelude::MAX_CPI_SIGNERS {
-            return Err($crate::prelude::NaclacError::TooManyCpiSigners.into());
-        }
-        const __SIGNER_SLOTS: usize = $crate::prelude::MAX_CPI_SIGNERS;
-        const __SEED_SLOTS: usize = $crate::prelude::MAX_CPI_SEEDS_PER_SIGNER * __SIGNER_SLOTS;
-        let mut __signers: [core::mem::MaybeUninit<::pinocchio::cpi::Signer>; __SIGNER_SLOTS] =
-            [const { core::mem::MaybeUninit::uninit() }; __SIGNER_SLOTS];
-        let mut __seeds_buffer: [core::mem::MaybeUninit<::pinocchio::cpi::Seed>; __SEED_SLOTS] =
-            [const { core::mem::MaybeUninit::uninit() }; __SEED_SLOTS];
-
-        let mut __remaining: &mut [core::mem::MaybeUninit<::pinocchio::cpi::Seed>] =
-            &mut __seeds_buffer;
-        for (__slot, seed_parts) in __signers.iter_mut().zip($seeds.iter()) {
-            if seed_parts.len() > $crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                return Err($crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            }
-            let Some((__mine, __tail)) =
-                core::mem::take(&mut __remaining).split_at_mut_checked(seed_parts.len())
-            else {
-                return Err($crate::prelude::NaclacError::TooManyCpiSeeds.into());
-            };
-            for (__dst, part) in __mine.iter_mut().zip(seed_parts.iter()) {
-                __dst.write(::pinocchio::cpi::Seed::from(*part));
-            }
-            // SAFETY: `__mine` is `seed_parts.len()` long and the loop above
-            // wrote every element.
-            let __mine: &[::pinocchio::cpi::Seed] = unsafe {
-                core::slice::from_raw_parts(
-                    __mine.as_ptr() as *const ::pinocchio::cpi::Seed,
-                    __mine.len(),
-                )
-            };
-            __slot.write(::pinocchio::cpi::Signer::from(__mine));
-            __remaining = __tail;
-        }
-
-        // SAFETY: `$seeds.len() <= MAX_CPI_SIGNERS` was checked above, so the
-        // loop wrote the first `$seeds.len()` signers.
-        let $signers_var: &[::pinocchio::cpi::Signer] = unsafe {
-            core::slice::from_raw_parts(
-                __signers.as_ptr() as *const ::pinocchio::cpi::Signer,
-                $seeds.len(),
-            )
-        };
-    };
-}
-
 #[cfg(feature = "pinocchio")]
 pub fn invoke_pinocchio(
     instruction: &::pinocchio::instruction::InstructionView,
@@ -699,20 +1033,123 @@ pub fn invoke_pinocchio(
 pub fn invoke_signed_pinocchio_handles(
     instruction: &::pinocchio::instruction::InstructionView,
     account_handles: &[crate::prelude::CpiHandle<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
-    if signer_seeds.is_empty() {
-        return ::pinocchio::cpi::invoke_signed_with_bounds::<
-            { crate::prelude::MAX_CPI_ACCOUNTS },
-            _,
-        >(instruction, account_handles, &[]);
-    }
-    cpi_signers_from_seeds!(signer_seeds, signers);
     ::pinocchio::cpi::invoke_signed_with_bounds::<{ crate::prelude::MAX_CPI_ACCOUNTS }, _>(
         instruction,
         account_handles,
-        signers,
+        CpiSigner::as_pinocchio(signers),
     )
+}
+
+/// Borrow-checked CPI for an instruction whose account metas were built from
+/// the same views, in the same order, as `account_handles`: the generated CPI
+/// clients and naclac's own instruction builders. Every writable account must
+/// not be borrowed, as in [`invoke_signed_pinocchio_handles`], but the
+/// per-account address comparison is left out, because that comparison only
+/// pairs a view with its meta so the borrow check looks at the right
+/// account, and the pairing holds by construction here. A caller that cannot
+/// guarantee it must use [`invoke_signed_pinocchio_handles`].
+#[cfg(feature = "pinocchio")]
+pub fn invoke_signed_pinocchio_paired(
+    instruction: &::pinocchio::instruction::InstructionView,
+    account_handles: &[crate::prelude::CpiHandle<'_>],
+    signers: &[CpiSigner<'_, '_>],
+) -> crate::prelude::Result<()> {
+    let accounts_len = instruction.accounts.len();
+    if accounts_len > crate::prelude::MAX_CPI_ACCOUNTS {
+        return Err(crate::prelude::NaclacError::TooManyCpiAccounts.into());
+    }
+    if account_handles.len() < accounts_len {
+        return Err(crate::prelude::NaclacError::NotEnoughAccountKeys.into());
+    }
+
+    let mut cpi_accounts_arr =
+        [const { core::mem::MaybeUninit::<::pinocchio::cpi::CpiAccount>::uninit() };
+            crate::prelude::MAX_CPI_ACCOUNTS];
+    for ((slot, handle), meta) in cpi_accounts_arr
+        .iter_mut()
+        .zip(account_handles.iter())
+        .zip(instruction.accounts.iter())
+    {
+        debug_assert!(handle.info.view.address() == meta.address);
+        if meta.is_writable {
+            handle.info.view.check_borrow_mut()?;
+        }
+        ::pinocchio::cpi::CpiAccount::init_from_account_view(&handle.info.view, slot);
+    }
+    // SAFETY: the loop above initialised the first `accounts_len` slots, since
+    // both `account_handles` and `instruction.accounts` have at least that
+    // many entries.
+    let cpi_accounts = unsafe {
+        core::slice::from_raw_parts(
+            cpi_accounts_arr.as_ptr() as *const ::pinocchio::cpi::CpiAccount,
+            accounts_len,
+        )
+    };
+
+    // SAFETY: every writable account was checked to be unborrowed above.
+    unsafe {
+        ::pinocchio::cpi::invoke_signed_unchecked(
+            instruction,
+            cpi_accounts,
+            CpiSigner::as_pinocchio(signers),
+        );
+    }
+    Ok(())
+}
+
+/// [`invoke_signed_pinocchio_paired`] for a call site whose account count is
+/// known at compile time: `accounts[i]` must be the account of `handles[i]`,
+/// and the fixed length lets the per-account loop unroll.
+#[cfg(feature = "pinocchio")]
+#[inline(always)]
+pub fn invoke_signed_pinocchio_paired_array<const N: usize>(
+    program: &crate::prelude::CpiHandle<'_>,
+    accounts: &[::pinocchio::instruction::InstructionAccount<'_>; N],
+    handles: &[crate::prelude::CpiHandle<'_>; N],
+    data: &[u8],
+    signers: &[CpiSigner<'_, '_>],
+) -> crate::prelude::Result<()> {
+    const { assert!(N <= crate::prelude::MAX_CPI_ACCOUNTS) };
+
+    let instruction = ::pinocchio::instruction::InstructionView {
+        program_id: program.info.view.address(),
+        accounts,
+        data,
+    };
+
+    let mut cpi_accounts_arr =
+        [const { core::mem::MaybeUninit::<::pinocchio::cpi::CpiAccount>::uninit() }; N];
+    let mut i = 0;
+    while i < N {
+        debug_assert!(handles[i].info.view.address() == accounts[i].address);
+        if accounts[i].is_writable {
+            handles[i].info.view.check_borrow_mut()?;
+        }
+        ::pinocchio::cpi::CpiAccount::init_from_account_view(
+            &handles[i].info.view,
+            &mut cpi_accounts_arr[i],
+        );
+        i += 1;
+    }
+    // SAFETY: the loop above initialised all `N` slots.
+    let cpi_accounts = unsafe {
+        core::slice::from_raw_parts(
+            cpi_accounts_arr.as_ptr() as *const ::pinocchio::cpi::CpiAccount,
+            N,
+        )
+    };
+
+    // SAFETY: every writable account was checked to be unborrowed above.
+    unsafe {
+        ::pinocchio::cpi::invoke_signed_unchecked(
+            &instruction,
+            cpi_accounts,
+            CpiSigner::as_pinocchio(signers),
+        );
+    }
+    Ok(())
 }
 
 /// Raw, no-borrow-check CPI — the original hand-rolled implementation this
@@ -731,7 +1168,7 @@ pub fn invoke_pinocchio_unchecked(
 pub fn invoke_signed_pinocchio_handles_unchecked(
     instruction: &::pinocchio::instruction::InstructionView,
     account_handles: &[crate::prelude::CpiHandle<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
     let account_infos: &[crate::prelude::AccountInfo] =
         unsafe { core::mem::transmute(account_handles) };
@@ -758,15 +1195,12 @@ pub fn invoke_signed_pinocchio_handles_unchecked(
         )
     };
 
-    if signer_seeds.is_empty() {
-        unsafe {
-            ::pinocchio::cpi::invoke_unchecked(instruction, cpi_accounts);
-        }
-    } else {
-        cpi_signers_from_seeds!(signer_seeds, signers);
-        unsafe {
-            ::pinocchio::cpi::invoke_signed_unchecked(instruction, cpi_accounts, signers);
-        }
+    unsafe {
+        ::pinocchio::cpi::invoke_signed_unchecked(
+            instruction,
+            cpi_accounts,
+            CpiSigner::as_pinocchio(signers),
+        );
     }
     Ok(())
 }
@@ -778,19 +1212,12 @@ pub fn invoke_signed_pinocchio_handles_unchecked(
 pub fn invoke_signed_pinocchio(
     instruction: &::pinocchio::instruction::InstructionView,
     account_infos: &[::pinocchio::AccountView],
-    signer_seeds: &[&[&[u8]]],
+    signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
-    if signer_seeds.is_empty() {
-        return ::pinocchio::cpi::invoke_signed_with_bounds::<
-            { crate::prelude::MAX_CPI_ACCOUNTS },
-            _,
-        >(instruction, account_infos, &[]);
-    }
-    cpi_signers_from_seeds!(signer_seeds, signers);
     ::pinocchio::cpi::invoke_signed_with_bounds::<{ crate::prelude::MAX_CPI_ACCOUNTS }, _>(
         instruction,
         account_infos,
-        signers,
+        CpiSigner::as_pinocchio(signers),
     )
 }
 
@@ -801,7 +1228,7 @@ pub fn invoke_signed_pinocchio(
 pub fn invoke_signed_pinocchio_unchecked(
     instruction: &::pinocchio::instruction::InstructionView,
     account_infos: &[::pinocchio::AccountView],
-    signer_seeds: &[&[&[u8]]],
+    signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
     if account_infos.len() > crate::prelude::MAX_CPI_ACCOUNTS {
         return Err(crate::prelude::NaclacError::TooManyCpiAccounts.into());
@@ -825,139 +1252,12 @@ pub fn invoke_signed_pinocchio_unchecked(
         )
     };
 
-    if signer_seeds.is_empty() {
-        unsafe {
-            ::pinocchio::cpi::invoke_unchecked(instruction, cpi_accounts);
-        }
-    } else {
-        cpi_signers_from_seeds!(signer_seeds, signers);
-        unsafe {
-            ::pinocchio::cpi::invoke_signed_unchecked(instruction, cpi_accounts, signers);
-        }
+    unsafe {
+        ::pinocchio::cpi::invoke_signed_unchecked(
+            instruction,
+            cpi_accounts,
+            CpiSigner::as_pinocchio(signers),
+        );
     }
     Ok(())
-}
-
-#[cfg(all(kani, feature = "pinocchio"))]
-mod kani_proofs {
-    use crate::prelude::{MAX_CPI_SEEDS_PER_SIGNER, MAX_CPI_SIGNERS};
-
-    /// Proves `cpi_signers_from_seeds!` rejects `> MAX_CPI_SIGNERS` signer
-    /// groups with a clean `TooManyCpiSigners` error rather than truncating
-    /// silently — this exact class of bug (silent truncation instead of
-    /// erroring) was found and fixed once already in
-    /// `system_program.rs`'s sibling macro (see docs/plan/kani-audit.md);
-    /// this proves the fix actually holds for the shared macro every CPI
-    /// call site in the workspace now goes through.
-    #[kani::proof]
-    fn prove_rejects_too_many_signers() -> crate::prelude::Result<()> {
-        let empty: &[&[u8]] = &[];
-        // One more than the real limit — every real limit is small (4), so
-        // a fixed array one longer than that is cheap to build directly.
-        let too_many: [&[&[u8]]; MAX_CPI_SIGNERS + 1] = [empty; MAX_CPI_SIGNERS + 1];
-        let signer_seeds: &[&[&[u8]]] = &too_many;
-        let result: crate::prelude::Result<()> = (|| {
-            cpi_signers_from_seeds!(signer_seeds, _signers);
-            Ok(())
-        })();
-        assert!(
-            result.is_err(),
-            "more than MAX_CPI_SIGNERS signer groups must be rejected, not silently truncated"
-        );
-        Ok(())
-    }
-
-    /// Same proof for the per-signer seed-count limit.
-    #[kani::proof]
-    fn prove_rejects_too_many_seeds_per_signer() -> crate::prelude::Result<()> {
-        let one_seed: &[u8] = &[0u8];
-        let too_many_seeds: [&[u8]; MAX_CPI_SEEDS_PER_SIGNER + 1] =
-            [one_seed; MAX_CPI_SEEDS_PER_SIGNER + 1];
-        let signer_seeds: &[&[&[u8]]] = &[&too_many_seeds];
-        let result: crate::prelude::Result<()> = (|| {
-            cpi_signers_from_seeds!(signer_seeds, _signers);
-            Ok(())
-        })();
-        assert!(
-            result.is_err(),
-            "more than MAX_CPI_SEEDS_PER_SIGNER seeds in one group must be rejected, not silently truncated"
-        );
-        Ok(())
-    }
-
-    /// Proves the macro never panics and produces a correctly-shaped
-    /// `signers` slice (one `Signer` per signer group, in order) for any
-    /// symbolic seed *bytes* within a small, bounded, realistic shape (2
-    /// signer groups, 2 seed parts each, 4 bytes per part) — deliberately
-    /// modest, per the same "keep buffers/unwind bounds small" lesson from
-    /// `external_plugin_registry`'s earlier resource blowup, since this
-    /// exercises the same macro body's loops regardless of exact
-    /// signer/seed count.
-    #[kani::proof]
-    fn prove_within_bounds_is_correct() -> crate::prelude::Result<()> {
-        let seed_a0: [u8; 4] = kani::any();
-        let seed_a1: [u8; 4] = kani::any();
-        let seed_b0: [u8; 4] = kani::any();
-        let seed_b1: [u8; 4] = kani::any();
-        let signer_a: [&[u8]; 2] = [&seed_a0, &seed_a1];
-        let signer_b: [&[u8]; 2] = [&seed_b0, &seed_b1];
-        let signer_seeds: &[&[&[u8]]] = &[&signer_a, &signer_b];
-
-        cpi_signers_from_seeds!(signer_seeds, signers);
-        assert_eq!(
-            signers.len(),
-            signer_seeds.len(),
-            "must produce exactly one Signer per input signer group"
-        );
-        Ok(())
-    }
-}
-
-#[cfg(all(test, feature = "pinocchio"))]
-mod signer_seed_tests {
-    use crate::prelude::{MAX_CPI_SEEDS_PER_SIGNER, MAX_CPI_SIGNERS};
-
-    fn signer_count(signer_seeds: &[&[&[u8]]]) -> crate::prelude::Result<usize> {
-        cpi_signers_from_seeds!(signer_seeds, signers);
-        Ok(signers.len())
-    }
-
-    #[test]
-    fn accepts_no_signers() {
-        assert_eq!(signer_count(&[]).ok(), Some(0));
-    }
-
-    #[test]
-    fn accepts_the_maximum_shape() {
-        let seed: &[u8] = &[7u8];
-        let group: [&[u8]; MAX_CPI_SEEDS_PER_SIGNER] = [seed; MAX_CPI_SEEDS_PER_SIGNER];
-        let group_ref: &[&[u8]] = &group;
-        let all: [&[&[u8]]; MAX_CPI_SIGNERS] = [group_ref; MAX_CPI_SIGNERS];
-        assert_eq!(signer_count(&all).ok(), Some(MAX_CPI_SIGNERS));
-    }
-
-    #[test]
-    fn accepts_groups_of_different_lengths() {
-        let seed: &[u8] = &[1u8];
-        let short: [&[u8]; 1] = [seed];
-        let long: [&[u8]; 3] = [seed; 3];
-        let empty: [&[u8]; 0] = [];
-        let all: [&[&[u8]]; 3] = [&short, &empty, &long];
-        assert_eq!(signer_count(&all).ok(), Some(3));
-    }
-
-    #[test]
-    fn rejects_too_many_signers() {
-        let empty: &[&[u8]] = &[];
-        let all: [&[&[u8]]; MAX_CPI_SIGNERS + 1] = [empty; MAX_CPI_SIGNERS + 1];
-        assert!(signer_count(&all).is_err());
-    }
-
-    #[test]
-    fn rejects_too_many_seeds_in_one_group() {
-        let seed: &[u8] = &[0u8];
-        let group: [&[u8]; MAX_CPI_SEEDS_PER_SIGNER + 1] = [seed; MAX_CPI_SEEDS_PER_SIGNER + 1];
-        let group_ref: &[&[u8]] = &group;
-        assert!(signer_count(&[group_ref]).is_err());
-    }
 }

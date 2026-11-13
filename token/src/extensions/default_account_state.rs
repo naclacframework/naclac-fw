@@ -14,7 +14,7 @@ use crate::prelude::vec;
 use crate::wrappers::ToAddress;
 use {
     super::Extension,
-    crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Pod, Result, Zeroable},
 };
 
 /// Raw Token-2022 `DefaultAccountState` mint extension (1 byte): the
@@ -60,7 +60,7 @@ pub fn initialize_default_account_state_signed(
     program: CpiHandle<'_>,
     mint: CpiHandleMut<'_>,
     state: u8,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -124,7 +124,7 @@ pub fn update_default_account_state_signed(
     mint: CpiHandleMut<'_>,
     freeze_authority: CpiHandle<'_>,
     state: u8,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]

@@ -589,6 +589,156 @@ pub fn generate_zero_copy_arg_bytes(
     writes
 }
 
+/// The exact number of bytes `write_field_bytes` writes for a CPI argument of
+/// type `ty`, as a Rust constant expression, or `None` when that number
+/// depends on the value (`ZcString`/`ZcVec`) or the type is written field by
+/// field (a defined struct with a non-Pod field). Must change together with
+/// `write_field_bytes`: a CPI builder sizes its stack buffer from this.
+pub fn fixed_wire_size_expr(
+    ty: &serde_json::Value,
+    defined_types: &[crate::IdlType],
+    is_zero_copy: bool,
+) -> Option<String> {
+    match classify_arg_wire_kind(ty) {
+        ArgWireKind::Pod => {
+            if let Some(defined) = ty.get("defined").and_then(|d| d.as_str()) {
+                if defined != "Bool" {
+                    if let Some(td) = defined_types.iter().find(|t| t.name == defined) {
+                        match &td.ty {
+                            crate::IdlTypeDefVariants::Struct { fields } => {
+                                if fields
+                                    .iter()
+                                    .any(|f| !is_zero_copy_struct_pod(&f.ty, defined_types))
+                                {
+                                    return None;
+                                }
+                            }
+                            crate::IdlTypeDefVariants::Enum { .. } => {
+                                return enum_codec_size(ty, defined_types, is_zero_copy)
+                            }
+                        }
+                    }
+                }
+            }
+            Some(format!(
+                "core::mem::size_of::<{}>()",
+                map_type_to_rust_cpi(ty, is_zero_copy, "crate::types::")
+            ))
+        }
+        ArgWireKind::OptionPod(inner) => Some(option_wire_size(&inner, defined_types, is_zero_copy)),
+        ArgWireKind::DynamicString | ArgWireKind::DynamicVec { .. } => None,
+    }
+}
+
+/// The number of bytes `write_field_bytes` writes for the CPI argument at
+/// `expr` of type `ty`, as a Rust expression evaluated at runtime. Must change
+/// together with `write_field_bytes`: a CPI builder sizes its heap buffer from
+/// this, and fails when the written length differs.
+pub fn wire_size_expr(
+    expr: &str,
+    ty: &serde_json::Value,
+    defined_types: &[crate::IdlType],
+    is_zero_copy: bool,
+) -> String {
+    match classify_arg_wire_kind(ty) {
+        ArgWireKind::Pod => {
+            if let Some(size) = fixed_wire_size_expr(ty, defined_types, is_zero_copy) {
+                return format!("({size})");
+            }
+            let fields = ty
+                .get("defined")
+                .and_then(|d| d.as_str())
+                .and_then(|name| defined_types.iter().find(|t| t.name == name))
+                .and_then(|td| match &td.ty {
+                    crate::IdlTypeDefVariants::Struct { fields } => Some(fields),
+                    crate::IdlTypeDefVariants::Enum { .. } => None,
+                });
+            match fields {
+                Some(fields) if !fields.is_empty() => {
+                    let parts: Vec<String> = fields
+                        .iter()
+                        .map(|f| {
+                            let f_snake = heck::AsSnakeCase(&f.name).to_string();
+                            wire_size_expr(
+                                &format!("{expr}.{f_snake}"),
+                                &f.ty,
+                                defined_types,
+                                is_zero_copy,
+                            )
+                        })
+                        .collect();
+                    format!("({})", parts.join(" + "))
+                }
+                _ => format!("core::mem::size_of_val(&{expr})"),
+            }
+        }
+        ArgWireKind::OptionPod(inner) => {
+            format!("({})", option_wire_size(&inner, defined_types, is_zero_copy))
+        }
+        ArgWireKind::DynamicString => format!("(4 + {expr}.as_bytes().len())"),
+        ArgWireKind::DynamicVec { inner_is_u8: true } => {
+            format!("(4 + {expr}.as_bytes().len())")
+        }
+        ArgWireKind::DynamicVec { inner_is_u8: false } => {
+            let inner_ty_json = ty
+                .get("vec")
+                .expect("DynamicVec classification guarantees a \"vec\" key");
+            if inner_ty_json.as_str() == Some("string") {
+                return format!(
+                    "(4 + {expr}.iter().map(|__item| 4 + __item.as_bytes().len()).sum::<usize>())"
+                );
+            }
+            if inner_ty_json.get("vec").and_then(|v| v.as_str()) == Some("u8") {
+                return format!(
+                    "(4 + {expr}.iter().map(|__item| 4 + __item[..].len()).sum::<usize>())"
+                );
+            }
+            let elem_size = enum_codec_size(inner_ty_json, defined_types, is_zero_copy)
+                .unwrap_or_else(|| {
+                    format!(
+                        "core::mem::size_of::<{}>()",
+                        map_type_to_rust_cpi(inner_ty_json, is_zero_copy, "crate::types::")
+                    )
+                });
+            format!("(4 + {expr}.len() * {elem_size})")
+        }
+    }
+}
+
+/// `<Enum as ZcCodec>::SIZE` when `ty` names a defined enum, `None` otherwise.
+fn enum_codec_size(
+    ty: &serde_json::Value,
+    defined_types: &[crate::IdlType],
+    is_zero_copy: bool,
+) -> Option<String> {
+    let defined = ty.get("defined")?.as_str()?;
+    let td = defined_types.iter().find(|t| t.name == defined)?;
+    match td.ty {
+        crate::IdlTypeDefVariants::Enum { .. } => Some(format!(
+            "<{} as {}::ZcCodec>::SIZE",
+            map_type_to_rust_cpi(ty, is_zero_copy, "crate::types::"),
+            sdk_core_alias(true)
+        )),
+        crate::IdlTypeDefVariants::Struct { .. } => None,
+    }
+}
+
+/// The wire size of an `Option<inner>` argument: a tag byte, then the inner
+/// value's encoded size whether it is `Some` or `None`.
+fn option_wire_size(
+    inner: &serde_json::Value,
+    defined_types: &[crate::IdlType],
+    is_zero_copy: bool,
+) -> String {
+    match enum_codec_size(inner, defined_types, is_zero_copy) {
+        Some(size) => format!("1 + {size}"),
+        None => format!(
+            "1 + core::mem::size_of::<{}>()",
+            map_type_to_rust_cpi(inner, is_zero_copy, "crate::types::")
+        ),
+    }
+}
+
 /// True if `ty` references a `definedTypes` entry, anywhere inside
 /// `option`/`vec`/`array` wrapping — i.e. whether a field of this type
 /// actually needs `crate::types::typedefs::*` in scope. `Bool` doesn't

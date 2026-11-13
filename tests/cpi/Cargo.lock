@@ -649,6 +649,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "const-crypto"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c06f1eb05f06cf2e380fdded278fbf056a38974299d77960555a311dcf91a52"
+dependencies = [
+ "keccak-const",
+ "sha2-const-stable",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1449,6 +1459,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6928282826c822ad91bf1c9a1cb90a30ba1c26770749929b4656cd6be829cd7c"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1532,6 +1551,12 @@ checksum = "cb26cec98cce3a3d96cbb7bced3c4b16e3d13f27ec56dbd62cbc8f39cfb9d653"
 dependencies = [
  "cpufeatures 0.2.17",
 ]
+
+[[package]]
+name = "keccak-const"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57d8d8ce877200136358e0bbff3a77965875db3af755a11e1fa6b1b3e2df13ea"
 
 [[package]]
 name = "lazy_static"
@@ -1756,8 +1781,10 @@ version = "0.1.0"
 dependencies = [
  "borsh",
  "bytemuck",
+ "const-crypto",
  "five8",
- "naclac-macros",
+ "naclac-derive",
+ "naclac-idl",
  "naclac-pod",
  "pinocchio 0.11.2",
  "pinocchio-log",
@@ -1781,9 +1808,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "naclac-derive"
+version = "0.1.0"
+dependencies = [
+ "bs58",
+ "heck",
+ "naclac-syn",
+ "proc-macro2",
+ "quote",
+ "sha2 0.11.0",
+ "syn 3.0.3",
+]
+
+[[package]]
 name = "naclac-idl"
 version = "0.1.0"
 dependencies = [
+ "inventory",
  "naclac-syn",
  "serde",
  "serde_json",
@@ -1797,27 +1838,10 @@ name = "naclac-lang"
 version = "0.1.0"
 dependencies = [
  "naclac-core",
+ "naclac-derive",
  "naclac-idl",
- "naclac-macros",
  "naclac-metadata",
- "naclac-syn",
  "naclac-token",
-]
-
-[[package]]
-name = "naclac-macros"
-version = "0.1.0"
-dependencies = [
- "bs58",
- "heck",
- "naclac-idl",
- "naclac-syn",
- "proc-macro2",
- "quote",
- "serde_json",
- "sha2 0.11.0",
- "solana-address 2.9.0",
- "syn 3.0.3",
 ]
 
 [[package]]
@@ -1834,6 +1858,7 @@ name = "naclac-pod"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "naclac-idl",
  "pinocchio 0.11.2",
  "solana-address 2.9.0",
  "solana-program-error",
@@ -1848,7 +1873,6 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "syn 3.0.3",
- "toml",
 ]
 
 [[package]]
@@ -2458,15 +2482,6 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
-]
-
-[[package]]
-name = "serde_spanned"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6662b5879511e06e8999a8a235d848113e942c9124f211511b16466ee2995f26"
-dependencies = [
- "serde_core",
 ]
 
 [[package]]
@@ -4834,21 +4849,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
-name = "toml"
-version = "1.1.4+spec-1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3aace63f4bbcdfc2c965b059de67119c89c4017a70d633be6c104910f67056f5"
-dependencies = [
- "indexmap",
- "serde_core",
- "serde_spanned",
- "toml_datetime",
- "toml_parser",
- "toml_writer",
- "winnow",
-]
-
-[[package]]
 name = "toml_datetime"
 version = "1.1.1+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4877,12 +4877,6 @@ checksum = "1d38ac1cf9b95face32296c0a3ede1fdc270627c9d9c02a7274dd6d960dc4d56"
 dependencies = [
  "winnow",
 ]
-
-[[package]]
-name = "toml_writer"
-version = "1.1.2+spec-1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d56353a2a665ad0f41a421187180aab746c8c325620617ad883a99a1cbe66d2"
 
 [[package]]
 name = "typenum"

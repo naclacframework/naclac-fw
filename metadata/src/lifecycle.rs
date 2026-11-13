@@ -95,7 +95,7 @@ pub struct BurnCollectionAccounts<'a> {
 pub fn transfer_asset_signed(
     program: CpiHandle<'_>,
     accounts: TransferAssetAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -203,7 +203,7 @@ pub fn transfer_asset_signed(
 pub fn burn_asset_signed(
     program: CpiHandle<'_>,
     accounts: BurnAssetAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -317,7 +317,7 @@ pub fn update_asset_signed(
     new_name: Option<&str>,
     new_uri: Option<&str>,
     new_update_authority: Option<UpdateAuthorityKind>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -531,7 +531,7 @@ pub fn update_collection_signed(
     accounts: UpdateCollectionAccounts<'_>,
     new_name: Option<&str>,
     new_uri: Option<&str>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -680,7 +680,7 @@ pub fn update_collection_signed(
 pub fn burn_collection_signed(
     program: CpiHandle<'_>,
     accounts: BurnCollectionAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

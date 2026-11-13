@@ -24,7 +24,7 @@ use crate::prelude::vec;
 use crate::wrappers::ToAddress;
 use {
     super::Extension,
-    crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Pod, Result, Zeroable},
 };
 
 /// Raw Token-2022 `NonTransferable` mint extension — a zero-byte marker;
@@ -78,7 +78,7 @@ pub fn initialize_non_transferable_mint(
 pub fn initialize_non_transferable_mint_signed(
     program: CpiHandle<'_>,
     mint: CpiHandleMut<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]

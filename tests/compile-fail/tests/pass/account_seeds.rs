@@ -54,7 +54,7 @@ pub struct Create {
 }
 
 pub fn vault_seed_lengths(owner: Address, index: u64) -> (usize, usize) {
-    let seeds = Vault::seeds(owner, index);
+    let seeds = Vault::seeds(&owner, &index);
     let bump = [7u8];
     (seeds.as_slices().len(), seeds.as_slices_with_bump(&bump).len())
 }

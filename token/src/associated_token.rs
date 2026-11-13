@@ -10,7 +10,7 @@
 use crate::{
     prelude::{
         derive_program_address, find_bump_for_address, Address, CpiHandle, CpiHandleMut,
-        NaclacError, Result,
+        CpiSigner, NaclacError, Result,
     },
     wrappers::{ToAddress, ToCpiHandle, ToCpiHandleMut},
 };
@@ -119,7 +119,7 @@ pub fn create(program: CpiHandle<'_>, accounts: AtaCpiAccounts<'_>) -> Result<()
 pub fn create_signed(
     program: CpiHandle<'_>,
     accounts: AtaCpiAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     let AtaCpiAccounts {
         payer,
@@ -182,7 +182,7 @@ pub fn create_idempotent(program: CpiHandle<'_>, accounts: AtaCpiAccounts<'_>) -
 pub fn create_idempotent_signed(
     program: CpiHandle<'_>,
     accounts: AtaCpiAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     let AtaCpiAccounts {
         payer,
@@ -257,7 +257,7 @@ pub fn create_idempotent_with_extra_accounts_signed(
     program: CpiHandle<'_>,
     accounts: AtaCpiAccounts<'_>,
     extra_accounts: &[CpiHandle<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     if extra_accounts.len() > MAX_ATA_CREATE_EXTRA_ACCOUNTS {
         return Err(NaclacError::TooManyExtraAccounts.into());
@@ -351,30 +351,20 @@ pub fn create_idempotent_with_extra_accounts_signed(
 }
 
 #[cfg(feature = "pinocchio")]
-fn invoke_ata_ix<I: PinocchioAtaInstruction>(ix: I, signer_seeds: &[&[&[u8]]]) -> Result<()> {
-    if signer_seeds.is_empty() {
-        return ix.invoke();
-    }
-
-    // Shared, single implementation (core/src/cpi.rs) instead of the
-    // hand-rolled unsafe signer/seed-array construction this function used
-    // to duplicate independently — same fix, same reasoning as
-    // `token.rs`'s 9 CPI call sites (see that file's own comment on this).
-    naclac_core::cpi_signers_from_seeds!(signer_seeds, signers);
-    ix.invoke_signed(signers)
+fn invoke_ata_ix<I: PinocchioAtaInstruction>(
+    ix: I,
+    signer_seeds: &[CpiSigner<'_, '_>],
+) -> Result<()> {
+    ix.invoke_signed(CpiSigner::as_pinocchio(signer_seeds))
 }
 
 #[cfg(feature = "pinocchio")]
 trait PinocchioAtaInstruction {
-    fn invoke(&self) -> Result<()>;
     fn invoke_signed(&self, signers: &[::pinocchio::cpi::Signer]) -> Result<()>;
 }
 
 #[cfg(feature = "pinocchio")]
 impl PinocchioAtaInstruction for pinocchio_associated_token_account::instructions::Create<'_> {
-    fn invoke(&self) -> Result<()> {
-        pinocchio_associated_token_account::instructions::Create::invoke(self)
-    }
     fn invoke_signed(&self, signers: &[::pinocchio::cpi::Signer]) -> Result<()> {
         pinocchio_associated_token_account::instructions::Create::invoke_signed(self, signers)
     }
@@ -384,9 +374,6 @@ impl PinocchioAtaInstruction for pinocchio_associated_token_account::instruction
 impl PinocchioAtaInstruction
     for pinocchio_associated_token_account::instructions::CreateIdempotent<'_>
 {
-    fn invoke(&self) -> Result<()> {
-        pinocchio_associated_token_account::instructions::CreateIdempotent::invoke(self)
-    }
     fn invoke_signed(&self, signers: &[::pinocchio::cpi::Signer]) -> Result<()> {
         pinocchio_associated_token_account::instructions::CreateIdempotent::invoke_signed(
             self, signers,
@@ -420,7 +407,7 @@ pub trait AssociatedTokenCpi {
     fn create_signed<'a, A, B, C, D, E, F>(
         &self,
         accounts: CreateAtaAccounts<'a, A, B, C, D, E, F>,
-        signer_seeds: &[&[&[u8]]],
+        signer_seeds: &[CpiSigner<'_, '_>],
     ) -> Result<()>
     where
         A: ToCpiHandleMut<'a>,
@@ -445,7 +432,7 @@ pub trait AssociatedTokenCpi {
     fn create_idempotent_signed<'a, A, B, C, D, E, F>(
         &self,
         accounts: CreateAtaAccounts<'a, A, B, C, D, E, F>,
-        signer_seeds: &[&[&[u8]]],
+        signer_seeds: &[CpiSigner<'_, '_>],
     ) -> Result<()>
     where
         A: ToCpiHandleMut<'a>,
@@ -492,7 +479,7 @@ impl AssociatedTokenCpi for crate::wrappers::Program<crate::wrappers::Associated
     fn create_signed<'a, A, B, C, D, E, F>(
         &self,
         accounts: CreateAtaAccounts<'a, A, B, C, D, E, F>,
-        signer_seeds: &[&[&[u8]]],
+        signer_seeds: &[CpiSigner<'_, '_>],
     ) -> Result<()>
     where
         A: ToCpiHandleMut<'a>,
@@ -558,7 +545,7 @@ impl AssociatedTokenCpi for crate::wrappers::Program<crate::wrappers::Associated
     fn create_idempotent_signed<'a, A, B, C, D, E, F>(
         &self,
         accounts: CreateAtaAccounts<'a, A, B, C, D, E, F>,
-        signer_seeds: &[&[&[u8]]],
+        signer_seeds: &[CpiSigner<'_, '_>],
     ) -> Result<()>
     where
         A: ToCpiHandleMut<'a>,

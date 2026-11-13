@@ -153,7 +153,7 @@ pub(super) fn tokens(ctx: &InitCtx) -> TokenStream {
                         __lamports,
                         __space as u64,
                         program_id,
-                        pinocchio_signer_seeds,
+                        signer_seeds,
                     )?;
                 }
 

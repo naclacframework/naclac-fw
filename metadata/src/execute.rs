@@ -88,7 +88,7 @@ pub fn execute_signed(
     accounts: ExecuteAssetAccounts<'_>,
     instruction_data: &[u8],
     remaining_accounts: &[ExecuteRemainingAccount<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     if matches!(accounts.payer, ExecutePayer::AssetSignerPda) && accounts.authority.is_none() {
         return Err(NaclacError::ConstraintAccountIsNone.into());

@@ -31,8 +31,6 @@ pub enum NaclacError {
     SerializationFailed = 24,
     ConstraintDuplicateMutableAccount = 25,
     ConstraintClose = 26,
-    TooManyCpiSigners = 27,
-    TooManyCpiSeeds = 28,
     TooManyExtraAccounts = 29,
     TooManyCpiAccounts = 30,
     TooManyAccountEntries = 31,
@@ -48,7 +46,7 @@ pub enum NaclacError {
 
 impl NaclacError {
     /// Every framework error, in code order.
-    pub const ALL: [NaclacError; 39] = [
+    pub const ALL: [NaclacError; 37] = [
         NaclacError::ConstraintMut,
         NaclacError::ConstraintSigner,
         NaclacError::ConstraintAddress,
@@ -75,8 +73,6 @@ impl NaclacError {
         NaclacError::SerializationFailed,
         NaclacError::ConstraintDuplicateMutableAccount,
         NaclacError::ConstraintClose,
-        NaclacError::TooManyCpiSigners,
-        NaclacError::TooManyCpiSeeds,
         NaclacError::TooManyExtraAccounts,
         NaclacError::TooManyCpiAccounts,
         NaclacError::TooManyAccountEntries,
@@ -128,12 +124,6 @@ impl NaclacError {
                 "Duplicate mutable account detected in instruction"
             }
             NaclacError::ConstraintClose => "Cannot close account to itself",
-            NaclacError::TooManyCpiSigners => {
-                "Too many PDA signers in one CPI call (exceeds MAX_CPI_SIGNERS)"
-            }
-            NaclacError::TooManyCpiSeeds => {
-                "Too many seeds for one PDA signer in a CPI call (exceeds MAX_CPI_SEEDS_PER_SIGNER)"
-            }
             NaclacError::TooManyExtraAccounts => {
                 "Too many extra accounts appended to a CPI (exceeds its fixed maximum)"
             }
@@ -194,8 +184,6 @@ pub fn decode_custom_error(code: u32) -> Option<(NaclacError, usize)> {
         24 => NaclacError::SerializationFailed,
         25 => NaclacError::ConstraintDuplicateMutableAccount,
         26 => NaclacError::ConstraintClose,
-        27 => NaclacError::TooManyCpiSigners,
-        28 => NaclacError::TooManyCpiSeeds,
         29 => NaclacError::TooManyExtraAccounts,
         30 => NaclacError::TooManyCpiAccounts,
         31 => NaclacError::TooManyAccountEntries,
@@ -392,8 +380,6 @@ mod table_parity_tests {
             SerializationFailed,
             ConstraintDuplicateMutableAccount,
             ConstraintClose,
-            TooManyCpiSigners,
-            TooManyCpiSeeds,
             TooManyExtraAccounts,
             TooManyCpiAccounts,
             TooManyAccountEntries,

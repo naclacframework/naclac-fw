@@ -56,7 +56,7 @@ pub fn attach_verified_creators_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     signatures: &[VerifiedCreatorSignature],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -96,7 +96,7 @@ pub fn attach_collection_verified_creators_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     signatures: &[VerifiedCreatorSignature],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

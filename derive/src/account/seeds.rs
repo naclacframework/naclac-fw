@@ -78,9 +78,15 @@ pub(super) fn parse(item: &ItemStruct) -> syn::Result<Option<SeedsSpec>> {
 
 /// The inherent `with_signer_seeds` of `item`: it builds the seed slices from
 /// the account's own fields and the stored bump and hands them to a closure as
-/// the `&[&[&[u8]]]` every signed CPI takes, on both runtimes. Every seed's
+/// the `&[CpiSigner]` every signed CPI takes, on both runtimes. Every seed's
 /// bytes come from `SeedPart`, so a field type that cannot be a seed, or one
 /// over `MAX_PDA_SEED_LEN` bytes, fails to compile.
+///
+/// Each seed is read through `SeedPart::borrow_seed_part` on `addr_of!` of the
+/// field, so an address or byte array is borrowed from the account in place
+/// and a packed field is never referenced. The pointer comes from `&self`,
+/// which outlives every use of the seeds, so it satisfies that method's
+/// contract.
 pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<TokenStream> {
     let name = &item.ident;
     let syn::Fields::Named(fields) = &item.fields else {
@@ -130,7 +136,9 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
             );
         });
         bindings.push(quote! {
-            let #binding = naclac_lang::prelude::SeedPart::seed_part(&{ self.#part });
+            let #binding = unsafe {
+                naclac_lang::prelude::SeedPart::borrow_seed_part(::core::ptr::addr_of!(self.#part))
+            };
         });
         slices.push(quote! { ::core::convert::AsRef::<[u8]>::as_ref(&#binding) });
     }
@@ -149,7 +157,7 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
     let part_types: Vec<&syn::Type> = spec
         .parts
         .iter()
-        .map(|part| field_type(part))
+        .map(field_type)
         .collect::<syn::Result<_>>()?;
     let slice_count_with_bump = seed_count;
     let slice_count = seed_count - 1;
@@ -167,13 +175,15 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
     Ok(quote! {
         #(#length_asserts)*
 
-        /// The seeds of this account's PDA, built by its `seeds` function.
-        #vis struct #set_name {
+        /// The seeds of this account's PDA, built by its `seeds` function. It
+        /// borrows the address and byte-array seeds it is built from.
+        #vis struct #set_name<'a> {
             __prefix: &'static [u8],
-            #( #part_names: <#part_types as naclac_lang::prelude::SeedPart>::Bytes, )*
+            #( #part_names: <#part_types as naclac_lang::prelude::SeedPart>::Held<'a>, )*
+            __borrow: ::core::marker::PhantomData<&'a ()>,
         }
 
-        impl #set_name {
+        impl #set_name<'_> {
             /// The prefix and the seed fields, in order.
             #[inline(always)]
             pub fn as_slices(&self) -> [&[u8]; #slice_count] {
@@ -183,7 +193,7 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
                 ]
             }
 
-            /// The same seeds with `bump` as the last one, as a signed CPI takes them.
+            /// The same seeds with `bump` as the last one.
             #[inline(always)]
             pub fn as_slices_with_bump<'a>(&'a self, bump: &'a [u8; 1]) -> [&'a [u8]; #slice_count_with_bump] {
                 [
@@ -192,16 +202,28 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
                     &bump[..],
                 ]
             }
+
+            /// The same seeds with `bump` as the last one, as the signer seeds
+            /// of a signed CPI: pass `&[seeds.signer()]` to a `*_signed` call.
+            #[inline(always)]
+            pub fn signer_seeds<'a>(
+                &'a self,
+                bump: &'a [u8; 1],
+            ) -> naclac_lang::prelude::SignerSeeds<'a, #slice_count_with_bump> {
+                naclac_lang::prelude::SignerSeeds::new(self.as_slices_with_bump(bump))
+            }
         }
 
         impl #name {
-            /// The seeds of this account's PDA from the values that make them
-            /// up, for a field written `seeds = Account::seeds(..)`.
+            /// The seeds of this account's PDA from references to the values
+            /// that make them up. A field writes `seeds = Account::seeds(..)`
+            /// with the values and the derive passes references to them.
             #[inline(always)]
-            pub fn seeds(#( #part_names: #part_types ),*) -> #set_name {
+            pub fn seeds<'a>(#( #part_names: &'a #part_types ),*) -> #set_name<'a> {
                 #set_name {
                     __prefix: ::core::convert::AsRef::<[u8]>::as_ref(&#prefix),
-                    #( #part_names: naclac_lang::prelude::SeedPart::seed_part(&#part_names), )*
+                    #( #part_names: naclac_lang::prelude::SeedPart::hold(#part_names), )*
+                    __borrow: ::core::marker::PhantomData,
                 }
             }
 
@@ -230,15 +252,18 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
             /// account: the prefix, the named fields in order, and the stored
             /// bump. Pass them to a `*_signed` CPI.
             #[inline(always)]
-            pub fn with_signer_seeds<R>(&self, f: impl ::core::ops::FnOnce(&[&[&[u8]]]) -> R) -> R {
+            pub fn with_signer_seeds<R>(
+                &self,
+                f: impl ::core::ops::FnOnce(&[naclac_lang::prelude::CpiSigner]) -> R,
+            ) -> R {
                 #(#bindings)*
                 let __bump: [u8; 1] = [{ self.#bump }];
-                let __seeds: [&[u8]; #seed_count] = [
+                let __seeds = naclac_lang::prelude::SignerSeeds::new([
                     ::core::convert::AsRef::<[u8]>::as_ref(&#prefix),
                     #(#slices,)*
                     &__bump,
-                ];
-                let __signer: [&[&[u8]]; 1] = [&__seeds];
+                ]);
+                let __signer = [__seeds.signer()];
                 f(&__signer)
             }
         }
@@ -281,6 +306,33 @@ mod tests {
         assert!(code.contains("; 4usize") || code.contains("; 4]"), "{code}");
         assert!(code.contains("__seed_token_a"), "{code}");
         assert!(code.contains("__seed_id"), "{code}");
+    }
+
+    #[test]
+    fn the_seed_set_borrows_the_values_it_is_built_from() {
+        let code = generated(
+            "#[seeds(SEED_POOL, token_a, id, bump = bump)] struct Pool { token_a: Address, id: u64, bump: u8 }",
+        );
+        assert!(code.contains("token_a : & 'a Address"), "{code}");
+        assert!(code.contains("id : & 'a u64"), "{code}");
+        assert!(code.contains("SeedPart :: hold (token_a)"), "{code}");
+        assert!(code.contains("PoolSeedSet < 'a >"), "{code}");
+    }
+
+    #[test]
+    fn each_seed_is_borrowed_from_its_field_in_place() {
+        let code = generated(
+            "#[seeds(SEED_POOL, token_a, id, bump = bump)] struct Pool { token_a: Address, id: u64, bump: u8 }",
+        );
+        assert!(
+            code.contains("borrow_seed_part (:: core :: ptr :: addr_of ! (self . token_a))"),
+            "{code}"
+        );
+        assert!(
+            code.contains("borrow_seed_part (:: core :: ptr :: addr_of ! (self . id))"),
+            "{code}"
+        );
+        assert!(!code.contains("seed_part (& { self"), "{code}");
     }
 
     #[test]

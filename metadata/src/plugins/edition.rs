@@ -18,7 +18,7 @@ pub fn attach_edition_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     number: u32,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

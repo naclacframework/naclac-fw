@@ -14,7 +14,7 @@ use crate::prelude::vec;
 use crate::wrappers::ToAddress;
 use {
     super::{read_optional_address, Extension},
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Pod, Result, Zeroable},
 };
 
 /// Raw Token-2022 `InterestBearingConfig` mint extension (52 bytes): the
@@ -98,7 +98,7 @@ pub fn initialize_interest_bearing_mint_signed(
     mint: CpiHandleMut<'_>,
     rate_authority: Option<&Address>,
     rate: i16,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -159,7 +159,7 @@ pub fn update_interest_bearing_mint_rate_signed(
     mint: CpiHandleMut<'_>,
     rate_authority: CpiHandle<'_>,
     rate: i16,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]

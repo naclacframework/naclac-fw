@@ -28,7 +28,7 @@ pub fn attach_update_delegate_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     additional_delegates: &[Address],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -66,7 +66,7 @@ pub fn attach_collection_update_delegate_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     additional_delegates: &[Address],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

@@ -2,17 +2,13 @@
 // wrappers/accounts/account.rs — the unified Account<T>
 // ===========================================================================
 
-//! `Account<T>` is naclac's one account-wrapper name. Internally it
-//! cfg-routes between two structurally different implementations:
+//! `Account<T>` is naclac's one account-wrapper name, with one definition per
+//! account-data layout feature; `naclac-core` requires exactly one of them:
 //!
-//! - `all(borsh, not(pinocchio))`: owns a Borsh-deserialized copy of `T`.
-//! - `any(pinocchio, not(borsh))`: caches a raw pointer directly into the
-//!   account's own data buffer (zero-copy).
-//!
-//! These two conditions are mutually exclusive and exhaustive over every
-//! `(pinocchio, borsh)` combination (verified in
-//! `core/docs/accounts-consolidation-plan.md`'s truth table), so
-//! exactly one `Account<T>` definition is ever compiled.
+//! - `borsh` (Solana runtime only): owns a Borsh-deserialized copy of `T`.
+//! - `wincode`: owns a wincode-deserialized copy of `T`.
+//! - `bytemuck`: caches a raw pointer directly into the account's own data
+//!   buffer (zero-copy).
 
 // ===========================================================================
 // Borsh branch — owns a deserialized copy of T

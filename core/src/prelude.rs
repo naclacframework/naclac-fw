@@ -19,7 +19,7 @@ pub use {
             Bumps, Context, EventCpiAccounts, EventCpiAuthority, EventCpiTag, LoadableAccounts,
             ValidationResult,
         },
-        cpi::{self, AccountMeta, ToAccountMetas},
+        cpi::{self, AccountMeta, CpiSigner, SignerSeeds, ToAccountMetas},
     },
     naclac_derive::*,
 };
@@ -54,30 +54,6 @@ pub use crate::wrappers::{
 pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};
 
 pub use crate::realloc::{resize_with_rent, LazyRent};
-
-// ---------------------------------------------------------------------------
-// CPI Stack-Allocation Limits
-//
-// These constants control the maximum number of PDA signers and seeds that
-// the generated CPI helpers will support via stack-allocated arrays.
-// They are intentionally conservative to keep stack usage well under the
-// Solana 4 KB limit.
-//
-// ⚠️  WARNING: Raising these values increases stack frame size.
-//     Each additional signer costs `MAX_CPI_SEEDS_PER_SIGNER * 16` bytes.
-//     Do NOT exceed values that would push total stack usage past 4 KB.
-//
-// To override globally in your crate, re-export your own constants from a
-// prelude wrapper before including naclac_lang.
-// ---------------------------------------------------------------------------
-
-/// Maximum number of PDA signers supported per CPI call.
-/// Default: 4. Each signer holds up to `MAX_CPI_SEEDS_PER_SIGNER` seeds.
-pub const MAX_CPI_SIGNERS: usize = 4;
-
-/// Maximum number of seeds per PDA signer in a CPI call.
-/// Default: 16. Solana itself enforces a limit of 16 seeds per PDA.
-pub const MAX_CPI_SEEDS_PER_SIGNER: usize = 16;
 
 /// Maximum number of accounts the pinocchio-backend CPI helpers
 /// (`cpi::invoke_pinocchio`/`invoke_signed_pinocchio_handles`/
@@ -596,29 +572,54 @@ impl ConstSeed<Address> {
     }
 }
 
-/// A field value used as one PDA seed by an `#[account]` with `#[seeds(..)]`:
-/// its owned bytes, which the generated signer helper borrows for a signed
-/// CPI. Integers are little-endian; `Address` and `[u8; N]` are themselves.
+/// A field value used as one PDA seed by an `#[account]` with `#[seeds(..)]`.
+/// Integers are little-endian; `Address` and `[u8; N]` are themselves.
 pub trait SeedPart {
-    type Bytes: AsRef<[u8]>;
+    /// What a seed set keeps of one value: a reference to the value's own
+    /// bytes for an `Address` or `[u8; N]`, the little-endian bytes for an
+    /// integer.
+    type Held<'a>: AsRef<[u8]>
+    where
+        Self: 'a;
 
-    /// The length of `Bytes`; one PDA seed may be at most `MAX_PDA_SEED_LEN`.
+    /// The length of the seed bytes; one PDA seed may be at most
+    /// `MAX_PDA_SEED_LEN`.
     const LEN: usize;
 
-    fn seed_part(&self) -> Self::Bytes;
+    fn hold(&self) -> Self::Held<'_>;
+
+    /// The seed bytes of the value at `this`: borrowed from it when the
+    /// value's own bytes are the seed (`Address`, `[u8; N]`), read out
+    /// little-endian otherwise. `this` may be a field of a packed struct.
+    ///
+    /// # Safety
+    ///
+    /// `this` must point to a valid, initialised `Self` that stays alive and
+    /// unmodified for `'a`. It need not be aligned, so it may come from
+    /// `core::ptr::addr_of!` on a packed field.
+    unsafe fn borrow_seed_part<'a>(this: *const Self) -> impl AsRef<[u8]> + 'a;
 }
 
 macro_rules! integer_seed_part {
     ($($int:ty),* $(,)?) => {
         $(
             impl SeedPart for $int {
-                type Bytes = [u8; core::mem::size_of::<$int>()];
+                type Held<'a> = [u8; core::mem::size_of::<$int>()]
+                where
+                    Self: 'a;
 
                 const LEN: usize = core::mem::size_of::<$int>();
 
                 #[inline(always)]
-                fn seed_part(&self) -> Self::Bytes {
+                fn hold(&self) -> Self::Held<'_> {
                     self.to_le_bytes()
+                }
+
+                #[inline(always)]
+                unsafe fn borrow_seed_part<'a>(this: *const Self) -> impl AsRef<[u8]> + 'a {
+                    // SAFETY: the caller guarantees `this` points to a valid
+                    // value; `read_unaligned` places no alignment demand.
+                    unsafe { this.read_unaligned() }.to_le_bytes()
                 }
             }
         )*
@@ -628,24 +629,44 @@ macro_rules! integer_seed_part {
 integer_seed_part!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
 
 impl<const N: usize> SeedPart for [u8; N] {
-    type Bytes = [u8; N];
+    type Held<'a> = &'a [u8; N]
+    where
+        Self: 'a;
 
     const LEN: usize = N;
 
     #[inline(always)]
-    fn seed_part(&self) -> Self::Bytes {
-        *self
+    fn hold(&self) -> Self::Held<'_> {
+        self
+    }
+
+    #[inline(always)]
+    unsafe fn borrow_seed_part<'a>(this: *const Self) -> impl AsRef<[u8]> + 'a {
+        // SAFETY: the caller guarantees `this` points to a valid array that
+        // lives for `'a`; a byte array has alignment 1, so any address is
+        // aligned for it.
+        unsafe { &*this }
     }
 }
 
 impl SeedPart for Address {
-    type Bytes = [u8; 32];
+    type Held<'a> = &'a [u8; 32]
+    where
+        Self: 'a;
 
     const LEN: usize = 32;
 
     #[inline(always)]
-    fn seed_part(&self) -> Self::Bytes {
-        *address_bytes(self)
+    fn hold(&self) -> Self::Held<'_> {
+        address_bytes(self)
+    }
+
+    #[inline(always)]
+    unsafe fn borrow_seed_part<'a>(this: *const Self) -> impl AsRef<[u8]> + 'a {
+        // SAFETY: the caller guarantees `this` points to a valid `Address`
+        // that lives for `'a`; an address is 32 bytes with alignment 1, so
+        // any address is aligned for it.
+        address_bytes(unsafe { &*this })
     }
 }
 
@@ -655,12 +676,45 @@ mod seed_part_tests {
 
     #[test]
     fn integers_are_little_endian_and_arrays_and_addresses_are_themselves() {
-        assert!(7u8.seed_part() == [7]);
-        assert!(0x0102u16.seed_part() == [2, 1]);
-        assert!(42u64.seed_part() == 42u64.to_le_bytes());
-        assert!((-2i32).seed_part() == (-2i32).to_le_bytes());
-        assert!([1u8, 2, 3].seed_part() == [1, 2, 3]);
-        assert!(Address::default().seed_part() == [0u8; 32]);
+        fn bytes_of<T: SeedPart>(value: &T, expected: &[u8]) -> bool {
+            AsRef::<[u8]>::as_ref(&value.hold()) == expected
+        }
+        assert!(bytes_of(&7u8, &[7]));
+        assert!(bytes_of(&0x0102u16, &[2, 1]));
+        assert!(bytes_of(&42u64, &42u64.to_le_bytes()));
+        assert!(bytes_of(&-2i32, &(-2i32).to_le_bytes()));
+        assert!(bytes_of(&[1u8, 2, 3], &[1, 2, 3]));
+        assert!(bytes_of(&Address::default(), &[0u8; 32]));
+    }
+
+    #[repr(C, packed)]
+    struct Packed {
+        tag: u8,
+        id: u64,
+        key: [u8; 16],
+        owner: Address,
+    }
+
+    #[test]
+    fn a_packed_field_is_borrowed_or_read_out_without_a_reference_to_it() {
+        let packed = Packed {
+            tag: 9,
+            id: 0x0102_0304_0506_0708,
+            key: [5; 16],
+            owner: Address::default(),
+        };
+        // SAFETY: each pointer comes from `addr_of!` on a field of `packed`,
+        // which outlives every use below.
+        unsafe {
+            let id = <u64 as SeedPart>::borrow_seed_part(core::ptr::addr_of!(packed.id));
+            assert!(id.as_ref() == 0x0102_0304_0506_0708u64.to_le_bytes());
+            let tag = <u8 as SeedPart>::borrow_seed_part(core::ptr::addr_of!(packed.tag));
+            assert!(tag.as_ref() == [9]);
+            let key = <[u8; 16] as SeedPart>::borrow_seed_part(core::ptr::addr_of!(packed.key));
+            assert!(key.as_ref() == [5u8; 16]);
+            let owner = <Address as SeedPart>::borrow_seed_part(core::ptr::addr_of!(packed.owner));
+            assert!(owner.as_ref() == [0u8; 32]);
+        }
     }
 }
 

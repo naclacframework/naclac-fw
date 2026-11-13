@@ -24,12 +24,18 @@
 //! unchecked path instead (and is rejected at compile time on an ATA field,
 //! which has no create-account call of its own to redirect).
 
-use crate::prelude::{ToCpiHandle, ToCpiHandleMut};
+use crate::{
+    cpi::CpiSigner,
+    prelude::{ToCpiHandle, ToCpiHandleMut},
+};
 
 // SOLANA BACKEND
 #[cfg(not(feature = "pinocchio"))]
 mod solana_system {
-    use crate::prelude::{vec, CpiHandle, CpiHandleMut, Result};
+    use crate::{
+        cpi::CpiSigner,
+        prelude::{vec, CpiHandle, CpiHandleMut, Result},
+    };
 
     /// The Solana System Program ID (all zeros)
     pub const ID: solana_address::Address = solana_address::Address::new_from_array([
@@ -52,7 +58,7 @@ mod solana_system {
         from: CpiHandleMut<'_>,
         to: CpiHandleMut<'_>,
         lamports: u64,
-        signer_seeds: &[&[&[u8]]],
+        signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
         let accounts = vec![
             solana_instruction::AccountMeta::new(*from.info.key, true),
@@ -66,7 +72,7 @@ mod solana_system {
         let ix = solana_instruction::Instruction::new_with_bytes(ID, &ix_data, accounts);
 
         let accounts = [CpiHandle::from(from), CpiHandle::from(to)];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+        crate::cpi::invoke_signed(&ix, &accounts, signers)
     }
 
     use crate::cpi::stable::{invoke_signed_raw, StableAccountMeta, StableInstruction};
@@ -95,7 +101,7 @@ mod solana_system {
         lamports: u64,
         space: u64,
         owner: &solana_address::Address,
-        signer_seeds: &[&[&[u8]]],
+        signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
         // The instruction below always targets the real, hardcoded `ID`
         // regardless of `program` — but the low-level CPI mechanism still
@@ -136,7 +142,11 @@ mod solana_system {
             ]
         };
 
-        invoke_signed_raw(&stable_ix, &account_infos, signer_seeds)
+        invoke_signed_raw(
+            &stable_ix,
+            &account_infos,
+            CpiSigner::as_seed_slices(signers),
+        )
     }
 
     pub fn create_account(
@@ -167,7 +177,7 @@ mod solana_system {
         lamports: u64,
         space: u64,
         owner: &solana_address::Address,
-        signer_seeds: &[&[&[u8]]],
+        signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
         let current = **to
             .info
@@ -231,14 +241,17 @@ mod solana_system {
                     as *const solana_account_info::AccountInfo<'static>),
             ]
         });
-        invoke_signed_raw(&instruction, &*infos, signer_seeds)
+        invoke_signed_raw(&instruction, &*infos, CpiSigner::as_seed_slices(signers))
     }
 }
 
 // PINOCCHIO BACKEND
 #[cfg(feature = "pinocchio")]
 mod pinocchio_system {
-    use crate::prelude::{CpiHandle, CpiHandleMut, Result};
+    use crate::{
+        cpi::CpiSigner,
+        prelude::{CpiHandle, CpiHandleMut, Result},
+    };
 
     // Re-use the system program ID directly from pinocchio-system crate
     pub use ::pinocchio_system::ID;
@@ -251,7 +264,7 @@ mod pinocchio_system {
         from: CpiHandleMut<'_>,
         to: CpiHandleMut<'_>,
         lamports: u64,
-        signer_seeds: &[&[&[u8]]],
+        signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
         let from_address = *from.info.view.address();
         let to_address = *to.info.view.address();
@@ -271,66 +284,7 @@ mod pinocchio_system {
 
         let cpi_accounts = [CpiHandle::from(from), CpiHandle::from(to)];
 
-        crate::cpi::invoke_signed_pinocchio_handles(&instruction, &cpi_accounts, signer_seeds)
-    }
-
-    /// Expands to a `let #signers_var: &[::pinocchio::cpi::Signer] = ...;`
-    /// binding, converting naclac's backend-uniform `&[&[&[u8]]]` signer
-    /// seeds (`$seeds`) into pinocchio's own `Signer`/`Seed` types without a
-    /// heap allocation. A macro rather than a function: each `Signer` built
-    /// here borrows from the seed buffer built in the same scope, and
-    /// threading that self-reference across a function boundary risks a
-    /// subtly wrong lifetime signature — expanding inline keeps the exact,
-    /// already-correct borrow shape at every call site. Shared by every
-    /// pinocchio `_unchecked`/checked `CreateAccount`-family function below
-    /// instead of duplicating this conversion in each one.
-    macro_rules! pinocchio_signers_from_seeds {
-        ($seeds:expr, $signers_var:ident) => {
-            if $seeds.len() > crate::prelude::MAX_CPI_SIGNERS {
-                return Err(crate::prelude::NaclacError::TooManyCpiSigners.into());
-            }
-            const __SIGNER_SLOTS: usize = crate::prelude::MAX_CPI_SIGNERS;
-            const __SEED_SLOTS: usize = crate::prelude::MAX_CPI_SEEDS_PER_SIGNER * __SIGNER_SLOTS;
-            let mut __signers: [core::mem::MaybeUninit<::pinocchio::cpi::Signer>; __SIGNER_SLOTS] =
-                [const { core::mem::MaybeUninit::uninit() }; __SIGNER_SLOTS];
-            let mut __seeds_buffer: [core::mem::MaybeUninit<::pinocchio::cpi::Seed>; __SEED_SLOTS] =
-                [const { core::mem::MaybeUninit::uninit() }; __SEED_SLOTS];
-
-            let mut __remaining: &mut [core::mem::MaybeUninit<::pinocchio::cpi::Seed>] =
-                &mut __seeds_buffer;
-            for (__slot, seed_parts) in __signers.iter_mut().zip($seeds.iter()) {
-                if seed_parts.len() > crate::prelude::MAX_CPI_SEEDS_PER_SIGNER {
-                    return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-                }
-                let Some((__mine, __tail)) =
-                    core::mem::take(&mut __remaining).split_at_mut_checked(seed_parts.len())
-                else {
-                    return Err(crate::prelude::NaclacError::TooManyCpiSeeds.into());
-                };
-                for (__dst, part) in __mine.iter_mut().zip(seed_parts.iter()) {
-                    __dst.write(::pinocchio::cpi::Seed::from(*part));
-                }
-                // SAFETY: `__mine` is `seed_parts.len()` long and the loop
-                // above wrote every element.
-                let __mine: &[::pinocchio::cpi::Seed] = unsafe {
-                    core::slice::from_raw_parts(
-                        __mine.as_ptr() as *const ::pinocchio::cpi::Seed,
-                        __mine.len(),
-                    )
-                };
-                __slot.write(::pinocchio::cpi::Signer::from(__mine));
-                __remaining = __tail;
-            }
-
-            // SAFETY: `$seeds.len() <= MAX_CPI_SIGNERS` was checked above, so
-            // the loop wrote the first `$seeds.len()` signers.
-            let $signers_var: &[::pinocchio::cpi::Signer] = unsafe {
-                core::slice::from_raw_parts(
-                    __signers.as_ptr() as *const ::pinocchio::cpi::Signer,
-                    $seeds.len(),
-                )
-            };
-        };
+        crate::cpi::invoke_signed_pinocchio_handles(&instruction, &cpi_accounts, signers)
     }
 
     /// Raw, no-borrow-check `CreateAccount` — the pre-existing hand-rolled
@@ -467,16 +421,15 @@ mod pinocchio_system {
         lamports: u64,
         space: u64,
         owner: &crate::prelude::Address,
-        signer_seeds: &[&[&[u8]]],
+        signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
-        pinocchio_signers_from_seeds!(signer_seeds, signers);
         create_account_unchecked_raw(
             &from.info.view,
             &to.info.view,
             lamports,
             space,
             owner,
-            signers,
+            CpiSigner::as_pinocchio(signers),
         )
     }
 
@@ -498,26 +451,22 @@ mod pinocchio_system {
         lamports: u64,
         space: u64,
         owner: &crate::prelude::Address,
-        signer_seeds: &[&[&[u8]]],
+        signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
-        pinocchio_signers_from_seeds!(signer_seeds, signers);
         create_account_checked_raw(
             &from.info.view,
             &to.info.view,
             lamports,
             space,
             owner,
-            signers,
+            CpiSigner::as_pinocchio(signers),
         )
     }
 
     /// Direct entry point for `naclac-derive`' `init`/`init_if_needed`
     /// codegen on the pinocchio backend — takes already-built
-    /// `AccountView`s and already-converted `pinocchio::cpi::Signer`s
-    /// (both already in scope in the generated code) rather than
-    /// `CpiHandleMut`/raw seeds, avoiding a redundant round-trip through
-    /// `CpiHandleMut` and `pinocchio_signers_from_seeds!` for state the
-    /// caller already has. Always the checked, prefund-aware path — use
+    /// `AccountView`s (already in scope in the generated code) rather than
+    /// `CpiHandleMut`s. Always the checked, prefund-aware path — use
     /// `create_account_unchecked_for_init` for `init_unchecked`.
     pub fn create_account_checked_for_init(
         from: &crate::prelude::AccountView,
@@ -525,9 +474,16 @@ mod pinocchio_system {
         lamports: u64,
         space: u64,
         owner: &crate::prelude::Address,
-        signer_seeds: &[::pinocchio::cpi::Signer],
+        signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
-        create_account_checked_raw(from, to, lamports, space, owner, signer_seeds)
+        create_account_checked_raw(
+            from,
+            to,
+            lamports,
+            space,
+            owner,
+            CpiSigner::as_pinocchio(signers),
+        )
     }
 
     /// Same already-built-view calling convention as
@@ -544,73 +500,16 @@ mod pinocchio_system {
         lamports: u64,
         space: u64,
         owner: &crate::prelude::Address,
-        signer_seeds: &[::pinocchio::cpi::Signer],
+        signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
-        create_account_unchecked_raw(from, to, lamports, space, owner, signer_seeds)
-    }
-
-    #[cfg(kani)]
-    mod kani_proofs {
-        use crate::prelude::{MAX_CPI_SEEDS_PER_SIGNER, MAX_CPI_SIGNERS};
-
-        /// Proves `pinocchio_signers_from_seeds!` rejects more than
-        /// `MAX_CPI_SIGNERS` signer groups with an error instead of
-        /// truncating them.
-        #[kani::proof]
-        fn prove_rejects_too_many_signers() -> crate::prelude::Result<()> {
-            let empty: &[&[u8]] = &[];
-            let too_many: [&[&[u8]]; MAX_CPI_SIGNERS + 1] = [empty; MAX_CPI_SIGNERS + 1];
-            let signer_seeds: &[&[&[u8]]] = &too_many;
-            let result: crate::prelude::Result<()> = (|| {
-                pinocchio_signers_from_seeds!(signer_seeds, _signers);
-                Ok(())
-            })();
-            assert!(
-                result.is_err(),
-                "more than MAX_CPI_SIGNERS signer groups must be rejected"
-            );
-            Ok(())
-        }
-
-        /// Proves it rejects more than `MAX_CPI_SEEDS_PER_SIGNER` seeds in one
-        /// signer group with an error instead of truncating them.
-        #[kani::proof]
-        fn prove_rejects_too_many_seeds_per_signer() -> crate::prelude::Result<()> {
-            let one_seed: &[u8] = &[0u8];
-            let too_many_seeds: [&[u8]; MAX_CPI_SEEDS_PER_SIGNER + 1] =
-                [one_seed; MAX_CPI_SEEDS_PER_SIGNER + 1];
-            let signer_seeds: &[&[&[u8]]] = &[&too_many_seeds];
-            let result: crate::prelude::Result<()> = (|| {
-                pinocchio_signers_from_seeds!(signer_seeds, _signers);
-                Ok(())
-            })();
-            assert!(
-                result.is_err(),
-                "more than MAX_CPI_SEEDS_PER_SIGNER seeds in one group must be rejected"
-            );
-            Ok(())
-        }
-
-        /// Proves it never panics and yields one `Signer` per signer group
-        /// for any seed bytes in a small bounded shape (2 groups of 2 seeds
-        /// of 4 bytes each).
-        #[kani::proof]
-        fn prove_within_bounds_is_correct() -> crate::prelude::Result<()> {
-            let seed_a0: [u8; 4] = kani::any();
-            let seed_a1: [u8; 4] = kani::any();
-            let seed_b0: [u8; 4] = kani::any();
-            let seed_b1: [u8; 4] = kani::any();
-            let signer_a: [&[u8]; 2] = [&seed_a0, &seed_a1];
-            let signer_b: [&[u8]; 2] = [&seed_b0, &seed_b1];
-            let signer_seeds: &[&[&[u8]]] = &[&signer_a, &signer_b];
-
-            pinocchio_signers_from_seeds!(signer_seeds, signers);
-            assert!(
-                signers.len() == signer_seeds.len(),
-                "must produce exactly one Signer per input signer group"
-            );
-            Ok(())
-        }
+        create_account_unchecked_raw(
+            from,
+            to,
+            lamports,
+            space,
+            owner,
+            CpiSigner::as_pinocchio(signers),
+        )
     }
 }
 
@@ -661,7 +560,7 @@ impl crate::wrappers::Program<crate::wrappers::System> {
         &self,
         accounts: SystemTransferAccounts<'a, A, B>,
         amount: u64,
-        signer_seeds: &[&[&[u8]]],
+        signers: &[CpiSigner<'_, '_>],
     ) -> crate::prelude::Result<()>
     where
         A: ToCpiHandleMut<'a>,
@@ -669,7 +568,7 @@ impl crate::wrappers::Program<crate::wrappers::System> {
     {
         let from_h = accounts.from.to_cpi_handle_mut();
         let to_h = accounts.to.to_cpi_handle_mut();
-        transfer_signed(from_h, to_h, amount, signer_seeds)
+        transfer_signed(from_h, to_h, amount, signers)
     }
 
     pub fn create_account<'a, A, B>(
@@ -695,7 +594,7 @@ impl crate::wrappers::Program<crate::wrappers::System> {
         lamports: u64,
         space: u64,
         owner: &crate::prelude::Address,
-        signer_seeds: &[&[&[u8]]],
+        signers: &[CpiSigner<'_, '_>],
     ) -> crate::prelude::Result<()>
     where
         A: ToCpiHandleMut<'a>,
@@ -711,7 +610,7 @@ impl crate::wrappers::Program<crate::wrappers::System> {
             lamports,
             space,
             owner,
-            signer_seeds,
+            signers,
         )
     }
 }

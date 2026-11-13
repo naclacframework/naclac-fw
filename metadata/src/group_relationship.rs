@@ -64,7 +64,7 @@ fn invoke_group_relationship_pinocchio(
     discriminator: u8,
     include_pubkey_arg: bool,
     items: &[CpiHandleMut<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     const FIXED_ACCOUNTS: usize = 4;
     const MAX_ITEMS: usize = MAX_CPI_ACCOUNTS - FIXED_ACCOUNTS;
@@ -180,7 +180,7 @@ fn invoke_group_relationship_solana(
     accounts: GroupRelationshipAccounts<'_>,
     ix: solana_instruction::Instruction,
     items: &[CpiHandleMut<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let mut cpi_accounts: crate::prelude::Vec<CpiHandle<'_>> =
         crate::prelude::Vec::with_capacity(5 + items.len());
@@ -199,7 +199,7 @@ pub fn add_assets_to_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
     items: &[CpiHandleMut<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -219,7 +219,7 @@ pub fn remove_assets_from_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
     items: &[CpiHandleMut<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -239,7 +239,7 @@ pub fn add_collections_to_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
     items: &[CpiHandleMut<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -259,7 +259,7 @@ pub fn remove_collections_from_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
     items: &[CpiHandleMut<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -281,7 +281,7 @@ pub fn add_groups_to_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
     items: &[CpiHandleMut<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -302,7 +302,7 @@ pub fn remove_groups_from_group_signed(
     program: CpiHandle<'_>,
     accounts: GroupRelationshipAccounts<'_>,
     items: &[CpiHandleMut<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

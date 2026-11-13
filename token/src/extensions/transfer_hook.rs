@@ -20,7 +20,7 @@ use crate::prelude::{vec, Vec};
 use crate::wrappers::ToAddress;
 use {
     super::{read_optional_address, Extension},
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Pod, Result, Zeroable},
 };
 
 /// Raw Token-2022 `TransferHook` mint extension (64 bytes): the authority
@@ -99,7 +99,7 @@ pub fn initialize_transfer_hook_signed(
     mint: CpiHandleMut<'_>,
     authority: Option<&Address>,
     hook_program_id: Option<&Address>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -162,7 +162,7 @@ pub fn transfer_hook_update_signed(
     mint: CpiHandleMut<'_>,
     authority: CpiHandle<'_>,
     hook_program_id: Option<&Address>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -261,7 +261,7 @@ pub fn transfer_checked_with_hook_signed(
     accounts: TransferCheckedWithHookAccounts<'_, '_>,
     amount: u64,
     decimals: u8,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&accounts.program)?;
     let mut cpi_instruction = ::spl_token_2022::instruction::transfer_checked(
@@ -311,5 +311,9 @@ pub fn transfer_checked_with_hook_signed(
         &additional_account_infos,
     )?;
 
-    naclac_core::prelude::invoke_signed(&cpi_instruction, &cpi_account_infos, signer_seeds)
+    naclac_core::prelude::invoke_signed(
+        &cpi_instruction,
+        &cpi_account_infos,
+        CpiSigner::as_seed_slices(signer_seeds),
+    )
 }

@@ -9,7 +9,7 @@
 //! `artifacts/deploy`, so run `naclac build -p amm` and
 //! `naclac build -p token_creator` first.
 
-/*use {
+use {
     amm_client::{get_pool_state_pda, types::PROGRAM_ID as NACLAC_AMM_ID},
     naclac_client::{
         utils::{
@@ -525,6 +525,15 @@ fn compare(label: &str, quote_program: &Address, quote_below_mint: bool, detail:
 }
 
 #[test]
+#[ignore = "temporary: writes register traces when SBF_TRACE_DIR is set"]
+fn trace_the_token_creators() {
+    for framework in [Framework::Naclac, Framework::Quasar] {
+        let env = Env::new(framework, TOKEN_PROGRAM_ID, true);
+        env.launch().expect("launch failed");
+    }
+}
+
+#[test]
 #[ignore = "needs QUASAR_AMM_SO and QUASAR_TOKEN_CREATOR_SO; run with --ignored"]
 fn compare_naclac_and_quasar_token_creator() {
     println!("\n== program size (bytes) ==");
@@ -544,4 +553,3 @@ fn compare_naclac_and_quasar_token_creator() {
     compare("Token-2022 quote, quote below the new mint", &TOKEN_2022_PROGRAM_ID, true, false);
     compare("Token-2022 quote, quote above the new mint", &TOKEN_2022_PROGRAM_ID, false, false);
 }
-*/

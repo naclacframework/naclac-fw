@@ -78,7 +78,7 @@ pub mod token {
     use {
         super::{require_owned_by, require_token_program_owner, token_program_address},
         crate::{
-            prelude::{AccountInfo, Address, CpiHandle, CpiHandleMut, NaclacError},
+            prelude::{AccountInfo, Address, CpiHandle, CpiHandleMut, CpiSigner, NaclacError},
             token::{initialize_account_with_owner_signed, TokenAccount},
             wrappers::{NaclacAccount, ToAccountInfo, ToAddress},
         },
@@ -136,7 +136,7 @@ pub mod token {
             account: &AccountInfo,
             index: usize,
             args: &Args,
-            signer_seeds: &[&[&[u8]]],
+            signer_seeds: &[CpiSigner<'_, '_>],
         ) -> crate::prelude::Result<()> {
             let (Some(token_program), Some(mint), Some(authority)) =
                 (args.token_program, args.mint, &args.authority)
@@ -172,7 +172,7 @@ pub mod mint {
     use {
         super::{require_owned_by, require_token_program_owner, token_program_address},
         crate::{
-            prelude::{AccountInfo, Address, CpiHandle, CpiHandleMut, NaclacError},
+            prelude::{AccountInfo, Address, CpiHandle, CpiHandleMut, CpiSigner, NaclacError},
             token::{initialize_mint_signed, Mint},
             wrappers::{NaclacAccount, ToAccountInfo},
         },
@@ -234,7 +234,7 @@ pub mod mint {
             account: &AccountInfo,
             index: usize,
             args: &Args,
-            signer_seeds: &[&[&[u8]]],
+            signer_seeds: &[CpiSigner<'_, '_>],
         ) -> crate::prelude::Result<()> {
             let (Some(token_program), Some(decimals), Some(authority)) =
                 (args.token_program, args.decimals, &args.authority)

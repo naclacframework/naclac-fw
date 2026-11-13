@@ -23,6 +23,7 @@ amm-client = { path = "../../artifacts/clients/rust/amm", default-features = fal
 naclac-client = { version = "0.1.0", path = "../../../../../client-rs", features = ["litesvm"] }
 token-creator-client = { version = "0.1.0", path = "../../artifacts/clients/rust/token_creator" }
 amm-client = { path = "../../artifacts/clients/rust/amm" }
+litesvm = { path = "../../../../../litesvm/crates/litesvm", features = ["register-tracing"] }
 
 [lints]
 workspace = true

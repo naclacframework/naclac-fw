@@ -23,7 +23,7 @@ use crate::prelude::vec;
 use crate::wrappers::ToAddress;
 use {
     super::Extension,
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Pod, Result, Zeroable},
 };
 
 /// Raw Token-2022 `PausableConfig` mint extension (33 bytes): the authority
@@ -88,7 +88,7 @@ pub fn initialize_pausable_config_signed(
     program: CpiHandle<'_>,
     mint: CpiHandleMut<'_>,
     authority: &Address,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -144,7 +144,7 @@ pub fn pause_mint_signed(
     program: CpiHandle<'_>,
     mint: CpiHandleMut<'_>,
     authority: CpiHandle<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -198,7 +198,7 @@ pub fn resume_mint_signed(
     program: CpiHandle<'_>,
     mint: CpiHandleMut<'_>,
     authority: CpiHandle<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]

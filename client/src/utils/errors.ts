@@ -57,8 +57,6 @@ export const NACLAC_FRAMEWORK_ERRORS: readonly NaclacFrameworkError[] = [
   { code: 24, name: "SerializationFailed", message: "Account serialization failed" },
   { code: 25, name: "ConstraintDuplicateMutableAccount", message: "Duplicate mutable account detected in instruction" },
   { code: 26, name: "ConstraintClose", message: "Cannot close account to itself" },
-  { code: 27, name: "TooManyCpiSigners", message: "Too many PDA signers in one CPI call (exceeds MAX_CPI_SIGNERS)" },
-  { code: 28, name: "TooManyCpiSeeds", message: "Too many seeds for one PDA signer in a CPI call (exceeds MAX_CPI_SEEDS_PER_SIGNER)" },
   { code: 29, name: "TooManyExtraAccounts", message: "Too many extra accounts appended to a CPI (exceeds its fixed maximum)" },
   { code: 30, name: "TooManyCpiAccounts", message: "Too many accounts in one CPI call" },
   { code: 31, name: "TooManyAccountEntries", message: "Instruction carries more than 64 account entries" },

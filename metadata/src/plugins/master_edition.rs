@@ -42,7 +42,7 @@ pub fn attach_master_edition_signed(
     max_supply: Option<u32>,
     name: Option<&str>,
     uri: Option<&str>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

@@ -19,7 +19,7 @@ use crate::prelude::vec;
 use crate::wrappers::ToAddress;
 use {
     super::Extension,
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Pod, Result, Zeroable},
 };
 
 /// Raw Token-2022 `PermissionedBurnConfig` mint extension (32 bytes): the
@@ -66,7 +66,7 @@ pub fn initialize_permissioned_burn_signed(
     program: CpiHandle<'_>,
     mint: CpiHandleMut<'_>,
     authority: &Address,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -138,7 +138,7 @@ pub fn permissioned_burn_signed(
     permissioned_burn_authority: CpiHandle<'_>,
     authority: CpiHandle<'_>,
     amount: u64,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -250,7 +250,7 @@ pub fn permissioned_burn_checked_signed(
     permissioned_burn_authority: CpiHandle<'_>,
     authority: CpiHandle<'_>,
     params: PermissionedBurnCheckedParams,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     let PermissionedBurnCheckedParams { amount, decimals } = params;
     super::validate_token_2022_program(&program)?;

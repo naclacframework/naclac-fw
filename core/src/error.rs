@@ -44,8 +44,6 @@ pub enum NaclacError {
     SerializationFailed = 24,
     ConstraintDuplicateMutableAccount = 25,
     ConstraintClose = 26,
-    TooManyCpiSigners = 27,
-    TooManyCpiSeeds = 28,
     TooManyExtraAccounts = 29,
     TooManyCpiAccounts = 30,
     TooManyAccountEntries = 31,

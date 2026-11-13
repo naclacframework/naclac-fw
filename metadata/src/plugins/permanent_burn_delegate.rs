@@ -22,7 +22,7 @@ use crate::{
 pub fn attach_permanent_burn_delegate_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -45,7 +45,7 @@ pub fn attach_permanent_burn_delegate_signed(
 pub fn attach_collection_permanent_burn_delegate_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

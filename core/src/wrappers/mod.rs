@@ -322,21 +322,28 @@ impl ToAddress for Address {
     }
 }
 
+/// Panics unless the slice is exactly 32 bytes: a wrong length is a caller
+/// bug, and converting it to some other address would hide it.
 impl ToAddress for &[u8] {
     fn address(&self) -> Address {
-        Address::new_from_array((*self).try_into().unwrap_or([0u8; 32]))
+        Address::new_from_array((*self).try_into().unwrap_or_else(|_| {
+            panic!("ToAddress: a byte slice must be exactly 32 bytes")
+        }))
     }
 }
 
+/// Only a 32-byte array is an address; any other length fails to compile
+/// where it is used.
 impl<const N: usize> ToAddress for [u8; N] {
     #[inline(always)]
     fn address(&self) -> Address {
+        const { assert!(N == 32, "ToAddress is implemented only for 32-byte arrays") };
         let mut arr = [0u8; 32];
-        let len = N.min(32);
-        // SAFETY: len <= min(N, 32) <= 32, so both src and dst are in-bounds.
-        // Avoids emitting a bounds-check panic string + digit table.
+        // SAFETY: the assertion above makes `N` 32, so both the source array
+        // and `arr` hold exactly 32 bytes. Avoids emitting a bounds-check
+        // panic string + digit table.
         unsafe {
-            core::ptr::copy_nonoverlapping(self.as_ptr(), arr.as_mut_ptr(), len);
+            core::ptr::copy_nonoverlapping(self.as_ptr(), arr.as_mut_ptr(), 32);
         }
         Address::new_from_array(arr)
     }

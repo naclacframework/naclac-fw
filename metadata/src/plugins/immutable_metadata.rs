@@ -17,7 +17,7 @@ use crate::{
 pub fn attach_immutable_metadata_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -39,7 +39,7 @@ pub fn attach_immutable_metadata_signed(
 pub fn attach_collection_immutable_metadata_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

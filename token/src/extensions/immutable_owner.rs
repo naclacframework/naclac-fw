@@ -15,7 +15,7 @@ use crate::prelude::vec;
 use crate::wrappers::ToAddress;
 use {
     super::Extension,
-    crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Pod, Result, Zeroable},
 };
 
 /// Raw Token-2022 `ImmutableOwner` token-account extension — a zero-byte
@@ -54,7 +54,7 @@ pub fn initialize_immutable_owner(program: CpiHandle<'_>, account: CpiHandleMut<
 pub fn initialize_immutable_owner_signed(
     program: CpiHandle<'_>,
     account: CpiHandleMut<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]

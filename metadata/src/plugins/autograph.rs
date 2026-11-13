@@ -28,7 +28,7 @@ pub fn attach_autograph_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     signatures: &[(Address, &str)],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let mut data = crate::prelude::Vec::new();
     data.push(2u8); // AddPluginV1 discriminator

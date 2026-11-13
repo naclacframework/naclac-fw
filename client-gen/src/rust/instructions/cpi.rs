@@ -49,7 +49,7 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         let arg_ty = crate::rust::map_type_to_rust_cpi(&arg.ty, idl.is_zero_copy, "crate::types::");
         cpi_content.push_str(&format!("    pub {}: {},\n", arg_snake, arg_ty));
     }
-    cpi_content.push_str("    pub signer_seeds: &'a [&'a [&'a [u8]]],\n");
+    cpi_content.push_str("    pub signer_seeds: &'a [crate::sdk_core_cpi::CpiSigner<'a, 'a>],\n");
     cpi_content.push_str(
         "    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],\n",
     );
@@ -132,7 +132,7 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         init_call_literal
     ));
 
-    params_signed.push("signer_seeds: &[&[&[u8]]]".to_string());
+    params_signed.push("signer_seeds: &[crate::sdk_core_cpi::CpiSigner<'_, '_>]".to_string());
     cpi_content.push_str(&format!(
         "    fn {}_signed<'a>(\n\
          \x20       &self,\n\
@@ -232,11 +232,11 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
              \x20       }}\n\
              \x20       #[cfg(feature = \"borsh\")]\n\
              \x20       {{\n\
-             \x20           crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();\n\
+             \x20           crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).map_err(|_| crate::sdk_core_cpi::NaclacError::SerializationFailed)?;\n\
              \x20       }}\n\
              \x20       #[cfg(feature = \"wincode\")]\n\
              \x20       {{\n\
-             \x20           crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();\n\
+             \x20           crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).map_err(|_| crate::sdk_core_cpi::NaclacError::SerializationFailed)?;\n\
              \x20       }}\n",
             disc_str, zc_writes
         )
@@ -244,43 +244,85 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
 
     let pinocchio_data_code = if ix.args.is_empty() {
         format!("            let ix_data = [{}];\n", disc_str)
-    } else if crate::rust::is_pod_only_args(ix, &idl.defined_types) {
-        format!(
-            "            #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
-             \x20           #[derive(Clone, Copy)]\n\
-             \x20           #[repr(C, packed)]\n\
-             \x20           struct IxData {{\n\
-             \x20               discriminator: [u8; {len}],\n\
-             \x20               args: {camel}CpiIxArgs,\n\
-             \x20           }}\n\
-             \x20           #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
-             \x20           unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for IxData {{}}\n\
-             \x20           #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
-             \x20           unsafe impl crate::sdk_core_cpi::bytemuck::Pod for IxData {{}}\n\
-             \x20           #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
-             \x20           let ix_wire = IxData {{ discriminator: [{disc}], args }};\n\
-             \x20           #[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n\
-             \x20           let ix_data = crate::sdk_core_cpi::bytemuck::bytes_of(&ix_wire);\n\
-             \x20           #[cfg(any(feature = \"borsh\", feature = \"wincode\"))]\n\
-             \x20           let ix_data = {{\n\
-             \x20               let mut ix_data = crate::sdk_core_cpi::Vec::new();\n\
-             \x20               ix_data.extend_from_slice(&[{disc}]);\n\
-             \x20               #[cfg(feature = \"borsh\")]\n\
-             \x20               {{\n\
-             \x20                   crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();\n\
-             \x20               }}\n\
-             \x20               #[cfg(feature = \"wincode\")]\n\
-             \x20               {{\n\
-             \x20                   crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();\n\
-             \x20               }}\n\
-             \x20               ix_data\n\
-             \x20           }};\n",
-            len = ix.discriminator.len(),
-            camel = ix_camel,
-            disc = disc_str
-        )
     } else {
-        serializing_code.clone()
+        let disc_len = ix.discriminator.len();
+        let zc_writes = crate::rust::generate_zero_copy_arg_bytes(
+            ix,
+            true,
+            idl.is_zero_copy,
+            &idl.defined_types,
+        );
+        let fixed_sizes = ix
+            .args
+            .iter()
+            .map(|arg| {
+                crate::rust::fixed_wire_size_expr(&arg.ty, &idl.defined_types, idl.is_zero_copy)
+            })
+            .collect::<Option<Vec<_>>>();
+        let zero_copy_code = if crate::rust::is_pod_only_args(ix, &idl.defined_types) {
+            format!(
+                "            #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           #[derive(Clone, Copy)]\n\
+                 \x20           #[repr(C, packed)]\n\
+                 \x20           struct IxData {{\n\
+                 \x20               discriminator: [u8; {disc_len}],\n\
+                 \x20               args: {ix_camel}CpiIxArgs,\n\
+                 \x20           }}\n\
+                 \x20           #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for IxData {{}}\n\
+                 \x20           #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           unsafe impl crate::sdk_core_cpi::bytemuck::Pod for IxData {{}}\n\
+                 \x20           #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           let ix_wire = IxData {{ discriminator: [{disc_str}], args }};\n\
+                 \x20           #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           let ix_data = crate::sdk_core_cpi::bytemuck::bytes_of(&ix_wire);\n"
+            )
+        } else if let Some(sizes) = fixed_sizes {
+            format!(
+                "            #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           let mut ix_data = crate::sdk_core_cpi::cpi::CpiDataBuffer::<{{ {disc_len} + {sizes} }}>::new();\n\
+                 \x20           #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           {{\n\
+                 \x20       ix_data.extend_from_slice(&[{disc_str}]);\n\
+                 {zc_writes}\
+                 \x20           }}\n\
+                 \x20           #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           let ix_data = ix_data.bytes()?;\n",
+                sizes = sizes.join(" + ")
+            )
+        } else {
+            let sizes = ix
+                .args
+                .iter()
+                .map(|arg| {
+                    crate::rust::wire_size_expr(
+                        &format!("args.{}", AsSnakeCase(&arg.name)),
+                        &arg.ty,
+                        &idl.defined_types,
+                        idl.is_zero_copy,
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" + ");
+            format!(
+                "            #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           let mut ix_data = crate::sdk_core_cpi::cpi::CpiHeapBuffer::with_len({disc_len} + {sizes})?;\n\
+                 \x20           #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           {{\n\
+                 \x20       ix_data.extend_from_slice(&[{disc_str}]);\n\
+                 {zc_writes}\
+                 \x20           }}\n\
+                 \x20           #[cfg(not(feature = \"wincode\"))]\n\
+                 \x20           let ix_data = ix_data.bytes()?;\n"
+            )
+        };
+        let wincode_code = format!(
+            "            #[cfg(feature = \"wincode\")]\n\
+             \x20           let ix_owned = crate::sdk_core_cpi::cpi::wincode_cpi_data(&[{disc_str}], &args)?;\n\
+             \x20           #[cfg(feature = \"wincode\")]\n\
+             \x20           let ix_data = ix_owned.bytes()?;\n"
+        );
+        format!("{zero_copy_code}{wincode_code}")
     };
 
     let has_optional_accounts = ix.accounts.iter().any(|a| a.optional.unwrap_or(false));
@@ -418,7 +460,7 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     );
     impl_body.push_str("            let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };\n");
     impl_body.push_str(
-        "            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_handles(&instruction, account_handles, signer_seeds)\n\
+        "            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired(&instruction, account_handles, signer_seeds)\n\
          \x20       }\n"
     );
 
@@ -530,4 +572,158 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     cpi_content.push_str("    }\n}\n\n");
 
     cpi_content
+}
+
+#[cfg(test)]
+mod tests {
+    use {super::*, serde_json::json};
+
+    fn generated(args: serde_json::Value) -> String {
+        let idl = json!({
+            "address": "11111111111111111111111111111111",
+            "metadata": {
+                "name": "p", "version": "0.1.0", "description": "d",
+                "serialization": "bytemuck"
+            },
+            "instructions": [{
+                "name": "act", "discriminator": [1], "accounts": [], "args": args
+            }],
+            "accounts": [], "events": [], "errors": [], "constants": [],
+        })
+        .to_string();
+        let idl = Idl::from_json(&idl).unwrap();
+        generate_cpi_ix(&idl.instructions[0], &idl)
+    }
+
+    fn pinocchio_block(args: serde_json::Value) -> String {
+        let code = generated(args);
+        let start = code.find("#[cfg(feature = \"pinocchio\")]").expect("pinocchio block");
+        let end = code.find("#[cfg(feature = \"solana\")]").expect("solana block");
+        code[start..end].to_string()
+    }
+
+    #[test]
+    fn pod_args_are_viewed_in_place_without_a_vec() {
+        let block = pinocchio_block(json!([{ "name": "amount", "type": "u64" }]));
+        assert!(block.contains("bytes_of(&ix_wire)"), "{block}");
+        assert!(!block.contains("Vec::new()"), "{block}");
+    }
+
+    #[test]
+    fn wincode_args_are_encoded_into_one_exactly_sized_heap_buffer() {
+        let block = pinocchio_block(json!([{ "name": "amount", "type": "u64" }]));
+        assert!(
+            block.contains("let ix_owned = crate::sdk_core_cpi::cpi::wincode_cpi_data(&[1], &args)?;"),
+            "{block}"
+        );
+    }
+
+    #[test]
+    fn no_generated_cpi_path_unwraps_a_result() {
+        for args in [
+            json!([{ "name": "amount", "type": "u64" }]),
+            json!([{ "name": "limit", "type": { "option": "u64" } }]),
+            json!([{ "name": "title", "type": "string" }]),
+        ] {
+            let code = generated(args);
+            assert!(!code.contains(".unwrap()"), "{code}");
+        }
+    }
+
+    #[test]
+    fn an_option_arg_is_written_into_an_exactly_sized_stack_buffer() {
+        let block = pinocchio_block(json!([
+            { "name": "amount", "type": "u64" },
+            { "name": "limit", "type": { "option": "u64" } }
+        ]));
+        assert!(
+            block.contains(
+                "CpiDataBuffer::<{ 1 + core::mem::size_of::<u64>() + 1 + core::mem::size_of::<u64>() }>"
+            ),
+            "{block}"
+        );
+        assert!(block.contains("let ix_data = ix_data.bytes()?;"), "{block}");
+        assert!(!block.contains("Vec::new()"), "{block}");
+    }
+
+    #[test]
+    fn a_zc_string_arg_is_written_into_an_exactly_sized_heap_buffer() {
+        let block = pinocchio_block(json!([
+            { "name": "amount", "type": "u64" },
+            { "name": "title", "type": "string" }
+        ]));
+        assert!(
+            block.contains(
+                "CpiHeapBuffer::with_len(1 + (core::mem::size_of::<u64>()) + (4 + args.title.as_bytes().len()))?"
+            ),
+            "{block}"
+        );
+        assert!(!block.contains("Vec::new()"), "{block}");
+    }
+
+    fn accounts_written_by(block: &str, marker: &str) -> Vec<String> {
+        block
+            .lines()
+            .filter(|line| line.contains(marker))
+            .filter_map(|line| {
+                let rest = line.split("accounts.").nth(1)?;
+                Some(
+                    rest.chars()
+                        .take_while(|c| c.is_alphanumeric() || *c == '_')
+                        .collect(),
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_metas_and_the_handles_are_built_from_the_same_accounts_in_the_same_order() {
+        let code = generated_with_accounts();
+        let start = code.find("#[cfg(feature = \"pinocchio\")]").expect("pinocchio block");
+        let end = code.find("#[cfg(feature = \"solana\")]").expect("solana block");
+        let block = &code[start..end];
+        let metas = accounts_written_by(block, "metas_arr[idx].write(");
+        let handles = accounts_written_by(block, "handles_arr[h_idx].write(");
+        assert_eq!(metas, vec!["payer", "vault", "owner", "token_program"], "{block}");
+        assert_eq!(metas, handles, "{block}");
+        assert!(block.contains("invoke_signed_pinocchio_paired("), "{block}");
+        assert!(!block.contains("invoke_signed_pinocchio_handles("), "{block}");
+    }
+
+    fn generated_with_accounts() -> String {
+        let idl = json!({
+            "address": "11111111111111111111111111111111",
+            "metadata": {
+                "name": "p", "version": "0.1.0", "description": "d",
+                "serialization": "bytemuck"
+            },
+            "instructions": [{
+                "name": "act", "discriminator": [1],
+                "accounts": [
+                    { "name": "payer", "writable": true, "signer": true },
+                    { "name": "vault", "writable": true },
+                    { "name": "owner" },
+                    { "name": "token_program" }
+                ],
+                "args": []
+            }],
+            "accounts": [], "events": [], "errors": [], "constants": [],
+        })
+        .to_string();
+        let idl = Idl::from_json(&idl).unwrap();
+        generate_cpi_ix(&idl.instructions[0], &idl)
+    }
+
+    #[test]
+    fn the_pinocchio_block_has_no_borsh_branch() {
+        for args in [
+            json!([]),
+            json!([{ "name": "amount", "type": "u64" }]),
+            json!([{ "name": "limit", "type": { "option": "u64" } }]),
+            json!([{ "name": "title", "type": "string" }]),
+        ] {
+            let block = pinocchio_block(args);
+            assert!(!block.contains("borsh"), "{block}");
+        }
+    }
 }

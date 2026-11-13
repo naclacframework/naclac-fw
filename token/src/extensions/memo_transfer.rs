@@ -19,7 +19,7 @@ use crate::prelude::vec;
 use crate::wrappers::ToAddress;
 use {
     super::Extension,
-    crate::prelude::{CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Pod, Result, Zeroable},
 };
 
 /// Raw Token-2022 `MemoTransfer` token-account extension (1 byte): whether
@@ -70,7 +70,7 @@ pub fn enable_required_memo_transfers_signed(
     program: CpiHandle<'_>,
     account: CpiHandleMut<'_>,
     owner: CpiHandle<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -128,7 +128,7 @@ pub fn disable_required_memo_transfers_signed(
     program: CpiHandle<'_>,
     account: CpiHandleMut<'_>,
     owner: CpiHandle<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]

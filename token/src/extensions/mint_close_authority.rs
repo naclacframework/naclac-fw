@@ -17,7 +17,7 @@ use crate::prelude::vec;
 use crate::wrappers::ToAddress;
 use {
     super::Extension,
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Pod, Result, Zeroable},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Pod, Result, Zeroable},
 };
 
 /// Raw Token-2022 `MintCloseAuthority` mint extension (32 bytes): the
@@ -70,7 +70,7 @@ pub fn initialize_mint_close_authority_signed(
     program: CpiHandle<'_>,
     mint: CpiHandleMut<'_>,
     close_authority: Option<&Address>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]

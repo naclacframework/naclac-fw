@@ -68,21 +68,33 @@ pub(crate) fn seed_binding_tokens(expr: &syn::Expr, ident: &syn::Ident) -> Token
     }
 }
 
-/// A typed `seeds = Type::seeds(args)` call with every argument that ends in
-/// `.address()` routed through `ToAddress::address`, as a list seed is, so it
-/// reads the same on both runtimes.
-pub(crate) fn typed_seeds_call(call: &syn::ExprCall) -> TokenStream {
+/// A typed `seeds = Type::seeds(args)` call, as the `let` statements that bind
+/// each argument to a local named from `prefix`, and the call itself, which
+/// passes references to those locals: `Type::seeds` takes references so its
+/// seed set borrows the values instead of copying them. An argument that ends
+/// in `.address()` is routed through `ToAddress::address`, as a list seed is,
+/// so it reads the same on both runtimes. The bindings must stay in scope for
+/// as long as the seed set is used.
+pub(crate) fn typed_seeds_call(
+    call: &syn::ExprCall,
+    prefix: &syn::Ident,
+) -> (TokenStream, TokenStream) {
     let func = &call.func;
-    let args = call.args.iter().map(|arg| {
+    let mut bindings = Vec::new();
+    let mut refs = Vec::new();
+    for (i, arg) in call.args.iter().enumerate() {
+        let local = quote::format_ident!("{}_arg{}", prefix, i);
         let (peeled, op) = peel_seed_wrapper(arg);
-        match op {
+        let value = match op {
             SeedTrailingOp::Address => {
                 quote! { naclac_lang::prelude::ToAddress::address(&(#peeled)) }
             }
             SeedTrailingOp::Other => quote! { #arg },
-        }
-    });
-    quote! { #func(#(#args),*) }
+        };
+        bindings.push(quote! { let #local = #value; });
+        refs.push(quote! { &#local });
+    }
+    (quote! { #(#bindings)* }, quote! { #func(#(#refs),*) })
 }
 
 /// The `let` statements that build `seeds`, and an expression of type
@@ -116,9 +128,11 @@ pub(crate) fn seed_slice_tokens(
         PdaSeeds::Typed(call) => {
             let set = quote::format_ident!("{}_{}_set", tag, field_ident);
             let slices = quote::format_ident!("{}_{}_slices", tag, field_ident);
-            let call = typed_seeds_call(call);
+            let (arg_bindings, call) =
+                typed_seeds_call(call, &quote::format_ident!("{}_{}", tag, field_ident));
             (
                 quote! {
+                    #arg_bindings
                     let #set = #call;
                     let #slices = #set.as_slices();
                 },

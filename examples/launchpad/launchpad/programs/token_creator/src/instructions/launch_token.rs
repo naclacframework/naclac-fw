@@ -128,13 +128,13 @@ pub fn launch_token(ctx: Context<LaunchToken>, args: LaunchTokenArgs) -> Result 
     let payer_address = ctx.accounts.payer.address();
     let id_bytes = id.to_le_bytes();
     let launch_record_bump = [ctx.bumps.launch_record];
-    let record_seeds: &[&[u8]] = &[
+    let record_seeds = SignerSeeds::new([
         SEED_LAUNCH,
         payer_address.as_ref(),
         &id_bytes,
         &launch_record_bump,
-    ];
-    let record_signer: &[&[&[u8]]] = &[record_seeds];
+    ]);
+    let record_signer = &[record_seeds.signer()];
 
     ctx.accounts.token_program.mint_to_signed(
         MintToAccounts {

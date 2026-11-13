@@ -29,7 +29,7 @@
 
 use {
     super::Extension,
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, Result},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result},
 };
 
 /// `TokenGroup`/`TokenGroupMember` (`spl_token_group_interface::state`) are
@@ -82,7 +82,7 @@ pub fn initialize_token_group_signed(
     mint_authority: CpiHandle<'_>,
     update_authority: Option<&Address>,
     max_size: u64,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     // Hand-rolled in place of `spl_token_group_interface::instruction::initialize_group`,
@@ -129,7 +129,7 @@ pub fn update_token_group_max_size_signed(
     group: CpiHandleMut<'_>,
     update_authority: CpiHandle<'_>,
     max_size: u64,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     let ix = spl_token_group_interface::instruction::update_group_max_size(
@@ -158,7 +158,7 @@ pub fn update_token_group_authority_signed(
     group: CpiHandleMut<'_>,
     current_authority: CpiHandle<'_>,
     new_authority: Option<&Address>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     // Hand-rolled in place of `spl_token_group_interface::instruction::update_group_authority`,
@@ -215,7 +215,7 @@ pub fn initialize_token_group_member(
 pub fn initialize_token_group_member_signed(
     program: CpiHandle<'_>,
     accounts: TokenGroupMemberInitializeAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     let TokenGroupMemberInitializeAccounts {

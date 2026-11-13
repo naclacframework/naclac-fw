@@ -28,8 +28,8 @@
 
 use crate::{
     prelude::{
-        AccountInfo, Address, CpiHandle, InterfaceAccount, NaclacError, Owner, Pod, Result,
-        Zeroable, TOKEN_2022_PROGRAM_ID,
+        AccountInfo, Address, CpiHandle, CpiSigner, InterfaceAccount, NaclacError, Owner, Pod,
+        Result, Zeroable, TOKEN_2022_PROGRAM_ID,
     },
     token::{Mint, TokenAccount},
     wrappers::ToAddress,
@@ -99,7 +99,7 @@ pub use {
 pub(crate) fn invoke_interface_instruction(
     ix: &solana_instruction::Instruction,
     accounts: &[crate::prelude::CpiHandle<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     crate::cpi::invoke_signed(ix, accounts, signer_seeds)
 }
@@ -144,7 +144,7 @@ pub(crate) fn ix_addr_ref(addr: &crate::prelude::Address) -> crate::prelude::Pin
 pub(crate) fn invoke_interface_instruction(
     ix: &solana_instruction::Instruction,
     accounts: &[crate::prelude::CpiHandle<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     let ix_accounts: crate::prelude::Vec<::pinocchio::instruction::InstructionAccount<'_>> = ix
         .accounts

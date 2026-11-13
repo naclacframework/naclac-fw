@@ -176,7 +176,7 @@ pub struct InitializeCpiCall<'a> {
     pub id: u64,
     pub amount_a: u64,
     pub amount_b: u64,
-    pub signer_seeds: &'a [&'a [&'a [u8]]],
+    pub signer_seeds: &'a [crate::sdk_core_cpi::CpiSigner<'a, 'a>],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
 
@@ -209,7 +209,7 @@ pub trait InitializeCpi<'info> {
         id: u64,
         amount_a: u64,
         amount_b: u64,
-        signer_seeds: &[&[&[u8]]]
+        signer_seeds: &[crate::sdk_core_cpi::CpiSigner<'_, '_>]
     ) -> crate::sdk_core_cpi::Result<()> {
         self.initialize_with_remaining_accounts(InitializeCpiCall {
         accounts,
@@ -242,35 +242,25 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
         };
         #[cfg(feature = "pinocchio")]
         {
-            #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+            #[cfg(not(feature = "wincode"))]
             #[derive(Clone, Copy)]
             #[repr(C, packed)]
             struct IxData {
                 discriminator: [u8; 8],
                 args: InitializeCpiIxArgs,
             }
-            #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+            #[cfg(not(feature = "wincode"))]
             unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for IxData {}
-            #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+            #[cfg(not(feature = "wincode"))]
             unsafe impl crate::sdk_core_cpi::bytemuck::Pod for IxData {}
-            #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+            #[cfg(not(feature = "wincode"))]
             let ix_wire = IxData { discriminator: [175, 175, 109, 31, 13, 152, 155, 237], args };
-            #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+            #[cfg(not(feature = "wincode"))]
             let ix_data = crate::sdk_core_cpi::bytemuck::bytes_of(&ix_wire);
-            #[cfg(any(feature = "borsh", feature = "wincode"))]
-            let ix_data = {
-                let mut ix_data = crate::sdk_core_cpi::Vec::new();
-                ix_data.extend_from_slice(&[175, 175, 109, 31, 13, 152, 155, 237]);
-                #[cfg(feature = "borsh")]
-                {
-                    crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
-                }
-                #[cfg(feature = "wincode")]
-                {
-                    crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();
-                }
-                ix_data
-            };
+            #[cfg(feature = "wincode")]
+            let ix_owned = crate::sdk_core_cpi::cpi::wincode_cpi_data(&[175, 175, 109, 31, 13, 152, 155, 237], &args)?;
+            #[cfg(feature = "wincode")]
+            let ix_data = ix_owned.bytes()?;
             let mut metas_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount>::uninit() }; 32];
             let mut idx = 0;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(accounts.payer.info.view.address()));
@@ -366,7 +356,7 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
                 h_idx += 1;
             }
             let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
-            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_handles(&instruction, account_handles, signer_seeds)
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired(&instruction, account_handles, signer_seeds)
         }
         #[cfg(feature = "solana")]
         {
@@ -378,11 +368,11 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
         }
         #[cfg(feature = "borsh")]
         {
-            crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
+            crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).map_err(|_| crate::sdk_core_cpi::NaclacError::SerializationFailed)?;
         }
         #[cfg(feature = "wincode")]
         {
-            crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();
+            crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).map_err(|_| crate::sdk_core_cpi::NaclacError::SerializationFailed)?;
         }
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![

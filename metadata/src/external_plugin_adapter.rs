@@ -271,7 +271,7 @@ pub fn add_asset_external_adapter_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -291,7 +291,7 @@ pub fn add_collection_external_adapter_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -309,7 +309,7 @@ pub fn remove_asset_external_adapter_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     key: ExternalPluginAdapterKeyArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -333,7 +333,7 @@ pub fn remove_collection_external_adapter_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     key: ExternalPluginAdapterKeyArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -362,7 +362,7 @@ pub fn update_asset_external_adapter_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -383,7 +383,7 @@ pub fn update_collection_external_adapter_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -404,7 +404,7 @@ fn add_asset_plugin_signed_raw(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let accounts_meta = vec![
         solana_instruction::AccountMeta::new(accounts.asset.address(), false),
@@ -449,7 +449,7 @@ fn add_collection_plugin_signed_raw(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let accounts_meta = vec![
         solana_instruction::AccountMeta::new(accounts.collection.address(), false),
@@ -489,7 +489,7 @@ fn add_asset_plugin_signed_pinocchio_raw(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let asset_handle: CpiHandle<'_> = CpiHandle::from(accounts.asset);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
@@ -553,7 +553,7 @@ fn add_collection_plugin_signed_pinocchio_raw(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let collection_handle: CpiHandle<'_> = CpiHandle::from(accounts.collection);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
@@ -606,7 +606,7 @@ pub fn write_asset_external_adapter_signed(
     accounts: WriteExternalAdapterAccounts<'_>,
     key: ExternalPluginAdapterKeyArg,
     write_data: WriteData<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -746,7 +746,7 @@ pub fn write_collection_external_adapter_signed(
     accounts: WriteCollectionExternalAdapterAccounts<'_>,
     key: ExternalPluginAdapterKeyArg,
     write_data: WriteData<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

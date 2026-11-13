@@ -22,7 +22,7 @@ pub fn attach_permanent_freeze_delegate_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     frozen: bool,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -52,7 +52,7 @@ pub fn attach_collection_permanent_freeze_delegate_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     frozen: bool,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

@@ -1,0 +1,10 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+token = "C4gEXiyemWN9sYReKKf5EMDQUo6Gb16VE7fLcyXaC893"
+token_zc = "8wrsJkY2VBYUC33JTMHUeJLZfjXypcCC8dos5pEZJpYa"

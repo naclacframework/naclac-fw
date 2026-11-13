@@ -287,7 +287,7 @@ pub fn create_group_signed(
     accounts: CreateGroupAccounts<'_>,
     name: &str,
     uri: &str,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -384,7 +384,7 @@ pub fn create_group_signed(
 pub fn close_group_signed(
     program: CpiHandle<'_>,
     accounts: CloseGroupAccounts<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -455,7 +455,7 @@ pub fn update_group_signed(
     accounts: UpdateGroupAccounts<'_>,
     new_name: Option<&str>,
     new_uri: Option<&str>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {

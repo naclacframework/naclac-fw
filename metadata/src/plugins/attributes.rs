@@ -31,7 +31,7 @@ pub fn attach_attributes_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     attributes: &[(&str, &str)],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let mut data = crate::prelude::Vec::new();
     data.push(2u8); // AddPluginV1 discriminator
@@ -55,7 +55,7 @@ pub fn attach_collection_attributes_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     attributes: &[(&str, &str)],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let mut data = crate::prelude::Vec::new();
     data.push(3u8); // AddCollectionPluginV1 discriminator

@@ -549,7 +549,7 @@ pub fn attach_asset_oracle_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     args: OracleAdapterArgs<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let OracleAdapterArgs {
         base_address,
@@ -613,7 +613,7 @@ pub fn attach_collection_oracle_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     args: OracleAdapterArgs<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let OracleAdapterArgs {
         base_address,
@@ -684,7 +684,7 @@ pub fn update_asset_oracle_signed(
     new_lifecycle_checks: Option<&[(HookableLifecycleEventArg, ExternalCheckResultArg)]>,
     new_base_address_config: Option<ExtraAccountArg<'_>>,
     new_results_offset: Option<ValidationResultsOffsetArg>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -759,7 +759,7 @@ pub fn update_collection_oracle_signed(
     new_lifecycle_checks: Option<&[(HookableLifecycleEventArg, ExternalCheckResultArg)]>,
     new_base_address_config: Option<ExtraAccountArg<'_>>,
     new_results_offset: Option<ValidationResultsOffsetArg>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -830,7 +830,7 @@ pub fn remove_asset_oracle_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     base_address: Address,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     remove_asset_external_adapter_signed(
         program,
@@ -846,7 +846,7 @@ pub fn remove_collection_oracle_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     base_address: Address,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     remove_collection_external_adapter_signed(
         program,

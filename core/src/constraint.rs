@@ -8,6 +8,7 @@
 //! with the data belong in the handler.
 
 use crate::{
+    cpi::CpiSigner,
     error::NaclacError,
     prelude::{AccountInfo, Address, CpiHandle},
     wrappers::{ToAccountInfo, ToAddress},
@@ -43,7 +44,7 @@ pub trait AccountConstraintInit<A>: AccountConstraint<A> {
         account: &AccountInfo,
         index: usize,
         args: &Self::Args<'_>,
-        signer_seeds: &[&[&[u8]]],
+        signer_seeds: &[CpiSigner<'_, '_>],
     ) -> crate::prelude::Result<()>;
 }
 
@@ -62,7 +63,7 @@ pub struct ConstraintCreation<'a> {
     pub extra_accounts: Option<&'a [CpiHandle<'a>]>,
     /// The payer's own PDA seeds (empty when it is not a PDA); given only
     /// with `extra_accounts`.
-    pub payer_signer_seeds: &'a [&'a [&'a [u8]]],
+    pub payer_signer_seeds: &'a [CpiSigner<'a, 'a>],
 }
 
 /// A constraint whose account is created by the program it calls (instead of

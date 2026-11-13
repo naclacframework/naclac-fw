@@ -17,7 +17,9 @@ use crate::prelude::vec;
 use crate::wrappers::ToAddress;
 use {
     super::{ceil_div_u128, read_optional_address, read_u16, read_u64, Extension},
-    crate::prelude::{Address, CpiHandle, CpiHandleMut, NaclacError, Pod, Result, Zeroable},
+    crate::prelude::{
+        Address, CpiHandle, CpiHandleMut, CpiSigner, NaclacError, Pod, Result, Zeroable,
+    },
 };
 
 /// Raw Token-2022 `TransferFeeConfig` mint extension (108 bytes): current
@@ -272,7 +274,7 @@ pub fn initialize_transfer_fee_config_signed(
     withdraw_withheld_authority: Option<&Address>,
     transfer_fee_basis_points: u16,
     maximum_fee: u64,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -366,7 +368,7 @@ pub fn set_transfer_fee_signed(
     authority: CpiHandle<'_>,
     transfer_fee_basis_points: u16,
     maximum_fee: u64,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -452,7 +454,7 @@ pub fn transfer_checked_with_fee_signed(
     destination: CpiHandleMut<'_>,
     authority: CpiHandle<'_>,
     params: TransferCheckedWithFeeParams,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     let TransferCheckedWithFeeParams {
         amount,
@@ -538,7 +540,7 @@ pub fn harvest_withheld_tokens_to_mint_signed(
     program: CpiHandle<'_>,
     mint: CpiHandleMut<'_>,
     sources: &[CpiHandle<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     if sources.len() > MAX_TRANSFER_FEE_SOURCE_ACCOUNTS {
@@ -617,7 +619,7 @@ pub fn withdraw_withheld_tokens_from_mint_signed(
     mint: CpiHandleMut<'_>,
     destination: CpiHandleMut<'_>,
     authority: CpiHandle<'_>,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     #[cfg(not(feature = "pinocchio"))]
@@ -695,7 +697,7 @@ pub fn withdraw_withheld_tokens_from_accounts_signed(
     destination: CpiHandleMut<'_>,
     authority: CpiHandle<'_>,
     sources: &[CpiHandle<'_>],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
     super::validate_token_2022_program(&program)?;
     if sources.len() > MAX_TRANSFER_FEE_SOURCE_ACCOUNTS {

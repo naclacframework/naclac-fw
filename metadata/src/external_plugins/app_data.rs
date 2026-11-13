@@ -65,7 +65,7 @@ pub fn attach_asset_app_data_signed(
     accounts: AddAssetPluginAccounts<'_>,
     data_authority: PluginAuthorityArg,
     schema: ExternalPluginAdapterSchemaArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -99,7 +99,7 @@ pub fn attach_collection_app_data_signed(
     accounts: AddCollectionPluginAccounts<'_>,
     data_authority: PluginAuthorityArg,
     schema: ExternalPluginAdapterSchemaArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -134,7 +134,7 @@ pub fn update_asset_app_data_schema_signed(
     accounts: AddAssetPluginAccounts<'_>,
     data_authority: PluginAuthorityArg,
     new_schema: ExternalPluginAdapterSchemaArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     // `ExternalPluginAdapterUpdateInfo` tag scheme has only 6 variants (no
     // `DataSection`) — `AppData` is index 2 here too, same as `InitInfo`/
@@ -173,7 +173,7 @@ pub fn write_asset_app_data_signed(
     accounts: WriteExternalAdapterAccounts<'_>,
     data_authority: PluginAuthorityArg,
     bytes: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     write_asset_external_adapter_signed(
         program,
@@ -191,7 +191,7 @@ pub fn update_collection_app_data_schema_signed(
     accounts: AddCollectionPluginAccounts<'_>,
     data_authority: PluginAuthorityArg,
     new_schema: ExternalPluginAdapterSchemaArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
@@ -225,7 +225,7 @@ pub fn write_collection_app_data_signed(
     accounts: WriteCollectionExternalAdapterAccounts<'_>,
     data_authority: PluginAuthorityArg,
     bytes: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     write_collection_external_adapter_signed(
         program,
@@ -242,7 +242,7 @@ pub fn remove_asset_app_data_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     data_authority: PluginAuthorityArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     remove_asset_external_adapter_signed(
         program,
@@ -258,7 +258,7 @@ pub fn remove_collection_app_data_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     data_authority: PluginAuthorityArg,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     remove_collection_external_adapter_signed(
         program,

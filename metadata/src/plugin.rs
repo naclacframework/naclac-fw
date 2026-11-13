@@ -71,7 +71,7 @@ pub fn add_asset_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let accounts_meta = vec![
         solana_instruction::AccountMeta::new(accounts.asset.address(), false),
@@ -120,7 +120,7 @@ pub fn add_collection_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let accounts_meta = vec![
         solana_instruction::AccountMeta::new(accounts.collection.address(), false),
@@ -165,7 +165,7 @@ pub fn add_asset_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let asset_handle: CpiHandle<'_> = CpiHandle::from(accounts.asset);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
@@ -230,7 +230,7 @@ pub fn add_collection_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let collection_handle: CpiHandle<'_> = CpiHandle::from(accounts.collection);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
@@ -290,7 +290,7 @@ pub fn remove_asset_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     plugin_type: u8,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let accounts_meta = vec![
         solana_instruction::AccountMeta::new(accounts.asset.address(), false),
@@ -335,7 +335,7 @@ pub fn remove_asset_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     plugin_type: u8,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let data = [4u8, plugin_type]; // RemovePluginV1 discriminator + PluginType tag
 
@@ -401,7 +401,7 @@ pub fn remove_collection_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     plugin_type: u8,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let accounts_meta = vec![
         solana_instruction::AccountMeta::new(accounts.collection.address(), false),
@@ -440,7 +440,7 @@ pub fn remove_collection_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     plugin_type: u8,
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let data = [5u8, plugin_type]; // RemoveCollectionPluginV1 discriminator + PluginType tag
 
@@ -503,7 +503,7 @@ pub fn update_asset_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let accounts_meta = vec![
         solana_instruction::AccountMeta::new(accounts.asset.address(), false),
@@ -549,7 +549,7 @@ pub fn update_asset_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddAssetPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let asset_handle: CpiHandle<'_> = CpiHandle::from(accounts.asset);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
@@ -614,7 +614,7 @@ pub fn update_collection_plugin_signed(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let accounts_meta = vec![
         solana_instruction::AccountMeta::new(accounts.collection.address(), false),
@@ -655,7 +655,7 @@ pub fn update_collection_plugin_signed_pinocchio(
     program: CpiHandle<'_>,
     accounts: AddCollectionPluginAccounts<'_>,
     ix_data: &[u8],
-    signer_seeds: &[&[&[u8]]],
+    signer_seeds: &[crate::prelude::CpiSigner<'_, '_>],
 ) -> Result<()> {
     let collection_handle: CpiHandle<'_> = CpiHandle::from(accounts.collection);
     let payer_handle: CpiHandle<'_> = CpiHandle::from(accounts.payer);
