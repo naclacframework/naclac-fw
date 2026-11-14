@@ -9,15 +9,24 @@ use {
 };
 
 /// One loader block per field, in `load_order` (indices into `fields`).
-pub(super) fn build(fields: &[parser::ParsedField], load_order: &[usize]) -> Vec<TokenStream> {
+pub(super) fn build(
+    fields: &[parser::ParsedField],
+    instruction_args: &[syn::Ident],
+    load_order: &[usize],
+) -> Vec<TokenStream> {
+    let runtime_names = checks::runtime_names(fields, instruction_args);
     let loaders: Vec<TokenStream> = fields
         .iter()
-        .map(|field| field_loader(field, fields))
+        .map(|field| field_loader(field, fields, &runtime_names))
         .collect();
     load_order.iter().map(|&i| loaders[i].clone()).collect()
 }
 
-fn field_loader(field: &parser::ParsedField, fields: &[parser::ParsedField]) -> TokenStream {
+fn field_loader(
+    field: &parser::ParsedField,
+    fields: &[parser::ParsedField],
+    runtime_names: &[String],
+) -> TokenStream {
     let field_name = &field.ident;
     let ty = &field.ty;
     let idx = field.index;
@@ -29,7 +38,7 @@ fn field_loader(field: &parser::ParsedField, fields: &[parser::ParsedField]) -> 
     let (metadata_checks, constraint_checks) = if let Some(err) = &field.parse_error {
         (err.to_compile_error(), quote! {})
     } else {
-        checks::generate_security_checks(field, fields)
+        checks::generate_security_checks(field, fields, runtime_names)
     };
     // The SAFETY-doc rule decided by the field's type, which also catches an
     // alias of `AccountInfo`; the literal spelling is reported earlier, with

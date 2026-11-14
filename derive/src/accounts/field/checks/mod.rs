@@ -25,13 +25,34 @@ pub(crate) use {
     seeds::{seed_binding_tokens, typed_seeds_call},
 };
 
+#[cfg(feature = "idl-build")]
+pub(crate) use seeds::mentions_any_name;
+
+/// The names an Accounts struct's seeds can use that have no value until a
+/// transaction arrives: its account fields, its `#[instruction(..)]`
+/// arguments and `program_id`. A seed naming none of them is computed by the
+/// compiler.
+pub(crate) fn runtime_names(
+    fields: &[ParsedField],
+    instruction_args: &[syn::Ident],
+) -> Vec<String> {
+    fields
+        .iter()
+        .map(|field| field.ident.to_string())
+        .chain(instruction_args.iter().map(ToString::to_string))
+        .chain(std::iter::once("program_id".to_string()))
+        .collect()
+}
+
 /// The checks that run as `field`'s account is loaded: `(metadata_checks,
 /// constraint_checks)`. The metadata checks run before the account is loaded
 /// and the constraint checks after. The tokens carry spans pointing at the
-/// attribute that produced them.
+/// attribute that produced them. `runtime_names` is `runtime_names(..)` of
+/// the struct.
 pub fn generate_security_checks(
     field: &ParsedField,
     all_fields: &[ParsedField],
+    runtime_names: &[String],
 ) -> (TokenStream, TokenStream) {
     let mut metadata_checks = Vec::new();
     let mut constraint_checks = Vec::new();
@@ -40,7 +61,7 @@ pub fn generate_security_checks(
     metadata_checks.extend(address_owner::address_checks(field, all_fields));
     metadata_checks.extend(address_owner::owner_checks(field, all_fields));
 
-    match pda::pda_checks(field) {
+    match pda::pda_checks(field, runtime_names) {
         Some(PdaChecks::Metadata(tokens)) => metadata_checks.push(tokens),
         Some(PdaChecks::Constraint(tokens)) => constraint_checks.push(tokens),
         None => {}

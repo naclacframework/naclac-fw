@@ -18,7 +18,8 @@ pub(crate) fn idl_build_accounts_impl(
     instr_names: &[syn::Ident],
 ) -> proc_macro2::TokenStream {
     use {
-        super::seeds::{build_idl_seed_expr, mentions_any_name, splice_const_fallback},
+        super::seeds::{build_idl_seed_expr, splice_const_fallback},
+        crate::accounts::field::checks::mentions_any_name,
         parser::PdaSeeds,
     };
 

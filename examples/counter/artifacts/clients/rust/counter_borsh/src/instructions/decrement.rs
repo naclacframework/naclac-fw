@@ -28,7 +28,7 @@ pub struct DecrementCpiAccounts<'a> {
 #[cfg(feature = "cpi")]
 pub struct DecrementCpiCall<'a> {
     pub accounts: DecrementCpiAccounts<'a>,
-    pub signer_seeds: &'a [&'a [&'a [u8]]],
+    pub signer_seeds: &'a [crate::sdk_core_cpi::CpiSigner<'a, 'a>],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
 
@@ -38,24 +38,14 @@ pub trait DecrementCpi<'info> {
         &self,
         accounts: DecrementCpiAccounts<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
-        self.decrement_with_remaining_accounts(DecrementCpiCall {
-        accounts,
-        signer_seeds: &[],
-        remaining_accounts: &[],
-    })
+        self.decrement_signed(accounts, &[])
     }
 
     fn decrement_signed<'a>(
         &self,
         accounts: DecrementCpiAccounts<'a>,
-        signer_seeds: &[&[&[u8]]]
-    ) -> crate::sdk_core_cpi::Result<()> {
-        self.decrement_with_remaining_accounts(DecrementCpiCall {
-        accounts,
-        signer_seeds,
-        remaining_accounts: &[],
-    })
-    }
+        signer_seeds: &[crate::sdk_core_cpi::CpiSigner<'_, '_>]
+    ) -> crate::sdk_core_cpi::Result<()>;
 
     fn decrement_with_remaining_accounts<'a>(
         &self,
@@ -71,10 +61,9 @@ impl<'info> DecrementCpi<'info> for crate::sdk_core_cpi::Program<crate::CounterB
         call: DecrementCpiCall<'a>
     ) -> crate::sdk_core_cpi::Result<()> {
         let DecrementCpiCall { accounts, signer_seeds, remaining_accounts } = call;
-        let mut ix_data = crate::sdk_core_cpi::Vec::new();
-        ix_data.extend_from_slice(&[106, 227, 168, 59, 248, 27, 150, 101]);
         #[cfg(feature = "pinocchio")]
         {
+            let ix_data: &[u8] = &[106, 227, 168, 59, 248, 27, 150, 101];
             let mut metas_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount>::uninit() }; 32];
             let mut idx = 0;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(accounts.authority.info.view.address()));
@@ -104,7 +93,7 @@ impl<'info> DecrementCpi<'info> for crate::sdk_core_cpi::Program<crate::CounterB
             let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView {
                 program_id: program_id_address.as_address(),
                 accounts: account_metas,
-                data: &ix_data,
+                data: ix_data,
             };
             let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::CpiHandle>::uninit() }; 32];
             let mut h_idx = 0;
@@ -118,10 +107,12 @@ impl<'info> DecrementCpi<'info> for crate::sdk_core_cpi::Program<crate::CounterB
                 h_idx += 1;
             }
             let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
-            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_handles(&instruction, account_handles, signer_seeds)
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired(&instruction, account_handles, signer_seeds)
         }
         #[cfg(feature = "solana")]
         {
+        let mut ix_data = crate::sdk_core_cpi::Vec::new();
+        ix_data.extend_from_slice(&[106, 227, 168, 59, 248, 27, 150, 101]);
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.authority.address(), true),
@@ -153,6 +144,29 @@ impl<'info> DecrementCpi<'info> for crate::sdk_core_cpi::Program<crate::CounterB
             }
             let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
             crate::sdk_core_cpi::cpi::invoke_signed(&instruction, account_handles, signer_seeds)
+        }
+    }
+
+    fn decrement_signed<'a>(
+        &self,
+        accounts: DecrementCpiAccounts<'a>,
+        signer_seeds: &[crate::sdk_core_cpi::CpiSigner<'_, '_>]
+    ) -> crate::sdk_core_cpi::Result<()> {
+        #[cfg(feature = "pinocchio")]
+        {
+            let ix_data: &[u8] = &[106, 227, 168, 59, 248, 27, 150, 101];
+            let __cpi_self_handle: crate::sdk_core_cpi::CpiHandle = crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(self);
+            let handles: [crate::sdk_core_cpi::CpiHandle; 2] = [crate::sdk_core_cpi::CpiHandle::from(accounts.authority), crate::sdk_core_cpi::CpiHandle::from(accounts.counter_account)];
+            let metas: [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount; 2] = [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(handles[0].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[1].info.view.address())];
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired_array(&__cpi_self_handle, &metas, &handles, ix_data, signer_seeds)
+        }
+        #[cfg(feature = "solana")]
+        {
+            self.decrement_with_remaining_accounts(DecrementCpiCall {
+        accounts,
+        signer_seeds,
+        remaining_accounts: &[],
+    })
         }
     }
 }

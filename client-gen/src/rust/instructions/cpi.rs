@@ -82,21 +82,10 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         call_fields.push(heck::AsSnakeCase(&arg.name).to_string());
     }
 
-    let init_call_literal = {
-        let field_lines = call_fields
-            .iter()
-            .map(|field| format!("        {},", field))
-            .collect::<Vec<_>>()
-            .join("\n");
-        if field_lines.is_empty() {
-            format!("{}CpiCall {{\n        signer_seeds: &[],\n        remaining_accounts: &[],\n    }}", ix_camel)
-        } else {
-            format!(
-                "{}CpiCall {{\n{}\n        signer_seeds: &[],\n        remaining_accounts: &[],\n    }}",
-                ix_camel,
-                field_lines
-            )
-        }
+    let unsigned_call_arguments = if call_fields.is_empty() {
+        "&[]".to_string()
+    } else {
+        format!("{}, &[]", call_fields.join(", "))
     };
 
     let signed_call_literal = {
@@ -124,12 +113,12 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
          \x20       &self,\n\
          \x20       {}\n\
          \x20   ) -> crate::sdk_core_cpi::Result<()> {{\n\
-         \x20       self.{}_with_remaining_accounts({})\n\
+         \x20       self.{}_signed({})\n\
          \x20   }}\n\n",
         ix_snake,
         params.join(",\n        "),
         ix_snake,
-        init_call_literal
+        unsigned_call_arguments
     ));
 
     params_signed.push("signer_seeds: &[crate::sdk_core_cpi::CpiSigner<'_, '_>]".to_string());
@@ -137,13 +126,9 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
         "    fn {}_signed<'a>(\n\
          \x20       &self,\n\
          \x20       {}\n\
-         \x20   ) -> crate::sdk_core_cpi::Result<()> {{\n\
-         \x20       self.{}_with_remaining_accounts({})\n\
-         \x20   }}\n\n",
+         \x20   ) -> crate::sdk_core_cpi::Result<()>;\n\n",
         ix_snake,
-        params_signed.join(",\n        "),
-        ix_snake,
-        signed_call_literal
+        params_signed.join(",\n        ")
     ));
 
     cpi_content.push_str(&format!(
@@ -569,9 +554,89 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     );
 
     cpi_content.push_str(&impl_body);
-    cpi_content.push_str("    }\n}\n\n");
+    cpi_content.push_str("    }\n\n");
+    cpi_content.push_str(&fixed_size_signed_fn(
+        ix,
+        &ix_snake,
+        &params_signed,
+        &args_struct_init,
+        &pinocchio_data_code,
+        &signed_call_literal,
+    ));
+    cpi_content.push_str("}\n\n");
 
     cpi_content
+}
+
+/// The `<ix>_signed` method of the generated CPI trait for the program: it
+/// sends exactly the instruction's declared accounts. On pinocchio it puts
+/// them in two arrays of the instruction's account count and sends them
+/// through naclac-core's paired invoke. On Solana it calls
+/// `<ix>_with_remaining_accounts` with none. The handles are built first and
+/// each meta takes its address from the handle at the same index, which is
+/// what the paired invoke requires, and keeps the moved account handles from
+/// being borrowed.
+fn fixed_size_signed_fn(
+    ix: &IdlInstruction,
+    ix_snake: &str,
+    params_signed: &[String],
+    args_struct_init: &str,
+    pinocchio_data_code: &str,
+    signed_call_literal: &str,
+) -> String {
+    const META: &str = "crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount";
+    let mut metas = Vec::new();
+    let mut handles = Vec::new();
+    for (index, acc) in ix.accounts.iter().enumerate() {
+        let acc_snake = heck::AsSnakeCase(&acc.name).to_string();
+        let method = match (acc.writable, acc.signer) {
+            (true, true) => "writable_signer",
+            (true, false) => "writable",
+            (false, true) => "readonly_signer",
+            (false, false) => "readonly",
+        };
+        metas.push(format!(
+            "{META}::{method}(handles[{index}].info.view.address())"
+        ));
+        if acc.optional.unwrap_or(false) {
+            handles.push(if acc.writable {
+                format!("accounts.{acc_snake}.map(crate::sdk_core_cpi::CpiHandle::from).unwrap_or_else(|| crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(self))")
+            } else {
+                format!("accounts.{acc_snake}.unwrap_or_else(|| crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(self))")
+            });
+        } else {
+            handles.push(if acc.writable {
+                format!("crate::sdk_core_cpi::CpiHandle::from(accounts.{acc_snake})")
+            } else {
+                format!("accounts.{acc_snake}")
+            });
+        }
+    }
+    let count = ix.accounts.len();
+    format!(
+        "    fn {ix_snake}_signed<'a>(\n\
+         \x20       &self,\n\
+         \x20       {params}\n\
+         \x20   ) -> crate::sdk_core_cpi::Result<()> {{\n\
+         \x20       #[cfg(feature = \"pinocchio\")]\n\
+         \x20       {{\n\
+         {args_struct_init}\
+         {pinocchio_data_code}\
+         \x20           let __cpi_self_handle: crate::sdk_core_cpi::CpiHandle = crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(self);\n\
+         \x20           let handles: [crate::sdk_core_cpi::CpiHandle; {count}] = [{handles}];\n\
+         \x20           let metas: [{META}; {count}] = [{metas}];\n\
+         \x20           let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView {{ program_id: __cpi_self_handle.info.view.address(), accounts: &metas, data: ix_data }};\n\
+         \x20           crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired(&instruction, &handles, signer_seeds)\n\
+         \x20       }}\n\
+         \x20       #[cfg(feature = \"solana\")]\n\
+         \x20       {{\n\
+         \x20           self.{ix_snake}_with_remaining_accounts({signed_call_literal})\n\
+         \x20       }}\n\
+         \x20   }}\n",
+        params = params_signed.join(",\n        "),
+        metas = metas.join(", "),
+        handles = handles.join(", "),
+    )
 }
 
 #[cfg(test)]
@@ -704,6 +769,114 @@ mod tests {
         assert!(
             !block.contains("invoke_signed_pinocchio_handles("),
             "{block}"
+        );
+    }
+
+    /// The `act_signed` method of the generated impl, not the trait's
+    /// declaration of it.
+    fn fixed_size_fn(code: &str) -> &str {
+        let start = code.rfind("fn act_signed<'a>(").expect("act_signed impl");
+        &code[start..]
+    }
+
+    fn accounts_in(line_start: &str, text: &str) -> Vec<String> {
+        let line = text
+            .lines()
+            .find(|line| line.trim_start().starts_with(line_start))
+            .expect(line_start);
+        line.split("accounts.")
+            .skip(1)
+            .map(|rest| {
+                rest.chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect()
+            })
+            .collect()
+    }
+
+    /// The handle indices the metas line reads their addresses from, in order.
+    fn handle_indices_in_metas(text: &str) -> Vec<usize> {
+        let line = text
+            .lines()
+            .find(|line| line.trim_start().starts_with("let metas:"))
+            .expect("let metas:");
+        line.split("handles[")
+            .skip(1)
+            .map(|rest| {
+                rest.chars()
+                    .take_while(char::is_ascii_digit)
+                    .collect::<String>()
+                    .parse()
+                    .expect("an index")
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_declared_accounts_are_sent_through_the_fixed_size_invoke_in_order() {
+        let code = generated_with_accounts();
+        let body = fixed_size_fn(&code);
+        let handles = accounts_in("let handles:", body);
+        assert_eq!(
+            handles,
+            vec!["payer", "vault", "owner", "token_program"],
+            "{body}"
+        );
+        assert_eq!(handle_indices_in_metas(body), vec![0, 1, 2, 3], "{body}");
+        assert!(
+            body.find("let handles:") < body.find("let metas:"),
+            "the handles are built before the metas borrow them: {body}"
+        );
+        assert!(body.contains("; 4] = ["), "{body}");
+        assert!(
+            body.contains("invoke_signed_pinocchio_paired(&instruction, &handles, signer_seeds)"),
+            "{body}"
+        );
+        let pinocchio_part = &body[..body.find("#[cfg(feature = \"solana\")]").expect("solana")];
+        assert!(
+            !pinocchio_part.contains("remaining_accounts"),
+            "{pinocchio_part}"
+        );
+    }
+
+    #[test]
+    fn the_unsigned_method_calls_the_signed_one_with_no_signers() {
+        let code = generated(json!([{ "name": "amount", "type": "u64" }]));
+        assert!(code.contains("self.act_signed(amount, &[])"), "{code}");
+        let code = generated_with_accounts();
+        assert!(code.contains("self.act_signed(accounts, &[])"), "{code}");
+    }
+
+    #[test]
+    fn an_absent_optional_account_still_fills_its_slot_in_the_fixed_size_call() {
+        let idl = json!({
+            "address": "11111111111111111111111111111111",
+            "metadata": {
+                "name": "p", "version": "0.1.0", "description": "d",
+                "serialization": "bytemuck"
+            },
+            "instructions": [{
+                "name": "act", "discriminator": [1],
+                "accounts": [
+                    { "name": "payer", "writable": true, "signer": true },
+                    { "name": "extra", "optional": true }
+                ],
+                "args": []
+            }],
+            "accounts": [], "events": [], "errors": [], "constants": [],
+        })
+        .to_string();
+        let idl = Idl::from_json(&idl).unwrap();
+        let code = generate_cpi_ix(&idl.instructions[0], &idl);
+        let body = fixed_size_fn(&code);
+        assert!(body.contains("; 2] = ["), "{body}");
+        assert_eq!(accounts_in("let handles:", body), vec!["payer", "extra"]);
+        assert_eq!(handle_indices_in_metas(body), vec![0, 1], "{body}");
+        assert!(
+            body.contains(
+                "unwrap_or_else(|| crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(self))"
+            ),
+            "{body}"
         );
     }
 

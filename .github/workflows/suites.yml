@@ -99,7 +99,7 @@ jobs:
           path: |
             ~/.local/share/solana
             ~/.cache/solana
-          key: solana-${{ runner.os }}-v1
+          key: solana-${{ runner.os }}-platform-tools-v1.58
 
       - name: Install Solana CLI
         run: |
@@ -227,7 +227,7 @@ jobs:
           path: |
             ~/.local/share/solana
             ~/.cache/solana
-          key: solana-${{ runner.os }}-v1
+          key: solana-${{ runner.os }}-platform-tools-v1.58
 
       - name: Install Solana CLI
         run: |

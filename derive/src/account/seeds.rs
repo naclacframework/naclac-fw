@@ -227,6 +227,24 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
                 }
             }
 
+            /// The PDA address and bump of these seeds under `__program`,
+            /// for a `const` the compiler evaluates. `#[derive(Accounts)]`
+            /// calls it for a field whose `seeds = Account::seeds(..)` names
+            /// no runtime value.
+            #[doc(hidden)]
+            pub const fn __naclac_const_pda(
+                #( #part_names: #part_types, )*
+                __program: &naclac_lang::prelude::Address,
+            ) -> (naclac_lang::prelude::Address, u8) {
+                naclac_lang::prelude::find_program_address_const(
+                    &[
+                        &naclac_lang::prelude::ConstSeed(#prefix).bytes(),
+                        #( &naclac_lang::prelude::ConstSeed(#part_names).bytes(), )*
+                    ],
+                    __program,
+                )
+            }
+
             #[cfg(feature = "idl-build")]
             #[doc(hidden)]
             pub fn __naclac_idl_prefix_seed() -> naclac_lang::naclac_idl::idl_build_accounts::IdlSeedBuild {
@@ -333,6 +351,20 @@ mod tests {
             "{code}"
         );
         assert!(!code.contains("seed_part (& { self"), "{code}");
+    }
+
+    #[test]
+    fn a_const_fn_derives_the_pda_from_the_prefix_and_the_values() {
+        let code = generated(
+            "#[seeds(SEED_POOL, token_a, id, bump = bump)] struct Pool { token_a: Address, id: u64, bump: u8 }",
+        );
+        assert!(
+            code.contains("const fn __naclac_const_pda (token_a : Address , id : u64 , __program : & naclac_lang :: prelude :: Address ,)"),
+            "{code}"
+        );
+        assert!(code.contains("ConstSeed (SEED_POOL) . bytes ()"), "{code}");
+        assert!(code.contains("ConstSeed (token_a) . bytes ()"), "{code}");
+        assert!(code.contains("ConstSeed (id) . bytes ()"), "{code}");
     }
 
     #[test]

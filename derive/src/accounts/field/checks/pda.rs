@@ -1,9 +1,9 @@
 //! The `seeds = [...]` / `bump` check of a field: derives the expected PDA
-//! (in a `const` the compiler evaluates when every seed and the program id
-//! are constants, else at runtime) and compares it with the field's account.
+//! (in a `const` the compiler evaluates when no seed or program id names a
+//! runtime value, else at runtime) and compares it with the field's account.
 
 use {
-    super::seeds::seed_slice_tokens,
+    super::seeds::{mentions_any_name, seed_slice_tokens},
     crate::accounts::field::parser::{ParsedField, PdaBump, PdaSeeds},
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
@@ -75,85 +75,81 @@ fn pda_program_ref(field: &ParsedField) -> TokenStream {
     }
 }
 
-/// Whether `expr` is a path written in ALL_CAPS, the spelling of a constant. A
-/// proc macro runs before name resolution and cannot ask the compiler whether
-/// a name is a `const`, so this relies on the naming rule that
-/// `non_upper_case_globals` and `non_snake_case` enforce. A name that breaks
-/// the rule fails to compile, in the `const` the macro generates.
-fn is_const_path(expr: &syn::Expr) -> bool {
-    let syn::Expr::Path(path) = expr else {
-        return false;
-    };
-    let Some(last) = path.path.segments.last() else {
-        return false;
-    };
-    let name = last.ident.to_string();
-    path.qself.is_none()
-        && last.arguments.is_empty()
-        && name.chars().any(|c| c.is_ascii_uppercase())
-        && !name.chars().any(|c| c.is_ascii_lowercase())
-}
-
-/// The literal or ALL_CAPS constant inside a seed expression, with any `&`,
-/// `.as_ref()` and `.as_bytes()` wrapper removed, or `None` when the seed
-/// depends on runtime values.
-pub(in crate::accounts) fn const_seed_root(expr: &syn::Expr) -> Option<&syn::Expr> {
+/// `expr` with any `&`, `.as_ref()` and `.as_bytes()` wrapper removed, which
+/// `ConstSeed` makes redundant.
+pub(in crate::accounts) fn peeled_seed_root(expr: &syn::Expr) -> &syn::Expr {
     match expr {
-        syn::Expr::Reference(reference) => const_seed_root(&reference.expr),
+        syn::Expr::Reference(reference) => peeled_seed_root(&reference.expr),
         syn::Expr::MethodCall(call)
             if call.args.is_empty()
                 && call.turbofish.is_none()
                 && (call.method == "as_ref" || call.method == "as_bytes") =>
         {
-            const_seed_root(&call.receiver)
+            peeled_seed_root(&call.receiver)
         }
-        syn::Expr::Lit(literal)
-            if matches!(
-                literal.lit,
-                syn::Lit::Str(_) | syn::Lit::ByteStr(_) | syn::Lit::Byte(_)
-            ) =>
-        {
-            Some(expr)
-        }
-        _ if is_const_path(expr) => Some(expr),
-        _ => None,
+        _ => expr,
     }
 }
 
-/// The seeds, as `&[u8]` const expressions, and the program id expression of
-/// a PDA the compiler can evaluate: every seed a literal or constant, and the
-/// program the crate's own `crate::ID` or an ALL_CAPS `seeds::program`.
-/// `None` when any part depends on runtime values.
-fn const_pda(field: &ParsedField, pda_seeds: &PdaSeeds) -> Option<(Vec<TokenStream>, TokenStream)> {
-    let PdaSeeds::List(seed_array) = pda_seeds else {
-        return None;
-    };
-    let seeds = seed_array
-        .elems
-        .iter()
-        .map(|elem| {
-            const_seed_root(elem)
-                .map(|root| quote! { naclac_lang::prelude::ConstSeed(#root).bytes() })
-        })
-        .collect::<Option<Vec<_>>>()?;
+/// The initializer of the `const` that holds a PDA the compiler evaluates:
+/// `(address, bump)` of the field's seeds under its program. A PDA is
+/// evaluated by the compiler exactly when no seed, argument or `seeds::program`
+/// names a runtime value (`runtime_names`); whether what remains is really
+/// constant is then rustc's to decide, and a non-constant expression is a
+/// compile error at that seed. `None` when any part names a runtime value.
+///
+/// A typed `seeds = Type::seeds(args)` calls the `const fn` that
+/// `#[account]` generates beside `Type::seeds`, so the seeds are written once.
+fn const_pda(
+    field: &ParsedField,
+    pda_seeds: &PdaSeeds,
+    runtime_names: &[String],
+) -> Option<TokenStream> {
     let program = match &field.pda_program {
         None => quote! { crate::ID },
-        Some(expr) if is_const_path(expr) => quote! { #expr },
+        Some(expr) if !mentions_any_name(expr, runtime_names) => quote! { #expr },
         Some(_) => return None,
     };
-    Some((seeds, program))
+    match pda_seeds {
+        PdaSeeds::List(seed_array) => {
+            let seeds = seed_array
+                .elems
+                .iter()
+                .map(|elem| {
+                    (!mentions_any_name(elem, runtime_names)).then(|| {
+                        let root = peeled_seed_root(elem);
+                        quote! { &naclac_lang::prelude::ConstSeed(#root).bytes() }
+                    })
+                })
+                .collect::<Option<Vec<_>>>()?;
+            Some(quote! {
+                naclac_lang::prelude::find_program_address_const(&[ #(#seeds),* ], &#program)
+            })
+        }
+        PdaSeeds::Typed(call) => {
+            if call
+                .args
+                .iter()
+                .any(|arg| mentions_any_name(arg, runtime_names))
+            {
+                return None;
+            }
+            let syn::Expr::Path(function) = &*call.func else {
+                return None;
+            };
+            let mut const_function = function.clone();
+            const_function.path.segments.last_mut()?.ident = format_ident!("__naclac_const_pda");
+            let args = call.args.iter();
+            Some(quote! { #const_function(#(#args,)* &#program) })
+        }
+    }
 }
 
-fn precomputed_creation(
-    field: &ParsedField,
-    seeds: &[TokenStream],
-    program: &TokenStream,
-) -> Creation {
+fn precomputed_creation(field: &ParsedField, initializer: &TokenStream) -> Creation {
     let idx = field.index;
     let pda_const = format_ident!("__NACLAC_PDA_{}", idx);
     let logic = quote! {
-        const #pda_const: (naclac_lang::prelude::Address, u8) =
-            naclac_lang::prelude::find_program_address_const(&[ #(#seeds),* ], &#program);
+        const #pda_const: (naclac_lang::prelude::Address, u8) = #initializer;
         let expected_pda = #pda_const.0;
         let expected_bump = #pda_const.1;
     };
@@ -323,7 +319,7 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
 /// `bump`. A field that creates its account and writes `bump = <expr>` gets a
 /// compile error plus placeholder `expected_bump` and `__bump_<field>` locals,
 /// so the code generated after it still compiles and the error stands alone.
-pub(super) fn pda_checks(field: &ParsedField) -> Option<PdaChecks> {
+pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Option<PdaChecks> {
     let Some(seeds) = &field.pda_seed else {
         if field.pda_bump.is_some() {
             return Some(PdaChecks::Constraint(quote! {
@@ -354,8 +350,8 @@ pub(super) fn pda_checks(field: &ParsedField) -> Option<PdaChecks> {
     let bump_cap = format_ident!("__bump_{}", field_ident);
     let actual_address_ref = actual_address_ref();
 
-    let creation = match const_pda(field, seeds) {
-        Some((seeds, program)) => precomputed_creation(field, &seeds, &program),
+    let creation = match const_pda(field, seeds, runtime_names) {
+        Some(initializer) => precomputed_creation(field, &initializer),
         None => dynamic_creation(field, seeds),
     };
     let Creation {
@@ -416,61 +412,43 @@ pub(super) fn pda_checks(field: &ParsedField) -> Option<PdaChecks> {
 
 #[cfg(test)]
 mod const_pda_tests {
-    use super::{const_pda, const_seed_root, is_const_path, pda_checks, PdaChecks, PdaSeeds};
+    use super::{const_pda, pda_checks, peeled_seed_root, PdaChecks, PdaSeeds};
     use crate::accounts::field::parser::parse_struct_fields;
+
+    const RUNTIME_NAMES: [&str; 8] = [
+        "a",
+        "user",
+        "owner",
+        "id",
+        "args",
+        "payer",
+        "other",
+        "program_id",
+    ];
+
+    fn runtime_names() -> Vec<String> {
+        RUNTIME_NAMES.iter().map(ToString::to_string).collect()
+    }
 
     fn expr(source: &str) -> syn::Expr {
         syn::parse_str(source).unwrap()
     }
 
     #[test]
-    fn only_all_caps_paths_are_constants() {
-        for name in [
-            "SEED",
-            "SEED_VAULT",
-            "crate::SEED",
-            "module::GLOBAL_SEED",
-            "SEED2",
+    fn a_seed_root_is_found_under_references_and_byte_views() {
+        for (seed, root) in [
+            ("SEED", "SEED"),
+            ("&SEED", "SEED"),
+            ("SEED.as_ref()", "SEED"),
+            ("&SEED.as_ref()", "SEED"),
+            ("\"vault\".as_bytes()", "\"vault\""),
+            ("&5u64.to_le_bytes()", "5u64 . to_le_bytes ()"),
+            ("&[1u8]", "[1u8]"),
+            ("SEED.as_ref(1)", "SEED . as_ref (1)"),
         ] {
-            assert!(is_const_path(&expr(name)), "{name}");
-        }
-        for name in [
-            "seed",
-            "Seed",
-            "authority",
-            "args.id",
-            "self::seed",
-            "_",
-            "X.y",
-        ] {
-            assert!(!is_const_path(&expr(name)), "{name}");
-        }
-    }
-
-    #[test]
-    fn a_seed_is_const_when_its_root_is_a_literal_or_constant() {
-        for seed in [
-            "b\"vault\"",
-            "\"vault\"",
-            "b'x'",
-            "SEED",
-            "&SEED",
-            "SEED.as_ref()",
-            "SEED.as_bytes()",
-            "&SEED.as_ref()",
-            "\"vault\".as_bytes()",
-        ] {
-            assert!(const_seed_root(&expr(seed)).is_some(), "{seed}");
-        }
-        for seed in [
-            "mint.address().as_ref()",
-            "&id.to_le_bytes()",
-            "authority",
-            "SEED.to_vec()",
-            "SEED.as_ref(1)",
-            "1u8",
-        ] {
-            assert!(const_seed_root(&expr(seed)).is_none(), "{seed}");
+            let parsed = expr(seed);
+            let found = peeled_seed_root(&parsed);
+            assert_eq!(quote::quote!(#found).to_string(), root, "{seed}");
         }
     }
 
@@ -482,35 +460,83 @@ mod const_pda_tests {
         parse_struct_fields(named).unwrap().remove(0)
     }
 
+    fn is_const(source: &str) -> bool {
+        let field = field(source);
+        let seeds = field.pda_seed.clone().unwrap();
+        const_pda(&field, &seeds, &runtime_names()).is_some()
+    }
+
     #[test]
-    fn a_pda_is_const_only_when_every_part_is() {
-        let all_const = field("#[account(seeds = [SEED_A, b\"x\"], bump)] a: Account<A>");
-        let seeds = all_const.pda_seed.clone().unwrap();
-        assert!(const_pda(&all_const, &seeds).is_some());
+    fn a_pda_is_const_only_when_no_part_names_a_runtime_value() {
+        assert!(is_const(
+            "#[account(seeds = [SEED_A, b\"x\"], bump)] a: Account<A>"
+        ));
+        assert!(is_const(
+            "#[account(seeds = [SEED_A, &1u64.to_le_bytes(), &[7u8], 9u8], bump)] a: Account<A>"
+        ));
+        assert!(is_const(
+            "#[account(seeds = [SEED_A], bump, seeds::program = OTHER_PROGRAM)] a: Account<A>"
+        ));
+        assert!(is_const(
+            "#[account(seeds = [SEED_A], bump, seeds::program = crate::other_program())] \
+             a: Account<A>"
+        ));
 
-        let runtime_seed =
-            field("#[account(seeds = [SEED_A, user.address().as_ref()], bump)] a: Account<A>");
-        let seeds = runtime_seed.pda_seed.clone().unwrap();
-        assert!(const_pda(&runtime_seed, &seeds).is_none());
+        assert!(!is_const(
+            "#[account(seeds = [SEED_A, user.address().as_ref()], bump)] a: Account<A>"
+        ));
+        assert!(!is_const(
+            "#[account(seeds = [SEED_A, &id.to_le_bytes()], bump)] a: Account<A>"
+        ));
+        assert!(!is_const(
+            "#[account(seeds = [SEED_A, &args.id.to_le_bytes()], bump)] a: Account<A>"
+        ));
+        assert!(!is_const(
+            "#[account(seeds = [SEED_A], bump, seeds::program = other.address())] a: Account<A>"
+        ));
+        assert!(!is_const(
+            "#[account(seeds = [SEED_A, program_id.as_ref()], bump)] a: Account<A>"
+        ));
+    }
 
-        let const_program = field(
-            "#[account(seeds = [SEED_A], bump, seeds::program = OTHER_PROGRAM)] a: Account<A>",
+    #[test]
+    fn a_typed_seeds_call_is_const_only_when_no_argument_names_a_runtime_value() {
+        let no_arguments = field("#[account(seeds = Config::seeds(), bump)] a: Account<A>");
+        let seeds = no_arguments.pda_seed.clone().unwrap();
+        let initializer = const_pda(&no_arguments, &seeds, &runtime_names())
+            .expect("no arguments")
+            .to_string();
+        assert!(
+            initializer.contains("Config :: __naclac_const_pda (& crate :: ID)"),
+            "{initializer}"
         );
-        let seeds = const_program.pda_seed.clone().unwrap();
-        assert!(const_pda(&const_program, &seeds).is_some());
 
-        let runtime_program = field(
-            "#[account(seeds = [SEED_A], bump, seeds::program = other.address())] a: Account<A>",
-        );
-        let seeds = runtime_program.pda_seed.clone().unwrap();
-        assert!(const_pda(&runtime_program, &seeds).is_none());
+        assert!(is_const(
+            "#[account(seeds = Vault::seeds(ADMIN, 1), bump)] a: Account<A>"
+        ));
+        assert!(!is_const(
+            "#[account(seeds = Vault::seeds(ADMIN, id), bump)] a: Account<A>"
+        ));
+        assert!(!is_const(
+            "#[account(seeds = Vault::seeds(owner.address(), 1), bump)] a: Account<A>"
+        ));
     }
 
     fn rendered(field: &crate::accounts::field::parser::ParsedField) -> String {
-        match pda_checks(field) {
+        match pda_checks(field, &runtime_names()) {
             Some(PdaChecks::Metadata(tokens) | PdaChecks::Constraint(tokens)) => tokens.to_string(),
             None => String::new(),
         }
+    }
+
+    #[test]
+    fn a_constant_typed_seeds_call_is_precomputed_and_not_derived_at_runtime() {
+        let code = rendered(&field(
+            "#[account(seeds = Config::seeds(), bump)] a: Account<A>",
+        ));
+        assert!(code.contains("const __NACLAC_PDA_0"), "{code}");
+        assert!(!code.contains("derive_program_address"), "{code}");
+        assert!(!code.contains("as_slices"), "{code}");
     }
 
     #[test]
@@ -519,7 +545,7 @@ mod const_pda_tests {
             field("#[account(seeds = Vault::seeds(owner.address(), id), bump)] a: Account<A>");
         let seeds = typed.pda_seed.clone().unwrap();
         assert!(matches!(seeds, PdaSeeds::Typed(_)));
-        assert!(const_pda(&typed, &seeds).is_none());
+        assert!(const_pda(&typed, &seeds, &runtime_names()).is_none());
         let code = rendered(&typed);
         assert!(code.contains("Vault :: seeds"), "{code}");
         assert!(

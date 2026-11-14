@@ -530,10 +530,11 @@ pub const fn find_program_address_const(seeds: &[&[u8]], program_id: &Address) -
     (address_from_bytes(address), bump)
 }
 
-/// A seed constant's bytes inside a `const` initializer: `ConstSeed(SEED).bytes()`.
+/// A seed value's bytes inside a `const` initializer: `&ConstSeed(SEED).bytes()`.
 /// `bytes` exists for the types a seed is written with (`&[u8]`, `&[u8; N]`,
-/// `[u8; N]`, `&str`, `u8` and `Address`), so a constant of another type fails
-/// to compile and no case is guessed.
+/// `[u8; N]`, `&str`, `Address` and every integer, little-endian), so a value
+/// of another type fails to compile and no case is guessed. It returns either a
+/// slice or an owned array, so the caller takes a reference to the result.
 pub struct ConstSeed<T>(pub T);
 
 impl<'a> ConstSeed<&'a [u8]> {
@@ -571,6 +572,20 @@ impl ConstSeed<Address> {
         address_bytes(&self.0)
     }
 }
+
+macro_rules! const_seed_integer {
+    ($($int:ty),* $(,)?) => {
+        $(
+            impl ConstSeed<$int> {
+                pub const fn bytes(&self) -> [u8; core::mem::size_of::<$int>()] {
+                    self.0.to_le_bytes()
+                }
+            }
+        )*
+    };
+}
+
+const_seed_integer!(u16, u32, u64, u128, i8, i16, i32, i64, i128);
 
 /// A field value used as one PDA seed by an `#[account]` with `#[seeds(..)]`.
 /// Integers are little-endian; `Address` and `[u8; N]` are themselves.
@@ -776,6 +791,33 @@ mod find_program_address_const_tests {
         &PROGRAM,
     );
     const NO_SEEDS: (Address, u8) = find_program_address_const(&[], &OTHER_PROGRAM);
+    const REFERENCED_SEEDS: (Address, u8) = find_program_address_const(
+        &[
+            ConstSeed("config").bytes(),
+            &ConstSeed(7u64).bytes(),
+            &ConstSeed(-2i32).bytes(),
+            ConstSeed(9u8).bytes(),
+            ConstSeed(OTHER_PROGRAM).bytes(),
+        ],
+        &PROGRAM,
+    );
+
+    #[test]
+    fn integer_seeds_are_little_endian_and_match_the_host_derivation() {
+        assert!(
+            REFERENCED_SEEDS
+                == Address::find_program_address(
+                    &[
+                        b"config",
+                        &7u64.to_le_bytes(),
+                        &(-2i32).to_le_bytes(),
+                        &[9u8],
+                        OTHER_PROGRAM.as_ref(),
+                    ],
+                    &PROGRAM,
+                )
+        );
+    }
 
     #[test]
     fn matches_the_host_derivation() {

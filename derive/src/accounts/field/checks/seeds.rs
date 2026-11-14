@@ -4,6 +4,35 @@
 
 use {proc_macro2::TokenStream, quote::quote};
 
+/// True if `expr` names any of `names` as a bare identifier. An account field,
+/// an instruction argument or `program_id` has no value until a transaction
+/// arrives, so an expression that refers to one cannot be evaluated at compile
+/// time or when the IDL is built.
+pub(crate) fn mentions_any_name(expr: &syn::Expr, names: &[String]) -> bool {
+    struct Finder<'a> {
+        names: &'a [String],
+        found: bool,
+    }
+    impl<'ast> syn::visit::Visit<'ast> for Finder<'_> {
+        fn visit_expr_path(&mut self, node: &'ast syn::ExprPath) {
+            if node
+                .path
+                .get_ident()
+                .is_some_and(|ident| self.names.iter().any(|name| ident == name))
+            {
+                self.found = true;
+            }
+            syn::visit::visit_expr_path(self, node);
+        }
+    }
+    let mut finder = Finder {
+        names,
+        found: false,
+    };
+    syn::visit::Visit::visit_expr(&mut finder, expr);
+    finder.found
+}
+
 /// The "real" trailing operation on a seed expression, once any wrapping
 /// `.as_ref()`/`.as_bytes()` call has been peeled off.
 enum SeedTrailingOp {

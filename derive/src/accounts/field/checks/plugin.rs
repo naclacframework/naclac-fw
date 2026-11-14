@@ -153,7 +153,8 @@ mod plugin_tests {
 
     fn constraint_code(fields: &str) -> String {
         let parsed = parse(fields);
-        generate_security_checks(&parsed[0], &parsed)
+        let names = crate::accounts::field::checks::runtime_names(&parsed, &[]);
+        generate_security_checks(&parsed[0], &parsed, &names)
             .1
             .to_string()
             .replace(' ', "")

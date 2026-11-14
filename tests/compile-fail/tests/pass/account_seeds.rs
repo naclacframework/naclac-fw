@@ -53,6 +53,34 @@ pub struct Create {
     pub system_program: Program<System>,
 }
 
+pub const SLOT_TAG: [u8; 4] = *b"main";
+
+#[account]
+#[seeds(b"config", bump = bump)]
+pub struct Config {
+    pub value: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[seeds(b"slot", tag, version, bump = bump)]
+pub struct Slot {
+    pub tag: [u8; 4],
+    pub version: u32,
+    pub bump: u8,
+}
+
+#[derive(Accounts)]
+pub struct ReadConstantSeeds {
+    #[account(seeds = Config::seeds(), bump)]
+    pub config: Account<Config>,
+
+    #[account(seeds = Slot::seeds(SLOT_TAG, 2), bump)]
+    pub slot: Account<Slot>,
+}
+
+pub const CONFIG_PDA: (Address, u8) = Config::__naclac_const_pda(&ID);
+
 pub fn vault_seed_lengths(owner: Address, index: u64) -> (usize, usize) {
     let seeds = Vault::seeds(&owner, &index);
     let bump = [7u8];

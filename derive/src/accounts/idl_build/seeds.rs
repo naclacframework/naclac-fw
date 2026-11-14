@@ -20,12 +20,12 @@ fn literal_seed_tokens(value: &[u8]) -> proc_macro2::TokenStream {
 /// A seed expression this macro cannot prove is an instruction arg or an
 /// account field of this struct is spliced into the generated `idl-build` code
 /// as real Rust source, so the calling crate's compiler resolves it and its
-/// real value lands in the JSON. When the expression is an ALL_CAPS constant
-/// path (possibly under `&`, `.as_ref()` or `.as_bytes()`), the seed carries
+/// real value lands in the JSON. When the expression is a constant path
+/// (possibly under `&`, `.as_ref()` or `.as_bytes()`), the seed carries
 /// that constant's name and an IDL entry typed by the compiler; the
 /// framework's own constants such as `SYSTEM_PROGRAM_ID` are named too.
 pub(super) fn splice_const_fallback(expr: &syn::Expr) -> proc_macro2::TokenStream {
-    let constant_path = crate::accounts::field::checks::pda::const_seed_root(expr)
+    let constant_path = Some(crate::accounts::field::checks::pda::peeled_seed_root(expr))
         .filter(|root| matches!(root, syn::Expr::Path(_)));
     let (name_tokens, constant_tokens) = match constant_path {
         Some(syn::Expr::Path(path)) => {
@@ -214,32 +214,4 @@ pub(super) fn build_idl_seed_expr(
         ),
         _ => splice_const_fallback(expr),
     }
-}
-
-/// True if `expr` names any of `names` as a bare identifier. An account field
-/// or an instruction argument has no value when the IDL is built, so an
-/// expression that refers to one cannot be evaluated into a fixed address.
-pub(super) fn mentions_any_name(expr: &syn::Expr, names: &[String]) -> bool {
-    struct Finder<'a> {
-        names: &'a [String],
-        found: bool,
-    }
-    impl<'ast> syn::visit::Visit<'ast> for Finder<'_> {
-        fn visit_expr_path(&mut self, node: &'ast syn::ExprPath) {
-            if node
-                .path
-                .get_ident()
-                .is_some_and(|ident| self.names.iter().any(|name| ident == name))
-            {
-                self.found = true;
-            }
-            syn::visit::visit_expr_path(self, node);
-        }
-    }
-    let mut finder = Finder {
-        names,
-        found: false,
-    };
-    syn::visit::Visit::visit_expr(&mut finder, expr);
-    finder.found
 }

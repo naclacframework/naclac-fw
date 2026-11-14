@@ -136,13 +136,14 @@ pub mod token {
             account: &AccountInfo,
             index: usize,
             args: &Args,
-            signer_seeds: &[CpiSigner<'_, '_>],
+            _signer_seeds: &[CpiSigner<'_, '_>],
         ) -> crate::prelude::Result<()> {
             let (Some(token_program), Some(mint), Some(authority)) =
                 (args.token_program, args.mint, &args.authority)
             else {
                 return Err(NaclacError::ConstraintAccountIsNone.err(index));
             };
+            // `InitializeAccount3` takes no signer, so the account's seeds are not forwarded.
             initialize_account_with_owner_signed(
                 CpiHandle {
                     info: token_program,
@@ -157,7 +158,7 @@ pub mod token {
                     _phantom: core::marker::PhantomData,
                 },
                 authority,
-                signer_seeds,
+                &[],
             )
         }
     }
@@ -234,13 +235,14 @@ pub mod mint {
             account: &AccountInfo,
             index: usize,
             args: &Args,
-            signer_seeds: &[CpiSigner<'_, '_>],
+            _signer_seeds: &[CpiSigner<'_, '_>],
         ) -> crate::prelude::Result<()> {
             let (Some(token_program), Some(decimals), Some(authority)) =
                 (args.token_program, args.decimals, &args.authority)
             else {
                 return Err(NaclacError::ConstraintAccountIsNone.err(index));
             };
+            // `InitializeMint2` takes no signer, so the account's seeds are not forwarded.
             initialize_mint_signed(
                 CpiHandle {
                     info: token_program,
@@ -253,7 +255,7 @@ pub mod mint {
                 decimals,
                 authority,
                 args.freeze_authority.as_ref(),
-                signer_seeds,
+                &[],
             )
         }
     }

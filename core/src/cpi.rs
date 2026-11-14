@@ -160,6 +160,63 @@ mod signer_seeds_tests {
     }
 }
 
+#[cfg(kani)]
+mod signer_seeds_kani_proofs {
+    use super::{CpiSigner, SignerSeeds};
+
+    /// For any seed contents and lengths, `SignerSeeds::new` keeps every seed
+    /// with its exact bytes, in the order given.
+    #[kani::proof]
+    #[kani::unwind(5)]
+    fn prove_signer_seeds_keep_every_seed_in_order() {
+        let first: [u8; 3] = kani::any();
+        let second: [u8; 3] = kani::any();
+        let first_len: usize = kani::any();
+        let second_len: usize = kani::any();
+        kani::assume(first_len <= 3 && second_len <= 3);
+        let bump: [u8; 1] = kani::any();
+
+        let seeds = SignerSeeds::new([&first[..first_len], &second[..second_len], &bump]);
+
+        assert!(&*seeds.seeds[0] == &first[..first_len]);
+        assert!(&*seeds.seeds[1] == &second[..second_len]);
+        assert!(&*seeds.seeds[2] == &bump[..]);
+    }
+
+    /// Viewing a `CpiSigner` slice as the runtime's own signer slice keeps its
+    /// length.
+    #[cfg(feature = "pinocchio")]
+    #[kani::proof]
+    fn prove_signer_slice_cast_keeps_length() {
+        let a: [u8; 2] = kani::any();
+        let b: [u8; 2] = kani::any();
+        let first = SignerSeeds::new([&a[..]]);
+        let second = SignerSeeds::new([&b[..]]);
+        let signers = [first.signer(), second.signer()];
+        assert!(CpiSigner::as_pinocchio(&signers).len() == 2);
+    }
+
+    /// Viewing a `CpiSigner` slice as `&[&[&[u8]]]` keeps every signer's seeds
+    /// and their bytes.
+    #[cfg(not(feature = "pinocchio"))]
+    #[kani::proof]
+    #[kani::unwind(4)]
+    fn prove_signer_slice_cast_keeps_every_seed() {
+        let a: [u8; 2] = kani::any();
+        let b: [u8; 2] = kani::any();
+        let first = SignerSeeds::new([&a[..], &b[..]]);
+        let second = SignerSeeds::new([&b[..]]);
+        let signers = [first.signer(), second.signer()];
+        let runtime = CpiSigner::as_seed_slices(&signers);
+        assert!(runtime.len() == 2);
+        assert!(runtime[0].len() == 2);
+        assert!(runtime[0][0] == &a[..]);
+        assert!(runtime[0][1] == &b[..]);
+        assert!(runtime[1].len() == 1);
+        assert!(runtime[1][0] == &b[..]);
+    }
+}
+
 /// Unified AccountMeta for cross-backend CPI usage.
 #[derive(Clone, Debug)]
 pub struct AccountMeta {
@@ -428,6 +485,38 @@ mod cpi_heap_buffer_tests {
     fn an_empty_payload_needs_no_allocation() {
         let buf = CpiHeapBuffer::with_len(0).ok().unwrap();
         assert!(buf.bytes().ok() == Some(&[][..]));
+    }
+}
+
+#[cfg(all(test, feature = "wincode"))]
+mod wincode_cpi_data_tests {
+    use super::wincode_cpi_data;
+
+    #[test]
+    fn the_data_is_the_discriminator_then_the_encoded_args() {
+        let buf = wincode_cpi_data(&[7, 8], &0x0102_0304_0506_0708u64)
+            .ok()
+            .unwrap();
+        assert!(buf.bytes().ok() == Some(&[7u8, 8, 8, 7, 6, 5, 4, 3, 2, 1][..]));
+    }
+
+    #[test]
+    fn a_dynamic_arg_carries_a_four_byte_length() {
+        let args: alloc::vec::Vec<u8> = alloc::vec![9, 9];
+        let buf = wincode_cpi_data(&[1], &args).ok().unwrap();
+        assert!(buf.bytes().ok() == Some(&[1u8, 2, 0, 0, 0, 9, 9][..]));
+    }
+
+    #[test]
+    fn no_args_leave_only_the_discriminator() {
+        let buf = wincode_cpi_data(&[5, 6, 7], &[0u8; 0]).ok().unwrap();
+        assert!(buf.bytes().ok() == Some(&[5u8, 6, 7][..]));
+    }
+
+    #[test]
+    fn an_empty_discriminator_leaves_only_the_args() {
+        let buf = wincode_cpi_data(&[], &[1u8, 2]).ok().unwrap();
+        assert!(buf.bytes().ok() == Some(&[1u8, 2][..]));
     }
 }
 
@@ -1057,6 +1146,7 @@ pub fn invoke_signed_pinocchio_handles(
 /// account, and the pairing holds by construction here. A caller that cannot
 /// guarantee it must use [`invoke_signed_pinocchio_handles`].
 #[cfg(feature = "pinocchio")]
+#[inline(never)]
 pub fn invoke_signed_pinocchio_paired(
     instruction: &::pinocchio::instruction::InstructionView,
     account_handles: &[crate::prelude::CpiHandle<'_>],
@@ -1073,10 +1163,13 @@ pub fn invoke_signed_pinocchio_paired(
     let mut cpi_accounts_arr =
         [const { core::mem::MaybeUninit::<::pinocchio::cpi::CpiAccount>::uninit() };
             crate::prelude::MAX_CPI_ACCOUNTS];
-    for ((slot, handle), meta) in cpi_accounts_arr
-        .iter_mut()
-        .zip(account_handles.iter())
-        .zip(instruction.accounts.iter())
+    let handles = &account_handles[..accounts_len];
+    let slots = &mut cpi_accounts_arr[..accounts_len];
+    for ((meta, handle), slot) in instruction
+        .accounts
+        .iter()
+        .zip(handles.iter())
+        .zip(slots.iter_mut())
     {
         debug_assert!(handle.info.view.address() == meta.address);
         if meta.is_writable {
@@ -1084,9 +1177,8 @@ pub fn invoke_signed_pinocchio_paired(
         }
         ::pinocchio::cpi::CpiAccount::init_from_account_view(&handle.info.view, slot);
     }
-    // SAFETY: the loop above initialised the first `accounts_len` slots, since
-    // both `account_handles` and `instruction.accounts` have at least that
-    // many entries.
+    // SAFETY: the loop above initialised the first `accounts_len` slots, one
+    // per entry of `instruction.accounts`.
     let cpi_accounts = unsafe {
         core::slice::from_raw_parts(
             cpi_accounts_arr.as_ptr() as *const ::pinocchio::cpi::CpiAccount,

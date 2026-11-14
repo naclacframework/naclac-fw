@@ -142,13 +142,7 @@ pub trait SwapCpi<'info> {
         amount_in: u64,
         minimum_amount_out: u64
     ) -> crate::sdk_core_cpi::Result<()> {
-        self.swap_with_remaining_accounts(SwapCpiCall {
-        accounts,
-        amount_in,
-        minimum_amount_out,
-        signer_seeds: &[],
-        remaining_accounts: &[],
-    })
+        self.swap_signed(accounts, amount_in, minimum_amount_out, &[])
     }
 
     fn swap_signed<'a>(
@@ -157,15 +151,7 @@ pub trait SwapCpi<'info> {
         amount_in: u64,
         minimum_amount_out: u64,
         signer_seeds: &[crate::sdk_core_cpi::CpiSigner<'_, '_>]
-    ) -> crate::sdk_core_cpi::Result<()> {
-        self.swap_with_remaining_accounts(SwapCpiCall {
-        accounts,
-        amount_in,
-        minimum_amount_out,
-        signer_seeds,
-        remaining_accounts: &[],
-    })
-    }
+    ) -> crate::sdk_core_cpi::Result<()>;
 
     fn swap_with_remaining_accounts<'a>(
         &self,
@@ -354,6 +340,56 @@ impl<'info> SwapCpi<'info> for crate::sdk_core_cpi::Program<crate::Amm> {
             }
             let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
             crate::sdk_core_cpi::cpi::invoke_signed(&instruction, account_handles, signer_seeds)
+        }
+    }
+
+    fn swap_signed<'a>(
+        &self,
+        accounts: SwapCpiAccounts<'a>,
+        amount_in: u64,
+        minimum_amount_out: u64,
+        signer_seeds: &[crate::sdk_core_cpi::CpiSigner<'_, '_>]
+    ) -> crate::sdk_core_cpi::Result<()> {
+        #[cfg(feature = "pinocchio")]
+        {
+        let args = SwapCpiIxArgs {
+            amount_in,
+            minimum_amount_out,
+        };
+            #[cfg(not(feature = "wincode"))]
+            #[derive(Clone, Copy)]
+            #[repr(C, packed)]
+            struct IxData {
+                discriminator: [u8; 8],
+                args: SwapCpiIxArgs,
+            }
+            #[cfg(not(feature = "wincode"))]
+            unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for IxData {}
+            #[cfg(not(feature = "wincode"))]
+            unsafe impl crate::sdk_core_cpi::bytemuck::Pod for IxData {}
+            #[cfg(not(feature = "wincode"))]
+            let ix_wire = IxData { discriminator: [248, 198, 158, 145, 225, 117, 135, 200], args };
+            #[cfg(not(feature = "wincode"))]
+            let ix_data = crate::sdk_core_cpi::bytemuck::bytes_of(&ix_wire);
+            #[cfg(feature = "wincode")]
+            let ix_owned = crate::sdk_core_cpi::cpi::wincode_cpi_data(&[248, 198, 158, 145, 225, 117, 135, 200], &args)?;
+            #[cfg(feature = "wincode")]
+            let ix_data = ix_owned.bytes()?;
+            let __cpi_self_handle: crate::sdk_core_cpi::CpiHandle = crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(self);
+            let handles: [crate::sdk_core_cpi::CpiHandle; 10] = [crate::sdk_core_cpi::CpiHandle::from(accounts.user), accounts.pool_state, accounts.token_a_mint, accounts.token_b_mint, crate::sdk_core_cpi::CpiHandle::from(accounts.pool_source_vault), crate::sdk_core_cpi::CpiHandle::from(accounts.pool_destination_vault), crate::sdk_core_cpi::CpiHandle::from(accounts.user_source_token), crate::sdk_core_cpi::CpiHandle::from(accounts.user_destination_token), accounts.token_program_a, accounts.token_program_b];
+            let metas: [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount; 10] = [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(handles[0].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[1].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[2].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[3].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[4].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[5].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[6].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[7].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[8].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[9].info.view.address())];
+            let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView { program_id: __cpi_self_handle.info.view.address(), accounts: &metas, data: ix_data };
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired(&instruction, &handles, signer_seeds)
+        }
+        #[cfg(feature = "solana")]
+        {
+            self.swap_with_remaining_accounts(SwapCpiCall {
+        accounts,
+        amount_in,
+        minimum_amount_out,
+        signer_seeds,
+        remaining_accounts: &[],
+    })
         }
     }
 }
