@@ -229,3 +229,51 @@ pub fn naclac_ts_dep_specs(workspace_root: &Path) -> Result<(String, String), St
     };
     Ok((spec("client")?, spec("litesvm-node")?))
 }
+
+/// The `[lints]` table a generated client manifest needs so it inherits the
+/// workspace's lints: `[lints] workspace = true` when the workspace root
+/// manifest defines `[workspace.lints]`, and nothing when it does not (cargo
+/// rejects `workspace = true` without them, and warns about a missing table
+/// when they exist).
+pub fn client_lints_table(workspace_root: &Path) -> Result<&'static str, String> {
+    let manifest = workspace_root.join("Cargo.toml");
+    let text = fs::read_to_string(&manifest)
+        .map_err(|e| format!("cannot read {}: {e}", manifest.display()))?;
+    lints_table_for(&text).map_err(|e| format!("{}: {e}", manifest.display()))
+}
+
+fn lints_table_for(workspace_manifest: &str) -> Result<&'static str, String> {
+    let manifest: toml::Table = workspace_manifest
+        .parse()
+        .map_err(|e| format!("not valid TOML: {e}"))?;
+    let defines_lints = manifest
+        .get("workspace")
+        .and_then(|workspace| workspace.get("lints"))
+        .is_some();
+    Ok(if defines_lints {
+        "\n[lints]\nworkspace = true\n"
+    } else {
+        ""
+    })
+}
+
+#[cfg(test)]
+mod client_lints_tests {
+    use super::lints_table_for;
+
+    #[test]
+    fn a_workspace_with_lints_makes_the_client_inherit_them() {
+        let manifest = "[workspace]\nmembers = [\"programs/*\"]\n[workspace.lints.rust]\nunexpected_cfgs = \"warn\"\n";
+        assert!(lints_table_for(manifest) == Ok("\n[lints]\nworkspace = true\n"));
+    }
+
+    #[test]
+    fn a_workspace_without_lints_gets_no_table() {
+        assert!(lints_table_for("[workspace]\nmembers = [\"programs/*\"]\n") == Ok(""));
+    }
+
+    #[test]
+    fn an_unreadable_manifest_is_an_error() {
+        assert!(lints_table_for("[workspace").is_err());
+    }
+}

@@ -1,10 +1,10 @@
 //! `Revoke`: removes a token account's delegate, signed by its owner.
 
-#[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
+#[cfg(feature = "pinocchio")]
+use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 
 pub fn revoke(
     program: CpiHandle<'_>,
@@ -48,6 +48,12 @@ pub fn revoke_signed(
             InstructionAccount::writable(source.info.view.address()),
             InstructionAccount::readonly_signer(authority.info.view.address()),
         ];
-        invoke(&program, &accounts, &[source, authority], &[5], signer_seeds)
+        invoke(
+            &program,
+            &accounts,
+            &[source, authority],
+            &[5],
+            signer_seeds,
+        )
     }
 }

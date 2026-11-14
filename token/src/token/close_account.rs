@@ -1,11 +1,11 @@
 //! `CloseAccount`: closes a token account, sending its lamports to a
 //! destination, signed by the close authority.
 
-#[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
+#[cfg(feature = "pinocchio")]
+use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 
 pub fn close_account(
     program: CpiHandle<'_>,

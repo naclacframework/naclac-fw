@@ -182,12 +182,8 @@ pub fn is_ephemeral_recovery_line(line: &str) -> bool {
         return true;
     }
     let words: Vec<&str> = trimmed.split_whitespace().collect();
-    if (words.len() == 12 || words.len() == 24)
+    (words.len() == 12 || words.len() == 24)
         && words
             .iter()
             .all(|w| w.chars().all(|c| c.is_ascii_lowercase()))
-    {
-        return true;
-    }
-    false
 }

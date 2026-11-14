@@ -1,13 +1,13 @@
 //! `MintTo`: mints new tokens to a token account, signed by the mint authority.
 
+use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
+#[cfg(not(feature = "pinocchio"))]
+use crate::wrappers::ToAddress;
 #[cfg(feature = "pinocchio")]
 use {
     super::invoke::{amount_data, invoke},
     pinocchio::instruction::InstructionAccount,
 };
-#[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 
 pub fn mint_to(
     program: CpiHandle<'_>,

@@ -326,9 +326,11 @@ impl ToAddress for Address {
 /// bug, and converting it to some other address would hide it.
 impl ToAddress for &[u8] {
     fn address(&self) -> Address {
-        Address::new_from_array((*self).try_into().unwrap_or_else(|_| {
-            panic!("ToAddress: a byte slice must be exactly 32 bytes")
-        }))
+        Address::new_from_array(
+            (*self)
+                .try_into()
+                .unwrap_or_else(|_| panic!("ToAddress: a byte slice must be exactly 32 bytes")),
+        )
     }
 }
 

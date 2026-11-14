@@ -625,7 +625,9 @@ pub fn fixed_wire_size_expr(
                 map_type_to_rust_cpi(ty, is_zero_copy, "crate::types::")
             ))
         }
-        ArgWireKind::OptionPod(inner) => Some(option_wire_size(&inner, defined_types, is_zero_copy)),
+        ArgWireKind::OptionPod(inner) => {
+            Some(option_wire_size(&inner, defined_types, is_zero_copy))
+        }
         ArgWireKind::DynamicString | ArgWireKind::DynamicVec { .. } => None,
     }
 }
@@ -673,7 +675,10 @@ pub fn wire_size_expr(
             }
         }
         ArgWireKind::OptionPod(inner) => {
-            format!("({})", option_wire_size(&inner, defined_types, is_zero_copy))
+            format!(
+                "({})",
+                option_wire_size(&inner, defined_types, is_zero_copy)
+            )
         }
         ArgWireKind::DynamicString => format!("(4 + {expr}.as_bytes().len())"),
         ArgWireKind::DynamicVec { inner_is_u8: true } => {
@@ -830,6 +835,7 @@ pub fn generate_rust_sdk(
     // 1. Generate Cargo.toml with custom feature flags
     let (naclac_lang_path, naclac_client_path) =
         crate::paths::naclac_dep_path_fragments(workspace_root, &clients_dir)?;
+    let lints_table = crate::paths::client_lints_table(workspace_root)?;
     let cargo_toml_content = format!(
         r#"[package]
 name = "{}-client"
@@ -849,7 +855,7 @@ wincode = ["naclac-lang?/wincode"]
 [dependencies]
 naclac-client = {{ version = "0.1.0", optional = true{naclac_client_path} }}
 naclac-lang = {{ version = "0.1.0", optional = true, default-features = false{naclac_lang_path} }}
-"#,
+{lints_table}"#,
         program_name_kebab, default_features
     );
     fs::write(clients_dir.join("Cargo.toml"), cargo_toml_content).unwrap();

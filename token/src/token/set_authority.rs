@@ -1,11 +1,11 @@
 //! `SetAuthority`: changes or clears one authority of a mint or token
 //! account, signed by the current authority.
 
-#[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result};
+#[cfg(feature = "pinocchio")]
+use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u8)]

@@ -39,7 +39,12 @@ pub struct SignerSeeds<'a, const N: usize> {
 impl<'a, const N: usize> SignerSeeds<'a, N> {
     #[inline(always)]
     pub fn new(parts: [&'a [u8]; N]) -> Self {
-        const { assert!(N <= crate::prelude::MAX_PDA_SEEDS, "a PDA takes at most 16 seeds") };
+        const {
+            assert!(
+                N <= crate::prelude::MAX_PDA_SEEDS,
+                "a PDA takes at most 16 seeds"
+            )
+        };
         #[cfg(feature = "pinocchio")]
         {
             Self {
@@ -83,7 +88,9 @@ impl<'a, 'b> CpiSigner<'a, 'b> {
     /// `signers` as pinocchio's own signer slice.
     #[cfg(feature = "pinocchio")]
     #[inline(always)]
-    pub fn as_pinocchio<'s>(signers: &'s [CpiSigner<'a, 'b>]) -> &'s [::pinocchio::cpi::Signer<'a, 'b>] {
+    pub fn as_pinocchio<'s>(
+        signers: &'s [CpiSigner<'a, 'b>],
+    ) -> &'s [::pinocchio::cpi::Signer<'a, 'b>] {
         // SAFETY: `CpiSigner` is `repr(transparent)` over `pinocchio::cpi::Signer`.
         unsafe {
             core::slice::from_raw_parts(
@@ -99,10 +106,7 @@ impl<'a, 'b> CpiSigner<'a, 'b> {
     pub fn as_seed_slices<'s>(signers: &'s [CpiSigner<'a, 'b>]) -> &'s [&'b [&'a [u8]]] {
         // SAFETY: `CpiSigner` is `repr(transparent)` over `&'b [&'a [u8]]`.
         unsafe {
-            core::slice::from_raw_parts(
-                signers.as_ptr() as *const &'b [&'a [u8]],
-                signers.len(),
-            )
+            core::slice::from_raw_parts(signers.as_ptr() as *const &'b [&'a [u8]], signers.len())
         }
     }
 }
@@ -149,7 +153,9 @@ mod signer_seeds_tests {
         #[cfg(not(feature = "pinocchio"))]
         {
             assert!(core::mem::size_of::<CpiSigner<'_, '_>>() == core::mem::size_of::<&[&[u8]]>());
-            assert!(core::mem::align_of::<CpiSigner<'_, '_>>() == core::mem::align_of::<&[&[u8]]>());
+            assert!(
+                core::mem::align_of::<CpiSigner<'_, '_>>() == core::mem::align_of::<&[&[u8]]>()
+            );
         }
     }
 }

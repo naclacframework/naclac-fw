@@ -1,11 +1,11 @@
 //! `FreezeAccount`: freezes a token account, signed by the mint's freeze
 //! authority.
 
-#[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
+#[cfg(feature = "pinocchio")]
+use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 
 pub fn freeze_account(
     program: CpiHandle<'_>,

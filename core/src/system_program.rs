@@ -603,14 +603,6 @@ impl crate::wrappers::Program<crate::wrappers::System> {
         let from_h = accounts.from.to_cpi_handle_mut();
         let to_h = accounts.to.to_cpi_handle_mut();
         let program_h = self.to_cpi_handle();
-        create_account_signed(
-            from_h,
-            to_h,
-            program_h,
-            lamports,
-            space,
-            owner,
-            signers,
-        )
+        create_account_signed(from_h, to_h, program_h, lamports, space, owner, signers)
     }
 }

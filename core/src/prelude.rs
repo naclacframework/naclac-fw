@@ -629,7 +629,8 @@ macro_rules! integer_seed_part {
 integer_seed_part!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
 
 impl<const N: usize> SeedPart for [u8; N] {
-    type Held<'a> = &'a [u8; N]
+    type Held<'a>
+        = &'a [u8; N]
     where
         Self: 'a;
 
@@ -650,7 +651,8 @@ impl<const N: usize> SeedPart for [u8; N] {
 }
 
 impl SeedPart for Address {
-    type Held<'a> = &'a [u8; 32]
+    type Held<'a>
+        = &'a [u8; 32]
     where
         Self: 'a;
 

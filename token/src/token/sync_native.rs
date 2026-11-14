@@ -1,11 +1,11 @@
 //! `SyncNative`: recomputes a native (WSOL) token account's amount from its
 //! lamport balance, with a variant that pads extra accounts onto the CPI.
 
-#[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use crate::prelude::{CpiHandle, CpiHandleMut, NaclacError, Result};
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use crate::prelude::{CpiHandle, CpiHandleMut, NaclacError, Result};
+#[cfg(feature = "pinocchio")]
+use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 
 // Recomputes a native (WSOL) token account's reported `amount` from its
 // actual lamport balance — the second half of the standard "wrap SOL"

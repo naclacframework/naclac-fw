@@ -1,11 +1,11 @@
 //! `TransferChecked`: moves tokens between two token accounts of one mint,
 //! checking the mint's decimals.
 
-#[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
 use crate::wrappers::ToAddress;
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
+#[cfg(feature = "pinocchio")]
+use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 
 /// Numeric parameters for a checked token transfer.
 /// Grouping amount + decimals keeps `transfer_checked_signed` under clippy's

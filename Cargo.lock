@@ -795,9 +795,9 @@ dependencies = [
 
 [[package]]
 name = "chacha20"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d524456ba66e72eb8b115ff89e01e497f8e6d11d78b70b1aa13c0fbd97540a81"
+checksum = "65c35e4b699c7e15ccbe7ee35c005e4fc0a278d22238a2857e6ce2dadeda1b06"
 dependencies = [
  "cfg-if",
  "cpufeatures 0.3.0",
@@ -1411,16 +1411,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23f76610e969fa1784327ded240f1e28a3fd9520c9cec93b636fcf62dd37f772"
 dependencies = [
- "five8_core 1.0.0",
-]
-
-[[package]]
-name = "five8_const"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26dec3da8bc3ef08f2c04f61eab298c3ab334523e55f076354d6d6f613799a7b"
-dependencies = [
- "five8_core 0.1.2",
+ "five8_core",
 ]
 
 [[package]]
@@ -1429,14 +1420,8 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a0f1728185f277989ca573a402716ae0beaaea3f76a8ff87ef9dd8fb19436c5"
 dependencies = [
- "five8_core 1.0.0",
+ "five8_core",
 ]
-
-[[package]]
-name = "five8_core"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2551bf44bc5f776c15044b9b94153a00198be06743e262afaaa61f11ac7523a5"
 
 [[package]]
 name = "five8_core"
@@ -2434,11 +2419,9 @@ dependencies = [
  "naclac-derive",
  "naclac-idl",
  "naclac-pod",
- "pinocchio 0.11.2",
+ "pinocchio",
  "pinocchio-log",
  "pinocchio-log-macro",
- "pinocchio-memo",
- "pinocchio-pubkey",
  "pinocchio-system",
  "solana-account-info",
  "solana-address 2.8.0",
@@ -2463,7 +2446,6 @@ name = "naclac-derive"
 version = "0.1.0"
 dependencies = [
  "bs58",
- "heck",
  "naclac-syn",
  "proc-macro2",
  "quote",
@@ -2515,7 +2497,7 @@ name = "naclac-metadata"
 version = "0.1.0"
 dependencies = [
  "naclac-core",
- "pinocchio 0.11.2",
+ "pinocchio",
  "solana-instruction 3.5.1",
 ]
 
@@ -2526,7 +2508,7 @@ dependencies = [
  "bytemuck",
  "naclac-idl",
  "naclac-pod",
- "pinocchio 0.11.2",
+ "pinocchio",
  "solana-address 2.8.0",
  "solana-program-error",
 ]
@@ -2550,7 +2532,7 @@ dependencies = [
  "bytemuck",
  "naclac-core",
  "naclac-idl",
- "pinocchio 0.11.2",
+ "pinocchio",
  "pinocchio-associated-token-account",
  "pinocchio-token",
  "pinocchio-token-2022",
@@ -2804,12 +2786,6 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pinocchio"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8afe4f39c0e25cc471b35b89963312791a5162d45a86578cbeaad9e5e7d1b3b"
-
-[[package]]
-name = "pinocchio"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6cababcb62a2e739c7078ae16eda02789a6e3edd21bbdded864e85c38a7914d"
@@ -2854,35 +2830,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "pinocchio-memo"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87cd9e3e3c3c315d5c7d974929b74cd074ac280e3ab09111e736e9de47f3ce38"
-dependencies = [
- "solana-account-view",
- "solana-address 2.8.0",
- "solana-instruction-view",
- "solana-program-error",
-]
-
-[[package]]
-name = "pinocchio-pubkey"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb0225638cadcbebae8932cb7f49cb5da7c15c21beb19f048f05a5ca7d93f065"
-dependencies = [
- "five8_const 0.1.4",
- "pinocchio 0.9.3",
- "sha2-const-stable",
-]
-
-[[package]]
 name = "pinocchio-system"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3ae2ee67b42e2ac797dd88312da473c895660e270d8093e0ba2749b885b5778"
 dependencies = [
- "pinocchio 0.11.2",
+ "pinocchio",
  "solana-address 2.8.0",
 ]
 
@@ -3772,7 +3725,7 @@ dependencies = [
  "bytemuck_derive",
  "curve25519-dalek",
  "five8",
- "five8_const 1.0.0",
+ "five8_const",
  "rand 0.9.5",
  "serde",
  "serde_derive",
@@ -4394,7 +4347,7 @@ checksum = "263d614c12aa267a3278703175fd6440552ca61bc960b5a02a4482720c53438b"
 dependencies = [
  "ed25519-dalek",
  "five8",
- "five8_core 1.0.0",
+ "five8_core",
  "rand 0.9.5",
  "solana-address 2.8.0",
  "solana-seed-phrase",

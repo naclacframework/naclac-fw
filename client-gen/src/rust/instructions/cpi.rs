@@ -243,7 +243,7 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     };
 
     let pinocchio_data_code = if ix.args.is_empty() {
-        format!("            let ix_data = [{}];\n", disc_str)
+        format!("            let ix_data: &[u8] = &[{}];\n", disc_str)
     } else {
         let disc_len = ix.discriminator.len();
         let zc_writes = crate::rust::generate_zero_copy_arg_bytes(
@@ -411,7 +411,7 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
          \x20           let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView {\n\
          \x20               program_id: program_id_address.as_address(),\n\
          \x20               accounts: account_metas,\n\
-         \x20               data: &ix_data,\n\
+         \x20               data: ix_data,\n\
          \x20           };\n"
     );
     impl_body.push_str("            let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::CpiHandle>::uninit() }; 32];\n");
@@ -597,8 +597,12 @@ mod tests {
 
     fn pinocchio_block(args: serde_json::Value) -> String {
         let code = generated(args);
-        let start = code.find("#[cfg(feature = \"pinocchio\")]").expect("pinocchio block");
-        let end = code.find("#[cfg(feature = \"solana\")]").expect("solana block");
+        let start = code
+            .find("#[cfg(feature = \"pinocchio\")]")
+            .expect("pinocchio block");
+        let end = code
+            .find("#[cfg(feature = \"solana\")]")
+            .expect("solana block");
         code[start..end].to_string()
     }
 
@@ -613,7 +617,9 @@ mod tests {
     fn wincode_args_are_encoded_into_one_exactly_sized_heap_buffer() {
         let block = pinocchio_block(json!([{ "name": "amount", "type": "u64" }]));
         assert!(
-            block.contains("let ix_owned = crate::sdk_core_cpi::cpi::wincode_cpi_data(&[1], &args)?;"),
+            block.contains(
+                "let ix_owned = crate::sdk_core_cpi::cpi::wincode_cpi_data(&[1], &args)?;"
+            ),
             "{block}"
         );
     }
@@ -679,15 +685,26 @@ mod tests {
     #[test]
     fn the_metas_and_the_handles_are_built_from_the_same_accounts_in_the_same_order() {
         let code = generated_with_accounts();
-        let start = code.find("#[cfg(feature = \"pinocchio\")]").expect("pinocchio block");
-        let end = code.find("#[cfg(feature = \"solana\")]").expect("solana block");
+        let start = code
+            .find("#[cfg(feature = \"pinocchio\")]")
+            .expect("pinocchio block");
+        let end = code
+            .find("#[cfg(feature = \"solana\")]")
+            .expect("solana block");
         let block = &code[start..end];
         let metas = accounts_written_by(block, "metas_arr[idx].write(");
         let handles = accounts_written_by(block, "handles_arr[h_idx].write(");
-        assert_eq!(metas, vec!["payer", "vault", "owner", "token_program"], "{block}");
+        assert_eq!(
+            metas,
+            vec!["payer", "vault", "owner", "token_program"],
+            "{block}"
+        );
         assert_eq!(metas, handles, "{block}");
         assert!(block.contains("invoke_signed_pinocchio_paired("), "{block}");
-        assert!(!block.contains("invoke_signed_pinocchio_handles("), "{block}");
+        assert!(
+            !block.contains("invoke_signed_pinocchio_handles("),
+            "{block}"
+        );
     }
 
     fn generated_with_accounts() -> String {

@@ -1,14 +1,14 @@
 //! `Burn`: destroys tokens from a token account, signed by its owner or
 //! delegate.
 
+use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
+#[cfg(not(feature = "pinocchio"))]
+use crate::wrappers::ToAddress;
 #[cfg(feature = "pinocchio")]
 use {
     super::invoke::{amount_data, invoke},
     pinocchio::instruction::InstructionAccount,
 };
-#[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 
 pub fn burn(
     program: CpiHandle<'_>,

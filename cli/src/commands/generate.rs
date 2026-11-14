@@ -238,8 +238,10 @@ pub fn ensure_client_stubs(workspace_root: &Path, program_dirs: &[PathBuf]) {
         let (naclac_lang_path, naclac_client_path) =
             naclac_client_gen::naclac_dep_path_fragments(workspace_root, &rust_client_dir)
                 .unwrap_or_else(|e| ui::error(e));
+        let lints_table =
+            naclac_client_gen::client_lints_table(workspace_root).unwrap_or_else(|e| ui::error(e));
         let stub_cargo = format!(
-            "[package]\nname = \"{pname_kebab}-client\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[features]\ndefault = [\"offchain\"]\noffchain = [\"dep:naclac-client\"]\ncpi = [\"dep:naclac-lang\"]\nsolana = [\"naclac-lang?/solana\"]\npinocchio = [\"naclac-lang?/pinocchio\"]\nbytemuck = [\"naclac-lang?/bytemuck\"]\nborsh = [\"naclac-lang?/borsh\"]\nwincode = [\"naclac-lang?/wincode\"]\n\n[dependencies]\nnaclac-client = {{ version = \"0.1.0\", optional = true{naclac_client_path} }}\nnaclac-lang = {{ version = \"0.1.0\", optional = true, default-features = false{naclac_lang_path} }}\n"
+            "[package]\nname = \"{pname_kebab}-client\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[features]\ndefault = [\"offchain\"]\noffchain = [\"dep:naclac-client\"]\ncpi = [\"dep:naclac-lang\"]\nsolana = [\"naclac-lang?/solana\"]\npinocchio = [\"naclac-lang?/pinocchio\"]\nbytemuck = [\"naclac-lang?/bytemuck\"]\nborsh = [\"naclac-lang?/borsh\"]\nwincode = [\"naclac-lang?/wincode\"]\n\n[dependencies]\nnaclac-client = {{ version = \"0.1.0\", optional = true{naclac_client_path} }}\nnaclac-lang = {{ version = \"0.1.0\", optional = true, default-features = false{naclac_lang_path} }}\n{lints_table}"
         );
         if fs::write(rust_client_dir.join("Cargo.toml"), &stub_cargo).is_err()
             || fs::write(
@@ -351,6 +353,7 @@ fn generate_idl_via_idl_build(
             .arg("--manifest-path")
             .arg(program_dir_abs.join("Cargo.toml"))
             .args(["--lib", "--crate-type", "rlib", "--features", "idl-build"])
+            .args(["--message-format", "json-render-diagnostics"])
             .arg("--target-dir")
             .arg(&cargo_target_dir)
             .args(["--", "-C", "codegen-units=1"])
@@ -359,12 +362,15 @@ fn generate_idl_via_idl_build(
         if !show_output {
             build.envs(cargo_progress::ENV);
         }
-        run_capturing_stdout(
+        let cargo_stdout = run_capturing_stdout(
             build,
             show_output,
             &format!("idl-build compilation for '{prog_name}'"),
             Some("Generating the IDL"),
         )?;
+        let built = built_libraries(&cargo_stdout, &lib_ident).map_err(|e| {
+            format!("idl-build compilation for '{prog_name}' gave no usable library: {e}")
+        })?;
 
         let main_rs = runner_dir.join("main.rs");
         fs::write(
@@ -373,20 +379,16 @@ fn generate_idl_via_idl_build(
         )
         .map_err(|e| e.to_string())?;
 
-        let debug_dir = cargo_target_dir.join("debug");
         let runner_bin = runner_dir.join(format!("idl_runner{}", std::env::consts::EXE_SUFFIX));
         let mut link = Command::new("rustc");
         link.args(["--edition", "2021"])
             .arg(&main_rs)
             .arg("--extern")
-            .arg(format!(
-                "{lib_ident}={}",
-                debug_dir.join(format!("lib{lib_ident}.rlib")).display()
-            ))
-            .arg("-L")
-            .arg(format!("dependency={}", debug_dir.join("deps").display()))
-            .arg("-o")
-            .arg(&runner_bin);
+            .arg(format!("{lib_ident}={}", built.program_rlib.display()));
+        for dir in &built.search_dirs {
+            link.arg("-L").arg(format!("dependency={}", dir.display()));
+        }
+        link.arg("-o").arg(&runner_bin);
         run_capturing_stdout(
             link,
             show_output,
@@ -412,6 +414,71 @@ fn generate_idl_via_idl_build(
     let idl = result?;
     removed.map_err(|e| format!("cannot remove {}: {e}", runner_dir.display()))?;
     Ok(idl)
+}
+
+/// The libraries cargo reported building: the program's own `rlib` and every
+/// directory holding a built library, which is where the runner link must look
+/// for the program's dependencies.
+struct BuiltLibraries {
+    program_rlib: PathBuf,
+    search_dirs: Vec<PathBuf>,
+}
+
+/// Reads cargo's `--message-format json` output for the `compiler-artifact`
+/// messages. The paths come from cargo itself because where it puts its
+/// dependency libraries depends on its build-directory layout.
+fn built_libraries(cargo_stdout: &str, lib_ident: &str) -> Result<BuiltLibraries, String> {
+    let mut program_rlib: Option<PathBuf> = None;
+    let mut search_dirs: Vec<PathBuf> = Vec::new();
+    let mut artifacts = 0usize;
+    for line in cargo_stdout.lines().filter(|l| l.starts_with('{')) {
+        let message: Value =
+            serde_json::from_str(line).map_err(|e| format!("unreadable cargo message: {e}"))?;
+        if message.get("reason").and_then(Value::as_str) != Some("compiler-artifact") {
+            continue;
+        }
+        artifacts += 1;
+        let is_program = message
+            .pointer("/target/name")
+            .and_then(Value::as_str)
+            .is_some_and(|name| name.replace('-', "_") == lib_ident)
+            && message
+                .pointer("/target/crate_types")
+                .and_then(Value::as_array)
+                .is_some_and(|types| types.iter().any(|t| t.as_str() == Some("rlib")));
+        let filenames = message
+            .get("filenames")
+            .and_then(Value::as_array)
+            .ok_or_else(|| "a cargo artifact message has no `filenames`".to_string())?;
+        for filename in filenames.iter().filter_map(Value::as_str) {
+            let path = PathBuf::from(filename);
+            let is_library = path.extension().is_some_and(|ext| {
+                ["rlib", "rmeta", "so", "dylib", "dll"]
+                    .iter()
+                    .any(|library| ext == *library)
+            });
+            if !is_library {
+                continue;
+            }
+            if let Some(dir) = path.parent() {
+                if !search_dirs.iter().any(|known| known == dir) {
+                    search_dirs.push(dir.to_path_buf());
+                }
+            }
+            if is_program && path.extension().is_some_and(|ext| ext == "rlib") {
+                program_rlib = Some(path);
+            }
+        }
+    }
+    let program_rlib = program_rlib.ok_or_else(|| {
+        format!(
+            "cargo reported no built `rlib` for the crate `{lib_ident}` among its {artifacts} artifacts"
+        )
+    })?;
+    Ok(BuiltLibraries {
+        program_rlib,
+        search_dirs,
+    })
 }
 
 /// Runs `cmd` to completion and returns its stdout. Stderr is inherited when
@@ -678,4 +745,112 @@ pub fn execute_all(requested: &[String], show_output: bool) {
     }
 
     execute_client(requested, None);
+}
+
+#[cfg(test)]
+mod built_libraries_tests {
+    use super::*;
+
+    /// A cargo `compiler-artifact` message in the shape cargo prints it: the
+    /// program built with `--crate-type rlib` has kind and crate type `rlib`,
+    /// a dependency has `lib`.
+    fn artifact(name: &str, kind: &str, filenames: &[&str]) -> String {
+        let filenames = filenames
+            .iter()
+            .map(|f| format!("\"{f}\""))
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "{{\"reason\":\"compiler-artifact\",\"target\":{{\"kind\":[\"{kind}\"],\"crate_types\":[\"{kind}\"],\"name\":\"{name}\"}},\"filenames\":[{filenames}]}}"
+        )
+    }
+
+    #[test]
+    fn the_program_rlib_and_every_library_directory_are_taken_from_cargo() {
+        let output = [
+            artifact(
+                "naclac_lang",
+                "lib",
+                &["/t/build/naclac_lang/h1/out/libnaclac_lang-h1.rlib"],
+            ),
+            artifact(
+                "my_prog",
+                "rlib",
+                &["/t/build/my_prog/h2/out/libmy_prog-h2.rlib"],
+            ),
+            "{\"reason\":\"build-finished\",\"success\":true}".to_string(),
+        ]
+        .join("\n");
+        let built = built_libraries(&output, "my_prog").unwrap_or_else(|e| panic!("{e}"));
+        assert!(built.program_rlib == Path::new("/t/build/my_prog/h2/out/libmy_prog-h2.rlib"));
+        assert!(built.search_dirs.len() == 2);
+    }
+
+    #[test]
+    fn a_proc_macro_library_directory_is_searched_too() {
+        let output = [
+            artifact(
+                "my_derive",
+                "proc-macro",
+                &["/t/build/my_derive/h3/out/libmy_derive-h3.so"],
+            ),
+            artifact(
+                "my_prog",
+                "rlib",
+                &["/t/build/my_prog/h2/out/libmy_prog-h2.rlib"],
+            ),
+        ]
+        .join("\n");
+        let built = built_libraries(&output, "my_prog").unwrap_or_else(|e| panic!("{e}"));
+        assert!(built
+            .search_dirs
+            .iter()
+            .any(|dir| dir == Path::new("/t/build/my_derive/h3/out")));
+    }
+
+    #[test]
+    fn a_build_script_executable_is_not_a_search_directory() {
+        let output = [
+            artifact(
+                "build-script-build",
+                "custom-build",
+                &["/t/build/dep/h4/out/build_script_build"],
+            ),
+            artifact(
+                "my_prog",
+                "rlib",
+                &["/t/build/my_prog/h2/out/libmy_prog-h2.rlib"],
+            ),
+        ]
+        .join("\n");
+        let built = built_libraries(&output, "my_prog").unwrap_or_else(|e| panic!("{e}"));
+        assert!(built.search_dirs.len() == 1);
+    }
+
+    #[test]
+    fn a_hyphenated_package_name_matches_its_library_name() {
+        let output = artifact("my_prog", "rlib", &["/t/libmy_prog-h.rlib"]);
+        assert!(built_libraries(&output, "my_prog").is_ok());
+    }
+
+    #[test]
+    fn a_missing_program_library_is_an_error_naming_the_crate() {
+        let output = artifact("naclac_lang", "lib", &["/t/libnaclac_lang-h.rlib"]);
+        let message = built_libraries(&output, "my_prog")
+            .err()
+            .unwrap_or_default();
+        assert!(message.contains("my_prog"), "{message}");
+        assert!(message.len() < 200, "{message}");
+    }
+
+    #[test]
+    fn a_library_with_the_programs_name_that_is_not_the_rlib_we_asked_for_is_not_taken() {
+        let output = artifact("my_prog", "lib", &["/t/libmy_prog-h.rlib"]);
+        assert!(built_libraries(&output, "my_prog").is_err());
+    }
+
+    #[test]
+    fn an_unreadable_message_is_an_error() {
+        assert!(built_libraries("{not json", "my_prog").is_err());
+    }
 }

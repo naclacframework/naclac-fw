@@ -321,7 +321,7 @@ impl<'info> LaunchTokenCpi<'info> for crate::sdk_core_cpi::Program<crate::TokenC
             let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView {
                 program_id: program_id_address.as_address(),
                 accounts: account_metas,
-                data: &ix_data,
+                data: ix_data,
             };
             let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::CpiHandle>::uninit() }; 32];
             let mut h_idx = 0;

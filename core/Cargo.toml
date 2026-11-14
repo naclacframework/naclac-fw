@@ -26,9 +26,7 @@ solana-system-interface = { version = "^3", default-features = false, optional =
 pinocchio = { workspace = true, optional = true }
 pinocchio-system = { workspace = true, optional = true }
 pinocchio-log = { workspace = true, optional = true }
-pinocchio-pubkey = { workspace = true, optional = true }
 pinocchio-log-macro = { workspace = true, optional = true }
-pinocchio-memo = { workspace = true, optional = true }
 solana-address = { workspace = true, optional = true }
 five8 = { workspace = true }
 const-crypto = { workspace = true }
@@ -68,9 +66,7 @@ pinocchio = [
     "dep:pinocchio",
     "dep:pinocchio-system",
     "dep:pinocchio-log",
-    "dep:pinocchio-pubkey",
     "dep:pinocchio-log-macro",
-    "dep:pinocchio-memo",
     "dep:solana-define-syscall",
 ]
 debug-mode = ["naclac-derive/debug-mode"]

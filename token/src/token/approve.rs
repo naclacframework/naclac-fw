@@ -1,14 +1,14 @@
 //! `Approve`: lets a delegate spend up to an amount from a token account,
 //! signed by its owner.
 
+use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
+#[cfg(not(feature = "pinocchio"))]
+use crate::wrappers::ToAddress;
 #[cfg(feature = "pinocchio")]
 use {
     super::invoke::{amount_data, invoke},
     pinocchio::instruction::InstructionAccount,
 };
-#[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 
 pub fn approve(
     program: CpiHandle<'_>,

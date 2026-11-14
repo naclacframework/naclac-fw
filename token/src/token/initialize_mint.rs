@@ -1,11 +1,11 @@
 //! `InitializeMint2`: initializes a mint account that is already allocated
 //! and owned by the token program.
 
-#[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
 use crate::{prelude::vec, wrappers::ToAddress};
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result};
+#[cfg(feature = "pinocchio")]
+use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 
 pub fn initialize_mint(
     program: CpiHandle<'_>,

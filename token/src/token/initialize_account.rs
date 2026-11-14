@@ -1,14 +1,14 @@
 //! `InitializeAccount3`: initializes a token account that is already
 //! allocated and owned by the token program.
 
-#[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 #[cfg(not(feature = "pinocchio"))]
 use crate::prelude::vec;
 use crate::{
     prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result},
     wrappers::ToAddress,
 };
+#[cfg(feature = "pinocchio")]
+use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 
 pub fn initialize_account(
     program: CpiHandle<'_>,
