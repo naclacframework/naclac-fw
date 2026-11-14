@@ -47,8 +47,9 @@ pub fn create_mint2022_with_metadata_pointer(
         return Err(NaclacError::ConstraintSeeds
             .err(CreateMint2022WithMetadataPointer::MINT_INDEX));
     }
-    let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
-    let mint_signer: &[&[&[u8]]] = &[mint_seeds];
+    let mint_bump_seed = [mint_bump];
+    let mint_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT, &id_bytes, &mint_bump_seed]);
+    let mint_signer = &[mint_seeds.signer()];
 
     let rent = Rent::get()?;
     let lamports = rent.try_minimum_balance(MINT_WITH_METADATA_POINTER_SPACE as usize)?;

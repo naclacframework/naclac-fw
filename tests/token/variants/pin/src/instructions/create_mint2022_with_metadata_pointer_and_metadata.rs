@@ -66,8 +66,9 @@ pub fn create_mint2022_with_metadata_pointer_and_metadata(
         return Err(NaclacError::ConstraintSeeds
             .err(CreateMint2022WithMetadataPointerAndMetadata::MINT_INDEX));
     }
-    let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
-    let mint_signer: &[&[&[u8]]] = &[mint_seeds];
+    let mint_bump_seed = [mint_bump];
+    let mint_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT, &id_bytes, &mint_bump_seed]);
+    let mint_signer = &[mint_seeds.signer()];
 
     let rent = Rent::get()?;
     let lamports = rent.try_minimum_balance(MINT_WITH_METADATA_POINTER_FUNDED_SPACE)?;
@@ -106,8 +107,10 @@ pub fn create_mint2022_with_metadata_pointer_and_metadata(
     let mint_info = metadata_handle.info;
     let mint_handle = mint_info.to_cpi_handle();
     let bump = ctx.accounts.mint_authority.bump;
-    let authority_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let authority_signer: &[&[&[u8]]] = &[authority_seeds];
+    let bump_seed = [bump];
+    let authority_seeds =
+        naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let authority_signer = &[authority_seeds.signer()];
     naclac_lang::prelude::initialize_token_metadata_signed(
         ctx.accounts.token_program.to_cpi_handle(),
         metadata_handle,

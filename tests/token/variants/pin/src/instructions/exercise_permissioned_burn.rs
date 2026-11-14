@@ -31,8 +31,9 @@ pub fn exercise_permissioned_burn(ctx: Context<ExercisePermissionedBurn>, amount
     let balance_before = ctx.accounts.vault.amount();
 
     let bump = ctx.accounts.mint_authority.bump;
-    let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let signer: &[&[&[u8]]] = &[signer_seeds];
+    let bump_seed = [bump];
+    let signer_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let signer = &[signer_seeds.signer()];
 
     permissioned_burn_signed(
         ctx.accounts.token_program.to_cpi_handle(),

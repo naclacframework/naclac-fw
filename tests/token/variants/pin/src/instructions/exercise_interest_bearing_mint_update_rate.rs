@@ -23,8 +23,9 @@ pub fn exercise_interest_bearing_mint_update_rate(
     new_rate: i16,
 ) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
-    let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let signer: &[&[&[u8]]] = &[signer_seeds];
+    let bump_seed = [bump];
+    let signer_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let signer = &[signer_seeds.signer()];
 
     update_interest_bearing_mint_rate_signed(
         ctx.accounts.token_program.to_cpi_handle(),

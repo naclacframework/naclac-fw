@@ -39,6 +39,6 @@ pub fn emit_via_self_cpi_signed_baseline(ctx: Context<EmitViaSelfCpiSignedBaseli
     cpi::invoke_signed_pinocchio_handles(
         &instruction,
         &handles,
-        &[&[SEED_EVENT_AUTHORITY, &[ctx.bumps.event_authority]]],
+        &[SignerSeeds::new([SEED_EVENT_AUTHORITY, &[ctx.bumps.event_authority]]).signer()],
     )
 }

@@ -69,8 +69,9 @@ pub fn create_mint2022_with_group_pointer_and_group(
         return Err(NaclacError::ConstraintSeeds
             .err(CreateMint2022WithGroupPointerAndGroup::MINT_INDEX));
     }
-    let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
-    let mint_signer: &[&[&[u8]]] = &[mint_seeds];
+    let mint_bump_seed = [mint_bump];
+    let mint_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT, &id_bytes, &mint_bump_seed]);
+    let mint_signer = &[mint_seeds.signer()];
 
     let rent = Rent::get()?;
     let lamports = rent.minimum_balance(MINT_WITH_GROUP_POINTER_AND_GROUP_FUNDED_SPACE);
@@ -108,8 +109,10 @@ pub fn create_mint2022_with_group_pointer_and_group(
     let mint_info = group_handle.info;
     let mint_handle = mint_info.to_cpi_handle();
     let bump = ctx.accounts.mint_authority.bump;
-    let authority_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let authority_signer: &[&[&[u8]]] = &[authority_seeds];
+    let bump_seed = [bump];
+    let authority_seeds =
+        naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let authority_signer = &[authority_seeds.signer()];
     naclac_lang::prelude::initialize_token_group_signed(
         ctx.accounts.token_program.to_cpi_handle(),
         group_handle,

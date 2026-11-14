@@ -28,6 +28,6 @@ pub fn event_cpi_smoke(ctx: Context<EventCpiSmoke>) -> Result {
     cpi::invoke_signed_pinocchio_handles(
         &instruction,
         &handles,
-        &[&[b"__event_authority", &[ctx.bumps.event_authority]]],
+        &[SignerSeeds::new([b"__event_authority", &[ctx.bumps.event_authority]]).signer()],
     )
 }

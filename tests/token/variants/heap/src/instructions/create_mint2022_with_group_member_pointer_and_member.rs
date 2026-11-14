@@ -66,8 +66,10 @@ pub fn create_mint2022_with_group_member_pointer_and_member(
         return Err(NaclacError::ConstraintSeeds
             .err(CreateMint2022WithGroupMemberPointerAndMember::MEMBER_MINT_INDEX));
     }
-    let member_seeds: &[&[u8]] = &[b"member_mint", &seed_bytes, &[member_mint_bump]];
-    let member_signer: &[&[&[u8]]] = &[member_seeds];
+    let member_mint_bump_seed = [member_mint_bump];
+    let member_seeds =
+        naclac_lang::prelude::SignerSeeds::new([b"member_mint", &seed_bytes, &member_mint_bump_seed]);
+    let member_signer = &[member_seeds.signer()];
 
     let rent = Rent::get()?;
     let lamports = rent.minimum_balance(MEMBER_MINT_FUNDED_SPACE);
@@ -98,8 +100,10 @@ pub fn create_mint2022_with_group_member_pointer_and_member(
     )?;
 
     let bump = ctx.accounts.mint_authority.bump;
-    let authority_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let authority_signer: &[&[&[u8]]] = &[authority_seeds];
+    let bump_seed = [bump];
+    let authority_seeds =
+        naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let authority_signer = &[authority_seeds.signer()];
 
     // `member` and `member_mint` are the same account (self-referential
     // `GroupMemberPointer`) — derive `member_mint_handle` from the mutable

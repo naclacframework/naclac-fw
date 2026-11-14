@@ -32,6 +32,6 @@ pub fn emit_via_self_cpi_no_program(ctx: Context<EmitViaSelfCpiNoProgram>) -> Re
     cpi::invoke_signed(
         &ix,
         &[ctx.accounts.event_authority.to_cpi_handle()],
-        &[&[SEED_EVENT_AUTHORITY, &[ctx.bumps.event_authority]]],
+        &[SignerSeeds::new([SEED_EVENT_AUTHORITY, &[ctx.bumps.event_authority]]).signer()],
     )
 }

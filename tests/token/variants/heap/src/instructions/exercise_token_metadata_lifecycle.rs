@@ -35,8 +35,9 @@ pub fn exercise_token_metadata_lifecycle(
     extra_value: String,
 ) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
-    let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let signer: &[&[&[u8]]] = &[signer_seeds];
+    let bump_seed = [bump];
+    let signer_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let signer = &[signer_seeds.signer()];
 
     naclac_lang::prelude::update_token_metadata_field_signed(
         ctx.accounts.token_program.to_cpi_handle(),

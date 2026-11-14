@@ -27,8 +27,9 @@ pub struct TransferTokens2022 {
 
 pub fn transfer_tokens2022(ctx: Context<TransferTokens2022>, amount: u64) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
-    let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let signer: &[&[&[u8]]] = &[signer_seeds];
+    let bump_seed = [bump];
+    let signer_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let signer = &[signer_seeds.signer()];
     let decimals = ctx.accounts.mint.decimals();
 
     ctx.accounts.token_program.transfer_checked_signed(

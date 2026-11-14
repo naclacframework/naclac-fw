@@ -25,12 +25,12 @@ pub struct Literal {
     pub stored_bump: u8,
 }
 
-pub fn vault_signer_len(vault: &Vault) -> usize {
-    vault.with_signer_seeds(|signers| signers[0].len())
+pub fn vault_signer_count(vault: &Vault) -> usize {
+    vault.with_signer_seeds(|signers: &[CpiSigner]| signers.len())
 }
 
-pub fn literal_signer_len(literal: &Literal) -> usize {
-    literal.with_signer_seeds(|signers| signers[0].len())
+pub fn literal_signer_count(literal: &Literal) -> usize {
+    literal.with_signer_seeds(|signers: &[CpiSigner]| signers.len())
 }
 
 

@@ -48,8 +48,9 @@ pub fn create_mint2022_with_interest_bearing_mint(
         return Err(NaclacError::ConstraintSeeds
             .err(CreateMint2022WithInterestBearingMint::MINT_INDEX));
     }
-    let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
-    let mint_signer: &[&[&[u8]]] = &[mint_seeds];
+    let mint_bump_seed = [mint_bump];
+    let mint_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT, &id_bytes, &mint_bump_seed]);
+    let mint_signer = &[mint_seeds.signer()];
 
     let rent = Rent::get()?;
     let lamports = rent.try_minimum_balance(MINT_WITH_INTEREST_BEARING_SPACE as usize)?;

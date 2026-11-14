@@ -31,8 +31,9 @@ pub struct SetMintAuthority {
 
 pub fn set_mint_authority(ctx: Context<SetMintAuthority>, authority_type: u8) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
-    let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let signer: &[&[&[u8]]] = &[signer_seeds];
+    let bump_seed = [bump];
+    let signer_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let signer = &[signer_seeds.signer()];
 
     let auth_type = if authority_type == 0 {
         AuthorityType::MintTokens

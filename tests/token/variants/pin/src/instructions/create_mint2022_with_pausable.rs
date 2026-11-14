@@ -41,8 +41,9 @@ pub fn create_mint2022_with_pausable(
     if ctx.accounts.mint.address() != mint_pda {
         return Err(NaclacError::ConstraintSeeds.err(CreateMint2022WithPausable::MINT_INDEX));
     }
-    let mint_seeds: &[&[u8]] = &[SEED_MINT, &id_bytes, &[mint_bump]];
-    let mint_signer: &[&[&[u8]]] = &[mint_seeds];
+    let mint_bump_seed = [mint_bump];
+    let mint_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT, &id_bytes, &mint_bump_seed]);
+    let mint_signer = &[mint_seeds.signer()];
 
     let rent = Rent::get()?;
     let lamports = rent.try_minimum_balance(MINT_WITH_PAUSABLE_SPACE as usize)?;

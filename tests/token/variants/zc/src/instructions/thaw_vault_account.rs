@@ -20,8 +20,9 @@ pub struct ThawVaultAccount {
 
 pub fn thaw_vault_account(ctx: Context<ThawVaultAccount>) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
-    let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let signer: &[&[&[u8]]] = &[signer_seeds];
+    let bump_seed = [bump];
+    let signer_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let signer = &[signer_seeds.signer()];
 
     ctx.accounts.token_program.thaw_account_signed(
         naclac_lang::prelude::ThawAccountAccounts {

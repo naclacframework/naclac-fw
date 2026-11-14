@@ -32,8 +32,9 @@ pub fn exercise_update_scaled_ui_amount_multiplier(
 ) -> Result {
     let new_multiplier = f64::from_bits(new_multiplier_bits);
     let bump = ctx.accounts.mint_authority.bump;
-    let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let signer: &[&[&[u8]]] = &[signer_seeds];
+    let bump_seed = [bump];
+    let signer_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let signer = &[signer_seeds.signer()];
 
     update_scaled_ui_amount_multiplier_signed(
         ctx.accounts.token_program.to_cpi_handle(),

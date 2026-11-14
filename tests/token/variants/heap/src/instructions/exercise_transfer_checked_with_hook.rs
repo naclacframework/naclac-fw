@@ -40,8 +40,9 @@ pub fn exercise_transfer_checked_with_hook(
     decimals: u8,
 ) -> Result {
     let bump = ctx.accounts.mint_authority.bump;
-    let signer_seeds: &[&[u8]] = &[SEED_MINT_AUTHORITY, &[bump]];
-    let signer: &[&[&[u8]]] = &[signer_seeds];
+    let bump_seed = [bump];
+    let signer_seeds = naclac_lang::prelude::SignerSeeds::new([SEED_MINT_AUTHORITY, &bump_seed]);
+    let signer = &[signer_seeds.signer()];
 
     let mut extra_accounts: Vec<CpiHandle<'_>> = vec![ctx.accounts.hook_program.to_cpi_handle()];
     extra_accounts.extend(ctx.remaining_accounts.iter().map(|info| info.to_cpi_handle()));
