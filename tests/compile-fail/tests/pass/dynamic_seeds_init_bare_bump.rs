@@ -9,8 +9,8 @@
 // precomputation is possible for seeds not known until runtime, so this is
 // the only way to establish canonicality for a fresh dynamic-seed PDA.
 //
-// `&[1u8]` is neither a literal nor a constant, so this field takes the
-// dynamic-PDA branch.
+// The second seed names the payer field, so this field takes the dynamic-PDA
+// branch.
 use naclac_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -21,7 +21,7 @@ pub struct Foo {
     #[account(
         init,
         payer = payer,
-        seeds = [b"foo", &[1u8]],
+        seeds = [b"foo", payer.address().as_ref()],
         bump
     )]
     pub account: Account<FooData>,

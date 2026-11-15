@@ -5,7 +5,9 @@ use naclac_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct Foo {
-    #[account(seeds = [b"foo", &[1u8]])]
+    pub authority: Signer,
+
+    #[account(seeds = [b"foo", authority.address().as_ref()])]
     pub account: Account<FooData>,
 }
 
