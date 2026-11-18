@@ -179,16 +179,9 @@ mod tests {
             (SYNC_NATIVE, classic::sync_native(&id, &a).unwrap().data[0]),
             (
                 SET_AUTHORITY,
-                classic::set_authority(
-                    &id,
-                    &a,
-                    None,
-                    classic::AuthorityType::MintTokens,
-                    &c,
-                    &[],
-                )
-                .unwrap()
-                .data[0],
+                classic::set_authority(&id, &a, None, classic::AuthorityType::MintTokens, &c, &[])
+                    .unwrap()
+                    .data[0],
             ),
         ];
         for (ours, theirs) in cases {
