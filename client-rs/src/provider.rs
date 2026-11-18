@@ -260,16 +260,23 @@ impl NaclacTransactionMetadata {
 
     /// Parses Zero-Copy (bytemuck Pod) events of type `T` from the
     /// transaction's logs and, for a program using `#[event_cpi]`, its inner
-    /// instructions.
-    pub fn parse_events_zero_copy<T: bytemuck::Pod + NaclacEvent>(
+    /// instructions. An event of type `T` whose bytes fail validation (a length
+    /// above a list's capacity, a flag byte other than 0 or 1) is an error, not
+    /// a left-out or reinterpreted event.
+    pub fn parse_events_zero_copy<T: bytemuck::Pod + naclac_pod::PodValidate + NaclacEvent>(
         &self,
     ) -> Result<Vec<T>, NaclacClientError> {
         let mut events = Vec::new();
         for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
             if disc_bytes == T::DISCRIMINATOR && payload_bytes.len() >= std::mem::size_of::<T>() {
-                events.push(bytemuck::pod_read_unaligned(
-                    &payload_bytes[0..std::mem::size_of::<T>()],
-                ));
+                let bytes = &payload_bytes[0..std::mem::size_of::<T>()];
+                T::validate_bytes(bytes).map_err(|error| {
+                    NaclacClientError::DeserializationError(format!(
+                        "Event data failed validation: {}",
+                        error.description()
+                    ))
+                })?;
+                events.push(bytemuck::pod_read_unaligned(bytes));
             }
         }
         Ok(events)

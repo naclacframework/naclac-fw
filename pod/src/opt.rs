@@ -3,12 +3,13 @@
 //! padding and alignment 1.
 //!
 //! The tag is 1 for a value and 0 for none. A stored tag of 2 to 255 is not
-//! written by this type; reads treat it as none, and [`Opt::tag_is_valid`]
-//! reports it. The value bytes of a none are always zero when the value was
-//! built or changed through this type.
+//! written by this type; reads treat it as none, [`Opt::tag_is_valid`] reports
+//! it, and [`PodValidate`] rejects it where bytes enter a program. The value
+//! bytes of a none are always zero when the value was built or changed through
+//! this type.
 
 use {
-    crate::unaligned::Unaligned,
+    crate::{error::PodError, unaligned::Unaligned, validate::PodValidate},
     bytemuck::{Pod, Zeroable},
     core::fmt,
 };
@@ -104,6 +105,17 @@ impl<T: Pod> Opt<T> {
     #[inline(always)]
     pub fn map_or<U>(&self, default: U, f: impl FnOnce(T) -> U) -> U {
         self.get().map_or(default, f)
+    }
+}
+
+impl<T: Pod + PodValidate> PodValidate for Opt<T> {
+    #[inline(always)]
+    fn validate_bytes(bytes: &[u8]) -> Result<(), PodError> {
+        match bytes.first() {
+            Some(0) => Ok(()),
+            Some(1) => T::validate_bytes(&bytes[1..]),
+            _ => Err(PodError::InvalidTag),
+        }
     }
 }
 
@@ -208,6 +220,27 @@ mod tests {
         assert_eq!(slot.raw_tag(), 2);
         assert!(Opt::some(1u32).tag_is_valid());
         assert!(Opt::<u32>::none().tag_is_valid());
+    }
+
+    #[test]
+    fn validation_rejects_every_tag_but_zero_and_one() {
+        for tag in 0..=u8::MAX {
+            let bytes = [tag, 7, 0, 0, 0];
+            let expected = if tag <= 1 {
+                Ok(())
+            } else {
+                Err(PodError::InvalidTag)
+            };
+            assert!(Opt::<u32>::validate_bytes(&bytes) == expected);
+        }
+    }
+
+    #[test]
+    fn validation_checks_the_value_only_when_there_is_one() {
+        use crate::Bool;
+        assert!(Opt::<Bool>::validate_bytes(&[1, 1]) == Ok(()));
+        assert!(Opt::<Bool>::validate_bytes(&[1, 2]) == Err(PodError::InvalidTag));
+        assert!(Opt::<Bool>::validate_bytes(&[0, 2]) == Ok(()));
     }
 
     #[test]

@@ -461,11 +461,25 @@ pub fn generate(
                         "unsafe impl {}::bytemuck::Pod for {} {{}}\n",
                         sdk_core, struct_name
                     ));
+                    let validate_impl = naclac_syn::zc_codegen::pod_validate::generate(
+                        &struct_ident,
+                        &parsed_struct.fields,
+                        &quote::quote! {},
+                        &core,
+                    );
+                    let validate_file: syn::File = syn::parse2(validate_impl).expect(
+                        "defined_type: pod_validate::generate output must parse as a syn::File",
+                    );
+                    typedefs_content.push_str(cfg);
+                    typedefs_content
+                        .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
+                    typedefs_content.push_str(&prettyplease::unparse(&validate_file));
+                    typedefs_content.push('\n');
                     typedefs_content.push_str(cfg);
                     typedefs_content
                         .push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
                     typedefs_content.push_str(&format!(
-                        "impl {0}::ZcCodec for {1} {{\n    const SIZE: usize = core::mem::size_of::<{1}>();\n    fn encode(&self, out: &mut [u8]) {{\n        {0}::encode_pod(self, out);\n    }}\n    fn decode(bytes: &[u8]) -> Option<Self> {{\n        {0}::decode_pod(bytes)\n    }}\n}}\n\n",
+                        "impl {0}::ZcCodec for {1} {{\n    const SIZE: usize = core::mem::size_of::<{1}>();\n    fn encode(&self, out: &mut [u8]) {{\n        {0}::encode_pod(self, out);\n    }}\n    fn decode(bytes: &[u8]) -> Option<Self> {{\n        {0}::decode_validated(bytes)\n    }}\n}}\n\n",
                         sdk_core, struct_name
                     ));
                     typedefs_content.push_str(cfg);

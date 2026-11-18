@@ -118,7 +118,7 @@ impl<'a> Decoder<'a> {
                 } else if let Some(fixed) = shape.get("fixedVec") {
                     let (inner, capacity) = array_parts(fixed, path)?;
                     let start = *at;
-                    let length = self.fixed_length(at, path)?.min(capacity);
+                    let length = self.fixed_length(at, capacity, path)?;
                     let item_size = self.size(inner, path, depth + 1)?;
                     let mut items = Vec::new();
                     for index in 0..length {
@@ -140,7 +140,7 @@ impl<'a> Decoder<'a> {
                         .as_u64()
                         .and_then(|c| usize::try_from(c).ok())
                         .ok_or_else(|| format!("`{path}`: fixedString capacity is not a number"))?;
-                    let length = self.fixed_length(at, path)?.min(capacity);
+                    let length = self.fixed_length(at, capacity, path)?;
                     let bytes = self.take(at, capacity, path)?;
                     utf8(&bytes[..length], path).map(Value::String)
                 } else if let Some(inner) = shape.get("vec") {
@@ -203,22 +203,15 @@ impl<'a> Decoder<'a> {
                 raw.copy_from_slice(bytes);
                 float(f64::from_le_bytes(raw).to_string())
             }
-            "bool" => {
-                let byte = self.take(at, 1, path)?[0];
-                if self.packed {
-                    Value::Bool(byte != 0)
-                } else {
-                    match byte {
-                        0 => Value::Bool(false),
-                        1 => Value::Bool(true),
-                        other => {
-                            return Err(format!(
-                                "`{path}` is a bool stored as {other}; expected 0 or 1"
-                            ))
-                        }
-                    }
+            "bool" => match self.take(at, 1, path)?[0] {
+                0 => Value::Bool(false),
+                1 => Value::Bool(true),
+                other => {
+                    return Err(format!(
+                        "`{path}` is a bool stored as {other}; expected 0 or 1"
+                    ))
                 }
-            }
+            },
             "publicKey" => Value::String(bs58::encode(self.take(at, 32, path)?).into_string()),
             "string" | "String" => {
                 self.require_borsh("string", path)?;
@@ -394,9 +387,15 @@ impl<'a> Decoder<'a> {
             })
     }
 
-    fn fixed_length(&self, at: &mut usize, path: &str) -> Result<usize, String> {
+    fn fixed_length(&self, at: &mut usize, capacity: usize, path: &str) -> Result<usize, String> {
         let bytes = self.take(at, FIXED_LEN_WIDTH, path)?;
-        Ok(usize::from(u16::from_le_bytes([bytes[0], bytes[1]])))
+        let length = usize::from(u16::from_le_bytes([bytes[0], bytes[1]]));
+        if length > capacity {
+            return Err(format!(
+                "`{path}` stores a length of {length}, above its capacity of {capacity}"
+            ));
+        }
+        Ok(length)
     }
 
     fn length_prefix(&self, at: &mut usize, path: &str) -> Result<usize, String> {
@@ -647,15 +646,42 @@ mod tests {
     }
 
     #[test]
-    fn a_bool_other_than_zero_or_one_is_an_error_in_borsh_but_true_when_packed() {
+    fn a_bool_other_than_zero_or_one_is_an_error_in_every_layout() {
         let fields = account(json!([{ "name": "flag", "type": "bool" }]));
-        let borsh = idl("borsh", fields.clone(), json!([]));
-        assert!(decode(&borsh, &[1, 2, 7]).is_err());
-        let packed = idl("bytemuck", fields, json!([]));
-        assert_eq!(
-            decode(&packed, &[1, 2, 7]).unwrap().value["flag"],
-            json!(true)
+        for serialization in ["borsh", "bytemuck"] {
+            let idl = idl(serialization, fields.clone(), json!([]));
+            assert!(decode(&idl, &[1, 2, 7]).is_err(), "{serialization}");
+            assert_eq!(
+                decode(&idl, &[1, 2, 1]).unwrap().value["flag"],
+                json!(true),
+                "{serialization}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_stored_length_above_the_capacity_is_an_error() {
+        let vec_idl = idl(
+            "bytemuck",
+            account(json!([{ "name": "ids", "type": { "vec": "u32" }, "slots": 3 }])),
+            json!([]),
         );
+        let mut data = vec![1, 2];
+        data.extend(4u16.to_le_bytes());
+        data.extend([0u8; 12]);
+        let error = decode(&vec_idl, &data).err().unwrap();
+        assert!(error.contains("above its capacity of 3"), "{error}");
+
+        let string_idl = idl(
+            "bytemuck",
+            account(json!([{ "name": "label", "type": "string", "slots": 4 }])),
+            json!([]),
+        );
+        let mut data = vec![1, 2];
+        data.extend(5u16.to_le_bytes());
+        data.extend(b"abcd");
+        let error = decode(&string_idl, &data).err().unwrap();
+        assert!(error.contains("above its capacity of 4"), "{error}");
     }
 
     #[test]

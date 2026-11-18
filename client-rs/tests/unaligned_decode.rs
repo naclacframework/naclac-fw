@@ -6,7 +6,8 @@
 use {
     bytemuck::{Pod, Zeroable},
     naclac_client::{
-        decode_pod_checked, decode_pod_unchecked, NaclacEvent, NaclacTransactionMetadata,
+        decode_pod_checked, decode_pod_unchecked, NaclacEvent, NaclacTransactionMetadata, PodError,
+        PodValidate,
     },
     solana_address::Address,
     solana_signature::Signature,
@@ -28,6 +29,22 @@ struct Packed {
     flag: u8,
     amount: u64,
     count: u16,
+}
+
+impl PodValidate for Natural {
+    const TRIVIAL: bool = true;
+
+    fn validate_bytes(_: &[u8]) -> Result<(), PodError> {
+        Ok(())
+    }
+}
+
+impl PodValidate for Packed {
+    const TRIVIAL: bool = true;
+
+    fn validate_bytes(_: &[u8]) -> Result<(), PodError> {
+        Ok(())
+    }
 }
 
 impl NaclacEvent for Packed {
@@ -101,4 +118,47 @@ fn a_packed_event_decodes_from_a_log_line() {
     assert_eq!(events.len(), 1);
     let (flag, amount, count) = (events[0].flag, events[0].amount, events[0].count);
     assert_eq!((flag, amount, count), (1, 0x1122334455667788, 0xabcd));
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+struct Flagged {
+    flag: naclac_client::Bool,
+}
+
+impl PodValidate for Flagged {
+    fn validate_bytes(bytes: &[u8]) -> Result<(), PodError> {
+        naclac_client::Bool::validate_bytes(bytes)
+    }
+}
+
+impl NaclacEvent for Flagged {
+    const DISCRIMINATOR: &'static [u8] = &[9, 8];
+    const PROGRAM_ID: Address = Address::new_from_array([7; 32]);
+    const CPI_TAG: &'static [u8] = &[];
+}
+
+#[test]
+fn an_event_that_fails_validation_is_an_error() {
+    use base64::Engine;
+    let metadata_for = |flag: u8| {
+        let mut frame = Flagged::DISCRIMINATOR.to_vec();
+        frame.push(flag);
+        let log = format!(
+            "Program data: {}",
+            base64::engine::general_purpose::STANDARD.encode(&frame)
+        );
+        NaclacTransactionMetadata {
+            signature: Signature::default(),
+            logs: vec![log],
+            compute_units_consumed: 0,
+            return_data: Vec::new(),
+            inner_instructions: None,
+        }
+    };
+    let events = metadata_for(1).parse_events_zero_copy::<Flagged>().unwrap();
+    assert_eq!(events.len(), 1);
+    let flag = events[0].flag;
+    assert!(bool::from(flag));
+    assert!(metadata_for(2).parse_events_zero_copy::<Flagged>().is_err());
 }

@@ -6,7 +6,7 @@ declare_id!("11111111111111111111111111111111");
 pub mod instructions;
 pub mod state;
 
-use instructions::*;
+use {instructions::*, state::Entry};
 
 #[program]
 pub mod fixed_capacity {
@@ -48,5 +48,29 @@ pub mod fixed_capacity {
 
     pub fn clear_all(ctx: Context<Mutate>) -> Result {
         instructions::clear_all(ctx)
+    }
+
+    pub fn set_roster(
+        ctx: Context<Mutate>,
+        scores: FixedVec<u64, 4>,
+        name: FixedString<16>,
+    ) -> Result {
+        instructions::set_roster(ctx, scores, name)
+    }
+
+    pub fn set_roster_group(ctx: Context<Mutate>, roster: Roster) -> Result {
+        instructions::set_roster_group(ctx, roster)
+    }
+
+    pub fn init_book(ctx: Context<InitBook>) -> Result {
+        instructions::init_book(ctx)
+    }
+
+    pub fn set_entry(ctx: Context<MutateBook>, entry: Entry) -> Result {
+        instructions::set_entry(ctx, entry)
+    }
+
+    pub fn touch_book(ctx: Context<MutateBook>) -> Result {
+        instructions::touch_book(ctx)
     }
 }

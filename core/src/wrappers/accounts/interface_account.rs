@@ -658,6 +658,7 @@ impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAcco
             let data = info.try_borrow_data()?;
             let _: &T =
                 T::load(&data).map_err(|_| NaclacError::InvalidAccountDiscriminator.err(index))?;
+            T::check_stored(&data)?;
             T::validate_interface_layout(&data[disc_len..]).map_err(|e| e.err(index))?;
             // SAFETY: same as `Account<T>`'s zero-copy `try_from` — the SBF
             // runtime guarantees account data is valid for the whole
@@ -670,6 +671,7 @@ impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAcco
             let data = info.data();
             let _: &T =
                 T::load(data).map_err(|_| NaclacError::InvalidAccountDiscriminator.err(index))?;
+            T::check_stored(data)?;
             T::validate_interface_layout(&data[disc_len..]).map_err(|e| e.err(index))?;
             // SAFETY: same as `Account<T>`'s zero-copy `try_from`.
             header_ptr = unsafe { info.view.data_ptr().add(disc_len) as *mut T };

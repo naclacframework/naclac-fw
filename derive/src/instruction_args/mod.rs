@@ -167,6 +167,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     if !has_dynamic_field {
         let pod_checks = pod_struct_checks::generate(ident, &data_struct.fields, &zero_copy_cfg);
+        let pod_validate =
+            pod_struct_checks::validate_impl(ident, &data_struct.fields, &zero_copy_cfg);
 
         let expanded = quote::quote! {
             #default_derive_error
@@ -177,6 +179,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             #input
 
             #pod_checks
+
+            #pod_validate
 
             #zero_copy_cfg
             unsafe impl naclac_lang::prelude::Pod for #ident #ty_generics #where_clause {}
@@ -194,9 +198,12 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
                 #[inline(always)]
                 fn naclac_from_bytes(data: &[u8]) -> Self {
-                    naclac_lang::prelude::bytemuck::pod_read_unaligned(
-                        &data[..core::mem::size_of::<Self>()],
-                    )
+                    naclac_lang::prelude::decode_validated(data)
+                        .expect("instruction_args: bytes failed validation")
+                }
+                #[inline(always)]
+                fn naclac_try_from_bytes(data: &[u8]) -> Option<Self> {
+                    naclac_lang::prelude::decode_validated(data)
                 }
                 #[inline(always)]
                 fn naclac_size() -> usize {

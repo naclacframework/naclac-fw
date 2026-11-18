@@ -45,10 +45,10 @@ pub use crate::wrappers::{
 // with the `bytemuck` feature.
 #[cfg(feature = "bytemuck")]
 pub use crate::wrappers::{
-    decode_pod, encode_pod, event_bytes_of, event_field_default, event_slice_bytes, Bool,
-    BoolField, FixedString, FixedVec, FixedVecIter, NaclacZeroCopy, Opt, PodError, Unaligned,
-    ZcCodec, ZcEnum, ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage, ZcString, ZcVec,
-    ZcVecIter,
+    decode_pod, decode_validated, encode_pod, event_bytes_of, event_field_default,
+    event_slice_bytes, Bool, BoolField, FixedString, FixedVec, FixedVecIter, NaclacZeroCopy, Opt,
+    PodError, PodValidate, Unaligned, ZcCodec, ZcEnum, ZcEnumKind, ZcEventDefault, ZcEventField,
+    ZcField, ZcStorage, ZcString, ZcVec, ZcVecIter,
 };
 
 pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};
@@ -466,6 +466,14 @@ const _: () = assert!(core::mem::align_of::<Address>() == 1);
 // SAFETY: asserted just above.
 #[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 unsafe impl naclac_pod::Unaligned for Address {}
+#[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
+impl naclac_pod::PodValidate for Address {
+    const TRIVIAL: bool = true;
+
+    fn validate_bytes(_: &[u8]) -> core::result::Result<(), naclac_pod::PodError> {
+        Ok(())
+    }
+}
 #[cfg(all(feature = "pinocchio", feature = "bytemuck"))]
 impl naclac_pod::ZcCodec for Address {
     const SIZE: usize = 32;
@@ -1317,8 +1325,60 @@ impl<T: NaclacPod> NaclacPod for Option<T> {
 }
 
 impl_naclac_pod!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, Address);
+
 #[cfg(feature = "bytemuck")]
-impl_naclac_pod!(Bool);
+impl NaclacPod for Bool {
+    #[inline(always)]
+    fn naclac_from_bytes(data: &[u8]) -> Self {
+        decode_validated(data).expect("Bool byte must be 0 or 1")
+    }
+
+    #[inline(always)]
+    fn naclac_try_from_bytes(data: &[u8]) -> Option<Self> {
+        decode_validated(data)
+    }
+
+    #[inline(always)]
+    fn naclac_size() -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(feature = "bytemuck")]
+impl<T: bytemuck::Pod + PodValidate, const N: usize> NaclacPod for FixedVec<T, N> {
+    #[inline(always)]
+    fn naclac_from_bytes(data: &[u8]) -> Self {
+        decode_validated(data).expect("FixedVec bytes failed validation")
+    }
+
+    #[inline(always)]
+    fn naclac_try_from_bytes(data: &[u8]) -> Option<Self> {
+        decode_validated(data)
+    }
+
+    #[inline(always)]
+    fn naclac_size() -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
+
+#[cfg(feature = "bytemuck")]
+impl<const N: usize> NaclacPod for FixedString<N> {
+    #[inline(always)]
+    fn naclac_from_bytes(data: &[u8]) -> Self {
+        decode_validated(data).expect("FixedString bytes failed validation")
+    }
+
+    #[inline(always)]
+    fn naclac_try_from_bytes(data: &[u8]) -> Option<Self> {
+        decode_validated(data)
+    }
+
+    #[inline(always)]
+    fn naclac_size() -> usize {
+        core::mem::size_of::<Self>()
+    }
+}
 
 // Generic over `N` rather than hand-listed sizes (the macro above only
 // covers exact types) — any `[u8; N]` fixed-size instruction arg or event

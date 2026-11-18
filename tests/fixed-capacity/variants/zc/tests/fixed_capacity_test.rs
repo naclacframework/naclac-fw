@@ -1,12 +1,15 @@
-//! End-to-end LiteSVM tests for `FixedVec` and `FixedString` account fields:
-//! every write goes through the generated Rust client to the compiled
-//! program, and the account bytes are compared with a layout built here from
-//! the rules alone (a two-byte little-endian length, then every slot, no
-//! padding), not from the program's or the client's own types.
+//! End-to-end LiteSVM tests for `FixedVec` and `FixedString` as account fields,
+//! instruction arguments and fields of a defined type: every write goes
+//! through the generated Rust client to the compiled program, and the account
+//! bytes are compared with a layout built here from the rules alone (a
+//! two-byte little-endian length, then every slot, no padding), not from the
+//! program's or the client's own types. A stored or sent length above the
+//! capacity, or a flag byte other than 0 or 1, must be rejected.
 
 use fixed_capacity_client::{
-    fetch_profile, get_profile_pda, instructions::*, types::PROGRAM_ID, Profile,
-    PROFILE_DISCRIMINATOR,
+    fetch_book, fetch_profile, get_book_pda, get_profile_pda, instructions::*,
+    types::{Entry, Roster, PROGRAM_ID},
+    Book, Profile, BOOK_DISCRIMINATOR, PROFILE_DISCRIMINATOR,
 };
 use naclac_client::*;
 
@@ -22,6 +25,15 @@ fn assert_custom(result: Outcome, expected: u32) {
             ..
         }) => assert_eq!(code, expected, "wrong custom error code"),
         other => panic!("expected a Custom({expected}) transaction failure, got {other:?}"),
+    }
+}
+
+fn assert_instruction_error(result: Outcome, expected: InstructionError) {
+    match result {
+        Err(NaclacClientError::TransactionFailed {
+            instruction_err, ..
+        }) => assert_eq!(instruction_err, expected),
+        other => panic!("expected a {expected:?} transaction failure, got {other:?}"),
     }
 }
 
@@ -41,6 +53,52 @@ fn setup() -> (NaclacProvider, Address) {
     .send_and_confirm()
     .expect("init_profile should succeed");
     (provider, profile)
+}
+
+fn setup_book() -> (NaclacProvider, Address) {
+    let payer = load_node_wallet().expect("Failed to load local Solana keypair");
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct provider");
+    let (book, _bump) = get_book_pda(&PROGRAM_ID);
+    build_init_book(
+        &provider,
+        PROGRAM_ID,
+        InitBookAccounts {
+            payer: provider.payer.address(),
+            book,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_book should succeed");
+    (provider, book)
+}
+
+fn forge(provider: &NaclacProvider, address: &Address, edit: impl FnOnce(&mut Vec<u8>)) {
+    let mut data = raw(provider, address);
+    let owner = provider.get_account(address).unwrap().owner;
+    let lamports = provider.get_balance(address).unwrap();
+    edit(&mut data);
+    provider.set_account(address, data, &owner, lamports).unwrap();
+}
+
+fn send_profile_data(provider: &NaclacProvider, profile: Address, data: Vec<u8>) -> Outcome {
+    naclac_client::InstructionBuilder::new(provider, PROGRAM_ID, data)
+        .account(
+            naclac_client::AccountMeta::new_readonly(provider.payer.address(), true),
+            "signer",
+        )
+        .account(naclac_client::AccountMeta::new(profile, false), "profile")
+        .send_and_confirm()
+}
+
+fn send_book_data(provider: &NaclacProvider, book: Address, data: Vec<u8>) -> Outcome {
+    naclac_client::InstructionBuilder::new(provider, PROGRAM_ID, data)
+        .account(
+            naclac_client::AccountMeta::new_readonly(provider.payer.address(), true),
+            "signer",
+        )
+        .account(naclac_client::AccountMeta::new(book, false), "book")
+        .send_and_confirm()
 }
 
 fn read(provider: &NaclacProvider, profile: &Address) -> Profile {
@@ -418,19 +476,202 @@ fn fixed_fields_do_not_disturb_the_fields_around_them() {
 }
 
 #[test]
-fn a_forged_length_above_capacity_is_clamped_never_trusted() {
-    let (provider, profile) = setup();
-    push_score(&provider, profile, 5).unwrap();
-    let (scores_at, ..) = offsets();
-    let mut data = raw(&provider, &profile);
-    let owner = provider.get_account(&profile).unwrap().owner;
-    let lamports = provider.get_balance(&profile).unwrap();
-    data[scores_at] = 0xFF;
-    data[scores_at + 1] = 0xFF;
-    provider.set_account(&profile, data, &owner, lamports).unwrap();
+fn a_forged_length_above_capacity_is_rejected_when_the_account_loads() {
+    let (scores_at, name_at, members_at, flags_at) = offsets();
+    for (label, at, forged) in [
+        ("scores", scores_at, u16::MAX),
+        ("name", name_at, 17),
+        ("members", members_at, 4),
+        ("flags", flags_at, 9),
+    ] {
+        let (provider, profile) = setup();
+        forge(&provider, &profile, |data| {
+            data[at..at + 2].copy_from_slice(&forged.to_le_bytes());
+        });
+        let forged_bytes = raw(&provider, &profile);
 
-    assert_eq!(read(&provider, &profile).scores.len(), 4);
-    assert_custom(push_score(&provider, profile, 6), CAPACITY_EXCEEDED);
+        assert_instruction_error(
+            bump_counter(&provider, profile),
+            InstructionError::InvalidAccountData,
+        );
+        assert_instruction_error(
+            push_score(&provider, profile, 1),
+            InstructionError::InvalidAccountData,
+        );
+        assert_eq!(
+            raw(&provider, &profile),
+            forged_bytes,
+            "{label}: a rejected load must not change the account"
+        );
+    }
+}
+
+#[test]
+fn a_length_equal_to_the_capacity_is_valid() {
+    let (scores_at, ..) = offsets();
+    let (provider, profile) = setup();
+    forge(&provider, &profile, |data| {
+        data[scores_at..scores_at + 2].copy_from_slice(&4u16.to_le_bytes());
+    });
+    assert_custom(push_score(&provider, profile, 1), CAPACITY_EXCEEDED);
+}
+
+#[test]
+fn a_flag_byte_other_than_zero_or_one_is_rejected_only_inside_the_length() {
+    let (.., flags_at) = offsets();
+    let (provider, profile) = setup();
+    push_flag(&provider, profile, 1).unwrap();
+
+    forge(&provider, &profile, |data| data[flags_at + 2 + 3] = 2);
+    bump_counter(&provider, profile).expect("an unused slot is not validated");
+
+    forge(&provider, &profile, |data| data[flags_at + 2] = 2);
+    assert_instruction_error(
+        bump_counter(&provider, profile),
+        InstructionError::InvalidAccountData,
+    );
+}
+
+fn roster_arguments() -> (FixedVec<u64, 4>, FixedString<16>) {
+    let mut scores = FixedVec::<u64, 4>::new();
+    assert!(scores.try_push(7).is_ok());
+    assert!(scores.try_push(8).is_ok());
+    let mut name = FixedString::<16>::new();
+    assert!(name.try_set("roster").is_ok());
+    (scores, name)
+}
+
+#[test]
+fn fixed_capacity_arguments_are_stored_and_a_forged_length_is_rejected() {
+    let (provider, profile) = setup();
+    let (scores, name) = roster_arguments();
+    let accounts = || SetRosterAccounts {
+        signer: provider.payer.address(),
+        profile,
+    };
+    let data = build_set_roster(&provider, PROGRAM_ID, scores, name, accounts())
+        .build_instruction()
+        .data;
+    build_set_roster(&provider, PROGRAM_ID, scores, name, accounts())
+        .send_and_confirm()
+        .expect("valid arguments are stored");
+
+    let state = read(&provider, &profile);
+    assert_eq!(scores_of(&state), vec![7, 8]);
+    assert_eq!(state.name.as_str().ok(), Some("roster"));
+
+    // discriminator(8) + scores(2 + 4 * 8) + name(2 + 16)
+    for (label, at, forged) in [("scores", 8, 5u16), ("name", 8 + 34, 17u16)] {
+        let mut forged_data = data.clone();
+        forged_data[at..at + 2].copy_from_slice(&forged.to_le_bytes());
+        fresh_blockhash(&provider);
+        assert_custom(
+            send_profile_data(&provider, profile, forged_data),
+            INVALID_INSTRUCTION_DATA,
+        );
+        assert_eq!(scores_of(&read(&provider, &profile)), vec![7, 8], "{label}");
+    }
+}
+
+#[test]
+fn an_instruction_args_struct_with_fixed_capacity_fields_is_validated() {
+    let (provider, profile) = setup();
+    let (scores, name) = roster_arguments();
+    let roster = Roster {
+        scores,
+        name,
+        level: 3,
+    };
+    let accounts = || SetRosterGroupAccounts {
+        signer: provider.payer.address(),
+        profile,
+    };
+    let data = build_set_roster_group(&provider, PROGRAM_ID, roster, accounts())
+        .build_instruction()
+        .data;
+    build_set_roster_group(&provider, PROGRAM_ID, roster, accounts())
+        .send_and_confirm()
+        .expect("a valid struct argument is stored");
+
+    let state = read(&provider, &profile);
+    assert_eq!(scores_of(&state), vec![7, 8]);
+    assert_eq!(state.name.as_str().ok(), Some("roster"));
+    let counter = state.counter;
+    assert_eq!(counter, 3);
+
+    let mut forged_data = data;
+    forged_data[8..10].copy_from_slice(&5u16.to_le_bytes());
+    fresh_blockhash(&provider);
+    assert_custom(
+        send_profile_data(&provider, profile, forged_data),
+        INVALID_INSTRUCTION_DATA,
+    );
+}
+
+#[test]
+fn a_defined_type_with_fixed_capacity_fields_is_an_argument() {
+    let (provider, book) = setup_book();
+    let mut entry = Entry::default();
+    assert!(entry.scores.try_push(5).is_ok());
+    assert!(entry.name.try_set("first").is_ok());
+    let accounts = || SetEntryAccounts {
+        signer: provider.payer.address(),
+        book,
+    };
+    let data = build_set_entry(&provider, PROGRAM_ID, entry, accounts())
+        .build_instruction()
+        .data;
+    build_set_entry(&provider, PROGRAM_ID, entry, accounts())
+        .send_and_confirm()
+        .expect("a valid defined-type argument is stored");
+
+    let state: Book = fetch_book(&provider, &book).expect("book should decode");
+    let first = state.first;
+    assert_eq!(first.scores.iter().collect::<Vec<u64>>(), vec![5]);
+    assert_eq!(first.name.as_str().ok(), Some("first"));
+
+    let mut forged_data = data;
+    forged_data[8..10].copy_from_slice(&5u16.to_le_bytes());
+    fresh_blockhash(&provider);
+    assert_custom(
+        send_book_data(&provider, book, forged_data),
+        INVALID_INSTRUCTION_DATA,
+    );
+}
+
+#[test]
+fn a_defined_type_field_of_an_account_is_validated_when_the_account_loads() {
+    let base = BOOK_DISCRIMINATOR.len();
+    let first_scores = base + core::mem::offset_of!(Book, first) + core::mem::offset_of!(Entry, scores);
+    let second_name = base
+        + core::mem::offset_of!(Book, all)
+        + core::mem::size_of::<Entry>()
+        + core::mem::offset_of!(Entry, name);
+
+    for (label, at, forged, valid) in [
+        ("first.scores", first_scores, 5u16, false),
+        ("all[1].name", second_name, 9, false),
+        ("all[1].name at its capacity", second_name, 8, true),
+    ] {
+        let (provider, book) = setup_book();
+        forge(&provider, &book, |data| {
+            data[at..at + 2].copy_from_slice(&forged.to_le_bytes());
+        });
+        let result = build_touch_book(
+            &provider,
+            PROGRAM_ID,
+            TouchBookAccounts {
+                signer: provider.payer.address(),
+                book,
+            },
+        )
+        .send_and_confirm();
+        if valid {
+            result.unwrap_or_else(|error| panic!("{label}: expected success, got {error:?}"));
+        } else {
+            assert_instruction_error(result, InstructionError::InvalidAccountData);
+        }
+    }
 }
 
 #[test]

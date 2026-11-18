@@ -14,6 +14,8 @@
 //! - [`ZcVec`] / [`ZcString`]: views into instruction data, for arguments only.
 //! - [`Unaligned`]: marks the element types of alignment 1, whose lists can be
 //!   borrowed as slices.
+//! - [`PodValidate`]: rejects malformed stored bytes (a length above capacity, a
+//!   tag outside its values) where bytes enter a program.
 //! - [`PodError`]: the errors those types return, convertible into a program
 //!   error under the `solana` or `pinocchio` feature.
 //!
@@ -38,6 +40,7 @@ mod fixed_vec;
 mod idl_type;
 mod opt;
 mod unaligned;
+mod validate;
 mod zc_enum;
 mod zc_vec;
 
@@ -51,9 +54,11 @@ pub use {
     fixed_vec::{FixedVec, Iter as FixedVecIter},
     opt::Opt,
     unaligned::Unaligned,
+    validate::PodValidate,
     zc_enum::{
-        decode_pod, encode_pod, event_bytes_of, event_field_default, event_slice_bytes, ZcCodec,
-        ZcEnum, ZcEnumKind, ZcEventDefault, ZcEventField, ZcField, ZcStorage,
+        decode_pod, decode_validated, encode_pod, event_bytes_of, event_field_default,
+        event_slice_bytes, ZcCodec, ZcEnum, ZcEnumKind, ZcEventDefault, ZcEventField, ZcField,
+        ZcStorage,
     },
     zc_vec::{ZcString, ZcVec, ZcVecIter},
 };

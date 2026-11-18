@@ -187,6 +187,18 @@ pub fn generate_state(
                 "unsafe impl {}::bytemuck::Pod for {} {{}}\n",
                 sdk_core, struct_name
             ));
+            let validate_impl = naclac_syn::zc_codegen::pod_validate::generate(
+                &struct_ident,
+                &parsed_struct.fields,
+                &quote::quote! {},
+                &core,
+            );
+            let validate_file: syn::File = syn::parse2(validate_impl)
+                .expect("state: pod_validate::generate output must parse as a syn::File");
+            comp_content.push_str(cfg);
+            comp_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
+            comp_content.push_str(&prettyplease::unparse(&validate_file));
+            comp_content.push('\n');
             comp_content.push_str(cfg);
             comp_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
             comp_content.push_str(&format!(

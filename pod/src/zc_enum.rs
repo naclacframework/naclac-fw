@@ -14,7 +14,10 @@
 //! field type here; `#[defined_type]` generates it for enums and structs.
 
 use {
-    crate::{error::PodError, unaligned::Unaligned, Bool, FixedString, FixedVec, Opt},
+    crate::{
+        error::PodError, unaligned::Unaligned, validate::PodValidate, Bool, FixedString, FixedVec,
+        Opt,
+    },
     bytemuck::{Pod, Zeroable},
     core::marker::PhantomData,
 };
@@ -104,6 +107,15 @@ pub fn decode_pod<T: Pod>(bytes: &[u8]) -> Option<T> {
     bytemuck::try_pod_read_unaligned(bytes.get(..core::mem::size_of::<T>())?).ok()
 }
 
+/// Reads a `T` from the start of `bytes` after validating them, or `None` when
+/// `bytes` is too short or invalid. This is `ZcCodec::decode` for a `Pod` type
+/// with stored values that are not valid; `#[defined_type]` structs call it.
+pub fn decode_validated<T: Pod + PodValidate>(bytes: &[u8]) -> Option<T> {
+    let bytes = bytes.get(..core::mem::size_of::<T>())?;
+    T::validate_bytes(bytes).ok()?;
+    bytemuck::try_pod_read_unaligned(bytes).ok()
+}
+
 macro_rules! zc_codec_for_pod {
     ($($ty:ty),* $(,)?) => {
         $(
@@ -124,7 +136,21 @@ macro_rules! zc_codec_for_pod {
     };
 }
 
-zc_codec_for_pod!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64, Bool);
+zc_codec_for_pod!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
+
+impl ZcCodec for Bool {
+    const SIZE: usize = 1;
+
+    #[inline(always)]
+    fn encode(&self, out: &mut [u8]) {
+        encode_pod(self, out);
+    }
+
+    #[inline(always)]
+    fn decode(bytes: &[u8]) -> Option<Self> {
+        decode_validated(bytes)
+    }
+}
 
 #[cfg(feature = "solana")]
 zc_codec_for_pod!(solana_address::Address);
@@ -147,7 +173,7 @@ impl ZcCodec for bool {
     }
 }
 
-impl<T: Pod> ZcCodec for Opt<T> {
+impl<T: Pod + PodValidate> ZcCodec for Opt<T> {
     const SIZE: usize = core::mem::size_of::<Opt<T>>();
 
     fn encode(&self, out: &mut [u8]) {
@@ -155,11 +181,11 @@ impl<T: Pod> ZcCodec for Opt<T> {
     }
 
     fn decode(bytes: &[u8]) -> Option<Self> {
-        decode_pod(bytes)
+        decode_validated(bytes)
     }
 }
 
-impl<T: Pod, const N: usize> ZcCodec for FixedVec<T, N> {
+impl<T: Pod + PodValidate, const N: usize> ZcCodec for FixedVec<T, N> {
     const SIZE: usize = core::mem::size_of::<FixedVec<T, N>>();
 
     fn encode(&self, out: &mut [u8]) {
@@ -167,7 +193,7 @@ impl<T: Pod, const N: usize> ZcCodec for FixedVec<T, N> {
     }
 
     fn decode(bytes: &[u8]) -> Option<Self> {
-        decode_pod(bytes)
+        decode_validated(bytes)
     }
 }
 
@@ -179,7 +205,7 @@ impl<const N: usize> ZcCodec for FixedString<N> {
     }
 
     fn decode(bytes: &[u8]) -> Option<Self> {
-        decode_pod(bytes)
+        decode_validated(bytes)
     }
 }
 
@@ -246,6 +272,17 @@ unsafe impl<E: 'static, const SIZE: usize> Pod for ZcStorage<E, SIZE> {}
 
 // SAFETY: a byte array and a zero-sized field have alignment 1.
 unsafe impl<E: 'static, const SIZE: usize> Unaligned for ZcStorage<E, SIZE> {}
+
+/// An enum's stored bytes are validated by `get`, which decodes them and
+/// returns `InvalidEnumValue`, so storing them needs no check up front.
+impl<E: 'static, const SIZE: usize> PodValidate for ZcStorage<E, SIZE> {
+    const TRIVIAL: bool = true;
+
+    #[inline(always)]
+    fn validate_bytes(_: &[u8]) -> Result<(), PodError> {
+        Ok(())
+    }
+}
 
 impl<E: 'static, const SIZE: usize> Default for ZcStorage<E, SIZE> {
     fn default() -> Self {

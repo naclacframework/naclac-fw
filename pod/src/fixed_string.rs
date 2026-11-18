@@ -5,10 +5,11 @@
 //! has alignment 1, no padding, and size `2 + N`. `N` counts bytes, not
 //! characters. The bytes are not trusted: reading the text checks them as
 //! UTF-8 every time and fails with `InvalidUtf8`, and the writing methods only
-//! ever store valid UTF-8.
+//! ever store valid UTF-8. A stored length above `N` is rejected by
+//! [`PodValidate`] where bytes enter a program.
 
 use {
-    crate::{error::PodError, fixed_vec::FixedVec, unaligned::Unaligned},
+    crate::{error::PodError, fixed_vec::FixedVec, unaligned::Unaligned, validate::PodValidate},
     bytemuck::{Pod, Zeroable},
     core::fmt,
 };
@@ -25,6 +26,13 @@ unsafe impl<const N: usize> Pod for FixedString<N> {}
 unsafe impl<const N: usize> Zeroable for FixedString<N> {}
 // SAFETY: `repr(transparent)` over a type of alignment 1.
 unsafe impl<const N: usize> Unaligned for FixedString<N> {}
+
+impl<const N: usize> PodValidate for FixedString<N> {
+    #[inline(always)]
+    fn validate_bytes(bytes: &[u8]) -> Result<(), PodError> {
+        FixedVec::<u8, N>::validate_bytes(bytes)
+    }
+}
 
 impl<const N: usize> FixedString<N> {
     /// An empty string.
@@ -234,6 +242,20 @@ mod tests {
         assert!(name != "abd");
         assert!(name.eq_str("abc"));
         assert!(name != *"ab");
+    }
+
+    #[test]
+    fn validation_rejects_a_stored_length_above_capacity_but_not_invalid_utf8() {
+        let mut bytes = [b'a'; 2 + 4];
+        bytes[..2].copy_from_slice(&4u16.to_le_bytes());
+        assert!(FixedString::<4>::validate_bytes(&bytes) == Ok(()));
+        bytes[..2].copy_from_slice(&5u16.to_le_bytes());
+        assert!(FixedString::<4>::validate_bytes(&bytes) == Err(PodError::InvalidLength));
+
+        let not_utf8 = [2, 0, 0xFF, 0xFE, 0, 0];
+        assert!(FixedString::<4>::validate_bytes(&not_utf8) == Ok(()));
+        let name: &FixedString<4> = bytemuck::from_bytes(&not_utf8);
+        assert!(name.as_str() == Err(PodError::InvalidUtf8));
     }
 
     #[test]

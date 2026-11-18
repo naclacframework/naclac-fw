@@ -29,6 +29,10 @@ pub enum PodError {
     InvalidInstructionData,
     /// Stored enum bytes name no variant, or hold an invalid nested value.
     InvalidEnumValue,
+    /// A stored list or string length exceeds its capacity.
+    InvalidLength,
+    /// A stored tag byte (`Opt`, `Bool`) is outside its allowed values.
+    InvalidTag,
 }
 
 impl PodError {
@@ -39,7 +43,21 @@ impl PodError {
             PodError::CapacityExceeded => Some(CAPACITY_EXCEEDED_CODE),
             PodError::InvalidUtf8 => Some(INVALID_UTF8_CODE),
             PodError::InvalidInstructionData => Some(INVALID_INSTRUCTION_DATA_CODE),
-            PodError::InvalidEnumValue => None,
+            PodError::InvalidEnumValue | PodError::InvalidLength | PodError::InvalidTag => None,
+        }
+    }
+
+    /// A one-line description of the error, for host tools that report it.
+    pub const fn description(self) -> &'static str {
+        match self {
+            PodError::CapacityExceeded => "a list or string has no room for what was added",
+            PodError::InvalidUtf8 => "a string's bytes are not valid UTF-8",
+            PodError::InvalidInstructionData => "instruction data does not form the requested view",
+            PodError::InvalidEnumValue => {
+                "stored enum bytes name no variant or hold an invalid value"
+            }
+            PodError::InvalidLength => "a stored list or string length exceeds its capacity",
+            PodError::InvalidTag => "a stored tag byte is outside its allowed values",
         }
     }
 }
@@ -64,6 +82,8 @@ mod tests {
         assert_eq!(PodError::CapacityExceeded.custom_code(), Some(10_032));
         assert_eq!(PodError::InvalidUtf8.custom_code(), Some(10_033));
         assert_eq!(PodError::InvalidEnumValue.custom_code(), None);
+        assert_eq!(PodError::InvalidLength.custom_code(), None);
+        assert_eq!(PodError::InvalidTag.custom_code(), None);
     }
 
     #[cfg(feature = "solana")]
@@ -76,6 +96,14 @@ mod tests {
         );
         assert_eq!(
             ProgramError::from(PodError::InvalidEnumValue),
+            ProgramError::InvalidAccountData
+        );
+        assert_eq!(
+            ProgramError::from(PodError::InvalidLength),
+            ProgramError::InvalidAccountData
+        );
+        assert_eq!(
+            ProgramError::from(PodError::InvalidTag),
             ProgramError::InvalidAccountData
         );
     }

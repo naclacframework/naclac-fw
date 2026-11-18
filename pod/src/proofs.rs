@@ -2,12 +2,21 @@
 //! stated sizes, not a sample. Run with `cargo kani -p naclac-pod`.
 
 use {
-    crate::{Bool, BoolField, FixedString, FixedVec, Opt, PodError},
+    crate::{Bool, BoolField, FixedString, FixedVec, Opt, PodError, PodValidate},
     bytemuck::Zeroable,
 };
 
 fn list_from_any_bytes<const N: usize>(bytes: &[u8]) -> FixedVec<u8, N> {
+    kani::assume(usize::from(u16::from_le_bytes([bytes[0], bytes[1]])) <= N);
     bytemuck::pod_read_unaligned(bytes)
+}
+
+#[kani::proof]
+fn validation_accepts_exactly_the_lengths_within_capacity() {
+    let bytes: [u8; 6] = kani::any();
+    let stored = usize::from(u16::from_le_bytes([bytes[0], bytes[1]]));
+    assert!(FixedVec::<u8, 4>::validate_bytes(&bytes).is_ok() == (stored <= 4));
+    assert!(FixedString::<4>::validate_bytes(&bytes).is_ok() == (stored <= 4));
 }
 
 #[kani::proof]
@@ -86,6 +95,7 @@ fn truncate_zeroes_exactly_the_removed_slots() {
 fn remove_keeps_the_order_of_the_others() {
     let bytes: [u8; 2 + 3 * 2] = kani::any();
     let index: usize = kani::any();
+    kani::assume(u16::from_le_bytes([bytes[0], bytes[1]]) <= 3);
     let mut list: FixedVec<u16, 3> = bytemuck::pod_read_unaligned(&bytes);
     let len = list.len();
     let mut model = [0u16; 3];
@@ -114,6 +124,7 @@ fn remove_keeps_the_order_of_the_others() {
 fn swap_remove_fills_the_hole_with_the_last_element() {
     let bytes: [u8; 2 + 3 * 2] = kani::any();
     let index: usize = kani::any();
+    kani::assume(u16::from_le_bytes([bytes[0], bytes[1]]) <= 3);
     let mut list: FixedVec<u16, 3> = bytemuck::pod_read_unaligned(&bytes);
     let len = list.len();
     let last = list.last();
@@ -153,6 +164,7 @@ fn set_and_extend_never_change_the_list_when_they_fail() {
 fn string_truncate_never_ends_inside_a_character() {
     let bytes: [u8; 6] = kani::any();
     let new_len: usize = kani::any();
+    kani::assume(u16::from_le_bytes([bytes[0], bytes[1]]) <= 4);
     let mut text: FixedString<4> = bytemuck::pod_read_unaligned(&bytes);
     let before: [u8; 4] = {
         let mut copy = [0u8; 4];

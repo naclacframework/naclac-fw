@@ -1,4 +1,4 @@
-//! The account whose fixed-capacity fields the tests exercise.
+//! The accounts and defined type whose fixed-capacity fields the tests exercise.
 
 use naclac_lang::prelude::*;
 
@@ -11,4 +11,17 @@ pub struct Profile {
     pub members: FixedVec<Address, 3>,
     pub flags: FixedVec<Bool, 8>,
     pub counter: u16,
+}
+
+#[defined_type]
+pub struct Entry {
+    pub scores: FixedVec<u64, 4>,
+    pub name: FixedString<8>,
+}
+
+#[account]
+pub struct Book {
+    pub bump: u8,
+    pub first: Entry,
+    pub all: [Entry; 2],
 }

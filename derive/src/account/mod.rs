@@ -161,6 +161,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let pod_checks =
         crate::pod_struct_checks::generate(struct_name, cleaned_fields, &zero_copy_cfg);
+    let pod_validate =
+        crate::pod_struct_checks::validate_impl(struct_name, cleaned_fields, &zero_copy_cfg);
     // A tuple struct's `;` isn't part of its `Fields`, and this reconstructs
     // the whole item by hand rather than splicing into an already-parsed
     // `DeriveInput` that already has its own semicolon token.
@@ -201,6 +203,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #vis struct #struct_name #cleaned_fields #struct_semi
 
         #pod_checks
+
+        #pod_validate
 
         // SAFETY: sound only because `pod_checks` (above) verifies at
         // compile time that the struct has no padding, alignment 1, and
@@ -243,6 +247,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                 if &data[..Self::DISCRIMINATOR.len()] != Self::DISCRIMINATOR {
                     return Err(naclac_lang::prelude::NaclacError::InvalidAccountDiscriminator.err(0));
                 }
+                <Self as naclac_lang::prelude::PodValidate>::validate_bytes(
+                    &data[Self::DISCRIMINATOR.len()..Self::SPACE],
+                )?;
                 Ok(naclac_lang::prelude::bytemuck::from_bytes(&data[Self::DISCRIMINATOR.len()..Self::SPACE]))
             }
 
@@ -255,6 +262,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
                 if &data[..Self::DISCRIMINATOR.len()] != Self::DISCRIMINATOR {
                     return Err(naclac_lang::prelude::NaclacError::InvalidAccountDiscriminator.err(0));
                 }
+                <Self as naclac_lang::prelude::PodValidate>::validate_bytes(
+                    &data[Self::DISCRIMINATOR.len()..Self::SPACE],
+                )?;
                 Ok(naclac_lang::prelude::bytemuck::from_bytes_mut(&mut data[Self::DISCRIMINATOR.len()..Self::SPACE]))
             }
         }

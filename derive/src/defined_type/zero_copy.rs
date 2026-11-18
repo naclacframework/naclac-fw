@@ -143,6 +143,7 @@ pub(super) fn variant(input: &mut syn::DeriveInput, cfg: &TokenStream) -> TokenS
         }
         syn::Data::Struct(data_struct) => {
             let pod_checks = pod_struct_checks::generate(&ident, &data_struct.fields, cfg);
+            let pod_validate = pod_struct_checks::validate_impl(&ident, &data_struct.fields, cfg);
             quote::quote! {
                 #cfg
                 #repr_conflict
@@ -151,6 +152,8 @@ pub(super) fn variant(input: &mut syn::DeriveInput, cfg: &TokenStream) -> TokenS
                 #input
 
                 #pod_checks
+
+                #pod_validate
 
                 // SAFETY: sound only because the type is `#[repr(C, packed)]` and
                 // `Copy` (both added above) and because `pod_checks` (above)
@@ -180,7 +183,7 @@ pub(super) fn variant(input: &mut syn::DeriveInput, cfg: &TokenStream) -> TokenS
                     }
 
                     fn decode(bytes: &[u8]) -> Option<Self> {
-                        naclac_lang::prelude::decode_pod(bytes)
+                        naclac_lang::prelude::decode_validated(bytes)
                     }
                 }
 
@@ -188,9 +191,12 @@ pub(super) fn variant(input: &mut syn::DeriveInput, cfg: &TokenStream) -> TokenS
                 impl #impl_generics naclac_lang::prelude::NaclacPod for #ident #ty_generics #where_clause {
                     #[inline(always)]
                     fn naclac_from_bytes(data: &[u8]) -> Self {
-                        naclac_lang::prelude::bytemuck::pod_read_unaligned(
-                            &data[..core::mem::size_of::<Self>()],
-                        )
+                        naclac_lang::prelude::decode_validated(data)
+                            .expect("defined_type: stored bytes failed validation")
+                    }
+                    #[inline(always)]
+                    fn naclac_try_from_bytes(data: &[u8]) -> Option<Self> {
+                        naclac_lang::prelude::decode_validated(data)
                     }
                     #[inline(always)]
                     fn naclac_size() -> usize {

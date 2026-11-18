@@ -7,7 +7,7 @@
 
 use {
     bytemuck::{Pod, Zeroable},
-    naclac_client::{load_node_wallet, NaclacEvent, NaclacProvider},
+    naclac_client::{load_node_wallet, NaclacEvent, NaclacProvider, PodError, PodValidate},
     solana_address::Address,
     solana_address_lookup_table_interface::{
         instruction::{create_lookup_table, extend_lookup_table},
@@ -30,6 +30,14 @@ const EVENT_DISPATCH_TAG: [u8; 8] = [34, 131, 189, 8, 189, 141, 224, 48];
 #[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 struct CounterIncremented {
     new_count: u64,
+}
+
+impl PodValidate for CounterIncremented {
+    const TRIVIAL: bool = true;
+
+    fn validate_bytes(_: &[u8]) -> Result<(), PodError> {
+        Ok(())
+    }
 }
 
 impl NaclacEvent for CounterIncremented {

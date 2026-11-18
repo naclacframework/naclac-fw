@@ -82,6 +82,26 @@ impl Discriminator for Mint {
     }
 }
 
+/// The raw layout is validated by `Discriminator::validate_account`, not here.
+#[cfg(feature = "bytemuck")]
+impl crate::prelude::PodValidate for TokenAccount {
+    const TRIVIAL: bool = true;
+
+    fn validate_bytes(_: &[u8]) -> core::result::Result<(), crate::prelude::PodError> {
+        Ok(())
+    }
+}
+
+/// The raw layout is validated by `Discriminator::validate_account`, not here.
+#[cfg(feature = "bytemuck")]
+impl crate::prelude::PodValidate for Mint {
+    const TRIVIAL: bool = true;
+
+    fn validate_bytes(_: &[u8]) -> core::result::Result<(), crate::prelude::PodError> {
+        Ok(())
+    }
+}
+
 #[cfg(feature = "bytemuck")]
 impl crate::prelude::NaclacZeroCopy for TokenAccount {}
 #[cfg(feature = "bytemuck")]

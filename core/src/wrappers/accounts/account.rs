@@ -578,9 +578,9 @@ impl<T: NaclacZeroCopy> Account<T> {
         #[cfg(not(feature = "pinocchio"))]
         {
             let data = info.try_borrow_data()?;
-            // Validate — this also ensures data[disc_len..] is aligned for T (bytemuck check).
             let _: &T =
                 T::load(&data).map_err(|_| NaclacError::InvalidAccountDiscriminator.err(index))?;
+            T::check_stored(&data)?;
             // SAFETY: The SBF runtime guarantees account data is valid for the entire
             // instruction. The RefCell borrow is dropped after this block, but the
             // underlying pointer remains valid (the runtime does not move account data).
@@ -590,9 +590,9 @@ impl<T: NaclacZeroCopy> Account<T> {
         #[cfg(feature = "pinocchio")]
         {
             let data = info.data();
-            // Validate — ensures disc match and sufficient length.
             let _: &T =
                 T::load(data).map_err(|_| NaclacError::InvalidAccountDiscriminator.err(index))?;
+            T::check_stored(data)?;
             // SAFETY: `data_ptr()` is valid for the instruction lifetime (SBF guarantee).
             // We derive from the const pointer but cast to *mut for DerefMut; the SBF
             // memory model does not enforce provenance tracking.

@@ -32,7 +32,9 @@ pub(crate) fn discard_error<E>(error: E) {
 ///
 /// The data slice passed to `load` must include the discriminator prefix
 /// (`Self::DISCRIMINATOR`, 1 to 8 bytes, or empty for foreign types).
-/// Validation checks both the discriminator and size.
+/// `load` checks the size and the discriminator; `check_stored` then validates
+/// the stored bytes with `PodValidate`, so a malformed length or tag is an
+/// error at account construction and never reaches a handler.
 ///
 /// No `load_mut` counterpart — confirmed dead code before this refactor
 /// (verified by grepping every call site in the repo): `Account::try_from_mut`
@@ -43,7 +45,7 @@ pub(crate) fn discard_error<E>(error: E) {
 /// off-chain use — it doesn't call this trait method either.
 #[cfg(feature = "bytemuck")]
 pub trait NaclacZeroCopy:
-    bytemuck::Pod + bytemuck::Zeroable + crate::wrappers::Discriminator
+    bytemuck::Pod + bytemuck::Zeroable + crate::wrappers::Discriminator + naclac_pod::PodValidate
 {
     /// Fails compilation unless `Self` has alignment 1. The body starts at
     /// offset `DISCRIMINATOR.len()`, which is any width from 1 to 8 bytes, so
@@ -77,5 +79,15 @@ pub trait NaclacZeroCopy:
         // aligned at any offset. The size check above guarantees
         // `size_of::<Self>()` bytes are available at offset `disc_len`.
         Ok(unsafe { &*(data.as_ptr().add(disc_len) as *const Self) })
+    }
+
+    /// Validates the stored bytes of `data`, which `load` has already accepted
+    /// (so it is at least the discriminator plus `size_of::<Self>()` long). A
+    /// malformed stored value is `InvalidAccountData`.
+    #[inline(always)]
+    fn check_stored(data: &[u8]) -> crate::prelude::Result<()> {
+        let disc_len = Self::DISCRIMINATOR.len();
+        Self::validate_bytes(&data[disc_len..disc_len + core::mem::size_of::<Self>()])?;
+        Ok(())
     }
 }

@@ -8,7 +8,7 @@
 
 use {
     bytemuck::{Pod, Zeroable},
-    naclac_pod::{FixedString, FixedVec, PodError},
+    naclac_pod::{FixedString, FixedVec, PodError, PodValidate},
 };
 
 /// How many seeds and steps to run. Miri checks every memory access and runs
@@ -356,13 +356,36 @@ fn fixed_string_matches_string() {
 }
 
 #[test]
-fn reading_arbitrary_bytes_as_a_list_or_string_never_misbehaves() {
+fn arbitrary_bytes_are_rejected_or_read_back_consistently() {
     let mut rng = Rng(0xDEAD_BEEF);
+    let mut accepted = 0;
     for round in 0..steps(2000) {
         let mut bytes = [0u8; 2 + 8];
         for byte in &mut bytes {
             *byte = rng.next() as u8;
         }
+        if round % 2 == 0 {
+            bytes[..2].copy_from_slice(&(rng.below(12) as u16).to_le_bytes());
+        }
+        let stored = usize::from(u16::from_le_bytes([bytes[0], bytes[1]]));
+        let expected = if stored <= 8 {
+            Ok(())
+        } else {
+            Err(PodError::InvalidLength)
+        };
+        assert!(
+            FixedVec::<u8, 8>::validate_bytes(&bytes) == expected,
+            "round {round}"
+        );
+        assert!(
+            FixedString::<8>::validate_bytes(&bytes) == expected,
+            "round {round}"
+        );
+        if stored > 8 {
+            continue;
+        }
+        accepted += 1;
+
         let list: FixedVec<u8, 8> = bytemuck::pod_read_unaligned(&bytes);
         assert!(list.len() <= 8, "round {round}");
         assert_eq!(list.iter().count(), list.len(), "round {round}");
@@ -380,4 +403,5 @@ fn reading_arbitrary_bytes_as_a_list_or_string_never_misbehaves() {
         assert!(mutated.is_empty());
         let _ = mutated.try_push(1);
     }
+    assert!(accepted > 0);
 }

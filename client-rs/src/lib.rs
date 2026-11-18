@@ -56,8 +56,8 @@ impl AccountMeta {
 // The plain-data types of a zero-copy layout are defined once, in
 // `naclac-pod`, and used unchanged by programs and clients.
 pub use naclac_pod::{
-    decode_pod, encode_pod, Bool, FixedString, FixedVec, Opt, Unaligned, ZcCodec, ZcEnum,
-    ZcEnumKind, ZcField, ZcStorage, ZcString, ZcVec,
+    decode_pod, decode_validated, encode_pod, Bool, FixedString, FixedVec, Opt, PodError,
+    PodValidate, Unaligned, ZcCodec, ZcEnum, ZcEnumKind, ZcField, ZcStorage, ZcString, ZcVec,
 };
 
 // Standard Solana SDK Re-exports

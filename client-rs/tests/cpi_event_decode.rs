@@ -5,7 +5,9 @@
 
 use {
     bytemuck::{Pod, Zeroable},
-    naclac_client::{NaclacEvent, NaclacInnerInstruction, NaclacTransactionMetadata},
+    naclac_client::{
+        NaclacEvent, NaclacInnerInstruction, NaclacTransactionMetadata, PodError, PodValidate,
+    },
     solana_address::Address,
     solana_signature::Signature,
 };
@@ -21,6 +23,14 @@ struct Counter {
     value: u64,
 }
 
+impl PodValidate for Counter {
+    const TRIVIAL: bool = true;
+
+    fn validate_bytes(_: &[u8]) -> Result<(), PodError> {
+        Ok(())
+    }
+}
+
 impl NaclacEvent for Counter {
     const DISCRIMINATOR: &'static [u8] = &DISCRIMINATOR;
     const PROGRAM_ID: Address = PROGRAM;
@@ -31,6 +41,14 @@ impl NaclacEvent for Counter {
 #[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 struct Untagged {
     value: u64,
+}
+
+impl PodValidate for Untagged {
+    const TRIVIAL: bool = true;
+
+    fn validate_bytes(_: &[u8]) -> Result<(), PodError> {
+        Ok(())
+    }
 }
 
 impl NaclacEvent for Untagged {

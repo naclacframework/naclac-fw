@@ -471,8 +471,8 @@ function writeFixedLen(out: Uint8Array, width: number, len: number): void {
 
 /**
  * Codec for the account-storage `FixedVec<T, N>`: a little-endian length
- * followed by all `N` element slots. Decoding yields the first `len` items,
- * with a stored length above `N` read as `N`, as the program does.
+ * followed by all `N` element slots. Decoding yields the first `len` items and
+ * rejects a stored length above `N`, as the program does.
  */
 function getFixedVecCodec(inner: NaclacCodec, innerLayout: { size: number }, capacity: number): NaclacCodec {
   const lenWidth = FIXED_LEN_WIDTH;
@@ -496,7 +496,10 @@ function getFixedVecCodec(inner: NaclacCodec, innerLayout: { size: number }, cap
       return val;
     },
     read(bytes: Uint8Array, offset: number): [any, number] {
-      const len = Math.min(readFixedLen(bytes, offset, lenWidth), capacity);
+      const len = readFixedLen(bytes, offset, lenWidth);
+      if (len > capacity) {
+        throw new Error(`[Naclac] A FixedVec stores a length of ${len}, above its capacity of ${capacity}.`);
+      }
       const items: unknown[] = [];
       for (let i = 0; i < len; i++) {
         const [item] = inner.read(bytes, offset + lenWidth + i * innerLayout.size);
@@ -529,7 +532,10 @@ function getFixedStringCodec(capacity: number): NaclacCodec {
       return val;
     },
     read(bytes: Uint8Array, offset: number): [any, number] {
-      const len = Math.min(readFixedLen(bytes, offset, 2), capacity);
+      const len = readFixedLen(bytes, offset, 2);
+      if (len > capacity) {
+        throw new Error(`[Naclac] A FixedString stores a length of ${len}, above its capacity of ${capacity}.`);
+      }
       const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes.slice(offset + 2, offset + 2 + len));
       return [text, offset + totalSize];
     },
@@ -546,11 +552,19 @@ function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
   return out;
 }
 
-/** `Bool` in a zero-copy layout: written as 0 or 1, read as true for any non-zero byte. */
+function readZeroCopyBool(bytes: Uint8Array, offset: number): boolean {
+  const byte = bytes[offset];
+  if (byte > 1) {
+    throw new Error(`[Naclac] A stored flag byte must be 0 or 1, found ${byte}.`);
+  }
+  return byte === 1;
+}
+
+/** `Bool` in a zero-copy layout: written as 0 or 1, and any other stored byte is an error. */
 const zeroCopyBoolCodec: NaclacCodec = {
   encode: (value: unknown) => Uint8Array.of(value ? 1 : 0),
-  decode: (bytes) => bytes[0] !== 0,
-  read: (bytes, offset) => [bytes[offset] !== 0, offset + 1],
+  decode: (bytes) => readZeroCopyBool(bytes, 0),
+  read: (bytes, offset) => [readZeroCopyBool(bytes, offset), offset + 1],
 };
 
 /** True for an IDL type the zero-copy program reads with a length prefix or a tag instead of a fixed layout. */
@@ -795,7 +809,7 @@ function getZeroCopyEnumCodec(
  * `String`/`Vec` field cannot be represented in the zero-copy layout, and a
  * zero-copy enum stores its payload padded to a fixed size. The primitive
  * cases below are the same in both modes, except `bool`, which a zero-copy
- * layout reads as true for any non-zero byte.
+ * layout accepts only as the byte 0 or 1.
  *
  * Supported primitives: u8, u16, u32, u64, u128, i8, i16, i32, i64, i128,
  *                       f32, f64, bool, string, publicKey, bytes

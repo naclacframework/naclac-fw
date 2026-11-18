@@ -10,6 +10,7 @@ use {
     },
     borsh::BorshDeserialize,
     bytemuck::Pod,
+    naclac_pod::PodValidate,
     solana_account::Account,
     solana_address::Address,
 };
@@ -74,8 +75,11 @@ pub fn decode_wincode_checked<
     })
 }
 
-/// Checks the discriminator prefix matches, then byte-casts the rest as `T`.
-pub fn decode_pod_checked<T: Pod>(
+/// Checks the discriminator prefix matches, validates the stored bytes, then
+/// byte-casts the rest as `T`. Bytes that fail validation (a length above a
+/// list's capacity, a flag byte other than 0 or 1) are an error, never a
+/// clamped or reinterpreted value.
+pub fn decode_pod_checked<T: Pod + PodValidate>(
     data: &[u8],
     discriminator: &[u8],
 ) -> Result<T, NaclacClientError> {
@@ -87,9 +91,14 @@ pub fn decode_pod_checked<T: Pod>(
                 .to_string(),
         ));
     }
-    Ok(bytemuck::pod_read_unaligned::<T>(
-        &data[disc_len..disc_len + size],
-    ))
+    let bytes = &data[disc_len..disc_len + size];
+    T::validate_bytes(bytes).map_err(|error| {
+        NaclacClientError::DeserializationError(format!(
+            "Account data failed validation: {}",
+            error.description()
+        ))
+    })?;
+    Ok(bytemuck::pod_read_unaligned::<T>(bytes))
 }
 
 /// Byte-casts `data` as `T` with no discriminator prefix at all — for foreign
@@ -121,7 +130,7 @@ mod kani_proofs {
     fn prove_decode_pod_checked_never_panics() {
         let data: [u8; 200] = kani::any();
         let discriminator: [u8; 8] = kani::any();
-        let _ = decode_pod_checked::<TokenAccount>(&data, &discriminator);
+        let _ = decode_pod_checked::<[u8; 165]>(&data, &discriminator);
     }
 
     #[kani::proof]

@@ -8,14 +8,15 @@
 //! For elements of alignment 1 ([`Unaligned`]) the list also derefs to
 //! `&[T]`.
 //!
-//! Every accessor treats a stored length above `N` as `N` and never touches a
-//! slot at or past the length. Operations that shorten the list zero the freed
+//! A stored length above `N` is rejected by [`PodValidate`] where bytes enter a
+//! program, and `len` panics on one instead of reading it as `N`. No accessor
+//! touches a slot at or past the length. Operations that shorten the list zero the freed
 //! slots, so a list built or changed only through this type, in an account that
 //! started zeroed, has the same bytes as any other list with the same contents.
 //! Changing `N` changes the layout; grow an existing account with `realloc`.
 
 use {
-    crate::{error::PodError, unaligned::Unaligned},
+    crate::{error::PodError, unaligned::Unaligned, validate::PodValidate},
     bytemuck::{Pod, Zeroable},
     core::{
         fmt,
@@ -32,8 +33,8 @@ pub struct FixedVec<T: Pod, const N: usize> {
 }
 
 // SAFETY: `repr(C, packed)` over a byte array and a `Pod` array has no
-// padding, and every byte pattern is a valid value because the accessors clamp
-// the stored length to `N`.
+// padding, and every byte pattern is a valid value of the type; an invalid
+// stored length is rejected by `PodValidate` where bytes enter a program.
 unsafe impl<T: Pod, const N: usize> Pod for FixedVec<T, N> {}
 // SAFETY: all-zero bytes are an empty list.
 unsafe impl<T: Pod, const N: usize> Zeroable for FixedVec<T, N> {}
@@ -116,7 +117,8 @@ impl<T: Pod, const N: usize> FixedVec<T, N> {
 
     #[inline(always)]
     fn set_len(&mut self, len: usize) {
-        self.len = u16::try_from(len).unwrap_or(u16::MAX).to_le_bytes();
+        let len = u16::try_from(len).unwrap_or_else(|_| panic!("FixedVec length exceeds u16"));
+        self.len = len.to_le_bytes();
     }
 
     /// An empty list.
@@ -131,16 +133,14 @@ impl<T: Pod, const N: usize> FixedVec<T, N> {
         N
     }
 
-    /// The number of elements; a stored length above `N` reads as `N`.
+    /// The number of elements. Panics when the stored length exceeds `N`,
+    /// which [`PodValidate`] rejects wherever stored bytes enter a program.
     #[inline(always)]
     pub fn len(&self) -> usize {
         let () = Self::LAYOUT;
         let stored = usize::from(u16::from_le_bytes(self.len));
-        if stored > N {
-            N
-        } else {
-            stored
-        }
+        assert!(stored <= N, "FixedVec stored length exceeds its capacity");
+        stored
     }
 
     #[inline(always)]
@@ -436,8 +436,28 @@ impl<T: Pod + PartialEq, const N: usize> PartialEq for FixedVec<T, N> {
 
 impl<T: Pod + Eq, const N: usize> Eq for FixedVec<T, N> {}
 
+impl<T: Pod + PodValidate, const N: usize> PodValidate for FixedVec<T, N> {
+    #[inline(always)]
+    fn validate_bytes(bytes: &[u8]) -> Result<(), PodError> {
+        let stored = usize::from(u16::from_le_bytes([bytes[0], bytes[1]]));
+        if stored > N {
+            return Err(PodError::InvalidLength);
+        }
+        if !T::TRIVIAL {
+            let size = size_of::<T>();
+            for index in 0..stored {
+                T::validate_bytes(&bytes[2 + index * size..2 + (index + 1) * size])?;
+            }
+        }
+        Ok(())
+    }
+}
+
 impl<T: Pod + fmt::Debug, const N: usize> fmt::Debug for FixedVec<T, N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if usize::from(u16::from_le_bytes(self.len)) > N {
+            return f.write_str("FixedVec(<invalid length>)");
+        }
         f.debug_list().entries(self.iter()).finish()
     }
 }
@@ -603,22 +623,43 @@ mod tests {
     }
 
     #[test]
-    fn a_stored_length_above_capacity_is_clamped_everywhere() {
-        let mut bytes = [0u8; 2 + 3];
-        bytes[0] = 0xFF;
-        bytes[1] = 0xFF;
-        bytes[2] = 1;
-        bytes[3] = 2;
-        bytes[4] = 3;
-        let list: &mut FixedVec<u8, 3> = bytemuck::from_bytes_mut(&mut bytes);
-        assert_eq!(list.len(), 3);
-        assert!(list.is_full());
-        assert_eq!(list.as_slice(), &[1, 2, 3]);
-        assert_eq!(list.get(3), None);
-        assert!(list.try_push(4) == Err(PodError::CapacityExceeded));
-        assert_eq!(list.iter().count(), 3);
-        assert_eq!(list.pop(), Some(3));
-        assert_eq!(list.len(), 2);
+    fn validation_rejects_a_stored_length_above_capacity() {
+        for stored in 0..=3u16 {
+            let mut bytes = [0u8; 2 + 3];
+            bytes[..2].copy_from_slice(&stored.to_le_bytes());
+            assert!(FixedVec::<u8, 3>::validate_bytes(&bytes) == Ok(()));
+        }
+        for stored in [4u16, 5, 0xFF, 0x100, u16::MAX] {
+            let mut bytes = [0u8; 2 + 3];
+            bytes[..2].copy_from_slice(&stored.to_le_bytes());
+            assert!(FixedVec::<u8, 3>::validate_bytes(&bytes) == Err(PodError::InvalidLength));
+        }
+        assert!(FixedVec::<u8, 0>::validate_bytes(&[0, 0]) == Ok(()));
+        assert!(FixedVec::<u8, 0>::validate_bytes(&[1, 0]) == Err(PodError::InvalidLength));
+    }
+
+    #[test]
+    fn validation_checks_the_live_elements_and_ignores_the_unused_slots() {
+        use crate::Bool;
+        let valid_live = [2, 0, 1, 0, 9];
+        assert!(FixedVec::<Bool, 3>::validate_bytes(&valid_live) == Ok(()));
+        let invalid_live = [2, 0, 1, 2, 0];
+        assert!(FixedVec::<Bool, 3>::validate_bytes(&invalid_live) == Err(PodError::InvalidTag));
+    }
+
+    #[test]
+    #[should_panic(expected = "FixedVec stored length exceeds its capacity")]
+    fn reading_an_invalid_stored_length_panics_instead_of_clamping() {
+        let bytes = [0xFF, 0xFF, 1, 2, 3];
+        let list: &FixedVec<u8, 3> = bytemuck::from_bytes(&bytes);
+        let _ = list.len();
+    }
+
+    #[test]
+    fn debug_output_names_an_invalid_length_instead_of_panicking() {
+        let bytes = [0xFF, 0xFF, 1, 2, 3];
+        let list: &FixedVec<u8, 3> = bytemuck::from_bytes(&bytes);
+        assert_eq!(std::format!("{list:?}"), "FixedVec(<invalid length>)");
     }
 
     #[test]

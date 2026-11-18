@@ -1,7 +1,14 @@
-//! Instructions that create the account and change its fixed-capacity fields.
+//! Instructions that create the accounts and change their fixed-capacity fields.
 
-use crate::state::Profile;
+use crate::state::{Book, Entry, Profile};
 use naclac_lang::prelude::*;
+
+#[instruction_args]
+pub struct Roster {
+    pub scores: FixedVec<u64, 4>,
+    pub name: FixedString<16>,
+    pub level: u8,
+}
 
 #[derive(Accounts)]
 pub struct InitProfile {
@@ -84,5 +91,59 @@ pub fn clear_all(ctx: Context<Mutate>) -> Result {
     profile.name.clear();
     profile.members.clear();
     profile.flags.clear();
+    Ok(())
+}
+
+pub fn set_roster(
+    ctx: Context<Mutate>,
+    scores: FixedVec<u64, 4>,
+    name: FixedString<16>,
+) -> Result {
+    let profile = &mut ctx.accounts.profile;
+    profile.scores = scores;
+    profile.name = name;
+    Ok(())
+}
+
+pub fn set_roster_group(ctx: Context<Mutate>, roster: Roster) -> Result {
+    let profile = &mut ctx.accounts.profile;
+    profile.scores = roster.scores;
+    profile.name = roster.name;
+    profile.counter = u16::from(roster.level);
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct InitBook {
+    #[account(mut)]
+    pub payer: Signer,
+    #[account(
+        init,
+        payer = payer,
+        seeds = [b"book"],
+        bump
+    )]
+    pub book: Account<Book>,
+    pub system_program: Program<System>,
+}
+
+pub fn init_book(ctx: Context<InitBook>) -> Result {
+    ctx.accounts.book.bump = ctx.bumps.book;
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct MutateBook {
+    pub signer: Signer,
+    #[account(mut, seeds = [b"book"], bump)]
+    pub book: Account<Book>,
+}
+
+pub fn set_entry(ctx: Context<MutateBook>, entry: Entry) -> Result {
+    ctx.accounts.book.first = entry;
+    Ok(())
+}
+
+pub fn touch_book(_ctx: Context<MutateBook>) -> Result {
     Ok(())
 }

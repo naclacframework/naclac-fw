@@ -246,6 +246,19 @@ fn generate_fixed_event(
             "unsafe impl {}::bytemuck::Pod for {} {{}}\n\n",
             sdk_core, struct_name
         ));
+
+        let validate_impl = naclac_syn::zc_codegen::pod_validate::generate(
+            &struct_ident,
+            &parsed_struct.fields,
+            &quote::quote! {},
+            &core,
+        );
+        let validate_file: syn::File = syn::parse2(validate_impl)
+            .expect("event: pod_validate::generate output must parse as a syn::File");
+        events_content.push_str(cfg);
+        events_content.push_str("#[cfg(not(any(feature = \"borsh\", feature = \"wincode\")))]\n");
+        events_content.push_str(&prettyplease::unparse(&validate_file));
+        events_content.push('\n');
     }
 }
 

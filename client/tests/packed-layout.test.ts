@@ -2,8 +2,8 @@
  * @naclac/client — the packed zero-copy layout (alignment 1, no padding),
  * against byte sequences worked out by hand from the layout rules:
  * fields in declaration order, a data-carrying enum as its tag, the active
- * variant's fields, then zeros up to the largest variant, `Bool` read as
- * true for any non-zero byte.
+ * variant's fields, then zeros up to the largest variant, `Bool` accepted
+ * only as the byte 0 or 1.
  *
  * Run: pnpm test
  */
@@ -93,11 +93,12 @@ describe("packed zero-copy layout", () => {
     assert.throws(() => codec.decode(Uint8Array.of(9, 0, 0, 0, 0, 0, 0, 0, 0, 0)), /Invalid enum discriminant 9/);
   });
 
-  it("reads any non-zero Bool byte as true and writes exactly 1 or 0", () => {
+  it("reads a Bool only from the byte 0 or 1 and writes exactly 1 or 0", () => {
     const codec = codecOf("bool");
-    assert.equal(codec.decode(Uint8Array.of(2)), true);
-    assert.equal(codec.decode(Uint8Array.of(255)), true);
+    assert.equal(codec.decode(Uint8Array.of(1)), true);
     assert.equal(codec.decode(Uint8Array.of(0)), false);
+    assert.throws(() => codec.decode(Uint8Array.of(2)), /flag byte must be 0 or 1, found 2/);
+    assert.throws(() => codec.decode(Uint8Array.of(255)), /flag byte must be 0 or 1, found 255/);
     assert.deepEqual([...(codec.encode(true) as Uint8Array)], [1]);
     assert.deepEqual([...(codec.encode(false) as Uint8Array)], [0]);
   });

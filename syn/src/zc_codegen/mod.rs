@@ -3,8 +3,9 @@
 //! the generated Rust clients both call these generators, so the layout checks
 //! and the stored enum encoding cannot differ between a program and its
 //! client. Every generator takes `core`, the path of the module that exports
-//! `ZcField`, `ZcCodec`, `ZcEnumKind` and `ZcStorage` from the calling crate's
-//! point of view.
+//! `ZcField`, `ZcCodec`, `ZcEnumKind`, `ZcStorage`, `PodValidate` and
+//! `PodError` from the calling crate's point of view.
 
 pub mod enum_codec;
+pub mod pod_validate;
 pub mod struct_checks;

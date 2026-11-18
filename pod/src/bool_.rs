@@ -2,9 +2,11 @@
 //!
 //! A Rust `bool` is only valid as 0 or 1, so a struct read straight from
 //! account bytes cannot hold one. `Bool` holds a `u8`, reads any non-zero byte
-//! as `true`, and writes exactly 0 or 1.
+//! as `true`, and writes exactly 0 or 1. [`PodValidate`] rejects any other
+//! stored byte where bytes enter a program.
 
 use {
+    crate::{error::PodError, validate::PodValidate},
     bytemuck::{Pod, Zeroable},
     core::{
         cmp::Ordering,
@@ -25,6 +27,16 @@ impl Bool {
     #[inline(always)]
     pub const fn new(value: bool) -> Self {
         Self(value as u8)
+    }
+}
+
+impl PodValidate for Bool {
+    #[inline(always)]
+    fn validate_bytes(bytes: &[u8]) -> Result<(), PodError> {
+        match bytes.first() {
+            Some(0 | 1) => Ok(()),
+            _ => Err(PodError::InvalidTag),
+        }
     }
 }
 
@@ -235,6 +247,18 @@ mod tests {
         for byte in 0..=255u8 {
             assert_eq!(bool::from(Bool(byte)), byte != 0);
             assert_eq!(Bool(byte).get(), byte != 0);
+        }
+    }
+
+    #[test]
+    fn validation_accepts_only_zero_and_one() {
+        for byte in 0..=u8::MAX {
+            let expected = if byte <= 1 {
+                Ok(())
+            } else {
+                Err(PodError::InvalidTag)
+            };
+            assert!(Bool::validate_bytes(&[byte]) == expected);
         }
     }
 

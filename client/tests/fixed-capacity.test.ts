@@ -50,7 +50,7 @@ describe("fixed-capacity fields", () => {
     assert.ok(bytes.slice(70).every((b) => b === 0));
   });
 
-  it("reads back only the first len items, and clamps a length above the capacity", () => {
+  it("reads back only the first len items, and rejects a length above the capacity", () => {
     const codec = getAccountCodec(idlWith("bytemuck", true), "Profile");
     const bytes = codec.encode({ scores: [1n, 2n], name: "hi" });
     assert.deepEqual(codec.decode(bytes), { scores: [1n, 2n], name: "hi" });
@@ -58,8 +58,11 @@ describe("fixed-capacity fields", () => {
     const forged = new Uint8Array(bytes);
     forged[0] = 0xff;
     forged[1] = 0xff;
-    const decoded = codec.decode(forged) as { scores: bigint[] };
-    assert.equal(decoded.scores.length, 8);
+    assert.throws(() => codec.decode(forged), /FixedVec stores a length of 65535, above its capacity of 8/);
+
+    const forgedName = new Uint8Array(bytes);
+    forgedName[66] = 33;
+    assert.throws(() => codec.decode(forgedName), /FixedString stores a length of 33, above its capacity of 32/);
   });
 
   it("rejects a list or string that does not fit", () => {
