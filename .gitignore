@@ -2,6 +2,9 @@
 .claude
 /vendor
 /wallets
+.env
+.env.*
+!.env.example
 *.md
 /website
 /examples/magicblock-labs/delegation-program

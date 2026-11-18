@@ -1,11 +1,18 @@
 //! `SyncNative`: recomputes a native (WSOL) token account's amount from its
 //! lamport balance, with a variant that pads extra accounts onto the CPI.
 
-use crate::prelude::{CpiHandle, CpiHandleMut, NaclacError, Result};
-#[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
 #[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use pinocchio::instruction::InstructionAccount;
+#[cfg(not(feature = "pinocchio"))]
+use {
+    super::invoke::Role,
+    crate::wrappers::ToAddress,
+    solana_instruction::{AccountMeta, Instruction},
+};
+use {
+    super::invoke::{invoke, SYNC_NATIVE},
+    crate::prelude::{CpiHandle, CpiHandleMut, NaclacError, Result},
+};
 
 // Recomputes a native (WSOL) token account's reported `amount` from its
 // actual lamport balance — the second half of the standard "wrap SOL"
@@ -16,16 +23,12 @@ use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
 pub fn sync_native(program: CpiHandle<'_>, native_token: CpiHandleMut<'_>) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = if program.address() == spl_token_2022::ID {
-            spl_token_2022::instruction::sync_native(
-                &program.address(),
-                &native_token.info.address(),
-            )?
-        } else {
-            spl_token::instruction::sync_native(&program.address(), &native_token.info.address())?
-        };
-        let accounts = [CpiHandle::from(native_token), program];
-        crate::cpi::invoke_signed(&ix, &accounts, &[])
+        invoke(
+            program,
+            [(CpiHandle::from(native_token), Role::Writable)],
+            &[SYNC_NATIVE],
+            &[],
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -34,7 +37,7 @@ pub fn sync_native(program: CpiHandle<'_>, native_token: CpiHandleMut<'_>) -> Re
         let accounts = [InstructionAccount::writable(
             native_token.info.view.address(),
         )];
-        invoke(&program, &accounts, &[native_token], &[17], &[])
+        invoke(&program, &accounts, &[native_token], &[SYNC_NATIVE], &[])
     }
 }
 
@@ -83,23 +86,19 @@ pub fn sync_native_with_extra_accounts(
 
     #[cfg(not(feature = "pinocchio"))]
     {
-        let mut ix = if program.address() == spl_token_2022::ID {
-            spl_token_2022::instruction::sync_native(
-                &program.address(),
-                &native_token.info.address(),
-            )?
-        } else {
-            spl_token::instruction::sync_native(&program.address(), &native_token.info.address())?
-        };
-        ix.accounts.insert(
-            1,
-            solana_instruction::AccountMeta::new_readonly(rent_sysvar.address(), false),
-        );
-        ix.accounts.extend(
+        let mut metas = crate::prelude::Vec::with_capacity(2 + extra_accounts.len());
+        metas.push(AccountMeta::new(native_token.address(), false));
+        metas.push(AccountMeta::new_readonly(rent_sysvar.address(), false));
+        metas.extend(
             extra_accounts
                 .iter()
-                .map(|extra| solana_instruction::AccountMeta::new(extra.address(), false)),
+                .map(|extra| AccountMeta::new(extra.address(), false)),
         );
+        let ix = Instruction {
+            program_id: program.address(),
+            accounts: metas,
+            data: [SYNC_NATIVE].to_vec(),
+        };
 
         let native_handle: CpiHandle<'_> = CpiHandle::from(native_token);
         let mut accounts: [CpiHandle<'_>; MAX_SYNC_NATIVE_EXTRA_ACCOUNTS + 3] =
@@ -132,7 +131,7 @@ pub fn sync_native_with_extra_accounts(
         let instruction = ::pinocchio::instruction::InstructionView {
             program_id: program.info.view.address(),
             accounts: ix_accounts,
-            data: &[17],
+            data: &[SYNC_NATIVE],
         };
 
         let native_handle: CpiHandle<'_> = native_token.into();

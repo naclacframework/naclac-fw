@@ -1,11 +1,14 @@
 //! `SetAuthority`: changes or clears one authority of a mint or token
 //! account, signed by the current authority.
 
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use pinocchio::instruction::InstructionAccount;
+use {
+    super::invoke::{invoke, SET_AUTHORITY},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result},
+};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u8)]
@@ -43,53 +46,16 @@ pub fn set_authority_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = if program.address() == spl_token_2022::ID {
-            let auth_type = match authority_type {
-                AuthorityType::MintTokens => {
-                    ::spl_token_2022::instruction::AuthorityType::MintTokens
-                }
-                AuthorityType::FreezeAccount => {
-                    ::spl_token_2022::instruction::AuthorityType::FreezeAccount
-                }
-                AuthorityType::AccountOwner => {
-                    ::spl_token_2022::instruction::AuthorityType::AccountOwner
-                }
-                AuthorityType::CloseAccount => {
-                    ::spl_token_2022::instruction::AuthorityType::CloseAccount
-                }
-            };
-            spl_token_2022::instruction::set_authority(
-                &program.address(),
-                &account_or_mint.info.address(),
-                new_authority,
-                auth_type,
-                &current_authority.info.address(),
-                &[],
-            )?
-        } else {
-            let auth_type = match authority_type {
-                AuthorityType::MintTokens => ::spl_token::instruction::AuthorityType::MintTokens,
-                AuthorityType::FreezeAccount => {
-                    ::spl_token::instruction::AuthorityType::FreezeAccount
-                }
-                AuthorityType::AccountOwner => {
-                    ::spl_token::instruction::AuthorityType::AccountOwner
-                }
-                AuthorityType::CloseAccount => {
-                    ::spl_token::instruction::AuthorityType::CloseAccount
-                }
-            };
-            spl_token::instruction::set_authority(
-                &program.address(),
-                &account_or_mint.info.address(),
-                new_authority,
-                auth_type,
-                &current_authority.info.address(),
-                &[],
-            )?
-        };
-        let accounts = [CpiHandle::from(account_or_mint), current_authority, program];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+        let (data, len) = instruction_data(authority_type, new_authority);
+        invoke(
+            program,
+            [
+                (CpiHandle::from(account_or_mint), Role::Writable),
+                (current_authority, Role::ReadonlySigner),
+            ],
+            &data[..len],
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -104,7 +70,7 @@ pub fn set_authority_signed(
             Some(new_authority) => {
                 let new_authority: &[u8] = new_authority.as_ref();
                 let mut data = [0u8; 35];
-                data[0] = 6;
+                data[0] = SET_AUTHORITY;
                 data[1] = authority_type as u8;
                 data[2] = 1;
                 data[3..].copy_from_slice(new_authority);
@@ -114,9 +80,94 @@ pub fn set_authority_signed(
                 &program,
                 &accounts,
                 &handles,
-                &[6, authority_type as u8, 0],
+                &[SET_AUTHORITY, authority_type as u8, 0],
                 signer_seeds,
             ),
+        }
+    }
+}
+
+/// The instruction data and how many of its 35 bytes are used: 3 when the
+/// authority is cleared, 35 when it is set to a new address.
+#[cfg(not(feature = "pinocchio"))]
+fn instruction_data(
+    authority_type: AuthorityType,
+    new_authority: Option<&Address>,
+) -> ([u8; 35], usize) {
+    let mut data = [0u8; 35];
+    data[0] = SET_AUTHORITY;
+    data[1] = authority_type as u8;
+    match new_authority {
+        Some(new_authority) => {
+            let new_authority: &[u8] = new_authority.as_ref();
+            data[2] = 1;
+            data[3..].copy_from_slice(new_authority);
+            (data, 35)
+        }
+        None => (data, 3),
+    }
+}
+
+#[cfg(all(test, not(feature = "pinocchio")))]
+mod tests {
+    use {super::*, spl_token::instruction as classic, spl_token_2022::instruction as token_2022};
+
+    const TYPES: [AuthorityType; 4] = [
+        AuthorityType::MintTokens,
+        AuthorityType::FreezeAccount,
+        AuthorityType::AccountOwner,
+        AuthorityType::CloseAccount,
+    ];
+
+    fn classic_type(authority_type: AuthorityType) -> classic::AuthorityType {
+        match authority_type {
+            AuthorityType::MintTokens => classic::AuthorityType::MintTokens,
+            AuthorityType::FreezeAccount => classic::AuthorityType::FreezeAccount,
+            AuthorityType::AccountOwner => classic::AuthorityType::AccountOwner,
+            AuthorityType::CloseAccount => classic::AuthorityType::CloseAccount,
+        }
+    }
+
+    fn token_2022_type(authority_type: AuthorityType) -> token_2022::AuthorityType {
+        match authority_type {
+            AuthorityType::MintTokens => token_2022::AuthorityType::MintTokens,
+            AuthorityType::FreezeAccount => token_2022::AuthorityType::FreezeAccount,
+            AuthorityType::AccountOwner => token_2022::AuthorityType::AccountOwner,
+            AuthorityType::CloseAccount => token_2022::AuthorityType::CloseAccount,
+        }
+    }
+
+    #[test]
+    fn the_data_is_what_both_token_programs_build() {
+        let account = Address::new_from_array([1; 32]);
+        let authority = Address::new_from_array([2; 32]);
+        let new_authority = Address::new_from_array([0xab; 32]);
+        for authority_type in TYPES {
+            for new in [None, Some(&new_authority)] {
+                let (data, len) = instruction_data(authority_type, new);
+                let classic_data = classic::set_authority(
+                    &spl_token::ID,
+                    &account,
+                    new,
+                    classic_type(authority_type),
+                    &authority,
+                    &[],
+                )
+                .unwrap()
+                .data;
+                let token_2022_data = token_2022::set_authority(
+                    &spl_token_2022::ID,
+                    &account,
+                    new,
+                    token_2022_type(authority_type),
+                    &authority,
+                    &[],
+                )
+                .unwrap()
+                .data;
+                assert!(data[..len] == classic_data[..]);
+                assert!(data[..len] == token_2022_data[..]);
+            }
         }
     }
 }

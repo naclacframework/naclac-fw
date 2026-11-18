@@ -5,10 +5,6 @@
 pub enum ProgramError {
     /// Invalid mint for the trade.
     InvalidMint,
-    /// Unauthorized action.
-    Unauthorized,
-    /// Overflow or math error.
-    Overflow,
     /// The amount provided must be greater than zero.
     ZeroAmount,
 }
@@ -17,9 +13,7 @@ impl ProgramError {
     pub fn from_code(code: u32) -> Option<Self> {
         match code {
             6000 => Some(Self::InvalidMint),
-            6001 => Some(Self::Unauthorized),
-            6002 => Some(Self::Overflow),
-            6003 => Some(Self::ZeroAmount),
+            6001 => Some(Self::ZeroAmount),
             _ => None,
         }
     }
@@ -27,8 +21,6 @@ impl ProgramError {
     pub fn message(&self) -> &'static str {
         match self {
             Self::InvalidMint => "Invalid mint for the trade.",
-            Self::Unauthorized => "Unauthorized action.",
-            Self::Overflow => "Overflow or math error.",
             Self::ZeroAmount => "The amount provided must be greater than zero.",
         }
     }

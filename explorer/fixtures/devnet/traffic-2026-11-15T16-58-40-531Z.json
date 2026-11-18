@@ -1,0 +1,1297 @@
+[
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "initialize",
+    "intent": "success",
+    "version": "v1",
+    "signature": null,
+    "outcome": "skipped",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": false,
+    "note": "counter already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "increment",
+    "intent": "success",
+    "version": "v1",
+    "signature": "2Ho1eAF5dRxwo3TW2MjSiZFdhqY3E94zqCTACBBHAchNg99F3mUfjbypiMsb3R1mUWh5eVXjDfTXtrLffwdMs8JY",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "increment",
+    "intent": "success",
+    "version": "v0",
+    "signature": "4HTgaNPbw29UQ86f4P6ab5hsV6TUE7GCuifADqDjhSq2isYH5K3K7U6ji2SuRwRtsoSTCqR8sQPNpKd7RkEqEEnV",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "increment",
+    "intent": "success",
+    "version": "legacy",
+    "signature": "3hXKCXMjxR9w3yerGjHwRrVNxw8M2o5bzNSG5PBbzd1ikkouwtzwL9DG7CuMUhj5mdEaeUteM2LTe3zu44hb9Kg7",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "increment with two extra accounts",
+    "intent": "success",
+    "version": "v1",
+    "signature": "28U5Ntg6wTDFkYiG2YDfSL8zGFbhtJzj3gi12hu5XRU3HdaxfihjwYGWBK44JsU6AznLu4jXn7DSNUDPf9f9VFwv",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": "extra accounts are not named by the IDL"
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "increment with the authority repeated as an extra account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "2NYTyCP6V6d2fe5ogkV3E2BG9yft7LLMytdmWaw2N4kwqfw2AXHf4PKMpnMzrkRXquVHNYNy8sgah3auA4dubHsZ",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10025"
+        }
+      ]
+    },
+    "customCode": 10025,
+    "customCodeMeaning": "framework ConstraintDuplicateMutableAccount (account index 0)",
+    "finalized": true,
+    "note": "expected: the framework rejects a writable account passed twice"
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v0",
+    "signature": "4SjUmAbYCrqgYJqcW1dmMHwMnQkTiqVLF5SG82jtzfMpfn1wTQVUiiy1DLFLmp1WJnEcWY5XuzhQACjivJnq3sNK",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "initialize a second time",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "4A7k9Gchz3HAt9dkLCNsruxBvTr2q9a7Kt77VrM1QcgdBz4JQAN4XYVECPY3vN94mqLsqGMn8ywAZnPZAaeuPmhr",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10114"
+        }
+      ]
+    },
+    "customCode": 10114,
+    "customCodeMeaning": "framework AccountAlreadyInitialized (account index 1)",
+    "finalized": true,
+    "note": "expected: the account already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "increment with the wrong authority",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "5pCxAvRBDNKJ8vFcC6geJGD88X9nkWhjvMPKp8zxnbk5esvYVA9R9fEmW29TmiMUr3AEKCRd8X975p3Mbu6Vbs4b",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6000"
+        }
+      ]
+    },
+    "customCode": 6000,
+    "customCodeMeaning": "program error Unauthorized",
+    "finalized": true,
+    "note": "expected: the authority constraint fails"
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "increment with the wrong counter account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "4oePKZtk9Th7E4WSixMhSWgNDY6ZGmWsN31BbSL1MBs6eb32KUyaNZcLu9aTsRT6Zq6qmS1K8SgXUEk1HQSrh2vn",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10104"
+        }
+      ]
+    },
+    "customCode": 10104,
+    "customCodeMeaning": "framework ConstraintOwner (account index 1)",
+    "finalized": true,
+    "note": "expected: the counter account is not the program's PDA"
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "31iNFvLrx9nV2rEfKyrocX98wgaxYHKq2YKuEcssdZKDCohZdyBa2ZfKq8b9wX9Qm6PGnf2jGr9FuYqbSMZossSj",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "2z9nPW6tRtG9JSBtTnrQT7NSEqwbao24x7ucYVTCma7sPjtD6GKC6J36ociz7FdLJG4oq4Z4M4Ub5CfqLPPRKoxH",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "5m8irQ9623ksCFfRdWSGn1MVA5bz19JJvGrsZ3XCMWT32PLeWUCcJpEAmMvmYgc3bGsBFj9Cze53rJrf85btG1N5",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter",
+    "programId": "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM",
+    "label": "decrement at zero",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "3RwBDCCTwbFp626r3BuiHrwmjRHMNkSectzKHtFuf1JMk4gLqTnaviis8HYQi8UcbG4HsDp5b63Jcjx4dRmhLPm8",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6001"
+        }
+      ]
+    },
+    "customCode": 6001,
+    "customCodeMeaning": "program error Underflow",
+    "finalized": true,
+    "note": "expected: the program's Underflow error"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "initialize",
+    "intent": "success",
+    "version": "v1",
+    "signature": null,
+    "outcome": "skipped",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": false,
+    "note": "counter already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "increment",
+    "intent": "success",
+    "version": "v1",
+    "signature": "GumSzbBERt3TR7xmA8jdXjAiT5UPmeHAhiLKcdMP2qFXwd4V6BfzwUwFPYmgGSgWE31y1ct7hVR16kByGyRwT4A",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "increment",
+    "intent": "success",
+    "version": "v0",
+    "signature": "3oUgkinJbLd775dA2vKKzmQP7n5iknzW4guMPDdvFAAKez6NeEmFPAypVnE6mbN4g5apTMpuyvokpsHyupCdGM5R",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "increment",
+    "intent": "success",
+    "version": "legacy",
+    "signature": "3yRkX9Yamp6XgAgRGtHxPV1XiLtGJbhBsx5Awh2WLfk7513GuxcoKLhN8GUDccB9kQVCt9W38R438QBkfSXQTh9R",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "increment with two extra accounts",
+    "intent": "success",
+    "version": "v1",
+    "signature": "66w565tuCkTtRrBDsUSwmeHes4Z1KnrY3ztgD4NoKwMWKg8AE655jvQMf8RC5U6xZwNRuSZbcVdPYhz7BnKCUKPT",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": "extra accounts are not named by the IDL"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "increment with the authority repeated as an extra account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "4ur7DiTUUH1xmwEMVgPJBSxXJi2Hy76M4sBEbB4284cDLjGeoJJQ8eCZ1vdy3CCtjwN7b997ge7dHZeXfpSsYesd",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10025"
+        }
+      ]
+    },
+    "customCode": 10025,
+    "customCodeMeaning": "framework ConstraintDuplicateMutableAccount (account index 0)",
+    "finalized": true,
+    "note": "expected: the framework rejects a writable account passed twice"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v0",
+    "signature": "2JdErQevWzKePXb9nGHRtzPoUkzmjiThWgtfQUP1PYPYS3gCkJyevjicbJ4c9je6kzHwDnEj9WyShqJmWyUw8H52",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "initialize a second time",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "3amPmYAw5FptF2Mz1djw4FGLHEGbEYrqCPUnH1fi4NMoe84otHggpBDkujk3hb9kcbG235pXqfrR1xRkgfzG1S9f",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10114"
+        }
+      ]
+    },
+    "customCode": 10114,
+    "customCodeMeaning": "framework AccountAlreadyInitialized (account index 1)",
+    "finalized": true,
+    "note": "expected: the account already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "increment with the wrong authority",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "5F9WZypJwYZwczG4FDPbVkBAyviyuVGPRiFyLZdCEdnJbsJWdyLfnaXGQqnqed8Ui9eMJrK9fVZEAYr9ENoPwuG6",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6000"
+        }
+      ]
+    },
+    "customCode": 6000,
+    "customCodeMeaning": "program error Unauthorized",
+    "finalized": true,
+    "note": "expected: the authority constraint fails"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "increment with the wrong counter account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "5ayqvq79gPEwA4JHhQSHjDX7TWKJoTxVzuLxjuwNRbkP2KyaCYSnLAswMvLn8CTvVPNT9XQznqFGNPFjy1mxHnrd",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10104"
+        }
+      ]
+    },
+    "customCode": 10104,
+    "customCodeMeaning": "framework ConstraintOwner (account index 1)",
+    "finalized": true,
+    "note": "expected: the counter account is not the program's PDA"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "5yDJregTReABKY2dWVw9NfZctMja5tgmWW4eGWU1UNLNa68LVTK46TefDzNBTNY4E3v7pEW5fuNSq9qsBQTLV2ZN",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "2mYHvUhoKCakNzJRH6nZr3ypXBgRwJgUDF7xjMANBdFf3q7yWWEjgHcMfaiTGbAW9LX4g8iBFmXqYvNeYdg92bSD",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "2exjC2n8dvn7MKEHofBHuwA1nTTNbh9FQ7NQLGum7VND9ren1yqNMzkCEeS6wXLfZjcZrVCoxG1XS9rXxFckuxaU",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_borsh",
+    "programId": "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1",
+    "label": "decrement at zero",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "2jS7f2Y7cifQVJiVrn1mod9gznpPRa4a9uPAQBVFZiHk9zYTMwTW2RgwUvu8uTHzK7He1TF7HCDfyKcfK6ty4rcX",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6001"
+        }
+      ]
+    },
+    "customCode": 6001,
+    "customCodeMeaning": "program error Underflow",
+    "finalized": true,
+    "note": "expected: the program's Underflow error"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "initialize",
+    "intent": "success",
+    "version": "v1",
+    "signature": null,
+    "outcome": "skipped",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": false,
+    "note": "counter already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "increment",
+    "intent": "success",
+    "version": "v1",
+    "signature": "rsasb94jvqEnYxVzaqRE9dMFMH5MBV3s7nr3bf6Qv1z6tE67QPHNYX9oZaZmZYqFYh9xLSoiiQtmHSDTuBszTzm",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "increment",
+    "intent": "success",
+    "version": "v0",
+    "signature": "Pe96DHbzuE9H4XA47sbh6ovTdcGYchPjQDUTBKwUTQUvARbiTaN1mH82kJdvJRU6EGJLfvDFPdF9t8jJpb85YhE",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "increment",
+    "intent": "success",
+    "version": "legacy",
+    "signature": "2uTvpgWz27wPDnLmRHmFWFpUHqFQiaiJtAAgTfeZ1tM7PJdzuCN42GAQ1fHugZ2mMc9cSr6BntpRtv8o7YXakS6P",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "increment with two extra accounts",
+    "intent": "success",
+    "version": "v1",
+    "signature": "22DGhsQYsMAiWCS91QYS7ngCB2RnPT7s6qpNEYoqrCGyoUaaKTV636bWgooMDKgC3PvoMq1ReZpPjfJVRPXU4Nav",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": "extra accounts are not named by the IDL"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "increment with the authority repeated as an extra account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "jht6puCv8adcj4D6Trg3tDxQGhZgSeNEZU6CJcDS2VZP3gCyLiA4sDVWgnCGiqyRdNUdDNL9P5qjRqgEdpGzG6C",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10025"
+        }
+      ]
+    },
+    "customCode": 10025,
+    "customCodeMeaning": "framework ConstraintDuplicateMutableAccount (account index 0)",
+    "finalized": true,
+    "note": "expected: the framework rejects a writable account passed twice"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v0",
+    "signature": "3276XF3wzotMxsNroZ6jBstZjLYWSgoJCbmp6oCLVmRdmnrQ2HTMGCWDpaHfo8PEuWS59B6gMR6e3W1HK5Ntd34V",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "initialize a second time",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "2Q4mQZejTSeA9GTMorP5bQERyEbgybfAbzgKbjmaMUY36Av3y76pZnFQQPE3Q2MgGZNZUFJPeb8WRY73Fs7Vyb3J",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10114"
+        }
+      ]
+    },
+    "customCode": 10114,
+    "customCodeMeaning": "framework AccountAlreadyInitialized (account index 1)",
+    "finalized": true,
+    "note": "expected: the account already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "increment with the wrong authority",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "5AHBq2YwiEHk6mjpWN6VdTkSa5C8WpESjUjYsiW8637tAuv8kFoRT5GTjYwmZ41mL8miX5rdSVYMyy49ghxeKfS6",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6000"
+        }
+      ]
+    },
+    "customCode": 6000,
+    "customCodeMeaning": "program error Unauthorized",
+    "finalized": true,
+    "note": "expected: the authority constraint fails"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "increment with the wrong counter account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "2hh2oeZs1ptzoGZFuPf9em1ebxrvzk8TiHeidHmcSfZbZhaMsM6Fz8xd8MHQ5YWAjxi1EhB1A5BKqvP5XPBtFcJe",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10104"
+        }
+      ]
+    },
+    "customCode": 10104,
+    "customCodeMeaning": "framework ConstraintOwner (account index 1)",
+    "finalized": true,
+    "note": "expected: the counter account is not the program's PDA"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "3uc4jnwUHKALafSWTZa8jt26byGpAx9nazy2dw62YRbJWLh2BNzuPzLxBKsDgBr86UCRMfuecGveV5dsqSFiQqPk",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "PrHrHgEZzvEnHqFExAu2vN7m4c2cPemYGkS3eUZvxBrq22nEk11L3fQDTaWF3aTvubFScLbTAh7cePZ8nRGFaed",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "472uMYwFVvZ7ittg7YPRWkhc1FVLimbz7hXD9dGgrSCfACq3zzaKGZSQS18wuvPMGfQMgYb1BjLez9UN8DegFtMQ",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode",
+    "programId": "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ",
+    "label": "decrement at zero",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "5y6FNfD23JUkQRAHfBWeQoCD1QZsqs8N2jKy32VxuSjBNjZJu4L2pPWnUN8EfjSQCChuvSo1U6D4MuM1qCFjSAbG",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6001"
+        }
+      ]
+    },
+    "customCode": 6001,
+    "customCodeMeaning": "program error Underflow",
+    "finalized": true,
+    "note": "expected: the program's Underflow error"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "initialize",
+    "intent": "success",
+    "version": "v1",
+    "signature": null,
+    "outcome": "skipped",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": false,
+    "note": "counter already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "increment",
+    "intent": "success",
+    "version": "v1",
+    "signature": "5saPedyWf4tE2iX7nwWyzzP3go5ZR7TWQHUYxsA5y7GiTCjNGdMXthExq3yjtoR8Y4qjyqPw7w8mZ9vCjU2hLJbL",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "increment",
+    "intent": "success",
+    "version": "v0",
+    "signature": "3MWxeFjvnQwXQLGSF2MQLVmxF5tRd9DhbQbuuiJZYu6yVKcwbxSskfoBaw7bgsFKsAqKKXza1tpz2HixwzZRGi1g",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "increment",
+    "intent": "success",
+    "version": "legacy",
+    "signature": "5JEnTHA3VvMaM5qUQ6sDrSdc5hLK5j8fvxQ9PzzyiA56dTdpg3Xtte1WkHpUUF6tsbQKRGUJVxSqfJHEthdVP663",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "increment with two extra accounts",
+    "intent": "success",
+    "version": "v1",
+    "signature": "5xwPdHMn2q22KgHaHXY3uWMG3LWvzw12mApuirzh1GwDpB6fLG9BT2Ue3XhGtHqqwNJj1RXkzf6DTk4Gzzg1567z",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": "extra accounts are not named by the IDL"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "increment with the authority repeated as an extra account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "RGsp2tP5S8o9GzE2izB8uzSurfug637CDovT7SUbRZreyyDewzR3KUo9zBE9gp37CY8f6G7JxxXgoNkKBSQs2Vi",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10025"
+        }
+      ]
+    },
+    "customCode": 10025,
+    "customCodeMeaning": "framework ConstraintDuplicateMutableAccount (account index 0)",
+    "finalized": true,
+    "note": "expected: the framework rejects a writable account passed twice"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v0",
+    "signature": "4dQvBSqyCH85yMyZzhd9sioyNw7vPKQDCeQE5bF5ZQJPHDb3KmfwDjZfmm1BMVnJstcEwWt1ibHk5EpKEps338PR",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "initialize a second time",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "3aXEbNs1aMXALSdFukmBmtHmKjAbxreUbf6o8Y8Xz7pKDLVQf6wJe9tjLBrdb9cKJkqNSD1ibJuBKdqaBTpoGQCx",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10114"
+        }
+      ]
+    },
+    "customCode": 10114,
+    "customCodeMeaning": "framework AccountAlreadyInitialized (account index 1)",
+    "finalized": true,
+    "note": "expected: the account already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "increment with the wrong authority",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "5o1U2XtdRJqYmrSsoncpNGMDhaBWeLdfRhgU2hoPcCnQ7Fy1ULV9nuA8V8RZZPPsQXLCVtCRkS37CLv4oGkhsdY2",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6000"
+        }
+      ]
+    },
+    "customCode": 6000,
+    "customCodeMeaning": "program error Unauthorized",
+    "finalized": true,
+    "note": "expected: the authority constraint fails"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "increment with the wrong counter account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "p8APZKoPmxoz1pazP6YNgnHVqRmQMnhNsGJwVjnTBMwvm9KtcEqbXdfXMg7A8LtLAVkt9PKZjTzuPUq9WHirDbs",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10104"
+        }
+      ]
+    },
+    "customCode": 10104,
+    "customCodeMeaning": "framework ConstraintOwner (account index 1)",
+    "finalized": true,
+    "note": "expected: the counter account is not the program's PDA"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "3gzir7SCyswWPNqCAiDGeSHakMNV8PFQZyKaJR86BVFtqJRp4HTkyaKcVdYoiwkfvisJxuBYki42hvJwyvsy8F5D",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "4HFjJTxbceCJTJ7dbF2N6uJTvqyima9gFQJcLnoCpjHaHeU2LLCj2RBqt9K22hBxk54ZP1HF8ZNHBaZvkV6C5Gga",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "3w5qHep4muSqgNEeUfZyEeFJUzbusuBkyst2Gu4NoAp3qUq3oYVBQ7g2c6ZhucegA1BBharArgaqYudUcLmHHj9G",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_wincode_pinocchio",
+    "programId": "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF",
+    "label": "decrement at zero",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "22YJzH64djWoxit37JFr5dPgTqBLtqGQH4rJahUgaWuj3WFEEF4atYtTJBRSVYVD8qkjCetqG3eshNa1Jdkab1wF",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6001"
+        }
+      ]
+    },
+    "customCode": 6001,
+    "customCodeMeaning": "program error Underflow",
+    "finalized": true,
+    "note": "expected: the program's Underflow error"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "initialize",
+    "intent": "success",
+    "version": "v1",
+    "signature": null,
+    "outcome": "skipped",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": false,
+    "note": "counter already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "increment",
+    "intent": "success",
+    "version": "v1",
+    "signature": "4AJiSGM6yER2wSAKZqZ8v7X6EWSWYHdGyuTUKrM5oe6RW1uzdjSHRZbnfXbyMgDeZQnfuAKAiDt9FZBb6mA2eBat",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "increment",
+    "intent": "success",
+    "version": "v0",
+    "signature": "5By97pfGPH5LS4UPqdmZLtMv9ZaRhRLY7LMn83L3VeosfPFKxeQn9v4SfkUfAXEge2RCvLdsqqchx4DufjMdrt58",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "increment",
+    "intent": "success",
+    "version": "legacy",
+    "signature": "2V6SDupA4zi5DXB38ktKaoj4dhRAAYZeM3FhGCC99mWysxyxB5JgA5rRj8JGFnBBYkESVQi2ek9m7s9tHs7Vp3sD",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "increment with two extra accounts",
+    "intent": "success",
+    "version": "v1",
+    "signature": "2Af8EG46AE87MLcvnKKyQAE9Fs1UQSizCXa9GFYc245DpehikYYYxStZJzamUY1MzaMhELMZiRmeewqJX9ajUqph",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": "extra accounts are not named by the IDL"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "increment with the authority repeated as an extra account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "5pXEwoUPddyYV6fWPGxPhFeXYNkjRLXEwcXaWqAazAuoHW3DSy4KzEv6rqzcyv77kK9y3JMAaL4qjsEke3e9x4sN",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10025"
+        }
+      ]
+    },
+    "customCode": 10025,
+    "customCodeMeaning": "framework ConstraintDuplicateMutableAccount (account index 0)",
+    "finalized": true,
+    "note": "expected: the framework rejects a writable account passed twice"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v0",
+    "signature": "3MnW9cj5iXsRBBG4TtxDtwrGSyRHdooAzCJXYAC5YsM3fLZ3qMRj7wbK4bUgLgnoSugjakcLmyN3URmzyXyRyWK",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "initialize a second time",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "PofLL5cYbovRz4GtkzZGhTot89King82ajjugLHqyFFT4Tyk9AjrSeg7VAfTCV5EyXpWtRbRw3nbThMtkFgriha",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10114"
+        }
+      ]
+    },
+    "customCode": 10114,
+    "customCodeMeaning": "framework AccountAlreadyInitialized (account index 1)",
+    "finalized": true,
+    "note": "expected: the account already exists"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "increment with the wrong authority",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "3ANC3ezzeFDwBsAGv4LBAiaU4CKU7G7j5VdZ8Vaq15BwDGs1XLeMr1CEwbSZWRLMbEAB9yNmawiE6fpfKpvYnrL3",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6000"
+        }
+      ]
+    },
+    "customCode": 6000,
+    "customCodeMeaning": "program error Unauthorized",
+    "finalized": true,
+    "note": "expected: the authority constraint fails"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "increment with the wrong counter account",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "54oRYrtMddGzSiAmXVFnZ7qD8yD9jfLhBRq8ksoYqfRc93GcKYC8ZyLs5782HD9fanQ4aoYVGN1cm7FbWuSFaeMa",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "10104"
+        }
+      ]
+    },
+    "customCode": 10104,
+    "customCodeMeaning": "framework ConstraintOwner (account index 1)",
+    "finalized": true,
+    "note": "expected: the counter account is not the program's PDA"
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "5yXJYNBjhqU1pqBHpvba4Q1iVozcFbuYrfHXxLRBrmBCen2FyCVBZdAjr5M2UHtX8hNKuGxAU1wzQD4wL6La1cBh",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "4eez94LWrWE5GW53Lg1dpyaLG5UAfzM1LGpngPvaj6esrX9dsm5sonAFAqgKncsjAt3ebwZai6svZzVFf2hR77RC",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "decrement",
+    "intent": "success",
+    "version": "v1",
+    "signature": "57F7ZCn94JS8tRVfCSXYTLUj3yKVSBffZhBEdz6psHWeDg1g3LqPUPwRGQrnGkEhXKE6na87g2aVCKUPjnz7w1Qa",
+    "outcome": "succeeded",
+    "matchedIntent": true,
+    "error": null,
+    "customCode": null,
+    "customCodeMeaning": null,
+    "finalized": true,
+    "note": null
+  },
+  {
+    "suite": "counter",
+    "program": "counter_zc",
+    "programId": "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM",
+    "label": "decrement at zero",
+    "intent": "failure",
+    "version": "v1",
+    "signature": "43Q6LX3UvyMuMsTYrDE1gqUucjGKnbZd1vnzsLPqH6Mza4a8UwxE9hbP698qNQ3NgtzhkSsCZAcWEeonnQX3Nw5Y",
+    "outcome": "failed",
+    "matchedIntent": true,
+    "error": {
+      "InstructionError": [
+        "0",
+        {
+          "Custom": "6001"
+        }
+      ]
+    },
+    "customCode": 6001,
+    "customCodeMeaning": "program error Underflow",
+    "finalized": true,
+    "note": "expected: the program's Underflow error"
+  }
+]

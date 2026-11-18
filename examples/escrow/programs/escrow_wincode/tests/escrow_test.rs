@@ -1,10 +1,10 @@
 use {
     escrow_wincode_client::{
-        state::{fetch_escrow_state, EscrowState},
         get_escrow_state_pda,
         instructions::{
             build_cancel, build_make, build_take, CancelAccounts, MakeAccounts, TakeAccounts,
         },
+        state::{fetch_escrow_state, EscrowState},
         types::{EscrowCancelled, EscrowCreated, EscrowExchanged, PROGRAM_ID},
     },
     naclac_client::{
@@ -117,6 +117,35 @@ fn test_escrow_lifecycle() {
     let amount_a_cancel = 400_000_000u64;
     let amount_b_cancel = 800_000_000u64;
 
+    let duplicate_mint_result = build_make(
+        &provider,
+        PROGRAM_ID,
+        id_cancel,
+        amount_a_cancel,
+        amount_b_cancel,
+        MakeAccounts {
+            maker: maker_address,
+            mint_a,
+            mint_b: mint_a,
+            escrow_state: escrow_pda_cancel,
+            vault_token_account: vault_token_account_cancel,
+            maker_token_account_a,
+            token_program: token_program_id,
+            system_program: Address::default(),
+        },
+    )
+    .simulate();
+    assert!(
+        matches!(
+            &duplicate_mint_result,
+            Err(NaclacClientError::TransactionFailed {
+                instruction_err: InstructionError::Custom(10_234),
+                ..
+            })
+        ),
+        "Expected the framework duplicate-account error for identical mints, got {duplicate_mint_result:?}"
+    );
+
     if !already_initialized_cancel {
         println!(
             "🤝 Sending MAKE transaction for Cancel Flow (A = {}, B = {})...",
@@ -158,6 +187,52 @@ fn test_escrow_lifecycle() {
         .fetch(&vault_token_account_cancel)
         .expect("Failed to fetch vault token account");
     assert_eq!(vault_balance.amount(), amount_a_cancel);
+
+    let invalid_mint_signer = Keypair::new();
+    let invalid_mint = invalid_mint_signer.address();
+    create_mint_with_program(
+        &provider,
+        &invalid_mint_signer,
+        &provider.payer.address(),
+        9,
+        &token_program_id,
+    )
+    .expect("Failed to create invalid mint");
+    let invalid_vault_token_account = create_ata_with_program(
+        &provider,
+        &invalid_mint,
+        &escrow_pda_cancel,
+        &token_program_id,
+    )
+    .expect("Failed to create invalid vault ATA");
+    let invalid_maker_token_account =
+        create_ata_with_program(&provider, &invalid_mint, &maker_address, &token_program_id)
+            .expect("Failed to create invalid maker ATA");
+    let invalid_mint_result = build_cancel(
+        &provider,
+        PROGRAM_ID,
+        id_cancel,
+        CancelAccounts {
+            maker: maker_address,
+            mint_a: invalid_mint,
+            escrow_state: escrow_pda_cancel,
+            vault_token_account: invalid_vault_token_account,
+            maker_token_account_a: invalid_maker_token_account,
+            token_program: token_program_id,
+            system_program: Address::default(),
+        },
+    )
+    .simulate();
+    assert!(
+        matches!(
+            &invalid_mint_result,
+            Err(NaclacClientError::TransactionFailed {
+                instruction_err: InstructionError::Custom(6000),
+                ..
+            })
+        ),
+        "Expected the user InvalidMint error after token-account constraints pass, got {invalid_mint_result:?}"
+    );
 
     // Cancel Escrow
     println!("🛑 Sending CANCEL transaction...");

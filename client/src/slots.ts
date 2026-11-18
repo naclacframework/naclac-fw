@@ -45,6 +45,7 @@ export function resolveSlots<T extends NaclacIdl>(idl: T): T {
     accounts: { name: string; type: { fields: Field[] } }[];
     instructions: { name: string; args: Field[] }[];
     definedTypes: { name: string; type: { kind: string; fields?: Field[] } }[];
+    events: { name: string; fields: Field[] }[];
   };
   const bytemuck = copy.metadata.serialization === "bytemuck";
   for (const account of copy.accounts) {
@@ -57,6 +58,9 @@ export function resolveSlots<T extends NaclacIdl>(idl: T): T {
     if (defined.type.kind === "struct" && defined.type.fields) {
       resolveFields(defined.type.fields, defined.name, bytemuck);
     }
+  }
+  for (const event of copy.events) {
+    resolveFields(event.fields, event.name, bytemuck);
   }
   return copy as unknown as T;
 }

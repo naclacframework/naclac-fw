@@ -1,0 +1,14 @@
+error[E0277]: Naclac Error: `Second` can't give the seeds of an `Account<First>`. Use `First::seeds(..)` or a `#[derive(Seeds)]` type.
+  --> tests/fail/63_typed_seeds_of_another_account.rs:24:23
+   |
+24 |     #[account(seeds = Second::seeds(), bump)]
+   |                       ^^^^^^ not the seeds of `First`
+   |
+help: the trait `SeedsFor<First>` is not implemented for `Second`
+      but trait `SeedsFor<Second>` is implemented for it
+  --> tests/fail/63_typed_seeds_of_another_account.rs:16:1
+   |
+16 | #[account]
+   | ^^^^^^^^^^
+   = help: for that trait implementation, expected `Second`, found `First`
+   = note: this error originates in the attribute macro `account` (in Nightly builds, run with -Z macro-backtrace for more info)

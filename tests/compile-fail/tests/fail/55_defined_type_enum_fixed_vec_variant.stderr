@@ -1,4 +1,4 @@
-error: Naclac Error: 'FixedVec'/'FixedString' can't be a field of a #[defined_type] enum variant: clients only know their capacity for accounts, structs and arguments. Wrap it in a #[defined_type] struct.
+error: Naclac Error: 'FixedVec'/'FixedString' can't be a field of a #[defined_type] enum variant: clients only know capacity for accounts, events, structs and arguments. Wrap it in a #[defined_type] struct.
  --> tests/fail/55_defined_type_enum_fixed_vec_variant.rs:5:19
   |
 5 |     Push { items: FixedVec<u8, 4> },

@@ -587,6 +587,20 @@ macro_rules! const_seed_integer {
 
 const_seed_integer!(u16, u32, u64, u128, i8, i16, i32, i64, i128);
 
+/// Marks `Self` as a type whose `seeds(..)` may be written on a field that
+/// holds an `Account<A>` or `InterfaceAccount<A>`: `#[account]` with
+/// `#[seeds]` implements it for itself only, and `#[derive(Seeds)]` for every
+/// `A`. `#[derive(Accounts)]` evaluates `VALID` for such a field, so naming
+/// the seeds of another account type fails to compile; nothing of it exists at
+/// runtime.
+#[diagnostic::on_unimplemented(
+    message = "Naclac Error: `{Self}` can't give the seeds of an `Account<{A}>`. Use `{A}::seeds(..)` or a `#[derive(Seeds)]` type.",
+    label = "not the seeds of `{A}`"
+)]
+pub trait SeedsFor<A> {
+    const VALID: bool;
+}
+
 /// A field value used as one PDA seed by an `#[account]` with `#[seeds(..)]`.
 /// Integers are little-endian; `Address` and `[u8; N]` are themselves.
 pub trait SeedPart {

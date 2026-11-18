@@ -15,6 +15,7 @@ mod layout;
 mod loadable;
 mod pinocchio;
 mod signer;
+mod signer_helpers;
 mod stack_guard;
 mod teardown;
 mod variant;
@@ -157,6 +158,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
     let teardown_fn = teardown::teardown_fn(&parsed_fields, &bumps, &variants);
     let loadable_impls = loadable::loadable_impls(&shared, &variants);
     let account_helper_impls = account_metas::account_helper_impls(&shared);
+    let signer_helper_fns = signer_helpers::signer_helpers(&parsed_fields, &args);
 
     let zc_size_guard_consts = &variants.zero_copy.size_guard_consts;
     let borsh_size_guard_consts = &variants.borsh.size_guard_consts;
@@ -189,6 +191,7 @@ pub fn expand_derive_accounts(item: TokenStream) -> TokenStream {
             #field_index_consts
             #pinocchio_fns
             #teardown_fn
+            #signer_helper_fns
         }
 
         #zc_size_guard_consts

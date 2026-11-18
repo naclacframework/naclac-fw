@@ -1,13 +1,13 @@
 //! `Approve`: lets a delegate spend up to an amount from a token account,
 //! signed by its owner.
 
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
+use pinocchio::instruction::InstructionAccount;
 use {
-    super::invoke::{amount_data, invoke},
-    pinocchio::instruction::InstructionAccount,
+    super::invoke::{amount_data, invoke, APPROVE},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result},
 };
 
 pub fn approve(
@@ -30,27 +30,16 @@ pub fn approve_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = if program.address() == spl_token_2022::ID {
-            spl_token_2022::instruction::approve(
-                &program.address(),
-                &to.info.address(),
-                &delegate.info.address(),
-                &authority.info.address(),
-                &[],
-                amount,
-            )?
-        } else {
-            spl_token::instruction::approve(
-                &program.address(),
-                &to.info.address(),
-                &delegate.info.address(),
-                &authority.info.address(),
-                &[],
-                amount,
-            )?
-        };
-        let accounts = [CpiHandle::from(to), delegate, authority, program];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+        invoke(
+            program,
+            [
+                (CpiHandle::from(to), Role::Writable),
+                (delegate, Role::Readonly),
+                (authority, Role::ReadonlySigner),
+            ],
+            &amount_data(APPROVE, amount),
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -65,7 +54,7 @@ pub fn approve_signed(
             &program,
             &accounts,
             &[to, delegate, authority],
-            &amount_data(4, amount),
+            &amount_data(APPROVE, amount),
             signer_seeds,
         )
     }

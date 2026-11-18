@@ -1,8 +1,12 @@
-use naclac_lang::prelude::*;
-use crate::state::counter::Counter;
-use crate::systems::math::process_increment;
-use crate::events::CounterIncremented;
-use crate::constants::SEED_COUNTER;
+use {
+    crate::{
+        errors::CounterError,
+        events::CounterIncremented,
+        state::counter::Counter,
+        systems::math::process_increment,
+    },
+    naclac_lang::prelude::*,
+};
 
 #[derive(Accounts)]
 pub struct Increment {
@@ -11,8 +15,8 @@ pub struct Increment {
 
     #[account(
         mut,
-        seeds = [SEED_COUNTER],
-        authority = authority
+        seeds = Counter::seeds(),
+        authority = authority @ CounterError::Unauthorized
     )]
     pub counter_account: Account<Counter>,
 }

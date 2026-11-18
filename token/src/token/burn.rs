@@ -1,13 +1,13 @@
 //! `Burn`: destroys tokens from a token account, signed by its owner or
 //! delegate.
 
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
+use pinocchio::instruction::InstructionAccount;
 use {
-    super::invoke::{amount_data, invoke},
-    pinocchio::instruction::InstructionAccount,
+    super::invoke::{amount_data, invoke, BURN},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result},
 };
 
 pub fn burn(
@@ -30,32 +30,16 @@ pub fn burn_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = if program.address() == spl_token_2022::ID {
-            spl_token_2022::instruction::burn(
-                &program.address(),
-                &from.info.address(),
-                &mint.info.address(),
-                &authority.info.address(),
-                &[],
-                amount,
-            )?
-        } else {
-            spl_token::instruction::burn(
-                &program.address(),
-                &from.info.address(),
-                &mint.info.address(),
-                &authority.info.address(),
-                &[],
-                amount,
-            )?
-        };
-        let accounts = [
-            CpiHandle::from(from),
-            CpiHandle::from(mint),
-            authority,
+        invoke(
             program,
-        ];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+            [
+                (CpiHandle::from(from), Role::Writable),
+                (CpiHandle::from(mint), Role::Writable),
+                (authority, Role::ReadonlySigner),
+            ],
+            &amount_data(BURN, amount),
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -71,7 +55,7 @@ pub fn burn_signed(
             &program,
             &accounts,
             &[from, mint, authority],
-            &amount_data(8, amount),
+            &amount_data(BURN, amount),
             signer_seeds,
         )
     }

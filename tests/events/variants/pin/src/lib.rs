@@ -28,6 +28,10 @@ pub mod events_prog {
         touch_counter_explicit_bump::touch_counter_explicit_bump(ctx)
     }
 
+    pub fn emit_roster(ctx: Context<EmitRoster>) -> Result {
+        emit_roster::emit_roster(ctx)
+    }
+
     pub fn log_event(ctx: Context<LogEvent>, data: ZcVec<u8>) -> Result {
         log_event::log_event(ctx, data)
     }

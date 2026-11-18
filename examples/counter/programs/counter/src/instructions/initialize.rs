@@ -1,6 +1,5 @@
 use naclac_lang::prelude::*;
 use crate::state::counter::Counter;
-use crate::constants::SEED_COUNTER;
 
 #[derive(Accounts)]
 pub struct Initialize {
@@ -10,8 +9,7 @@ pub struct Initialize {
     #[account(
         init,
         payer = payer,
-        seeds = [SEED_COUNTER],
-        bump
+        seeds = Counter::seeds(),
     )]
     pub counter_account: Account<Counter>,
 

@@ -1,0 +1,7 @@
+{
+  "name": "@naclac-explorer/idl",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Reads a program's IDL from the Program Metadata Program account and turns it back into the local IDL form."
+}

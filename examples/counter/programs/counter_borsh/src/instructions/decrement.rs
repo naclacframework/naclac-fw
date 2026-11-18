@@ -1,6 +1,6 @@
 use {
     crate::{
-        constants::SEED_COUNTER,
+        errors::CounterError,
         events::CounterDecremented,
         state::counter::Counter,
         systems::math::process_decrement,
@@ -15,8 +15,8 @@ pub struct Decrement {
 
     #[account(
         mut,
-        seeds = [SEED_COUNTER],
-        authority = authority
+        seeds = Counter::seeds(),
+        authority = authority @ CounterError::Unauthorized
     )]
     pub counter_account: Account<Counter>,
 }

@@ -168,7 +168,8 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core_cpi::Program<crate::Counter
             let __cpi_self_handle: crate::sdk_core_cpi::CpiHandle = crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(self);
             let handles: [crate::sdk_core_cpi::CpiHandle; 3] = [crate::sdk_core_cpi::CpiHandle::from(accounts.payer), crate::sdk_core_cpi::CpiHandle::from(accounts.counter_account), accounts.system_program];
             let metas: [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount; 3] = [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(handles[0].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[1].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[2].info.view.address())];
-            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired_array(&__cpi_self_handle, &metas, &handles, ix_data, signer_seeds)
+            let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView { program_id: __cpi_self_handle.info.view.address(), accounts: &metas, data: ix_data };
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired(&instruction, &handles, signer_seeds)
         }
         #[cfg(feature = "solana")]
         {

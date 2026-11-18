@@ -377,9 +377,10 @@ pub mod {snake_name} {{
         &program_dir.join("src/state/mod.rs"),
         "pub mod counter;\npub use counter::*;\n",
     );
-    let counter_rs = r#"use naclac_lang::prelude::*;
+    let counter_rs = r#"use {crate::constants::SEED_COUNTER, naclac_lang::prelude::*};
 
 #[account]
+#[seeds(SEED_COUNTER)]
 pub struct Counter {
     pub count: u64,
     pub authority: Address,
@@ -433,7 +434,6 @@ pub enum CounterError {
 
     let initialize_rs = r#"use naclac_lang::prelude::*;
 use crate::state::counter::Counter;
-use crate::constants::SEED_COUNTER;
 
 #[derive(Accounts)]
 pub struct Initialize {
@@ -443,7 +443,7 @@ pub struct Initialize {
     #[account(
         init,
         payer = payer,
-        seeds = [SEED_COUNTER]
+        seeds = Counter::seeds()
     )]
     pub counter_account: Account<Counter>,
 
@@ -468,7 +468,6 @@ pub fn initialize(ctx: Context<Initialize>) -> Result {
 use crate::state::counter::Counter;
 use crate::systems::math::process_increment;
 use crate::events::CounterIncremented;
-use crate::constants::SEED_COUNTER;
 
 #[derive(Accounts)]
 pub struct Increment {
@@ -477,7 +476,7 @@ pub struct Increment {
 
     #[account(
         mut,
-        seeds = [SEED_COUNTER],
+        seeds = Counter::seeds(),
         authority = authority
     )]
     pub counter_account: Account<Counter>,

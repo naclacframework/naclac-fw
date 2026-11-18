@@ -38,6 +38,7 @@ pub(super) fn idl_build_event_impl(
                 name: #fname.into(),
                 docs: vec![#(#docs.into()),*],
                 ty: <#field_ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::idl_type(),
+                slots: <#field_ty as naclac_lang::naclac_idl::idl_type::NaclacIdlType>::slots(),
             }
         });
         field_types.push(field_ty.clone());

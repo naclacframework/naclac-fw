@@ -130,33 +130,79 @@ impl Idl {
         }
 
         let is_zero_copy = idl.is_zero_copy;
-        let retype = |fields: &mut [IdlField], owner: &str| -> Result<(), String> {
-            for field in fields {
-                let Some(slots) = field.slots else { continue };
-                if !is_zero_copy {
-                    return Err(format!(
-                        "the IDL for '{name}' has `slots` on {owner}.{} but its serialization is not bytemuck",
-                        field.name
-                    ));
-                }
-                field.ty = fixed_form(&field.ty, slots)
-                    .map_err(|e| format!("{owner}.{}: {e}", field.name))?;
-            }
-            Ok(())
-        };
         for account in &mut idl.accounts {
-            retype(&mut account.ty.fields, &account.name)?;
+            for field in &mut account.ty.fields {
+                retype_field(
+                    &name,
+                    is_zero_copy,
+                    &account.name,
+                    &field.name,
+                    field.slots,
+                    &mut field.ty,
+                )?;
+            }
         }
         for instruction in &mut idl.instructions {
-            retype(&mut instruction.args, &instruction.name)?;
+            for field in &mut instruction.args {
+                retype_field(
+                    &name,
+                    is_zero_copy,
+                    &instruction.name,
+                    &field.name,
+                    field.slots,
+                    &mut field.ty,
+                )?;
+            }
         }
         for defined in &mut idl.defined_types {
             if let IdlTypeDefVariants::Struct { fields } = &mut defined.ty {
-                retype(fields, &defined.name)?;
+                for field in fields {
+                    retype_field(
+                        &name,
+                        is_zero_copy,
+                        &defined.name,
+                        &field.name,
+                        field.slots,
+                        &mut field.ty,
+                    )?;
+                }
+            }
+        }
+        for event in &mut idl.events {
+            for field in &mut event.fields {
+                retype_field(
+                    &name,
+                    is_zero_copy,
+                    &event.name,
+                    &field.name,
+                    field.slots,
+                    &mut field.ty,
+                )?;
             }
         }
         Ok(idl)
     }
+}
+
+/// Re-types one IDL field that carries `slots` as the fixed-capacity type it
+/// is, and leaves a field without `slots` untouched. `slots` in a program whose
+/// serialization is not bytemuck is an error naming `owner.field`.
+fn retype_field(
+    program: &str,
+    is_zero_copy: bool,
+    owner: &str,
+    field_name: &str,
+    slots: Option<u64>,
+    ty: &mut serde_json::Value,
+) -> Result<(), String> {
+    let Some(slots) = slots else { return Ok(()) };
+    if !is_zero_copy {
+        return Err(format!(
+            "the IDL for '{program}' has `slots` on {owner}.{field_name} but its serialization is not bytemuck"
+        ));
+    }
+    *ty = fixed_form(ty, slots).map_err(|e| format!("{owner}.{field_name}: {e}"))?;
+    Ok(())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -334,6 +380,11 @@ pub struct IdlEventField {
     pub ty: serde_json::Value,
     #[serde(default)]
     pub docs: Vec<String>,
+    /// The `N` of a `FixedVec<T, N>` or `FixedString<N>` field; see
+    /// `naclac_idl::IdlEventField::slots`. [`Idl::from_json`] has already
+    /// folded it into `ty`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slots: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -463,6 +514,55 @@ mod from_json_tests {
     fn slots_and_alloc_events_outside_bytemuck_are_rejected() {
         assert!(Idl::from_json(&idl(Some("borsh"), true, false)).is_err());
         assert!(Idl::from_json(&idl(Some("wincode"), false, true)).is_err());
+    }
+
+    fn idl_with_event_slots(serialization: &str, alloc: bool) -> String {
+        let mut event = json!({
+            "name": "Log",
+            "discriminator": [1],
+            "fields": [
+                { "name": "scores", "type": { "vec": "u64" }, "slots": 4 },
+                { "name": "label", "type": "string", "slots": 16 },
+                { "name": "total", "type": "u64" },
+            ],
+        });
+        if alloc {
+            event["alloc"] = json!(true);
+        }
+        json!({
+            "address": "11111111111111111111111111111111",
+            "metadata": {
+                "name": "p",
+                "version": "0.1.0",
+                "description": "d",
+                "serialization": serialization,
+            },
+            "instructions": [],
+            "accounts": [],
+            "events": [event],
+            "errors": [],
+            "constants": [],
+        })
+        .to_string()
+    }
+
+    #[test]
+    fn slots_on_an_event_field_become_fixed_types() {
+        for alloc in [false, true] {
+            let parsed = Idl::from_json(&idl_with_event_slots("bytemuck", alloc)).unwrap();
+            let fields = &parsed.events[0].fields;
+            assert_eq!(fields[0].ty, json!({ "fixedVec": ["u64", 4] }));
+            assert_eq!(fields[1].ty, json!({ "fixedString": 16 }));
+            assert_eq!(fields[2].ty, json!("u64"));
+        }
+    }
+
+    #[test]
+    fn slots_on_an_event_field_outside_bytemuck_are_rejected() {
+        let error = Idl::from_json(&idl_with_event_slots("borsh", false))
+            .err()
+            .unwrap();
+        assert!(error.to_string().contains("Log.scores"));
     }
 
     #[test]

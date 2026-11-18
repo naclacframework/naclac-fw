@@ -13,7 +13,6 @@ mod close_account;
 mod freeze_account;
 mod initialize_account;
 mod initialize_mint;
-#[cfg(feature = "pinocchio")]
 mod invoke;
 mod layout;
 mod mint_to;

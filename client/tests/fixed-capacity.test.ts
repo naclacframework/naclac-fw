@@ -8,6 +8,7 @@
 
 import { strict as assert } from "assert";
 import { getAccountCodec } from "../src/coder/account";
+import { getStructFieldsCodec } from "../src/coder/types";
 import { resolveSlots } from "../src/slots";
 import type { NaclacIdl } from "../src/idl";
 
@@ -87,5 +88,48 @@ describe("fixed-capacity fields", () => {
     const idl = idlWith("bytemuck", true);
     resolveSlots(idl);
     assert.deepEqual((idl.accounts[0].type.fields[0] as any).type, { vec: "u64" });
+  });
+});
+
+function idlWithEvent(serialization: "bytemuck" | "borsh"): NaclacIdl {
+  return {
+    address: "11111111111111111111111111111111",
+    metadata: { name: "p", version: "0.1.0", description: "d", serialization },
+    instructions: [],
+    accounts: [],
+    events: [
+      {
+        name: "Log",
+        discriminator: [1],
+        fields: [
+          { name: "scores", type: { vec: "u64" }, slots: 4 },
+          { name: "label", type: "string", slots: 16 },
+          { name: "total", type: "u64" },
+        ],
+      },
+    ],
+    errors: [],
+    constants: [],
+    definedTypes: [],
+    pdas: [],
+  } as unknown as NaclacIdl;
+}
+
+describe("fixed-capacity event fields", () => {
+  for (const layout of [true, "alloc"] as const) {
+    it(`encodes and decodes a ${layout === true ? "plain" : "alloc"} event with a FixedVec and a FixedString`, () => {
+      const idl = resolveSlots(idlWithEvent("bytemuck"));
+      const codec = getStructFieldsCodec(idl.events[0].fields as any[], idl.definedTypes, layout);
+      const bytes = codec.encode({ scores: [1n, 2n], label: "hi", total: 7n });
+
+      assert.equal(bytes.length, 2 + 4 * 8 + (2 + 16) + 8);
+      assert.deepEqual([...bytes.slice(0, 2)], [2, 0]);
+      assert.deepEqual([...bytes.slice(34, 38)], [2, 0, 104, 105]);
+      assert.deepEqual(codec.decode(bytes), { scores: [1n, 2n], label: "hi", total: 7n });
+    });
+  }
+
+  it("refuses slots on an event field in a program that is not bytemuck", () => {
+    assert.throws(() => resolveSlots(idlWithEvent("borsh")), /Log\.scores.*not bytemuck/);
   });
 });

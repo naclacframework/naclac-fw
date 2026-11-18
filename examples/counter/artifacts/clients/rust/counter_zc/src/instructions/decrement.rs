@@ -158,7 +158,8 @@ impl<'info> DecrementCpi<'info> for crate::sdk_core_cpi::Program<crate::CounterZ
             let __cpi_self_handle: crate::sdk_core_cpi::CpiHandle = crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(self);
             let handles: [crate::sdk_core_cpi::CpiHandle; 2] = [crate::sdk_core_cpi::CpiHandle::from(accounts.authority), crate::sdk_core_cpi::CpiHandle::from(accounts.counter_account)];
             let metas: [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount; 2] = [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(handles[0].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[1].info.view.address())];
-            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired_array(&__cpi_self_handle, &metas, &handles, ix_data, signer_seeds)
+            let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView { program_id: __cpi_self_handle.info.view.address(), accounts: &metas, data: ix_data };
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired(&instruction, &handles, signer_seeds)
         }
         #[cfg(feature = "solana")]
         {

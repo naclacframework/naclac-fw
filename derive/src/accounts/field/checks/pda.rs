@@ -292,17 +292,32 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
                     .map_err(|_| naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
         }
     } else {
-        // Hash-and-compare against the shared `derive_program_address`.
+        // A type that does not prove this program created the account must sit
+        // at the canonical bump: one hash would accept any bump that derives
+        // its address. `OWNER_VALIDATED` is a constant, so only one branch
+        // is compiled for the field's type.
+        let ty = &field.ty;
         quote! {
             #seed_bindings
             let expected_bump = #bump_expr;
             #pda_program_ref
             let __seeds: &[&[u8]] = #seeds_slice;
-            let expected_pda = naclac_lang::prelude::derive_program_address(
-                __seeds,
-                expected_bump,
-                __pda_program,
-            );
+            let expected_pda =
+                if <#ty as naclac_lang::prelude::NaclacAccount>::OWNER_VALIDATED {
+                    naclac_lang::prelude::derive_program_address(
+                        __seeds,
+                        expected_bump,
+                        __pda_program,
+                    )
+                } else {
+                    let (__canonical_pda, __canonical_bump) =
+                        naclac_lang::prelude::find_program_address(__seeds, __pda_program)
+                            .map_err(|_| naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
+                    if __canonical_bump != expected_bump {
+                        return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
+                    }
+                    __canonical_pda
+                };
         }
     };
 
@@ -312,6 +327,50 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
         // `find_bump_for_address` only returns a bump whose derived address
         // equals the field's own address.
         skip_address_check: use_hash_only_search,
+    }
+}
+
+/// `ty` without its `Box<..>` layers.
+fn unboxed(ty: &syn::Type) -> &syn::Type {
+    if let syn::Type::Path(path) = ty {
+        let is_box = path
+            .path
+            .segments
+            .last()
+            .is_some_and(|segment| segment.ident == "Box");
+        if let (true, Some(inner)) = (is_box, crate::type_classify::first_generic_type(ty)) {
+            return unboxed(inner);
+        }
+    }
+    ty
+}
+
+/// For a typed `seeds = T::seeds(..)` on a field holding an
+/// `Account<X>`/`InterfaceAccount<X>`, a `const` that fails to compile unless
+/// `T` is `X` or a `#[derive(Seeds)]` type, so a field never takes the seeds
+/// of another account type. Empty for any other field type or a list. An
+/// alias that hides the `Account`/`InterfaceAccount` wrapper is not checked.
+fn seeds_type_check(field: &ParsedField, pda_seeds: &PdaSeeds) -> TokenStream {
+    let PdaSeeds::Typed(call) = pda_seeds else {
+        return quote! {};
+    };
+    let wrapper = unboxed(&field.ty);
+    if !(crate::type_classify::is_exactly(wrapper, "Account")
+        || crate::type_classify::is_exactly(wrapper, "InterfaceAccount"))
+    {
+        return quote! {};
+    }
+    let (Some(account), syn::Expr::Path(function)) = (
+        crate::type_classify::first_generic_type(wrapper),
+        &*call.func,
+    ) else {
+        return quote! {};
+    };
+    let mut seeds_type = function.clone();
+    seeds_type.path.segments.pop();
+    seeds_type.path.segments.pop_punct();
+    quote! {
+        const _: bool = <#seeds_type as naclac_lang::prelude::SeedsFor<#account>>::VALID;
     }
 }
 
@@ -359,16 +418,19 @@ pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Optio
         bump_verification,
         skip_address_check,
     } = creation;
+    let type_check = seeds_type_check(field, seeds);
 
     if field.init_config.is_none() {
         if skip_address_check {
             Some(PdaChecks::Constraint(quote! {
+                #type_check
                 #logic
                 #bump_verification
                 let #bump_cap = expected_bump;
             }))
         } else {
             Some(PdaChecks::Constraint(quote! {
+                #type_check
                 #logic
                 #[cfg(not(feature = "solana"))]
                 {
@@ -389,6 +451,7 @@ pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Optio
         }
     } else {
         Some(PdaChecks::Metadata(quote! {
+            #type_check
             #logic
             #[cfg(not(feature = "solana"))]
             {
@@ -530,6 +593,40 @@ mod const_pda_tests {
     }
 
     #[test]
+    fn typed_seeds_on_an_account_field_must_be_the_accounts_own_or_a_seeds_type() {
+        let code = rendered(&field(
+            "#[account(seeds = Config::seeds(), bump)] a: Account<A>",
+        ));
+        assert!(
+            code.contains("< Config as naclac_lang :: prelude :: SeedsFor < A >> :: VALID"),
+            "{code}"
+        );
+        let interface = rendered(&field(
+            "#[account(seeds = crate::pool::Pool::seeds(), bump)] a: InterfaceAccount<Mint>",
+        ));
+        assert!(
+            interface.contains(
+                "< crate :: pool :: Pool as naclac_lang :: prelude :: SeedsFor < Mint >> :: VALID"
+            ),
+            "{interface}"
+        );
+        let boxed = rendered(&field(
+            "#[account(seeds = Config::seeds(), bump)] a: Box<Account<A>>",
+        ));
+        assert!(boxed.contains("SeedsFor < A >"), "{boxed}");
+    }
+
+    #[test]
+    fn typed_seeds_on_a_field_that_is_not_an_account_wrapper_and_list_seeds_are_not_checked() {
+        let mint = rendered(&field(
+            "#[account(seeds = VaultSeeds::seeds(), bump)] a: Mint",
+        ));
+        assert!(!mint.contains("SeedsFor"), "{mint}");
+        let list = rendered(&field("#[account(seeds = [b\"x\"], bump)] a: Account<A>"));
+        assert!(!list.contains("SeedsFor"), "{list}");
+    }
+
+    #[test]
     fn a_constant_typed_seeds_call_is_precomputed_and_not_derived_at_runtime() {
         let code = rendered(&field(
             "#[account(seeds = Config::seeds(), bump)] a: Account<A>",
@@ -602,5 +699,24 @@ mod const_pda_tests {
              a: Account<A>",
         );
         assert!(!rendered(&existing).contains("compile_error"));
+    }
+
+    #[test]
+    fn an_explicit_bump_must_be_canonical_unless_the_type_proves_its_owner() {
+        for ty in ["Account<A>", "AccountInfo"] {
+            let code = rendered(&field(&format!(
+                "/// SAFETY: test. \n #[account(seeds = [SEED_A, user.address().as_ref()], bump = args.bump)] a: {ty}"
+            )));
+            assert!(
+                code.contains("NaclacAccount > :: OWNER_VALIDATED"),
+                "{code}"
+            );
+            assert!(code.contains("derive_program_address"), "{code}");
+            assert!(
+                code.contains("find_program_address (__seeds , __pda_program)"),
+                "{code}"
+            );
+            assert!(code.contains("__canonical_bump != expected_bump"), "{code}");
+        }
     }
 }

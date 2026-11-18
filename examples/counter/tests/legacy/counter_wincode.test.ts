@@ -46,8 +46,6 @@ describe("Naclac CounterBorsh Test Suite (Legacy)", () => {
       throw new Error("Count did not increment correctly");
     }
 
-    // The event is a self-CPI (`emit_cpi!`), so it is in the transaction's
-    // inner instructions, not its logs.
     const capturedEvents = await client.parseCounterIncrementedEventsFromTransaction({
       logs: txResult!.logs,
       innerInstructions: txResult!.innerInstructions,

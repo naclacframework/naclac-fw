@@ -1,8 +1,5 @@
 use {
-    crate::{
-        constants::SEED_ESCROW, errors::EscrowError, events::EscrowExchanged,
-        state::escrow_state::EscrowState,
-    },
+    crate::{errors::EscrowError, events::EscrowExchanged, state::escrow_state::EscrowState},
     naclac_lang::prelude::*,
 };
 
@@ -21,7 +18,7 @@ pub struct Take {
 
     #[account(
         mut,
-        seeds = [SEED_ESCROW, maker.address().as_ref(), &id.to_le_bytes()],
+        seeds = EscrowState::seeds(maker.address(), id),
         bump = escrow_state.bump,
         close = maker,
         mint_a = mint_a @ EscrowError::InvalidMint,
@@ -62,7 +59,6 @@ pub struct Take {
 }
 
 pub fn take(ctx: Context<Take>, id: u64) -> Result {
-    // 1. Taker transfers Token B directly to the Maker
     let decimals_b = ctx.accounts.mint_b.decimals();
     ctx.accounts.token_program.transfer_checked(
         TransferCheckedAccounts {
@@ -75,40 +71,30 @@ pub fn take(ctx: Context<Take>, id: u64) -> Result {
         decimals_b,
     )?;
 
-    // 2. Prepare signer seeds for the escrow state PDA
-    let maker_addr = ctx.accounts.maker.address();
-    let seed_bytes = id.to_le_bytes();
-    let seeds: &[&[u8]] = &[
-        SEED_ESCROW,
-        maker_addr.as_ref(),
-        &seed_bytes,
-        &[ctx.accounts.escrow_state.bump],
-    ];
-    let signer_seeds: &[&[&[u8]]] = &[seeds];
+    ctx.accounts
+        .with_escrow_state_signer(id, ctx.bumps.escrow_state, |accounts, signer| {
+            let decimals_a = accounts.mint_a.decimals();
+            accounts.token_program.transfer_checked_signed(
+                TransferCheckedAccounts {
+                    from: &mut accounts.vault_token_account,
+                    mint: &accounts.mint_a,
+                    to: &mut accounts.taker_token_account_a,
+                    authority: &accounts.escrow_state,
+                },
+                accounts.escrow_state.amount_a,
+                decimals_a,
+                signer,
+            )?;
 
-    // 3. Transfer Token A from the vault token account to the Taker
-    let decimals_a = ctx.accounts.mint_a.decimals();
-    ctx.accounts.token_program.transfer_checked_signed(
-        TransferCheckedAccounts {
-            from: &mut ctx.accounts.vault_token_account,
-            mint: &ctx.accounts.mint_a,
-            to: &mut ctx.accounts.taker_token_account_a,
-            authority: &ctx.accounts.escrow_state,
-        },
-        ctx.accounts.escrow_state.amount_a,
-        decimals_a,
-        signer_seeds,
-    )?;
-
-    // 4. Close the vault token account (destinations receive refunded lamports)
-    ctx.accounts.token_program.close_account_signed(
-        CloseAccountAccounts {
-            account: &mut ctx.accounts.vault_token_account,
-            destination: &mut ctx.accounts.maker,
-            authority: &ctx.accounts.escrow_state,
-        },
-        signer_seeds,
-    )?;
+            accounts.token_program.close_account_signed(
+                CloseAccountAccounts {
+                    account: &mut accounts.vault_token_account,
+                    destination: &mut accounts.maker,
+                    authority: &accounts.escrow_state,
+                },
+                signer,
+            )
+        })?;
 
     emit!(EscrowExchanged {
         taker: ctx.accounts.taker.address(),

@@ -1,0 +1,37 @@
+{
+  "3ssHbWJWpTnjkVjycjTecdnfSN4STz3iENDdLw8o6gdM": {
+    "name": "counter",
+    "metadataAddress": "EGoqU9PEPTZxtdMP2vXyYLyspY1CSjByACLhVoUkfynF",
+    "exists": true,
+    "owner": "ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S",
+    "dataBytes": 805
+  },
+  "BKPVSL9FUrPfdEzdiXQxyzgS46ktA1YYGVo52o3g2k1": {
+    "name": "counter_borsh",
+    "metadataAddress": "4FvRUry4fmifscXBXBxVHjNZtXDJDkhRdnRzSAEworgk",
+    "exists": true,
+    "owner": "ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S",
+    "dataBytes": 811
+  },
+  "DDmzYuMpywidtCzyfR8PVjEvR4jeNKGpBjGHE419kKPZ": {
+    "name": "counter_wincode",
+    "metadataAddress": "2ZG1V1fqTZzwR6NsZHLyctnLhzgjT73vnc7VvQHrj5Xs",
+    "exists": true,
+    "owner": "ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S",
+    "dataBytes": 812
+  },
+  "2RwdRpkAspLvMXSs2me1BnbHWLerUuvR9i11TuUfT8XF": {
+    "name": "counter_wincode_pinocchio",
+    "metadataAddress": "FGVS1yhm6kCKp5nCrZ2UgzecssZzSKbWDXZZh7W8Qq1A",
+    "exists": true,
+    "owner": "ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S",
+    "dataBytes": 818
+  },
+  "3377S5KVHgDPDr57MdjSHeRdEmfp7ho8mQLKaXvViGrM": {
+    "name": "counter_zc",
+    "metadataAddress": "2nc8jfsZ2Lb3vsqX9rhLDWHCgymMPU4CeDqpjuv8Di6h",
+    "exists": true,
+    "owner": "ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S",
+    "dataBytes": 809
+  }
+}

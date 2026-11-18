@@ -97,6 +97,12 @@ export interface IdlAccountDef {
 export interface IdlEventField {
   name: string;
   type: string | Record<string, unknown>;
+  /**
+   * Set only on a `FixedVec<T, N>` or `FixedString<N>` field: the `N`. The
+   * `type` is then the plain `vec` or `string`, possibly inside arrays; a
+   * `string`'s slots are bytes.
+   */
+  slots?: number;
 }
 
 /** An event definition. */

@@ -1,11 +1,14 @@
 //! `TransferChecked`: moves tokens between two token accounts of one mint,
 //! checking the mint's decimals.
 
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use pinocchio::instruction::InstructionAccount;
+use {
+    super::invoke::{invoke, TRANSFER_CHECKED},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result},
+};
 
 /// Numeric parameters for a checked token transfer.
 /// Grouping amount + decimals keeps `transfer_checked_signed` under clippy's
@@ -45,40 +48,21 @@ pub fn transfer_checked_signed(
     params: CheckedTransferParams,
     signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
-    let CheckedTransferParams { amount, decimals } = params;
+    let data = instruction_data(params);
+
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = if program.address() == spl_token_2022::ID {
-            spl_token_2022::instruction::transfer_checked(
-                &program.address(),
-                &from.info.address(),
-                &mint.info.address(),
-                &to.info.address(),
-                &authority.info.address(),
-                &[],
-                amount,
-                decimals,
-            )?
-        } else {
-            spl_token::instruction::transfer_checked(
-                &program.address(),
-                &from.info.address(),
-                &mint.info.address(),
-                &to.info.address(),
-                &authority.info.address(),
-                &[],
-                amount,
-                decimals,
-            )?
-        };
-        let accounts = [
-            CpiHandle::from(from),
-            mint,
-            CpiHandle::from(to),
-            authority,
+        invoke(
             program,
-        ];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+            [
+                (CpiHandle::from(from), Role::Writable),
+                (mint, Role::Readonly),
+                (CpiHandle::from(to), Role::Writable),
+                (authority, Role::ReadonlySigner),
+            ],
+            &data,
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -91,11 +75,6 @@ pub fn transfer_checked_signed(
             InstructionAccount::writable(to.info.view.address()),
             InstructionAccount::readonly_signer(authority.info.view.address()),
         ];
-        let amount = amount.to_le_bytes();
-        let data = [
-            12, amount[0], amount[1], amount[2], amount[3], amount[4], amount[5], amount[6],
-            amount[7], decimals,
-        ];
         invoke(
             &program,
             &accounts,
@@ -103,5 +82,66 @@ pub fn transfer_checked_signed(
             &data,
             signer_seeds,
         )
+    }
+}
+
+/// `[TRANSFER_CHECKED, amount, decimals]` with the amount little-endian.
+#[inline(always)]
+fn instruction_data(params: CheckedTransferParams) -> [u8; 10] {
+    let CheckedTransferParams { amount, decimals } = params;
+    let amount = amount.to_le_bytes();
+    [
+        TRANSFER_CHECKED,
+        amount[0],
+        amount[1],
+        amount[2],
+        amount[3],
+        amount[4],
+        amount[5],
+        amount[6],
+        amount[7],
+        decimals,
+    ]
+}
+
+#[cfg(all(test, not(feature = "pinocchio")))]
+mod tests {
+    use {
+        super::*, crate::prelude::Address, spl_token::instruction as classic,
+        spl_token_2022::instruction as token_2022,
+    };
+
+    #[test]
+    fn the_instruction_data_is_what_both_token_programs_build() {
+        let key = |seed: u8| Address::new_from_array([seed; 32]);
+        let (from, mint, to, authority) = (key(1), key(2), key(3), key(4));
+        let (amount, decimals) = (0x0102_0304_0506_0708u64, 9u8);
+        let ours = instruction_data(CheckedTransferParams { amount, decimals });
+        let classic_data = classic::transfer_checked(
+            &spl_token::ID,
+            &from,
+            &mint,
+            &to,
+            &authority,
+            &[],
+            amount,
+            decimals,
+        )
+        .unwrap()
+        .data;
+        let token_2022_data = token_2022::transfer_checked(
+            &spl_token_2022::ID,
+            &from,
+            &mint,
+            &to,
+            &authority,
+            &[],
+            amount,
+            decimals,
+        )
+        .unwrap()
+        .data;
+        assert!(ours[..] == classic_data[..]);
+        assert!(ours[..] == token_2022_data[..]);
     }
 }

@@ -264,8 +264,8 @@ fn contains_fixed_capacity(ty: &Type) -> bool {
 /// An error spanned at each field of `fields` whose type holds a
 /// `FixedVec<T, N>` or `FixedString<N>`, or `None` when there is none. A
 /// client lays such a field out from the capacity recorded for the owning
-/// account, defined struct or instruction; `owner` is a place that has no such
-/// record, and `advice` names what to write instead.
+/// account, event, defined struct or instruction; `owner` is a place that has
+/// no such record, and `advice` names what to write instead.
 pub(crate) fn fixed_capacity_field_error<'a>(
     fields: impl Iterator<Item = &'a syn::Field>,
     owner: &str,
@@ -280,7 +280,7 @@ pub(crate) fn fixed_capacity_field_error<'a>(
             &field.ty,
             format!(
                 "Naclac Error: 'FixedVec'/'FixedString' can't be a field of {owner}: clients \
-                 only know their capacity for accounts, structs and arguments. {advice}"
+                 only know capacity for accounts, events, structs and arguments. {advice}"
             ),
         );
         match &mut combined {

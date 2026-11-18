@@ -15,7 +15,7 @@ use {
 fn test_counter_integration() {
     // 1. Setup the provider
     // Change this to "devnet" or an RPC URL to test against a live network!
-    let cluster = "litesvm";
+    let cluster = "devnet";
 
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
     let provider = NaclacProvider::new(cluster, payer).expect("Failed to construct NaclacProvider");

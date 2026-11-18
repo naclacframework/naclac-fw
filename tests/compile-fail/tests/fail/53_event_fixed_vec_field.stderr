@@ -1,5 +1,0 @@
-error: Naclac Error: 'FixedVec'/'FixedString' can't be a field of an #[event]: clients only know their capacity for accounts, structs and arguments. Use a fixed-size array, or Vec/String with #[event(alloc)].
- --> tests/fail/53_event_fixed_vec_field.rs:5:16
-  |
-5 |     pub items: FixedVec<u8, 4>,
-  |                ^^^^^^^^^^^^^^^

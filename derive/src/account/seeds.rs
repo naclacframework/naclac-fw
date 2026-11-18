@@ -1,13 +1,22 @@
-//! `#[seeds(PREFIX, field, .., bump = field)]` on an `#[account]` struct: the
-//! seeds of the PDA that holds this account, named once, from the account's
-//! own fields. It generates `with_signer_seeds`, which signs a CPI as that PDA.
+//! `#[seeds(PREFIX, seed, ..)]` or `#[seeds(PREFIX, seed, .., bump = field)]`
+//! on an `#[account]` struct: the seeds of the PDA that holds this account,
+//! named once. A seed is a bare name, the account's field of that name, or
+//! `name: Type`, a value the account need not store. With `bump = field`,
+//! naming the account's `u8` field that stores the bump, and every seed a
+//! stored field, it also generates `with_signer_seeds`, which signs a CPI as
+//! that PDA from the account alone.
+//!
+//! `#[derive(Seeds)]` with `#[seeds(PREFIX, name: Type, ..)]` names the seeds
+//! of a PDA that holds no program data (a mint, a token account, an unchecked
+//! account): the values are the typed parameters of `seeds(..)`, and there is
+//! no stored bump.
 
 use {
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
     syn::{
         parse::{Parse, ParseStream},
-        Expr, Ident, ItemStruct, Token,
+        Expr, Ident, ItemStruct, Token, Type,
     },
 };
 
@@ -15,12 +24,36 @@ use {
 /// `naclac_core::prelude::MAX_PDA_SEEDS`.
 const MAX_SEEDS: usize = 16;
 
-/// A parsed `#[seeds(..)]`: the leading constant, the fields that follow it
-/// in order, and the `u8` field holding the bump.
+/// Where a `#[seeds]` was written: on an `#[account]`, which then is the only
+/// type its seeds may be used with, or on a `#[derive(Seeds)]` type, which
+/// may stand for the PDA of any account type.
+#[derive(Clone, Copy)]
+pub(super) enum Origin {
+    Account,
+    Standalone,
+}
+
+/// One seed after the prefix: the field of the account it is read from, or,
+/// for a `#[derive(Seeds)]` type, the `name: Type` it is passed as.
+struct NamedSeed {
+    name: Ident,
+    ty: Option<Type>,
+}
+
+/// A parsed `#[seeds(..)]`: the leading constant, the seeds that follow it
+/// in order, and the `u8` field holding the bump, if the account stores one.
 pub(super) struct SeedsSpec {
     prefix: Expr,
-    parts: Vec<Ident>,
-    bump: Ident,
+    parts: Vec<NamedSeed>,
+    bump: Option<Ident>,
+}
+
+impl SeedsSpec {
+    /// The field `bump = <field>` names: the one the account's stored bump is
+    /// read from and written to.
+    pub(super) fn bump_field(&self) -> Option<&Ident> {
+        self.bump.as_ref()
+    }
 }
 
 impl Parse for SeedsSpec {
@@ -45,14 +78,14 @@ impl Parse for SeedsSpec {
                 }
                 continue;
             }
-            parts.push(name);
+            let ty = if input.peek(Token![:]) {
+                input.parse::<Token![:]>()?;
+                Some(input.parse::<Type>()?)
+            } else {
+                None
+            };
+            parts.push(NamedSeed { name, ty });
         }
-        let Some(bump) = bump else {
-            return Err(input.error(
-                "Naclac Error: `#[seeds]` needs `bump = <field>`, naming the account's `u8` bump \
-                 field, e.g. `#[seeds(SEED, owner, bump = bump)]`.",
-            ));
-        };
         Ok(SeedsSpec {
             prefix,
             parts,
@@ -62,23 +95,101 @@ impl Parse for SeedsSpec {
 }
 
 /// The `#[seeds(..)]` of `item`, if it has one. More than one is an error.
-pub(super) fn parse(item: &ItemStruct) -> syn::Result<Option<SeedsSpec>> {
+fn find_spec(item: &ItemStruct) -> syn::Result<Option<SeedsSpec>> {
     let mut found: Option<SeedsSpec> = None;
     for attr in item.attrs.iter().filter(|a| a.path().is_ident("seeds")) {
         let spec = attr.parse_args::<SeedsSpec>()?;
         if found.replace(spec).is_some() {
             return Err(syn::Error::new_spanned(
                 attr,
-                "Naclac Error: an account takes one `#[seeds(..)]`.",
+                "Naclac Error: a type takes one `#[seeds(..)]`.",
             ));
         }
     }
     Ok(found)
 }
 
-/// The inherent `with_signer_seeds` of `item`: it builds the seed slices from
-/// the account's own fields and the stored bump and hands them to a closure as
-/// the `&[CpiSigner]` every signed CPI takes, on both runtimes. Every seed's
+/// The `#[seeds(..)]` of an `#[account]` struct, if it has one. A seed
+/// written as a bare name is the account's field of that name; one written
+/// `name: Type` is a value passed to `seeds(..)` that the account need not
+/// store.
+pub(super) fn parse(item: &ItemStruct) -> syn::Result<Option<SeedsSpec>> {
+    find_spec(item)
+}
+
+/// The expansion of `#[derive(Seeds)]`: the seed set, `seeds` and
+/// `__naclac_const_pda` of a type that holds no program data, and the
+/// permission to use them for a field of any account type.
+pub(super) fn expand_derive(input: TokenStream) -> syn::Result<TokenStream> {
+    let item: ItemStruct = syn::parse2(input).map_err(|error| {
+        syn::Error::new(
+            error.span(),
+            "Naclac Error: `#[derive(Seeds)]` goes on a struct.",
+        )
+    })?;
+    let Some(spec) = find_spec(&item)? else {
+        return Err(syn::Error::new_spanned(
+            &item.ident,
+            "Naclac Error: `#[derive(Seeds)]` needs `#[seeds(PREFIX, name: Type, ..)]` on the struct.",
+        ));
+    };
+    if let Some(bump) = &spec.bump {
+        return Err(syn::Error::new_spanned(
+            bump,
+            "Naclac Error: a `Seeds` type holds no data, so it has no stored bump; sign with `seeds(..).signer_seeds(&bump)`.",
+        ));
+    }
+    if let Some(untyped) = spec.parts.iter().find(|part| part.ty.is_none()) {
+        return Err(syn::Error::new_spanned(
+            &untyped.name,
+            format!(
+                "Naclac Error: seed `{name}` of a `Seeds` type needs a type, e.g. `{name}: Address`.",
+                name = untyped.name
+            ),
+        ));
+    }
+    generate(&item, &spec, Origin::Standalone)
+}
+
+/// The type of the field `field` of `item`.
+fn field_type<'a>(item: &'a ItemStruct, field: &Ident) -> syn::Result<&'a Type> {
+    let found = match &item.fields {
+        syn::Fields::Named(fields) => fields
+            .named
+            .iter()
+            .find(|f| f.ident.as_ref() == Some(field))
+            .map(|f| &f.ty),
+        _ => None,
+    };
+    found.ok_or_else(|| {
+        syn::Error::new_spanned(
+            field,
+            format!(
+                "Naclac Error: `#[seeds]` names `{field}`, which is not a field of `{}`.",
+                item.ident
+            ),
+        )
+    })
+}
+
+/// The type of one seed: the one written after its name, else the type of the
+/// field of that name.
+fn part_type<'a>(item: &'a ItemStruct, part: &'a NamedSeed) -> syn::Result<&'a Type> {
+    match &part.ty {
+        Some(ty) => Ok(ty),
+        None => field_type(item, &part.name),
+    }
+}
+
+/// The seed set, `seeds` and `__naclac_const_pda` of `item`, a `SeedsFor`
+/// impl (for the account itself, or for any account when `origin` is
+/// `Standalone`), and, when
+/// `#[seeds]` names a bump field and every seed is a stored field, its
+/// inherent `with_signer_seeds`: it builds
+/// the seed slices from the account's own fields and the stored bump and hands
+/// them to a closure as the `&[CpiSigner]` every signed CPI takes, on both
+/// runtimes. Without a bump field the caller signs through
+/// `seeds(..).signer_seeds(&bump)`. Every seed's
 /// bytes come from `SeedPart`, so a field type that cannot be a seed, or one
 /// over `MAX_PDA_SEED_LEN` bytes, fails to compile.
 ///
@@ -87,29 +198,19 @@ pub(super) fn parse(item: &ItemStruct) -> syn::Result<Option<SeedsSpec>> {
 /// and a packed field is never referenced. The pointer comes from `&self`,
 /// which outlives every use of the seeds, so it satisfies that method's
 /// contract.
-pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<TokenStream> {
+pub(super) fn generate(
+    item: &ItemStruct,
+    spec: &SeedsSpec,
+    origin: Origin,
+) -> syn::Result<TokenStream> {
     let name = &item.ident;
-    let syn::Fields::Named(fields) = &item.fields else {
+    let reads_fields = spec.bump.is_some() || spec.parts.iter().any(|part| part.ty.is_none());
+    if reads_fields && !matches!(item.fields, syn::Fields::Named(_)) {
         return Err(syn::Error::new_spanned(
             &item.ident,
             "Naclac Error: `#[seeds]` needs an account with named fields.",
         ));
-    };
-    let field_type = |field: &Ident| {
-        fields
-            .named
-            .iter()
-            .find(|f| f.ident.as_ref() == Some(field))
-            .map(|f| &f.ty)
-            .ok_or_else(|| {
-                syn::Error::new_spanned(
-                    field,
-                    format!(
-                        "Naclac Error: `#[seeds]` names `{field}`, which is not a field of `{name}`."
-                    ),
-                )
-            })
-    };
+    }
 
     let total = spec.parts.len() + 2;
     if total > MAX_SEEDS {
@@ -124,8 +225,9 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
     let mut length_asserts = Vec::new();
     let mut bindings = Vec::new();
     let mut slices = Vec::new();
-    for part in &spec.parts {
-        let ty = field_type(part)?;
+    for seed in &spec.parts {
+        let part = &seed.name;
+        let ty = part_type(item, seed)?;
         let binding = format_ident!("__seed_{}", part);
         let message = format!("Naclac Error: seed `{part}` is longer than one PDA seed may be.");
         length_asserts.push(quote! {
@@ -142,10 +244,11 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
         });
         slices.push(quote! { ::core::convert::AsRef::<[u8]>::as_ref(&#binding) });
     }
-    field_type(&spec.bump)?;
+    if let Some(bump) = &spec.bump {
+        field_type(item, bump)?;
+    }
 
     let prefix = &spec.prefix;
-    let bump = &spec.bump;
     let seed_count = total;
     let prefix_message = format!(
         "Naclac Error: the `#[seeds]` prefix of `{name}` is longer than one PDA seed may be."
@@ -153,12 +256,24 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
 
     let vis = &item.vis;
     let set_name = format_ident!("{}SeedSet", name);
-    let part_names = &spec.parts;
-    let part_types: Vec<&syn::Type> = spec
+    let part_names: Vec<&Ident> = spec.parts.iter().map(|part| &part.name).collect();
+    let part_types: Vec<&Type> = spec
         .parts
         .iter()
-        .map(field_type)
+        .map(|part| part_type(item, part))
         .collect::<syn::Result<_>>()?;
+    let seeds_for = match origin {
+        Origin::Account => quote! {
+            impl naclac_lang::prelude::SeedsFor<#name> for #name {
+                const VALID: bool = true;
+            }
+        },
+        Origin::Standalone => quote! {
+            impl<A> naclac_lang::prelude::SeedsFor<A> for #name {
+                const VALID: bool = true;
+            }
+        },
+    };
     let slice_count_with_bump = seed_count;
     let slice_count = seed_count - 1;
     let prefix_name_tokens = match &spec.prefix {
@@ -171,6 +286,36 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
         },
         _ => quote! { None },
     };
+
+    let every_seed_is_stored = spec.parts.iter().all(|part| part.ty.is_none());
+    let with_signer_seeds = spec
+        .bump
+        .as_ref()
+        .filter(|_| every_seed_is_stored)
+        .map(|bump| {
+            quote! {
+                impl #name {
+                    /// Calls `f` with the signer seeds of the PDA holding this
+                    /// account: the prefix, the named fields in order, and the stored
+                    /// bump. Pass them to a `*_signed` CPI.
+                    #[inline(always)]
+                    pub fn with_signer_seeds<R>(
+                        &self,
+                        f: impl ::core::ops::FnOnce(&[naclac_lang::prelude::CpiSigner]) -> R,
+                    ) -> R {
+                        #(#bindings)*
+                        let __bump: [u8; 1] = [{ self.#bump }];
+                        let __seeds = naclac_lang::prelude::SignerSeeds::new([
+                            ::core::convert::AsRef::<[u8]>::as_ref(&#prefix),
+                            #(#slices,)*
+                            &__bump,
+                        ]);
+                        let __signer = [__seeds.signer()];
+                        f(&__signer)
+                    }
+                }
+            }
+        });
 
     Ok(quote! {
         #(#length_asserts)*
@@ -265,26 +410,9 @@ pub(super) fn generate(item: &ItemStruct, spec: &SeedsSpec) -> syn::Result<Token
             #prefix_message
         );
 
-        impl #name {
-            /// Calls `f` with the signer seeds of the PDA holding this
-            /// account: the prefix, the named fields in order, and the stored
-            /// bump. Pass them to a `*_signed` CPI.
-            #[inline(always)]
-            pub fn with_signer_seeds<R>(
-                &self,
-                f: impl ::core::ops::FnOnce(&[naclac_lang::prelude::CpiSigner]) -> R,
-            ) -> R {
-                #(#bindings)*
-                let __bump: [u8; 1] = [{ self.#bump }];
-                let __seeds = naclac_lang::prelude::SignerSeeds::new([
-                    ::core::convert::AsRef::<[u8]>::as_ref(&#prefix),
-                    #(#slices,)*
-                    &__bump,
-                ]);
-                let __signer = [__seeds.signer()];
-                f(&__signer)
-            }
-        }
+        #seeds_for
+
+        #with_signer_seeds
     })
 }
 
@@ -299,12 +427,14 @@ mod tests {
     fn generated(source: &str) -> String {
         let item = item(source);
         let spec = parse(&item).unwrap().expect("the struct has #[seeds]");
-        generate(&item, &spec).unwrap().to_string()
+        generate(&item, &spec, Origin::Account).unwrap().to_string()
     }
 
     fn error(source: &str) -> String {
         let item = item(source);
-        match parse(&item).and_then(|spec| generate(&item, &spec.expect("#[seeds]"))) {
+        match parse(&item)
+            .and_then(|spec| generate(&item, &spec.expect("#[seeds]"), Origin::Account))
+        {
             Ok(_) => panic!("the seeds must be rejected"),
             Err(error) => error.to_string(),
         }
@@ -368,9 +498,28 @@ mod tests {
     }
 
     #[test]
-    fn the_bump_is_required() {
-        let message = error("#[seeds(SEED, owner)] struct A { owner: Address, bump: u8 }");
-        assert!(message.contains("needs `bump = <field>`"), "{message}");
+    fn signing_from_the_account_needs_a_named_bump_field() {
+        let with =
+            generated("#[seeds(SEED, owner, bump = bump)] struct A { owner: Address, bump: u8 }");
+        assert!(with.contains("with_signer_seeds"), "{with}");
+        let without = generated("#[seeds(SEED, owner)] struct A { owner: Address }");
+        assert!(!without.contains("with_signer_seeds"), "{without}");
+        for code in [&with, &without] {
+            assert!(code.contains("fn signer_seeds"), "{code}");
+            assert!(code.contains("fn __naclac_const_pda"), "{code}");
+        }
+    }
+
+    #[test]
+    fn the_bump_field_is_the_one_the_attribute_names() {
+        let named = item("#[seeds(SEED, bump = stored)] struct A { stored: u8 }");
+        let spec = parse(&named).unwrap().unwrap();
+        assert_eq!(
+            spec.bump_field().map(ToString::to_string).as_deref(),
+            Some("stored")
+        );
+        let unnamed = item("#[seeds(SEED)] struct A { bump: u8 }");
+        assert!(parse(&unnamed).unwrap().unwrap().bump_field().is_none());
     }
 
     #[test]
@@ -398,6 +547,100 @@ mod tests {
             "#[seeds(SEED, {}, bump = bump)] struct A {{ {fields} bump: u8 }}",
             parts.join(", ")
         ));
+        assert!(message.contains("at most 16"), "{message}");
+    }
+
+    fn standalone(source: &str) -> syn::Result<String> {
+        expand_derive(source.parse().unwrap()).map(|tokens| tokens.to_string())
+    }
+
+    #[test]
+    fn a_seeds_type_takes_its_values_as_typed_parameters_and_never_signs_from_data() {
+        let code =
+            standalone("#[seeds(SEED_VAULT, owner: Address, index: u32)] pub struct VaultSeeds;")
+                .unwrap();
+        assert!(code.contains("owner : & 'a Address"), "{code}");
+        assert!(code.contains("index : & 'a u32"), "{code}");
+        assert!(
+            code.contains("const fn __naclac_const_pda (owner : Address , index : u32 ,"),
+            "{code}"
+        );
+        assert!(!code.contains("with_signer_seeds"), "{code}");
+        assert!(code.contains("fn signer_seeds"), "{code}");
+    }
+
+    #[test]
+    fn a_seeds_type_may_name_the_seeds_of_any_account_but_an_account_only_its_own() {
+        let standalone_code = standalone("#[seeds(SEED, key: Address)] struct S;").unwrap();
+        assert!(
+            standalone_code.contains("SeedsFor < A > for S"),
+            "{standalone_code}"
+        );
+        let account_code = generated("#[seeds(SEED, key)] struct Pool { key: Address }");
+        assert!(
+            account_code.contains("SeedsFor < Pool > for Pool"),
+            "{account_code}"
+        );
+        assert!(!account_code.contains("SeedsFor < A >"), "{account_code}");
+    }
+
+    #[test]
+    fn a_seeds_type_is_checked_for_what_only_an_account_may_have() {
+        let message = standalone("#[seeds(SEED, key)] struct S;")
+            .unwrap_err()
+            .to_string();
+        assert!(
+            message.contains("`key` of a `Seeds` type needs a type"),
+            "{message}"
+        );
+        let message = standalone("#[seeds(SEED, key: Address, bump = b)] struct S;")
+            .unwrap_err()
+            .to_string();
+        assert!(message.contains("has no stored bump"), "{message}");
+        let message = standalone("struct S;").unwrap_err().to_string();
+        assert!(
+            message.contains("needs `#[seeds(PREFIX, name: Type, ..)]`"),
+            "{message}"
+        );
+        let message = standalone("enum S { A }").unwrap_err().to_string();
+        assert!(message.contains("goes on a struct"), "{message}");
+    }
+
+    #[test]
+    fn an_account_takes_an_unstored_seed_as_a_parameter_and_then_cannot_sign_from_its_data() {
+        let code = generated(
+            "#[seeds(SEED, maker, id: u64, bump = bump)] struct Escrow { maker: Address, bump: u8 }",
+        );
+        assert!(code.contains("maker : & 'a Address"), "{code}");
+        assert!(code.contains("id : & 'a u64"), "{code}");
+        assert!(
+            code.contains("const fn __naclac_const_pda (maker : Address , id : u64 ,"),
+            "{code}"
+        );
+        assert!(!code.contains("with_signer_seeds"), "{code}");
+        assert!(code.contains("fn signer_seeds"), "{code}");
+        assert!(code.contains("SeedsFor < Escrow > for Escrow"), "{code}");
+
+        let item = item("#[seeds(SEED, id: u64, bump = missing)] struct A { other: u8 }");
+        let message = parse(&item)
+            .and_then(|spec| generate(&item, &spec.unwrap(), Origin::Account))
+            .expect_err("the bump names no field")
+            .to_string();
+        assert!(
+            message.contains("`missing`, which is not a field"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn a_seeds_type_still_takes_at_most_sixteen_seeds() {
+        let parts = (0..15)
+            .map(|i| format!("p{i}: u8"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let message = standalone(&format!("#[seeds(SEED, {parts})] struct S;"))
+            .unwrap_err()
+            .to_string();
         assert!(message.contains("at most 16"), "{message}");
     }
 

@@ -2,11 +2,12 @@ use naclac_client::*;
 use events_client::{
     get_counter_pda,
     instructions::{
-        build_increment_counter, build_init_counter, build_touch_counter_explicit_bump,
-        IncrementCounterAccounts, InitCounterAccounts, TouchCounterExplicitBumpAccounts,
+        build_emit_roster, build_increment_counter, build_init_counter,
+        build_touch_counter_explicit_bump, EmitRosterAccounts, IncrementCounterAccounts,
+        InitCounterAccounts, TouchCounterExplicitBumpAccounts,
     },
     types::PROGRAM_ID,
-    types::CounterIncremented,
+    types::{CounterIncremented, RosterChanged, RosterChangedAlloc},
 };
 
 fn setup() -> NaclacProvider {
@@ -111,4 +112,47 @@ fn explicit_self_referencing_bump_on_existing_account_works() {
         "touch_counter_explicit_bump must succeed — `bump = counter.bump` should validate \
          identically to bare `bump`'s auto-path, not fail some self-reference-specific gap",
     );
+}
+
+#[test]
+fn events_with_a_fixed_vec_and_a_fixed_string_round_trip() {
+    let provider = setup();
+    let (counter_pda, _bump) = get_counter_pda(&PROGRAM_ID);
+
+    build_init_counter(
+        &provider,
+        PROGRAM_ID,
+        InitCounterAccounts {
+            payer: provider.payer.address(),
+            counter: counter_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_counter should succeed");
+
+    let tx = build_emit_roster(
+        &provider,
+        PROGRAM_ID,
+        EmitRosterAccounts { counter: counter_pda },
+    )
+    .send_and_confirm()
+    .expect("emit_roster should succeed");
+
+    let plain: Vec<RosterChanged> = tx
+        .parse_events_zero_copy()
+        .expect("failed to parse RosterChanged from the transaction's logs");
+    assert_eq!(plain.len(), 1);
+    let plain_scores = plain[0].scores;
+    let plain_name = plain[0].name;
+    assert_eq!(plain_scores.iter().collect::<Vec<u64>>(), vec![10, 20]);
+    assert_eq!(plain_name.as_str().ok(), Some("roster"));
+
+    let alloc: Vec<RosterChangedAlloc> = tx
+        .parse_events_alloc()
+        .expect("failed to parse RosterChangedAlloc from the transaction's logs");
+    assert_eq!(alloc.len(), 1);
+    assert_eq!(alloc[0].scores.iter().collect::<Vec<u64>>(), vec![10, 20]);
+    assert_eq!(alloc[0].name.as_str().ok(), Some("roster"));
+    assert_eq!(alloc[0].note, "alloc");
 }

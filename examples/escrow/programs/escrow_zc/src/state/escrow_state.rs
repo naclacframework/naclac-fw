@@ -1,6 +1,7 @@
-use naclac_lang::prelude::*;
+use {crate::constants::SEED_ESCROW, naclac_lang::prelude::*};
 
 #[account]
+#[seeds(SEED_ESCROW, maker, id: u64)]
 pub struct EscrowState {
     pub maker: Address,
     pub mint_a: Address,

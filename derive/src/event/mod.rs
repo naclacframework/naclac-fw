@@ -59,14 +59,6 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         return error.to_compile_error().into();
     }
 
-    if let Some(error) = crate::type_classify::fixed_capacity_field_error(
-        ast.fields.iter(),
-        "an #[event]",
-        "Use a fixed-size array, or Vec/String with #[event(alloc)].",
-    ) {
-        return error.to_compile_error().into();
-    }
-
     let disc_bytes = naclac_syn::discriminator::resolve_discriminator(
         naclac_syn::discriminator::DiscriminatorKind::Event,
         &struct_name.to_string(),

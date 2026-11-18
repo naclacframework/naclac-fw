@@ -41,18 +41,22 @@ use proc_macro::TokenStream;
 /// Takes an optional `discriminator = <int | [ints]>` argument (1 to 8 bytes)
 /// replacing the default name-derived 8-byte discriminator.
 ///
-/// A `#[seeds(PREFIX, field, .., bump = field)]` written below `#[account]`
-/// names the seeds of the PDA that holds the account: a constant or literal
-/// prefix, then the account's own fields in order (integers, `Address` and
-/// `[u8; N]` of at most 32 bytes), then the `u8` bump field. It generates
-/// `with_signer_seeds`, which passes those seeds to a closure as the
-/// `&[CpiSigner]` a `*_signed` CPI takes, so the program signs as the PDA
-/// from the stored fields without writing the seeds out again. It also
-/// generates `Account::seeds(..)`, taking references to the named fields'
-/// values and returning a seed set that borrows them. A field writes
-/// `seeds = Account::seeds(a, b, id), bump` with the values, and the derive
-/// passes references to them, so the same definition creates and verifies the
-/// account.
+/// A `#[seeds(PREFIX, seed, ..)]` written below `#[account]` names the seeds
+/// of the PDA that holds the account: a constant or literal prefix, then each
+/// seed in order, either a bare name (the account's field of that name) or
+/// `name: Type` (a value the account need not store). Seed values are
+/// integers, `Address` and `[u8; N]` of at most 32 bytes. It generates
+/// `Account::seeds(..)`, taking references to the values and returning a seed
+/// set that borrows them. A field
+/// `Account<T>` writes `seeds = T::seeds(a, b, id), bump` with the values, and
+/// the derive passes references to them, so the same definition creates and
+/// verifies the account; naming another type's `seeds` there is a compile
+/// error unless that type is a `#[derive(Seeds)]`. Adding `, bump = field`,
+/// naming the account's `u8` field that stores the bump, also generates, when
+/// every seed is a stored field, `with_signer_seeds`, which passes the seeds
+/// and the stored bump to a closure
+/// as the `&[CpiSigner]` a `*_signed` CPI takes. That field is also the
+/// account's stored bump; without `bump = field`, a field called `bump` is.
 #[proc_macro_attribute]
 pub fn account(attr: TokenStream, item: TokenStream) -> TokenStream {
     account::expand(attr, item)
@@ -154,7 +158,25 @@ pub fn constraint_args(attr: TokenStream, item: TokenStream) -> TokenStream {
     constraint_args::expand(attr, item)
 }
 
+/// Derives the seeds of a PDA that holds no program data (a mint, a token
+/// account, an unchecked account), from `#[seeds(PREFIX, name: Type, ..)]`
+/// written on the struct. The values are `u8`..`i128`, `Address` or
+/// `[u8; N]` of at most 32 bytes. It generates `Type::seeds(..)`, taking
+/// references to the values and returning a seed set that borrows them, and
+/// the compile-time `__naclac_const_pda` used when no value names a runtime
+/// one. A field of any account type writes `seeds = Type::seeds(a, b), bump`.
+/// There is no stored bump, so a signed CPI uses `seeds(..).signer_seeds(&bump)`.
+#[proc_macro_derive(Seeds, attributes(seeds))]
+pub fn derive_seeds(item: TokenStream) -> TokenStream {
+    account::expand_seeds_derive(item)
+}
+
 /// Derives the necessary validation, deserialization, and constraints for an Accounts struct.
+///
+/// A field written `seeds = T::seeds(..)` also gets `with_<field>_signer`,
+/// which takes the `#[instruction(..)]` arguments those seeds name, the bump
+/// (`ctx.bumps.<field>`) and a closure, and calls it with the accounts
+/// (mutably) and the `&[CpiSigner]` a `*_signed` CPI takes.
 ///
 /// Generates zero-copy fixed array CPI properties (`[AccountMeta; N]`) regardless of the layout.
 #[proc_macro_derive(Accounts, attributes(account, instruction, __naclac_event_cpi))]

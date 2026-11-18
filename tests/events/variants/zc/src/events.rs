@@ -55,3 +55,16 @@ pub struct FixedPayload512 {
 pub struct FixedPayload2048 {
     pub data: [u8; 2048],
 }
+
+#[event]
+pub struct RosterChanged {
+    pub scores: FixedVec<u64, 4>,
+    pub name: FixedString<16>,
+}
+
+#[event(alloc)]
+pub struct RosterChangedAlloc {
+    pub scores: FixedVec<u64, 4>,
+    pub name: FixedString<16>,
+    pub note: String,
+}

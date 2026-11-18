@@ -1,12 +1,12 @@
 //! `MintTo`: mints new tokens to a token account, signed by the mint authority.
 
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
+use pinocchio::instruction::InstructionAccount;
 use {
-    super::invoke::{amount_data, invoke},
-    pinocchio::instruction::InstructionAccount,
+    super::invoke::{amount_data, invoke, MINT_TO},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result},
 };
 
 pub fn mint_to(
@@ -29,32 +29,16 @@ pub fn mint_to_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = if program.address() == spl_token_2022::ID {
-            spl_token_2022::instruction::mint_to(
-                &program.address(),
-                &mint.info.address(),
-                &to.info.address(),
-                &authority.info.address(),
-                &[],
-                amount,
-            )?
-        } else {
-            spl_token::instruction::mint_to(
-                &program.address(),
-                &mint.info.address(),
-                &to.info.address(),
-                &authority.info.address(),
-                &[],
-                amount,
-            )?
-        };
-        let accounts = [
-            CpiHandle::from(mint),
-            CpiHandle::from(to),
-            authority,
+        invoke(
             program,
-        ];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+            [
+                (CpiHandle::from(mint), Role::Writable),
+                (CpiHandle::from(to), Role::Writable),
+                (authority, Role::ReadonlySigner),
+            ],
+            &amount_data(MINT_TO, amount),
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -70,7 +54,7 @@ pub fn mint_to_signed(
             &program,
             &accounts,
             &[mint, to, authority],
-            &amount_data(7, amount),
+            &amount_data(MINT_TO, amount),
             signer_seeds,
         )
     }

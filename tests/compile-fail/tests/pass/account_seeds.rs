@@ -1,8 +1,12 @@
 #![allow(unexpected_cfgs)]
-// `#[seeds(PREFIX, field, .., bump = field)]` on an `#[account]` generates
-// `with_signer_seeds`, which hands the PDA's seeds to a signed CPI. The prefix
-// is a constant or a literal; each field is an integer, an `Address` or a
-// `[u8; N]` of at most 32 bytes.
+// `#[derive(Seeds)]` with `#[seeds(PREFIX, name: Type, ..)]` gives the seeds of
+// a PDA that holds no program data, usable on a field of any type.
+//
+// `#[seeds(PREFIX, field, ..)]` on an `#[account]` generates `seeds(..)`, whose
+// seed set signs through `signer_seeds(&bump)`; with `bump = field` naming the
+// account's stored bump it also generates `with_signer_seeds`, which hands the
+// PDA's seeds to a signed CPI. The prefix is a constant or a literal; each
+// field is an integer, an `Address` or a `[u8; N]` of at most 32 bytes.
 use naclac_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");
@@ -85,6 +89,75 @@ pub fn vault_seed_lengths(owner: Address, index: u64) -> (usize, usize) {
     let seeds = Vault::seeds(&owner, &index);
     let bump = [7u8];
     (seeds.as_slices().len(), seeds.as_slices_with_bump(&bump).len())
+}
+
+#[account]
+#[seeds(b"plain")]
+pub struct Plain {
+    pub value: u64,
+}
+
+#[derive(Accounts)]
+pub struct ReadWithoutStoredBump {
+    #[account(seeds = Plain::seeds(), bump)]
+    pub plain: Account<Plain>,
+}
+
+pub fn sign_as_plain(bump: &[u8; 1]) {
+    let seeds = Plain::seeds();
+    let signer_seeds = seeds.signer_seeds(bump);
+    let _signer = signer_seeds.signer();
+}
+
+pub const ESCROW_OWNER: Address = naclac_lang::address!("11111111111111111111111111111111");
+
+#[derive(Seeds)]
+#[seeds(b"escrow", owner: Address, index: u32)]
+pub struct EscrowSeeds;
+
+#[derive(Accounts)]
+pub struct ReadSeedsType {
+    /// SAFETY: only its address is checked against the seeds; never read.
+    #[account(seeds = EscrowSeeds::seeds(ESCROW_OWNER, 3u32))]
+    pub escrow: AccountInfo,
+
+    #[account(seeds = EscrowSeeds::seeds(ESCROW_OWNER, 4u32), bump)]
+    pub config: Account<Config>,
+}
+
+#[account]
+#[seeds(b"offer", maker, id: u64)]
+pub struct Offer {
+    pub maker: Address,
+    pub bump: u8,
+}
+
+#[derive(Accounts)]
+#[instruction(id: u64)]
+pub struct TakeOffer {
+    #[account(mut)]
+    pub maker: Signer,
+
+    #[account(mut, seeds = Offer::seeds(maker.address(), id), bump = offer.bump)]
+    pub offer: Account<Offer>,
+
+    /// SAFETY: only its address is checked against the seeds; never read.
+    #[account(seeds = EscrowSeeds::seeds(maker.address(), 7u32), bump = 254)]
+    pub vault: AccountInfo,
+}
+
+pub fn sign_for_offer(accounts: &mut TakeOffer, id: u64, bump: u8) -> usize {
+    accounts.with_offer_signer(id, bump, |accounts, signers| {
+        let _maker = &mut accounts.maker;
+        signers.len()
+    })
+}
+
+pub fn sign_as_escrow(bump: &[u8; 1]) {
+    let index = 5u32;
+    let seeds = EscrowSeeds::seeds(&ESCROW_OWNER, &index);
+    let signer_seeds = seeds.signer_seeds(bump);
+    let _signer = signer_seeds.signer();
 }
 
 fn main() {}

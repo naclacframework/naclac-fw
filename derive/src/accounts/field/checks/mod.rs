@@ -22,11 +22,8 @@ use {
 pub(crate) use {
     plugin::plugin_args_tokens,
     relational::generate_relational_checks,
-    seeds::{seed_binding_tokens, typed_seeds_call},
+    seeds::{mentions_any_name, seed_binding_tokens, typed_seeds_call},
 };
-
-#[cfg(feature = "idl-build")]
-pub(crate) use seeds::mentions_any_name;
 
 /// The names an Accounts struct's seeds can use that have no value until a
 /// transaction arrives: its account fields, its `#[instruction(..)]`

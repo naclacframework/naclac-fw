@@ -4,9 +4,7 @@
 /** All program errors keyed by their numeric error code. */
 export const ProgramErrors = {
   6000: { code: 6000, name: "InvalidMint", message: "Invalid mint for the trade." },
-  6001: { code: 6001, name: "Unauthorized", message: "Unauthorized action." },
-  6002: { code: 6002, name: "Overflow", message: "Overflow or math error." },
-  6003: { code: 6003, name: "ZeroAmount", message: "The amount provided must be greater than zero." },
+  6001: { code: 6001, name: "ZeroAmount", message: "The amount provided must be greater than zero." },
 } as const;
 
 export type ProgramErrorCode = keyof typeof ProgramErrors;

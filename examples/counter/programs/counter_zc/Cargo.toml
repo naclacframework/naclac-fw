@@ -23,7 +23,8 @@ bytemuck = ["naclac-lang/bytemuck"]
 naclac-lang = { version = "0.1.0", path = "../../../../lang", default-features = false }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../client-rs", features = ["litesvm"] }
+#naclac-client = { version = "0.1.0", path = "../../../../client-rs", features = ["litesvm"] }
+naclac-client = { version = "0.1.0", path = "../../../../client-rs", features = ["rpc"] }
 counter-zc-client = { version = "0.1.0", path = "../../artifacts/clients/rust/counter_zc" }
 
 [lints]

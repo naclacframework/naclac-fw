@@ -116,7 +116,7 @@ pub struct TakeCpiAccounts<'a> {
 pub struct TakeCpiCall<'a> {
     pub accounts: TakeCpiAccounts<'a>,
     pub id: u64,
-    pub signer_seeds: &'a [&'a [&'a [u8]]],
+    pub signer_seeds: &'a [crate::sdk_core_cpi::CpiSigner<'a, 'a>],
     pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
 }
 
@@ -127,27 +127,15 @@ pub trait TakeCpi<'info> {
         accounts: TakeCpiAccounts<'a>,
         id: u64
     ) -> crate::sdk_core_cpi::Result<()> {
-        self.take_with_remaining_accounts(TakeCpiCall {
-        accounts,
-        id,
-        signer_seeds: &[],
-        remaining_accounts: &[],
-    })
+        self.take_signed(accounts, id, &[])
     }
 
     fn take_signed<'a>(
         &self,
         accounts: TakeCpiAccounts<'a>,
         id: u64,
-        signer_seeds: &[&[&[u8]]]
-    ) -> crate::sdk_core_cpi::Result<()> {
-        self.take_with_remaining_accounts(TakeCpiCall {
-        accounts,
-        id,
-        signer_seeds,
-        remaining_accounts: &[],
-    })
-    }
+        signer_seeds: &[crate::sdk_core_cpi::CpiSigner<'_, '_>]
+    ) -> crate::sdk_core_cpi::Result<()>;
 
     fn take_with_remaining_accounts<'a>(
         &self,
@@ -166,22 +154,27 @@ impl<'info> TakeCpi<'info> for crate::sdk_core_cpi::Program<crate::Escrow> {
         let args = TakeCpiIxArgs {
             id,
         };
-        let mut ix_data = crate::sdk_core_cpi::Vec::new();
-        ix_data.extend_from_slice(&[149, 226, 52, 104, 6, 142, 230, 39]);
-        #[cfg(not(any(feature = "borsh", feature = "wincode")))]
-        {
-        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args));
-        }
-        #[cfg(feature = "borsh")]
-        {
-            crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).unwrap();
-        }
-        #[cfg(feature = "wincode")]
-        {
-            crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).unwrap();
-        }
         #[cfg(feature = "pinocchio")]
         {
+            #[cfg(not(feature = "wincode"))]
+            #[derive(Clone, Copy)]
+            #[repr(C, packed)]
+            struct IxData {
+                discriminator: [u8; 8],
+                args: TakeCpiIxArgs,
+            }
+            #[cfg(not(feature = "wincode"))]
+            unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for IxData {}
+            #[cfg(not(feature = "wincode"))]
+            unsafe impl crate::sdk_core_cpi::bytemuck::Pod for IxData {}
+            #[cfg(not(feature = "wincode"))]
+            let ix_wire = IxData { discriminator: [149, 226, 52, 104, 6, 142, 230, 39], args };
+            #[cfg(not(feature = "wincode"))]
+            let ix_data = crate::sdk_core_cpi::bytemuck::bytes_of(&ix_wire);
+            #[cfg(feature = "wincode")]
+            let ix_owned = crate::sdk_core_cpi::cpi::wincode_cpi_data(&[149, 226, 52, 104, 6, 142, 230, 39], &args)?;
+            #[cfg(feature = "wincode")]
+            let ix_data = ix_owned.bytes()?;
             let mut metas_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount>::uninit() }; 32];
             let mut idx = 0;
             metas_arr[idx].write(crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(accounts.taker.info.view.address()));
@@ -229,7 +222,7 @@ impl<'info> TakeCpi<'info> for crate::sdk_core_cpi::Program<crate::Escrow> {
             let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView {
                 program_id: program_id_address.as_address(),
                 accounts: account_metas,
-                data: &ix_data,
+                data: ix_data,
             };
             let mut handles_arr = [const { core::mem::MaybeUninit::<crate::sdk_core_cpi::CpiHandle>::uninit() }; 32];
             let mut h_idx = 0;
@@ -261,10 +254,24 @@ impl<'info> TakeCpi<'info> for crate::sdk_core_cpi::Program<crate::Escrow> {
                 h_idx += 1;
             }
             let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
-            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_handles(&instruction, account_handles, signer_seeds)
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired(&instruction, account_handles, signer_seeds)
         }
         #[cfg(feature = "solana")]
         {
+        let mut ix_data = crate::sdk_core_cpi::Vec::new();
+        ix_data.extend_from_slice(&[149, 226, 52, 104, 6, 142, 230, 39]);
+        #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+        {
+        ix_data.extend_from_slice(crate::sdk_core_cpi::bytemuck::bytes_of(&args));
+        }
+        #[cfg(feature = "borsh")]
+        {
+            crate::sdk_core_cpi::borsh::BorshSerialize::serialize(&args, &mut ix_data).map_err(|_| crate::sdk_core_cpi::NaclacError::SerializationFailed)?;
+        }
+        #[cfg(feature = "wincode")]
+        {
+            crate::sdk_core_cpi::wincode::config::serialize_into(&mut ix_data, &args, crate::sdk_core_cpi::wincode_config::CONFIG).map_err(|_| crate::sdk_core_cpi::NaclacError::SerializationFailed)?;
+        }
             use crate::sdk_core_cpi::ToAddress;
             let mut account_metas = crate::sdk_core_cpi::vec![
                 ::naclac_lang::solana_instruction::AccountMeta::new(accounts.taker.address(), true),
@@ -323,6 +330,53 @@ impl<'info> TakeCpi<'info> for crate::sdk_core_cpi::Program<crate::Escrow> {
             }
             let account_handles = unsafe { core::slice::from_raw_parts(handles_arr.as_ptr() as *const crate::sdk_core_cpi::CpiHandle, h_idx) };
             crate::sdk_core_cpi::cpi::invoke_signed(&instruction, account_handles, signer_seeds)
+        }
+    }
+
+    fn take_signed<'a>(
+        &self,
+        accounts: TakeCpiAccounts<'a>,
+        id: u64,
+        signer_seeds: &[crate::sdk_core_cpi::CpiSigner<'_, '_>]
+    ) -> crate::sdk_core_cpi::Result<()> {
+        #[cfg(feature = "pinocchio")]
+        {
+        let args = TakeCpiIxArgs {
+            id,
+        };
+            #[cfg(not(feature = "wincode"))]
+            #[derive(Clone, Copy)]
+            #[repr(C, packed)]
+            struct IxData {
+                discriminator: [u8; 8],
+                args: TakeCpiIxArgs,
+            }
+            #[cfg(not(feature = "wincode"))]
+            unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for IxData {}
+            #[cfg(not(feature = "wincode"))]
+            unsafe impl crate::sdk_core_cpi::bytemuck::Pod for IxData {}
+            #[cfg(not(feature = "wincode"))]
+            let ix_wire = IxData { discriminator: [149, 226, 52, 104, 6, 142, 230, 39], args };
+            #[cfg(not(feature = "wincode"))]
+            let ix_data = crate::sdk_core_cpi::bytemuck::bytes_of(&ix_wire);
+            #[cfg(feature = "wincode")]
+            let ix_owned = crate::sdk_core_cpi::cpi::wincode_cpi_data(&[149, 226, 52, 104, 6, 142, 230, 39], &args)?;
+            #[cfg(feature = "wincode")]
+            let ix_data = ix_owned.bytes()?;
+            let __cpi_self_handle: crate::sdk_core_cpi::CpiHandle = crate::sdk_core_cpi::ToCpiHandle::to_cpi_handle(self);
+            let handles: [crate::sdk_core_cpi::CpiHandle; 11] = [crate::sdk_core_cpi::CpiHandle::from(accounts.taker), crate::sdk_core_cpi::CpiHandle::from(accounts.maker), accounts.mint_a, accounts.mint_b, crate::sdk_core_cpi::CpiHandle::from(accounts.escrow_state), crate::sdk_core_cpi::CpiHandle::from(accounts.vault_token_account), crate::sdk_core_cpi::CpiHandle::from(accounts.taker_token_account_a), crate::sdk_core_cpi::CpiHandle::from(accounts.taker_token_account_b), crate::sdk_core_cpi::CpiHandle::from(accounts.maker_token_account_b), accounts.token_program, accounts.system_program];
+            let metas: [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount; 11] = [crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable_signer(handles[0].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[1].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[2].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[3].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[4].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[5].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[6].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[7].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::writable(handles[8].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[9].info.view.address()), crate::sdk_core_cpi::pinocchio::instruction::InstructionAccount::readonly(handles[10].info.view.address())];
+            let instruction = crate::sdk_core_cpi::pinocchio::instruction::InstructionView { program_id: __cpi_self_handle.info.view.address(), accounts: &metas, data: ix_data };
+            crate::sdk_core_cpi::cpi::invoke_signed_pinocchio_paired(&instruction, &handles, signer_seeds)
+        }
+        #[cfg(feature = "solana")]
+        {
+            self.take_with_remaining_accounts(TakeCpiCall {
+        accounts,
+        id,
+        signer_seeds,
+        remaining_accounts: &[],
+    })
         }
     }
 }

@@ -1,10 +1,13 @@
 //! `Revoke`: removes a token account's delegate, signed by its owner.
 
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use pinocchio::instruction::InstructionAccount;
+use {
+    super::invoke::{invoke, REVOKE},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result},
+};
 
 pub fn revoke(
     program: CpiHandle<'_>,
@@ -22,23 +25,15 @@ pub fn revoke_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = if program.address() == spl_token_2022::ID {
-            spl_token_2022::instruction::revoke(
-                &program.address(),
-                &source.info.address(),
-                &authority.info.address(),
-                &[],
-            )?
-        } else {
-            spl_token::instruction::revoke(
-                &program.address(),
-                &source.info.address(),
-                &authority.info.address(),
-                &[],
-            )?
-        };
-        let accounts = [CpiHandle::from(source), authority, program];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+        invoke(
+            program,
+            [
+                (CpiHandle::from(source), Role::Writable),
+                (authority, Role::ReadonlySigner),
+            ],
+            &[REVOKE],
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -52,7 +47,7 @@ pub fn revoke_signed(
             &program,
             &accounts,
             &[source, authority],
-            &[5],
+            &[REVOKE],
             signer_seeds,
         )
     }

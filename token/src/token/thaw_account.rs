@@ -1,11 +1,14 @@
 //! `ThawAccount`: unfreezes a token account, signed by the mint's freeze
 //! authority.
 
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use pinocchio::instruction::InstructionAccount;
+use {
+    super::invoke::{invoke, THAW_ACCOUNT},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result},
+};
 
 pub fn thaw_account(
     program: CpiHandle<'_>,
@@ -25,25 +28,16 @@ pub fn thaw_account_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = if program.address() == spl_token_2022::ID {
-            spl_token_2022::instruction::thaw_account(
-                &program.address(),
-                &account.info.address(),
-                &mint.info.address(),
-                &authority.info.address(),
-                &[],
-            )?
-        } else {
-            spl_token::instruction::thaw_account(
-                &program.address(),
-                &account.info.address(),
-                &mint.info.address(),
-                &authority.info.address(),
-                &[],
-            )?
-        };
-        let accounts = [CpiHandle::from(account), mint, authority, program];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+        invoke(
+            program,
+            [
+                (CpiHandle::from(account), Role::Writable),
+                (mint, Role::Readonly),
+                (authority, Role::ReadonlySigner),
+            ],
+            &[THAW_ACCOUNT],
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -58,7 +52,7 @@ pub fn thaw_account_signed(
             &program,
             &accounts,
             &[account, mint, authority],
-            &[11],
+            &[THAW_ACCOUNT],
             signer_seeds,
         )
     }

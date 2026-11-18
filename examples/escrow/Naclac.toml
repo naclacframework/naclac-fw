@@ -5,7 +5,7 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
+[programs.devnet]
 escrow_wincode = "FtAx9NQ3WdiTNerU2RnKDPrZLw3gXMJyrh7J9nkw8nUW"
 escrow_zc = "GmrTtURcvgzVZuw9ZD5vJV5taTvMwtCptzx9SbM9yVgv"
 escrow_borsh = "G5gui4RgZH8tjr6M6Js2yJqTcG9tVukUz8p27BNonEgT"
@@ -16,7 +16,7 @@ escrow_wincode_pinocchio = "GXHh7jtpFHtpvJRQWwgpU53diSw94MFoDTq2YeHmuDUu"
 path = "../.."
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

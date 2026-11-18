@@ -36,6 +36,10 @@ pub mod events_prog {
         emit_batch_alloc::emit_batch_alloc(ctx)
     }
 
+    pub fn emit_roster(ctx: Context<EmitRoster>) -> Result {
+        emit_roster::emit_roster(ctx)
+    }
+
     pub fn log_event(ctx: Context<LogEvent>, data: ZcVec<u8>) -> Result {
         log_event::log_event(ctx, data)
     }

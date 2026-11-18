@@ -1,11 +1,14 @@
 //! `CloseAccount`: closes a token account, sending its lamports to a
 //! destination, signed by the close authority.
 
-use crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
-use crate::wrappers::ToAddress;
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use pinocchio::instruction::InstructionAccount;
+use {
+    super::invoke::{invoke, CLOSE_ACCOUNT},
+    crate::prelude::{CpiHandle, CpiHandleMut, CpiSigner, Result},
+};
 
 pub fn close_account(
     program: CpiHandle<'_>,
@@ -25,30 +28,16 @@ pub fn close_account_signed(
 ) -> Result<()> {
     #[cfg(not(feature = "pinocchio"))]
     {
-        let ix = if program.address() == spl_token_2022::ID {
-            spl_token_2022::instruction::close_account(
-                &program.address(),
-                &account.info.address(),
-                &destination.info.address(),
-                &authority.info.address(),
-                &[],
-            )?
-        } else {
-            spl_token::instruction::close_account(
-                &program.address(),
-                &account.info.address(),
-                &destination.info.address(),
-                &authority.info.address(),
-                &[],
-            )?
-        };
-        let accounts = [
-            CpiHandle::from(account),
-            CpiHandle::from(destination),
-            authority,
+        invoke(
             program,
-        ];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+            [
+                (CpiHandle::from(account), Role::Writable),
+                (CpiHandle::from(destination), Role::Writable),
+                (authority, Role::ReadonlySigner),
+            ],
+            &[CLOSE_ACCOUNT],
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -64,7 +53,7 @@ pub fn close_account_signed(
             &program,
             &accounts,
             &[account, destination, authority],
-            &[9],
+            &[CLOSE_ACCOUNT],
             signer_seeds,
         )
     }

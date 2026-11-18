@@ -1,8 +1,5 @@
 use {
-    crate::{
-        constants::SEED_ESCROW, errors::EscrowError, events::EscrowCreated,
-        state::escrow_state::EscrowState,
-    },
+    crate::{errors::EscrowError, events::EscrowCreated, state::escrow_state::EscrowState},
     naclac_lang::prelude::*,
 };
 
@@ -16,7 +13,7 @@ pub struct Make {
     #[account(
         init,
         payer = maker,
-        seeds = [SEED_ESCROW, maker.address().as_ref(), &id.to_le_bytes()],
+        seeds = EscrowState::seeds(maker.address(), id),
         bump
     )]
     pub escrow_state: Account<EscrowState>,
@@ -37,10 +34,6 @@ pub struct Make {
 }
 pub fn make(ctx: Context<Make>, _id: u64, amount_a: u64, amount_b: u64) -> Result {
     require!(amount_a > 0 && amount_b > 0, EscrowError::ZeroAmount);
-    require!(
-        ctx.accounts.mint_a.address() != ctx.accounts.mint_b.address(),
-        EscrowError::InvalidMint
-    );
 
     let escrow = &mut ctx.accounts.escrow_state;
     escrow.maker = ctx.accounts.maker.address();

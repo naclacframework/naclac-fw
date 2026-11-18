@@ -16,6 +16,14 @@ use {
     syn::{parse_macro_input, ItemStruct},
 };
 
+/// Expands `#[derive(Seeds)]`: the seeds of a PDA that holds no program data.
+pub fn expand_seeds_derive(item: TokenStream) -> TokenStream {
+    match seeds::expand_derive(item.into()) {
+        Ok(tokens) => tokens.into(),
+        Err(error) => error.to_compile_error().into(),
+    }
+}
+
 /// Expands the `#[account]` macro.
 ///
 /// This generates the structural foundation for an on-chain account. Cargo
@@ -89,12 +97,16 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     let disc_tokens = quote! { &[#(#disc_bytes),*] };
 
-    let seeds_impl = match seeds::parse(&ast).and_then(|spec| {
-        spec.map(|spec| seeds::generate(&ast, &spec))
-            .transpose()
-            .map(Option::unwrap_or_default)
-    }) {
-        Ok(tokens) => tokens,
+    let seeds_spec = match seeds::parse(&ast) {
+        Ok(spec) => spec,
+        Err(error) => return error.to_compile_error().into(),
+    };
+    let seeds_impl = match seeds_spec
+        .as_ref()
+        .map(|spec| seeds::generate(&ast, spec, seeds::Origin::Account))
+        .transpose()
+    {
+        Ok(tokens) => tokens.unwrap_or_default(),
         Err(error) => return error.to_compile_error().into(),
     };
 
@@ -158,19 +170,25 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! {}
     };
 
-    let declares_bump = fields
-        .iter()
-        .any(|field| field.ident.as_ref().is_some_and(|ident| ident == "bump"));
-    let bump_methods = if declares_bump {
+    let stored_bump_field: Option<syn::Ident> =
+        match seeds_spec.as_ref().and_then(seeds::SeedsSpec::bump_field) {
+            Some(named) => Some(named.clone()),
+            None => fields
+                .iter()
+                .filter_map(|field| field.ident.as_ref())
+                .find(|ident| *ident == "bump")
+                .cloned(),
+        };
+    let bump_methods = if let Some(bump) = &stored_bump_field {
         quote! {
             #[inline(always)]
             fn stored_bump(&self) -> Option<u8> {
-                Some(self.bump)
+                Some(self.#bump)
             }
 
             #[inline(always)]
             fn store_bump(&mut self, bump: u8) {
-                self.bump = bump;
+                self.#bump = bump;
             }
         }
     } else {

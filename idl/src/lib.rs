@@ -372,6 +372,10 @@ pub struct IdlEventField {
     pub docs: Vec<String>,
     #[serde(rename = "type")]
     pub ty: Value,
+    /// Set only on a field that holds a `FixedVec<T, N>` or `FixedString<N>`;
+    /// see [`IdlField::slots`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slots: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
