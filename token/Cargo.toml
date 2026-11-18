@@ -25,6 +25,10 @@ pinocchio-token-2022 = { workspace = true, optional = true }
 pinocchio-associated-token-account = { workspace = true, optional = true }
 pinocchio = { workspace = true, optional = true }
 
+[dev-dependencies]
+spl-token-interface = { workspace = true }
+spl-token-2022-interface = { workspace = true }
+
 [features]
 default = ["solana"]
 solana = ["dep:spl-token", "dep:spl-token-2022", "dep:spl-associated-token-account", "dep:spl-transfer-hook-interface", "dep:spl-token-metadata-interface", "dep:spl-token-group-interface", "dep:spl-discriminator", "dep:bytemuck", "dep:borsh", "dep:solana-nullable", "dep:solana-instruction", "naclac-core/solana"]

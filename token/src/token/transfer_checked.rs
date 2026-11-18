@@ -107,8 +107,10 @@ fn instruction_data(params: CheckedTransferParams) -> [u8; 10] {
 #[cfg(all(test, not(feature = "pinocchio")))]
 mod tests {
     use {
-        super::*, crate::prelude::Address, spl_token::instruction as classic,
-        spl_token_2022::instruction as token_2022,
+        super::*,
+        crate::prelude::Address,
+        spl_token_2022_interface::{instruction as token_2022, ID as TOKEN_2022_ID},
+        spl_token_interface::{instruction as classic, ID as CLASSIC_ID},
     };
 
     #[test]
@@ -118,7 +120,7 @@ mod tests {
         let (amount, decimals) = (0x0102_0304_0506_0708u64, 9u8);
         let ours = instruction_data(CheckedTransferParams { amount, decimals });
         let classic_data = classic::transfer_checked(
-            &spl_token::ID,
+            &CLASSIC_ID,
             &from,
             &mint,
             &to,
@@ -130,7 +132,7 @@ mod tests {
         .unwrap()
         .data;
         let token_2022_data = token_2022::transfer_checked(
-            &spl_token_2022::ID,
+            &TOKEN_2022_ID,
             &from,
             &mint,
             &to,

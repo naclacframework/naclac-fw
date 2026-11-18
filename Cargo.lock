@@ -2542,7 +2542,9 @@ dependencies = [
  "spl-discriminator",
  "spl-token",
  "spl-token-2022",
+ "spl-token-2022-interface 3.1.1",
  "spl-token-group-interface",
+ "spl-token-interface 2.0.0",
  "spl-token-metadata-interface 1.0.1",
  "spl-transfer-hook-interface",
 ]

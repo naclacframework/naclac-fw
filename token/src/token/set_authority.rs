@@ -110,7 +110,11 @@ fn instruction_data(
 
 #[cfg(all(test, not(feature = "pinocchio")))]
 mod tests {
-    use {super::*, spl_token::instruction as classic, spl_token_2022::instruction as token_2022};
+    use {
+        super::*,
+        spl_token_2022_interface::{instruction as token_2022, ID as TOKEN_2022_ID},
+        spl_token_interface::{instruction as classic, ID as CLASSIC_ID},
+    };
 
     const TYPES: [AuthorityType; 4] = [
         AuthorityType::MintTokens,
@@ -146,7 +150,7 @@ mod tests {
             for new in [None, Some(&new_authority)] {
                 let (data, len) = instruction_data(authority_type, new);
                 let classic_data = classic::set_authority(
-                    &spl_token::ID,
+                    &CLASSIC_ID,
                     &account,
                     new,
                     classic_type(authority_type),
@@ -156,7 +160,7 @@ mod tests {
                 .unwrap()
                 .data;
                 let token_2022_data = token_2022::set_authority(
-                    &spl_token_2022::ID,
+                    &TOKEN_2022_ID,
                     &account,
                     new,
                     token_2022_type(authority_type),

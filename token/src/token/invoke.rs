@@ -130,7 +130,11 @@ fn send(
 
 #[cfg(all(test, not(feature = "pinocchio")))]
 mod tests {
-    use {super::*, spl_token::instruction as classic, spl_token_2022::instruction as token_2022};
+    use {
+        super::*,
+        spl_token_2022_interface::{instruction as token_2022, ID as TOKEN_2022_ID},
+        spl_token_interface::{instruction as classic, ID as CLASSIC_ID},
+    };
 
     fn key(seed: u8) -> Address {
         Address::new_from_array([seed; 32])
@@ -139,8 +143,8 @@ mod tests {
     #[test]
     fn each_discriminator_is_the_one_the_token_program_packs() {
         let (a, b, c) = (key(1), key(2), key(3));
-        let id = spl_token::ID;
-        let cases: [(u8, u8); 9] = [
+        let id = CLASSIC_ID;
+        let cases: [(u8, u8); 10] = [
             (
                 APPROVE,
                 classic::approve(&id, &a, &b, &c, &[], 1).unwrap().data[0],
@@ -173,19 +177,31 @@ mod tests {
                     .data[0],
             ),
             (SYNC_NATIVE, classic::sync_native(&id, &a).unwrap().data[0]),
+            (
+                SET_AUTHORITY,
+                classic::set_authority(
+                    &id,
+                    &a,
+                    None,
+                    classic::AuthorityType::MintTokens,
+                    &c,
+                    &[],
+                )
+                .unwrap()
+                .data[0],
+            ),
         ];
         for (ours, theirs) in cases {
             assert!(ours == theirs);
         }
-        assert!(SET_AUTHORITY == 6);
     }
 
     #[test]
     fn an_amount_is_the_discriminator_then_eight_little_endian_bytes() {
         let (a, b, c) = (key(1), key(2), key(3));
         let amount = 0x0102_0304_0506_0708u64;
-        let id = spl_token::ID;
-        let id_2022 = spl_token_2022::ID;
+        let id = CLASSIC_ID;
+        let id_2022 = TOKEN_2022_ID;
         assert!(
             amount_data(APPROVE, amount)[..]
                 == classic::approve(&id, &a, &b, &c, &[], amount).unwrap().data[..]
@@ -206,7 +222,7 @@ mod tests {
     fn the_roles_are_the_account_metas_the_token_program_builds() {
         let (from, mint, to, authority) = (key(1), key(2), key(3), key(4));
         let built =
-            classic::transfer_checked(&spl_token::ID, &from, &mint, &to, &authority, &[], 5, 6)
+            classic::transfer_checked(&CLASSIC_ID, &from, &mint, &to, &authority, &[], 5, 6)
                 .unwrap();
         let ours = [
             Role::Writable.meta(from),

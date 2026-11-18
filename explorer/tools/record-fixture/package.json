@@ -1,7 +1,0 @@
-{
-  "name": "@naclac-explorer/record-fixture",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "description": "Saves the raw getTransaction result of every transaction in a devnet traffic record file, for use as parser fixtures."
-}

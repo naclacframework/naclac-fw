@@ -1,7 +1,0 @@
-{
-  "name": "@naclac-explorer/parser",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "description": "Turns a raw Solana getTransaction result, and the programs' IDLs, into a parsed transaction."
-}

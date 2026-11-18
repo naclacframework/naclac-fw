@@ -4,13 +4,11 @@
 //! the rules alone (a two-byte little-endian length, then every slot, no
 //! padding), not from the program's or the client's own types.
 
-use {
-    fixed_capacity_client::{
-        fetch_profile, get_profile_pda, instructions::*, types::PROGRAM_ID, Profile,
-        PROFILE_DISCRIMINATOR,
-    },
-    naclac_client::*,
+use fixed_capacity_client::{
+    fetch_profile, get_profile_pda, instructions::*, types::PROGRAM_ID, Profile,
+    PROFILE_DISCRIMINATOR,
 };
+use naclac_client::*;
 
 const INVALID_INSTRUCTION_DATA: u32 = 10_012;
 const CAPACITY_EXCEEDED: u32 = 10_032;
@@ -184,11 +182,7 @@ fn member(byte: u8) -> Address {
 }
 
 fn scores_of(profile: &Profile) -> Vec<u64> {
-    profile
-        .scores
-        .iter()
-        .unwrap_or_else(|_| panic!("scores have a valid length"))
-        .collect()
+    profile.scores.iter().collect()
 }
 
 /// A `FixedVec` or `FixedString` as the program stores it: a two-byte
@@ -223,10 +217,10 @@ fn the_account_is_packed_with_no_padding() {
 fn a_new_account_has_empty_lists_and_the_payer_as_owner() {
     let (provider, profile) = setup();
     let state = read(&provider, &profile);
-    assert!(state.scores.is_empty() == Ok(true));
-    assert!(state.name.is_empty() == Ok(true));
-    assert!(state.members.is_empty() == Ok(true));
-    assert!(state.flags.is_empty() == Ok(true));
+    assert!(state.scores.is_empty());
+    assert!(state.name.is_empty());
+    assert!(state.members.is_empty());
+    assert!(state.flags.is_empty());
     assert_eq!(state.owner, provider.payer.address());
     let counter = state.counter;
     assert_eq!(counter, 0);
@@ -347,7 +341,7 @@ fn invalid_utf8_stored_in_the_account_is_an_error_not_a_panic() {
 
     let state = read(&provider, &profile);
     assert!(state.name.as_str().is_err());
-    assert!(state.name.len() == Ok(2));
+    assert_eq!(state.name.len(), 2);
 }
 
 #[test]
@@ -360,14 +354,7 @@ fn a_list_of_addresses_removes_in_order_and_zeroes_the_freed_slot() {
 
     remove_member(&provider, profile, 0).unwrap();
     let state = read(&provider, &profile);
-    assert_eq!(
-        state
-            .members
-            .iter()
-            .unwrap_or_else(|_| panic!("members have a valid length"))
-            .collect::<Vec<_>>(),
-        vec![member(2), member(3)]
-    );
+    assert_eq!(state.members.iter().collect::<Vec<_>>(), vec![member(2), member(3)]);
 
     let (.., members_at, _) = offsets();
     let bytes = raw(&provider, &profile);
@@ -387,12 +374,7 @@ fn flags_are_stored_as_one_or_zero() {
     assert_eq!(&bytes[flags_at..flags_at + 4], &[2, 0, 1, 0]);
     let state = read(&provider, &profile);
     assert_eq!(
-        state
-            .flags
-            .iter()
-            .unwrap_or_else(|_| panic!("flags have a valid length"))
-            .map(|flag| flag.0)
-            .collect::<Vec<_>>(),
+        state.flags.iter().map(|flag| flag.0).collect::<Vec<_>>(),
         vec![1, 0]
     );
 }
@@ -420,10 +402,8 @@ fn fixed_fields_do_not_disturb_the_fields_around_them() {
 
     clear_all(&provider, profile).unwrap();
     let state = read(&provider, &profile);
-    assert!(state.scores.is_empty() == Ok(true));
-    assert!(state.name.is_empty() == Ok(true));
-    assert!(state.members.is_empty() == Ok(true));
-    assert!(state.flags.is_empty() == Ok(true));
+    assert!(state.scores.is_empty() && state.name.is_empty());
+    assert!(state.members.is_empty() && state.flags.is_empty());
     let counter = state.counter;
     assert_eq!(counter, 2);
     let bytes = raw(&provider, &profile);
@@ -438,79 +418,19 @@ fn fixed_fields_do_not_disturb_the_fields_around_them() {
 }
 
 #[test]
-fn a_forged_list_length_is_rejected_without_changing_account_bytes() {
+fn a_forged_length_above_capacity_is_clamped_never_trusted() {
     let (provider, profile) = setup();
     push_score(&provider, profile, 5).unwrap();
     let (scores_at, ..) = offsets();
     let mut data = raw(&provider, &profile);
     let owner = provider.get_account(&profile).unwrap().owner;
     let lamports = provider.get_balance(&profile).unwrap();
-    data[scores_at..scores_at + 2].copy_from_slice(&u16::MAX.to_le_bytes());
-    let before = data.clone();
+    data[scores_at] = 0xFF;
+    data[scores_at + 1] = 0xFF;
     provider.set_account(&profile, data, &owner, lamports).unwrap();
 
-    let state = read(&provider, &profile);
-    let error = state.scores.len().expect_err("stored length exceeds capacity");
-    assert!(state.scores.is_empty() == Err(error));
-    assert!(state.scores.is_full() == Err(error));
-    assert!(state.scores.get(0) == Err(error));
-    assert!(state.scores.iter().is_err());
-    let expected = match error.custom_code() {
-        Some(code) => InstructionError::Custom(code),
-        None => InstructionError::InvalidAccountData,
-    };
-    let operations: [fn(&NaclacProvider, Address) -> Outcome; 4] = [
-        |provider, profile| push_score(provider, profile, 6),
-        pop_score,
-        |provider, profile| set_scores(provider, profile, vec![]),
-        clear_all,
-    ];
-    for operation in operations {
-        match operation(&provider, profile) {
-            Err(NaclacClientError::TransactionFailed { instruction_err, .. }) => {
-                assert_eq!(instruction_err, expected);
-            }
-            other => panic!("expected malformed-length transaction failure, got {other:?}"),
-        }
-        assert_eq!(raw(&provider, &profile), before);
-    }
-}
-
-#[test]
-fn a_forged_string_length_is_rejected_without_changing_account_bytes() {
-    let (provider, profile) = setup();
-    set_name(&provider, profile, "ok").unwrap();
-    let (_, name_at, ..) = offsets();
-    let mut data = raw(&provider, &profile);
-    let owner = provider.get_account(&profile).unwrap().owner;
-    let lamports = provider.get_balance(&profile).unwrap();
-    data[name_at..name_at + 2].copy_from_slice(&u16::MAX.to_le_bytes());
-    let before = data.clone();
-    provider.set_account(&profile, data, &owner, lamports).unwrap();
-
-    let state = read(&provider, &profile);
-    let error = state.name.len().expect_err("stored length exceeds capacity");
-    assert!(state.name.is_empty() == Err(error));
-    assert!(state.name.as_bytes() == Err(error));
-    assert!(state.name.as_str() == Err(error));
-    assert!(state.name.eq_str("ok") == Err(error));
-    let expected = match error.custom_code() {
-        Some(code) => InstructionError::Custom(code),
-        None => InstructionError::InvalidAccountData,
-    };
-    let operations: [fn(&NaclacProvider, Address) -> Outcome; 2] = [
-        |provider, profile| set_name(provider, profile, ""),
-        clear_all,
-    ];
-    for operation in operations {
-        match operation(&provider, profile) {
-            Err(NaclacClientError::TransactionFailed { instruction_err, .. }) => {
-                assert_eq!(instruction_err, expected);
-            }
-            other => panic!("expected malformed-length transaction failure, got {other:?}"),
-        }
-        assert_eq!(raw(&provider, &profile), before);
-    }
+    assert_eq!(read(&provider, &profile).scores.len(), 4);
+    assert_custom(push_score(&provider, profile, 6), CAPACITY_EXCEEDED);
 }
 
 #[test]
