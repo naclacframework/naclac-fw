@@ -4,7 +4,7 @@
 //! to parse slices and strings out of instruction data in Pinocchio/Zero-Copy environments.
 
 use {
-    crate::error::PodError,
+    crate::{error::PodError, validate::PodValidate},
     bytemuck::Pod,
     core::{marker::PhantomData, ops::Deref},
 };
@@ -52,7 +52,9 @@ impl<'a, T: Pod> ZcVec<'a, T> {
             _borrow: PhantomData,
         }
     }
+}
 
+impl<'a, T: Pod + PodValidate> ZcVec<'a, T> {
     /// Creates an uncapped ZcVec from raw bytes; see
     /// [`ZcVec::from_bytes_bounded`].
     pub fn from_bytes(data: &'a [u8]) -> Result<Self, PodError> {
@@ -60,11 +62,11 @@ impl<'a, T: Pod> ZcVec<'a, T> {
     }
 }
 
-impl<'a, T: Pod, const MAX: usize> ZcVec<'a, T, MAX> {
-    /// Creates a ZcVec from raw bytes, performing a bounds check only — no
-    /// alignment check, since element access never requires `T`-alignment
-    /// (see this type's own doc comment). More than `MAX` elements is an
-    /// error.
+impl<'a, T: Pod + PodValidate, const MAX: usize> ZcVec<'a, T, MAX> {
+    /// Creates a ZcVec from raw bytes after a bounds check and a validation of
+    /// every element — no alignment check, since element access never requires
+    /// `T`-alignment (see this type's own doc comment). More than `MAX`
+    /// elements, or an element that fails validation, is an error.
     pub fn from_bytes_bounded(data: &'a [u8]) -> Result<Self, PodError> {
         let len = data.len();
         let item_size = core::mem::size_of::<T>();
@@ -73,13 +75,21 @@ impl<'a, T: Pod, const MAX: usize> ZcVec<'a, T, MAX> {
             return Err(PodError::InvalidInstructionData);
         }
 
+        if !T::TRIVIAL {
+            for element in data.chunks_exact(item_size) {
+                T::validate_bytes(element).map_err(|_| PodError::InvalidInstructionData)?;
+            }
+        }
+
         Ok(Self {
             ptr: data.as_ptr(),
             len: len / item_size,
             _borrow: PhantomData,
         })
     }
+}
 
+impl<'a, T: Pod, const MAX: usize> ZcVec<'a, T, MAX> {
     pub fn len(&self) -> usize {
         self.len
     }
@@ -283,6 +293,15 @@ mod tests {
     fn zc_vec_from_bytes_rejects_size_not_a_multiple_of_item_size() {
         let bytes: [u8; 5] = [0, 1, 2, 3, 4];
         assert!(ZcVec::<u32>::from_bytes(&bytes).err() == Some(PodError::InvalidInstructionData));
+    }
+
+    #[test]
+    fn zc_vec_from_bytes_rejects_an_element_that_fails_validation() {
+        use crate::Bool;
+        assert!(ZcVec::<Bool>::from_bytes(&[1, 0, 1]).is_ok());
+        assert!(
+            ZcVec::<Bool>::from_bytes(&[1, 2, 1]).err() == Some(PodError::InvalidInstructionData)
+        );
     }
 
     #[test]

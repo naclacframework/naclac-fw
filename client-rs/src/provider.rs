@@ -221,7 +221,8 @@ impl NaclacTransactionMetadata {
     }
 
     /// Parses Borsh-serialized events of type `T` from the transaction's
-    /// logs and, for a program using `#[event_cpi]`, its inner instructions.
+    /// logs and, for a program using `#[event_cpi]`, its inner instructions. An
+    /// event of type `T` that does not decode is an error, not a left-out event.
     pub fn parse_events_borsh<T: borsh::BorshDeserialize + NaclacEvent>(
         &self,
     ) -> Result<Vec<T>, NaclacClientError> {
@@ -229,16 +230,20 @@ impl NaclacTransactionMetadata {
         for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
             if disc_bytes == T::DISCRIMINATOR {
                 let mut reader = &payload_bytes[..];
-                if let Ok(event) = T::deserialize(&mut reader) {
-                    events.push(event);
-                }
+                let event = T::deserialize(&mut reader).map_err(|error| {
+                    NaclacClientError::DeserializationError(format!(
+                        "Event data failed to decode: {error:?}"
+                    ))
+                })?;
+                events.push(event);
             }
         }
         Ok(events)
     }
 
     /// Parses Wincode-serialized events of type `T` from the transaction's
-    /// logs and, for a program using `#[event_cpi]`, its inner instructions.
+    /// logs and, for a program using `#[event_cpi]`, its inner instructions. An
+    /// event of type `T` that does not decode is an error, not a left-out event.
     pub fn parse_events_wincode<
         T: wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T> + NaclacEvent,
     >(
@@ -248,11 +253,14 @@ impl NaclacTransactionMetadata {
         for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
             if disc_bytes == T::DISCRIMINATOR {
                 let mut reader = &payload_bytes[..];
-                if let Ok(event) =
-                    wincode::config::deserialize_from(&mut reader, crate::wincode_config::CONFIG)
-                {
-                    events.push(event);
-                }
+                let decoded: Result<T, _> =
+                    wincode::config::deserialize_from(&mut reader, crate::wincode_config::CONFIG);
+                let event = decoded.map_err(|error| {
+                    NaclacClientError::DeserializationError(format!(
+                        "Event data failed to decode: {error:?}"
+                    ))
+                })?;
+                events.push(event);
             }
         }
         Ok(events)
@@ -268,8 +276,15 @@ impl NaclacTransactionMetadata {
     ) -> Result<Vec<T>, NaclacClientError> {
         let mut events = Vec::new();
         for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
-            if disc_bytes == T::DISCRIMINATOR && payload_bytes.len() >= std::mem::size_of::<T>() {
-                let bytes = &payload_bytes[0..std::mem::size_of::<T>()];
+            if disc_bytes == T::DISCRIMINATOR {
+                let size = std::mem::size_of::<T>();
+                if payload_bytes.len() < size {
+                    return Err(NaclacClientError::DeserializationError(format!(
+                        "Event data is {} bytes, shorter than the {size} bytes expected",
+                        payload_bytes.len()
+                    )));
+                }
+                let bytes = &payload_bytes[0..size];
                 T::validate_bytes(bytes).map_err(|error| {
                     NaclacClientError::DeserializationError(format!(
                         "Event data failed validation: {}",
@@ -287,16 +302,20 @@ impl NaclacTransactionMetadata {
     /// Unlike [`parse_events_zero_copy`](Self::parse_events_zero_copy), `T` isn't
     /// `bytemuck::Pod` (it may hold `Vec`/`String`/`Option` fields), so decoding
     /// is delegated to `T`'s generated [`NaclacAllocEvent::decode`], which mirrors
-    /// the on-chain `emit()`'s sequential, length-prefixed write order.
+    /// the on-chain `emit()`'s sequential, length-prefixed write order. An event
+    /// of type `T` that does not decode is an error, not a left-out event.
     pub fn parse_events_alloc<T: crate::NaclacAllocEvent>(
         &self,
     ) -> Result<Vec<T>, NaclacClientError> {
         let mut events = Vec::new();
         for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
             if disc_bytes == T::DISCRIMINATOR {
-                if let Some(event) = T::decode(&payload_bytes) {
-                    events.push(event);
-                }
+                let event = T::decode(&payload_bytes).ok_or_else(|| {
+                    NaclacClientError::DeserializationError(
+                        "Event data failed to decode".to_string(),
+                    )
+                })?;
+                events.push(event);
             }
         }
         Ok(events)
