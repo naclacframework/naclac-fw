@@ -238,6 +238,35 @@ fn dynamic_arguments_fill_the_sized_fields() {
 }
 
 #[test]
+fn shrinking_the_roster_leaves_the_same_bytes_as_a_fresh_lab() {
+    let (provider, lab) = setup();
+    let fresh = provider.get_account_data(&lab).expect("lab data");
+
+    send!(
+        &provider,
+        lab,
+        build_set_roster,
+        SetRosterAccounts,
+        vec![1u64, 2, 3, 4],
+        "x".repeat(16)
+    )
+    .expect("set_roster");
+    for index in 0..3u8 {
+        let member = Address::new_from_array([index + 1; 32]);
+        send!(&provider, lab, build_add_member, AddMemberAccounts, member).expect("add_member");
+    }
+    for flag in 0..8u8 {
+        send!(&provider, lab, build_push_flag, PushFlagAccounts, flag % 2).expect("push_flag");
+    }
+    let filled = provider.get_account_data(&lab).expect("lab data");
+    assert_ne!(filled, fresh, "filling the roster should change the account bytes");
+
+    send!(&provider, lab, build_clear_roster, ClearRosterAccounts).expect("clear_roster");
+    let cleared = provider.get_account_data(&lab).expect("lab data");
+    assert_eq!(cleared, fresh, "the bytes freed by clearing the roster must be zero again");
+}
+
+#[test]
 fn capacity_limits_and_program_errors_surface_with_their_codes() {
     let (provider, lab) = setup();
     for value in 1..=4u64 {

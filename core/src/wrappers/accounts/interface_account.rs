@@ -54,6 +54,7 @@ pub struct InterfaceAccount<T: BorshDeserialize + BorshSerialize + crate::wrappe
     // Deliberately private — see `accounts/account.rs`'s `Account<T>` doc
     // comment on its own `index` field for why.
     index: usize,
+    loaded_len: usize,
 }
 
 #[cfg(feature = "borsh")]
@@ -77,15 +78,18 @@ impl<
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(index))?;
 
         let mut reader = &raw[disc_len..];
+        let body_len = reader.len();
         let data = T::deserialize(&mut reader).map_err(|error| {
             super::discard_error(error);
             NaclacError::DeserializationFailed.err(index)
         })?;
+        let loaded_len = body_len - reader.len();
 
         Ok(Self {
             info: *info,
             data,
             index,
+            loaded_len,
         })
     }
 
@@ -116,10 +120,12 @@ impl<
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(self.index))?;
 
         let mut reader = &raw[disc_len..];
+        let body_len = reader.len();
         self.data = T::deserialize(&mut reader).map_err(|error| {
             super::discard_error(error);
             NaclacError::DeserializationFailed.err(self.index)
         })?;
+        self.loaded_len = body_len - reader.len();
         Ok(())
     }
 
@@ -130,10 +136,13 @@ impl<
             .split_at_mut_checked(disc_len)
             .ok_or_else(|| NaclacError::AccountDataTooSmall.err(self.index))?;
         discriminator.copy_from_slice(T::DISCRIMINATOR);
+        let body_len = writer.len();
         self.data.serialize(&mut writer).map_err(|error| {
             super::discard_error(error);
             NaclacError::SerializationFailed.err(self.index)
         })?;
+        let written = body_len - writer.len();
+        super::zero_freed_tail(writer, written, self.loaded_len);
         Ok(())
     }
 }
@@ -313,6 +322,7 @@ pub struct InterfaceAccount<
     pub info: AccountInfo,
     pub data: T,
     index: usize,
+    loaded_len: usize,
 }
 
 #[cfg(feature = "wincode")]
@@ -336,16 +346,19 @@ impl<
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(index))?;
 
         let mut reader = &raw[disc_len..];
+        let body_len = reader.len();
         let data = crate::prelude::wincode::config::deserialize_from(
             &mut reader,
             crate::wincode_config::CONFIG,
         )
         .map_err(|_| NaclacError::DeserializationFailed.err(index))?;
+        let loaded_len = body_len - reader.len();
 
         Ok(Self {
             info: *info,
             data,
             index,
+            loaded_len,
         })
     }
 
@@ -368,11 +381,13 @@ impl<
         T::validate_interface_layout(&raw[disc_len..]).map_err(|e| e.err(self.index))?;
 
         let mut reader = &raw[disc_len..];
+        let body_len = reader.len();
         self.data = crate::prelude::wincode::config::deserialize_from(
             &mut reader,
             crate::wincode_config::CONFIG,
         )
         .map_err(|_| NaclacError::DeserializationFailed.err(self.index))?;
+        self.loaded_len = body_len - reader.len();
         Ok(())
     }
 
@@ -383,12 +398,15 @@ impl<
             .split_at_mut_checked(disc_len)
             .ok_or_else(|| NaclacError::AccountDataTooSmall.err(self.index))?;
         discriminator.copy_from_slice(T::DISCRIMINATOR);
+        let body_len = writer.len();
         crate::prelude::wincode::config::serialize_into(
             &mut writer,
             &self.data,
             crate::wincode_config::CONFIG,
         )
         .map_err(|_| NaclacError::SerializationFailed.err(self.index))?;
+        let written = body_len - writer.len();
+        super::zero_freed_tail(writer, written, self.loaded_len);
         Ok(())
     }
 }

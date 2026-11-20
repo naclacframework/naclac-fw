@@ -28,6 +28,20 @@ pub(crate) fn discard_error<E>(error: E) {
     core::mem::forget(error);
 }
 
+/// Zeroes the bytes a serialized account value no longer uses after `exit`
+/// wrote a shorter value than the one loaded. `unwritten` is the part of the
+/// account body after the bytes just written, `written` their count, and
+/// `loaded_len` the serialized length when the account was loaded. Keeps every
+/// byte past the serialized value zero, as long as the account started zeroed.
+#[cfg(any(feature = "borsh", feature = "wincode"))]
+#[inline(always)]
+pub(crate) fn zero_freed_tail(unwritten: &mut [u8], written: usize, loaded_len: usize) {
+    let freed = loaded_len.saturating_sub(written).min(unwritten.len());
+    if let Some(bytes) = unwritten.get_mut(..freed) {
+        bytes.fill(0);
+    }
+}
+
 /// Trait for types that can be zero-copy loaded from raw bytes.
 ///
 /// The data slice passed to `load` must include the discriminator prefix
