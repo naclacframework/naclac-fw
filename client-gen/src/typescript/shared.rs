@@ -553,10 +553,12 @@ pub fn generate_shared_files(
                 ""
             };
             ix_content.push_str(&render_docs_ts(&acc.docs, "  "));
+            let null_marker = if is_optional { " | null" } else { "" };
             ix_content.push_str(&format!(
-                "  {}{}: naclac.Address | string;\n",
+                "  {}{}: naclac.Address | string{};\n",
                 acc.name.to_lower_camel_case(),
-                optional_marker
+                optional_marker,
+                null_marker
             ));
         }
         ix_content.push_str("}\n");
@@ -662,5 +664,58 @@ mod framework_type_tests {
 
         assert!(typedefs.contains("export interface Options"), "{typedefs}");
         assert!(!typedefs.contains("OptU64"), "{typedefs}");
+    }
+}
+
+#[cfg(test)]
+mod optional_account_tests {
+    #[test]
+    fn only_an_optional_account_accepts_null() {
+        let idl = crate::Idl::from_json(
+            &serde_json::json!({
+                "address": "11111111111111111111111111111111",
+                "metadata": {
+                    "name": "p",
+                    "version": "0.1.0",
+                    "description": "d",
+                    "serialization": "bytemuck"
+                },
+                "instructions": [{
+                    "name": "touch",
+                    "discriminator": [1],
+                    "accounts": [
+                        { "name": "signer", "signer": true },
+                        { "name": "note", "writable": true, "optional": true },
+                        { "name": "vault", "writable": true }
+                    ],
+                    "args": []
+                }],
+                "accounts": [],
+                "events": [],
+                "errors": [],
+                "constants": [],
+                "definedTypes": []
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let dir = std::env::temp_dir().join(format!(
+            "naclac-client-gen-optional-account-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("types")).unwrap();
+        std::fs::create_dir_all(dir.join("instructions")).unwrap();
+
+        super::generate_shared_files(&idl, "p", &dir).unwrap();
+        let touch = std::fs::read_to_string(dir.join("instructions/touch.ts")).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert!(
+            touch.contains("note?: naclac.Address | string | null;"),
+            "{touch}"
+        );
+        assert!(touch.contains("vault: naclac.Address | string;"), "{touch}");
+        assert!(touch.contains("signer: naclac.Address | string;"), "{touch}");
     }
 }

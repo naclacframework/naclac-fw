@@ -5,7 +5,7 @@ package_manager = "pnpm"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
+[programs.devnet]
 types_lab_borsh = "5pDVtcsqNeUb1AR9dmgj8VvDjD5ahyy5tMYbFiY9XTj2"
 types_lab_zc = "GxSq3GYH9FFicoRvh4b5wsBuof728tU4M5kaY1v6LaAC"
 types_lab_pinocchio_wincode = "6YKEHJ1FJW9r9NQSKwHZaGMLmpYtMiUpd4VkbkGy68Bt"
@@ -16,7 +16,7 @@ types_lab = "AFNURreYQ11uDgJE6KQRQAdgo2oT7JnVvRejtkT8eq95"
 path = "../.."
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

@@ -38,9 +38,9 @@ export interface IdlAccount {
   /** Whether this account must sign the transaction. */
   signer?: boolean;
   /**
-   * Whether this account is optional and may be omitted by the caller. An
-   * omitted optional account is filled with the program's own address, which
-   * the program reads as "not provided".
+   * Whether this account is optional and may be left out by the caller, by
+   * passing `null` for it. A left-out optional account is filled with the
+   * program's own address, which the program reads as "not provided".
    */
   optional?: boolean;
   /** Legacy aliases — isMut/isSigner kept for backward compatibility with older IDLs. */

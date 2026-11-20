@@ -227,14 +227,31 @@ export class LegacyMethodsBuilder {
     this.programId = new PublicKey(idl.address);
   }
 
-  accounts(accounts: Record<string, PublicKey | string>): this {
+  /**
+   * Sets the instruction's accounts by name. `null` leaves an optional account
+   * out: its slot is filled with the program's own address, the value the
+   * program reads as "not provided". `null` for an account that is not
+   * optional throws.
+   */
+  accounts(accounts: Record<string, PublicKey | string | null>): this {
     const camelToRaw: Record<string, string> = {};
     for (const acct of this.ixDef.accounts) {
       camelToRaw[toCamelCase(acct.name)] = acct.name;
     }
     const normalized: Record<string, PublicKey> = {};
     for (const [key, val] of Object.entries(accounts)) {
-      normalized[camelToRaw[key] ?? key] = typeof val === "string" ? new PublicKey(val) : val;
+      const name = camelToRaw[key] ?? key;
+      if (val === null) {
+        const def = this.ixDef.accounts.find((acct) => acct.name === name);
+        if (!def?.optional) {
+          throw new Error(
+            `[Naclac] Account "${key}" is not optional, so it cannot be null. Pass its address.`,
+          );
+        }
+        normalized[name] = this.programId;
+        continue;
+      }
+      normalized[name] = typeof val === "string" ? new PublicKey(val) : val;
     }
     this._userAccounts = { ...this._userAccounts, ...normalized };
     return this;
@@ -335,7 +352,8 @@ export class LegacyMethodsBuilder {
 
       if (!addr) {
         throw new Error(
-          `[Naclac] Account "${acctDef.name}" was not provided and could not be auto-resolved.`,
+          `[Naclac] Account "${acctDef.name}" was not provided and could not be auto-resolved.` +
+            (acctDef.optional ? ` To leave it out, pass null for "${toCamelCase(acctDef.name)}".` : ""),
         );
       }
 
