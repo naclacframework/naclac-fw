@@ -43,7 +43,7 @@ impl PluginInit<'_> {
             quote! {}
         } else {
             quote! {
-                if !info.data_is_empty() {
+                if !info.data_is_empty()? {
                     return Err(naclac_lang::prelude::NaclacError::AccountAlreadyInitialized.err(#idx));
                 }
             }
@@ -61,7 +61,7 @@ impl PluginInit<'_> {
 
         quote! {
             #existence_check
-            if info.data_is_empty() {
+            if info.data_is_empty()? {
                 #signer_seeds_logic
 
                 let __sys_info = &accounts[#system_program_idx];

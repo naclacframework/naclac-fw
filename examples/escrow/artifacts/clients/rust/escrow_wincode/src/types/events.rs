@@ -54,6 +54,33 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for EscrowCancelled {}
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for EscrowCancelled {}
 
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_offchain::PodValidate for EscrowCancelled {
+    const TRIVIAL: bool = true
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_offchain::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCancelled, maker
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCancelled, amount_a
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
+
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
@@ -101,6 +128,33 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for EscrowCancelledCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for EscrowCancelledCpi {}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_cpi::PodValidate for EscrowCancelledCpi {
+    const TRIVIAL: bool = true
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_cpi::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCancelledCpi, maker
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCancelledCpi, amount_a
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
 
 #[cfg(feature = "offchain")]
 impl crate::sdk_core_offchain::NaclacEvent for EscrowCancelled {
@@ -161,6 +215,39 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for EscrowCreated {}
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for EscrowCreated {}
 
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_offchain::PodValidate for EscrowCreated {
+    const TRIVIAL: bool = true
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_offchain::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCreated, maker
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCreated, amount_a
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCreated, amount_b
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
+
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
@@ -212,6 +299,39 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for EscrowCreatedCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for EscrowCreatedCpi {}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_cpi::PodValidate for EscrowCreatedCpi {
+    const TRIVIAL: bool = true
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_cpi::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCreatedCpi, maker
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCreatedCpi, amount_a
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowCreatedCpi, amount_b
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
 
 #[cfg(feature = "offchain")]
 impl crate::sdk_core_offchain::NaclacEvent for EscrowCreated {
@@ -272,6 +392,39 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for EscrowExchanged {}
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for EscrowExchanged {}
 
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_offchain::PodValidate for EscrowExchanged {
+    const TRIVIAL: bool = true
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_offchain::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowExchanged, taker
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowExchanged, amount_a
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowExchanged, amount_b
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
+
 #[cfg(feature = "cpi")]
 #[cfg(any(feature = "borsh", feature = "wincode"))]
 #[cfg_attr(feature = "borsh", derive(Clone, Debug, BorshSerialize, BorshDeserialize))]
@@ -323,6 +476,39 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for EscrowExchangedCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for EscrowExchangedCpi {}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_cpi::PodValidate for EscrowExchangedCpi {
+    const TRIVIAL: bool = true
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_cpi::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowExchangedCpi, taker
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowExchangedCpi, amount_a
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                EscrowExchangedCpi, amount_b
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
 
 #[cfg(feature = "offchain")]
 impl crate::sdk_core_offchain::NaclacEvent for EscrowExchanged {

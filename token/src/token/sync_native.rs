@@ -6,8 +6,7 @@ use pinocchio::instruction::InstructionAccount;
 #[cfg(not(feature = "pinocchio"))]
 use {
     super::invoke::Role,
-    crate::wrappers::ToAddress,
-    solana_instruction::{AccountMeta, Instruction},
+    crate::cpi::{invoke_signed_paired_slice, CpiAccount},
 };
 use {
     super::invoke::{invoke, SYNC_NATIVE},
@@ -86,29 +85,30 @@ pub fn sync_native_with_extra_accounts(
 
     #[cfg(not(feature = "pinocchio"))]
     {
-        let mut metas = crate::prelude::Vec::with_capacity(2 + extra_accounts.len());
-        metas.push(AccountMeta::new(native_token.address(), false));
-        metas.push(AccountMeta::new_readonly(rent_sysvar.address(), false));
-        metas.extend(
-            extra_accounts
-                .iter()
-                .map(|extra| AccountMeta::new(extra.address(), false)),
-        );
-        let ix = Instruction {
-            program_id: program.address(),
-            accounts: metas,
-            data: [SYNC_NATIVE].to_vec(),
+        let native_handle: CpiHandle<'_> = CpiHandle::from(native_token);
+        let accounts: [CpiAccount<'_>; MAX_SYNC_NATIVE_EXTRA_ACCOUNTS + 2] =
+            core::array::from_fn(|i| match (i, extra_accounts.get(i.wrapping_sub(2))) {
+                (1, _) => CpiAccount {
+                    handle: rent_sysvar,
+                    is_signer: false,
+                    is_writable: false,
+                },
+                (_, Some(extra)) => CpiAccount {
+                    handle: *extra,
+                    is_signer: false,
+                    is_writable: true,
+                },
+                _ => CpiAccount {
+                    handle: native_handle,
+                    is_signer: false,
+                    is_writable: true,
+                },
+            });
+        let Some(used) = accounts.get(..extra_accounts.len() + 2) else {
+            return Err(NaclacError::TooManyExtraAccounts.into());
         };
 
-        let native_handle: CpiHandle<'_> = CpiHandle::from(native_token);
-        let mut accounts: [CpiHandle<'_>; MAX_SYNC_NATIVE_EXTRA_ACCOUNTS + 3] =
-            [native_handle; MAX_SYNC_NATIVE_EXTRA_ACCOUNTS + 3];
-        accounts[1] = rent_sysvar;
-        accounts[2] = program;
-        let extra_len = extra_accounts.len();
-        accounts[3..3 + extra_len].copy_from_slice(extra_accounts);
-
-        crate::cpi::invoke_signed(&ix, &accounts[..3 + extra_len], &[])
+        invoke_signed_paired_slice(program, used, &[SYNC_NATIVE], &[])
     }
 
     #[cfg(feature = "pinocchio")]

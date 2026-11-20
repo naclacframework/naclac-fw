@@ -202,21 +202,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         #wincode_cfg
         impl naclac_lang::prelude::EventCpiPayload for #struct_name {
             fn with_cpi_payload<R>(&self, tag: &[u8], send: impl FnOnce(&[u8]) -> R) -> R {
-                let discriminator: &[u8] = #disc_tokens;
-                let mut __buf = naclac_lang::prelude::Vec::<u8>::with_capacity(
-                    tag.len() + discriminator.len() + 64,
-                );
-                __buf.extend_from_slice(tag);
-                __buf.extend_from_slice(discriminator);
-                naclac_lang::prelude::wincode::config::serialize_into(
-                    &mut __buf,
-                    self,
-                    naclac_lang::prelude::wincode_config::CONFIG,
-                )
-                .unwrap_or_else(|_| {
-                    panic!("event serialization is infallible for all currently-supported field types")
-                });
-                send(&__buf)
+                naclac_lang::event::with_event_frame(tag, #disc_tokens, self, send)
             }
         }
 

@@ -1,11 +1,14 @@
 //! `InitializeMint2`: initializes a mint account that is already allocated
 //! and owned by the token program.
 
-use crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result};
 #[cfg(not(feature = "pinocchio"))]
-use crate::{prelude::vec, wrappers::ToAddress};
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use pinocchio::instruction::InstructionAccount;
+use {
+    super::invoke::{invoke, INITIALIZE_MINT2},
+    crate::prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result},
+};
 
 pub fn initialize_mint(
     program: CpiHandle<'_>,
@@ -32,29 +35,16 @@ pub fn initialize_mint_signed(
     freeze_authority: Option<&Address>,
     signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
+    let data = instruction_data(decimals, mint_authority, freeze_authority);
+
     #[cfg(not(feature = "pinocchio"))]
     {
-        let mut data = vec![20u8];
-        data.push(decimals);
-        data.extend_from_slice(mint_authority.as_ref());
-        if let Some(freeze) = freeze_authority {
-            data.push(1);
-            data.extend_from_slice(freeze.as_ref());
-        } else {
-            data.push(0);
-            data.extend_from_slice(&[0u8; 32]);
-        }
-
-        let ix = solana_instruction::Instruction {
-            program_id: program.address(),
-            accounts: vec![solana_instruction::AccountMeta::new(
-                mint.info.address(),
-                false,
-            )],
-            data,
-        };
-        let accounts = [CpiHandle::from(mint), program];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+        invoke(
+            program,
+            [(CpiHandle::from(mint), Role::Writable)],
+            &data,
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -62,16 +52,61 @@ pub fn initialize_mint_signed(
         let _ = signer_seeds;
         let mint = CpiHandle::from(mint);
         let accounts = [InstructionAccount::writable(mint.info.view.address())];
-        let mut data = [0u8; 67];
-        data[0] = 20;
-        data[1] = decimals;
-        let mint_authority: &[u8] = mint_authority.as_ref();
-        data[2..34].copy_from_slice(mint_authority);
-        if let Some(freeze) = freeze_authority {
-            let freeze: &[u8] = freeze.as_ref();
-            data[34] = 1;
-            data[35..].copy_from_slice(freeze);
-        }
         invoke(&program, &accounts, &[mint], &data, &[])
+    }
+}
+
+/// `[INITIALIZE_MINT2, decimals, mint_authority, freeze tag, freeze_authority]`.
+/// With no freeze authority the tag and the 32 bytes after it are zero.
+fn instruction_data(
+    decimals: u8,
+    mint_authority: &Address,
+    freeze_authority: Option<&Address>,
+) -> [u8; 67] {
+    let mut data = [0u8; 67];
+    data[0] = INITIALIZE_MINT2;
+    data[1] = decimals;
+    let mint_authority: &[u8] = mint_authority.as_ref();
+    data[2..34].copy_from_slice(mint_authority);
+    if let Some(freeze) = freeze_authority {
+        let freeze: &[u8] = freeze.as_ref();
+        data[34] = 1;
+        data[35..].copy_from_slice(freeze);
+    }
+    data
+}
+
+#[cfg(all(test, not(feature = "pinocchio")))]
+mod tests {
+    use {
+        super::*,
+        spl_token_2022_interface::{instruction as token_2022, ID as TOKEN_2022_ID},
+        spl_token_interface::{instruction as classic, ID as CLASSIC_ID},
+    };
+
+    #[test]
+    fn the_instruction_data_starts_with_what_both_token_programs_build() {
+        let key = |seed: u8| Address::new_from_array([seed; 32]);
+        let (mint, authority, freeze) = (key(1), key(2), key(0xAB));
+        for freeze_authority in [None, Some(&freeze)] {
+            let ours = instruction_data(6, &authority, freeze_authority);
+            let classic_data =
+                classic::initialize_mint2(&CLASSIC_ID, &mint, &authority, freeze_authority, 6)
+                    .unwrap()
+                    .data;
+            let token_2022_data = token_2022::initialize_mint2(
+                &TOKEN_2022_ID,
+                &mint,
+                &authority,
+                freeze_authority,
+                6,
+            )
+            .unwrap()
+            .data;
+            for built in [classic_data, token_2022_data] {
+                assert!(ours[..built.len()] == built[..]);
+                assert!(ours[built.len()..].iter().all(|byte| *byte == 0));
+            }
+        }
     }
 }

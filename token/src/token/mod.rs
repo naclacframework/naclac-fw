@@ -5,6 +5,12 @@
 //! token instruction; the account layouts, the `*Accounts` bundles and the
 //! `TokenCpi` trait live in their own files. Everything is re-exported here so
 //! public paths stay `naclac_token::token::*`.
+//!
+//! The free CPI functions here send to whichever program their `program`
+//! argument names and do not check that it is the Token or Token-2022 program.
+//! A caller that does not take `program` from a `Program<Token>`,
+//! `Program<Token2022>` or `Interface<TokenInterface>` (as the `TokenCpi`
+//! methods do) must verify it itself.
 
 mod accounts;
 mod approve;

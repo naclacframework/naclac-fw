@@ -48,11 +48,9 @@ pub fn generate_close_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
                         return Err(naclac_lang::prelude::NaclacError::ConstraintOwner.err(#idx));
                     }
 
-                    let dest_starting_lamports = dest_info.lamports();
-                    **dest_info.lamports.borrow_mut() = dest_starting_lamports
-                        .checked_add(target_info.lamports())
-                        .ok_or(naclac_lang::prelude::NaclacError::ArithmeticOverflow.err(#idx))?;
-                    **target_info.lamports.borrow_mut() = 0;
+                    let target_lamports = target_info.lamports()?;
+                    dest_info.add_lamports(target_lamports)?;
+                    target_info.sub_lamports(target_lamports)?;
 
                     target_info.resize(0)?;
                     target_info.assign(&naclac_lang::prelude::SYSTEM_PROGRAM_ID);
@@ -67,7 +65,7 @@ pub fn generate_close_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
                     }
 
                     // In Pinocchio, we use safe wrapper methods to transfer lamports.
-                    let target_lamports = target_info.lamports();
+                    let target_lamports = target_info.lamports()?;
                     dest_info.add_lamports(target_lamports)?;
                     target_info.sub_lamports(target_lamports)?;
 

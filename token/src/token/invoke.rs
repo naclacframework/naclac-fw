@@ -9,20 +9,18 @@
 //! Nothing here checks that `program` is the Token or Token-2022 program: the
 //! `Program<Token>`, `Program<Token2022>` and `Interface<TokenInterface>`
 //! wrappers verify it once when the accounts load, and every `TokenCpi` call
-//! takes its program from one of them.
+//! takes its program from one of them. Callers of the free functions that pass
+//! any other handle must verify it themselves.
 
+#[cfg(not(feature = "pinocchio"))]
+use crate::{
+    cpi::{invoke_signed_paired, CpiAccount},
+    prelude::{CpiHandle, CpiSigner, Result},
+};
 #[cfg(feature = "pinocchio")]
 use {
     crate::prelude::{CpiHandle, CpiSigner, Result},
     pinocchio::instruction::InstructionAccount,
-};
-#[cfg(not(feature = "pinocchio"))]
-use {
-    crate::{
-        prelude::{Address, CpiHandle, CpiSigner, Result},
-        wrappers::ToAddress,
-    },
-    solana_instruction::{AccountMeta, Instruction},
 };
 
 pub(super) const APPROVE: u8 = 4;
@@ -35,6 +33,8 @@ pub(super) const FREEZE_ACCOUNT: u8 = 10;
 pub(super) const THAW_ACCOUNT: u8 = 11;
 pub(super) const TRANSFER_CHECKED: u8 = 12;
 pub(super) const SYNC_NATIVE: u8 = 17;
+pub(super) const INITIALIZE_ACCOUNT3: u8 = 18;
+pub(super) const INITIALIZE_MINT2: u8 = 20;
 
 /// Sends `data` to `program` with `accounts`, whose entry `i` must be the
 /// account of `handles[i]`.
@@ -79,18 +79,25 @@ pub(super) enum Role {
 
 #[cfg(not(feature = "pinocchio"))]
 impl Role {
-    fn meta(self, address: Address) -> AccountMeta {
+    /// `(is_signer, is_writable)`.
+    fn flags(self) -> (bool, bool) {
         match self {
-            Role::Writable => AccountMeta::new(address, false),
-            Role::Readonly => AccountMeta::new_readonly(address, false),
-            Role::ReadonlySigner => AccountMeta::new_readonly(address, true),
+            Role::Writable => (false, true),
+            Role::Readonly => (false, false),
+            Role::ReadonlySigner => (true, false),
+        }
+    }
+
+    #[inline(always)]
+    fn account(self, handle: CpiHandle<'_>) -> CpiAccount<'_> {
+        let (is_signer, is_writable) = self.flags();
+        CpiAccount {
+            handle,
+            is_signer,
+            is_writable,
         }
     }
 }
-
-/// The most accounts a token instruction here takes, the program excluded.
-#[cfg(not(feature = "pinocchio"))]
-const MAX_ACCOUNTS: usize = 4;
 
 /// Sends `data` to `program` with `accounts` in the order and roles given.
 #[cfg(not(feature = "pinocchio"))]
@@ -101,37 +108,15 @@ pub(super) fn invoke<const N: usize>(
     data: &[u8],
     signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
-    const { assert!(N <= MAX_ACCOUNTS) };
-    send(program, &accounts, data, signer_seeds)
-}
-
-#[cfg(not(feature = "pinocchio"))]
-#[inline(never)]
-fn send(
-    program: CpiHandle<'_>,
-    accounts: &[(CpiHandle<'_>, Role)],
-    data: &[u8],
-    signer_seeds: &[CpiSigner<'_, '_>],
-) -> Result<()> {
-    let instruction = Instruction {
-        program_id: program.address(),
-        accounts: accounts
-            .iter()
-            .map(|(handle, role)| role.meta(handle.address()))
-            .collect(),
-        data: data.to_vec(),
-    };
-    let mut handles = [program; MAX_ACCOUNTS + 1];
-    for (slot, (handle, _)) in handles.iter_mut().zip(accounts) {
-        *slot = *handle;
-    }
-    crate::cpi::invoke_signed(&instruction, &handles[..accounts.len() + 1], signer_seeds)
+    let accounts = accounts.map(|(handle, role)| role.account(handle));
+    invoke_signed_paired(program, &accounts, data, signer_seeds)
 }
 
 #[cfg(all(test, not(feature = "pinocchio")))]
 mod tests {
     use {
         super::*,
+        crate::prelude::Address,
         spl_token_2022_interface::{instruction as token_2022, ID as TOKEN_2022_ID},
         spl_token_interface::{instruction as classic, ID as CLASSIC_ID},
     };
@@ -144,7 +129,17 @@ mod tests {
     fn each_discriminator_is_the_one_the_token_program_packs() {
         let (a, b, c) = (key(1), key(2), key(3));
         let id = CLASSIC_ID;
-        let cases: [(u8, u8); 10] = [
+        let cases: [(u8, u8); 12] = [
+            (
+                INITIALIZE_ACCOUNT3,
+                classic::initialize_account3(&id, &a, &b, &c).unwrap().data[0],
+            ),
+            (
+                INITIALIZE_MINT2,
+                classic::initialize_mint2(&id, &a, &b, None, 6)
+                    .unwrap()
+                    .data[0],
+            ),
             (
                 APPROVE,
                 classic::approve(&id, &a, &b, &c, &[], 1).unwrap().data[0],
@@ -218,11 +213,15 @@ mod tests {
             classic::transfer_checked(&CLASSIC_ID, &from, &mint, &to, &authority, &[], 5, 6)
                 .unwrap();
         let ours = [
-            Role::Writable.meta(from),
-            Role::Readonly.meta(mint),
-            Role::Writable.meta(to),
-            Role::ReadonlySigner.meta(authority),
+            (from, Role::Writable),
+            (mint, Role::Readonly),
+            (to, Role::Writable),
+            (authority, Role::ReadonlySigner),
         ];
-        assert!(built.accounts[..] == ours[..]);
+        assert!(built.accounts.len() == ours.len());
+        for (meta, (address, role)) in built.accounts.iter().zip(ours) {
+            assert!(meta.pubkey == address);
+            assert!(role.flags() == (meta.is_signer, meta.is_writable));
+        }
     }
 }

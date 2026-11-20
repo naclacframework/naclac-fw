@@ -39,10 +39,18 @@ fn minimum_balance_under(rent: &Rent, space: usize) -> Result<u64> {
     rent.try_minimum_balance(space)
 }
 
+/// `(ACCOUNT_STORAGE_OVERHEAD + space) * lamports_per_byte`, ignoring the
+/// sysvar's deprecated exemption threshold. Must stay identical to the
+/// pinocchio runtime's `Rent::try_minimum_balance`, including both limits.
 #[cfg(not(feature = "pinocchio"))]
 fn minimum_balance_under(rent: &Rent, space: usize) -> Result<u64> {
-    rent.try_minimum_balance(space)
-        .ok_or(crate::prelude::ProgramError::InvalidArgument)
+    const MAX_PERMITTED_DATA_LENGTH: u64 = 10 * 1024 * 1024;
+    const MAX_LAMPORTS_PER_BYTE: u64 = 1_759_197_129_867;
+
+    if space as u64 > MAX_PERMITTED_DATA_LENGTH || rent.lamports_per_byte > MAX_LAMPORTS_PER_BYTE {
+        return Err(crate::prelude::ProgramError::InvalidArgument);
+    }
+    Ok((solana_rent::ACCOUNT_STORAGE_OVERHEAD + space as u64) * rent.lamports_per_byte)
 }
 
 /// Resizes `target` to `new_space`, funding the rent-exemption shortfall
@@ -62,7 +70,7 @@ where
         return Ok(());
     }
 
-    let current_lamports = target_info.lamports();
+    let current_lamports = target_info.lamports()?;
     let required_lamports = LazyRent::default().minimum_balance(new_space)?;
 
     if required_lamports > current_lamports {
@@ -84,4 +92,39 @@ where
 
     target_info.resize(new_space)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(feature = "pinocchio")]
+    fn rent_with(lamports_per_byte: u64) -> Rent {
+        Rent::from_bytes(&lamports_per_byte.to_le_bytes()).unwrap()
+    }
+
+    #[cfg(not(feature = "pinocchio"))]
+    fn rent_with(lamports_per_byte: u64) -> Rent {
+        Rent {
+            lamports_per_byte,
+            ..Rent::default()
+        }
+    }
+
+    #[test]
+    fn the_minimum_is_overhead_plus_space_times_the_rate() {
+        let rent = rent_with(6960);
+        assert!(minimum_balance_under(&rent, 0).unwrap() == 128 * 6960);
+        assert!(minimum_balance_under(&rent, 100).unwrap() == 228 * 6960);
+    }
+
+    #[test]
+    fn the_limits_are_inclusive() {
+        let max_space = 10 * 1024 * 1024;
+        let max_rate = 1_759_197_129_867;
+        assert!(minimum_balance_under(&rent_with(1), max_space).is_ok());
+        assert!(minimum_balance_under(&rent_with(1), max_space + 1).is_err());
+        assert!(minimum_balance_under(&rent_with(max_rate), max_space).is_ok());
+        assert!(minimum_balance_under(&rent_with(max_rate + 1), 0).is_err());
+    }
 }

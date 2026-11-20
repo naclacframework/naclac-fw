@@ -33,8 +33,8 @@ use crate::{
 #[cfg(not(feature = "pinocchio"))]
 mod solana_system {
     use crate::{
-        cpi::CpiSigner,
-        prelude::{vec, CpiHandle, CpiHandleMut, Result},
+        cpi::{CpiAccount, CpiSigner},
+        prelude::{CpiHandle, CpiHandleMut, Result},
     };
 
     /// The Solana System Program ID (all zeros)
@@ -47,32 +47,38 @@ mod solana_system {
         transfer_signed(from, to, lamports, &[])
     }
 
-    /// Builds the `Transfer` instruction by hand (`Instruction::new_with_bytes`)
-    /// rather than via `solana_system_interface::instruction::transfer`, whose
-    /// `new_with_wincode`/`new_with_bincode` path pulls generic-serializer and
-    /// `Debug`-formatting machinery into the program for four fixed fields.
-    /// Discriminant (2) and account-meta shape verified against the real
-    /// `solana_system_interface::instruction::{SystemInstruction, transfer}`
-    /// source, not guessed.
+    /// `Transfer`, with `from` a writable signer and `to` writable, encoded by
+    /// hand rather than through `solana_system_interface::instruction::transfer`,
+    /// whose serializer path pulls `Debug`-formatting machinery into the
+    /// program. Must stay identical to that instruction (checked in this
+    /// module's tests).
     pub fn transfer_signed(
         from: CpiHandleMut<'_>,
         to: CpiHandleMut<'_>,
         lamports: u64,
         signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
-        let accounts = vec![
-            solana_instruction::AccountMeta::new(*from.info.key, true),
-            solana_instruction::AccountMeta::new(*to.info.key, false),
+        let accounts = [
+            CpiAccount {
+                handle: CpiHandle::from(from),
+                is_signer: true,
+                is_writable: true,
+            },
+            CpiAccount {
+                handle: CpiHandle::from(to),
+                is_signer: false,
+                is_writable: true,
+            },
         ];
+        crate::cpi::invoke_signed_builtin_slice(ID, &accounts, &transfer_data(lamports), signers)
+    }
 
-        let mut ix_data = [0u8; 12];
-        ix_data[0..4].copy_from_slice(&2u32.to_le_bytes()); // Transfer discriminator = 2
-        ix_data[4..12].copy_from_slice(&lamports.to_le_bytes());
-
-        let ix = solana_instruction::Instruction::new_with_bytes(ID, &ix_data, accounts);
-
-        let accounts = [CpiHandle::from(from), CpiHandle::from(to)];
-        crate::cpi::invoke_signed(&ix, &accounts, signers)
+    /// `[Transfer discriminant (2): u32, lamports: u64]`, little-endian.
+    fn transfer_data(lamports: u64) -> [u8; 12] {
+        let mut data = [0u8; 12];
+        data[0..4].copy_from_slice(&2u32.to_le_bytes());
+        data[4..12].copy_from_slice(&lamports.to_le_bytes());
+        data
     }
 
     use crate::cpi::stable::{invoke_signed_raw, StableAccountMeta, StableInstruction};
@@ -242,6 +248,21 @@ mod solana_system {
             ]
         });
         invoke_signed_raw(&instruction, &*infos, CpiSigner::as_seed_slices(signers))
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn the_transfer_data_is_what_the_system_interface_builds() {
+            let from = solana_address::Address::new_from_array([1; 32]);
+            let to = solana_address::Address::new_from_array([2; 32]);
+            for lamports in [0u64, 1, 0x0102_0304_0506_0708, u64::MAX] {
+                let built = solana_system_interface::instruction::transfer(&from, &to, lamports);
+                assert!(transfer_data(lamports)[..] == built.data[..]);
+            }
+        }
     }
 }
 

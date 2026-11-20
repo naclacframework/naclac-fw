@@ -25,6 +25,21 @@ pub fn emit_event<T: crate::wincode::SchemaWrite<crate::wincode_config::Config, 
     wincode::emit(event, discriminator);
 }
 
+/// Calls `send` with `tag`, `discriminator` and the Wincode encoding of
+/// `event` as one contiguous slice: the exact self-CPI data `emit_cpi!` sends.
+#[cfg(feature = "wincode")]
+pub fn with_event_frame<T, R>(
+    tag: &[u8],
+    discriminator: &[u8],
+    event: &T,
+    send: impl FnOnce(&[u8]) -> R,
+) -> R
+where
+    T: crate::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>,
+{
+    wincode::with_frame(tag, discriminator, event, send)
+}
+
 #[cfg(all(feature = "bytemuck", not(feature = "pinocchio")))]
 pub fn emit_event<T: bytemuck::Pod>(event: &T, discriminator: &[u8]) {
     zero_copy::emit(event, discriminator);
@@ -211,8 +226,10 @@ mod event_frame_kani_proofs {
 /// Implemented by every `#[event]` type: hands `send` the exact self-CPI
 /// instruction data `emit_cpi!` sends — `tag ++ this event's own discriminator
 /// ++ its fields`, with the fields in the same encoding its plain `emit()`
-/// logs. A fixed-size zero-copy event is joined on the stack; an event with
-/// dynamic fields (Borsh, `#[event(alloc)]`) needs its one heap buffer anyway.
+/// logs. A fixed-size zero-copy event, or a Wincode event whose encoding always
+/// has the same size, is joined on the stack; an event with dynamic fields
+/// (Borsh, a dynamic Wincode event, `#[event(alloc)]`) needs its one heap
+/// buffer anyway.
 pub trait EventCpiPayload {
     fn with_cpi_payload<R>(&self, tag: &[u8], send: impl FnOnce(&[u8]) -> R) -> R;
 }

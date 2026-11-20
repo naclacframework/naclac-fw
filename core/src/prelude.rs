@@ -279,13 +279,18 @@ pub fn account_handles(accounts: &'static [AccountInfoData]) -> &'static [Accoun
 
 #[cfg(not(feature = "pinocchio"))]
 impl AccountInfo {
-    /// Whether the account's data is empty. Returns `false` while the data is
-    /// mutably borrowed elsewhere, instead of panicking.
-    pub fn data_is_empty(&self) -> bool {
-        self.data
-            .try_borrow()
-            .map(|data| data.is_empty())
-            .unwrap_or(false)
+    /// Whether the account's data is empty. Fails with `AccountBorrowFailed`
+    /// while the data is mutably borrowed. Must stay an inherent method: the
+    /// SDK method of the same name, reached through `Deref`, panics instead.
+    pub fn data_is_empty(&self) -> Result<bool> {
+        Ok(self.try_borrow_data()?.is_empty())
+    }
+
+    /// The length of the account's data. Fails with `AccountBorrowFailed`
+    /// while the data is mutably borrowed. Must stay an inherent method for the
+    /// same reason as `data_is_empty`.
+    pub fn data_len(&self) -> Result<usize> {
+        Ok(self.try_borrow_data()?.len())
     }
 
     pub fn try_borrow_data(
@@ -339,8 +344,14 @@ impl AccountInfo {
         Ok(())
     }
 
-    pub fn lamports(&self) -> u64 {
-        **self.lamports.borrow()
+    /// The account's lamports. Fails with `AccountBorrowFailed` while they are
+    /// mutably borrowed. Must stay an inherent method: the SDK method of the
+    /// same name, reached through `Deref`, panics instead.
+    pub fn lamports(&self) -> Result<u64> {
+        self.lamports
+            .try_borrow()
+            .map(|lamports| **lamports)
+            .map_err(|_| crate::error::NaclacError::AccountBorrowFailed.err(0))
     }
 
     pub fn assign(&self, new_owner: &Address) {
@@ -792,6 +803,48 @@ mod float_probe_tests {
             assert!(!FloatProbe::<u64>::IS_FLOAT);
             assert!(!FloatProbe::<[f64; 2]>::IS_FLOAT);
         }
+    }
+}
+
+#[cfg(all(test, not(feature = "pinocchio")))]
+mod borrowed_account_tests {
+    use {
+        super::*,
+        alloc::{boxed::Box, rc::Rc},
+        core::cell::RefCell,
+    };
+
+    fn account(lamports: u64, data: &[u8]) -> AccountInfo {
+        let data: &'static mut [u8] = Box::leak(data.to_vec().into_boxed_slice());
+        AccountInfo::from_data(Box::leak(Box::new(AccountInfoData {
+            key: Box::leak(Box::new(Address::default())),
+            lamports: Rc::new(RefCell::new(Box::leak(Box::new(lamports)))),
+            data: Rc::new(RefCell::new(data)),
+            owner: Box::leak(Box::new(Address::default())),
+            _unused: 0,
+            is_signer: false,
+            is_writable: true,
+            executable: false,
+        })))
+    }
+
+    #[test]
+    fn an_unborrowed_account_reads_succeed() {
+        let info = account(7, &[1, 2, 3]);
+        assert!(info.lamports() == Ok(7));
+        assert!(info.data_len() == Ok(3));
+        assert!(info.data_is_empty() == Ok(false));
+        assert!(account(0, &[]).data_is_empty() == Ok(true));
+    }
+
+    #[test]
+    fn a_mutable_borrow_makes_the_reads_fail_instead_of_panicking() {
+        let info = account(7, &[1, 2, 3]);
+        let _data = info.data.borrow_mut();
+        let _lamports = info.lamports.borrow_mut();
+        assert!(info.lamports().is_err());
+        assert!(info.data_len().is_err());
+        assert!(info.data_is_empty().is_err());
     }
 }
 
@@ -1589,8 +1642,12 @@ impl core::ops::Deref for AccountInfo {
 
 #[cfg(feature = "pinocchio")]
 impl AccountInfo {
-    pub fn data_is_empty(&self) -> bool {
-        self.view.data_len() == 0
+    pub fn data_is_empty(&self) -> Result<bool> {
+        Ok(self.view.data_len() == 0)
+    }
+
+    pub fn data_len(&self) -> Result<usize> {
+        Ok(self.view.data_len())
     }
 
     pub fn data(&self) -> &[u8] {
@@ -1602,8 +1659,8 @@ impl AccountInfo {
         Address::from_address(self.view.owner())
     }
 
-    pub fn lamports(&self) -> u64 {
-        self.view.lamports()
+    pub fn lamports(&self) -> Result<u64> {
+        Ok(self.view.lamports())
     }
 
     pub fn is_signer(&self) -> bool {

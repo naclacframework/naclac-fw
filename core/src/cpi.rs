@@ -611,6 +611,143 @@ pub fn invoke_signed_unchecked(
     sdk::invoke_signed_unchecked(instruction, &infos, CpiSigner::as_seed_slices(signers))
 }
 
+/// One account of a fixed-size CPI: its handle and the role it plays in the
+/// instruction.
+#[cfg(not(feature = "pinocchio"))]
+#[derive(Clone, Copy)]
+pub struct CpiAccount<'a> {
+    pub handle: crate::prelude::CpiHandle<'a>,
+    pub is_signer: bool,
+    pub is_writable: bool,
+}
+
+/// The most accounts [`invoke_signed_paired`] takes, the program excluded.
+#[cfg(not(feature = "pinocchio"))]
+pub const MAX_PAIRED_ACCOUNTS: usize = 8;
+
+/// Invokes `program` with `accounts` in the order and roles given and with
+/// `data`, signed by `signers`, without allocating. Runs the same borrow checks
+/// as [`invoke_signed`]. More than [`MAX_PAIRED_ACCOUNTS`] accounts fails to
+/// compile.
+#[cfg(not(feature = "pinocchio"))]
+#[inline(always)]
+pub fn invoke_signed_paired<const N: usize>(
+    program: crate::prelude::CpiHandle<'_>,
+    accounts: &[CpiAccount<'_>; N],
+    data: &[u8],
+    signers: &[CpiSigner<'_, '_>],
+) -> crate::prelude::Result<()> {
+    const { assert!(N <= MAX_PAIRED_ACCOUNTS) };
+    invoke_signed_paired_slice(program, accounts, data, signers)
+}
+
+/// Writes into `slot` a bitwise copy of `handle`'s account in the SDK layout.
+/// The copy shares the account's `Rc`s without counting itself, so `slot` must
+/// never be dropped as an initialized value.
+#[cfg(not(feature = "pinocchio"))]
+#[inline(always)]
+fn copy_account_into(
+    slot: &mut core::mem::MaybeUninit<solana_account_info::AccountInfo<'_>>,
+    handle: &crate::prelude::CpiHandle<'_>,
+) {
+    let data: *const crate::prelude::AccountInfoData = handle.info.data_ref();
+    // SAFETY: `AccountInfoData` has the SDK `AccountInfo`'s exact layout (the
+    // same cast `to_lifetime` relies on), and `handle` keeps the account alive.
+    slot.write(unsafe { core::ptr::read(data as *const solana_account_info::AccountInfo<'_>) });
+}
+
+/// [`invoke_signed_paired`] for a runtime number of accounts. Fails with
+/// `InvalidArgument`, without invoking, if `accounts` holds more than
+/// [`MAX_PAIRED_ACCOUNTS`].
+#[cfg(not(feature = "pinocchio"))]
+#[inline(always)]
+pub fn invoke_signed_paired_slice(
+    program: crate::prelude::CpiHandle<'_>,
+    accounts: &[CpiAccount<'_>],
+    data: &[u8],
+    signers: &[CpiSigner<'_, '_>],
+) -> crate::prelude::Result<()> {
+    invoke_signed_slice(*program.info.key, Some(&program), accounts, data, signers)
+}
+
+/// [`invoke_signed_paired_slice`] for a built-in program such as the System
+/// Program, which `program_id` names and whose own account the runtime does not
+/// need among the account infos.
+#[cfg(not(feature = "pinocchio"))]
+#[inline(always)]
+pub(crate) fn invoke_signed_builtin_slice(
+    program_id: solana_address::Address,
+    accounts: &[CpiAccount<'_>],
+    data: &[u8],
+    signers: &[CpiSigner<'_, '_>],
+) -> crate::prelude::Result<()> {
+    invoke_signed_slice(program_id, None, accounts, data, signers)
+}
+
+/// The body shared by the two slice entry points; `program` is the program's
+/// own account when it is to be passed along with `accounts`.
+#[cfg(not(feature = "pinocchio"))]
+#[inline(never)]
+fn invoke_signed_slice(
+    program_id: solana_address::Address,
+    program: Option<&crate::prelude::CpiHandle<'_>>,
+    accounts: &[CpiAccount<'_>],
+    data: &[u8],
+    signers: &[CpiSigner<'_, '_>],
+) -> crate::prelude::Result<()> {
+    use {
+        core::mem::MaybeUninit,
+        stable::{check_borrows, invoke_signed_raw, StableAccountMeta, StableInstruction},
+    };
+
+    let mut metas = [StableAccountMeta {
+        pubkey: program_id,
+        is_signer: false,
+        is_writable: false,
+    }; MAX_PAIRED_ACCOUNTS];
+    let mut infos = [const { MaybeUninit::<solana_account_info::AccountInfo<'_>>::uninit() };
+        MAX_PAIRED_ACCOUNTS + 1];
+
+    for ((meta, info), account) in metas.iter_mut().zip(infos.iter_mut()).zip(accounts) {
+        *meta = StableAccountMeta {
+            pubkey: *account.handle.info.key,
+            is_signer: account.is_signer,
+            is_writable: account.is_writable,
+        };
+        copy_account_into(info, &account.handle);
+    }
+    let count = accounts.len();
+    let (Some(metas), Some(program_slot)) = (metas.get(..count), infos.get_mut(count)) else {
+        return Err(crate::prelude::ProgramError::InvalidArgument);
+    };
+    let info_count = match program {
+        Some(program) => {
+            copy_account_into(program_slot, program);
+            count.wrapping_add(1)
+        }
+        None => count,
+    };
+
+    // SAFETY: the first `info_count` slots of `infos` were written above.
+    let infos = unsafe {
+        core::slice::from_raw_parts(
+            infos.as_ptr() as *const solana_account_info::AccountInfo<'_>,
+            info_count,
+        )
+    };
+    check_borrows(
+        metas
+            .iter()
+            .map(|account_meta| (&account_meta.pubkey, account_meta.is_writable)),
+        infos,
+    )?;
+    invoke_signed_raw(
+        &StableInstruction::new(program_id, metas, data),
+        infos,
+        CpiSigner::as_seed_slices(signers),
+    )
+}
+
 /// The runtime-facing CPI ABI of the `solana_program` backend, built from
 /// borrowed memory instead of the owning `Vec`s
 /// `solana_instruction::Instruction` requires (which `invoke_signed`
@@ -643,6 +780,7 @@ pub(crate) mod stable {
     }
 
     /// Matches `solana_instruction::AccountMeta`'s `repr(C)` layout.
+    #[derive(Clone, Copy)]
     #[repr(C)]
     pub(crate) struct StableAccountMeta {
         pub(crate) pubkey: solana_address::Address,
@@ -693,6 +831,33 @@ pub(crate) mod stable {
                 _borrows: core::marker::PhantomData,
             }
         }
+    }
+
+    /// For each `(key, is_writable)` of `accounts`, checks the first entry of
+    /// `account_infos` with that key: a writable account's lamports and data
+    /// must be mutably borrowable, a read-only account's borrowable, otherwise
+    /// this returns `AccountBorrowFailed`. The check borrows are released on
+    /// return. Every invoke path runs exactly this check.
+    #[inline(always)]
+    pub(crate) fn check_borrows<'a>(
+        accounts: impl Iterator<Item = (&'a solana_address::Address, bool)>,
+        account_infos: &[AccountInfo<'_>],
+    ) -> solana_program_error::ProgramResult {
+        for (key, is_writable) in accounts {
+            for account_info in account_infos.iter() {
+                if *key == *account_info.key {
+                    if is_writable {
+                        let _ = account_info.try_borrow_mut_lamports()?;
+                        let _ = account_info.try_borrow_mut_data()?;
+                    } else {
+                        let _ = account_info.try_borrow_lamports()?;
+                        let _ = account_info.try_borrow_data()?;
+                    }
+                    break;
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Invokes `instruction` through the `sol_invoke_signed_rust` syscall with
@@ -886,7 +1051,7 @@ pub(crate) mod stable {
 #[cfg(not(feature = "pinocchio"))]
 pub mod sdk {
     use {
-        super::stable::{invoke_signed_raw, StableInstruction},
+        super::stable::{check_borrows, invoke_signed_raw, StableInstruction},
         crate::prelude::Vec,
         solana_account_info::AccountInfo,
         solana_address::Address,
@@ -917,20 +1082,13 @@ pub mod sdk {
         account_infos: &[AccountInfo],
         signers_seeds: &[&[&[u8]]],
     ) -> ProgramResult {
-        for account_meta in instruction.accounts.iter() {
-            for account_info in account_infos.iter() {
-                if account_meta.pubkey == *account_info.key {
-                    if account_meta.is_writable {
-                        let _ = account_info.try_borrow_mut_lamports()?;
-                        let _ = account_info.try_borrow_mut_data()?;
-                    } else {
-                        let _ = account_info.try_borrow_lamports()?;
-                        let _ = account_info.try_borrow_data()?;
-                    }
-                    break;
-                }
-            }
-        }
+        check_borrows(
+            instruction
+                .accounts
+                .iter()
+                .map(|account_meta| (&account_meta.pubkey, account_meta.is_writable)),
+            account_infos,
+        )?;
 
         invoke_signed_unchecked(instruction, account_infos, signers_seeds)
     }
@@ -1098,6 +1256,139 @@ pub mod sdk {
                     == Err(ProgramError::AccountBorrowFailed)
             );
         }
+    }
+}
+
+#[cfg(all(test, not(feature = "pinocchio")))]
+mod paired_tests {
+    use {
+        super::*,
+        crate::prelude::{AccountInfo, AccountInfoData, Address, CpiHandle, ProgramError},
+        alloc::{boxed::Box, rc::Rc, vec},
+        core::{cell::RefCell, marker::PhantomData},
+        solana_instruction::{AccountMeta, Instruction},
+    };
+
+    fn handle(key: u8) -> CpiHandle<'static> {
+        let data: &'static mut [u8] = Box::leak(Box::new([0u8; 4]));
+        CpiHandle {
+            info: AccountInfo::from_data(Box::leak(Box::new(AccountInfoData {
+                key: Box::leak(Box::new(Address::new_from_array([key; 32]))),
+                lamports: Rc::new(RefCell::new(Box::leak(Box::new(1u64)))),
+                data: Rc::new(RefCell::new(data)),
+                owner: Box::leak(Box::new(Address::new_from_array([0xAA; 32]))),
+                _unused: 0,
+                is_signer: false,
+                is_writable: true,
+                executable: false,
+            }))),
+            _phantom: PhantomData,
+        }
+    }
+
+    fn account(handle: CpiHandle<'static>, is_writable: bool) -> CpiAccount<'static> {
+        CpiAccount {
+            handle,
+            is_signer: false,
+            is_writable,
+        }
+    }
+
+    fn by_invoke_signed(
+        program: CpiHandle<'static>,
+        accounts: &[CpiAccount<'static>; 2],
+    ) -> crate::prelude::Result<()> {
+        let instruction = Instruction {
+            program_id: *program.info.key,
+            accounts: accounts
+                .iter()
+                .map(|account| AccountMeta {
+                    pubkey: *account.handle.info.key,
+                    is_signer: account.is_signer,
+                    is_writable: account.is_writable,
+                })
+                .collect(),
+            data: vec![1, 2, 3],
+        };
+        invoke_signed(
+            &instruction,
+            &[accounts[0].handle, accounts[1].handle, program],
+            &[],
+        )
+    }
+
+    #[test]
+    fn the_borrow_checks_are_the_ones_invoke_signed_makes() {
+        let (program, from, to) = (handle(0xEE), handle(1), handle(2));
+        let accounts = [account(from, true), account(to, false)];
+        let check = || {
+            let paired = invoke_signed_paired(program, &accounts, &[1, 2, 3], &[]);
+            assert!(paired == by_invoke_signed(program, &accounts));
+            paired
+        };
+
+        assert!(check() == Ok(()));
+        {
+            let _shared = from.info.data.borrow();
+            assert!(check().is_err());
+        }
+        {
+            let _exclusive = to.info.lamports.borrow_mut();
+            assert!(check().is_err());
+        }
+        {
+            let _shared = to.info.data.borrow();
+            assert!(check() == Ok(()));
+        }
+        {
+            let _exclusive = program.info.data.borrow_mut();
+            assert!(check() == Ok(()));
+        }
+    }
+
+    #[test]
+    fn the_account_reference_counts_are_unchanged() {
+        let (program, from) = (handle(0xEE), handle(1));
+        let counts = || {
+            (
+                Rc::strong_count(&from.info.lamports),
+                Rc::strong_count(&from.info.data),
+                Rc::strong_count(&program.info.data),
+            )
+        };
+        let before = counts();
+        assert!(invoke_signed_paired(program, &[account(from, true)], &[], &[]) == Ok(()));
+        assert!(counts() == before);
+    }
+
+    #[test]
+    fn no_accounts_is_allowed() {
+        let program = handle(0xEE);
+        assert!(invoke_signed_paired(program, &[], &[7], &[]) == Ok(()));
+    }
+
+    #[test]
+    fn a_built_in_program_needs_no_account_of_its_own() {
+        let (from, to) = (handle(1), handle(2));
+        let accounts = [account(from, true), account(to, false)];
+        let program_id = *handle(0xEE).info.key;
+        assert!(invoke_signed_builtin_slice(program_id, &accounts, &[], &[]) == Ok(()));
+        let _shared = from.info.data.borrow();
+        assert!(invoke_signed_builtin_slice(program_id, &accounts, &[], &[]).is_err());
+    }
+
+    #[test]
+    fn the_maximum_is_accepted_and_one_more_is_rejected() {
+        let program = handle(0xEE);
+        let accounts = [account(handle(1), true); MAX_PAIRED_ACCOUNTS + 1];
+        assert!(
+            invoke_signed_paired_slice(program, &accounts[..MAX_PAIRED_ACCOUNTS], &[], &[])
+                == Ok(())
+        );
+        assert!(
+            invoke_signed_paired_slice(program, &accounts, &[], &[])
+                == Err(ProgramError::InvalidArgument)
+        );
     }
 }
 

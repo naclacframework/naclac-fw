@@ -6,7 +6,8 @@
 use crate::prelude::borsh::{self, BorshSerialize};
 
 /// Logs `discriminator` followed by the Borsh encoding of `event` as a single
-/// data field, using one allocation of exactly that size.
+/// data field, using one allocation of exactly that size. Borsh gives no
+/// compile-time size for a type, so every Borsh event is framed on the heap.
 pub fn emit<T: BorshSerialize>(event: &T, discriminator: &[u8]) {
     let payload_len = borsh::object_length(event).unwrap_or_else(|_| {
         panic!("event serialization is infallible for all currently-supported field types")

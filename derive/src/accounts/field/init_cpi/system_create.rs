@@ -67,7 +67,7 @@ pub(super) fn tokens(ctx: &InitCtx) -> TokenStream {
     quote! {
         let __disc_len: usize =
             <#inner_type as naclac_lang::prelude::Discriminator>::DISCRIMINATOR.len();
-        let __needs_init = if info.data_is_empty() {
+        let __needs_init = if info.data_is_empty()? {
             true
         } else {
             #[cfg(feature = "solana")]
@@ -114,7 +114,7 @@ pub(super) fn tokens(ctx: &InitCtx) -> TokenStream {
 
                 let __payer_info_wrapper = naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref);
 
-                if info.data_is_empty() {
+                if info.data_is_empty()? {
                     #create_call_solana(
                         naclac_lang::prelude::CpiHandleMut { info: __payer_info_wrapper, _phantom: core::marker::PhantomData },
                         naclac_lang::prelude::CpiHandleMut { info: info.clone(), _phantom: core::marker::PhantomData },
@@ -144,7 +144,7 @@ pub(super) fn tokens(ctx: &InitCtx) -> TokenStream {
 
                 let __payer_info = #payer_ref;
 
-                if info.data_is_empty() {
+                if info.data_is_empty()? {
                     let __space = (#space_tokens) as usize;
                     let __lamports = __naclac_rent.minimum_balance(__space)?;
                     #create_call_pinocchio(

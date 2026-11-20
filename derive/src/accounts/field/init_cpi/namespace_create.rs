@@ -61,7 +61,7 @@ pub(super) fn tokens(ctx: &InitCtx, namespace: &Namespace, create: &Create) -> T
         quote! {}
     } else {
         quote! {
-            if !info.data_is_empty() {
+            if !info.data_is_empty()? {
                 return Err(naclac_lang::prelude::NaclacError::AccountAlreadyInitialized.err(#idx));
             }
         }

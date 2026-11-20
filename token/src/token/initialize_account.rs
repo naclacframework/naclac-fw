@@ -2,13 +2,16 @@
 //! allocated and owned by the token program.
 
 #[cfg(not(feature = "pinocchio"))]
-use crate::prelude::vec;
-use crate::{
-    prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result},
-    wrappers::ToAddress,
-};
+use super::invoke::Role;
 #[cfg(feature = "pinocchio")]
-use {super::invoke::invoke, pinocchio::instruction::InstructionAccount};
+use pinocchio::instruction::InstructionAccount;
+use {
+    super::invoke::{invoke, INITIALIZE_ACCOUNT3},
+    crate::{
+        prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, Result},
+        wrappers::ToAddress,
+    },
+};
 
 pub fn initialize_account(
     program: CpiHandle<'_>,
@@ -39,22 +42,19 @@ pub fn initialize_account_with_owner_signed(
     owner: &Address,
     signer_seeds: &[CpiSigner<'_, '_>],
 ) -> Result<()> {
+    let data = instruction_data(owner);
+
     #[cfg(not(feature = "pinocchio"))]
     {
-        let mut data = [0u8; 33];
-        data[0] = 18;
-        data[1..].copy_from_slice(owner.as_ref());
-
-        let ix = solana_instruction::Instruction {
-            program_id: program.address(),
-            accounts: vec![
-                solana_instruction::AccountMeta::new(account.info.address(), false),
-                solana_instruction::AccountMeta::new_readonly(mint.info.address(), false),
+        invoke(
+            program,
+            [
+                (CpiHandle::from(account), Role::Writable),
+                (mint, Role::Readonly),
             ],
-            data: data.to_vec(),
-        };
-        let accounts = [CpiHandle::from(account), mint, program];
-        crate::cpi::invoke_signed(&ix, &accounts, signer_seeds)
+            &data,
+            signer_seeds,
+        )
     }
 
     #[cfg(feature = "pinocchio")]
@@ -65,10 +65,40 @@ pub fn initialize_account_with_owner_signed(
             InstructionAccount::writable(account.info.view.address()),
             InstructionAccount::readonly(mint.info.view.address()),
         ];
-        let mut data = [0u8; 33];
-        data[0] = 18;
-        let owner: &[u8] = owner.as_ref();
-        data[1..].copy_from_slice(owner);
         invoke(&program, &accounts, &[account, mint], &data, &[])
+    }
+}
+
+/// `[INITIALIZE_ACCOUNT3, owner]`.
+fn instruction_data(owner: &Address) -> [u8; 33] {
+    let mut data = [0u8; 33];
+    data[0] = INITIALIZE_ACCOUNT3;
+    let owner: &[u8] = owner.as_ref();
+    data[1..].copy_from_slice(owner);
+    data
+}
+
+#[cfg(all(test, not(feature = "pinocchio")))]
+mod tests {
+    use {
+        super::*,
+        spl_token_2022_interface::{instruction as token_2022, ID as TOKEN_2022_ID},
+        spl_token_interface::{instruction as classic, ID as CLASSIC_ID},
+    };
+
+    #[test]
+    fn the_instruction_data_is_what_both_token_programs_build() {
+        let key = |seed: u8| Address::new_from_array([seed; 32]);
+        let (account, mint, owner) = (key(1), key(2), key(0xAB));
+        let ours = instruction_data(&owner);
+        let classic_data = classic::initialize_account3(&CLASSIC_ID, &account, &mint, &owner)
+            .unwrap()
+            .data;
+        let token_2022_data =
+            token_2022::initialize_account3(&TOKEN_2022_ID, &account, &mint, &owner)
+                .unwrap()
+                .data;
+        assert!(ours[..] == classic_data[..]);
+        assert!(ours[..] == token_2022_data[..]);
     }
 }

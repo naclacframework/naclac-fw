@@ -46,7 +46,7 @@ pub(super) fn header_checks(field: &ParsedField) -> Vec<TokenStream> {
 
     if field.is_rent_exempt {
         checks.push(quote! {
-            let __rent_exempt_lamports = info.lamports();
+            let __rent_exempt_lamports = info.lamports()?;
             #[cfg(feature = "solana")]
             let __rent_exempt_data_len = info.try_borrow_data()?.len();
             #[cfg(not(feature = "solana"))]
