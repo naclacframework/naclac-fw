@@ -106,7 +106,8 @@ fn init_writes_the_chosen_variants_and_zero_elsewhere() {
     assert!(matches!(state.wide.get(), Ok(Wide::Small(5))));
     assert!(matches!(state.history[0].get(), Ok(Color::Blue)));
     assert!(matches!(state.history[1].get(), Ok(Color::Red)));
-    assert!(state.maybe_u64.get().is_none());
+    let maybe_u64 = state.maybe_u64;
+    assert_eq!({ maybe_u64.tag }, 0);
     assert!(state.scores.is_empty() && state.members.is_empty() && state.flags.is_empty());
     assert!(state.name.is_empty());
     let counter = state.counter;
@@ -212,17 +213,22 @@ fn nested_structs_arrays_and_options_round_trip() {
 
     send!(&provider, lab, build_set_maybe_u64, SetMaybeU64Accounts, OptionArgs { maybe: Some(77) })
         .expect("set_maybe_u64 Some");
-    assert_eq!(read(&provider, &lab).maybe_u64.get(), Some(77));
+    let some = read(&provider, &lab).maybe_u64;
+    assert_eq!(({ some.tag }, { some.value }), (1, 77));
     send!(&provider, lab, build_set_maybe_u64, SetMaybeU64Accounts, OptionArgs { maybe: None })
         .expect("set_maybe_u64 None");
-    assert_eq!(read(&provider, &lab).maybe_u64.get(), None);
+    let none = read(&provider, &lab).maybe_u64;
+    assert_eq!(({ none.tag }, { none.value }), (0, 0));
 
     send!(&provider, lab, build_set_maybe_color, SetMaybeColorAccounts, Color::Blue)
         .expect("set_maybe_color");
-    let maybe = read(&provider, &lab).maybe_color.get();
-    assert!(matches!(maybe.map(|c| c.get()), Some(Ok(Color::Blue))));
+    let maybe = read(&provider, &lab).maybe_color;
+    assert_eq!({ maybe.tag }, 1);
+    let stored = maybe.value;
+    assert!(matches!(stored.get(), Ok(Color::Blue)));
     send!(&provider, lab, build_clear_maybe_color, ClearMaybeColorAccounts).expect("clear");
-    assert!(read(&provider, &lab).maybe_color.get().is_none());
+    let cleared = read(&provider, &lab).maybe_color;
+    assert_eq!({ cleared.tag }, 0);
 }
 
 #[test]
