@@ -20,7 +20,7 @@ pub struct InitLab {
         seeds = [b"lab"],
         bump
     )]
-    pub lab: Account<Lab>,
+    pub lab: Box<Account<Lab>>,
     pub system_program: Program<System>,
 }
 
@@ -40,7 +40,7 @@ pub fn init_lab(ctx: Context<InitLab>) -> Result {
 pub struct Mutate {
     pub signer: Signer,
     #[account(mut, seeds = [b"lab"], bump)]
-    pub lab: Account<Lab>,
+    pub lab: Box<Account<Lab>>,
 }
 
 pub fn set_scalars(ctx: Context<Mutate>, args: ScalarArgs) -> Result {
@@ -228,7 +228,7 @@ pub fn emit_log(ctx: Context<Mutate>) -> Result {
 pub struct EmitCpiLog {
     pub signer: Signer,
     #[account(seeds = [b"lab"], bump)]
-    pub lab: Account<Lab>,
+    pub lab: Box<Account<Lab>>,
 }
 
 pub fn emit_cpi_log(ctx: Context<EmitCpiLog>) -> Result {
