@@ -357,11 +357,11 @@ fn emit_cpi_records_both_events_in_the_inner_instruction_trace() {
     }
     assert_eq!(
         &inner[0].data[2..2 + EnumsChanged::DISCRIMINATOR.len()],
-        &EnumsChanged::DISCRIMINATOR[..]
+        EnumsChanged::DISCRIMINATOR
     );
     assert_eq!(
         &inner[1].data[2..2 + LabLog::DISCRIMINATOR.len()],
-        &LabLog::DISCRIMINATOR[..]
+        LabLog::DISCRIMINATOR
     );
 
     assert_eq!(events_of!(meta, EnumsChanged).len(), 1);
@@ -417,9 +417,9 @@ fn an_optional_account_is_used_when_present_and_skipped_when_absent() {
 #[test]
 fn discriminators_have_the_custom_widths() {
     let (provider, lab) = setup();
-    assert_eq!(&LAB_DISCRIMINATOR[..], &[3u8, 0, 0, 1][..]);
-    assert_eq!(&ScalarsSet::DISCRIMINATOR[..], &[2u8, 0, 1][..]);
-    assert_eq!(&LabLog::DISCRIMINATOR[..], &[2u8, 0, 4][..]);
+    assert_eq!(LAB_DISCRIMINATOR, &[3u8, 0, 0, 1][..]);
+    assert_eq!(ScalarsSet::DISCRIMINATOR, &[2u8, 0, 1][..]);
+    assert_eq!(LabLog::DISCRIMINATOR, &[2u8, 0, 4][..]);
     let data = build_set_color(
         &provider,
         PROGRAM_ID,

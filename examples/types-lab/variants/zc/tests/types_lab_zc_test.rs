@@ -379,11 +379,11 @@ fn emit_cpi_records_both_event_kinds_in_the_inner_instruction_trace() {
     }
     assert_eq!(
         &inner[0].data[2..2 + EnumsChanged::DISCRIMINATOR.len()],
-        &EnumsChanged::DISCRIMINATOR[..]
+        EnumsChanged::DISCRIMINATOR
     );
     assert_eq!(
         &inner[1].data[2..2 + LabLog::DISCRIMINATOR.len()],
-        &LabLog::DISCRIMINATOR[..]
+        LabLog::DISCRIMINATOR
     );
 
     assert_eq!(meta.parse_events_zero_copy::<EnumsChanged>().expect("enums").len(), 1);
@@ -481,9 +481,9 @@ fn a_defined_type_with_fixed_capacity_fields_is_stored_in_an_array_account() {
 #[test]
 fn discriminators_have_the_custom_widths() {
     let (provider, lab) = setup();
-    assert_eq!(&LAB_DISCRIMINATOR[..], &[3u8, 0, 0, 1][..]);
-    assert_eq!(&ScalarsSet::DISCRIMINATOR[..], &[2u8, 0, 1][..]);
-    assert_eq!(&LabLog::DISCRIMINATOR[..], &[2u8, 0, 4][..]);
+    assert_eq!(LAB_DISCRIMINATOR, &[3u8, 0, 0, 1][..]);
+    assert_eq!(ScalarsSet::DISCRIMINATOR, &[2u8, 0, 1][..]);
+    assert_eq!(LabLog::DISCRIMINATOR, &[2u8, 0, 4][..]);
     let data = build_set_color(
         &provider,
         PROGRAM_ID,
