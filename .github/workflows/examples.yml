@@ -1,0 +1,136 @@
+# Generates the types-lab programs from variants/, checks, builds and tests
+# every program, and uploads the whole example directory (built .so files and
+# program keypairs included) so the programs can be deployed from a local
+# checkout. Runs on pushes to pending that touch the example, or by hand.
+# Separate from the test suites on purpose.
+
+name: Examples
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - pending
+    paths:
+      - examples/types-lab/**
+      - .github/workflows/examples.yml
+
+concurrency:
+  group: examples-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  EXAMPLE: types-lab
+  EXAMPLE_DIR: examples/types-lab
+
+jobs:
+  cli:
+    name: naclac cli
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release -p naclac
+      - uses: actions/upload-artifact@v7
+        with:
+          name: naclac-bin
+          path: target/release/naclac
+          retention-days: 1
+          if-no-files-found: error
+
+  example:
+    name: example (types-lab)
+    needs: cli
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Require the example's variants
+        run: |
+          if [ ! -f "$EXAMPLE_DIR/variants/variants.conf" ]; then
+            echo "Naclac Error: $EXAMPLE_DIR/variants/variants.conf does not exist." >&2
+            exit 1
+          fi
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ env.EXAMPLE_DIR }}
+          shared-key: example-${{ env.EXAMPLE }}
+          save-if: ${{ github.ref_name == 'main' || github.ref_name == 'pending' }}
+
+      - name: Cache Solana toolchain
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.local/share/solana
+            ~/.cache/solana
+          key: solana-${{ runner.os }}-platform-tools-v1.58
+
+      - name: Install Solana CLI
+        run: |
+          if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/cargo-build-sbf" ]; then
+            sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          fi
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Create throwaway wallet
+        run: |
+          mkdir -p "$HOME/.config/solana"
+          "$HOME/.local/share/solana/install/active_release/bin/solana-keygen" new \
+            --no-bip39-passphrase --silent --force -o "$HOME/.config/solana/id.json"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: naclac-bin
+          path: ${{ runner.temp }}/bin
+
+      - name: Put naclac on PATH
+        run: |
+          chmod +x "${{ runner.temp }}/bin/naclac"
+          echo "${{ runner.temp }}/bin" >> "$GITHUB_PATH"
+
+      - name: Generate the programs from the variants
+        run: bash scripts/gen-variants.sh "$EXAMPLE_DIR"
+
+      - name: naclac check
+        working-directory: ${{ env.EXAMPLE_DIR }}
+        run: naclac check --deny-warnings
+
+      - name: naclac build
+        working-directory: ${{ env.EXAMPLE_DIR }}
+        run: naclac build
+
+      - name: naclac check --test
+        working-directory: ${{ env.EXAMPLE_DIR }}
+        run: naclac check --test --deny-warnings
+
+      - name: Test every program
+        working-directory: ${{ env.EXAMPLE_DIR }}
+        run: |
+          failed=0
+          for manifest in programs/*/Cargo.toml; do
+            name="$(grep -m1 '^name' "$manifest" | sed -E 's/name *= *"(.*)"/\1/')"
+            echo "=== $name ==="
+            cargo test -p "$name" -- --nocapture || { echo "FAILED: $name"; failed=1; }
+          done
+          exit "$failed"
+
+      - name: Keep the example directory for a local deploy
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.EXAMPLE }}-bundle
+          path: |
+            ${{ env.EXAMPLE_DIR }}
+            !${{ env.EXAMPLE_DIR }}/**/target/**
+            !${{ env.EXAMPLE_DIR }}/**/node_modules/**
+          retention-days: 14
+          if-no-files-found: error

@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - pending
+    paths-ignore:
+      - examples/types-lab/**
+      - .github/workflows/examples.yml
   pull_request:
 
 concurrency:
