@@ -39,7 +39,7 @@ const provider = {} as any;
 describe("optional accounts: kit builder", () => {
   const builder = () => new MethodsBuilder(idl, idl.instructions[0], {}, provider);
 
-  it("fills a null optional account with the program id and keeps its writable role", async () => {
+  it("fills a null optional account with the program id as a read-only account", async () => {
     const signer = await generateKeyPairSigner();
     const vault = await generateKeyPairSigner();
     const ix = await builder()
@@ -48,7 +48,7 @@ describe("optional accounts: kit builder", () => {
     const accounts = ix.accounts!;
     assert.equal(accounts.length, 3);
     assert.equal(accounts[1].address, PROGRAM_ID);
-    assert.equal(accounts[1].role, AccountRole.WRITABLE);
+    assert.equal(accounts[1].role, AccountRole.READONLY);
     assert.equal(accounts[2].address, vault.address);
   });
 
@@ -79,7 +79,7 @@ describe("optional accounts: kit builder", () => {
 describe("optional accounts: legacy builder", () => {
   const builder = () => new LegacyMethodsBuilder(idl, idl.instructions[0], {}, provider);
 
-  it("fills a null optional account with the program id and keeps its writable flag", async () => {
+  it("fills a null optional account with the program id as a read-only account", async () => {
     const signer = await Keypair.generate();
     const vault = await Keypair.generate();
     const ix = await builder()
@@ -87,7 +87,8 @@ describe("optional accounts: legacy builder", () => {
       .instruction();
     assert.equal(ix.keys.length, 3);
     assert.equal(ix.keys[1].pubkey.toString(), PROGRAM_ID);
-    assert.equal(ix.keys[1].isWritable, true);
+    assert.equal(ix.keys[1].isWritable, false);
+    assert.equal(ix.keys[1].isSigner, false);
     assert.equal(ix.keys[2].pubkey.toString(), vault.publicKey.toString());
   });
 

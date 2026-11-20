@@ -219,67 +219,51 @@ pub fn generate_shared_files(
             match &t.ty {
                 IdlTypeDefVariants::Enum { variants, .. } => {
                     typedefs_content.push_str(&type_docs);
-                    if variants.iter().all(|v| v.fields.is_none()) {
-                        // No variant carries data — keep emitting a plain
-                        // native TS enum, since it's a strictly nicer API
-                        // (numeric/string member access) than a
-                        // discriminated union when there's nothing to
-                        // discriminate a payload for.
-                        typedefs_content.push_str(&format!("export enum {} {{\n", t.name));
-                        for v in variants {
-                            typedefs_content.push_str(&render_docs_ts(&v.docs, "  "));
-                            typedefs_content.push_str(&format!("  {},\n", v.name));
-                        }
-                        typedefs_content.push_str("}\n\n");
-                    } else {
-                        // At least one variant carries data — a native TS
-                        // `enum` can't represent that, so emit a
-                        // discriminated union instead (`kind` tag, matching
-                        // `client/src/idl.ts`'s `IdlSeed` convention: named
-                        // fields spread directly, tuple fields under a
-                        // `fields` array since they have no names to spread).
-                        typedefs_content.push_str(&format!("export type {} =\n", t.name));
-                        for (i, v) in variants.iter().enumerate() {
-                            let sep = if i == 0 { " " } else { "| " };
-                            match &v.fields {
-                                None => {
+                    // Every enum, with or without data, is a union tagged by
+                    // `kind`: the only shape `client/src/coder/types.ts`
+                    // encodes and decodes. Named fields are spread, tuple
+                    // fields sit under `fields`.
+                    typedefs_content.push_str(&format!("export type {} =\n", t.name));
+                    for (i, v) in variants.iter().enumerate() {
+                        let sep = if i == 0 { " " } else { "| " };
+                        typedefs_content.push_str(&render_docs_ts(&v.docs, "  "));
+                        match &v.fields {
+                            None => {
+                                typedefs_content.push_str(&format!(
+                                    "  {}{{ readonly kind: \"{}\" }}\n",
+                                    sep, v.name
+                                ));
+                            }
+                            Some(IdlEnumFields::Named(fields)) => {
+                                typedefs_content.push_str(&format!(
+                                    "  {}{{ readonly kind: \"{}\"",
+                                    sep, v.name
+                                ));
+                                for f in fields {
                                     typedefs_content.push_str(&format!(
-                                        "  {}{{ readonly kind: \"{}\" }}\n",
-                                        sep, v.name
+                                        "; readonly {}: {}",
+                                        f.name.to_lower_camel_case(),
+                                        map_type_to_ts(&f.ty, idl.is_zero_copy)
                                     ));
                                 }
-                                Some(IdlEnumFields::Named(fields)) => {
-                                    typedefs_content.push_str(&format!(
-                                        "  {}{{ readonly kind: \"{}\"",
-                                        sep, v.name
-                                    ));
-                                    for f in fields {
-                                        typedefs_content.push_str(&format!(
-                                            "; readonly {}: {}",
-                                            f.name.to_lower_camel_case(),
-                                            map_type_to_ts(&f.ty, idl.is_zero_copy)
-                                        ));
-                                    }
-                                    typedefs_content.push_str(" }\n");
-                                }
-                                Some(IdlEnumFields::Tuple(tys)) => {
-                                    let field_tys: Vec<String> = tys
-                                        .iter()
-                                        .map(|ty| map_type_to_ts(ty, idl.is_zero_copy))
-                                        .collect();
-                                    typedefs_content.push_str(&format!(
-                                        "  {}{{ readonly kind: \"{}\"; readonly fields: readonly [{}] }}\n",
-                                        sep,
-                                        v.name,
-                                        field_tys.join(", ")
-                                    ));
-                                }
+                                typedefs_content.push_str(" }\n");
+                            }
+                            Some(IdlEnumFields::Tuple(tys)) => {
+                                let field_tys: Vec<String> = tys
+                                    .iter()
+                                    .map(|ty| map_type_to_ts(ty, idl.is_zero_copy))
+                                    .collect();
+                                typedefs_content.push_str(&format!(
+                                    "  {}{{ readonly kind: \"{}\"; readonly fields: readonly [{}] }}\n",
+                                    sep,
+                                    v.name,
+                                    field_tys.join(", ")
+                                ));
                             }
                         }
-                        // Trim the trailing "\n" before the required ";\n\n".
-                        typedefs_content.pop();
-                        typedefs_content.push_str(";\n\n");
                     }
+                    typedefs_content.pop();
+                    typedefs_content.push_str(";\n\n");
                 }
                 IdlTypeDefVariants::Struct { fields } => {
                     typedefs_content.push_str(&type_docs);
@@ -668,6 +652,60 @@ mod framework_type_tests {
 }
 
 #[cfg(test)]
+mod enum_typedef_tests {
+    #[test]
+    fn a_fieldless_enum_is_a_kind_union() {
+        let idl = crate::Idl::from_json(
+            &serde_json::json!({
+                "address": "11111111111111111111111111111111",
+                "metadata": {
+                    "name": "p",
+                    "version": "0.1.0",
+                    "description": "d",
+                    "serialization": "borsh"
+                },
+                "instructions": [],
+                "accounts": [],
+                "events": [],
+                "errors": [],
+                "constants": [],
+                "definedTypes": [{
+                    "name": "Color",
+                    "type": {
+                        "kind": "enum",
+                        "variants": [
+                            { "name": "Red", "discriminant": "0" },
+                            { "name": "Blue", "discriminant": "7" }
+                        ],
+                        "repr": "u8"
+                    }
+                }]
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let dir = std::env::temp_dir().join(format!(
+            "naclac-client-gen-fieldless-enum-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("types")).unwrap();
+
+        super::generate_shared_files(&idl, "p", &dir).unwrap();
+        let typedefs = std::fs::read_to_string(dir.join("types/typedefs.ts")).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let expected = concat!(
+            "export type Color =\n",
+            "   { readonly kind: \"Red\" }\n",
+            "  | { readonly kind: \"Blue\" };",
+        );
+        assert!(typedefs.contains(expected), "{typedefs}");
+        assert!(!typedefs.contains("export enum"), "{typedefs}");
+    }
+}
+
+#[cfg(test)]
 mod optional_account_tests {
     #[test]
     fn only_an_optional_account_accepts_null() {
@@ -716,6 +754,9 @@ mod optional_account_tests {
             "{touch}"
         );
         assert!(touch.contains("vault: naclac.Address | string;"), "{touch}");
-        assert!(touch.contains("signer: naclac.Address | string;"), "{touch}");
+        assert!(
+            touch.contains("signer: naclac.Address | string;"),
+            "{touch}"
+        );
     }
 }

@@ -357,6 +357,10 @@ export class LegacyMethodsBuilder {
         );
       }
 
+      if (acctDef.optional && addr.toString() === this.programId.toString()) {
+        return { pubkey: addr, isWritable: false, isSigner: false };
+      }
+
       const isWritable = (acctDef as any).writable ?? (acctDef as any).isMut ?? false;
       const isSigner = (acctDef as any).signer ?? (acctDef as any).isSigner ?? false;
 

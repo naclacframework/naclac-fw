@@ -294,6 +294,28 @@ function isNamedEnumFields(fields: readonly any[]): boolean {
 }
 
 /**
+ * `codec` in the shape @solana/codecs' struct and tuple codecs accept for a
+ * variable-size element. A hand-written `NaclacCodec` (an enum or struct
+ * codec) has no `getSizeFromValue` or `write`, so nesting one in those codecs
+ * throws on encode. A codec that already has a size is returned unchanged.
+ */
+function asKitCodec(codec: NaclacCodec): any {
+  const candidate = codec as any;
+  if (typeof candidate.getSizeFromValue === "function" || typeof candidate.fixedSize === "number") {
+    return candidate;
+  }
+  return {
+    ...candidate,
+    getSizeFromValue: (value: unknown) => candidate.encode(value).length,
+    write: (value: unknown, bytes: Uint8Array, offset: number) => {
+      const encoded = candidate.encode(value);
+      bytes.set(encoded, offset);
+      return offset + encoded.length;
+    },
+  };
+}
+
+/**
  * Borsh/Wincode-mode enum codec — a single `u8` tag equal to the variant's
  * real Rust discriminant (explicit `= N` respected, else previous + 1),
  * matching the on-chain `#[borsh(use_discriminant = true)]` /
@@ -312,10 +334,10 @@ function getBorshEnumCodec(enumDef: { variants: any[] }, definedTypes?: readonly
     if (!v.fields) {
       codec = getUnitCodec();
     } else if (isNamedEnumFields(v.fields)) {
-      const fieldPairs = (v.fields as any[]).map((f) => [toCamelCase(f.name), getIdlCodec(f.type, definedTypes, false) as any] as const);
+      const fieldPairs = (v.fields as any[]).map((f) => [toCamelCase(f.name), asKitCodec(getIdlCodec(f.type, definedTypes, false))] as const);
       codec = getSolanaStructCodec(fieldPairs);
     } else {
-      const tupleCodec = getTupleCodec((v.fields as any[]).map((ty) => getIdlCodec(ty, definedTypes, false) as any));
+      const tupleCodec = getTupleCodec((v.fields as any[]).map((ty) => asKitCodec(getIdlCodec(ty, definedTypes, false))));
       codec = getSolanaStructCodec([["fields", tupleCodec] as const]);
     }
     return [v.name, codec] as const;

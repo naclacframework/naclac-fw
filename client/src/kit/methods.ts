@@ -233,6 +233,10 @@ export class MethodsBuilder {
           );
         }
 
+        if (acctDef.optional && addr === this.programId) {
+          return { address: addr, role: AccountRole.READONLY } as AccountMeta<Address>;
+        }
+
         const isWritable =
           (acctDef as any).writable ?? (acctDef as any).isMut ?? false;
         const isSigner =
