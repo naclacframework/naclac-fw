@@ -1,0 +1,5 @@
+error: Naclac Error: decimal scale mismatch: left has 2 decimal places, right has 3. Normalize both to one scale before adding or subtracting.
+ --> tests/fail/148_system_scale_mismatch.rs:7:17
+  |
+7 |     let total = a + b;
+  |                 ^^^^^

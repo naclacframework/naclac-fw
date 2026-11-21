@@ -1,0 +1,18 @@
+error[E0277]: Naclac Error: this `#[max_len]` has more limits than the field has `Vec` or `String` levels to apply them to (`u64`)
+   --> tests/fail/wincode/179_max_len_on_a_plain_field.rs:10:16
+    |
+ 10 |     pub value: u64,
+    |                ^^^ this type takes fewer `#[max_len]` limits
+    |
+    = help: the trait `MaxLen1<4>` is not implemented for `u64`
+help: the following other types implement trait `MaxLen1<A>`
+   --> /home/runner/work/naclac-fw/naclac-fw/core/src/wrappers/serialized_bounds.rs:131:1
+    |
+131 | impl<const A: usize> MaxLen1<A> for alloc::string::String {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `String`
+...
+140 | impl<T: SerializedBounds, const A: usize> MaxLen1<A> for alloc::vec::Vec<T> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `std::vec::Vec<T>`
+...
+149 | impl<T: MaxLen1<A>, const A: usize> MaxLen1<A> for Option<T> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Option<T>`

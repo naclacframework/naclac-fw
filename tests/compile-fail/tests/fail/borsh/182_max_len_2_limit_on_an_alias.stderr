@@ -1,0 +1,15 @@
+error[E0277]: Naclac Error: this `#[max_len]` has more limits than the field has `Vec` or `String` levels to apply them to (`u64`)
+   --> tests/fail/borsh/182_max_len_2_limit_on_an_alias.rs:12:16
+    |
+ 12 |     pub value: Count,
+    |                ^^^^^ this type takes fewer `#[max_len]` limits
+    |
+    = help: the trait `MaxLen2<4, 8>` is not implemented for `u64`
+help: the following other types implement trait `MaxLen2<A, B>`
+   --> /home/runner/work/naclac-fw/naclac-fw/core/src/wrappers/serialized_bounds.rs:161:1
+    |
+161 | impl<T: MaxLen1<B>, const A: usize, const B: usize> MaxLen2<A, B> for alloc::vec::Vec<T> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Vec<T>`
+...
+170 | impl<T: MaxLen2<A, B>, const A: usize, const B: usize> MaxLen2<A, B> for Option<T> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Option<T>`

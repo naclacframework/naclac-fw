@@ -99,6 +99,27 @@ Batch 2 results (CI, 2026-11-21)
 - The coverage regex now lets a placeholder match nothing (an empty `{hint}`).
 - Added 188 (init with dynamic seeds and no bump), 189-190 (error_code arguments).
 
+Fixed in the framework (2026-11-21)
+- derive/src/system/scale.rs: the tracker now walks every sub-expression (calls, method arguments,
+  return, `?`, blocks, if/else, match arms and guards, loops, closures, tuples, arrays, struct literals,
+  index, ranges) and checks each arithmetic expression once; nested blocks and branches get their own
+  scope. Unit tests in the same file; fixture 192 covers `Ok(a + b)`.
+- derive/src/accounts/field/parser/validate.rs: `realloc::any_of` on a field that is not `AccountInfo`
+  is a clear error (fixture 191).
+- derive/src/accounts/field/parser/attrs.rs: an unknown `realloc::` key is a clear error listing the
+  valid keys (fixture 187, snapshot to regenerate).
+
+Round 3 (CI, 2026-11-21)
+- The failed run had no pass failures and no mismatches; only 16 fixtures lacked snapshots. All 16
+  were identical across the configurations that ran them and were copied in unchanged. Known gaps: 17.
+- syn/bounds.rs `more limits than levels` fires only when a recognised shape (`String`, `Vec`, `Option`)
+  leaves limits unused; a plain or aliased `u64` goes through the core MaxLen1/2/3 traits instead
+  (confirmed from the 179 and 181-183 snapshots). Fixture heap/193 covers the syn site.
+- Found, not yet changed: `realloc::zero` is parsed and stored but never used (realloc.rs reads it into
+  `_zero_flag`), so `realloc::zero = false` is silently ignored and grown bytes are always zeroed.
+  `realloc::zero` / `realloc::grow_only` also read any non-literal value as false. One real program
+  writes `realloc::zero = false`: examples/pump-fun-program/pump-fees extend_fee_config.rs.
+
 Still open after batch 2
 - idl-build only (need crate-scan fixtures built with the idl-build feature, like dup_account_disc):
   syn/src/pda.rs (4 literal-seed messages), derive/src/accounts/idl_build/{account_list,seeds}.rs,

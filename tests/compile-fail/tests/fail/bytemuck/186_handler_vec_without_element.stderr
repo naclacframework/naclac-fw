@@ -1,0 +1,27 @@
+error: Naclac Error: `Vec` needs an element type, e.g. `Vec<u8>`.
+  --> tests/fail/bytemuck/186_handler_vec_without_element.rs:10:1
+   |
+10 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: this error originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: use of deprecated function `prog::__dispatch_set::_::__naclac_warning`: Naclac: argument `_data` is `Vec<T>`, which allocates and copies on every call. Use `ZcVec<T>`, or add `#[allow_heap]` to silence this.
+  --> tests/fail/bytemuck/186_handler_vec_without_element.rs:10:1
+   |
+10 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+   = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0107]: missing generics for struct `std::vec::Vec`
+  --> tests/fail/bytemuck/186_handler_vec_without_element.rs:12:45
+   |
+12 |     pub fn set(_ctx: Context<Plain>, _data: Vec) -> Result {
+   |                                             ^^^ expected at least 1 generic argument
+   |
+help: add missing generic argument
+   |
+12 |     pub fn set(_ctx: Context<Plain>, _data: Vec<T>) -> Result {
+   |                                                +++

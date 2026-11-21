@@ -1,0 +1,17 @@
+error[E0277]: Naclac Error: this `#[max_len]` has more limits than the field has `Vec` or `String` levels to apply them to (`u64`)
+   --> tests/fail/wincode/183_max_len_3_limit_on_an_alias.rs:12:16
+    |
+ 12 |     pub value: Count,
+    |                ^^^^^ this type takes fewer `#[max_len]` limits
+    |
+    = help: the trait `MaxLen3<4, 8, 12>` is not implemented for `u64`
+help: the following other types implement trait `MaxLen3<A, B, C>`
+   --> /home/runner/work/naclac-fw/naclac-fw/core/src/wrappers/serialized_bounds.rs:182:1
+    |
+182 | / impl<T: MaxLen2<B, C>, const A: usize, const B: usize, const C: usize> MaxLen3<A, B, C>
+183 | |     for alloc::vec::Vec<T>
+    | |__________________________^ `std::vec::Vec<T>`
+...
+193 | / impl<T: MaxLen3<A, B, C>, const A: usize, const B: usize, const C: usize> MaxLen3<A, B, C>
+194 | |     for Option<T>
+    | |_________________^ `Option<T>`

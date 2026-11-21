@@ -1,0 +1,5 @@
+error: Naclac Error: `realloc::any_of = [...]` entries must be bare type paths (e.g. `Global`).
+  --> tests/fail/117_realloc_any_of_entries.rs:13:39
+   |
+13 |     #[account(mut, realloc::any_of = [1], realloc::payer = payer)]
+   |                                       ^

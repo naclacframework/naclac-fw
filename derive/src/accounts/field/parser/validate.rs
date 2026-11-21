@@ -206,6 +206,15 @@ pub(super) fn finish(
         (None, Some(types)) => Some(ReallocSpace::AnyOf(types)),
         (None, None) => None,
     };
+    if matches!(realloc_space_variant, Some(ReallocSpace::AnyOf(_)))
+        && !crate::type_classify::is_exactly(&ty, "AccountInfo")
+    {
+        return Err(syn::Error::new_spanned(
+            &ty,
+            "Naclac Error: `realloc::any_of` reads the account's raw bytes, so the field must be \
+             `AccountInfo`. On a typed account use `realloc = <expr>`.",
+        ));
+    }
     // `grow_only` only means something with `any_of`, where the size is
     // discriminator-driven; it is rejected elsewhere rather than ignored.
     if let Some(path) = &realloc_grow_only_path {

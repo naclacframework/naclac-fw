@@ -380,6 +380,15 @@ impl RawAttrs {
                                     }
                                 }
                                 realloc_any_of = Some(types);
+                            } else {
+                                return Err(syn::Error::new_spanned(
+                                    &meta.path,
+                                    format!(
+                                        "Naclac Error: `realloc::{key}` is not a constraint. Valid \
+                                         keys: `realloc::payer`, `realloc::zero`, \
+                                         `realloc::grow_only`, `realloc::any_of`."
+                                    ),
+                                ));
                             }
                             return Ok(());
                         }

@@ -1,0 +1,5 @@
+error: Naclac Error: `#[seeds]` needs an account with named fields.
+ --> tests/fail/164_seeds_on_unnamed_fields.rs:9:12
+  |
+9 | pub struct State(u8);
+  |            ^^^^^

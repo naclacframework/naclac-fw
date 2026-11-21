@@ -1,0 +1,5 @@
+error: Naclac Error: `offset` must be an integer literal.
+ --> tests/fail/190_error_code_offset_not_a_literal.rs:5:23
+  |
+5 | #[error_code(offset = "x")]
+  |                       ^^^
