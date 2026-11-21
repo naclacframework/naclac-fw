@@ -1,0 +1,19 @@
+error: Naclac Error: argument '_data' has type 'ZcVec<T>', which Wincode can't encode (it is a view into the instruction data). Use Vec<T> or String.
+  --> tests/fail/wincode/104_handler_zc_arg.rs:10:1
+   |
+10 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: this error originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0425]: cannot find type `ZcVec` in this scope
+  --> tests/fail/wincode/104_handler_zc_arg.rs:12:45
+   |
+12 |     pub fn set(_ctx: Context<Plain>, _data: ZcVec<u8>) -> Result {
+   |                                             ^^^^^ not found in this scope
+
+error[E0425]: cannot find type `ZcVec` in module `naclac_lang::prelude`
+  --> tests/fail/wincode/104_handler_zc_arg.rs:12:45
+   |
+12 |     pub fn set(_ctx: Context<Plain>, _data: ZcVec<u8>) -> Result {
+   |                                             ^^^^^ not found in `naclac_lang::prelude`

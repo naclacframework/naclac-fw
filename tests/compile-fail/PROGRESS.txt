@@ -57,8 +57,10 @@ First CI run (2026-11-21) and what it changed
 - The coverage scanner missed messages inside attribute argument lists
   (`#[diagnostic::on_unimplemented(message = ..)]`); fixed. An exemption starting with `#[` was
   read as a comment; fixed (comments start with `# `).
-- Blessed from CI: fail/heap 100-101, fail/borsh and fail/wincode 102-103, fail/bytemuck 105-107.
-  Still unblessed: both 104 fixtures and the ten per-runtime zero-copy snapshots above.
+- Blessed from CI: fail/heap 100-101, fail/borsh and fail/wincode 102-104, fail/bytemuck 105-107,
+  and the ten per-runtime zero-copy snapshots. After the second run (2026-11-21) every fixture passed
+  in all five configurations except the 12 that only lacked those snapshots; 108 messages remain
+  in uncovered-baseline.txt.
 
 Next
 1. Push; take the regenerated snapshots from the CI artifacts; review; commit them.
