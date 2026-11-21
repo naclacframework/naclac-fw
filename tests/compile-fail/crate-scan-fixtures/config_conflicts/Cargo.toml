@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "config-conflicts-fixture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[features]
+solana = ["naclac-lang/solana"]
+pinocchio = ["naclac-lang/pinocchio"]
+bytemuck = ["naclac-lang/bytemuck"]
+borsh = ["naclac-lang/borsh"]
+wincode = ["naclac-lang/wincode"]
+token = ["naclac-lang/token"]
+metadata = ["naclac-lang/metadata"]
+
+[dependencies]
+naclac-lang = { path = "../../../../lang", default-features = false }

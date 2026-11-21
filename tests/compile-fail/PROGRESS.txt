@@ -125,6 +125,25 @@ Round 3 (CI, 2026-11-21)
   changed or added; their snapshots are to be regenerated. The checked-in cargo-expand dump
   examples/pump-fun-program/pump-fees/naclac.rs still shows the old key; it is generated output.
 
+Batch 3 (2026-11-22), written without snapshots
+- Two more configurations in tests/compile_fail.rs and the workflow: `RUNTIME,LAYOUT,idl-build` (five
+  jobs; takes only fail/pass `idl-build` and `idl-build-LAYOUT`) and `RUNTIME,no-layout` (two jobs; takes
+  only `no-layout` and `RUNTIME-no-layout`). Neither runs the top-level fixtures. A `no-layout` fail
+  fixture has no pass counterpart (the corrected program needs a layout feature).
+- Fixtures: 196 (payer PDA with ATA extra_accounts needs an explicit bump), 197-200 (literal seed errors
+  under idl-build), 201 (ATA key needed in the IDL), 202 (no IDL type, idl-build-borsh), 203 (no layout).
+- Runtime crate-scan crates, run by `cargo test --test diagnostics`: idl_name_and_code_clashes,
+  idl_opt_bad_inner, idl_constant_bad_type, idl_opt_name_clash (each builds, then the IDL step must panic),
+  and config_conflicts (built with eight conflicting feature sets for the compile_error!s in naclac-core and
+  naclac-lang). Their messages are exemptions that name the test.
+- The coverage scanner now also reads every string inside a real `compile_error!` call and scans
+  lang/src, because naclac-core and naclac-lang word theirs `naclac-core: ..`, not `Naclac Error: ..`.
+- Three messages are exempt as unreachable, each with the reason: a typed `seeds` call whose callee is not
+  a path, an empty seed path, and an IDL account without a discriminator.
+- Unverified until CI: that the idl-build fixtures reach the intended message, that `token` and `metadata`
+  alone reach naclac-lang's own check (naclac-token enables the `solana` runtime by default), and that
+  the no-layout snapshot is the same on both runtimes.
+
 Still open after batch 2
 - idl-build only (need crate-scan fixtures built with the idl-build feature, like dup_account_disc):
   syn/src/pda.rs (4 literal-seed messages), derive/src/accounts/idl_build/{account_list,seeds}.rs,

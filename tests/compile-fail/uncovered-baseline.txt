@@ -5,16 +5,8 @@
 
 derive/src/accounts/field/builtin_namespaces.rs || `{}::{key}` is needed to describe this account's address in the IDL.
 derive/src/accounts/field/init_cpi/signer_seeds.rs || a `payer` with `seeds = [...]` used by an ATA `init_if_needed` with `e
-derive/src/accounts/idl_build/account_list.rs || a typed `seeds` is called as `Type::seeds(..)`.
-derive/src/accounts/idl_build/seeds.rs || a seed path must have at least one segment.
 derive/src/program/entry.rs || this program declares no account-data layout. Add a `bytemuck`, `borsh
-derive/src/program/idl_build.rs || the IDL account `{}` has no discriminator.
-idl/src/idl_type.rs || `Opt<T>` has no IDL representation for this `T`: it needs a fixed-size
 idl/src/idl_type.rs || `{Self}` has no IDL type, so it cannot appear in the IDL.
-idl/src/idl_type.rs || `{}` cannot be the type of an IDL constant. Use a primitive, string, a
-idl/src/lib.rs || the type `{name}` has the name naclac's IDL gives an `Opt<T>`, but a d
-idl/src/registry.rs || error code {} is used by both `{other}` and `{}`. Give one `#[error_co
-idl/src/registry.rs || two IDL {kind} items are both named `{name}`. The IDL identifies them 
 syn/src/pda.rs || literal seed `{}.{}()` needs an explicit integer type suffix (e.g. `0u
 syn/src/pda.rs || literal seed `{}` could not be parsed as a `u8`: {e}
 syn/src/pda.rs || literal seed `{}` could not be parsed as an integer: {e}

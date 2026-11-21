@@ -79,6 +79,90 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  fixtures-idl-build:
+    name: idl-build fixtures (${{ matrix.runtime }}, ${{ matrix.layout }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: solana
+            layout: bytemuck
+          - runtime: solana
+            layout: borsh
+          - runtime: solana
+            layout: wincode
+          - runtime: pinocchio
+            layout: bytemuck
+          - runtime: pinocchio
+            layout: wincode
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tests/compile-fail
+          shared-key: compile-fail-idl-build-${{ matrix.runtime }}-${{ matrix.layout }}
+          save-if: ${{ github.ref_name == 'main' || github.ref_name == 'pending' }}
+      - name: Run the fixtures
+        id: run
+        working-directory: tests/compile-fail
+        run: cargo test --test compile_fail --no-default-features --features "${{ matrix.runtime }},${{ matrix.layout }},idl-build"
+      - name: Regenerate the snapshots that differ
+        if: failure() && steps.run.outcome == 'failure'
+        continue-on-error: true
+        working-directory: tests/compile-fail
+        env:
+          TRYBUILD: overwrite
+        run: cargo test --test compile_fail --no-default-features --features "${{ matrix.runtime }},${{ matrix.layout }},idl-build"
+      - name: Keep the regenerated snapshots
+        if: failure() && steps.run.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: compile-fail-snapshots-idl-build-${{ matrix.runtime }}-${{ matrix.layout }}
+          path: |
+            tests/compile-fail/tests/fail/**/*.stderr
+            tests/compile-fail/wip
+          retention-days: 14
+          if-no-files-found: warn
+
+  fixtures-no-layout:
+    name: no-layout fixtures (${{ matrix.runtime }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [solana, pinocchio]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tests/compile-fail
+          shared-key: compile-fail-no-layout-${{ matrix.runtime }}
+          save-if: ${{ github.ref_name == 'main' || github.ref_name == 'pending' }}
+      - name: Run the fixtures
+        id: run
+        working-directory: tests/compile-fail
+        run: cargo test --test compile_fail --no-default-features --features "${{ matrix.runtime }},no-layout"
+      - name: Regenerate the snapshots that differ
+        if: failure() && steps.run.outcome == 'failure'
+        continue-on-error: true
+        working-directory: tests/compile-fail
+        env:
+          TRYBUILD: overwrite
+        run: cargo test --test compile_fail --no-default-features --features "${{ matrix.runtime }},no-layout"
+      - name: Keep the regenerated snapshots
+        if: failure() && steps.run.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: compile-fail-snapshots-no-layout-${{ matrix.runtime }}
+          path: |
+            tests/compile-fail/tests/fail/**/*.stderr
+            tests/compile-fail/wip
+          retention-days: 14
+          if-no-files-found: warn
+
   crate-scan:
     name: crate-scan fixtures
     runs-on: ubuntu-latest

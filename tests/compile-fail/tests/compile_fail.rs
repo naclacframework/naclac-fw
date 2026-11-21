@@ -3,7 +3,9 @@
 //! `cargo test --test compile_fail --no-default-features --features RUNTIME,LAYOUT`
 //! with `RUNTIME` one of `solana`/`pinocchio` and `LAYOUT` one of
 //! `bytemuck`/`borsh`/`wincode` (`pinocchio,borsh` does not exist: Borsh is
-//! Solana-runtime only).
+//! Solana-runtime only). Two further configurations run only their own scope
+//! folders: `RUNTIME,LAYOUT,idl-build` takes `idl-build` and `idl-build-LAYOUT`,
+//! and `RUNTIME,no-layout` takes `no-layout` and `RUNTIME-no-layout`.
 //!
 //! Each fixture directory (`tests/fail` and `tests/pass`) holds the fixtures
 //! of every configuration at its top level, and one sub-folder per narrower
@@ -33,10 +35,22 @@ compile_error!(
     all(feature = "borsh", feature = "wincode")
 ))]
 compile_error!("Naclac Error: enable exactly one layout feature: `bytemuck`, `borsh` or `wincode`.");
-#[cfg(not(any(feature = "bytemuck", feature = "borsh", feature = "wincode")))]
+#[cfg(not(any(
+    feature = "bytemuck",
+    feature = "borsh",
+    feature = "wincode",
+    feature = "no-layout"
+)))]
 compile_error!(
     "Naclac Error: enable one layout feature: `bytemuck`, `borsh` or `wincode` (pass `--no-default-features --features RUNTIME,LAYOUT`)."
 );
+#[cfg(all(
+    feature = "no-layout",
+    any(feature = "bytemuck", feature = "borsh", feature = "wincode")
+))]
+compile_error!("Naclac Error: `no-layout` excludes every layout feature.");
+#[cfg(all(feature = "no-layout", feature = "idl-build"))]
+compile_error!("Naclac Error: `no-layout` and `idl-build` are separate configurations.");
 #[cfg(all(feature = "pinocchio", feature = "borsh"))]
 compile_error!("Naclac Error: the `borsh` layout needs the `solana` runtime, not `pinocchio`.");
 
@@ -55,7 +69,9 @@ fn runtime() -> &'static str {
 }
 
 fn layout() -> &'static str {
-    if cfg!(feature = "bytemuck") {
+    if cfg!(feature = "no-layout") {
+        "no-layout"
+    } else if cfg!(feature = "bytemuck") {
         "bytemuck"
     } else if cfg!(feature = "borsh") {
         "borsh"
@@ -64,8 +80,20 @@ fn layout() -> &'static str {
     }
 }
 
+/// Whether the fixtures at the top of `tests/fail` and `tests/pass`, which every ordinary
+/// configuration runs, apply. An `idl-build` or `no-layout` run takes only its own folders.
+fn runs_top_level() -> bool {
+    !cfg!(feature = "idl-build") && !cfg!(feature = "no-layout")
+}
+
 /// The sub-folders of `tests/fail` and `tests/pass` this configuration runs, after the top level.
 fn scopes() -> Vec<String> {
+    if cfg!(feature = "idl-build") {
+        return vec!["idl-build".to_string(), format!("idl-build-{}", layout())];
+    }
+    if cfg!(feature = "no-layout") {
+        return vec!["no-layout".to_string(), format!("{}-no-layout", runtime())];
+    }
     let mut scopes = vec![
         runtime().to_string(),
         layout().to_string(),
@@ -91,7 +119,11 @@ fn rust_files(dir: &Path) -> Vec<PathBuf> {
 
 fn fixtures(kind: &str) -> Vec<PathBuf> {
     let root = Path::new("tests").join(kind);
-    let mut files = rust_files(&root);
+    let mut files = if runs_top_level() {
+        rust_files(&root)
+    } else {
+        Vec::new()
+    };
     for scope in scopes() {
         files.extend(rust_files(&root.join(scope)));
     }

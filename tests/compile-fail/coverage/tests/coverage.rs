@@ -21,7 +21,7 @@ use {
     syn::visit::{self, Visit},
 };
 
-const SCANNED: &[&str] = &["derive/src", "syn/src", "core/src", "idl/src"];
+const SCANNED: &[&str] = &["derive/src", "syn/src", "core/src", "idl/src", "lang/src"];
 const SCOPES: &[&str] = &[
     "solana",
     "pinocchio",
@@ -34,7 +34,18 @@ const SCOPES: &[&str] = &[
     "solana-wincode",
     "pinocchio-bytemuck",
     "pinocchio-wincode",
+    "idl-build",
+    "idl-build-bytemuck",
+    "idl-build-borsh",
+    "idl-build-wincode",
+    "no-layout",
+    "solana-no-layout",
+    "pinocchio-no-layout",
 ];
+
+/// Scopes whose fail fixtures have no pass counterpart: the corrected program needs an account-data
+/// layout feature, which a `no-layout` run deliberately lacks.
+const NO_PASS_COUNTERPART: &[&str] = &["no-layout", "solana-no-layout", "pinocchio-no-layout"];
 const PREFIX: &str = "Naclac Error: ";
 const PAIRED_FROM: u32 = 100;
 
@@ -100,6 +111,24 @@ impl Collector {
         });
     }
 
+    /// Records every string in the arguments of a real `compile_error!` call as a
+    /// message, whatever it starts with: `naclac-core` and `naclac-lang` word theirs
+    /// `naclac-core: ..` rather than `Naclac Error: ..`.
+    fn record_every_string(&mut self, tokens: TokenStream) {
+        for tree in tokens {
+            if let TokenTree::Literal(literal) = tree {
+                if let Ok(string) = syn::parse_str::<syn::LitStr>(&literal.to_string()) {
+                    let text = string.value().lines().next().unwrap_or_default().to_string();
+                    self.messages.push(Message {
+                        file: self.file.clone(),
+                        line: literal.span().start().line,
+                        text,
+                    });
+                }
+            }
+        }
+    }
+
     fn walk(&mut self, tokens: TokenStream) {
         for tree in tokens {
             match tree {
@@ -151,7 +180,11 @@ impl<'ast> Visit<'ast> for Collector {
     }
 
     fn visit_macro(&mut self, node: &'ast syn::Macro) {
-        self.walk(node.tokens.clone());
+        if node.path.is_ident("compile_error") {
+            self.record_every_string(node.tokens.clone());
+        } else {
+            self.walk(node.tokens.clone());
+        }
     }
 }
 
@@ -449,7 +482,12 @@ fn fixtures_are_laid_out_as_the_runner_expects() {
         if !fixture.with_extension("stderr").exists() {
             problems.push(format!("tests/fail/{} has no .stderr snapshot", relative.display()));
         }
-        if fixture_stem_number(&fixture).is_some_and(|number| number >= PAIRED_FROM)
+        let exempt_scope = relative
+            .components()
+            .next()
+            .is_some_and(|scope| NO_PASS_COUNTERPART.iter().any(|name| scope.as_os_str() == *name));
+        if !exempt_scope
+            && fixture_stem_number(&fixture).is_some_and(|number| number >= PAIRED_FROM)
             && !pass.join(&relative).exists()
         {
             problems.push(format!(

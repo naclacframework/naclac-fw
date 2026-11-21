@@ -203,3 +203,112 @@ fn two_accounts_with_one_discriminator_fail_the_idl_step() {
 fn distinct_account_discriminators_assemble_an_idl() {
     idl_step_passes("distinct_account_disc");
 }
+
+#[test]
+fn two_items_with_one_name_or_error_code_fail_the_idl_step() {
+    idl_step_passes("idl_name_and_code_clashes");
+}
+
+#[test]
+fn an_opt_of_a_type_the_idl_cannot_name_fails_the_idl_step() {
+    idl_step_passes("idl_opt_bad_inner");
+}
+
+#[test]
+fn a_constant_of_a_type_with_no_idl_text_fails_the_idl_step() {
+    idl_step_passes("idl_constant_bad_type");
+}
+
+#[test]
+fn a_user_type_named_like_an_opt_fails_the_idl_step() {
+    idl_step_passes("idl_opt_name_clash");
+}
+
+fn build_fails_with_features(features: &str) -> String {
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("crate-scan-fixtures")
+        .join("config_conflicts")
+        .join("Cargo.toml");
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let mut command = Command::new(cargo);
+    command
+        .arg("check")
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--no-default-features");
+    if !features.is_empty() {
+        command.arg("--features").arg(features);
+    }
+    let output = command.output().expect("failed to run cargo check");
+    assert!(
+        !output.status.success(),
+        "features `{features}` must fail to build, but cargo check succeeded"
+    );
+    String::from_utf8_lossy(&output.stderr).into_owned()
+}
+
+fn assert_build_error(features: &str, expected: &str) {
+    let stderr = build_fails_with_features(features);
+    assert!(stderr.contains(expected), "{features}: {stderr}");
+}
+
+#[test]
+fn a_build_with_no_runtime_is_rejected() {
+    assert_build_error("", "naclac-core: select a runtime");
+}
+
+#[test]
+fn borsh_and_wincode_together_are_rejected() {
+    assert_build_error(
+        "solana,borsh,wincode",
+        "the `borsh` and `wincode` features are mutually exclusive",
+    );
+}
+
+#[test]
+fn bytemuck_and_borsh_together_are_rejected() {
+    assert_build_error(
+        "solana,bytemuck,borsh",
+        "the `bytemuck` and `borsh` features are mutually exclusive",
+    );
+}
+
+#[test]
+fn bytemuck_and_wincode_together_are_rejected() {
+    assert_build_error(
+        "solana,bytemuck,wincode",
+        "the `bytemuck` and `wincode` features are mutually exclusive",
+    );
+}
+
+#[test]
+fn borsh_on_the_pinocchio_runtime_is_rejected() {
+    assert_build_error(
+        "pinocchio,borsh",
+        "the `borsh` feature is not available with the `pinocchio` runtime",
+    );
+}
+
+#[test]
+fn both_runtimes_together_are_rejected() {
+    assert_build_error(
+        "solana,pinocchio",
+        "naclac-lang: the `solana` and `pinocchio` runtimes are mutually exclusive",
+    );
+}
+
+#[test]
+fn the_token_feature_without_a_runtime_is_rejected() {
+    assert_build_error(
+        "token",
+        "the `token` feature requires `solana` or `pinocchio` to also be enabled",
+    );
+}
+
+#[test]
+fn the_metadata_feature_without_a_runtime_is_rejected() {
+    assert_build_error(
+        "metadata",
+        "the `metadata` feature requires `solana` or `pinocchio` to also be enabled",
+    );
+}

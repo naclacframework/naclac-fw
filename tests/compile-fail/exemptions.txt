@@ -23,3 +23,19 @@ more than one field could be this account's token program || covered-by derive/s
 the token program must name a field of this struct || covered-by derive/src/accounts/field/builtin_namespaces.rs::a_written_token_program_that_is_not_a_field_is_an_error
 Accounts struct fields must be named. || reason unreachable: parse_struct_fields takes `FieldsNamed` and #[derive(Accounts)] rejects other structs first (derive/src/accounts/mod.rs), so every field has an ident.
 this handler has no resolved discriminator. || reason unreachable: discriminators::resolve and the handler loop in program/mod.rs both filter on public functions, so every expanded handler is in the discriminator map.
+two IDL {kind} items are both named || covered-by tests/compile-fail/tests/diagnostics.rs::two_items_with_one_name_or_error_code_fail_the_idl_step
+error code {} is used by both || covered-by tests/compile-fail/tests/diagnostics.rs::two_items_with_one_name_or_error_code_fail_the_idl_step
+`Opt<T>` has no IDL representation for this `T` || covered-by tests/compile-fail/tests/diagnostics.rs::an_opt_of_a_type_the_idl_cannot_name_fails_the_idl_step
+`{}` cannot be the type of an IDL constant. || covered-by tests/compile-fail/tests/diagnostics.rs::a_constant_of_a_type_with_no_idl_text_fails_the_idl_step
+the type `{name}` has the name naclac's IDL gives an `Opt<T>` || covered-by tests/compile-fail/tests/diagnostics.rs::a_user_type_named_like_an_opt_fails_the_idl_step
+a typed `seeds` is called as `Type::seeds(..)`. || reason unreachable: parse_pda_seeds builds a typed seeds call only when the callee is a path of two or more segments (is_seeds_function in derive/src/accounts/field/parser/attrs.rs), so the callee is always a path expression.
+a seed path must have at least one segment. || reason unreachable: a path expression the parser accepts always has at least one segment, so segments.last() cannot be None.
+the IDL account `{}` has no discriminator. || reason unreachable: an account registers its type and its discriminator together, and only when it has a discriminator (derive/src/account/idl_build.rs), so every struct in the account types has one.
+naclac-core: select a runtime || covered-by tests/compile-fail/tests/diagnostics.rs::a_build_with_no_runtime_is_rejected
+naclac-core: the `borsh` and `wincode` features are mutually exclusive || covered-by tests/compile-fail/tests/diagnostics.rs::borsh_and_wincode_together_are_rejected
+naclac-core: the `bytemuck` and `borsh` features are mutually exclusive || covered-by tests/compile-fail/tests/diagnostics.rs::bytemuck_and_borsh_together_are_rejected
+naclac-core: the `bytemuck` and `wincode` features are mutually exclusive || covered-by tests/compile-fail/tests/diagnostics.rs::bytemuck_and_wincode_together_are_rejected
+naclac-core: the `borsh` feature is not available with the `pinocchio` runtime || covered-by tests/compile-fail/tests/diagnostics.rs::borsh_on_the_pinocchio_runtime_is_rejected
+naclac-lang: the `solana` and `pinocchio` runtimes are mutually exclusive || covered-by tests/compile-fail/tests/diagnostics.rs::both_runtimes_together_are_rejected
+the `token` feature requires `solana` or `pinocchio` to also be enabled || covered-by tests/compile-fail/tests/diagnostics.rs::the_token_feature_without_a_runtime_is_rejected
+the `metadata` feature requires `solana` or `pinocchio` to also be enabled || covered-by tests/compile-fail/tests/diagnostics.rs::the_metadata_feature_without_a_runtime_is_rejected
