@@ -1,12 +1,17 @@
 #![allow(unexpected_cfgs)]
-// A field with an IDL type is valid.
+// A `#[defined_type]` has an IDL type.
 use naclac_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");
 
+#[defined_type]
+pub struct Level {
+    pub value: u8,
+}
+
 #[account]
 pub struct FooData {
-    pub value: u8,
+    pub level: Level,
 }
 
 fn main() {}

@@ -296,19 +296,3 @@ fn both_runtimes_together_are_rejected() {
         "naclac-lang: the `solana` and `pinocchio` runtimes are mutually exclusive",
     );
 }
-
-#[test]
-fn the_token_feature_without_a_runtime_is_rejected() {
-    assert_build_error(
-        "token",
-        "the `token` feature requires `solana` or `pinocchio` to also be enabled",
-    );
-}
-
-#[test]
-fn the_metadata_feature_without_a_runtime_is_rejected() {
-    assert_build_error(
-        "metadata",
-        "the `metadata` feature requires `solana` or `pinocchio` to also be enabled",
-    );
-}

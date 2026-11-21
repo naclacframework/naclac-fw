@@ -3,11 +3,6 @@
 # listed here, and for a line here whose message is now covered or no longer exists. The list
 # only shrinks: a new error needs a fixture, never a line in this file.
 
-derive/src/accounts/field/builtin_namespaces.rs || `{}::{key}` is needed to describe this account's address in the IDL.
 derive/src/accounts/field/init_cpi/signer_seeds.rs || a `payer` with `seeds = [...]` used by an ATA `init_if_needed` with `e
 derive/src/program/entry.rs || this program declares no account-data layout. Add a `bytemuck`, `borsh
 idl/src/idl_type.rs || `{Self}` has no IDL type, so it cannot appear in the IDL.
-syn/src/pda.rs || literal seed `{}.{}()` needs an explicit integer type suffix (e.g. `0u
-syn/src/pda.rs || literal seed `{}` could not be parsed as a `u8`: {e}
-syn/src/pda.rs || literal seed `{}` could not be parsed as an integer: {e}
-syn/src/pda.rs || literal seed `{}` has an integer type suffix (`{suffix}`) that isn't `

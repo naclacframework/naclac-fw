@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> tests/fail/idl-build/198_idl_seed_integer_range.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^
+  |
+  = help: message: Naclac Error: literal seed `300` could not be parsed as a `u8`: number too large to fit in target type

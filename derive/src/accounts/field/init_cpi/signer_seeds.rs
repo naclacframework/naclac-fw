@@ -112,13 +112,17 @@ pub(super) fn payer_signer_seeds_tokens(payer_field: &ParsedField) -> TokenStrea
     let bump_expr = match &payer_field.pda_bump {
         Some(PdaBump::Explicit(expr)) => quote! { #expr },
         _ => {
-            return syn::Error::new_spanned(
+            let error = syn::Error::new_spanned(
                 &payer_field.ident,
                 "Naclac Error: a `payer` with `seeds = [...]` used by an ATA `init_if_needed` \
                  with `extra_accounts` needs an explicit `bump = <expr>`; an automatic bump \
                  isn't supported there.",
             )
             .to_compile_error();
+            return quote! {
+                #error
+                let __payer_signer_seeds: &[naclac_lang::prelude::CpiSigner] = &[];
+            };
         }
     };
 

@@ -11,14 +11,14 @@ default = ["solana", "bytemuck"]
 debug-mode = []
 solana = ["naclac-lang/solana"]
 pinocchio = ["naclac-lang/pinocchio"]
-bytemuck = ["naclac-lang/bytemuck"]
-borsh = ["naclac-lang/borsh"]
-wincode = ["naclac-lang/wincode"]
+bytemuck = ["naclac-lang/bytemuck", "naclac-lang/token"]
+borsh = ["naclac-lang/borsh", "naclac-lang/token"]
+wincode = ["naclac-lang/wincode", "naclac-lang/token"]
 no-layout = []
 idl-build = ["naclac-lang/idl-build"]
 
 [dependencies]
-naclac-lang = { path = "../../lang", default-features = false, features = ["token"] }
+naclac-lang = { path = "../../lang", default-features = false }
 
 [dev-dependencies]
 trybuild = "1"

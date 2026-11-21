@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> tests/fail/idl-build/197_idl_seed_integer_suffix.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^
+  |
+  = help: message: Naclac Error: literal seed `5u16` has an integer type suffix (`u16`) that isn't `u8` — a bare integer seed element must resolve to a single byte. Use `.to_le_bytes()`/`.to_be_bytes()` (with an explicit type suffix) to seed with a wider integer instead.

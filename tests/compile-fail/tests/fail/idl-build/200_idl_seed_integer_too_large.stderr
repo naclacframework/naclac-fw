@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> tests/fail/idl-build/200_idl_seed_integer_too_large.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^
+  |
+  = help: message: Naclac Error: literal seed `1000000000000000000000000000000000000000u128` could not be parsed as an integer: number too large to fit in target type

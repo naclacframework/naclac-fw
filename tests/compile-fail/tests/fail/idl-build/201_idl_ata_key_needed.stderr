@@ -1,0 +1,13 @@
+error: Naclac Error: `associated_token::mint` is needed to describe this account's address in the IDL.
+  --> tests/fail/idl-build/201_idl_ata_key_needed.rs:18:9
+   |
+18 |     pub vault: Account<TokenAccount>,
+   |         ^^^^^
+
+error[E0599]: no associated function or constant named `SPACE` found for struct `naclac_lang::prelude::TokenAccount` in the current scope
+ --> tests/fail/idl-build/201_idl_ata_key_needed.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^ associated function or constant not found in `naclac_lang::prelude::TokenAccount`
+  |
+  = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)

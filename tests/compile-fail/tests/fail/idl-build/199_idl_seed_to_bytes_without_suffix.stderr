@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> tests/fail/idl-build/199_idl_seed_to_bytes_without_suffix.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^
+  |
+  = help: message: Naclac Error: literal seed `0.to_le_bytes()` needs an explicit integer type suffix (e.g. `0u16`, not a bare `0`) so its byte width can be resolved without guessing.

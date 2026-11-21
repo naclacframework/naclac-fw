@@ -144,6 +144,20 @@ Batch 3 (2026-11-22), written without snapshots
   alone reach naclac-lang's own check (naclac-token enables the `solana` runtime by default), and that
   the no-layout snapshot is the same on both runtimes.
 
+Batch 3 results (CI, 2026-11-22)
+- 197-201 reached their intended messages and were identical in all five idl-build configurations
+  (copied in). The four literal-seed errors surface as `proc-macro derive panicked` carrying naclac's text.
+- crate-scan: the four runtime IDL crates and six of the eight config-conflict tests passed. The `token`
+  and `metadata` tests were a wrong guess: naclac-core rejects a build with no runtime before naclac-lang
+  is compiled, and naclac-token / naclac-metadata have default-features = false, so naclac-lang's two checks
+  cannot fire. They are exemptions with that reason; the tests were removed.
+- no-layout did not run: the compile-fail crate always enabled naclac-lang's `token` feature, and
+  naclac-token cannot build without a layout. `token` is now enabled by each layout feature instead.
+- 202 reached borsh's SerializedBounds error before the IDL one; it now uses a hand-written type with its
+  own SerializedBounds impl (no IDL type). 196 showed a second error (`__payer_signer_seeds` undefined)
+  because the error path did not bind it; signer_seeds.rs now binds an empty slice after the error.
+- Pending snapshots: 196, 202, 203. Known gaps: 3 (signer_seeds, entry, idl_type `{Self}`), all awaiting these.
+
 Still open after batch 2
 - idl-build only (need crate-scan fixtures built with the idl-build feature, like dup_account_disc):
   syn/src/pda.rs (4 literal-seed messages), derive/src/accounts/idl_build/{account_list,seeds}.rs,
