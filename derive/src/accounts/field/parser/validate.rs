@@ -103,7 +103,6 @@ pub(super) fn finish(
         realloc_grow_only,
         realloc_grow_only_path,
         realloc_payer,
-        realloc_zero,
         relations,
         owner,
         address,
@@ -234,7 +233,6 @@ pub(super) fn finish(
             realloc = Some(ReallocConfig {
                 space,
                 payer,
-                zero: realloc_zero,
                 grow_only: realloc_grow_only,
             });
         }

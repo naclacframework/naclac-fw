@@ -130,9 +130,12 @@ impl ScaleTracker {
                 self.eval_scale(&m.expr);
                 for arm in &m.arms {
                     let outer = self.var_scales.clone();
-                    self.bind_pat(&arm.pat, Scale::Unknown);
-                    if let Some((_, guard)) = &arm.guard {
-                        self.eval_scale(guard);
+                    match &arm.pat {
+                        Pat::Guard(guarded) => {
+                            self.bind_pat(&guarded.pat, Scale::Unknown);
+                            self.eval_scale(&guarded.guard);
+                        }
+                        pat => self.bind_pat(pat, Scale::Unknown),
                     }
                     self.eval_scale(&arm.body);
                     self.var_scales = outer;

@@ -1,5 +1,0 @@
-error: expected `,`
-  --> tests/fail/187_realloc_unknown_key.rs:13:89
-   |
-13 |     #[account(mut, realloc = new_space as usize, realloc::payer = payer, realloc::bogus = true)]
-   |                                                                                         ^

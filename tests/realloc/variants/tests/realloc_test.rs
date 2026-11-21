@@ -14,12 +14,8 @@ fn setup() -> NaclacProvider {
 
 /// Growing: the account's real on-chain byte length actually changes, the
 /// payer actually funds the rent top-up, and — critically — the newly
-/// allocated bytes are genuinely zeroed. This last part was flagged in
-/// `TEST_PLAN.md` as a suspected dead-code gap (`realloc::zero` parsed but
-/// never wired up); tracing the underlying `resize()` primitives directly
-/// showed both backends already zero new memory unconditionally themselves,
-/// but reasoning from code isn't the same as observing it — this is the
-/// actual observation.
+/// allocated bytes are genuinely zeroed. `realloc` has no option to skip that,
+/// so this observes the real account memory after a grow.
 #[test]
 fn growing_resizes_funds_and_zeroes_new_bytes() {
     let provider = setup();

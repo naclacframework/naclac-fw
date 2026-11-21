@@ -1,7 +1,7 @@
 //! # Instruction Account Reallocation Logic
 //!
 //! Generates the dynamic account resizing logic for accounts marked with
-//! `#[account(realloc = space, realloc::payer = payer, realloc::zero = true)]`.
+//! `#[account(realloc = space, realloc::payer = payer)]`.
 
 use {
     crate::accounts::field::parser::ParsedField,
@@ -27,15 +27,11 @@ pub fn generate_realloc_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
             // the same channel bump seeds already use to cross that boundary.
             let space_var = format_ident!("__realloc_space_{}", target_ident);
 
-            // `realloc::zero` adds no step: both runtimes' `resize()` already
-            // zero newly grown bytes, so `zero = true` is redundant and
-            // `zero = false` cannot be honoured without bypassing `resize()`.
-            let _zero_flag = realloc_config.zero;
-
             // The rent/CPI logic itself lives in `naclac_lang::prelude::
             // resize_with_rent` (core/src/realloc.rs) so this
             // constraint and a handler calling that function manually can
-            // never drift apart.
+            // never drift apart. `resize()` zeroes the bytes it grows on both
+            // runtimes, so there is no option to skip that.
             let realloc_body = quote! {
                 let new_space = bumps.#space_var;
                 naclac_lang::prelude::resize_with_rent(__target, &mut self.#payer_ident, new_space)?;
@@ -73,7 +69,7 @@ pub fn generate_realloc_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
 /// where this is spliced — see `accounts.rs`'s per-field `let #field_name
 /// = ...` binding).
 ///
-/// `grow_only` (`realloc::grow_only = true`): clamps the result to never go
+/// `grow_only` (`realloc::grow_only`): clamps the result to never go
 /// below the account's current length, even if the matched type's compiled
 /// size is smaller. `any_of` has no dedicated authority account — any
 /// signer may call it against any account it matches — so an unrestricted

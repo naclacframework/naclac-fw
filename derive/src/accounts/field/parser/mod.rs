@@ -133,8 +133,7 @@ pub enum ReallocSpace {
 pub struct ReallocConfig {
     pub space: ReallocSpace,
     pub payer: Ident,
-    pub zero: bool,
-    /// `realloc::grow_only = true`, accepted only on `any_of` fields: clamps
+    /// `realloc::grow_only`, accepted only on `any_of` fields: clamps
     /// the computed size to never go below the account's current length, so
     /// `any_of` can never shrink an account. See `realloc::generate_any_of_space_expr`.
     pub grow_only: bool,
@@ -454,6 +453,46 @@ mod tests {
     fn dup_and_alias_are_mutually_exclusive() {
         let message = error_of("/// SAFETY: test.\n#[account(dup, unsafe(alias))] a: Account<A>");
         assert!(message.contains("mutually exclusive"), "{message}");
+    }
+
+    #[test]
+    fn realloc_grow_only_is_a_flag() {
+        let fields = parse(
+            "/// SAFETY: test.\n#[account(mut, realloc::any_of = [A], realloc::payer = p, \
+             realloc::grow_only)] a: AccountInfo",
+        );
+        assert!(fields[0].parse_error.is_none());
+        assert!(fields[0].realloc.as_ref().is_some_and(|r| r.grow_only));
+
+        let message = error_of(
+            "/// SAFETY: test.\n#[account(mut, realloc::any_of = [A], realloc::payer = p, \
+             realloc::grow_only = true)] a: AccountInfo",
+        );
+        assert!(message.contains("expected `,`"), "{message}");
+    }
+
+    #[test]
+    fn realloc_zero_is_not_a_constraint() {
+        let message = error_of(
+            "#[account(mut, realloc = 8, realloc::payer = p, realloc::zero = true)] a: Account<A>",
+        );
+        assert!(message.contains("`realloc::zero` is not a constraint"), "{message}");
+    }
+
+    #[test]
+    fn realloc_any_of_needs_an_account_info_field() {
+        let message =
+            error_of("#[account(mut, realloc::any_of = [A], realloc::payer = p)] a: Account<A>");
+        assert!(message.contains("must be `AccountInfo`"), "{message}");
+    }
+
+    #[test]
+    fn an_unknown_realloc_key_lists_the_valid_ones() {
+        let message = error_of(
+            "#[account(mut, realloc = 8, realloc::payer = p, realloc::bogus = true)] a: Account<A>",
+        );
+        assert!(message.contains("`realloc::bogus` is not a constraint"), "{message}");
+        assert!(message.contains("`realloc::payer`"), "{message}");
     }
 
     #[test]

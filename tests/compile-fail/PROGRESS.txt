@@ -115,10 +115,15 @@ Round 3 (CI, 2026-11-21)
 - syn/bounds.rs `more limits than levels` fires only when a recognised shape (`String`, `Vec`, `Option`)
   leaves limits unused; a plain or aliased `u64` goes through the core MaxLen1/2/3 traits instead
   (confirmed from the 179 and 181-183 snapshots). Fixture heap/193 covers the syn site.
-- Found, not yet changed: `realloc::zero` is parsed and stored but never used (realloc.rs reads it into
-  `_zero_flag`), so `realloc::zero = false` is silently ignored and grown bytes are always zeroed.
-  `realloc::zero` / `realloc::grow_only` also read any non-literal value as false. One real program
-  writes `realloc::zero = false`: examples/pump-fun-program/pump-fees extend_fee_config.rs.
+- `realloc::zero` was parsed and stored but never used, and `realloc::zero` / `realloc::grow_only` read
+  any value other than the literal `true` as false. Changed: `realloc::zero` is removed and
+  `realloc::grow_only` is a bare flag. Neither has a dedicated error: `zero` hits the generic
+  "`realloc::KEY` is not a constraint" error, which is needed because a bare unknown key (a typo of
+  `grow_only`) would otherwise be accepted silently, and `grow_only = true` gets syn's `expected ,`.
+  Updated the tracked users: tests/realloc and tests/optional-accounts variants, the pump
+  extend_account (`realloc::grow_only,`) and pump-fees extend_fee_config. Fixtures 194-195, 115 and 187
+  changed or added; their snapshots are to be regenerated. The checked-in cargo-expand dump
+  examples/pump-fun-program/pump-fees/naclac.rs still shows the old key; it is generated output.
 
 Still open after batch 2
 - idl-build only (need crate-scan fixtures built with the idl-build feature, like dup_account_disc):

@@ -18,8 +18,7 @@ pub struct ExtendFeeConfig {
         seeds = [FEE_CONFIG_SEED, config_program_id.address().as_ref()],
         bump,
         realloc = FEE_CONFIG_CURRENT_SIZE,
-        realloc::payer = user,
-        realloc::zero = false
+        realloc::payer = user
     )]
     pub fee_config: Account<FeeConfig>,
     pub system_program: Program<System>,

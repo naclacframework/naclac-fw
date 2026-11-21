@@ -66,7 +66,6 @@ pub(super) struct RawAttrs {
     pub(super) realloc_grow_only: bool,
     pub(super) realloc_grow_only_path: Option<syn::Path>,
     pub(super) realloc_payer: Option<Ident>,
-    pub(super) realloc_zero: bool,
     pub(super) relations: Vec<RelationConfig>,
     pub(super) owner: Option<syn::Expr>,
     pub(super) address: Option<syn::Expr>,
@@ -96,7 +95,6 @@ impl RawAttrs {
         let mut realloc_grow_only = false;
         let mut realloc_grow_only_path: Option<syn::Path> = None;
         let mut realloc_payer: Option<Ident> = None;
-        let mut realloc_zero = false;
         let mut relations = Vec::new();
         let mut owner = None;
         let mut address = None;
@@ -347,18 +345,8 @@ impl RawAttrs {
                             let key = meta.path.segments[1].ident.to_string();
                             if key == "payer" {
                                 realloc_payer = Some(meta.value()?.parse::<Ident>()?);
-                            } else if key == "zero" {
-                                let expr = meta.value()?.parse::<syn::Expr>()?;
-                                realloc_zero = matches!(
-                                    &expr,
-                                    syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Bool(b), .. }) if b.value
-                                );
                             } else if key == "grow_only" {
-                                let expr = meta.value()?.parse::<syn::Expr>()?;
-                                realloc_grow_only = matches!(
-                                    &expr,
-                                    syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Bool(b), .. }) if b.value
-                                );
+                                realloc_grow_only = true;
                                 realloc_grow_only_path = Some(meta.path.clone());
                             } else if key == "any_of" {
                                 let array = meta.value()?.parse::<syn::ExprArray>()?;
@@ -385,8 +373,8 @@ impl RawAttrs {
                                     &meta.path,
                                     format!(
                                         "Naclac Error: `realloc::{key}` is not a constraint. Valid \
-                                         keys: `realloc::payer`, `realloc::zero`, \
-                                         `realloc::grow_only`, `realloc::any_of`."
+                                         keys: `realloc::payer`, `realloc::grow_only`, \
+                                         `realloc::any_of`."
                                     ),
                                 ));
                             }
@@ -419,7 +407,6 @@ impl RawAttrs {
             realloc_grow_only,
             realloc_grow_only_path,
             realloc_payer,
-            realloc_zero,
             relations,
             owner,
             address,

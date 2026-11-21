@@ -16,7 +16,7 @@ pub struct ExtendAccount {
         mut,
         owner = crate::ID,
         realloc::any_of = [Global, BondingCurve, SharingConfig, GlobalVolumeAccumulator, UserVolumeAccumulator],
-        realloc::grow_only = true,
+        realloc::grow_only,
         realloc::payer = user,
     )]
     pub account: AccountInfo,

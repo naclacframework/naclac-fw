@@ -14,8 +14,7 @@ pub struct ReallocOptionalThing {
     #[account(
         mut,
         realloc = new_space as usize,
-        realloc::payer = payer,
-        realloc::zero = true
+        realloc::payer = payer
     )]
     pub optional_thing: Option<Account<Thing>>,
 

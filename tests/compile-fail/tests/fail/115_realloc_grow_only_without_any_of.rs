@@ -10,7 +10,7 @@ pub struct Foo {
     #[account(mut)]
     pub payer: Signer,
 
-    #[account(mut, realloc = new_space as usize, realloc::payer = payer, realloc::grow_only = true)]
+    #[account(mut, realloc = new_space as usize, realloc::payer = payer, realloc::grow_only)]
     pub account: Account<FooData>,
 
     pub system_program: Program<System>,

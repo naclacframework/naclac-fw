@@ -18,8 +18,7 @@ pub struct ResizeGrowable {
         seeds = [SEED_GROWABLE],
         bump,
         realloc = new_space as usize,
-        realloc::payer = payer,
-        realloc::zero = true
+        realloc::payer = payer
     )]
     pub growable: Account<Growable>,
 
