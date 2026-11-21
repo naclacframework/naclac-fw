@@ -1,0 +1,22 @@
+error[E0277]: Naclac Error: `Level` has no IDL type, so it cannot appear in the IDL.
+  --> tests/fail/idl-build-borsh/202_idl_type_missing.rs:21:16
+   |
+21 |     pub level: Level,
+   |                ^^^^^ no IDL type
+   |
+help: the trait `NaclacIdlType` is not implemented for `Level`
+  --> tests/fail/idl-build-borsh/202_idl_type_missing.rs:9:1
+   |
+ 9 | pub struct Level(u8);
+   | ^^^^^^^^^^^^^^^^
+   = note: use a primitive, Address, String, array, Vec, Option, FixedVec, or a #[defined_type]/#[account] type
+   = help: the following other types implement trait `NaclacIdlType`:
+             &T
+             Address
+             Box<T>
+             FooData
+             Option<T>
+             Vec<T>
+             [T; N]
+             [T]
+           and $N others

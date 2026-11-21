@@ -158,6 +158,15 @@ Batch 3 results (CI, 2026-11-22)
   because the error path did not bind it; signer_seeds.rs now binds an empty slice after the error.
 - Pending snapshots: 196, 202, 203. Known gaps: 3 (signer_seeds, entry, idl_type `{Self}`), all awaiting these.
 
+Batch 3 final (CI, 2026-11-22)
+- 196 is now one clean error (the binding fix worked); 202 reaches "`Level` has no IDL type"; 203 reaches the
+  no-layout message but differs by runtime (solana adds an `as_mut_payload` E0599, both add a
+  `load_and_validate` E0599), so it lives in solana-no-layout/ and pinocchio-no-layout/.
+- uncovered-baseline.txt has no entries left: every message is in a snapshot or in exemptions.txt.
+- Left: pair the legacy fail fixtures numbered below 100 with pass counterparts (PAIRED_FROM in
+  coverage.rs is still 100), bless the one local-only fixture (48) from CI so LOCAL_ONLY_FIXTURES can go,
+  and drop the baseline mechanism once nothing needs it.
+
 Still open after batch 2
 - idl-build only (need crate-scan fixtures built with the idl-build feature, like dup_account_disc):
   syn/src/pda.rs (4 literal-seed messages), derive/src/accounts/idl_build/{account_list,seeds}.rs,
