@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 // A handler argument of type `ZcVec` is a view into the instruction data, which Borsh and Wincode cannot encode.
 use naclac_lang::prelude::*;
 

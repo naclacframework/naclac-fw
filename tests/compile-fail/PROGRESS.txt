@@ -40,6 +40,26 @@ Done
   instruction_args ZcVec, event(alloc), handler ZcVec under borsh and wincode, zero-copy enum
   without repr, derive(Default) conflicts. These have no .stderr yet.
 
+First CI run (2026-11-21) and what it changed
+- Framework bug found by the borsh run: `#[defined_type]` on any enum emitted two `#[borsh(..)]`
+  attributes, which borsh-derive before 1.8.0 rejects (the framework allows borsh >= 1.6.1).
+  derive/src/defined_type/borsh_repr.rs now emits one. The old compile-fail lock pinned borsh
+  1.7.0, which is why only this crate saw it.
+- Stale tests/compile-fail/Cargo.lock (wincode 0.5.5, solana-address 2.6.1) gave two wincode
+  versions in the graph and failed pass/account_seeds.rs under wincode; replaced by the lock of
+  tests/enums (wincode 0.6.3, solana-address 2.9.0, borsh 1.8.1). Snapshots that print rustc's
+  "other types implement trait" lists depend on resolved versions and must be regenerated.
+- Five zero-copy fixtures (03, 45, 46, 47, 49) print those lists, which differ per runtime; they now
+  live in fail/solana-bytemuck and fail/pinocchio-bytemuck and need blessed snapshots.
+- 01_accounts_pubkey_field imported a solana-only path; it now aliases `Address`, valid on both runtimes.
+- #[program] fixtures print many unexpected_cfgs warnings; the owner approved
+  `#![allow(unexpected_cfgs)]` for fixtures, added to the four 104 fixtures.
+- The coverage scanner missed messages inside attribute argument lists
+  (`#[diagnostic::on_unimplemented(message = ..)]`); fixed. An exemption starting with `#[` was
+  read as a comment; fixed (comments start with `# `).
+- Blessed from CI: fail/heap 100-101, fail/borsh and fail/wincode 102-103, fail/bytemuck 105-107.
+  Still unblessed: both 104 fixtures and the ten per-runtime zero-copy snapshots above.
+
 Next
 1. Push; take the regenerated snapshots from the CI artifacts; review; commit them.
 2. Remove from uncovered-baseline.txt the lines the coverage job reports as now covered.
@@ -53,5 +73,5 @@ Next
 5. Messages no compile test can reach go in exemptions.txt with a reason, never silently.
 6. Legacy fail fixtures below number 100 have no pass counterpart yet; pair them.
 7. crate-scan fixtures run in one configuration only; extend where a check is layout-gated.
-8. Existing and new fixtures that start with `#![allow(unexpected_cfgs)]` silence a warning
-   caused by the macros' cfg(feature = ..) checks; decide with the owner whether to keep it.
+8. Fixtures start with `#![allow(unexpected_cfgs)]` when the macros' cfg(feature = ..) checks warn;
+   the owner approved this for compile-fail fixtures (it is not a fallback here).

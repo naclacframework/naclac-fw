@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 // A handler argument of type `Vec<u8>` is valid under Borsh and Wincode.
 use naclac_lang::prelude::*;
 

@@ -1,0 +1,5 @@
+error: Naclac Error: a zero-copy `#[defined_type]` enum needs an explicit `#[repr(u8)]` (or another integer type) to fix its tag width.
+ --> tests/fail/bytemuck/105_defined_type_enum_without_repr.rs:5:10
+  |
+5 | pub enum Mode {
+  |          ^^^^

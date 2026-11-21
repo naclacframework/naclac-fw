@@ -138,6 +138,18 @@ impl<'ast> Visit<'ast> for Collector {
         self.record(&node.value(), node.span().start().line);
     }
 
+    /// Reads the strings inside an attribute's argument list, such as
+    /// `#[diagnostic::on_unimplemented(message = "..")]`; doc comments are
+    /// prose, not messages.
+    fn visit_attribute(&mut self, node: &'ast syn::Attribute) {
+        if node.path().is_ident("doc") {
+            return;
+        }
+        if let syn::Meta::List(list) = &node.meta {
+            self.walk(list.tokens.clone());
+        }
+    }
+
     fn visit_macro(&mut self, node: &'ast syn::Macro) {
         self.walk(node.tokens.clone());
     }
@@ -221,7 +233,7 @@ fn exemptions() -> Vec<ExemptionEntry> {
     let mut entries = Vec::new();
     for (index, raw) in text.lines().enumerate() {
         let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') {
+        if line.is_empty() || line.starts_with("# ") || line == "#" {
             continue;
         }
         let (prefix, rest) = line.split_once(" || ").unwrap_or_else(|| {
@@ -261,7 +273,7 @@ fn baseline() -> Vec<BaselineEntry> {
     let mut entries = Vec::new();
     for (index, raw) in text.lines().enumerate() {
         let line = raw.trim_end();
-        if line.trim().is_empty() || line.starts_with('#') {
+        if line.trim().is_empty() || line.starts_with("# ") || line == "#" {
             continue;
         }
         let (file, prefix) = line.split_once(" || ").unwrap_or_else(|| {

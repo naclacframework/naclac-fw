@@ -1,0 +1,7 @@
+error: Naclac Error: `#[defined_type]` enum `Big` has a discriminant outside 0..=255, which Borsh and Wincode can't encode as a one-byte tag. Use values in 0..=255.
+ --> tests/fail/heap/101_defined_type_discriminant_range.rs:4:1
+  |
+4 | #[defined_type]
+  | ^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `defined_type` (in Nightly builds, run with -Z macro-backtrace for more info)

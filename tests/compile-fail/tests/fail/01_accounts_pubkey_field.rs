@@ -2,7 +2,7 @@
 // Site: derive/src/accounts/mod.rs — Accounts-struct field typed
 // `Pubkey` (deprecated in favor of `Address`).
 use naclac_lang::prelude::*;
-use naclac_lang::solana_address::Address as Pubkey;
+type Pubkey = Address;
 
 #[derive(Accounts)]
 pub struct Foo {

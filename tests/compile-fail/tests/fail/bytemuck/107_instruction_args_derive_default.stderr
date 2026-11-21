@@ -1,0 +1,13 @@
+error: Naclac Error: remove this `#[derive(Default)]`; in the zero-copy layout `#[instruction_args]` already generates `Default` for a fixed-field struct.
+ --> tests/fail/bytemuck/107_instruction_args_derive_default.rs:5:1
+  |
+5 | #[derive(Default)]
+  | ^^^^^^^^^^^^^^^^^^
+
+error[E0119]: conflicting implementations of trait `Default` for type `Args`
+ --> tests/fail/bytemuck/107_instruction_args_derive_default.rs:5:10
+  |
+4 | #[instruction_args]
+  | ------------------- first implementation here
+5 | #[derive(Default)]
+  |          ^^^^^^^ conflicting implementation for `Args`

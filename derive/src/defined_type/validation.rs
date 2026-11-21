@@ -84,9 +84,14 @@ mod tests {
     #[test]
     fn a_wider_repr_is_rejected_for_borsh_and_wincode() {
         for repr in ["u16", "u32", "i8"] {
-            let output = conflict(&format!("#[repr({repr})] enum Level {{ Low = 1, Mid = 2 }}"));
+            let output = conflict(&format!(
+                "#[repr({repr})] enum Level {{ Low = 1, Mid = 2 }}"
+            ));
             assert!(output.contains(&format!("#[repr({repr})]")), "{output}");
-            assert!(output.contains("\"borsh\"") && output.contains("\"wincode\""), "{output}");
+            assert!(
+                output.contains("\"borsh\"") && output.contains("\"wincode\""),
+                "{output}"
+            );
             assert!(!output.contains("\"bytemuck\""), "{output}");
         }
     }

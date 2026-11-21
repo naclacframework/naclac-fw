@@ -1,0 +1,7 @@
+error: Naclac Error: field 'data' is ZcVec/ZcString, which Wincode can't encode. Use Vec<T> or String in an #[instruction_args] struct for the Wincode layout.
+ --> tests/fail/wincode/102_instruction_args_zc_view.rs:4:1
+  |
+4 | #[instruction_args]
+  | ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `instruction_args` (in Nightly builds, run with -Z macro-backtrace for more info)

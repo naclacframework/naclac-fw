@@ -55,19 +55,10 @@ derive/src/constraint_args.rs || #[constraint_args] does not take any arguments.
 derive/src/constraint_args.rs || #[constraint_args] needs a struct with named fields, one per key.
 derive/src/constraint_args.rs || constraint key `{key}` must have type `Option<..>`, so it can be left 
 derive/src/defined_type/mod.rs || `#[defined_type]` must be applied to a struct or an enum.
-derive/src/defined_type/validation.rs || `#[defined_type]` enum `{ident}` has a discriminant outside 0..=255, w
-derive/src/defined_type/validation.rs || enum `{ident}` has #[repr({repr})], but Borsh and Wincode store the ta
-derive/src/defined_type/zero_copy.rs || a zero-copy `#[defined_type]` enum needs an explicit `#[repr(u8)]` (or
-derive/src/defined_type/zero_copy.rs || remove this `#[derive(Default)]`; in the zero-copy layout `#[defined_t
 derive/src/error_code.rs || #[error_code] on `{name}`: `offset = {offset}` is below the user error
-derive/src/event/alloc.rs || #[event(alloc)] is only for the zero-copy (`bytemuck`) layout; under B
-derive/src/event/alloc.rs || #[event(alloc)] is only for the zero-copy (`bytemuck`) layout; under W
 derive/src/event/mod.rs || #[event] requires named fields.
 derive/src/instruction_args/mod.rs || #[instruction_args] only supports structs.
 derive/src/instruction_args/mod.rs || #[instruction_args] requires named fields.
-derive/src/instruction_args/mod.rs || field '{}' is ZcVec/ZcString, which Borsh can't encode. Use Vec<T> or 
-derive/src/instruction_args/mod.rs || field '{}' is ZcVec/ZcString, which Wincode can't encode. Use Vec<T> o
-derive/src/instruction_args/mod.rs || remove this `#[derive(Default)]`; in the zero-copy layout `#[instructi
 derive/src/program/entry.rs || this program declares no account-data layout. Add a `bytemuck`, `borsh
 derive/src/program/handler/args.rs || `Vec` needs an element type, e.g. `Vec<u8>`.
 derive/src/program/handler/args.rs || `ZcVec` needs an element type, e.g. `ZcVec<u8>`.
