@@ -1,0 +1,5 @@
+error: Naclac Error: this `#[max_len]` has more limits than the field has `Vec` or `String` levels to apply them to
+ --> tests/fail/heap/193_max_len_more_limits_than_levels.rs:9:18
+  |
+9 |     #[max_len(4, 8)]
+  |                  ^

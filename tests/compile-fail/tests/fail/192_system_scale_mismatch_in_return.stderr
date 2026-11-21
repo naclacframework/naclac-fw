@@ -1,0 +1,5 @@
+error: Naclac Error: decimal scale mismatch: left has 2 decimal places, right has 3. Normalize both to one scale before adding or subtracting.
+ --> tests/fail/192_system_scale_mismatch_in_return.rs:7:8
+  |
+7 |     Ok(a + b)
+  |        ^^^^^

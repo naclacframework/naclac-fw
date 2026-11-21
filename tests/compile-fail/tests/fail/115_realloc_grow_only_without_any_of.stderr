@@ -1,0 +1,5 @@
+error: Naclac Error: `realloc::grow_only` only applies with `realloc::any_of = [...]`; a plain `realloc = <expr>` already controls its direction.
+  --> tests/fail/115_realloc_grow_only_without_any_of.rs:13:74
+   |
+13 |     #[account(mut, realloc = new_space as usize, realloc::payer = payer, realloc::grow_only)]
+   |                                                                          ^^^^^^^^^^^^^^^^^^

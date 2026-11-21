@@ -1,0 +1,5 @@
+error: Naclac Error: `realloc::zero` is not a constraint. Valid keys: `realloc::payer`, `realloc::grow_only`, `realloc::any_of`.
+  --> tests/fail/194_realloc_zero_removed.rs:14:73
+   |
+14 |     #[account(mut, realloc::any_of = [FooData], realloc::payer = payer, realloc::zero = true)]
+   |                                                                         ^^^^^^^^^^^^^

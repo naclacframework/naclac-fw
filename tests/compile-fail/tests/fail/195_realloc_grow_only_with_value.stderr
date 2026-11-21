@@ -1,0 +1,5 @@
+error: expected `,`
+  --> tests/fail/195_realloc_grow_only_with_value.rs:14:92
+   |
+14 |     #[account(mut, realloc::any_of = [FooData], realloc::payer = payer, realloc::grow_only = true)]
+   |                                                                                            ^

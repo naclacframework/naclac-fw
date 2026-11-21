@@ -476,7 +476,10 @@ mod tests {
         let message = error_of(
             "#[account(mut, realloc = 8, realloc::payer = p, realloc::zero = true)] a: Account<A>",
         );
-        assert!(message.contains("`realloc::zero` is not a constraint"), "{message}");
+        assert!(
+            message.contains("`realloc::zero` is not a constraint"),
+            "{message}"
+        );
     }
 
     #[test]
@@ -491,7 +494,10 @@ mod tests {
         let message = error_of(
             "#[account(mut, realloc = 8, realloc::payer = p, realloc::bogus = true)] a: Account<A>",
         );
-        assert!(message.contains("`realloc::bogus` is not a constraint"), "{message}");
+        assert!(
+            message.contains("`realloc::bogus` is not a constraint"),
+            "{message}"
+        );
         assert!(message.contains("`realloc::payer`"), "{message}");
     }
 

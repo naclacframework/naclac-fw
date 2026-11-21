@@ -1,0 +1,5 @@
+error: Naclac Error: `realloc::any_of` reads the account's raw bytes, so the field must be `AccountInfo`. On a typed account use `realloc = <expr>`.
+  --> tests/fail/191_realloc_any_of_on_typed_account.rs:13:18
+   |
+13 |     pub account: Account<FooData>,
+   |                  ^^^^^^^^^^^^^^^^
