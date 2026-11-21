@@ -12,3 +12,14 @@ instruction(s) [{names}] use the discriminator reserved for event-CPI || covered
 account `{struct_name}` has an all-zero discriminator || covered-by tests/compile-fail/tests/diagnostics.rs::an_all_zero_account_discriminator_is_rejected
 `{struct_name}.{name}` is Vec/String with no `#[max_len(N)]` || covered-by tests/compile-fail/tests/diagnostics.rs::a_vec_field_without_max_len_fails_where_space_is_used
 `{type_name}.{field}` is Vec/String with no `#[max_len(N)]` || covered-by tests/compile-fail/tests/diagnostics.rs::a_defined_type_with_an_unbounded_field_fails_where_its_size_is_used
+`#[seeds]` names `{field}`, which is not a field of `{}`. || covered-by derive/src/account/seeds.rs::a_seed_must_name_a_field
+`#[seeds]` makes {total} seeds with the prefix and bump || covered-by derive/src/account/seeds.rs::at_most_sixteen_seeds_with_the_prefix_and_bump
+seed `{name}` of a `Seeds` type needs a type || covered-by derive/src/account/seeds.rs::a_seeds_type_is_checked_for_what_only_an_account_may_have
+a `Seeds` type holds no data, so it has no stored bump || covered-by derive/src/account/seeds.rs::a_seeds_type_is_checked_for_what_only_an_account_may_have
+`#[derive(Seeds)]` needs `#[seeds(PREFIX, name: Type, ..)]` on the struct. || covered-by derive/src/account/seeds.rs::a_seeds_type_is_checked_for_what_only_an_account_may_have
+`#[derive(Seeds)]` goes on a struct. || covered-by derive/src/account/seeds.rs::a_seeds_type_is_checked_for_what_only_an_account_may_have
+a type takes one `#[seeds(..)]`. || covered-by derive/src/account/seeds.rs::a_second_seeds_attribute_is_rejected
+more than one field could be this account's token program || covered-by derive/src/accounts/field/builtin_namespaces.rs::several_program_fields_without_a_written_one_are_an_error
+the token program must name a field of this struct || covered-by derive/src/accounts/field/builtin_namespaces.rs::a_written_token_program_that_is_not_a_field_is_an_error
+Accounts struct fields must be named. || reason unreachable: parse_struct_fields takes `FieldsNamed` and #[derive(Accounts)] rejects other structs first (derive/src/accounts/mod.rs), so every field has an ident.
+this handler has no resolved discriminator. || reason unreachable: discriminators::resolve and the handler loop in program/mod.rs both filter on public functions, so every expanded handler is in the discriminator map.

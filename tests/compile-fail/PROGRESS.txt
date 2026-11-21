@@ -62,6 +62,35 @@ First CI run (2026-11-21) and what it changed
   in all five configurations except the 12 that only lacked those snapshots; 108 messages remain
   in uncovered-baseline.txt.
 
+Batch 2 (2026-11-21), written without snapshots; CI will produce them
+- Fixtures 108-187, each with a pass counterpart, covering: seed limits, dup/alias, init/payer rules,
+  realloc rules, `seeds` and relation-constraint parsing, derive kind/shape errors (Accounts, event,
+  instruction_args, defined_type, constraint_args), error_code offset, handler signatures, program
+  body, the #[system] macro, discriminator parsing and category checks, standalone `#[seeds]` errors,
+  the token/ATA namespaces. Under heap/: stack guard, `#[max_len]` misuse, `Vec` without element.
+  Under bytemuck/: `ZcVec` without element type.
+- Exemptions with a verified unit test: seven `#[seeds]` messages, two token-program messages.
+  Exemptions with a stated reason: two defensive `fields must be named` checks and the
+  `no resolved discriminator` lookup (both unreachable by construction).
+- Pass counterparts are guesses until CI compiles them; a failing pass fixture is a finding or a
+  wrong guess, to be told apart by reading the compiler error.
+- 187_realloc_unknown_key records what an unknown `realloc::` key does today: attrs.rs returns from
+  the `realloc::` branch without reporting it, so the outcome (a generic syn error or silence) is
+  not yet known; decide on a clear error once the snapshot shows it.
+
+Still open after batch 2
+- idl-build only (need crate-scan fixtures built with the idl-build feature, like dup_account_disc):
+  syn/src/pda.rs (4 literal-seed messages), derive/src/accounts/idl_build/{account_list,seeds}.rs,
+  derive/src/program/idl_build.rs, the `{ns}::{key} is needed to describe ... in the IDL` message,
+  and idl/src/{idl_type,lib,registry}.rs.
+- A crate with no layout feature (derive/src/program/entry.rs): needs a crate-scan fixture.
+- `ZcVec` needs an element type in handler/args.rs:158 may be shadowed by signature.rs:44; decide
+  after the 184 snapshot whether it is reachable.
+- `#[max_len]` limits messages in syn/bounds.rs and core serialized_bounds.rs depend on which site
+  fires for which shape; check against the 177-183 snapshots.
+- `#[system]` literal-check, math-rewrite and scale paths beyond fixtures 139-149.
+- `{label}` discriminator messages for accounts and events are produced when the IDL is assembled.
+
 Next
 1. Push; take the regenerated snapshots from the CI artifacts; review; commit them.
 2. Remove from uncovered-baseline.txt the lines the coverage job reports as now covered.

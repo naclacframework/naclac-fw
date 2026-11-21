@@ -4,15 +4,8 @@
 # only shrinks: a new error needs a fixture, never a line in this file.
 
 core/src/wrappers/serialized_bounds.rs || this `#[max_len]` has more limits than the field has `Vec` or `String`
-derive/src/account/seeds.rs || `#[derive(Seeds)]` goes on a struct.
-derive/src/account/seeds.rs || `#[derive(Seeds)]` needs `#[seeds(PREFIX, name: Type, ..)]` on the str
-derive/src/account/seeds.rs || `#[seeds]` makes {total} seeds with the prefix and bump; a PDA takes a
-derive/src/account/seeds.rs || `#[seeds]` names `{field}`, which is not a field of `{}`.
 derive/src/account/seeds.rs || `#[seeds]` needs an account with named fields.
 derive/src/account/seeds.rs || `#[seeds]` takes one `bump = <field>`.
-derive/src/account/seeds.rs || a `Seeds` type holds no data, so it has no stored bump; sign with `see
-derive/src/account/seeds.rs || a type takes one `#[seeds(..)]`.
-derive/src/account/seeds.rs || seed `{name}` of a `Seeds` type needs a type, e.g. `{name}: Address`.
 derive/src/account/seeds.rs || seed `{part}` is longer than one PDA seed may be.
 derive/src/account/seeds.rs || the `#[seeds]` prefix of `{name}` is longer than one PDA seed may be.
 derive/src/accounts/field/builtin_namespaces.rs || `associated_token::authority` needs `associated_token::mint`. Example:
@@ -23,8 +16,6 @@ derive/src/accounts/field/builtin_namespaces.rs || `init_unchecked` isn't suppor
 derive/src/accounts/field/builtin_namespaces.rs || `{name}::{key}` is not a constraint. Valid keys: {list}.{hint}
 derive/src/accounts/field/builtin_namespaces.rs || `{}::{key}` is needed to describe this account's address in the IDL.
 derive/src/accounts/field/builtin_namespaces.rs || more than one `Program<AssociatedToken>` field ({fields}); an Accounts
-derive/src/accounts/field/builtin_namespaces.rs || more than one field could be this account's token program ({fields}); 
-derive/src/accounts/field/builtin_namespaces.rs || the token program must name a field of this struct, e.g. `token_progra
 derive/src/accounts/field/builtin_namespaces.rs || this field names its token program more than once; keep a single `toke
 derive/src/accounts/field/checks/pda.rs || `init` under seeds unknown at compile time needs `bump` (canonical sea
 derive/src/accounts/field/init_cpi/signer_seeds.rs || a `payer` with `seeds = [...]` used by an ATA `init_if_needed` with `e
@@ -33,7 +24,6 @@ derive/src/accounts/field/parser/attrs.rs || `realloc::any_of = [...]` entries m
 derive/src/accounts/field/parser/attrs.rs || `seeds` takes a list like `seeds = [SEED, owner.address().as_ref()]` o
 derive/src/accounts/field/parser/attrs.rs || `{written}` is not a constraint.
 derive/src/accounts/field/parser/attrs.rs || expected a field name for this relation constraint.
-derive/src/accounts/field/parser/mod.rs || Accounts struct fields must be named.
 derive/src/accounts/field/parser/validate.rs || `dup` and `unsafe(alias)` are mutually exclusive; `dup` is for read-on
 derive/src/accounts/field/parser/validate.rs || `init`, `init_if_needed` and `init_unchecked` are mutually exclusive; 
 derive/src/accounts/field/parser/validate.rs || `init`/`init_if_needed`/`init_unchecked` requires `payer = <account>` 
@@ -62,7 +52,6 @@ derive/src/instruction_args/mod.rs || #[instruction_args] requires named fields.
 derive/src/program/entry.rs || this program declares no account-data layout. Add a `bytemuck`, `borsh
 derive/src/program/handler/args.rs || `Vec` needs an element type, e.g. `Vec<u8>`.
 derive/src/program/handler/args.rs || `ZcVec` needs an element type, e.g. `ZcVec<u8>`.
-derive/src/program/handler/mod.rs || this handler has no resolved discriminator.
 derive/src/program/handler/signature.rs || `ZcVec` needs an element type, e.g. `ZcVec<u8>`.
 derive/src/program/handler/signature.rs || an instruction handler can't take `self`.
 derive/src/program/handler/signature.rs || an instruction handler takes exactly one `Context` argument.
