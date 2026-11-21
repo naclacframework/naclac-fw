@@ -1,0 +1,107 @@
+# Runs the compile-fail fixtures (tests/compile-fail) once per runtime and
+# account-data layout, and the coverage check that every error message the
+# macros can emit has a fixture. When a snapshot differs the job regenerates
+# it and uploads the result for review, so snapshots never need a local build.
+
+name: Compile-fail
+
+on:
+  push:
+    branches:
+      - main
+      - pending
+    paths:
+      - derive/**
+      - syn/**
+      - core/**
+      - lang/**
+      - idl/**
+      - pod/**
+      - token/**
+      - metadata/**
+      - tests/compile-fail/**
+      - .github/workflows/compile-fail.yml
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: compile-fail-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fixtures:
+    name: fixtures (${{ matrix.runtime }}, ${{ matrix.layout }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: solana
+            layout: bytemuck
+          - runtime: solana
+            layout: borsh
+          - runtime: solana
+            layout: wincode
+          - runtime: pinocchio
+            layout: bytemuck
+          - runtime: pinocchio
+            layout: wincode
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tests/compile-fail
+          shared-key: compile-fail-${{ matrix.runtime }}-${{ matrix.layout }}
+          save-if: ${{ github.ref_name == 'main' || github.ref_name == 'pending' }}
+      - name: Run the fixtures
+        id: run
+        working-directory: tests/compile-fail
+        run: cargo test --test compile_fail --no-default-features --features "${{ matrix.runtime }},${{ matrix.layout }}"
+      - name: Regenerate the snapshots that differ
+        if: failure() && steps.run.outcome == 'failure'
+        continue-on-error: true
+        working-directory: tests/compile-fail
+        env:
+          TRYBUILD: overwrite
+        run: cargo test --test compile_fail --no-default-features --features "${{ matrix.runtime }},${{ matrix.layout }}"
+      - name: Keep the regenerated snapshots
+        if: failure() && steps.run.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: compile-fail-snapshots-${{ matrix.runtime }}-${{ matrix.layout }}
+          path: |
+            tests/compile-fail/tests/fail/**/*.stderr
+            tests/compile-fail/wip
+          retention-days: 14
+          if-no-files-found: warn
+
+  crate-scan:
+    name: crate-scan fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tests/compile-fail
+          shared-key: compile-fail-crate-scan
+          save-if: ${{ github.ref_name == 'main' || github.ref_name == 'pending' }}
+      - run: cargo test --test diagnostics
+        working-directory: tests/compile-fail
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tests/compile-fail/coverage
+          save-if: ${{ github.ref_name == 'main' || github.ref_name == 'pending' }}
+      - run: cargo test
+        working-directory: tests/compile-fail/coverage

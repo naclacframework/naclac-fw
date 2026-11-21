@@ -1,0 +1,123 @@
+# Error messages that no fixture or test covers yet, one `FILE || START-OF-MESSAGE` per line.
+# `cargo test` in tests/compile-fail/coverage fails for a message that is not covered and not
+# listed here, and for a line here whose message is now covered or no longer exists. The list
+# only shrinks: a new error needs a fixture, never a line in this file.
+
+core/src/wrappers/serialized_bounds.rs || this `#[max_len]` has more limits than the field has `Vec` or `String`
+derive/src/account/seeds.rs || `#[derive(Seeds)]` goes on a struct.
+derive/src/account/seeds.rs || `#[derive(Seeds)]` needs `#[seeds(PREFIX, name: Type, ..)]` on the str
+derive/src/account/seeds.rs || `#[seeds]` makes {total} seeds with the prefix and bump; a PDA takes a
+derive/src/account/seeds.rs || `#[seeds]` names `{field}`, which is not a field of `{}`.
+derive/src/account/seeds.rs || `#[seeds]` needs an account with named fields.
+derive/src/account/seeds.rs || `#[seeds]` takes one `bump = <field>`.
+derive/src/account/seeds.rs || a `Seeds` type holds no data, so it has no stored bump; sign with `see
+derive/src/account/seeds.rs || a type takes one `#[seeds(..)]`.
+derive/src/account/seeds.rs || seed `{name}` of a `Seeds` type needs a type, e.g. `{name}: Address`.
+derive/src/account/seeds.rs || seed `{part}` is longer than one PDA seed may be.
+derive/src/account/seeds.rs || the `#[seeds]` prefix of `{name}` is longer than one PDA seed may be.
+derive/src/accounts/field/builtin_namespaces.rs || `associated_token::authority` needs `associated_token::mint`. Example:
+derive/src/accounts/field/builtin_namespaces.rs || `associated_token::mint` needs `associated_token::authority`. Example:
+derive/src/accounts/field/builtin_namespaces.rs || `extra_accounts` is only supported on an `init_if_needed` field with `
+derive/src/accounts/field/builtin_namespaces.rs || `extra_accounts` on an associated-token `init` field requires `init_if
+derive/src/accounts/field/builtin_namespaces.rs || `init_unchecked` isn't supported on `associated_token::mint` fields, a
+derive/src/accounts/field/builtin_namespaces.rs || `{name}::{key}` is not a constraint. Valid keys: {list}.{hint}
+derive/src/accounts/field/builtin_namespaces.rs || `{}::{key}` is needed to describe this account's address in the IDL.
+derive/src/accounts/field/builtin_namespaces.rs || more than one `Program<AssociatedToken>` field ({fields}); an Accounts
+derive/src/accounts/field/builtin_namespaces.rs || more than one field could be this account's token program ({fields}); 
+derive/src/accounts/field/builtin_namespaces.rs || the token program must name a field of this struct, e.g. `token_progra
+derive/src/accounts/field/builtin_namespaces.rs || this field names its token program more than once; keep a single `toke
+derive/src/accounts/field/checks/pda.rs || `init` under seeds unknown at compile time needs `bump` (canonical sea
+derive/src/accounts/field/init_cpi/signer_seeds.rs || a `payer` with `seeds = [...]` used by an ATA `init_if_needed` with `e
+derive/src/accounts/field/parser/attrs.rs || `has_one` is not supported; name the field instead, e.g. `#[account(ma
+derive/src/accounts/field/parser/attrs.rs || `realloc::any_of = [...]` entries must be bare type paths (e.g. `Globa
+derive/src/accounts/field/parser/attrs.rs || `seeds` takes a list like `seeds = [SEED, owner.address().as_ref()]` o
+derive/src/accounts/field/parser/attrs.rs || `{written}` is not a constraint.
+derive/src/accounts/field/parser/attrs.rs || expected a field name for this relation constraint.
+derive/src/accounts/field/parser/mod.rs || Accounts struct fields must be named.
+derive/src/accounts/field/parser/validate.rs || `dup` and `unsafe(alias)` are mutually exclusive; `dup` is for read-on
+derive/src/accounts/field/parser/validate.rs || `init`, `init_if_needed` and `init_unchecked` are mutually exclusive; 
+derive/src/accounts/field/parser/validate.rs || `init`/`init_if_needed`/`init_unchecked` requires `payer = <account>` 
+derive/src/accounts/field/parser/validate.rs || `payer = ...` needs `init`, `init_if_needed` or `init_unchecked` on th
+derive/src/accounts/field/parser/validate.rs || `realloc = <expr>` / `realloc::any_of = [...]` requires `realloc::paye
+derive/src/accounts/field/parser/validate.rs || `realloc = <expr>` and `realloc::any_of = [...]` are mutually exclusiv
+derive/src/accounts/field/parser/validate.rs || `realloc::grow_only` only applies with `realloc::any_of = [...]`; a pl
+derive/src/accounts/field/parser/validate.rs || `seeds` lists {} seeds, but a PDA takes at most {MAX_PDA_SEEDS}. Remov
+derive/src/accounts/field/parser/validate.rs || this seed is {len} bytes, but a PDA seed is at most {MAX_PDA_SEED_LEN}
+derive/src/accounts/idl_build/account_list.rs || a typed `seeds` is called as `Type::seeds(..)`.
+derive/src/accounts/idl_build/seeds.rs || a seed path must have at least one segment.
+derive/src/accounts/ix_args.rs || `ZcVec` needs an element type, e.g. `ZcVec<u8>`.
+derive/src/accounts/mod.rs || #[derive(Accounts)] can only be used on structs.
+derive/src/accounts/mod.rs || #[derive(Accounts)] must have named fields.
+derive/src/accounts/mod.rs || an Accounts struct can only have lifetime parameters, not type or cons
+derive/src/accounts/stack_guard.rs || field `{}` is too large for one stack frame; wrap it as `Box<{}>` to s
+derive/src/accounts/stack_guard.rs || this Accounts struct's account fields together exceed the stack budget
+derive/src/constraint_args.rs || #[constraint_args] does not take any arguments.
+derive/src/constraint_args.rs || #[constraint_args] needs a struct with named fields, one per key.
+derive/src/constraint_args.rs || constraint key `{key}` must have type `Option<..>`, so it can be left 
+derive/src/defined_type/mod.rs || `#[defined_type]` must be applied to a struct or an enum.
+derive/src/defined_type/validation.rs || `#[defined_type]` enum `{ident}` has a discriminant outside 0..=255, w
+derive/src/defined_type/validation.rs || enum `{ident}` has #[repr({repr})], but Borsh and Wincode store the ta
+derive/src/defined_type/zero_copy.rs || a zero-copy `#[defined_type]` enum needs an explicit `#[repr(u8)]` (or
+derive/src/defined_type/zero_copy.rs || remove this `#[derive(Default)]`; in the zero-copy layout `#[defined_t
+derive/src/error_code.rs || #[error_code] on `{name}`: `offset = {offset}` is below the user error
+derive/src/event/alloc.rs || #[event(alloc)] is only for the zero-copy (`bytemuck`) layout; under B
+derive/src/event/alloc.rs || #[event(alloc)] is only for the zero-copy (`bytemuck`) layout; under W
+derive/src/event/mod.rs || #[event] requires named fields.
+derive/src/instruction_args/mod.rs || #[instruction_args] only supports structs.
+derive/src/instruction_args/mod.rs || #[instruction_args] requires named fields.
+derive/src/instruction_args/mod.rs || field '{}' is ZcVec/ZcString, which Borsh can't encode. Use Vec<T> or 
+derive/src/instruction_args/mod.rs || field '{}' is ZcVec/ZcString, which Wincode can't encode. Use Vec<T> o
+derive/src/instruction_args/mod.rs || remove this `#[derive(Default)]`; in the zero-copy layout `#[instructi
+derive/src/program/entry.rs || this program declares no account-data layout. Add a `bytemuck`, `borsh
+derive/src/program/handler/args.rs || `Vec` needs an element type, e.g. `Vec<u8>`.
+derive/src/program/handler/args.rs || `ZcVec` needs an element type, e.g. `ZcVec<u8>`.
+derive/src/program/handler/args.rs || argument '{}' has type '{}', which Borsh can't encode (it is a view in
+derive/src/program/handler/args.rs || argument '{}' has type '{}', which Wincode can't encode (it is a view 
+derive/src/program/handler/mod.rs || this handler has no resolved discriminator.
+derive/src/program/handler/signature.rs || `ZcVec` needs an element type, e.g. `ZcVec<u8>`.
+derive/src/program/handler/signature.rs || an instruction handler can't take `self`.
+derive/src/program/handler/signature.rs || an instruction handler takes exactly one `Context` argument.
+derive/src/program/handler/signature.rs || instruction '{}' must have a Context argument.
+derive/src/program/handler/signature.rs || instruction arguments must be plain names, like `amount: u64`.
+derive/src/program/handler/signature.rs || the `Context` argument must come first.
+derive/src/program/idl_build.rs || the IDL account `{}` has no discriminator.
+derive/src/program/mod.rs || #[program] requires a module body with items.
+derive/src/system/args.rs || can't parse `error = "{}"` as a Rust path; expected e.g. "crate::error
+derive/src/system/args.rs || scale value must be an integer in 0..=255.
+derive/src/system/args.rs || unknown #[system] option '{other}'; valid options: no_rewrite, kani, r
+derive/src/system/args.rs || unknown rounding mode '{other}'; expected "up" or "down".
+derive/src/system/float_ban.rs || floating-point literals aren't allowed in #[system] (non-deterministic
+derive/src/system/literal_check.rs || constant expression `{l} {sym} {r}` overflows or is undefined at compi
+derive/src/system/literal_check.rs || division or remainder by a literal zero panics at runtime; remove or g
+derive/src/system/math_rewrite.rs || `with_error!("{}", ...)` needs a Rust path as its first argument.
+derive/src/system/math_rewrite.rs || `with_error!` takes `with_error!("path::to::Error", expr)`.
+derive/src/system/mod.rs || a #[system] function must return `Result<T>`, as safe math injects `?`
+derive/src/system/scale.rs || decimal scale mismatch: left has {l} decimal places, right has {r}. No
+idl/src/idl_type.rs || `Opt<T>` has no IDL representation for this `T`: it needs a fixed-size
+idl/src/idl_type.rs || `{Self}` has no IDL type, so it cannot appear in the IDL.
+idl/src/idl_type.rs || `{}` cannot be the type of an IDL constant. Use a primitive, string, a
+idl/src/lib.rs || the type `{name}` has the name naclac's IDL gives an `Opt<T>`, but a d
+idl/src/registry.rs || error code {} is used by both `{other}` and `{}`. Give one `#[error_co
+idl/src/registry.rs || two IDL {kind} items are both named `{name}`. The IDL identifies them 
+syn/src/bounds.rs || a field takes one `#[max_len(..)]`; list every limit in it, outermost 
+syn/src/bounds.rs || at most 3 `#[max_len]` limits can apply to a type written as a name, s
+syn/src/bounds.rs || this `#[max_len]` has more limits than the field has `Vec` or `String`
+syn/src/discriminator.rs || a custom discriminator must be 1 to {MAX_DISCRIMINATOR_LEN} bytes long
+syn/src/discriminator.rs || a custom discriminator must be an integer literal (one byte) or an arr
+syn/src/discriminator.rs || discriminator bytes must be integer literals.
+syn/src/discriminator.rs || discriminator bytes must be plain integer literals (or `u8`-suffixed),
+syn/src/discriminator.rs || duplicate `#[discriminator = ..]` attribute.
+syn/src/discriminator.rs || duplicate `alloc` argument.
+syn/src/discriminator.rs || duplicate `discriminator` argument.
+syn/src/discriminator.rs || each discriminator byte must be an integer literal in 0..=255.
+syn/src/discriminator.rs || every {label} in a program must use the same discriminator width, but 
+syn/src/discriminator.rs || unknown argument; the accepted arguments are {accepted}.
+syn/src/discriminator.rs || write the override as `#[discriminator = <value>]`, e.g. `#[discrimina
+syn/src/discriminator.rs || {label} `{}` has an all-zero discriminator {:?}, which is not allowed 
+syn/src/discriminator.rs || {label}s `{}` and `{}` have the same discriminator {:?}.
+syn/src/idl_items.rs || `#[error_code]` accepts only `offset = N`.
+syn/src/idl_items.rs || `offset` must be an integer literal.
+syn/src/pda.rs || literal seed `{}.{}()` needs an explicit integer type suffix (e.g. `0u
+syn/src/pda.rs || literal seed `{}` could not be parsed as a `u8`: {e}
+syn/src/pda.rs || literal seed `{}` could not be parsed as an integer: {e}
+syn/src/pda.rs || literal seed `{}` has an integer type suffix (`{suffix}`) that isn't `

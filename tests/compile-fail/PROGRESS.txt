@@ -1,0 +1,57 @@
+compile-fail suite: status and plan
+
+Goal: every error message the macros can emit has a failing fixture and a
+valid counterpart, run under every runtime and layout it applies to. Nothing
+runs locally; CI (.github/workflows/compile-fail.yml) is the only runner.
+
+Design (written 2026-11-21)
+- Runner: tests/compile_fail.rs runs one configuration per `cargo test`:
+  --no-default-features --features RUNTIME,LAYOUT, for the five combinations
+  solana,bytemuck  solana,borsh  solana,wincode  pinocchio,bytemuck  pinocchio,wincode.
+  src/lib.rs exists only so trybuild forwards the features to naclac-lang.
+- Fixture folders: tests/fail and tests/pass hold the fixtures that run in every
+  configuration; sub-folders run only where they match: solana, pinocchio, bytemuck,
+  borsh, wincode, heap (borsh or wincode), and exact pairs such as solana-bytemuck.
+- A fixture moves to a sub-folder when a CI run shows its output differs between
+  configurations. Moving it means editing the `tests/fail/NAME.rs` path inside its .stderr.
+- Snapshots are never generated locally. When one differs, the job reruns with
+  TRYBUILD=overwrite and uploads compile-fail-snapshots-RUNTIME-LAYOUT (the regenerated
+  .stderr files and wip/). Review them and copy them next to their fixtures. A top-level
+  fixture whose regenerated file differs between configurations must move to a sub-folder.
+- Coverage: tests/compile-fail/coverage parses derive, syn, core and idl with syn and
+  fails when a `Naclac Error:` message has no snapshot, no entry in exemptions.txt and no
+  line in uncovered-baseline.txt. The baseline is the open work list; it only shrinks.
+  It also requires a valid counterpart tests/pass/PATH for every fail fixture numbered 100
+  or above, and checks that fixture folders are valid scopes.
+- tests/diagnostics.rs (crate-scan-fixtures) now runs in CI; it was never run before.
+
+Found while building this
+- The old CI job ran only `--test compile_fail` with solana + bytemuck, so no borsh, wincode
+  or pinocchio configuration was ever compiled, and diagnostics.rs never ran.
+- Of 167 error messages, 37 had a snapshot; 130 had none. 7 are asserted by diagnostics.rs
+  (exemptions.txt); batch 1 below covers 11 more once its snapshots are blessed.
+- The crate had no lib target, so trybuild dropped feature forwarding to naclac-lang; the
+  dependency was pinned to solana + bytemuck.
+
+Done
+- Matrix workflow, regeneration artifact, coverage crate, crate-scan job.
+- 19 existing fixtures moved into pass/bytemuck and fail/bytemuck (zero-copy only checks).
+- Batch 1 (numbers 100-107, each with a pass counterpart): heap repr and discriminant range,
+  instruction_args ZcVec, event(alloc), handler ZcVec under borsh and wincode, zero-copy enum
+  without repr, derive(Default) conflicts. These have no .stderr yet.
+
+Next
+1. Push; take the regenerated snapshots from the CI artifacts; review; commit them.
+2. Remove from uncovered-baseline.txt the lines the coverage job reports as now covered.
+3. Move any top-level fixture the CI runs show to differ between configurations.
+4. Batches 2 to 6, each with pass counterparts and baseline lines removed as they land:
+   seeds and PDA errors (derive/account/seeds.rs, syn/pda.rs, validate.rs seed limits),
+   constraint parsing (attrs.rs, validate.rs mutual exclusions, builtin_namespaces.rs),
+   program and handler signatures (signature.rs, args.rs, entry.rs, handler/mod.rs),
+   discriminator and bounds errors (syn/discriminator.rs, syn/bounds.rs, core serialized_bounds),
+   system macro (derive/src/system/*), idl crate errors, stack guard, struct-shape errors.
+5. Messages no compile test can reach go in exemptions.txt with a reason, never silently.
+6. Legacy fail fixtures below number 100 have no pass counterpart yet; pair them.
+7. crate-scan fixtures run in one configuration only; extend where a check is layout-gated.
+8. Existing and new fixtures that start with `#![allow(unexpected_cfgs)]` silence a warning
+   caused by the macros' cfg(feature = ..) checks; decide with the owner whether to keep it.

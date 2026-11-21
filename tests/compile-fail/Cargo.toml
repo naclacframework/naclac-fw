@@ -9,13 +9,14 @@ publish = false
 [features]
 default = ["solana", "bytemuck"]
 debug-mode = []
-solana = []
-bytemuck = []
-borsh = []
-wincode = []
+solana = ["naclac-lang/solana"]
+pinocchio = ["naclac-lang/pinocchio"]
+bytemuck = ["naclac-lang/bytemuck"]
+borsh = ["naclac-lang/borsh"]
+wincode = ["naclac-lang/wincode"]
 
 [dependencies]
-naclac-lang = { path = "../../lang", default-features = false, features = ["token", "solana", "bytemuck"] }
+naclac-lang = { path = "../../lang", default-features = false, features = ["token"] }
 
 [dev-dependencies]
 trybuild = "1"

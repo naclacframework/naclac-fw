@@ -51,12 +51,17 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let zero_copy_default_conflict =
         zero_copy::default_derive_conflict(&input, &original_data, &zero_copy_cfg);
+    let one_byte_tag_conflict = validation::one_byte_tag_conflict(
+        &ident,
+        &input.attrs,
+        &original_data,
+        &borsh_cfg,
+        &wincode_cfg,
+    );
     let borsh_variant = borsh_repr::variant(&input, is_enum, &borsh_cfg);
     let wincode_variant = wincode_repr::variant(&input, &wincode_cfg);
     let zero_copy_variant = zero_copy::variant(&mut input, &zero_copy_cfg);
     let idl_build_variant = idl_build::variant(&ident, &original_data, &input.attrs);
-    let discriminant_range_conflict =
-        validation::discriminant_range_conflict(&ident, &original_data, &borsh_cfg, &wincode_cfg);
 
     let bounds_cfg = quote::quote! {
         #[cfg(any(feature = "borsh", feature = "wincode"))]
@@ -73,7 +78,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     quote::quote! {
-        #discriminant_range_conflict
+        #one_byte_tag_conflict
         #zero_copy_default_conflict
         #bounds_impl
         #borsh_variant

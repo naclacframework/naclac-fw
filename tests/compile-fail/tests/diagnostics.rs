@@ -50,7 +50,9 @@ fn check_fails(fixture: &str) -> String {
 fn a_vec_field_without_max_len_fails_where_space_is_used() {
     let stderr = check_fails("max_len_missing");
     assert!(
-        stderr.contains("`Ledger.entries` is Vec/String with no `#[max_len(N)]`"),
+        stderr.contains(
+            "`Ledger.entries` is Vec/String with no `#[max_len(N)]`, so its size is unknown."
+        ),
         "{stderr}"
     );
 }
@@ -59,7 +61,9 @@ fn a_vec_field_without_max_len_fails_where_space_is_used() {
 fn a_defined_type_with_an_unbounded_field_fails_where_its_size_is_used() {
     let stderr = check_fails("max_len_nested_missing");
     assert!(
-        stderr.contains("`Inner.items` is Vec/String with no `#[max_len(N)]`"),
+        stderr.contains(
+            "`Inner.items` is Vec/String with no `#[max_len(N)]`, so its maximum size is unknown."
+        ),
         "{stderr}"
     );
 }
@@ -143,4 +147,59 @@ fn event_cpi_below_the_derive_names_the_required_order() {
         stderr.contains("#[event_cpi] must be written directly above #[derive(Accounts)]"),
         "{stderr}"
     );
+}
+
+#[test]
+fn an_all_zero_account_discriminator_is_rejected() {
+    let stderr = check_fails("zero_account_disc");
+    assert!(
+        stderr.contains("has an all-zero discriminator, which marks an uninitialized account."),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn an_instruction_using_the_event_cpi_tag_is_rejected_while_event_cpi_is_in_use() {
+    let stderr = check_fails("event_cpi_tag_collision");
+    assert!(
+        stderr.contains("use the discriminator reserved for event-CPI"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn the_same_shape_with_the_default_discriminator_compiles() {
+    check_passes("event_cpi_no_collision");
+}
+
+fn idl_step_passes(fixture: &str) {
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("crate-scan-fixtures")
+        .join(fixture)
+        .join("Cargo.toml");
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let output = Command::new(cargo)
+        .arg("test")
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--features")
+        .arg("idl-build")
+        .output()
+        .expect("failed to run cargo test");
+    assert!(
+        output.status.success(),
+        "{fixture}'s idl-build test must pass:\n{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn two_accounts_with_one_discriminator_fail_the_idl_step() {
+    idl_step_passes("dup_account_disc");
+}
+
+#[test]
+fn distinct_account_discriminators_assemble_an_idl() {
+    idl_step_passes("distinct_account_disc");
 }

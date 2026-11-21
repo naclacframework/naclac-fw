@@ -188,21 +188,6 @@ jobs:
       - run: pnpm test
         working-directory: client
 
-  compile-fail:
-    name: compile-fail
-    needs: plan
-    if: needs.plan.outputs.full == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: tests/compile-fail
-          save-if: ${{ github.ref_name == 'main' || github.ref_name == 'pending' }}
-      - run: cargo test --test compile_fail
-        working-directory: tests/compile-fail
-
   empty-program:
     name: empty program (${{ matrix.runtime }}, ${{ matrix.mode }})
     needs: [plan, cli]
@@ -268,7 +253,7 @@ jobs:
   all-green:
     name: all suites green
     if: always()
-    needs: [cli, suite, client-ts, compile-fail, empty-program]
+    needs: [cli, suite, client-ts, empty-program]
     runs-on: ubuntu-latest
     steps:
       - run: |

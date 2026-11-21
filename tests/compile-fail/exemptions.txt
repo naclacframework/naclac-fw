@@ -1,0 +1,14 @@
+# Error messages covered by something other than a `tests/fail` snapshot, one per line:
+#   START-OF-MESSAGE || covered-by PATH::TEST      the test that asserts the message (checked to exist)
+#   START-OF-MESSAGE || reason TEXT                why no compile test can reach it
+# START-OF-MESSAGE is the text after `Naclac Error: ` exactly as written in the source,
+# placeholders included. The coverage test rejects an entry whose message a snapshot already
+# covers, or that matches no message.
+
+this type is `f32`/`f64`, which isn't allowed in #[system] || covered-by tests/compile-fail/tests/diagnostics.rs::a_float_behind_an_alias_is_rejected_by_system
+this field's type gets no automatic validation || covered-by tests/compile-fail/tests/diagnostics.rs::an_alias_of_account_info_needs_a_safety_doc
+#[event_cpi] must be written directly above || covered-by tests/compile-fail/tests/diagnostics.rs::event_cpi_below_the_derive_names_the_required_order
+instruction(s) [{names}] use the discriminator reserved for event-CPI || covered-by tests/compile-fail/tests/diagnostics.rs::an_instruction_using_the_event_cpi_tag_is_rejected_while_event_cpi_is_in_use
+account `{struct_name}` has an all-zero discriminator || covered-by tests/compile-fail/tests/diagnostics.rs::an_all_zero_account_discriminator_is_rejected
+`{struct_name}.{name}` is Vec/String with no `#[max_len(N)]` || covered-by tests/compile-fail/tests/diagnostics.rs::a_vec_field_without_max_len_fails_where_space_is_used
+`{type_name}.{field}` is Vec/String with no `#[max_len(N)]` || covered-by tests/compile-fail/tests/diagnostics.rs::a_defined_type_with_an_unbounded_field_fails_where_its_size_is_used

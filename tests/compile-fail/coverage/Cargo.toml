@@ -1,0 +1,13 @@
+[workspace]
+
+[package]
+name = "naclac-compile-fail-coverage"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+proc-macro2 = { version = "1", features = ["span-locations"] }
+quote = "1"
+regex = "1"
+syn = { version = "2", features = ["full", "visit"] }
