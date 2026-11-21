@@ -1,0 +1,5 @@
+error: Naclac Error: `with_error!` takes `with_error!("path::to::Error", expr)`.
+  --> tests/fail/147_system_with_error_arguments.rs:12:20
+   |
+12 |     Ok(with_error!(x))
+   |                    ^

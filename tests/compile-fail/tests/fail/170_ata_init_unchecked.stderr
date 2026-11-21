@@ -1,0 +1,5 @@
+error: Naclac Error: `init_unchecked` isn't supported on `associated_token::mint` fields, as the Associated Token Program creates the account. Use `init` or `init_if_needed`.
+  --> tests/fail/170_ata_init_unchecked.rs:18:9
+   |
+18 |     pub vault: Account<TokenAccount>,
+   |         ^^^^^

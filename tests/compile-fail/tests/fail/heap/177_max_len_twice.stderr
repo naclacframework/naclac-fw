@@ -1,0 +1,5 @@
+error: Naclac Error: a field takes one `#[max_len(..)]`; list every limit in it, outermost first, as in `#[max_len(10, 32)]`
+  --> tests/fail/heap/177_max_len_twice.rs:10:5
+   |
+10 |     #[max_len(8)]
+   |     ^^^^^^^^^^^^^

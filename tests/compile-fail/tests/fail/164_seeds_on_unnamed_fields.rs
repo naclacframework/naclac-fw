@@ -5,7 +5,7 @@ use naclac_lang::prelude::*;
 declare_id!("11111111111111111111111111111111");
 
 #[account]
-#[seeds(b"state", bump = 0)]
+#[seeds(b"state", bump = bump)]
 pub struct State(u8);
 
 fn main() {}

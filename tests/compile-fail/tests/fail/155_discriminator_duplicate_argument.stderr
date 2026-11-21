@@ -1,0 +1,5 @@
+error: Naclac Error: duplicate `discriminator` argument.
+ --> tests/fail/155_discriminator_duplicate_argument.rs:5:28
+  |
+5 | #[event(discriminator = 1, discriminator = 2)]
+  |                            ^^^^^^^^^^^^^

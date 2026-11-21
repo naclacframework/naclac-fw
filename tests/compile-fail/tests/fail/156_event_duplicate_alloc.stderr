@@ -1,0 +1,5 @@
+error: Naclac Error: duplicate `alloc` argument.
+ --> tests/fail/156_event_duplicate_alloc.rs:5:16
+  |
+5 | #[event(alloc, alloc)]
+  |                ^^^^^

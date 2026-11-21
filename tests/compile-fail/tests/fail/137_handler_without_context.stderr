@@ -1,0 +1,5 @@
+error: Naclac Error: instruction 'set' must have a Context argument.
+  --> tests/fail/137_handler_without_context.rs:12:12
+   |
+12 |     pub fn set(_amount: u64) -> Result {
+   |            ^^^

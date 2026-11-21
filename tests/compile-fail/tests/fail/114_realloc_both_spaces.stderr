@@ -1,0 +1,5 @@
+error: Naclac Error: `realloc = <expr>` and `realloc::any_of = [...]` are mutually exclusive on the same field.
+  --> tests/fail/114_realloc_both_spaces.rs:14:9
+   |
+14 |     pub account: Account<FooData>,
+   |         ^^^^^^^

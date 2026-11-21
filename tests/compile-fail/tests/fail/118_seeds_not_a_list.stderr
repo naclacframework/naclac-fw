@@ -1,0 +1,5 @@
+error: Naclac Error: `seeds` takes a list like `seeds = [SEED, owner.address().as_ref()]` or a call like `seeds = Vault::seeds(owner)` of an `#[account]` with `#[seeds(..)]`.
+ --> tests/fail/118_seeds_not_a_list.rs:9:23
+  |
+9 |     #[account(seeds = 5, bump)]
+  |                       ^

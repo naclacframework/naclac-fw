@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: Naclac Error: the `#[seeds]` prefix of `StateSeeds` is longer than one PDA seed may be.
+ --> tests/fail/166_seeds_prefix_too_long.rs:7:10
+  |
+7 | #[derive(Seeds)]
+  |          ^^^^^ evaluation of `_` failed here

@@ -1,0 +1,5 @@
+error: Naclac Error: instruction arguments must be plain names, like `amount: u64`.
+  --> tests/fail/134_handler_pattern_argument.rs:12:38
+   |
+12 |     pub fn set(_ctx: Context<Plain>, (_a, _b): (u8, u8)) -> Result {
+   |                                      ^^^^^^^^

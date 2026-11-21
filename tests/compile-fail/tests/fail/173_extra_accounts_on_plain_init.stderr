@@ -1,0 +1,5 @@
+error: Naclac Error: `extra_accounts` is only supported on an `init_if_needed` field with `associated_token::mint`; `mint::`, `token::` and plain `init` don't use it.
+  --> tests/fail/173_extra_accounts_on_plain_init.rs:13:9
+   |
+13 |     pub account: Account<FooData>,
+   |         ^^^^^^^

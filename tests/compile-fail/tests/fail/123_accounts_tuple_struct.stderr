@@ -1,0 +1,5 @@
+error: Naclac Error: #[derive(Accounts)] must have named fields.
+ --> tests/fail/123_accounts_tuple_struct.rs:6:12
+  |
+6 | pub struct Foo(Signer);
+  |            ^^^

@@ -1,0 +1,5 @@
+error: Naclac Error: unknown argument; the accepted arguments are `alloc` and `discriminator = ..`.
+ --> tests/fail/157_event_unknown_argument.rs:5:9
+  |
+5 | #[event(bogus)]
+  |         ^^^^^

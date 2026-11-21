@@ -1,0 +1,5 @@
+error: Naclac Error: duplicate `#[discriminator = ..]` attribute.
+  --> tests/fail/158_handler_duplicate_discriminator.rs:13:5
+   |
+13 |     #[discriminator = 2]
+   |     ^^^^^^^^^^^^^^^^^^^^

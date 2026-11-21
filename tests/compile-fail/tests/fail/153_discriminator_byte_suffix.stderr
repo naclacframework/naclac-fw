@@ -1,0 +1,5 @@
+error: Naclac Error: discriminator bytes must be plain integer literals (or `u8`-suffixed), each in 0..=255.
+ --> tests/fail/153_discriminator_byte_suffix.rs:5:26
+  |
+5 | #[event(discriminator = [1u16])]
+  |                          ^^^^

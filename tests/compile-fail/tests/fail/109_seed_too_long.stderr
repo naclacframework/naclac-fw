@@ -1,0 +1,5 @@
+error: Naclac Error: this seed is 33 bytes, but a PDA seed is at most 32. Shorten it or hash it down to 32 bytes.
+ --> tests/fail/109_seed_too_long.rs:9:24
+  |
+9 |     #[account(seeds = [b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], bump)]
+  |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

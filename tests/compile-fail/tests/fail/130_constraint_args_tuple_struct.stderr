@@ -1,0 +1,5 @@
+error: Naclac Error: #[constraint_args] needs a struct with named fields, one per key.
+ --> tests/fail/130_constraint_args_tuple_struct.rs:6:12
+  |
+6 | pub struct Args(Option<u64>);
+  |            ^^^^

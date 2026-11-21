@@ -1,0 +1,5 @@
+error: Naclac Error: #[event] requires named fields.
+ --> tests/fail/125_event_tuple_struct.rs:6:12
+  |
+6 | pub struct Logged(u64);
+  |            ^^^^^^

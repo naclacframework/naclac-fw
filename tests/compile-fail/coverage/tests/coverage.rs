@@ -199,7 +199,7 @@ fn template_regex(text: &str) -> Regex {
                         break;
                     }
                 }
-                pattern.push_str(".+?");
+                pattern.push_str(".*?");
             }
             other => pattern.push_str(&regex::escape(&other.to_string())),
         }

@@ -1,0 +1,5 @@
+error: Naclac Error: write the override as `#[discriminator = <value>]`, e.g. `#[discriminator = 7]` or `#[discriminator = [1, 2, 3]]`.
+  --> tests/fail/159_handler_discriminator_form.rs:12:5
+   |
+12 |     #[discriminator(7)]
+   |     ^^^^^^^^^^^^^^^^^^^

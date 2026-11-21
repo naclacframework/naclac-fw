@@ -1,0 +1,5 @@
+error: Naclac Error: `realloc = <expr>` / `realloc::any_of = [...]` requires `realloc::payer = <account>` on the same field.
+  --> tests/fail/116_realloc_without_payer.rs:14:9
+   |
+14 |     pub account: Account<FooData>,
+   |         ^^^^^^^

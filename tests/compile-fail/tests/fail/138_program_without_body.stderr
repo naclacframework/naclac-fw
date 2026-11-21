@@ -1,0 +1,5 @@
+error: Naclac Error: #[program] requires a module body with items.
+ --> tests/fail/138_program_without_body.rs:8:9
+  |
+8 | pub mod prog;
+  |         ^^^^

@@ -1,0 +1,5 @@
+error: Naclac Error: unknown #[system] option 'bogus'; valid options: no_rewrite, kani, rounding, invariant, scale(...), error.
+ --> tests/fail/139_system_unknown_option.rs:5:10
+  |
+5 | #[system(bogus)]
+  |          ^^^^^

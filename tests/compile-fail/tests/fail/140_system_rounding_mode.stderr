@@ -1,0 +1,5 @@
+error: Naclac Error: unknown rounding mode 'sideways'; expected "up" or "down".
+ --> tests/fail/140_system_rounding_mode.rs:5:21
+  |
+5 | #[system(rounding = "sideways")]
+  |                     ^^^^^^^^^^

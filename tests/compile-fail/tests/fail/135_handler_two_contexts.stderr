@@ -1,0 +1,5 @@
+error: Naclac Error: an instruction handler takes exactly one `Context` argument.
+  --> tests/fail/135_handler_two_contexts.rs:12:40
+   |
+12 |     pub fn set(_a: Context<Plain>, _b: Context<Plain>) -> Result {
+   |                                        ^^^^^^^^^^^^^^

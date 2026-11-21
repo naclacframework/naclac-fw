@@ -1,0 +1,7 @@
+error: Naclac Error: instructions `first` and `second` have the same discriminator [1].
+  --> tests/fail/162_instruction_discriminator_duplicate.rs:10:1
+   |
+10 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: this error originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)

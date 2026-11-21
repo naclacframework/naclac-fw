@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: Naclac Error: seed `key` is longer than one PDA seed may be.
+ --> tests/fail/165_seeds_part_too_long.rs:7:10
+  |
+7 | #[derive(Seeds)]
+  |          ^^^^^ evaluation of `_` failed here

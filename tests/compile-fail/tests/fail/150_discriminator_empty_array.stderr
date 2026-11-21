@@ -1,0 +1,5 @@
+error: Naclac Error: a custom discriminator must be 1 to 8 bytes long.
+ --> tests/fail/150_discriminator_empty_array.rs:5:25
+  |
+5 | #[event(discriminator = [])]
+  |                         ^^

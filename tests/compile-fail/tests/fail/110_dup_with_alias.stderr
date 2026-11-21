@@ -1,0 +1,5 @@
+error: Naclac Error: `dup` and `unsafe(alias)` are mutually exclusive; `dup` is for read-only fields, `unsafe(alias)` for `mut` fields.
+  --> tests/fail/110_dup_with_alias.rs:10:9
+   |
+10 |     pub b: Signer,
+   |         ^

@@ -1,0 +1,5 @@
+error: Naclac Error: discriminator bytes must be integer literals.
+ --> tests/fail/152_discriminator_byte_not_a_literal.rs:5:26
+  |
+5 | #[event(discriminator = [FIRST, 2])]
+  |                          ^^^^^

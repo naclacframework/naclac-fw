@@ -126,7 +126,6 @@ pub(super) fn deserialize<'a>(
 /// `NaclacPod`) covers both a fixed-size argument and an `#[instruction_args]`
 /// struct holding a dynamic field, whose encoded length depends on its content.
 fn zero_copy_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
-    let is_zero_copy_vec = kind.zero_copy_vec;
     let is_zero_copy_collection = kind.is_zero_copy_collection();
     let is_heap_vec = kind.heap_vec;
     let is_heap_string = kind.heap_string;
@@ -153,11 +152,6 @@ fn zero_copy_stmt(name: &Ident, ty: &Type, kind: &ArgKind) -> TokenStream {
                     _ => return Err(naclac_lang::prelude::NaclacError::InvalidInstructionData.err(0)),
                 };
             };
-            if is_zero_copy_vec && inner_ty.is_none() {
-                return quote! {
-                    compile_error!("Naclac Error: `ZcVec` needs an element type, e.g. `ZcVec<u8>`.");
-                };
-            }
             let view_ty = type_classify::zc_view_type(ty);
             quote! {
                 #bounded_end

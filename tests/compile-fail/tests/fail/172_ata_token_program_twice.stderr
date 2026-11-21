@@ -1,0 +1,5 @@
+error: Naclac Error: this field names its token program more than once; keep a single `token_program` key.
+  --> tests/fail/172_ata_token_program_twice.rs:17:153
+   |
+17 | ...associated_token::token_program = token_program, associated_token::token_program = token_program)]
+   |                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

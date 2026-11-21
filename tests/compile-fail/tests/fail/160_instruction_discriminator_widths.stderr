@@ -1,0 +1,7 @@
+error: Naclac Error: every instruction in a program must use the same discriminator width, but found: `first` (2 bytes), `second` (1 bytes). An instruction without a custom discriminator uses the default 8-byte hash.
+  --> tests/fail/160_instruction_discriminator_widths.rs:10:1
+   |
+10 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: this error originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)

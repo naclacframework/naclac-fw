@@ -1,0 +1,5 @@
+error: Naclac Error: #[instruction_args] requires named fields.
+ --> tests/fail/127_instruction_args_tuple_struct.rs:6:12
+  |
+6 | pub struct Args(u64);
+  |            ^^^^

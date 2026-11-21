@@ -5,13 +5,13 @@ use naclac_lang::prelude::*;
 declare_id!("11111111111111111111111111111111");
 
 #[derive(Accounts)]
-#[instruction(new_space: u64)]
 pub struct Foo {
     #[account(mut)]
     pub payer: Signer,
 
+    /// SAFETY: `realloc::any_of` reads the raw account, so the field is an `AccountInfo`.
     #[account(mut, realloc::any_of = [1], realloc::payer = payer)]
-    pub account: Account<FooData>,
+    pub account: AccountInfo,
 
     pub system_program: Program<System>,
 }

@@ -1,0 +1,5 @@
+error: Naclac Error: at most 3 `#[max_len]` limits can apply to a type written as a name, such as an alias; write the `Vec`/`String` levels out instead
+  --> tests/fail/heap/178_max_len_too_many_for_alias.rs:11:24
+   |
+11 |     #[max_len(1, 2, 3, 4)]
+   |                        ^

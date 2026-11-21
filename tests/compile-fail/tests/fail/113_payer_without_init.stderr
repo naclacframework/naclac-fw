@@ -1,0 +1,5 @@
+error: Naclac Error: `payer = ...` needs `init`, `init_if_needed` or `init_unchecked` on the same field.
+  --> tests/fail/113_payer_without_init.rs:13:9
+   |
+13 |     pub account: Account<FooData>,
+   |         ^^^^^^^

@@ -1,0 +1,7 @@
+error: Naclac Error: #[constraint_args] does not take any arguments.
+ --> tests/fail/129_constraint_args_with_arguments.rs:5:1
+  |
+5 | #[constraint_args(min)]
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `constraint_args` (in Nightly builds, run with -Z macro-backtrace for more info)

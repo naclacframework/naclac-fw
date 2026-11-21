@@ -1,0 +1,5 @@
+error: Naclac Error: `mint::bogus` is not a constraint. Valid keys: `mint::decimals`, `mint::authority`, `mint::freeze_authority`, `mint::token_program`.
+  --> tests/fail/174_namespace_unknown_key.rs:10:15
+   |
+10 |     #[account(mint::bogus = owner)]
+   |               ^^^^^^^^^^^

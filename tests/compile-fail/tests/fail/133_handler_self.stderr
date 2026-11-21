@@ -1,0 +1,5 @@
+error: Naclac Error: an instruction handler can't take `self`.
+  --> tests/fail/133_handler_self.rs:12:16
+   |
+12 |     pub fn set(&self) -> Result {
+   |                ^^^^^

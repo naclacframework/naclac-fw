@@ -1,0 +1,5 @@
+error: Naclac Error: can't parse `error = "not a path!"` as a Rust path; expected e.g. "crate::errors::MyError::Variant".
+  --> tests/fail/141_system_error_not_a_path.rs:10:18
+   |
+10 | #[system(error = "not a path!")]
+   |                  ^^^^^^^^^^^^^

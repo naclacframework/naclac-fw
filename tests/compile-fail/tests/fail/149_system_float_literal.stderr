@@ -1,0 +1,5 @@
+error: Naclac Error: floating-point literals aren't allowed in #[system] (non-deterministic on Solana); use integers with a fixed decimal scale, e.g. 0.5 as 5_000u64 at scale 4.
+ --> tests/fail/149_system_float_literal.rs:7:17
+  |
+7 |     let _half = 0.5;
+  |                 ^^^

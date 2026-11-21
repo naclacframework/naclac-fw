@@ -1,0 +1,5 @@
+error: Naclac Error: `init`, `init_if_needed` and `init_unchecked` are mutually exclusive; use one.
+  --> tests/fail/111_init_modes_exclusive.rs:13:9
+   |
+13 |     pub account: Account<FooData>,
+   |         ^^^^^^^

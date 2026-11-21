@@ -1,0 +1,5 @@
+error: Naclac Error: `with_error!("not a path!", ...)` needs a Rust path as its first argument.
+  --> tests/fail/146_system_with_error_not_a_path.rs:12:20
+   |
+12 |     Ok(with_error!("not a path!", x + 1))
+   |                    ^^^^^^^^^^^^^

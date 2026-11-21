@@ -1,0 +1,5 @@
+error: Naclac Error: an Accounts struct can only have lifetime parameters, not type or const ones.
+ --> tests/fail/124_accounts_type_parameter.rs:6:16
+  |
+6 | pub struct Foo<T> {
+  |                ^

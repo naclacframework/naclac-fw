@@ -1,0 +1,5 @@
+error: Naclac Error: #[derive(Accounts)] can only be used on structs.
+ --> tests/fail/122_accounts_derive_on_enum.rs:6:10
+  |
+6 | pub enum Foo {
+  |          ^^^

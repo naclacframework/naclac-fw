@@ -1,0 +1,5 @@
+error: Naclac Error: more than one `Program<AssociatedToken>` field (`associated_token_program`, `another_associated_token_program`); an Accounts struct declares only one.
+  --> tests/fail/171_two_associated_token_programs.rs:18:9
+   |
+18 |     pub vault: Account<TokenAccount>,
+   |         ^^^^^

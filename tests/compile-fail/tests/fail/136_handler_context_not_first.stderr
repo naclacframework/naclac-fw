@@ -1,0 +1,5 @@
+error: Naclac Error: the `Context` argument must come first.
+  --> tests/fail/136_handler_context_not_first.rs:12:36
+   |
+12 |     pub fn set(_amount: u64, _ctx: Context<Plain>) -> Result {
+   |                                    ^^^^^^^^^^^^^^

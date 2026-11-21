@@ -1,0 +1,5 @@
+error: Naclac Error: `#[defined_type]` must be applied to a struct or an enum.
+ --> tests/fail/128_defined_type_union.rs:6:5
+  |
+6 | pub union Mixed {
+  |     ^^^^^

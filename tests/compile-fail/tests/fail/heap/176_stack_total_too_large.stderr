@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: Naclac Error: this Accounts struct's account fields together exceed the stack budget for `load_and_validate`; box some as `Box<Account<T>>`.
+ --> tests/fail/heap/176_stack_total_too_large.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^ evaluation of `_` failed here

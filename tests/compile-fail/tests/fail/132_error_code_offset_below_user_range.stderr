@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: Naclac Error: #[error_code] on `Low`: `offset = 5000` is below the user error range, which starts at 6000.
+ --> tests/fail/132_error_code_offset_below_user_range.rs:5:1
+  |
+5 | #[error_code(offset = 5000)]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `_` failed here

@@ -1,0 +1,5 @@
+error: Naclac Error: scale value must be an integer in 0..=255.
+ --> tests/fail/142_system_scale_out_of_range.rs:5:20
+  |
+5 | #[system(scale(x = 300))]
+  |                    ^^^

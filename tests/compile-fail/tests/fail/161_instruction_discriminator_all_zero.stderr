@@ -1,0 +1,7 @@
+error: Naclac Error: instruction `set` has an all-zero discriminator [0, 0], which is not allowed for this kind.
+  --> tests/fail/161_instruction_discriminator_all_zero.rs:10:1
+   |
+10 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: this error originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)

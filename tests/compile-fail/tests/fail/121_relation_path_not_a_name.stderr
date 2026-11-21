@@ -1,0 +1,5 @@
+error: Naclac Error: expected a field name for this relation constraint.
+ --> tests/fail/121_relation_path_not_a_name.rs:9:15
+  |
+9 |     #[account(::maker = maker)]
+  |               ^^^^^^^

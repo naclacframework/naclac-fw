@@ -1,0 +1,5 @@
+error: Naclac Error: `ZcVec` needs an element type, e.g. `ZcVec<u8>`.
+  --> tests/fail/bytemuck/184_handler_zc_vec_without_element.rs:12:45
+   |
+12 |     pub fn set(_ctx: Context<Plain>, _data: ZcVec) -> Result {
+   |                                             ^^^^^

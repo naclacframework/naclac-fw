@@ -1,0 +1,5 @@
+error: Naclac Error: a #[system] function must return `Result<T>`, as safe math injects `?`. Change the return type, or use `#[system(no_rewrite)]`.
+ --> tests/fail/143_system_must_return_result.rs:6:24
+  |
+6 | pub fn compute(x: u64) -> u64 {
+  |                        ^^^^^^

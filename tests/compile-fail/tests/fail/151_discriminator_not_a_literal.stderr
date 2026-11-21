@@ -1,0 +1,5 @@
+error: Naclac Error: a custom discriminator must be an integer literal (one byte) or an array of integer literals, e.g. `discriminator = 7` or `discriminator = [1, 2, 3]`.
+ --> tests/fail/151_discriminator_not_a_literal.rs:5:25
+  |
+5 | #[event(discriminator = "x")]
+  |                         ^^^

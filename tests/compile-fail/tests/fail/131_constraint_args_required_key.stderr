@@ -1,0 +1,5 @@
+error: Naclac Error: constraint key `min` must have type `Option<..>`, so it can be left out of the attribute.
+ --> tests/fail/131_constraint_args_required_key.rs:7:14
+  |
+7 |     pub min: u64,
+  |              ^^^

@@ -1,0 +1,5 @@
+error: Naclac Error: `extra_accounts` on an associated-token `init` field requires `init_if_needed`; plain `init` doesn't support it.
+  --> tests/fail/169_ata_extra_accounts_on_init.rs:18:9
+   |
+18 |     pub vault: Account<TokenAccount>,
+   |         ^^^^^

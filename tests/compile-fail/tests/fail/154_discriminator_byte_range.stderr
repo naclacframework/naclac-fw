@@ -1,0 +1,5 @@
+error: Naclac Error: each discriminator byte must be an integer literal in 0..=255.
+ --> tests/fail/154_discriminator_byte_range.rs:5:26
+  |
+5 | #[event(discriminator = [300])]
+  |                          ^^^

@@ -1,0 +1,5 @@
+error: Naclac Error: `has_one` is not supported; name the field instead, e.g. `#[account(maker = maker)]`.
+ --> tests/fail/120_has_one.rs:9:15
+  |
+9 |     #[account(has_one = maker)]
+  |               ^^^^^^^

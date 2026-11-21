@@ -1,0 +1,5 @@
+error: Naclac Error: `seeds::bogus` is not a constraint.
+ --> tests/fail/119_seeds_unknown_key.rs:9:39
+  |
+9 |     #[account(seeds = [b"foo"], bump, seeds::bogus = 1)]
+  |                                       ^^^^^^^^^^^^

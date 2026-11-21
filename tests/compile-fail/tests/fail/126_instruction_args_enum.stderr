@@ -1,0 +1,5 @@
+error: Naclac Error: #[instruction_args] only supports structs.
+ --> tests/fail/126_instruction_args_enum.rs:6:10
+  |
+6 | pub enum Args {
+  |          ^^^^

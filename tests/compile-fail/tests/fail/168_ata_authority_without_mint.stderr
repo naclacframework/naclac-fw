@@ -1,0 +1,5 @@
+error: Naclac Error: `associated_token::mint` needs `associated_token::authority`. Example: #[account(associated_token::mint = mint, associated_token::authority = owner)]
+  --> tests/fail/168_ata_authority_without_mint.rs:18:9
+   |
+18 |     pub vault: Account<TokenAccount>,
+   |         ^^^^^

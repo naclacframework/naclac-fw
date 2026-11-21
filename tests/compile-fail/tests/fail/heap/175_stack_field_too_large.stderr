@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: Naclac Error: field `big` is too large for one stack frame; wrap it as `Box<Account<Big>>` to stay under the SBF 4KB stack limit.
+ --> tests/fail/heap/175_stack_field_too_large.rs:7:10
+  |
+7 | #[derive(Accounts)]
+  |          ^^^^^^^^ evaluation of `_` failed here
