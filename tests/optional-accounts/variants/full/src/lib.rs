@@ -42,4 +42,12 @@ pub mod optional_accounts_zc {
     pub fn touch_boxed_optional(ctx: Context<TouchBoxedOptional>) -> Result {
         touch_boxed_optional::touch_boxed_optional(ctx)
     }
+
+    pub fn init_owned(ctx: Context<InitOwned>) -> Result {
+        init_owned::init_owned(ctx)
+    }
+
+    pub fn touch_owned(ctx: Context<TouchOwned>) -> Result {
+        touch_owned::touch_owned(ctx)
+    }
 }

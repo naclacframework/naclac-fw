@@ -1,12 +1,14 @@
 use naclac_client::*;
 use optional_accounts_client::{
-    fetch_thing,
-    get_thing_a_pda, get_thing_b_pda, get_optional_thing_pda,
+    fetch_owned, fetch_thing,
+    get_thing_a_pda, get_thing_b_pda, get_optional_thing_pda, get_owned_pda,
     instructions::{
         build_init_thing_a, build_init_thing_b, build_touch_optional, build_touch_two_optional,
         build_init_optional_thing, build_close_optional_thing, build_realloc_optional_thing,
+        build_init_owned, build_touch_owned,
         InitThingAAccounts, InitThingBAccounts, TouchOptionalAccounts, TouchTwoOptionalAccounts,
         InitOptionalThingAccounts, CloseOptionalThingAccounts, ReallocOptionalThingAccounts,
+        InitOwnedAccounts, TouchOwnedAccounts,
     },
     types::PROGRAM_ID,
 };
@@ -384,6 +386,101 @@ fn realloc_optional_thing_is_noop_when_absent() {
     assert!(
         result.is_ok(),
         "realloc_optional_thing with no account should succeed as a no-op: {:?}",
+        result.err()
+    );
+}
+
+const UNAUTHORIZED_AT_FIELD_1: u32 = 10_000 + 100 + 21;
+
+fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientError>, expected: u32) {
+    match result {
+        Err(NaclacClientError::TransactionFailed {
+            instruction_err: InstructionError::Custom(code),
+            ..
+        }) => assert_eq!(code, expected, "wrong custom error code"),
+        other => panic!("expected a Custom({expected}) transaction failure, got {other:?}"),
+    }
+}
+
+fn init_owned(provider: &NaclacProvider) -> Address {
+    let (owned_pda, _bump) = get_owned_pda(&PROGRAM_ID);
+    build_init_owned(
+        provider,
+        PROGRAM_ID,
+        InitOwnedAccounts {
+            payer: provider.payer.address(),
+            owned: owned_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_owned should succeed");
+    owned_pda
+}
+
+#[test]
+fn a_relation_on_an_optional_account_accepts_its_authority_when_present() {
+    let provider = setup();
+    let owned_pda = init_owned(&provider);
+
+    build_touch_owned(
+        &provider,
+        PROGRAM_ID,
+        TouchOwnedAccounts {
+            authority: provider.payer.address(),
+            owned: Some(owned_pda),
+        },
+    )
+    .send_and_confirm()
+    .expect("touch_owned by its authority should succeed");
+
+    let owned = fetch_owned(&provider, &owned_pda).expect("owned should be readable");
+    let value = owned.value;
+    assert_eq!(value, 1);
+}
+
+#[test]
+fn a_relation_on_an_optional_account_rejects_another_authority_when_present() {
+    let provider = setup();
+    let owned_pda = init_owned(&provider);
+
+    let stranger = Keypair::new();
+    let result = build_touch_owned(
+        &provider,
+        PROGRAM_ID,
+        TouchOwnedAccounts {
+            authority: stranger.address(),
+            owned: Some(owned_pda),
+        },
+    )
+    .signer(&stranger)
+    .send_and_confirm();
+    assert_custom_code(result, UNAUTHORIZED_AT_FIELD_1);
+
+    let owned = fetch_owned(&provider, &owned_pda).expect("owned should be readable");
+    let value = owned.value;
+    assert_eq!(value, 0);
+}
+
+#[test]
+fn a_relation_on_an_optional_account_does_not_run_when_it_is_absent() {
+    let provider = setup();
+
+    let stranger = Keypair::new();
+    let result = build_touch_owned(
+        &provider,
+        PROGRAM_ID,
+        TouchOwnedAccounts {
+            authority: stranger.address(),
+            owned: None,
+        },
+    )
+    .signer(&stranger)
+    .send_and_confirm();
+
+    assert!(
+        result.is_ok(),
+        "touch_owned with no account should succeed as a no-op: {:?}",
         result.err()
     );
 }

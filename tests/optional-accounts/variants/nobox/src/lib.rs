@@ -38,4 +38,12 @@ pub mod optional_accounts {
     pub fn realloc_optional_thing(ctx: Context<ReallocOptionalThing>, new_space: u64) -> Result {
         realloc_optional_thing::realloc_optional_thing(ctx, new_space)
     }
+
+    pub fn init_owned(ctx: Context<InitOwned>) -> Result {
+        init_owned::init_owned(ctx)
+    }
+
+    pub fn touch_owned(ctx: Context<TouchOwned>) -> Result {
+        touch_owned::touch_owned(ctx)
+    }
 }
