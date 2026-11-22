@@ -5,18 +5,18 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-types_lab = "AFNURreYQ11uDgJE6KQRQAdgo2oT7JnVvRejtkT8eq95"
-types_lab_zc = "GxSq3GYH9FFicoRvh4b5wsBuof728tU4M5kaY1v6LaAC"
-types_lab_borsh = "5pDVtcsqNeUb1AR9dmgj8VvDjD5ahyy5tMYbFiY9XTj2"
-types_lab_wincode = "AbD8MVK2jFF9ErkVx9CsN4HMkWnLxBF8nML38mvf59Bp"
-types_lab_pinocchio_wincode = "6YKEHJ1FJW9r9NQSKwHZaGMLmpYtMiUpd4VkbkGy68Bt"
+[programs.devnet]
+types_lab = "4hwfEUqGEVdqtqUe2r8nRoXdMhEuUE2fZZhFRrR1Z9gk"
+types_lab_zc = "61WugVUPxVqgfs3E1LNnurkkTwPvMYXGJHvoKNoqYfWQ"
+types_lab_borsh = "8addimfn1MjofeomH4S9CtgWuJ6imRtQcWxeKhtJUvbk"
+types_lab_wincode = "4QDGKGzZ12p8XwdaTESk331xsYHWPqBWzAon8JPgkJPr"
+types_lab_pinocchio_wincode = "7KSSbJhuxCdqFGLQa58oEXF7ZDE33JNLC64y6S7qEMZf"
 
 [framework]
 path = "../.."
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

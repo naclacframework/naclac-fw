@@ -157,3 +157,59 @@ fn shrinking_resizes_and_refunds_excess_rent() {
         "the excess rent freed by shrinking must actually be refunded to the payer"
     );
 }
+
+const ACCOUNT_DATA_TOO_SMALL_AT_FIELD_1: u32 = 10_000 + 100 + 10;
+
+fn assert_custom_code(result: Result<NaclacTransactionMetadata, NaclacClientError>, expected: u32) {
+    match result {
+        Err(NaclacClientError::TransactionFailed {
+            instruction_err: InstructionError::Custom(code),
+            ..
+        }) => assert_eq!(code, expected, "wrong custom error code"),
+        other => panic!("expected a Custom({expected}) transaction failure, got {other:?}"),
+    }
+}
+
+#[test]
+fn shrinking_below_the_account_type_size_is_rejected() {
+    let provider = setup();
+    let (growable_pda, _bump) = get_growable_pda(&PROGRAM_ID);
+
+    build_init_growable(
+        &provider,
+        PROGRAM_ID,
+        InitGrowableAccounts {
+            payer: provider.payer.address(),
+            growable: growable_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_growable should succeed");
+
+    let initial_len = provider
+        .get_account(&growable_pda)
+        .expect("growable should exist")
+        .data
+        .len();
+
+    for below_the_type in [1u64, 8] {
+        let result = build_resize_growable(
+            &provider,
+            PROGRAM_ID,
+            below_the_type,
+            ResizeGrowableAccounts {
+                payer: provider.payer.address(),
+                growable: growable_pda,
+                system_program: Address::default(),
+            },
+        )
+        .send_and_confirm();
+        assert_custom_code(result, ACCOUNT_DATA_TOO_SMALL_AT_FIELD_1);
+
+        let account = provider
+            .get_account(&growable_pda)
+            .expect("growable should still exist");
+        assert_eq!(account.data.len(), initial_len);
+    }
+}

@@ -4,7 +4,7 @@
 //! `#[account(realloc = space, realloc::payer = payer)]`.
 
 use {
-    crate::accounts::field::parser::ParsedField,
+    crate::accounts::field::parser::{ParsedField, ReallocSpace},
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
 };
@@ -13,6 +13,10 @@ use {
 ///
 /// Implements `resize` and handles the necessary System Program CPI to transfer
 /// lamports to maintain rent-exemption for the new account size.
+///
+/// On an `Account<T>` field with `realloc = <expr>`, a size below `T::SPACE`
+/// fails with `AccountDataTooSmall` before anything is resized or paid. The
+/// check is the same in every runtime and layout.
 pub fn generate_realloc_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
     let mut reallocs = Vec::new();
 
@@ -32,8 +36,23 @@ pub fn generate_realloc_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
             // constraint and a handler calling that function manually can
             // never drift apart. `resize()` zeroes the bytes it grows on both
             // runtimes, so there is no option to skip that.
+            let floor_check = match (
+                &realloc_config.space,
+                crate::type_classify::account_inner_type(&field.ty),
+            ) {
+                (ReallocSpace::Expr(_), Some(inner)) => {
+                    let idx = field.index;
+                    quote! {
+                        if new_space < <#inner>::SPACE {
+                            return Err(naclac_lang::prelude::NaclacError::AccountDataTooSmall.err(#idx));
+                        }
+                    }
+                }
+                _ => quote! {},
+            };
             let realloc_body = quote! {
                 let new_space = bumps.#space_var;
+                #floor_check
                 naclac_lang::prelude::resize_with_rent(__target, &mut self.#payer_ident, new_space)?;
             };
 

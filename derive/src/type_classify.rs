@@ -38,6 +38,25 @@ pub(crate) fn is_exactly(ty: &Type, name: &str) -> bool {
     base_ident(ty).is_some_and(|id| id == name)
 }
 
+/// The `T` of an `Account<T>`, looking through any `Box<...>` layers. `None`
+/// for every other type, including `InterfaceAccount<T>`, whose `T` does not
+/// name one concrete account layout.
+pub(crate) fn account_inner_type(ty: &Type) -> Option<&Type> {
+    let mut current = ty;
+    while is_box(current) {
+        current = first_generic_type(current)?;
+    }
+    if is_exactly(current, "Account") {
+        first_generic_type(current)
+    } else {
+        None
+    }
+}
+
+fn is_box(ty: &Type) -> bool {
+    matches!(ty, Type::Path(p) if p.path.segments.last().is_some_and(|s| s.ident == "Box"))
+}
+
 /// The first generic type argument of `ty`'s last path segment — e.g. the
 /// `T` in `Vec<T>`/`Account<T>`/`Program<T>` — if there is one. Does not
 /// unwrap `Box<...>` first; callers that need the inner type of a boxed
@@ -372,4 +391,34 @@ pub(crate) fn is_account_wrapper(ty: &Type) -> bool {
             .as_deref(),
         Some("Account") | Some("InterfaceAccount")
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::account_inner_type,
+        quote::ToTokens,
+        syn::{parse_str, Type},
+    };
+
+    fn inner(ty: &str) -> Option<String> {
+        let ty: Type = parse_str(ty).unwrap();
+        account_inner_type(&ty).map(|inner| inner.to_token_stream().to_string())
+    }
+
+    #[test]
+    fn the_account_type_is_read_through_boxes() {
+        let vault = Some("Vault");
+        assert_eq!(inner("Account<Vault>").as_deref(), vault);
+        assert_eq!(inner("Box<Account<Vault>>").as_deref(), vault);
+        assert_eq!(inner("Box<Box<Account<Vault>>>").as_deref(), vault);
+    }
+
+    #[test]
+    fn other_types_have_no_account_type() {
+        assert_eq!(inner("AccountInfo"), None);
+        assert_eq!(inner("InterfaceAccount<Mint>"), None);
+        assert_eq!(inner("Signer"), None);
+        assert_eq!(inner("Program<System>"), None);
+    }
 }
