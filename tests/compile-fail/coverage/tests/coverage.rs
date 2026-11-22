@@ -47,7 +47,6 @@ const SCOPES: &[&str] = &[
 /// layout feature, which a `no-layout` run deliberately lacks.
 const NO_PASS_COUNTERPART: &[&str] = &["no-layout", "solana-no-layout", "pinocchio-no-layout"];
 const PREFIX: &str = "Naclac Error: ";
-const PAIRED_FROM: u32 = 100;
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -435,12 +434,6 @@ fn every_error_message_has_a_test() {
     );
 }
 
-fn fixture_stem_number(path: &Path) -> Option<u32> {
-    let stem = path.file_stem()?.to_string_lossy().into_owned();
-    let digits: String = stem.chars().take_while(|c| c.is_ascii_digit()).collect();
-    digits.parse().ok()
-}
-
 fn relative_to(base: &Path, path: &Path) -> PathBuf {
     path.strip_prefix(base)
         .expect("a fixture is inside its kind folder")
@@ -486,10 +479,7 @@ fn fixtures_are_laid_out_as_the_runner_expects() {
             .components()
             .next()
             .is_some_and(|scope| NO_PASS_COUNTERPART.iter().any(|name| scope.as_os_str() == *name));
-        if !exempt_scope
-            && fixture_stem_number(&fixture).is_some_and(|number| number >= PAIRED_FROM)
-            && !pass.join(&relative).exists()
-        {
+        if !exempt_scope && !pass.join(&relative).exists() {
             problems.push(format!(
                 "tests/fail/{0} has no valid counterpart at tests/pass/{0}",
                 relative.display()

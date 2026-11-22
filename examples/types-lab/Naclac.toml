@@ -1,24 +1,23 @@
 [toolchain]
-package_manager = "pnpm"
+package_manager = "yarn"
 
 [features]
 resolution = true
 skip-lint = false
 
-[programs.devnet]
-types_lab_borsh = "5pDVtcsqNeUb1AR9dmgj8VvDjD5ahyy5tMYbFiY9XTj2"
-types_lab_zc = "GxSq3GYH9FFicoRvh4b5wsBuof728tU4M5kaY1v6LaAC"
-types_lab_pinocchio_wincode = "6YKEHJ1FJW9r9NQSKwHZaGMLmpYtMiUpd4VkbkGy68Bt"
-types_lab_wincode = "AbD8MVK2jFF9ErkVx9CsN4HMkWnLxBF8nML38mvf59Bp"
+[programs.localnet]
 types_lab = "AFNURreYQ11uDgJE6KQRQAdgo2oT7JnVvRejtkT8eq95"
+types_lab_zc = "GxSq3GYH9FFicoRvh4b5wsBuof728tU4M5kaY1v6LaAC"
+types_lab_borsh = "5pDVtcsqNeUb1AR9dmgj8VvDjD5ahyy5tMYbFiY9XTj2"
+types_lab_wincode = "AbD8MVK2jFF9ErkVx9CsN4HMkWnLxBF8nML38mvf59Bp"
+types_lab_pinocchio_wincode = "6YKEHJ1FJW9r9NQSKwHZaGMLmpYtMiUpd4VkbkGy68Bt"
 
 [framework]
 path = "../.."
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test-rust = "cargo test -- --show-output"
-test-node = "node_modules/.bin/ts-mocha -p ./tsconfig.json --timeout 1000000 \"tests/**/*.ts\""
+test-rust = "cargo test -- --nocapture"
