@@ -9,7 +9,7 @@ use {
         commands::{programs, workspace},
         ui,
     },
-    colored::{Color, Colorize},
+    colored::Colorize,
     naclac_idl::Idl,
     std::{
         fs,
@@ -276,29 +276,33 @@ fn profile_record(record: &Record, target: &Target) -> Result<Vec<(String, u64)>
     Ok(rows)
 }
 
-fn fail_at(path: &Path, index: usize, problem: &str) -> ! {
-    ui::error(format!("{}:{}: {problem}", path.display(), index + 1))
+fn no_transactions(target: &Target) -> String {
+    format!(
+        "No transaction to '{}' was recorded. Its tests must send transactions through \
+         naclac-client's provider.",
+        target.name
+    )
 }
 
-/// Every instruction of `target` the tests recorded.
-fn read_profile(path: &Path, target: &Target) -> Vec<(String, u64)> {
+/// Every instruction of `target` the tests recorded. The provider creates the
+/// file on the first transaction it records, so a missing file means the tests
+/// sent none through it.
+fn read_profile(path: &Path, target: &Target) -> Result<Vec<(String, u64)>, String> {
     let text = match fs::read_to_string(path) {
         Ok(text) => text,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
-        Err(e) => ui::error(format!(
-            "Cannot read the profile data {}: {e}",
-            path.display()
-        )),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Err(no_transactions(target)),
+        Err(e) => return Err(format!("Cannot read the profile data {}: {e}", path.display())),
     };
     let mut rows = Vec::new();
     for (index, line) in text.lines().enumerate() {
         if line.trim().is_empty() {
             continue;
         }
-        let record = parse_record(line).unwrap_or_else(|e| fail_at(path, index, &e));
-        rows.extend(profile_record(&record, target).unwrap_or_else(|e| fail_at(path, index, &e)));
+        let at = |e: String| format!("{}:{}: {e}", path.display(), index + 1);
+        let record = parse_record(line).map_err(at)?;
+        rows.extend(profile_record(&record, target).map_err(at)?);
     }
-    rows
+    Ok(rows)
 }
 
 pub fn execute(requested: &[String], run_order: bool) {
@@ -413,13 +417,12 @@ pub fn execute(requested: &[String], run_order: bool) {
             std::process::exit(1);
         }
 
-        let rows = read_profile(&profile_file, target);
+        let rows = match read_profile(&profile_file, target) {
+            Ok(rows) => rows,
+            Err(e) => step.fail(e),
+        };
         if rows.is_empty() {
-            step.fail(format!(
-                "No transaction to '{}' was recorded. Its tests must send transactions through \
-                 naclac-client's provider.",
-                target.name
-            ));
+            step.fail(no_transactions(target));
         }
         step.done("profile recorded");
         all_reports.push((target.name.clone(), rows));
@@ -429,8 +432,7 @@ pub fn execute(requested: &[String], run_order: bool) {
     clear_profile_file(&profile_file);
 
     for (prog_name, report_data) in &all_reports {
-        ui::section(prog_name, "compute unit report");
-        print_final_summary(report_data, run_order);
+        print_final_summary(prog_name, report_data, run_order);
     }
     ui::end_section();
 
@@ -440,60 +442,172 @@ pub fn execute(requested: &[String], run_order: bool) {
     ));
 }
 
-fn print_final_summary(data: &[(String, u64)], run_order: bool) {
-    let mut grouped: Vec<(String, u64, usize)> = Vec::new();
-    for (name, cu) in data {
-        if let Some(entry) = grouped.iter_mut().find(|(n, c, _)| n == name && c == cu) {
-            entry.2 += 1;
-        } else {
-            grouped.push((name.clone(), *cu, 1));
+const BAR_WIDTH: usize = 16;
+
+/// One instruction's compute units across every call the tests made to it.
+#[derive(Debug, PartialEq)]
+struct Summary {
+    name: String,
+    calls: usize,
+    min: u64,
+    avg: u64,
+    max: u64,
+}
+
+/// Groups `data` by instruction name, in the order each instruction first
+/// ran. `avg` is the mean rounded to the nearest unit.
+fn summarize(data: &[(String, u64)]) -> Vec<Summary> {
+    let mut grouped: Vec<(Summary, u128)> = Vec::new();
+    for (name, units) in data {
+        let units = *units;
+        match grouped.iter_mut().find(|(row, _)| &row.name == name) {
+            Some((row, total)) => {
+                row.calls += 1;
+                row.min = row.min.min(units);
+                row.max = row.max.max(units);
+                *total += u128::from(units);
+            }
+            None => grouped.push((
+                Summary {
+                    name: name.clone(),
+                    calls: 1,
+                    min: units,
+                    avg: units,
+                    max: units,
+                },
+                u128::from(units),
+            )),
         }
     }
-    if !run_order {
-        grouped.sort_by_key(|(_, cu, _)| *cu);
+    grouped
+        .into_iter()
+        .map(|(mut row, total)| {
+            let calls = row.calls as u128;
+            row.avg = ((total + calls / 2) / calls) as u64;
+            row
+        })
+        .collect()
+}
+
+/// `n` with a comma between each group of three digits.
+fn group_digits(n: u64) -> String {
+    let digits = n.to_string();
+    let mut out = String::with_capacity(digits.len() + digits.len() / 3);
+    for (i, digit) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i) % 3 == 0 {
+            out.push(',');
+        }
+        out.push(digit);
     }
+    out
+}
 
-    ui::info(format!(
-        "  {:<26} {:>12} {:>8} {:>16}  {}",
-        "Instruction".dimmed(),
-        "Compute Units".dimmed(),
-        "Calls".dimmed(),
-        "Est. Cost (SOL)".dimmed(),
-        "Visual".dimmed()
-    ));
+/// Prints one program's table: a row per instruction with its calls and
+/// min/avg/max compute units, and a bar of its max relative to the table's
+/// highest max. Column widths come from the data, never from the terminal.
+fn print_final_summary(program: &str, data: &[(String, u64)], run_order: bool) {
+    let mut rows = summarize(data);
+    if !run_order {
+        rows.sort_by_key(|row| row.max);
+    }
+    ui::section(
+        program,
+        format!(
+            "compute units · {} instruction{} · {} call{}",
+            rows.len(),
+            if rows.len() == 1 { "" } else { "s" },
+            data.len(),
+            if data.len() == 1 { "" } else { "s" }
+        ),
+    );
+    let table_max = rows.iter().fold(0, |top, row| top.max(row.max));
 
-    for (name, cu, calls) in &grouped {
-        let cu_color = if *cu > 180_000 {
-            Color::Red
-        } else if *cu > 100_000 {
-            Color::Yellow
-        } else if *cu > 50_000 {
-            Color::Cyan
-        } else {
-            Color::Green
-        };
+    let cells: Vec<[String; 4]> = rows
+        .iter()
+        .map(|row| {
+            [
+                group_digits(row.calls as u64),
+                group_digits(row.min),
+                group_digits(row.avg),
+                group_digits(row.max),
+            ]
+        })
+        .collect();
+    let headers = ["calls", "min", "avg", "max"];
+    let name_width = rows.iter().fold("instruction".len(), |width, row| {
+        width.max(row.name.chars().count())
+    });
+    let widths: [usize; 4] = std::array::from_fn(|col| {
+        cells.iter().fold(headers[col].len(), |width, row| width.max(row[col].len()))
+    });
 
-        let cost_sol = *cu as f64 * 0.000000001;
-
-        let bar_len = (*cu as f64 / 200_000.0 * 20.0).min(20.0) as usize;
-        let bar = "█".repeat(bar_len);
-        let empty = "░".repeat(20 - bar_len);
-
+    ui::info(
+        format!(
+            "{:<name_width$}  {:>w0$}  {:>w1$}  {:>w2$}  {:>w3$}",
+            "instruction",
+            headers[0],
+            headers[1],
+            headers[2],
+            headers[3],
+            w0 = widths[0],
+            w1 = widths[1],
+            w2 = widths[2],
+            w3 = widths[3],
+        )
+        .dimmed(),
+    );
+    for (row, cell) in rows.iter().zip(&cells) {
         ui::info(format!(
-            "  {:<26} {:>12} {:>8} {:>16}  {}{}",
-            name.bold(),
-            format!("{} CU", cu).color(cu_color),
-            format!("×{}", calls),
-            format!("{:.7} SOL", cost_sol).dimmed(),
-            bar.color(cu_color),
-            empty.dimmed()
+            "{}  {}  {}  {}  {}  {}",
+            format!("{:<name_width$}", row.name).bold(),
+            format!("{:>w$}", cell[0], w = widths[0]).dimmed(),
+            format!("{:>w$}", cell[1], w = widths[1]).dimmed(),
+            format!("{:>w$}", cell[2], w = widths[2]),
+            format!("{:>w$}", cell[3], w = widths[3]).bold(),
+            ui::bar(row.max as usize, table_max as usize, BAR_WIDTH),
         ));
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{instruction_name, parse_calls, parse_record, profile_record, Target};
+    use super::{
+        group_digits, instruction_name, parse_calls, parse_record, profile_record, summarize,
+        Summary, Target,
+    };
+
+    #[test]
+    fn calls_are_grouped_by_instruction_in_first_run_order() {
+        let data: Vec<(String, u64)> = [("take", 10), ("make", 7), ("take", 11), ("take", 30)]
+            .iter()
+            .map(|(name, units)| (name.to_string(), *units))
+            .collect();
+        let row = |name: &str, calls, min, avg, max| Summary {
+            name: name.to_string(),
+            calls,
+            min,
+            avg,
+            max,
+        };
+        assert_eq!(summarize(&data), [row("take", 3, 10, 17, 30), row("make", 1, 7, 7, 7)]);
+    }
+
+    #[test]
+    fn the_average_rounds_to_the_nearest_unit() {
+        let data = vec![("a".to_string(), 1), ("a".to_string(), 2)];
+        assert_eq!(summarize(&data)[0].avg, 2);
+        let data = vec![("a".to_string(), 1), ("a".to_string(), 1), ("a".to_string(), 2)];
+        assert_eq!(summarize(&data)[0].avg, 1);
+    }
+
+    #[test]
+    fn digits_are_grouped_in_threes() {
+        assert_eq!(group_digits(0), "0");
+        assert_eq!(group_digits(999), "999");
+        assert_eq!(group_digits(1_000), "1,000");
+        assert_eq!(group_digits(1_400_000), "1,400,000");
+        assert_eq!(group_digits(u64::MAX), "18,446,744,073,709,551,615");
+    }
 
     fn logs(lines: &[&str]) -> Vec<String> {
         lines.iter().map(|line| line.to_string()).collect()
