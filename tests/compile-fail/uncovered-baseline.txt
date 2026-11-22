@@ -1,5 +1,0 @@
-# Error messages that no fixture or test covers yet, one `FILE || START-OF-MESSAGE` per line.
-# `cargo test` in tests/compile-fail/coverage fails for a message that is not covered and not
-# listed here, and for a line here whose message is now covered or no longer exists. The list
-# only shrinks: a new error needs a fixture, never a line in this file.
-

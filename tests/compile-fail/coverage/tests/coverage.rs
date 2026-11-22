@@ -293,36 +293,6 @@ fn exemptions() -> Vec<ExemptionEntry> {
     entries
 }
 
-struct BaselineEntry {
-    file: String,
-    prefix: String,
-    line: usize,
-}
-
-fn baseline() -> Vec<BaselineEntry> {
-    let path = compile_fail_dir().join("uncovered-baseline.txt");
-    let text = fs::read_to_string(&path).expect("tests/compile-fail/uncovered-baseline.txt exists");
-    let mut entries = Vec::new();
-    for (index, raw) in text.lines().enumerate() {
-        let line = raw.trim_end();
-        if line.trim().is_empty() || line.starts_with("# ") || line == "#" {
-            continue;
-        }
-        let (file, prefix) = line.split_once(" || ").unwrap_or_else(|| {
-            panic!(
-                "uncovered-baseline.txt:{}: expected `FILE || START-OF-MESSAGE`",
-                index + 1
-            )
-        });
-        entries.push(BaselineEntry {
-            file: file.to_string(),
-            prefix: prefix.to_string(),
-            line: index + 1,
-        });
-    }
-    entries
-}
-
 #[test]
 fn every_error_message_has_a_test() {
     let messages = source_messages();
@@ -333,8 +303,6 @@ fn every_error_message_has_a_test() {
     );
     let snapshots = snapshots();
     let entries = exemptions();
-    let known_gaps = baseline();
-    let mut gap_used = vec![false; known_gaps.len()];
     let root = repo_root();
 
     let mut problems = Vec::new();
@@ -344,21 +312,6 @@ fn every_error_message_has_a_test() {
     for message in &messages {
         let in_snapshot = template_regex(&message.text).is_match(&snapshots);
         let body = message.text.strip_prefix(PREFIX).unwrap_or(&message.text);
-        let gaps: Vec<usize> = known_gaps
-            .iter()
-            .enumerate()
-            .filter(|(_, gap)| gap.file == message.file && body.starts_with(&gap.prefix))
-            .map(|(index, _)| index)
-            .collect();
-        for &index in &gaps {
-            gap_used[index] = true;
-            if in_snapshot {
-                problems.push(format!(
-                    "uncovered-baseline.txt:{}: `{}` is now covered by a snapshot; remove the line",
-                    known_gaps[index].line, known_gaps[index].prefix
-                ));
-            }
-        }
         let matching: Vec<usize> = entries
             .iter()
             .enumerate()
@@ -374,23 +327,8 @@ fn every_error_message_has_a_test() {
                 ));
             }
         }
-        if !in_snapshot && matching.is_empty() && gaps.is_empty() {
+        if !in_snapshot && matching.is_empty() {
             uncovered.push(format!("{}:{}  {}", message.file, message.line, message.text));
-        }
-        if !gaps.is_empty() && !matching.is_empty() {
-            problems.push(format!(
-                "{}:{}: the message is both in uncovered-baseline.txt and exemptions.txt; remove the baseline line",
-                message.file, message.line
-            ));
-        }
-    }
-
-    for (index, gap) in known_gaps.iter().enumerate() {
-        if !gap_used[index] {
-            problems.push(format!(
-                "uncovered-baseline.txt:{}: `{}` in {} matches no message; remove the line",
-                gap.line, gap.prefix, gap.file
-            ));
         }
     }
 

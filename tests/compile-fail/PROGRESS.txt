@@ -164,8 +164,8 @@ Batch 3 final (CI, 2026-11-22)
   `load_and_validate` E0599), so it lives in solana-no-layout/ and pinocchio-no-layout/.
 - uncovered-baseline.txt has no entries left: every message is in a snapshot or in exemptions.txt.
 - Done (2026-11-22): every fail fixture has a pass twin (PAIRED_FROM removed; no-layout scopes exempt); CI green on all twins.
-- Left: bless bytemuck/48 from CI (its snapshot embeds a local /mnt path; LOCAL_ONLY_FIXTURES removed so CI
-  now reports it), and drop the empty uncovered-baseline.txt mechanism.
+- Done (2026-11-22): fixture 48 blessed per runtime (solana-bytemuck, pinocchio-bytemuck) from CI;
+  LOCAL_ONLY_FIXTURES and the empty uncovered-baseline.txt mechanism are removed.
 
 Still open after batch 2
 - idl-build only (need crate-scan fixtures built with the idl-build feature, like dup_account_disc):
