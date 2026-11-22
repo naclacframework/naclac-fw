@@ -1,8 +1,8 @@
 #![allow(unexpected_cfgs)]
-// An alloc event holds plain fixed-size fields.
+// An event holds plain fixed-size fields.
 use naclac_lang::prelude::*;
 
-#[event(alloc)]
+#[event]
 pub struct Logged {
     pub id: u64,
     pub note: u8,
