@@ -291,7 +291,12 @@ fn read_profile(path: &Path, target: &Target) -> Result<Vec<(String, u64)>, Stri
     let text = match fs::read_to_string(path) {
         Ok(text) => text,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Err(no_transactions(target)),
-        Err(e) => return Err(format!("Cannot read the profile data {}: {e}", path.display())),
+        Err(e) => {
+            return Err(format!(
+                "Cannot read the profile data {}: {e}",
+                path.display()
+            ))
+        }
     };
     let mut rows = Vec::new();
     for (index, line) in text.lines().enumerate() {
@@ -494,7 +499,7 @@ fn group_digits(n: u64) -> String {
     let digits = n.to_string();
     let mut out = String::with_capacity(digits.len() + digits.len() / 3);
     for (i, digit) in digits.chars().enumerate() {
-        if i > 0 && (digits.len() - i) % 3 == 0 {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
             out.push(',');
         }
         out.push(digit);
@@ -538,7 +543,9 @@ fn print_final_summary(program: &str, data: &[(String, u64)], run_order: bool) {
         width.max(row.name.chars().count())
     });
     let widths: [usize; 4] = std::array::from_fn(|col| {
-        cells.iter().fold(headers[col].len(), |width, row| width.max(row[col].len()))
+        cells
+            .iter()
+            .fold(headers[col].len(), |width, row| width.max(row[col].len()))
     });
 
     ui::info(
@@ -557,15 +564,13 @@ fn print_final_summary(program: &str, data: &[(String, u64)], run_order: bool) {
         .dimmed(),
     );
     for (row, cell) in rows.iter().zip(&cells) {
-        ui::info(format!(
-            "{}  {}  {}  {}  {}  {}",
-            format!("{:<name_width$}", row.name).bold(),
-            format!("{:>w$}", cell[0], w = widths[0]).dimmed(),
-            format!("{:>w$}", cell[1], w = widths[1]).dimmed(),
-            format!("{:>w$}", cell[2], w = widths[2]),
-            format!("{:>w$}", cell[3], w = widths[3]).bold(),
-            ui::bar(row.max as usize, table_max as usize, BAR_WIDTH),
-        ));
+        let name = format!("{:<name_width$}", row.name).bold();
+        let calls = format!("{:>w$}", cell[0], w = widths[0]).dimmed();
+        let min = format!("{:>w$}", cell[1], w = widths[1]).dimmed();
+        let avg = format!("{:>w$}", cell[2], w = widths[2]);
+        let max = format!("{:>w$}", cell[3], w = widths[3]).bold();
+        let bar = ui::bar(row.max as usize, table_max as usize, BAR_WIDTH);
+        ui::info(format!("{name}  {calls}  {min}  {avg}  {max}  {bar}"));
     }
 }
 
@@ -589,14 +594,21 @@ mod tests {
             avg,
             max,
         };
-        assert_eq!(summarize(&data), [row("take", 3, 10, 17, 30), row("make", 1, 7, 7, 7)]);
+        assert_eq!(
+            summarize(&data),
+            [row("take", 3, 10, 17, 30), row("make", 1, 7, 7, 7)]
+        );
     }
 
     #[test]
     fn the_average_rounds_to_the_nearest_unit() {
         let data = vec![("a".to_string(), 1), ("a".to_string(), 2)];
         assert_eq!(summarize(&data)[0].avg, 2);
-        let data = vec![("a".to_string(), 1), ("a".to_string(), 1), ("a".to_string(), 2)];
+        let data = vec![
+            ("a".to_string(), 1),
+            ("a".to_string(), 1),
+            ("a".to_string(), 2),
+        ];
         assert_eq!(summarize(&data)[0].avg, 1);
     }
 
