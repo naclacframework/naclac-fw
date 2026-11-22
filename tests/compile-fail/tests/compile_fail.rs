@@ -56,10 +56,6 @@ compile_error!("Naclac Error: the `borsh` layout needs the `solana` runtime, not
 
 use std::path::{Path, PathBuf};
 
-/// Fixtures whose `.stderr` embeds an absolute path outside this crate, so the
-/// snapshot only matches on the machine that blessed it. Skipped when `CI` is set.
-const LOCAL_ONLY_FIXTURES: &[&str] = &["48_event_alloc_bare_enum_field.rs"];
-
 fn runtime() -> &'static str {
     if cfg!(feature = "solana") {
         "solana"
@@ -133,16 +129,9 @@ fn fixtures(kind: &str) -> Vec<PathBuf> {
 #[test]
 fn macro_rejections_and_valid_counterparts() {
     let t = trybuild::TestCases::new();
-    let on_ci = std::env::var_os("CI").is_some();
     let fail = fixtures("fail");
     assert!(!fail.is_empty(), "no failing fixtures found under tests/fail");
     for fixture in fail {
-        let local_only = LOCAL_ONLY_FIXTURES
-            .iter()
-            .any(|name| fixture.file_name().is_some_and(|file| file == *name));
-        if on_ci && local_only {
-            continue;
-        }
         t.compile_fail(fixture);
     }
     for fixture in fixtures("pass") {
