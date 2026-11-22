@@ -144,8 +144,7 @@ pub fn generate_relational_checks(fields: &[ParsedField], prefix: TokenStream) -
 #[cfg(test)]
 mod tests {
     use {
-        super::generate_relational_checks,
-        crate::accounts::field::parser::parse_struct_fields,
+        super::generate_relational_checks, crate::accounts::field::parser::parse_struct_fields,
         quote::quote,
     };
 
