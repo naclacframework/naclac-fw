@@ -482,7 +482,7 @@ fn read_only_bare_bump_verify_with_account_info_seed_reference() {
 /// `Some(PdaBump::Auto)` arm reached when `init_config.is_some()`) — no
 /// client-supplied bump was trusted, and no on-chain search was allowed
 /// either, so there was no way to write this at all. Now the framework runs
-/// its own real canonical search (`naclac_lang::prelude::find_program_address`)
+/// its own real canonical search (`naclac_lang::prelude::verify_canonical_address`)
 /// instead. The client here only ever computes the expected *address* (via
 /// `find_program_address`, exactly as any real client already must, since
 /// Solana requires every account be listed up front) — no bump is passed in
@@ -541,6 +541,42 @@ fn dynamic_seeds_init_bare_bump_establishes_canonical_bump_on_chain() {
         "the framework's on-chain search must find the same canonical bump \
          real find_program_address would"
     );
+}
+
+/// `init` with a bare `bump` accepts only the canonical PDA of the seeds: an
+/// address that is not that PDA is rejected with `ConstraintSeeds`.
+#[test]
+fn dynamic_seeds_init_bare_bump_rejects_an_address_that_is_not_the_canonical_pda() {
+    let payer = load_node_wallet().expect("Failed to load local Solana keypair");
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
+
+    let (registry_pda, _) = Address::find_program_address(&[SEED_REGISTRY], &PROGRAM_ID);
+    build_init_registry(
+        &provider,
+        PROGRAM_ID,
+        InitRegistryAccounts {
+            payer: provider.payer.address(),
+            registry: registry_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm()
+    .expect("init_registry should succeed");
+
+    let (other_pda, _) = Address::find_program_address(&[SEED_CHILD_SAFE], &PROGRAM_ID);
+    let result = build_init_child_safe(
+        &provider,
+        PROGRAM_ID,
+        InitChildSafeAccounts {
+            payer: provider.payer.address(),
+            registry: registry_pda,
+            child_safe: other_pda,
+            system_program: Address::default(),
+        },
+    )
+    .send_and_confirm();
+    // `child_safe` is field index 2: 10000 + 2*100 + ConstraintSeeds (6).
+    assert_custom_code(result, 10206);
 }
 
 /// A PDA field declared before the fields its constraints name: the seed reads

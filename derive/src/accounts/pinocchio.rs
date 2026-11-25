@@ -43,6 +43,13 @@ fn account_walk(shared: &Shared) -> TokenStream {
                     Self::MUT_MASK[0],
                 )
             }
+        } else if field.is_optional {
+            quote! {
+                __cursor.try_declared_optional_fast(
+                    __DECLARED_CHECKS[#i].0,
+                    __DECLARED_CHECKS[#i].1,
+                )
+            }
         } else {
             quote! {
                 __cursor.try_declared_fast(__DECLARED_CHECKS[#i].0, __DECLARED_CHECKS[#i].1)

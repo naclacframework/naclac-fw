@@ -1500,10 +1500,33 @@ pub fn invoke_signed_pinocchio_paired_array<const N: usize>(
     data: &[u8],
     signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
+    invoke_signed_pinocchio_paired_array_builtin(
+        program.info.view.address(),
+        accounts,
+        handles,
+        data,
+        signers,
+    )
+}
+
+/// [`invoke_signed_pinocchio_paired_array`] for a built-in program such as the
+/// System Program, which `program_id` names and which has no account of its
+/// own among `handles`. As there, `accounts[i]` must be the account of
+/// `handles[i]`, and every writable account must not be borrowed, else this
+/// returns `AccountBorrowFailed` without invoking.
+#[cfg(feature = "pinocchio")]
+#[inline(always)]
+pub fn invoke_signed_pinocchio_paired_array_builtin<const N: usize>(
+    program_id: &::pinocchio::Address,
+    accounts: &[::pinocchio::instruction::InstructionAccount<'_>; N],
+    handles: &[crate::prelude::CpiHandle<'_>; N],
+    data: &[u8],
+    signers: &[CpiSigner<'_, '_>],
+) -> crate::prelude::Result<()> {
     const { assert!(N <= crate::prelude::MAX_CPI_ACCOUNTS) };
 
     let instruction = ::pinocchio::instruction::InstructionView {
-        program_id: program.info.view.address(),
+        program_id,
         accounts,
         data,
     };

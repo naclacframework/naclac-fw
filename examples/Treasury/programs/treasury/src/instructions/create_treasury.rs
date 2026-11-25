@@ -12,6 +12,7 @@ use {
 };
 
 #[derive(Accounts)]
+#[instruction(vault_bump: u8)]
 pub struct CreateTreasury {
     #[account(mut)]
     pub admin: Signer,
@@ -24,15 +25,16 @@ pub struct CreateTreasury {
     )]
     pub treasury: Account<Treasury>,
 
-    /// SAFETY: a lamport-only PDA with no data, checked by `seeds`; it is only
-    /// the source of signed transfers.
-    #[account(seeds = VaultPda::seeds(treasury.address()), bump)]
+    /// SAFETY: a lamport-only PDA with no data, checked by `seeds` and the
+    /// canonical bump the caller supplies; it is only the source of signed
+    /// transfers.
+    #[account(seeds = VaultPda::seeds(treasury.address()), bump = vault_bump)]
     pub vault: AccountInfo,
 
     pub system_program: Program<System>,
 }
 
-pub fn create_treasury(ctx: Context<CreateTreasury>, threshold: u8) -> Result {
+pub fn create_treasury(ctx: Context<CreateTreasury>, vault_bump: u8, threshold: u8) -> Result {
     require!(
         threshold > 0 && usize::from(threshold) <= MAX_MEMBERS,
         TreasuryError::InvalidThreshold
@@ -41,7 +43,7 @@ pub fn create_treasury(ctx: Context<CreateTreasury>, threshold: u8) -> Result {
     let treasury = &mut ctx.accounts.treasury;
     treasury.admin = ctx.accounts.admin.address();
     treasury.bump = ctx.bumps.treasury;
-    treasury.vault_bump = ctx.bumps.vault;
+    treasury.vault_bump = vault_bump;
     treasury.threshold = threshold;
     treasury.status.set(Status::Active);
 

@@ -15,8 +15,8 @@ use {instructions::*, types::Status};
 #[program]
 pub mod treasury {
     #[discriminator = 1]
-    pub fn create_treasury(ctx: Context<CreateTreasury>, threshold: u8) -> Result {
-        create_treasury::create_treasury(ctx, threshold)
+    pub fn create_treasury(ctx: Context<CreateTreasury>, vault_bump: u8, threshold: u8) -> Result {
+        create_treasury::create_treasury(ctx, vault_bump, threshold)
     }
 
     #[discriminator = 2]

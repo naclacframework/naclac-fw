@@ -180,8 +180,9 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
     let (seed_bindings, seeds_slice) = seed_slice_tokens(pda_seeds, field_ident, "__seed");
 
     let mut bump_expr = quote! {};
-    let mut bump_verification = quote! {};
+    let bump_verification = quote! {};
     let mut find_pda_error: Option<String> = None;
+    let mut use_explicit_bump = false;
     let mut use_manual_search = false;
     let mut use_hash_only_search = false;
     let mut use_stored_or_searched_bump = false;
@@ -203,11 +204,7 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
         }
         Some(PdaBump::Explicit(parsed_bump_expr)) => {
             bump_expr = quote! { (#parsed_bump_expr) };
-            bump_verification = quote! {
-                if expected_bump != (#parsed_bump_expr) {
-                    return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
-                }
-            };
+            use_explicit_bump = true;
         }
         None if field.init_config.is_some() => {
             find_pda_error = Some(
@@ -281,15 +278,18 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
             .ok_or(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
         }
     } else if use_manual_search {
-        // The one place a bounded on-chain canonical search is allowed,
-        // delegated to the shared `find_program_address`.
+        // The one place a bounded on-chain canonical search is allowed.
         quote! {
             #seed_bindings
             #pda_program_ref
+            #actual_address_ref
             let __seeds: &[&[u8]] = #seeds_slice;
-            let (expected_pda, expected_bump) =
-                naclac_lang::prelude::find_program_address(__seeds, __pda_program)
-                    .map_err(|_| naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
+            let expected_bump = naclac_lang::prelude::verify_canonical_address(
+                __seeds,
+                __pda_program,
+                __actual_address,
+            )
+            .ok_or(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
         }
     } else {
         // A type that does not prove this program created the account must sit
@@ -301,32 +301,38 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
             #seed_bindings
             let expected_bump = #bump_expr;
             #pda_program_ref
+            #actual_address_ref
             let __seeds: &[&[u8]] = #seeds_slice;
-            let expected_pda =
-                if <#ty as naclac_lang::prelude::NaclacAccount>::OWNER_VALIDATED {
-                    naclac_lang::prelude::derive_program_address(
+            if <#ty as naclac_lang::prelude::NaclacAccount>::OWNER_VALIDATED {
+                if *__actual_address
+                    != naclac_lang::prelude::derive_program_address(
                         __seeds,
                         expected_bump,
                         __pda_program,
                     )
-                } else {
-                    let (__canonical_pda, __canonical_bump) =
-                        naclac_lang::prelude::find_program_address(__seeds, __pda_program)
-                            .map_err(|_| naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
-                    if __canonical_bump != expected_bump {
-                        return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
-                    }
-                    __canonical_pda
-                };
+                {
+                    return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
+                }
+            } else {
+                let __canonical_bump = naclac_lang::prelude::verify_canonical_address(
+                    __seeds,
+                    __pda_program,
+                    __actual_address,
+                )
+                .ok_or(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
+                if __canonical_bump != expected_bump {
+                    return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
+                }
+            }
         }
     };
 
     Creation {
         logic,
         bump_verification,
-        // `find_bump_for_address` only returns a bump whose derived address
-        // equals the field's own address.
-        skip_address_check: use_hash_only_search,
+        // Every branch that sets this proves the field's own address equals
+        // the PDA derived from the seeds and `expected_bump`.
+        skip_address_check: use_hash_only_search || use_manual_search || use_explicit_bump,
     }
 }
 
@@ -449,6 +455,13 @@ pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Optio
                 let #bump_cap = expected_bump;
             }))
         }
+    } else if skip_address_check {
+        Some(PdaChecks::Metadata(quote! {
+            #type_check
+            #logic
+            #bump_verification
+            let #bump_cap = expected_bump;
+        }))
     } else {
         Some(PdaChecks::Metadata(quote! {
             #type_check
@@ -712,11 +725,20 @@ mod const_pda_tests {
                 "{code}"
             );
             assert!(code.contains("derive_program_address"), "{code}");
-            assert!(
-                code.contains("find_program_address (__seeds , __pda_program)"),
-                "{code}"
-            );
+            assert!(code.contains("verify_canonical_address"), "{code}");
+            assert!(!code.contains("find_program_address"), "{code}");
             assert!(code.contains("__canonical_bump != expected_bump"), "{code}");
         }
+    }
+
+    #[test]
+    fn a_bare_bump_init_verifies_the_address_in_place() {
+        let code = rendered(&field(
+            "#[account(init, payer = payer, seeds = [SEED_A, user.address().as_ref()], bump)] \
+             a: Account<A>",
+        ));
+        assert!(code.contains("verify_canonical_address"), "{code}");
+        assert!(!code.contains("find_program_address"), "{code}");
+        assert!(!code.contains("expected_pda"), "{code}");
     }
 }

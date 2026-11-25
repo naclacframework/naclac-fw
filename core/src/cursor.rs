@@ -3,7 +3,8 @@
 //! [`AccountCursor`] yields [`AccountView`]s on demand so dispatch can
 //! happen first: each instruction's pinocchio `load_and_validate` walks its
 //! declared accounts through [`AccountCursor::try_declared_fast`] (one header
-//! compare per account on the common path) or, for a `dup` field,
+//! compare per account on the common path), for an `Option` field
+//! [`AccountCursor::try_declared_optional_fast`], or, for a `dup` field,
 //! [`AccountCursor::try_declared_dup_fast`], and
 //! [`AccountCursor::finish_walk_slow`] takes over on the first miss or when
 //! trailing accounts follow. A lookup array resolves duplicate account
@@ -259,6 +260,46 @@ impl AccountCursor {
             return true;
         }
         false
+    }
+
+    /// [`try_declared_fast`](AccountCursor::try_declared_fast) for an
+    /// `Option` field: also consumes an absent slot, the executing program's
+    /// own address, whether it is a first-seen record or a duplicate of an
+    /// earlier slot holding that address. An absent slot needs no flag, and
+    /// `finish_walk_slow` accepts it the same way. Every other record that
+    /// misses the flag check consumes nothing and returns `false`.
+    ///
+    /// # Safety
+    ///
+    /// Must not be called once `consumed` has reached the instruction's
+    /// account count.
+    #[inline(always)]
+    pub unsafe fn try_declared_optional_fast(&mut self, expected: u32, mask: u32) -> bool {
+        let header = *(self.ptr as *const u32);
+        if header & mask == expected {
+            self.take_non_dup();
+            return true;
+        }
+        let marker = header as u8;
+        if marker == NON_DUP_MARKER {
+            let view = AccountView::new_unchecked(self.ptr as *mut RuntimeAccount);
+            if crate::prelude::Address::from_address_ref(view.address()) != self.program_id {
+                return false;
+            }
+            self.take_non_dup();
+            return true;
+        }
+        if marker >= self.consumed {
+            return false;
+        }
+        let view = *self.lookup.add(marker as usize);
+        if crate::prelude::Address::from_address_ref(view.address()) != self.program_id {
+            return false;
+        }
+        self.ptr = self.ptr.add(size_of::<u64>());
+        *self.lookup.add(self.consumed as usize) = view;
+        self.consumed = self.consumed.wrapping_add(1);
+        true
     }
 
     /// [`try_declared_fast`](AccountCursor::try_declared_fast) for a `dup`

@@ -281,31 +281,32 @@ mod pinocchio_system {
         transfer_signed(from, to, lamports, &[])
     }
 
+    /// Fails with `AccountBorrowFailed`, without invoking, when either account
+    /// has its data borrowed.
     pub fn transfer_signed(
         from: CpiHandleMut<'_>,
         to: CpiHandleMut<'_>,
         lamports: u64,
         signers: &[CpiSigner<'_, '_>],
     ) -> Result<()> {
-        let from_address = *from.info.view.address();
-        let to_address = *to.info.view.address();
+        let handles = [CpiHandle::from(from), CpiHandle::from(to)];
         let ix_accounts = [
-            ::pinocchio::instruction::InstructionAccount::writable_signer(&from_address),
-            ::pinocchio::instruction::InstructionAccount::writable(&to_address),
+            ::pinocchio::instruction::InstructionAccount::writable_signer(
+                handles[0].info.view.address(),
+            ),
+            ::pinocchio::instruction::InstructionAccount::writable(handles[1].info.view.address()),
         ];
         let mut ix_data = [0u8; 12];
         ix_data[0] = 2; // system transfer discriminant
         ix_data[4..12].copy_from_slice(&lamports.to_le_bytes());
 
-        let instruction = ::pinocchio::instruction::InstructionView {
-            program_id: &ID,
-            accounts: &ix_accounts,
-            data: &ix_data,
-        };
-
-        let cpi_accounts = [CpiHandle::from(from), CpiHandle::from(to)];
-
-        crate::cpi::invoke_signed_pinocchio_handles(&instruction, &cpi_accounts, signers)
+        crate::cpi::invoke_signed_pinocchio_paired_array_builtin(
+            &ID,
+            &ix_accounts,
+            &handles,
+            &ix_data,
+            signers,
+        )
     }
 
     /// Raw, no-borrow-check `CreateAccount` — the pre-existing hand-rolled
@@ -625,5 +626,52 @@ impl crate::wrappers::Program<crate::wrappers::System> {
         let to_h = accounts.to.to_cpi_handle_mut();
         let program_h = self.to_cpi_handle();
         create_account_signed(from_h, to_h, program_h, lamports, space, owner, signers)
+    }
+}
+
+#[cfg(all(test, feature = "pinocchio"))]
+mod pinocchio_transfer_tests {
+    use {
+        super::transfer,
+        crate::prelude::{AccountInfo, CpiHandleMut, ProgramError},
+        core::marker::PhantomData,
+        pinocchio::account::{AccountView, RuntimeAccount, NOT_BORROWED},
+    };
+
+    fn runtime_account(borrow_state: u8) -> RuntimeAccount {
+        // SAFETY: `RuntimeAccount` is plain data, and all-zero bytes are a valid value.
+        let mut account: RuntimeAccount = unsafe { core::mem::zeroed() };
+        account.borrow_state = borrow_state;
+        account
+    }
+
+    fn handle(account: &mut RuntimeAccount) -> CpiHandleMut<'_> {
+        CpiHandleMut {
+            // SAFETY: `account` is a live `RuntimeAccount` that the handle borrows exclusively.
+            info: AccountInfo {
+                view: unsafe { AccountView::new_unchecked(account) },
+            },
+            _phantom: PhantomData,
+        }
+    }
+
+    #[test]
+    fn a_transfer_from_a_borrowed_account_is_rejected_before_it_is_sent() {
+        for state in [0, 2, NOT_BORROWED - 1] {
+            let mut from = runtime_account(state);
+            let mut to = runtime_account(NOT_BORROWED);
+            let result = transfer(handle(&mut from), handle(&mut to), 1);
+            assert!(result == Err(ProgramError::AccountBorrowFailed));
+        }
+    }
+
+    #[test]
+    fn a_transfer_to_a_borrowed_account_is_rejected_before_it_is_sent() {
+        for state in [0, 2, NOT_BORROWED - 1] {
+            let mut from = runtime_account(NOT_BORROWED);
+            let mut to = runtime_account(state);
+            let result = transfer(handle(&mut from), handle(&mut to), 1);
+            assert!(result == Err(ProgramError::AccountBorrowFailed));
+        }
     }
 }

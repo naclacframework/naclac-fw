@@ -1095,10 +1095,45 @@ mod pda_hash_matches_tests {
 /// Panics if `seeds.len() > MAX_PDA_SEEDS`, matching `derive_program_address`.
 /// Returns `NaclacError::ConstraintSeeds` in the cryptographically
 /// unreachable case where no bump in 0..=255 lands off-curve.
+///
+/// Returns the derived address. To check an address already in hand, use
+/// [`verify_canonical_address`], which runs the same search without returning
+/// a copy of it.
 pub fn find_program_address(seeds: &[&[u8]], program_id: &Address) -> Result<(Address, u8)> {
+    match search_canonical(seeds, program_id) {
+        Some((hash, bump)) => Ok((Address::new_from_array(hash), bump)),
+        None => Err(NaclacError::ConstraintSeeds.into()),
+    }
+}
+
+/// The bump of `expected` when `expected` is the canonical off-curve PDA of
+/// `seeds` under `program_id`, and `None` for any other address, including a
+/// PDA at a lower bump. The same search as [`find_program_address`], with the
+/// derived address compared against `expected` in place instead of returned.
+///
+/// Use it for an address that nothing else proves this program created: an
+/// account that may not exist yet, or whose owner is not validated. For an
+/// existing account with a validated owner, `find_bump_for_address` is enough.
+///
+/// Panics if `seeds.len() > MAX_PDA_SEEDS`.
+pub fn verify_canonical_address(
+    seeds: &[&[u8]],
+    program_id: &Address,
+    expected: &Address,
+) -> Option<u8> {
+    let (hash, bump) = search_canonical(seeds, program_id)?;
+    (address_words(hash) == address_words(expected.to_bytes())).then_some(bump)
+}
+
+/// The search behind [`find_program_address`] and [`verify_canonical_address`]:
+/// the 32 bytes and the bump of the canonical off-curve PDA of `seeds` under
+/// `program_id`, or `None` in the cryptographically unreachable case where no
+/// bump in 0..=255 lands off-curve. Panics if `seeds.len() > MAX_PDA_SEEDS`.
+#[inline(always)]
+fn search_canonical(seeds: &[&[u8]], program_id: &Address) -> Option<([u8; 32], u8)> {
     assert!(
         seeds.len() <= MAX_PDA_SEEDS,
-        "find_program_address: too many seeds (max {MAX_PDA_SEEDS})"
+        "canonical PDA search: too many seeds (max {MAX_PDA_SEEDS})"
     );
 
     let mut bump_arr = [255u8];
@@ -1157,12 +1192,12 @@ pub fn find_program_address(seeds: &[&[u8]], program_id: &Address) -> Result<(Ad
         };
 
         if off_curve {
-            return Ok((Address::new_from_array(hash_bytes), bump as u8));
+            return Some((hash_bytes, bump as u8));
         }
         bump -= 1;
     }
 
-    Err(NaclacError::ConstraintSeeds.into())
+    None
 }
 
 /// Returns the first bump, searching 255 down to 0, for which `seeds` plus
