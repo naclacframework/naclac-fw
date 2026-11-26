@@ -39,7 +39,7 @@ pub(super) fn account_helper_impls(shared: &Shared) -> TokenStream {
                     }
                 }
             } else {
-                quote! { (&self.#field_name).address() }
+                quote! { naclac_lang::prelude::ToAddress::address(&self.#field_name) }
             }
         })
         .collect();

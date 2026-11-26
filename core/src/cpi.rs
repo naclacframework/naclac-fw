@@ -1263,7 +1263,9 @@ pub mod sdk {
 mod paired_tests {
     use {
         super::*,
-        crate::prelude::{Address, CpiHandle, ProgramError, UncheckedAccount, UncheckedAccountData},
+        crate::prelude::{
+            Address, CpiHandle, ProgramError, UncheckedAccount, UncheckedAccountData,
+        },
         alloc::{boxed::Box, rc::Rc, vec},
         core::{cell::RefCell, marker::PhantomData},
         solana_instruction::{AccountMeta, Instruction},

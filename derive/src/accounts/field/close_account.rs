@@ -31,8 +31,7 @@ pub fn generate_close_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
                 quote! { naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(__target) };
 
             let dest_ident = dest;
-            let dest_info =
-                quote! { naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(&self.#dest_ident) };
+            let dest_info = quote! { naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(&self.#dest_ident) };
             let idx = field.index;
 
             let close_body = quote! {

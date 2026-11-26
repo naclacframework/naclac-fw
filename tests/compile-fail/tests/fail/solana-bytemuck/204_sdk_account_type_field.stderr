@@ -1,0 +1,61 @@
+error[E0599]: the method `address` exists for reference `&AccountInfo<'static>`, but its trait bounds were not satisfied
+ --> tests/fail/solana-bytemuck/204_sdk_account_type_field.rs:6:10
+  |
+6 | #[derive(Accounts)]
+  |          ^^^^^^^^ method cannot be called on `&AccountInfo<'static>` due to unsatisfied trait bounds
+  |
+ ::: $CARGO/solana-account-info-$VERSION/src/lib.rs
+  |
+  | pub struct AccountInfo<'a> {
+  | -------------------------- doesn't satisfy `_: ToAddress`
+  |
+  = note: the following trait bounds were not satisfied:
+          `AccountInfo<'static>: naclac_lang::prelude::ToAddress`
+          which is required by `&AccountInfo<'static>: naclac_lang::prelude::ToAddress`
+  = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `AccountInfo<'static>: NaclacAccount` is not satisfied
+ --> tests/fail/solana-bytemuck/204_sdk_account_type_field.rs:8:14
+  |
+8 |     pub bad: naclac_lang::solana_account_info::AccountInfo<'static>,
+  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `NaclacAccount` is not implemented for `AccountInfo<'static>`
+  |
+  = help: the following other types implement trait `NaclacAccount`:
+            Box<T>
+            Interface<T>
+            InterfaceAccount<T>
+            Program<T>
+            Signer
+            UncheckedAccount
+            naclac_lang::prelude::Account<T>
+
+error[E0277]: the trait bound `AccountInfo<'static>: ToUncheckedAccount` is not satisfied
+ --> tests/fail/solana-bytemuck/204_sdk_account_type_field.rs:6:10
+  |
+6 | #[derive(Accounts)]
+  |          ^^^^^^^^ the trait `ToUncheckedAccount` is not implemented for `AccountInfo<'static>`
+  |
+  = help: the following other types implement trait `ToUncheckedAccount`:
+            Box<T>
+            Interface<T>
+            InterfaceAccount<T>
+            Program<T>
+            Signer
+            UncheckedAccount
+            naclac_lang::prelude::Account<T>
+  = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `AccountInfo<'static>: NaclacAccount` is not satisfied
+ --> tests/fail/solana-bytemuck/204_sdk_account_type_field.rs:8:9
+  |
+8 |     pub bad: naclac_lang::solana_account_info::AccountInfo<'static>,
+  |         ^^^ the trait `NaclacAccount` is not implemented for `AccountInfo<'static>`
+  |
+  = help: the following other types implement trait `NaclacAccount`:
+            Box<T>
+            Interface<T>
+            InterfaceAccount<T>
+            Program<T>
+            Signer
+            UncheckedAccount
+            naclac_lang::prelude::Account<T>

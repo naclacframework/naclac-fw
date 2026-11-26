@@ -241,10 +241,14 @@ mod solana_system {
         // decremented, and they do not escape this function.
         let infos = core::mem::ManuallyDrop::new(unsafe {
             [
-                core::ptr::read(first.data_ref() as *const crate::prelude::UncheckedAccountData
-                    as *const solana_account_info::AccountInfo<'static>),
-                core::ptr::read(second.data_ref() as *const crate::prelude::UncheckedAccountData
-                    as *const solana_account_info::AccountInfo<'static>),
+                core::ptr::read(
+                    first.data_ref() as *const crate::prelude::UncheckedAccountData
+                        as *const solana_account_info::AccountInfo<'static>,
+                ),
+                core::ptr::read(
+                    second.data_ref() as *const crate::prelude::UncheckedAccountData
+                        as *const solana_account_info::AccountInfo<'static>,
+                ),
             ]
         });
         invoke_signed_raw(&instruction, &*infos, CpiSigner::as_seed_slices(signers))

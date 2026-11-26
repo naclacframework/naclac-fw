@@ -1,0 +1,27 @@
+error[E0277]: the trait bound `AccountView: NaclacAccount` is not satisfied
+ --> tests/fail/pinocchio-bytemuck/205_pinocchio_account_type_field.rs:8:14
+  |
+8 |     pub bad: naclac_lang::pinocchio::AccountView,
+  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `NaclacAccount` is not implemented for `AccountView`
+  |
+  = help: the following other types implement trait `NaclacAccount`:
+            Interface<T>
+            InterfaceAccount<T>
+            Program<T>
+            UncheckedAccount
+            naclac_lang::prelude::Account<T>
+            naclac_lang::prelude::Signer
+
+error[E0277]: the trait bound `AccountView: NaclacAccount` is not satisfied
+ --> tests/fail/pinocchio-bytemuck/205_pinocchio_account_type_field.rs:8:9
+  |
+8 |     pub bad: naclac_lang::pinocchio::AccountView,
+  |         ^^^ the trait `NaclacAccount` is not implemented for `AccountView`
+  |
+  = help: the following other types implement trait `NaclacAccount`:
+            Interface<T>
+            InterfaceAccount<T>
+            Program<T>
+            UncheckedAccount
+            naclac_lang::prelude::Account<T>
+            naclac_lang::prelude::Signer
