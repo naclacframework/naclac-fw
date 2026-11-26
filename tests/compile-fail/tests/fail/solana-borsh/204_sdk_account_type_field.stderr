@@ -1,17 +1,19 @@
-error[E0599]: the method `address` exists for reference `&AccountInfo<'static>`, but its trait bounds were not satisfied
+error[E0277]: the trait bound `AccountInfo<'static>: ToAddress` is not satisfied
  --> tests/fail/solana-borsh/204_sdk_account_type_field.rs:6:10
   |
 6 | #[derive(Accounts)]
-  |          ^^^^^^^^ method cannot be called on `&AccountInfo<'static>` due to unsatisfied trait bounds
+  |          ^^^^^^^^ the trait `ToAddress` is not implemented for `AccountInfo<'static>`
   |
- ::: $CARGO/solana-account-info-$VERSION/src/lib.rs
-  |
-  | pub struct AccountInfo<'a> {
-  | -------------------------- doesn't satisfy `_: ToAddress`
-  |
-  = note: the following trait bounds were not satisfied:
-          `AccountInfo<'static>: naclac_lang::prelude::ToAddress`
-          which is required by `&AccountInfo<'static>: naclac_lang::prelude::ToAddress`
+  = help: the following other types implement trait `ToAddress`:
+            &T
+            &[u8]
+            Address
+            Box<T>
+            CpiHandle<'a>
+            CpiHandleMut<'a>
+            Interface<T>
+            InterfaceAccount<T>
+          and $N others
   = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `AccountInfo<'static>: NaclacAccount` is not satisfied
