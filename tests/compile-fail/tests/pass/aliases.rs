@@ -1,6 +1,6 @@
 #![allow(unexpected_cfgs)]
 // Type aliases behave like the types they name, without the macros reading
-// the crate's source: a documented alias of `AccountInfo` is accepted, an
+// the crate's source: a documented alias of `UncheckedAccount` is accepted, an
 // alias of `Account<T>` keeps its checks, and an alias of an integer is
 // accepted by #[system].
 use naclac_lang::prelude::*;
@@ -12,7 +12,7 @@ pub struct Foo {
     pub value: u64,
 }
 
-type Raw = AccountInfo;
+type Raw = UncheckedAccount;
 type Pool = Account<Foo>;
 type Amount = u64;
 

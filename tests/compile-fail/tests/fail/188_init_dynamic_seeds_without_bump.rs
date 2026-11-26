@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// `init` under seeds known only at runtime needs `bump` or `bump = <value>`.
+// `init` under seeds known only at runtime needs a bare `bump`.
 use naclac_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");

@@ -19,7 +19,7 @@ pub struct InitCounter {
     /// `counter.authority`) — its data is never read or deserialized, and
     /// it isn't required to sign here (only `authorized_increment` later
     /// requires it to sign).
-    pub authority: AccountInfo,
+    pub authority: UncheckedAccount,
 
     pub system_program: Program<System>,
 }

@@ -72,7 +72,7 @@ impl PluginInit<'_> {
                 let __init_args = #args;
                 let __owner = #init::owner(&__init_args).map_err(|e| e.err(#idx))?;
                 let __space = #init::space(&__init_args);
-                let __payer_info = naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref);
+                let __payer_info = naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(#payer_ref);
 
                 #[cfg(feature = "solana")]
                 {

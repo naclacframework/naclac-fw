@@ -58,7 +58,7 @@ export interface CreateV2Accounts {
    * body, never deserialized — real `create_v2` requires classic Token
    * specifically here (confirmed via `probe64.rs`, `Custom(6064)`
    * `InvalidQuoteTokenProgram` for Token-2022), so this stays a raw
-   * `AccountInfo` rather than a typed `Program<Token>` to preserve that
+   * `UncheckedAccount` rather than a typed `Program<Token>` to preserve that
    * exact real error instead of a generic constraint-mismatch one.
    */
   quoteTokenProgram?: naclac.Address | string;

@@ -17,7 +17,7 @@ pub struct Create {
     /// lamport-only PDA (no stored data) — only ever used as the mint's
     /// authority, signed via its own seeds for the `mint_to` CPI below.
     #[account(seeds = [MINT_AUTHORITY_SEED], bump)]
-    pub mint_authority: AccountInfo,
+    pub mint_authority: UncheckedAccount,
 
     #[account(init, payer = user, mint::decimals = MINT_DECIMALS, mint::authority = mint_authority)]
     pub mint: Signer,
@@ -45,7 +45,7 @@ pub struct Create {
     /// the target program of the `create_metadata_via_cpi` call below, never
     /// deserialized.
     #[account(address = MPL_TOKEN_METADATA_PROGRAM_ID)]
-    pub mpl_token_metadata: AccountInfo,
+    pub mpl_token_metadata: UncheckedAccount,
 
     /// SAFETY: the `seeds`/`bump`/`seeds::program` constraint fully verifies
     /// this is the real Metaplex metadata PDA for `mint`; never deserialized
@@ -57,7 +57,7 @@ pub struct Create {
         seeds::program = MPL_TOKEN_METADATA_PROGRAM_ID,
         bump = metadata_bump,
     )]
-    pub metadata: AccountInfo,
+    pub metadata: UncheckedAccount,
 
     pub system_program: Program<System>,
     pub token_program: Program<Token>,

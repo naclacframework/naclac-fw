@@ -5,7 +5,7 @@ use naclac_lang::prelude::*;
 #[derive(Accounts)]
 pub struct Foo {
     /// SAFETY: only used as the mint authority; never read or deserialized.
-    pub owner: AccountInfo,
+    pub owner: UncheckedAccount,
 
     #[account(mint::authority = owner)]
     pub mint: Account<Mint>,

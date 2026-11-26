@@ -14,7 +14,7 @@ pub struct Foo {
 
     /// SAFETY: only used as the ATA's `authority` for constraint
     /// verification below; never read or deserialized.
-    pub owner: AccountInfo,
+    pub owner: UncheckedAccount,
 
     /// SAFETY: fully validated/constructed via `associated_token::mint =`/
     /// `init` below — irrelevant here, this fixture never reaches that check.
@@ -24,7 +24,7 @@ pub struct Foo {
         associated_token::mint = mint,
         associated_token::authority = owner,
     )]
-    pub vault: AccountInfo,
+    pub vault: UncheckedAccount,
 
     pub token_program: Program<Token>,
     pub system_program: Program<System>,

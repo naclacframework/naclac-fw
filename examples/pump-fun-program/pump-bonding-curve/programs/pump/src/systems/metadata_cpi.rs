@@ -1,5 +1,7 @@
-use naclac_lang::prelude::*;
-use crate::constants::{MINT_AUTHORITY_SEED, MPL_TOKEN_METADATA_PROGRAM_ID};
+use {
+    crate::constants::{MINT_AUTHORITY_SEED, MPL_TOKEN_METADATA_PROGRAM_ID},
+    naclac_lang::{pinocchio::AccountView, prelude::*},
+};
 
 /// Metaplex's own single-byte instruction-enum discriminator for
 /// `CreateMetadataAccountV3` (index 33), confirmed against the real

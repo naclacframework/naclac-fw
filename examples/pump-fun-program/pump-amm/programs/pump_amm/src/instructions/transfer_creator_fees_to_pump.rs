@@ -14,7 +14,7 @@ pub struct TransferCreatorFeesToPump {
     /// SAFETY: only used as seed material for `coin_creator_vault_authority`/
     /// `pump_creator_vault` below — `pump_fees` passes its own `sharing_config`
     /// PDA here, never dereferenced.
-    pub coin_creator: AccountInfo,
+    pub coin_creator: UncheckedAccount,
 
     /// SAFETY: the `seeds`/`bump` constraint already verifies its address;
     /// it's a lamport-only PDA authority (no stored data), used below as a
@@ -24,7 +24,7 @@ pub struct TransferCreatorFeesToPump {
         seeds = [AMM_CREATOR_VAULT_AUTHORITY_SEED, coin_creator.address().as_ref()],
         bump = coin_creator_vault_authority_bump,
     )]
-    pub coin_creator_vault_authority: AccountInfo,
+    pub coin_creator_vault_authority: UncheckedAccount,
 
     #[account(mut)]
     pub coin_creator_vault_ata: Account<TokenAccount>,
@@ -39,7 +39,7 @@ pub struct TransferCreatorFeesToPump {
         seeds::program = PUMP_PROGRAM_ID,
         bump = pump_creator_vault_bump,
     )]
-    pub pump_creator_vault: AccountInfo,
+    pub pump_creator_vault: UncheckedAccount,
 }
 
 /// Sweeps `coin_creator_vault_ata` (a wrapped-SOL account) into `pump_creator_vault`
@@ -61,7 +61,7 @@ pub fn transfer_creator_fees_to_pump(
     // `rent.minimum_balance(TokenAccount::LEN)` docstring.
     const SPL_TOKEN_ACCOUNT_LEN: usize = 165;
     let token_account_rent_exempt_minimum = Rent::get()?.try_minimum_balance(SPL_TOKEN_ACCOUNT_LEN)?;
-    let vault_lamports_before = ctx.accounts.coin_creator_vault_ata.to_account_info().lamports();
+    let vault_lamports_before = ctx.accounts.coin_creator_vault_ata.to_unchecked_account().lamports();
     if vault_lamports_before < token_account_rent_exempt_minimum {
         return Ok(());
     }

@@ -98,7 +98,7 @@ pub trait WithdrawCpi<'info> {
         vault_id: u64,
         amount: u64,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()>;
 
 }
@@ -111,7 +111,7 @@ impl<'info> WithdrawCpi<'info> for crate::sdk_core::Program<crate::TokenVault> {
         vault_id: u64,
         amount: u64,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()> {
         let args = WithdrawIxArgs {
             vault_id,

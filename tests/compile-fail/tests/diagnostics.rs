@@ -92,8 +92,8 @@ fn a_float_behind_an_alias_is_rejected_by_system() {
 }
 
 #[test]
-fn an_alias_of_account_info_needs_a_safety_doc() {
-    let stderr = check_fails("alias_account_info_without_safety_doc");
+fn an_alias_of_unchecked_account_needs_a_safety_doc() {
+    let stderr = check_fails("alias_unchecked_account_without_safety_doc");
     assert!(
         stderr.contains("this field's type gets no automatic validation"),
         "{stderr}"

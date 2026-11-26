@@ -38,7 +38,7 @@ for (const [name, idl] of programs) {
       assert.equal(program.address, idl.address);
     });
 
-    it("marks a #[account(signer)] AccountInfo field as a signer", () => {
+    it("marks a #[account(signer)] UncheckedAccount field as a signer", () => {
       const [authority] = instruction(idl, "log_event_signed").accounts;
       assert.equal(authority.signer, true);
     });

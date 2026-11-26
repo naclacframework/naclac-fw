@@ -25,7 +25,7 @@ pub struct CreateTokenAccountWithImmutableOwner {
     /// SAFETY: only used as an address — its own key becomes the new
     /// account's owner via `initialize_account` below; its data is never
     /// read or deserialized.
-    pub owner: AccountInfo,
+    pub owner: UncheckedAccount,
 
     pub token_program: Program<Token2022>,
     pub system_program: Program<System>,

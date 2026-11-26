@@ -79,7 +79,7 @@ pub fn attach_collection_permanent_freeze_execute_signed(
 /// Reads an `Asset`'s `PermanentFreezeExecute` plugin (whether it's
 /// frozen), if attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_asset_permanent_freeze_execute(info: &AccountInfo) -> Result<Option<bool>> {
+pub fn fetch_asset_permanent_freeze_execute(info: &UncheckedAccount) -> Result<Option<bool>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -97,7 +97,7 @@ pub fn fetch_asset_permanent_freeze_execute(info: &AccountInfo) -> Result<Option
 /// Reads a `Collection`'s `PermanentFreezeExecute` plugin (whether it's
 /// frozen), if attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_collection_permanent_freeze_execute(info: &AccountInfo) -> Result<Option<bool>> {
+pub fn fetch_collection_permanent_freeze_execute(info: &UncheckedAccount) -> Result<Option<bool>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -115,7 +115,7 @@ pub fn fetch_collection_permanent_freeze_execute(info: &AccountInfo) -> Result<O
 /// Reads an `Asset`'s `PermanentFreezeExecute` plugin (whether it's
 /// frozen), if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_permanent_freeze_execute(info: &AccountInfo) -> Result<Option<bool>> {
+pub fn fetch_asset_permanent_freeze_execute(info: &UncheckedAccount) -> Result<Option<bool>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -126,7 +126,7 @@ pub fn fetch_asset_permanent_freeze_execute(info: &AccountInfo) -> Result<Option
 /// Reads a `Collection`'s `PermanentFreezeExecute` plugin (whether it's
 /// frozen), if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_collection_permanent_freeze_execute(info: &AccountInfo) -> Result<Option<bool>> {
+pub fn fetch_collection_permanent_freeze_execute(info: &UncheckedAccount) -> Result<Option<bool>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);

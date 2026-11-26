@@ -44,7 +44,7 @@ pub struct GroupData {
 
 /// Reads and fully deserializes a `GroupV1` account.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_group(info: &AccountInfo) -> Result<GroupData> {
+pub fn fetch_group(info: &UncheckedAccount) -> Result<GroupData> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -66,7 +66,7 @@ pub fn fetch_group(info: &AccountInfo) -> Result<GroupData> {
 
 /// Reads and fully deserializes a `GroupV1` account.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_group(info: &AccountInfo) -> Result<GroupData> {
+pub fn fetch_group(info: &UncheckedAccount) -> Result<GroupData> {
     let view = GroupView::try_from(info)?;
     Ok(GroupData {
         update_authority: view.update_authority(),
@@ -100,7 +100,7 @@ impl<'a> GroupView<'a> {
     /// (`asset.rs`) for why the `solana` backend must go through
     /// `from_bytes` directly.
     #[cfg(feature = "pinocchio")]
-    pub fn try_from(info: &'a AccountInfo) -> Result<Self> {
+    pub fn try_from(info: &'a UncheckedAccount) -> Result<Self> {
         if Owner::program_owner(info) != crate::ID {
             return Err(NaclacError::ConstraintOwner.into());
         }

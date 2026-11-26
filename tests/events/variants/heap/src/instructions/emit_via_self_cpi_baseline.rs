@@ -8,7 +8,7 @@ pub struct EmitViaSelfCpiBaseline {
     /// reason Anchor's `emit_cpi!` requires a `Program<'info, Self>` account.
     /// SAFETY: only its address is checked; its data is never read.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 }
 
 /// `sha256("global:log_event")[..8]` — must match `log_event`'s own

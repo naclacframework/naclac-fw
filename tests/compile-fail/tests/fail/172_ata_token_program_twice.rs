@@ -12,7 +12,7 @@ pub struct Foo {
     pub mint: Account<Mint>,
 
     /// SAFETY: only used as the ATA's `authority`; never read or deserialized.
-    pub owner: AccountInfo,
+    pub owner: UncheckedAccount,
 
     #[account(init, payer = payer, associated_token::mint = mint, associated_token::authority = owner, associated_token::token_program = token_program, associated_token::token_program = token_program)]
     pub vault: Account<TokenAccount>,

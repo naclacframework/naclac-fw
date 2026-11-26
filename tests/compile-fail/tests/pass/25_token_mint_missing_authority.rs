@@ -12,7 +12,7 @@ pub struct Foo {
     pub mint: Account<Mint>,
 
     /// SAFETY: only used as the token account's `authority`; never read or deserialized.
-    pub owner: AccountInfo,
+    pub owner: UncheckedAccount,
 
     #[account(init, payer = payer, seeds = [b"vault"], bump, token::mint = mint, token::authority = owner)]
     pub vault: Account<TokenAccount>,

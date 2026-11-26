@@ -48,7 +48,8 @@ pub struct DepositAccounts {
     pub depositor: naclac_client::Address,
     pub treasury: naclac_client::Address,
     /// SAFETY: a lamport-only PDA with no data, checked by `seeds` against the
-    /// treasury's stored vault bump; it is only the destination of a transfer.
+    /// treasury's stored vault bump, which only `create_treasury` writes, from
+    /// the canonical search; it is only the destination of a transfer.
     pub vault: naclac_client::Address,
     pub system_program: naclac_client::Address,
 }
@@ -88,7 +89,8 @@ pub struct DepositCpiAccounts<'a> {
     pub depositor: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub treasury: crate::sdk_core_cpi::CpiHandleMut<'a>,
     /// SAFETY: a lamport-only PDA with no data, checked by `seeds` against the
-    /// treasury's stored vault bump; it is only the destination of a transfer.
+    /// treasury's stored vault bump, which only `create_treasury` writes, from
+    /// the canonical search; it is only the destination of a transfer.
     pub vault: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub system_program: crate::sdk_core_cpi::CpiHandle<'a>,
 }
@@ -98,7 +100,7 @@ pub struct DepositCpiCall<'a> {
     pub accounts: DepositCpiAccounts<'a>,
     pub amount: u64,
     pub signer_seeds: &'a [crate::sdk_core_cpi::CpiSigner<'a, 'a>],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

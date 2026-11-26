@@ -119,7 +119,7 @@ pub struct EscrowSeeds;
 pub struct ReadSeedsType {
     /// SAFETY: only its address is checked against the seeds; never read.
     #[account(seeds = EscrowSeeds::seeds(ESCROW_OWNER, 3u32))]
-    pub escrow: AccountInfo,
+    pub escrow: UncheckedAccount,
 
     #[account(seeds = EscrowSeeds::seeds(ESCROW_OWNER, 4u32), bump)]
     pub config: Account<Config>,
@@ -143,7 +143,7 @@ pub struct TakeOffer {
 
     /// SAFETY: only its address is checked against the seeds; never read.
     #[account(seeds = EscrowSeeds::seeds(maker.address(), 7u32), bump = 254)]
-    pub vault: AccountInfo,
+    pub vault: UncheckedAccount,
 }
 
 pub fn sign_for_offer(accounts: &mut TakeOffer, id: u64, bump: u8) -> usize {

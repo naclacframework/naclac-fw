@@ -13,7 +13,7 @@ pub struct ClaimCashback {
     /// SAFETY: only a native-lamport transfer destination and PDA seed
     /// material for `user_volume_accumulator` below; never deserialized.
     #[account(mut)]
-    pub user: AccountInfo,
+    pub user: UncheckedAccount,
 
     #[account(
         mut,
@@ -39,7 +39,7 @@ pub struct ClaimCashback {
 pub fn claim_cashback(ctx: Context<ClaimCashback>) -> Result<Option<ClaimCashbackEvent>> {
     let data_len = 8 + core::mem::size_of::<UserVolumeAccumulator>();
     let rent_exempt_minimum = Rent::get()?.try_minimum_balance(data_len)?;
-    let uva_lamports = ctx.accounts.user_volume_accumulator.to_account_info().lamports();
+    let uva_lamports = ctx.accounts.user_volume_accumulator.to_unchecked_account().lamports();
     let amount = uva_lamports.saturating_sub(rent_exempt_minimum);
 
     if amount == 0 {

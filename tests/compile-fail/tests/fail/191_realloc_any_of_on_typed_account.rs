@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// `realloc::any_of` reads the raw account, so it needs an `AccountInfo` field.
+// `realloc::any_of` reads the raw account, so it needs an `UncheckedAccount` field.
 use naclac_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");

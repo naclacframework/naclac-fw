@@ -17,7 +17,7 @@ pub struct CallSetupCounter {
     /// SAFETY: this is `cpi_callee`'s own PDA, owned and validated by that
     /// program, not ours — we only ever forward it as a CPI account.
     #[account(mut)]
-    pub counter: AccountInfo,
+    pub counter: UncheckedAccount,
 
     #[account(seeds = [SEED_CALLER_AUTHORITY], bump)]
     pub caller_authority: Account<CallerAuthority>,

@@ -5,7 +5,7 @@ use crate::events::FixedPayload128;
 pub struct EmitFixed128 {
     /// SAFETY: only its address is checked; its data is never read.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 }
 
 pub fn emit_fixed_128(_ctx: Context<EmitFixed128>) -> Result {

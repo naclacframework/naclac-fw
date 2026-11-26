@@ -1,8 +1,9 @@
 #![allow(unexpected_cfgs)]
 // A `seeds = [...]` constraint with no `bump` on an existing account whose
-// type does not prove the deriving program created it (`AccountInfo`).
+// type does not prove the deriving program created it (`UncheckedAccount`).
 // On-chain bump discovery skips the curve check, so it is only allowed for
-// `Account<T>`/`InterfaceAccount<T>`; any other type must supply its bump.
+// `Account<T>`/`InterfaceAccount<T>`; any other type must write `bump` or
+// `bump = <value>`.
 //
 // The second seed names another field, so the PDA is derived at runtime and
 // the field needs a bump source.
@@ -14,7 +15,7 @@ pub struct Foo {
 
     /// SAFETY: only its address is checked against the seeds; never read.
     #[account(seeds = [b"foo", authority.address().as_ref()])]
-    pub account: AccountInfo,
+    pub account: UncheckedAccount,
 }
 
 fn main() {}

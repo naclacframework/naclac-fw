@@ -1,25 +1,5 @@
-error: Naclac Error: `init` under seeds unknown at compile time needs `bump` (canonical search) or `bump = <value>`. Example: #[account(init, seeds = [...], bump)]
+error: Naclac Error: `init` under seeds unknown at compile time needs `bump` (canonical search). Example: #[account(init, seeds = [...], bump)]
   --> tests/fail/188_init_dynamic_seeds_without_bump.rs:13:9
    |
 13 |     pub account: Account<FooData>,
    |         ^^^^^^^
-
-error[E0425]: cannot find value `expected_pda` in this scope
-  --> tests/fail/188_init_dynamic_seeds_without_bump.rs:13:9
-   |
-13 |     pub account: Account<FooData>,
-   |         ^^^^^^^ not found in this scope
-
-error[E0425]: cannot find value `expected_bump` in this scope
-  --> tests/fail/188_init_dynamic_seeds_without_bump.rs:13:9
-   |
-13 |     pub account: Account<FooData>,
-   |         ^^^^^^^ not found in this scope
-
-error[E0425]: cannot find value `expected_bump` in this scope
- --> tests/fail/188_init_dynamic_seeds_without_bump.rs:7:10
-  |
-7 | #[derive(Accounts)]
-  |          ^^^^^^^^ not found in this scope
-  |
-  = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)

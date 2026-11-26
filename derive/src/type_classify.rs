@@ -1,7 +1,7 @@
 //! Structural (AST-based) classification of field/argument types, shared
 //! across every macro in this crate that needs to answer "what kind of type
 //! is this". Matching `Type::Path` segments, and never a stringified type,
-//! keeps a type such as `AccountInfoWrapper<T>` from matching `Account`.
+//! keeps a type such as `UncheckedAccountWrapper<T>` from matching `Account`.
 //!
 //! A proc-macro sees only syntax, so a type is recognised here by its last
 //! path segment. That is only ever used to choose a code shape or a
@@ -95,9 +95,9 @@ pub(crate) fn inner_is(ty: &Type, name: &str) -> bool {
 /// different story and needs no special handling at all: this function only
 /// inspects the outermost segment, so it's already detected as optional,
 /// and `option_inner_type` below already returns the inner `Box<T>` as-is.
-/// Every downstream call site (loader, `to_account_metas`/`to_account_infos`,
+/// Every downstream call site (loader, `to_account_metas`/`to_unchecked_accounts`,
 /// `close`/`realloc`, etc.) then works transparently through naclac-core's
-/// existing blanket `NaclacAccount`/`ToAddress`/`ToAccountInfo` impls for
+/// existing blanket `NaclacAccount`/`ToAddress`/`ToUncheckedAccount` impls for
 /// `Box<T>` — the same impls a plain (non-optional) `Box<Account<T>>>` field
 /// already relies on. Covered by `tests/optional-accounts`'
 /// `touch_boxed_optional`. Non-pinocchio only: those
@@ -416,7 +416,7 @@ mod tests {
 
     #[test]
     fn other_types_have_no_account_type() {
-        assert_eq!(inner("AccountInfo"), None);
+        assert_eq!(inner("UncheckedAccount"), None);
         assert_eq!(inner("InterfaceAccount<Mint>"), None);
         assert_eq!(inner("Signer"), None);
         assert_eq!(inner("Program<System>"), None);

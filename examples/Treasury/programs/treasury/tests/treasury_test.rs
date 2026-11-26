@@ -338,6 +338,15 @@ fn create_treasury_rejects_a_vault_bump_that_is_not_the_canonical_one() {
 }
 
 #[test]
+fn create_treasury_rejects_a_vault_bump_argument_that_is_not_the_found_one() {
+    let provider = new_provider();
+    let (treasury, vault, canonical_bump) = treasury_addresses(&provider);
+
+    let result = send_create_treasury(&provider, treasury, vault, canonical_bump.wrapping_sub(1), 2);
+    assert_code(result, framework_code(2, CONSTRAINT_SEEDS));
+}
+
+#[test]
 fn only_the_admin_adds_members_and_the_list_has_five_slots() {
     let fixture = fixture(1);
     let first = fixture.member();

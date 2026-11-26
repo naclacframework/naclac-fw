@@ -29,7 +29,7 @@ pub struct LaunchToken {
         bump = args.mint_bump
     )]
     /// SAFETY: the PDA address is validated by the seeds/bump constraint above and the field is only used as a mint target and signer authority input.
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     #[account(
         init,
@@ -53,19 +53,19 @@ pub struct LaunchToken {
 
     #[account(mut)]
     /// SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target.
-    pub pool_state: AccountInfo,
+    pub pool_state: UncheckedAccount,
 
     #[account(mut)]
     /// SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target.
-    pub pool_vault_a: AccountInfo,
+    pub pool_vault_a: UncheckedAccount,
 
     #[account(mut)]
     /// SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target.
-    pub pool_vault_b: AccountInfo,
+    pub pool_vault_b: UncheckedAccount,
 
     #[account(mut)]
     /// SAFETY: the address and ownership are established by the AMM CPI contract and this field is only passed through as a writable account target.
-    pub pool_lp_mint: AccountInfo,
+    pub pool_lp_mint: UncheckedAccount,
 
     pub amm_program: Program<Amm>,
     pub token_program: Program<Token>,

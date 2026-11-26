@@ -7,7 +7,7 @@
 //! an account outside of the accounts-struct constraint system.
 
 use {
-    crate::prelude::{Rent, Result, Sysvar, ToAccountInfo, ToCpiHandleMut},
+    crate::prelude::{Rent, Result, Sysvar, ToCpiHandleMut, ToUncheckedAccount},
     core::cell::OnceCell,
 };
 
@@ -59,10 +59,10 @@ fn minimum_balance_under(rent: &Rent, space: usize) -> Result<u64> {
 /// movement, no `.resize()` call) when `target` is already `new_space`.
 pub fn resize_with_rent<T, P>(target: &mut T, payer: &mut P, new_space: usize) -> Result<()>
 where
-    T: ToAccountInfo + for<'a> ToCpiHandleMut<'a>,
-    P: ToAccountInfo + for<'a> ToCpiHandleMut<'a>,
+    T: ToUncheckedAccount + for<'a> ToCpiHandleMut<'a>,
+    P: ToUncheckedAccount + for<'a> ToCpiHandleMut<'a>,
 {
-    let target_info = target.to_account_info();
+    let target_info = target.to_unchecked_account();
 
     // Already the requested size: no lamport movement possible (rent is a
     // pure function of size) and nothing for `.resize()` to change either.
@@ -86,7 +86,7 @@ where
         // Shrinking: target is owned by this program, so the excess can be
         // debited directly and credited to payer without a CPI.
         let refund = current_lamports.saturating_sub(required_lamports);
-        payer.to_account_info().add_lamports(refund)?;
+        payer.to_unchecked_account().add_lamports(refund)?;
         target_info.sub_lamports(refund)?;
     }
 

@@ -25,7 +25,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMember {
     /// body below — raw SPL `Mint` + `GroupMemberPointer` +
     /// `TokenGroupMember` layout, not a naclac account.
     #[account(mut)]
-    pub member_mint: AccountInfo,
+    pub member_mint: UncheckedAccount,
 
     #[account(mut)]
     pub group_mint: InterfaceAccount<Mint>,

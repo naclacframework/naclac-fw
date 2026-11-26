@@ -437,7 +437,7 @@ mod tests {
     fn dup_rejects_being_written_by_another_field() {
         for attr in ["close = a", "realloc = 8, realloc::payer = a"] {
             let fields = parse(&format!(
-                "/// SAFETY: test.\n#[account(dup)] a: AccountInfo,
+                "/// SAFETY: test.\n#[account(dup)] a: UncheckedAccount,
                  #[account({attr})] b: Account<B>"
             ));
             let message = fields[0]
@@ -459,14 +459,14 @@ mod tests {
     fn realloc_grow_only_is_a_flag() {
         let fields = parse(
             "/// SAFETY: test.\n#[account(mut, realloc::any_of = [A], realloc::payer = p, \
-             realloc::grow_only)] a: AccountInfo",
+             realloc::grow_only)] a: UncheckedAccount",
         );
         assert!(fields[0].parse_error.is_none());
         assert!(fields[0].realloc.as_ref().is_some_and(|r| r.grow_only));
 
         let message = error_of(
             "/// SAFETY: test.\n#[account(mut, realloc::any_of = [A], realloc::payer = p, \
-             realloc::grow_only = true)] a: AccountInfo",
+             realloc::grow_only = true)] a: UncheckedAccount",
         );
         assert!(message.contains("expected `,`"), "{message}");
     }
@@ -483,10 +483,10 @@ mod tests {
     }
 
     #[test]
-    fn realloc_any_of_needs_an_account_info_field() {
+    fn realloc_any_of_needs_an_unchecked_account_field() {
         let message =
             error_of("#[account(mut, realloc::any_of = [A], realloc::payer = p)] a: Account<A>");
-        assert!(message.contains("must be `AccountInfo`"), "{message}");
+        assert!(message.contains("must be `UncheckedAccount`"), "{message}");
     }
 
     #[test]

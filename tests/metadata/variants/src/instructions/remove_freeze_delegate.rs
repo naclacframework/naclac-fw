@@ -13,7 +13,7 @@ pub struct RemoveFreezeDelegate {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn remove_freeze_delegate(ctx: Context<RemoveFreezeDelegate>) -> Result {

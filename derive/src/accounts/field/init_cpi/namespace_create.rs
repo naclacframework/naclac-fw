@@ -81,7 +81,7 @@ pub(super) fn tokens(ctx: &InitCtx, namespace: &Namespace, create: &Create) -> T
                     let account_ref = get_account_reference(expr, all_fields);
                     quote! {
                         naclac_lang::prelude::CpiHandle {
-                            info: naclac_lang::prelude::ToAccountInfo::to_account_info(#account_ref),
+                            info: naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(#account_ref),
                             _phantom: core::marker::PhantomData,
                         }
                     }
@@ -127,7 +127,7 @@ pub(super) fn tokens(ctx: &InitCtx, namespace: &Namespace, create: &Create) -> T
     quote! {
         #existence_check
 
-        let __sys_info = naclac_lang::prelude::ToAccountInfo::to_account_info(&accounts[#system_program_idx]);
+        let __sys_info = naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(&accounts[#system_program_idx]);
         if (&__sys_info).address() != naclac_lang::prelude::SYSTEM_PROGRAM_ID {
             return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#system_program_idx));
         }
@@ -137,9 +137,9 @@ pub(super) fn tokens(ctx: &InitCtx, namespace: &Namespace, create: &Create) -> T
         <#path::Constraint as naclac_lang::prelude::AccountConstraintCreate<#ty>>::create(
             &#args,
             naclac_lang::prelude::ConstraintCreation {
-                account: naclac_lang::prelude::ToAccountInfo::to_account_info(info),
+                account: naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(info),
                 index: #idx,
-                payer: naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref),
+                payer: naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(#payer_ref),
                 system_program: __sys_info,
                 idempotent: #idempotent,
                 extra_accounts: #extra_accounts_tokens,

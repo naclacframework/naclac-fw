@@ -3,11 +3,11 @@
 //! Provides the Program wrapper to enforce that a given account is executable.
 
 #[cfg(feature = "pinocchio")]
-use crate::prelude::AccountView;
+use pinocchio::AccountView;
 use {
     crate::{
-        prelude::{AccountInfo, Address, NaclacError, Result},
-        wrappers::{ToAccountInfo, ToAddress},
+        prelude::{Address, NaclacError, Result, UncheckedAccount},
+        wrappers::{ToAddress, ToUncheckedAccount},
     },
     core::ops::Deref,
 };
@@ -16,7 +16,7 @@ use {
 #[cfg_attr(not(feature = "pinocchio"), derive(Clone))]
 pub struct Program<T = ()> {
     #[cfg(not(feature = "pinocchio"))]
-    pub info: AccountInfo,
+    pub info: UncheckedAccount,
     #[cfg(feature = "pinocchio")]
     pub view: AccountView,
     pub _phantom: core::marker::PhantomData<T>,
@@ -52,7 +52,7 @@ pub struct AssociatedToken;
 #[cfg(not(feature = "pinocchio"))]
 impl<T: Clone> Program<T> {
     pub fn try_from(
-        info: &AccountInfo,
+        info: &UncheckedAccount,
         expected_program_id: &Address,
         index: usize,
     ) -> Result<Self> {
@@ -78,22 +78,22 @@ impl<T: Clone> crate::wrappers::Owner for Program<T> {
 
 #[cfg(not(feature = "pinocchio"))]
 impl<T: Clone> Deref for Program<T> {
-    type Target = AccountInfo;
+    type Target = UncheckedAccount;
     fn deref(&self) -> &Self::Target {
         &self.info
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl<T: Clone> ToAccountInfo for Program<T> {
-    fn to_account_info(&self) -> AccountInfo {
+impl<T: Clone> ToUncheckedAccount for Program<T> {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
         self.info
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl<T: Clone> crate::wrappers::ToAccountInfos for Program<T> {
-    fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
+impl<T: Clone> crate::wrappers::ToUncheckedAccounts for Program<T> {
+    fn to_unchecked_accounts(&self) -> crate::prelude::Vec<UncheckedAccount> {
         crate::prelude::vec![self.info]
     }
 }
@@ -132,7 +132,7 @@ impl<'a, T: Clone> crate::wrappers::cpi_handle::ToCpiHandleMut<'a> for Program<T
 #[cfg(feature = "pinocchio")]
 impl<T: Clone> Program<T> {
     pub fn try_from(
-        info: &AccountInfo,
+        info: &UncheckedAccount,
         expected_program_id: &Address,
         index: usize,
     ) -> Result<Self> {
@@ -158,7 +158,7 @@ impl<'a, T: Clone> crate::wrappers::cpi_handle::ToCpiHandle<'a> for Program<T> {
     #[inline(always)]
     fn to_cpi_handle(&'a self) -> crate::wrappers::cpi_handle::CpiHandle<'a> {
         crate::wrappers::cpi_handle::CpiHandle {
-            info: AccountInfo { view: self.view },
+            info: UncheckedAccount { view: self.view },
             _phantom: core::marker::PhantomData,
         }
     }
@@ -169,7 +169,7 @@ impl<'a, T: Clone> crate::wrappers::cpi_handle::ToCpiHandleMut<'a> for Program<T
     #[inline(always)]
     fn to_cpi_handle_mut(&'a mut self) -> crate::wrappers::cpi_handle::CpiHandleMut<'a> {
         crate::wrappers::cpi_handle::CpiHandleMut {
-            info: AccountInfo { view: self.view },
+            info: UncheckedAccount { view: self.view },
             _phantom: core::marker::PhantomData,
         }
     }
@@ -191,16 +191,16 @@ impl<T: Clone> Deref for Program<T> {
 }
 
 #[cfg(feature = "pinocchio")]
-impl<T: Clone> crate::wrappers::ToAccountView for Program<T> {
-    fn to_account_view(&self) -> AccountView {
+impl<T: Clone> crate::wrappers::ToRuntimeView for Program<T> {
+    fn to_runtime_view(&self) -> AccountView {
         self.view
     }
 }
 
 #[cfg(feature = "pinocchio")]
-impl<T: Clone> ToAccountInfo for Program<T> {
-    fn to_account_info(&self) -> AccountInfo {
-        AccountInfo { view: self.view }
+impl<T: Clone> ToUncheckedAccount for Program<T> {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
+        UncheckedAccount { view: self.view }
     }
 }
 
@@ -243,7 +243,7 @@ impl<T: crate::wrappers::Id + Clone> crate::wrappers::NaclacAccount for Program<
     const CHECKS_PROGRAM_ID: bool = true;
 
     #[inline(always)]
-    fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+    fn try_from(info: &UncheckedAccount, index: usize) -> Result<Self> {
         Self::try_from(info, &T::id(), index)
     }
 }

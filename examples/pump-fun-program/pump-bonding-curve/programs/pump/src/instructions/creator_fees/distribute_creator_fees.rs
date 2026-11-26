@@ -12,7 +12,7 @@ use crate::state::{BondingCurve, Shareholder, SharingConfig};
 pub struct DistributeCreatorFees {
     /// SAFETY: only used as a seed input for `bonding_curve`/`sharing_config` below, never
     /// read or written — a wrong value just fails those seed checks.
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     #[account(seeds = [BONDING_CURVE_SEED, mint.address().as_ref()], bump = bonding_curve_bump)]
     pub bonding_curve: Account<BondingCurve>,
@@ -34,7 +34,7 @@ pub struct DistributeCreatorFees {
         seeds = [CREATOR_VAULT_SEED, bonding_curve.creator.as_ref()],
         bump = creator_vault_bump,
     )]
-    pub creator_vault: AccountInfo,
+    pub creator_vault: UncheckedAccount,
 
     pub system_program: Program<System>,
 
@@ -49,7 +49,7 @@ pub struct DistributeCreatorFees {
         seeds::program = PUMP_FEES_PROGRAM_ID,
         bump,
     )]
-    pub pump_fees_authority: AccountInfo,
+    pub pump_fees_authority: UncheckedAccount,
 }
 
 /// Sweeps `creator_vault` down to its rent-exempt minimum, paying the swept

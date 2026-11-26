@@ -8,10 +8,10 @@ pub struct EmitViaSelfCpiSignedBaseline {
     /// (`log_event_signed`) that checks `is_signer`, once `invoke_signed`
     /// below has actually marked it as one. Its data is never read.
     #[account(seeds = [SEED_EVENT_AUTHORITY], bump)]
-    pub event_authority: AccountInfo,
+    pub event_authority: UncheckedAccount,
     /// SAFETY: only its address is checked; its data is never read.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 }
 
 /// `sha256("global:log_event_signed")[..8]`.

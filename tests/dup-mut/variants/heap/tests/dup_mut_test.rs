@@ -359,7 +359,7 @@ fn a_trailing_repeat_of_a_mutable_account_is_rejected_after_an_inline_dup() {
 /// `Box<Account<T>>` coverage: no test program in this repo boxes any
 /// account field before this. Confirms the blanket impls added for
 /// `Box<T>` in `core/src/wrappers/mod.rs` (`NaclacAccount`, `Owner`,
-/// `ToAddress`, `AsRefByteSlice`, `ToAccountInfo`/`ToAccountInfos`,
+/// `ToAddress`, `AsRefByteSlice`, `ToUncheckedAccount`/`ToUncheckedAccounts`,
 /// `ToCpiHandle`/`ToCpiHandleMut`) make a boxed field load, validate, and
 /// mutate identically to a bare `Account<T>` field — the same `vault_a` PDA
 /// this file already exercises unboxed via `touch_pair_no_alias` is used

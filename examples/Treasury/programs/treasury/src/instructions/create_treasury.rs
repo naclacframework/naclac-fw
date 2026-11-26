@@ -12,7 +12,6 @@ use {
 };
 
 #[derive(Accounts)]
-#[instruction(vault_bump: u8)]
 pub struct CreateTreasury {
     #[account(mut)]
     pub admin: Signer,
@@ -25,16 +24,18 @@ pub struct CreateTreasury {
     )]
     pub treasury: Account<Treasury>,
 
-    /// SAFETY: a lamport-only PDA with no data, checked by `seeds` and the
-    /// canonical bump the caller supplies; it is only the source of signed
-    /// transfers.
-    #[account(seeds = VaultPda::seeds(treasury.address()), bump = vault_bump)]
-    pub vault: AccountInfo,
+    /// SAFETY: a lamport-only PDA with no data, checked by `seeds` at its
+    /// canonical bump; it is only the source of signed transfers.
+    #[account(seeds = VaultPda::seeds(treasury.address()), bump)]
+    pub vault: UncheckedAccount,
 
     pub system_program: Program<System>,
 }
 
 pub fn create_treasury(ctx: Context<CreateTreasury>, vault_bump: u8, threshold: u8) -> Result {
+    if ctx.bumps.vault != vault_bump {
+        return Err(NaclacError::ConstraintSeeds.err(2));
+    }
     require!(
         threshold > 0 && usize::from(threshold) <= MAX_MEMBERS,
         TreasuryError::InvalidThreshold

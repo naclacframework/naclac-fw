@@ -83,7 +83,7 @@ pub struct UpsertStableFeeTiersCpiCall<'a> {
     pub stable_fee_tiers: crate::sdk_core_cpi::ZcVec<crate::types::FeeTierCpi>,
     pub offset: u8,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

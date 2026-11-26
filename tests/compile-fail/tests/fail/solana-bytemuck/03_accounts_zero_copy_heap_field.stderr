@@ -21,23 +21,23 @@ error[E0277]: the trait bound `std::vec::Vec<u8>: NaclacAccount` is not satisfie
             InterfaceAccount<T>
             Program<T>
             Signer
+            UncheckedAccount
             naclac_lang::prelude::Account<T>
-            naclac_lang::prelude::AccountInfo
 
-error[E0277]: the trait bound `std::vec::Vec<u8>: ToAccountInfo` is not satisfied
+error[E0277]: the trait bound `std::vec::Vec<u8>: ToUncheckedAccount` is not satisfied
  --> tests/fail/solana-bytemuck/03_accounts_zero_copy_heap_field.rs:7:10
   |
 7 | #[derive(Accounts)]
-  |          ^^^^^^^^ the trait `ToAccountInfo` is not implemented for `std::vec::Vec<u8>`
+  |          ^^^^^^^^ the trait `ToUncheckedAccount` is not implemented for `std::vec::Vec<u8>`
   |
-  = help: the following other types implement trait `ToAccountInfo`:
+  = help: the following other types implement trait `ToUncheckedAccount`:
             Box<T>
             Interface<T>
             InterfaceAccount<T>
             Program<T>
             Signer
+            UncheckedAccount
             naclac_lang::prelude::Account<T>
-            naclac_lang::prelude::AccountInfo
   = note: this error originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `std::vec::Vec<u8>: NaclacAccount` is not satisfied
@@ -52,5 +52,5 @@ error[E0277]: the trait bound `std::vec::Vec<u8>: NaclacAccount` is not satisfie
             InterfaceAccount<T>
             Program<T>
             Signer
+            UncheckedAccount
             naclac_lang::prelude::Account<T>
-            naclac_lang::prelude::AccountInfo

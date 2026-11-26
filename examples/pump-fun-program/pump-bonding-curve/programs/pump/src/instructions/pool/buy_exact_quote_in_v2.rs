@@ -69,7 +69,7 @@ pub struct BuyExactQuoteInV2 {
     /// not a single fixed address — no declarative constraint supports OR);
     /// never deserialized, only a lamport/ATA-transfer destination below.
     #[account(mut)]
-    pub fee_recipient: AccountInfo,
+    pub fee_recipient: UncheckedAccount,
 
     #[account(
         mut,
@@ -92,7 +92,7 @@ pub struct BuyExactQuoteInV2 {
         bump = args.buyback_vault_bump,
         owner = PUMP_FEES_PROGRAM_ID,
     )]
-    pub buyback_fee_recipient: AccountInfo,
+    pub buyback_fee_recipient: UncheckedAccount,
 
     /// SAFETY: real `pump.so` does not auto-create this ATA (confirmed via
     /// probe) — must already exist.
@@ -166,7 +166,7 @@ pub struct BuyExactQuoteInV2 {
         seeds = [CREATOR_VAULT_SEED, bonding_curve.creator.as_ref()],
         bump = args.creator_vault_bump,
     )]
-    pub creator_vault: AccountInfo,
+    pub creator_vault: UncheckedAccount,
 
     #[account(
         mut,
@@ -181,7 +181,7 @@ pub struct BuyExactQuoteInV2 {
     /// SAFETY: confirmed via probe (`buy_v2`/`sell_v2`) — not read/required
     /// for a coin that hasn't opted into fee-sharing; pure account-shape
     /// parity, same category as `bonding_curve_v2` elsewhere in this program.
-    pub sharing_config: AccountInfo,
+    pub sharing_config: UncheckedAccount,
 
     /// SAFETY: real `buy_exact_quote_in_v2` never writes this account (same
     /// as classic `buy`/`buy_v2`/`buy_exact_sol_in`) — must already exist,
@@ -212,7 +212,7 @@ pub struct BuyExactQuoteInV2 {
     /// below — naclac's `emit!` needs no `event_authority`/self-CPI account,
     /// unlike Anchor's own event-emission convention.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 
     /// SAFETY: the `seeds`/`owner` constraints fully validate this; only
     /// passed as a CPI account to `pump_fees::get_fees` below, never
@@ -223,7 +223,7 @@ pub struct BuyExactQuoteInV2 {
         bump = args.fee_config_bump,
         owner = PUMP_FEES_PROGRAM_ID,
     )]
-    pub fee_config: AccountInfo,
+    pub fee_config: UncheckedAccount,
 
     pub fee_program: Program<PumpFees>,
 
@@ -233,7 +233,7 @@ pub struct BuyExactQuoteInV2 {
     /// it's a lamport-only PDA (no stored data) — only ever used as the
     /// signed-CPI proof-of-origin for `pump_fees::get_fees` below.
     #[account(seeds = [PUMP_AUTHORITY_SEED], bump)]
-    pub pump_authority: AccountInfo,
+    pub pump_authority: UncheckedAccount,
 }
 
 pub fn buy_exact_quote_in_v2(ctx: Context<BuyExactQuoteInV2>, args: BuyExactQuoteInV2Args) -> Result {

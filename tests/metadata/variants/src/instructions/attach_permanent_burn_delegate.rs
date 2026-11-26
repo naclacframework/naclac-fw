@@ -16,7 +16,7 @@ pub struct AttachPermanentBurnDelegate {
     /// SAFETY: the real Metaplex Core program — external to this workspace,
     /// so there's no naclac `Program<T>` marker type to constrain it with;
     /// callers are expected to pass the real deployed program ID.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn attach_permanent_burn_delegate(ctx: Context<AttachPermanentBurnDelegate>) -> Result {

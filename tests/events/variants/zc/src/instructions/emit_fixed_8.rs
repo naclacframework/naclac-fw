@@ -7,7 +7,7 @@ pub struct EmitFixed8 {
     // outer dispatch/account-validation overhead identical across the sweep.
     /// SAFETY: only its address is checked; its data is never read.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 }
 
 pub fn emit_fixed_8(_ctx: Context<EmitFixed8>) -> Result {

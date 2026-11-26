@@ -394,7 +394,7 @@ fn realloc_optional_thing_is_noop_when_absent() {
 /// no macro changes: `type_classify::is_option_account` only looks at the
 /// outermost segment (`Option`), so the unwrapped field type becomes
 /// `Box<Account<Thing>>` as-is, and naclac-core's existing blanket
-/// `NaclacAccount`/`ToAddress`/`ToAccountInfo` impls for `Box<T>` make every
+/// `NaclacAccount`/`ToAddress`/`ToUncheckedAccount` impls for `Box<T>` make every
 /// call site the sentinel codegen already uses work transparently.
 #[test]
 fn touch_boxed_optional_increments_when_present() {

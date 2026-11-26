@@ -11,7 +11,7 @@ pub struct BurnCollection {
     pub payer: Signer,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn burn_collection(ctx: Context<BurnCollection>) -> Result {

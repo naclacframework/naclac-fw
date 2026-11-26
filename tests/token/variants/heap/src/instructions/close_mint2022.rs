@@ -17,7 +17,7 @@ pub struct CloseMint2022 {
     /// SAFETY: only used as the lamport-destination address for
     /// `close_account_signed` below; its data is never read or deserialized.
     #[account(mut)]
-    pub destination: AccountInfo,
+    pub destination: UncheckedAccount,
 
     #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
     pub mint_authority: Account<MintAuthority>,

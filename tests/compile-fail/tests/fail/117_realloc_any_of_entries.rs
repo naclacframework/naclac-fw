@@ -9,9 +9,9 @@ pub struct Foo {
     #[account(mut)]
     pub payer: Signer,
 
-    /// SAFETY: `realloc::any_of` reads the raw account, so the field is an `AccountInfo`.
+    /// SAFETY: `realloc::any_of` reads the raw account, so the field is an `UncheckedAccount`.
     #[account(mut, realloc::any_of = [1], realloc::payer = payer)]
-    pub account: AccountInfo,
+    pub account: UncheckedAccount,
 
     pub system_program: Program<System>,
 }

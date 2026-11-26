@@ -16,7 +16,7 @@ pub struct SetTokenAccountOwner {
     /// SAFETY: only used as an address — its own key becomes the vault's new
     /// owner via `set_authority_signed` below; its data is never read or
     /// deserialized.
-    pub new_owner: AccountInfo,
+    pub new_owner: UncheckedAccount,
 
     pub token_program: Program<Token2022>,
 }

@@ -116,7 +116,7 @@ pub trait LaunchTokenCpi<'info> {
         accounts: LaunchTokenCpiAccounts<'a>,
         args: crate::types::LaunchTokenArgs,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()>;
 
 }
@@ -128,7 +128,7 @@ impl<'info> LaunchTokenCpi<'info> for crate::sdk_core::Program<crate::TokenCreat
         accounts: LaunchTokenCpiAccounts<'a>,
         args: crate::types::LaunchTokenArgs,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()> {
         let args = LaunchTokenIxArgs {
             args,

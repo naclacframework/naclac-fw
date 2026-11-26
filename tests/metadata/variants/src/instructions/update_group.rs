@@ -13,7 +13,7 @@ pub struct UpdateGroup {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn update_group(ctx: Context<UpdateGroup>, new_name: ZcString, new_uri: ZcString) -> Result {

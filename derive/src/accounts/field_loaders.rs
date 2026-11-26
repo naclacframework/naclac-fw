@@ -41,12 +41,12 @@ fn field_loader(
         checks::generate_security_checks(field, fields, runtime_names)
     };
     // The SAFETY-doc rule decided by the field's type, which also catches an
-    // alias of `AccountInfo`; the literal spelling is reported earlier, with
+    // alias of `UncheckedAccount`; the literal spelling is reported earlier, with
     // the field's span, as a parse error.
     let metadata_checks = if field.parse_error.is_none() && !field.has_safety_doc {
         let msg = "Naclac Error: this field's type gets no automatic validation (like \
-                   `AccountInfo`). Add a `/// SAFETY: ...` doc comment above the field explaining \
-                   why that is safe.";
+                   `UncheckedAccount`). Add a `/// SAFETY: ...` doc comment above the field \
+                   explaining why that is safe.";
         quote! {
             const _: () = assert!(!<#ty as naclac_lang::prelude::NaclacAccount>::UNCHECKED, #msg);
             #metadata_checks

@@ -4,7 +4,7 @@ use naclac_lang::prelude::*;
 // rejects an account whose lamport balance is below the rent-exempt minimum
 // for its current data length — `Rent::get()?.is_exempt(lamports, data_len)`
 // on non-pinocchio, a const-rent formula on pinocchio (`security.rs`'s
-// "Rent-Exemption Check"). Bare `AccountInfo` since only lamports/data-len
+// "Rent-Exemption Check"). Bare `UncheckedAccount` since only lamports/data-len
 // metadata is inspected, never the account's contents.
 #[derive(Accounts)]
 pub struct CheckRentExempt {
@@ -12,7 +12,7 @@ pub struct CheckRentExempt {
     /// inspected via the `rent_exempt` constraint below; its data is never
     /// read or deserialized.
     #[account(rent_exempt)]
-    pub target: AccountInfo,
+    pub target: UncheckedAccount,
 }
 
 pub fn check_rent_exempt(_ctx: Context<CheckRentExempt>) -> Result {

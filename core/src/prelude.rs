@@ -37,7 +37,7 @@ pub use crate::wrappers::{Account, InterfaceAccount};
 pub use crate::wrappers::{
     AsRefByteSlice, AssociatedToken, CpiHandle, CpiHandleMut, Discriminator, Id, Ids, Interface,
     MaxLen1, MaxLen2, MaxLen3, NaclacAccount, Owner, Program, SerializedBounds, Signer, System,
-    ToAccountInfo, ToAddress, ToCpiHandle, ToCpiHandleMut, Token, Token2022, TokenInterface,
+    ToAddress, ToCpiHandle, ToCpiHandleMut, ToUncheckedAccount, Token, Token2022, TokenInterface,
     ValidateInterfaceLayout,
 };
 
@@ -103,11 +103,11 @@ mod cpi_account_count_kani_proofs {
     }
 }
 
-// `ToAccountInfos` is implemented for both branches of `Account<T>`/
+// `ToUncheckedAccounts` is implemented for both branches of `Account<T>`/
 // `InterfaceAccount<T>` — only absent under pinocchio, where the trait
-// itself has no `to_account_infos` method to begin with.
+// itself has no `to_unchecked_accounts` method to begin with.
 #[cfg(not(feature = "pinocchio"))]
-pub use crate::wrappers::ToAccountInfos;
+pub use crate::wrappers::ToUncheckedAccounts;
 
 // Pinocchio-only: AccountView is already exported from the pinocchio block below (line ~159)
 // Do NOT re-export it from wrappers here — that creates a circular private import
@@ -216,11 +216,11 @@ pub use solana_system_interface;
 /// One input account in the SDK's `solana_account_info::AccountInfo` layout,
 /// which CPI and SDK interop read directly, so the field order must stay
 /// identical to it. The entrypoint's account list is made of these; programs
-/// reach them through the [`AccountInfo`] handle.
+/// reach them through the [`UncheckedAccount`] handle.
 #[cfg(not(feature = "pinocchio"))]
 #[derive(Clone)]
 #[repr(C)]
-pub struct AccountInfoData {
+pub struct UncheckedAccountData {
     pub key: &'static Address,
     pub lamports: alloc::rc::Rc<core::cell::RefCell<&'static mut u64>>,
     pub data: alloc::rc::Rc<core::cell::RefCell<&'static mut [u8]>>,
@@ -233,33 +233,33 @@ pub struct AccountInfoData {
 
 /// A `Copy` handle to one of the program's input accounts, the standard
 /// Solana backend's counterpart of pinocchio's `AccountView`. Copying it never
-/// touches the `Rc`s inside [`AccountInfoData`], which it dereferences to. The
-/// `'static` reference is only sound because the entrypoint's account list is
-/// never freed while the program runs.
+/// touches the `Rc`s inside [`UncheckedAccountData`], which it dereferences to.
+/// The `'static` reference is only sound because the entrypoint's account list
+/// is never freed while the program runs.
 #[cfg(not(feature = "pinocchio"))]
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct AccountInfo(pub(crate) &'static AccountInfoData);
+pub struct UncheckedAccount(pub(crate) &'static UncheckedAccountData);
 
 #[cfg(not(feature = "pinocchio"))]
-impl core::ops::Deref for AccountInfo {
-    type Target = AccountInfoData;
+impl core::ops::Deref for UncheckedAccount {
+    type Target = UncheckedAccountData;
     #[inline(always)]
-    fn deref(&self) -> &AccountInfoData {
+    fn deref(&self) -> &UncheckedAccountData {
         self.0
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl AccountInfo {
+impl UncheckedAccount {
     #[inline(always)]
-    pub fn from_data(data: &'static AccountInfoData) -> Self {
+    pub fn from_data(data: &'static UncheckedAccountData) -> Self {
         Self(data)
     }
 
     /// The account in the SDK's own `AccountInfo` layout.
     #[inline(always)]
-    pub fn data_ref(&self) -> &'static AccountInfoData {
+    pub fn data_ref(&self) -> &'static UncheckedAccountData {
         self.0
     }
 }
@@ -269,16 +269,16 @@ impl AccountInfo {
 #[cfg(not(feature = "pinocchio"))]
 #[doc(hidden)]
 #[inline(never)]
-pub fn account_handles(accounts: &'static [AccountInfoData]) -> &'static [AccountInfo] {
+pub fn account_handles(accounts: &'static [UncheckedAccountData]) -> &'static [UncheckedAccount] {
     accounts
         .iter()
-        .map(AccountInfo::from_data)
-        .collect::<crate::prelude::Vec<AccountInfo>>()
+        .map(UncheckedAccount::from_data)
+        .collect::<crate::prelude::Vec<UncheckedAccount>>()
         .leak()
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl AccountInfo {
+impl UncheckedAccount {
     /// Whether the account's data is empty. Fails with `AccountBorrowFailed`
     /// while the data is mutably borrowed. Must stay an inherent method: the
     /// SDK method of the same name, reached through `Deref`, panics instead.
@@ -313,11 +313,11 @@ impl AccountInfo {
 
     /// # Safety
     ///
-    /// This function transmutes the lifetime-erased `AccountInfo` back to a specific lifetime `'info`.
+    /// This function transmutes the lifetime-erased `UncheckedAccount` back to a specific lifetime `'info`.
     /// The caller must ensure that the lifetime `'info` is valid for the lifetime-erased representation.
     #[inline(always)]
     pub unsafe fn to_lifetime<'info>(&self) -> solana_account_info::AccountInfo<'info> {
-        core::mem::transmute::<AccountInfoData, solana_account_info::AccountInfo<'info>>(
+        core::mem::transmute::<UncheckedAccountData, solana_account_info::AccountInfo<'info>>(
             self.0.clone(),
         )
     }
@@ -409,8 +409,11 @@ pub use pinocchio::{
     error::ProgramError,
     instruction,
     sysvars::{clock::Clock, rent::Rent, Sysvar},
-    AccountView, Address as PinocchioAddress, ProgramResult,
+    Address as PinocchioAddress, ProgramResult,
 };
+
+#[cfg(feature = "pinocchio")]
+use pinocchio::AccountView;
 
 #[cfg(feature = "pinocchio")]
 pub use crate::cursor::{account_count_error, parse_ix_context, AccountCursor};
@@ -814,9 +817,9 @@ mod borrowed_account_tests {
         core::cell::RefCell,
     };
 
-    fn account(lamports: u64, data: &[u8]) -> AccountInfo {
+    fn account(lamports: u64, data: &[u8]) -> UncheckedAccount {
         let data: &'static mut [u8] = Box::leak(data.to_vec().into_boxed_slice());
-        AccountInfo::from_data(Box::leak(Box::new(AccountInfoData {
+        UncheckedAccount::from_data(Box::leak(Box::new(UncheckedAccountData {
             key: Box::leak(Box::new(Address::default())),
             lamports: Rc::new(RefCell::new(Box::leak(Box::new(lamports)))),
             data: Rc::new(RefCell::new(data)),
@@ -950,7 +953,7 @@ fn build_pda_hash_inputs<'a, 's>(
 /// the result is off-curve. The one shared implementation behind the
 /// `#[account(seeds = [...], bump = ...)]` constraint naclac-derive generates
 /// and `associated_token::derive_ata_address`. Also what hand-written
-/// instruction code uses to verify an arbitrary `AccountInfo` (e.g. one of
+/// instruction code uses to verify an arbitrary `UncheckedAccount` (e.g. one of
 /// `ctx.remaining_accounts`) against an expected PDA, which no declarative
 /// `#[account(...)]` constraint can reach.
 ///
@@ -1663,12 +1666,12 @@ impl<'a> core::ops::DerefMut for RefMut<'a> {
 #[cfg(feature = "pinocchio")]
 #[derive(Copy, Clone)]
 #[repr(transparent)]
-pub struct AccountInfo {
+pub struct UncheckedAccount {
     pub view: AccountView,
 }
 
 #[cfg(feature = "pinocchio")]
-impl core::ops::Deref for AccountInfo {
+impl core::ops::Deref for UncheckedAccount {
     type Target = AccountView;
     fn deref(&self) -> &Self::Target {
         &self.view
@@ -1676,7 +1679,7 @@ impl core::ops::Deref for AccountInfo {
 }
 
 #[cfg(feature = "pinocchio")]
-impl AccountInfo {
+impl UncheckedAccount {
     pub fn data_is_empty(&self) -> Result<bool> {
         Ok(self.view.data_len() == 0)
     }
@@ -1818,17 +1821,17 @@ impl<T: crate::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>> Nac
 }
 
 #[cfg(feature = "pinocchio")]
-pub fn next_account_info<'a, I: Iterator<Item = &'a AccountInfo>>(
+pub fn next_unchecked_account<'a, I: Iterator<Item = &'a UncheckedAccount>>(
     iter: &mut I,
-) -> core::result::Result<&'a AccountInfo, pinocchio::error::ProgramError> {
+) -> core::result::Result<&'a UncheckedAccount, pinocchio::error::ProgramError> {
     iter.next()
         .ok_or(crate::error::NaclacError::NotEnoughAccountKeys.err(0))
 }
 
 #[cfg(not(feature = "pinocchio"))]
-pub fn next_account_info<'a, I: Iterator<Item = &'a AccountInfo>>(
+pub fn next_unchecked_account<'a, I: Iterator<Item = &'a UncheckedAccount>>(
     iter: &mut I,
-) -> core::result::Result<&'a AccountInfo, solana_program_error::ProgramError> {
+) -> core::result::Result<&'a UncheckedAccount, solana_program_error::ProgramError> {
     iter.next()
         .ok_or(crate::error::NaclacError::NotEnoughAccountKeys.err(0))
 }
@@ -1890,10 +1893,10 @@ pub const RENT_SYSVAR_ID: Address = unsafe {
 };
 
 #[cfg(not(feature = "pinocchio"))]
-pub type AccountType = AccountInfo;
+pub type AccountType = UncheckedAccount;
 
 #[cfg(feature = "pinocchio")]
-pub type AccountType = AccountInfo;
+pub type AccountType = UncheckedAccount;
 
 /// Makes `msg!` available through `use naclac_lang::prelude::*` on every
 /// backend: the pinocchio logger, the no-op macro below, or (Solana backend

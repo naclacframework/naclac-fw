@@ -60,7 +60,7 @@ pub struct DonateAddressConfigIdWithPayerV1 {
         associated_token::mint = mint,
         associated_token::authority = debouncer,
     )]
-    pub debouncer_token_account: AccountInfo,
+    pub debouncer_token_account: UncheckedAccount,
 
     #[account(
         mut,
@@ -75,7 +75,7 @@ pub struct DonateAddressConfigIdWithPayerV1 {
     /// but WSOL already passes that check unconditionally (confirmed via
     /// `reference/donation-relay-probe/src/bin/probe2.rs`), so this
     /// reimplementation never needs to read it.
-    pub mint_whitelist: AccountInfo,
+    pub mint_whitelist: UncheckedAccount,
 
     pub associated_token_program: Program<AssociatedToken>,
     pub token_program: Program<Token>,

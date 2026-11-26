@@ -22,7 +22,7 @@ pub struct CreateMint2022 {
     /// SAFETY: `init` + `mint::decimals`/`mint::authority` below fully
     /// validate and construct this account via a real CPI to the Token-2022
     /// program (`init_cpi.rs`) — there is no naclac `Discriminator` to check
-    /// since this is a raw SPL `Mint` layout, so `AccountInfo` is correct
+    /// since this is a raw SPL `Mint` layout, so `UncheckedAccount` is correct
     /// here, not a gap in coverage.
     #[account(
         init,
@@ -32,7 +32,7 @@ pub struct CreateMint2022 {
         mint::decimals = decimals,
         mint::authority = mint_authority,
     )]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

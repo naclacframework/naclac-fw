@@ -272,7 +272,7 @@ pub fn remove_collection_app_data_signed(
 /// attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_asset_app_data(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     data_authority: PluginAuthorityArg,
 ) -> Result<Option<AppDataInfo>> {
     if Owner::program_owner(info) != crate::ID {
@@ -293,7 +293,7 @@ pub fn fetch_asset_app_data(
 /// if attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_collection_app_data(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     data_authority: PluginAuthorityArg,
 ) -> Result<Option<AppDataInfo>> {
     if Owner::program_owner(info) != crate::ID {
@@ -366,7 +366,7 @@ fn read_app_data(
 /// attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_asset_app_data(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     data_authority: PluginAuthorityArg,
 ) -> Result<Option<AppDataInfo<'_>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
@@ -420,7 +420,7 @@ pub fn fetch_asset_app_data(
 /// if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_collection_app_data(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     data_authority: PluginAuthorityArg,
 ) -> Result<Option<AppDataInfo<'_>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;

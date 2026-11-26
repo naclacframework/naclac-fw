@@ -23,7 +23,7 @@ pub struct ExerciseTokenMetadataLifecycle {
     /// since this is a raw SPL `Mint` + `TokenMetadata` layout, not a
     /// naclac account.
     #[account(mut)]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub token_program: Program<Token2022>,
 }

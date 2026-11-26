@@ -13,7 +13,7 @@ pub struct AddCollectionsToGroup {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn add_collections_to_group(ctx: Context<AddCollectionsToGroup>) -> Result {
@@ -35,7 +35,7 @@ pub fn add_collections_to_group(ctx: Context<AddCollectionsToGroup>) -> Result {
 }
 
 /// See `add_assets_to_group.rs`'s `to_item` doc comment.
-fn to_item(info: &AccountInfo) -> CpiHandleMut<'_> {
+fn to_item(info: &UncheckedAccount) -> CpiHandleMut<'_> {
     CpiHandleMut {
         info: *info,
         _phantom: core::marker::PhantomData,

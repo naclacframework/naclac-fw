@@ -3,16 +3,18 @@
 //! that `#[derive(Accounts)]` calls (see `naclac_core::constraint`). Kept out
 //! of every prelude so the module names cannot collide with a program's own.
 
-use crate::prelude::{AccountInfo, Address, NaclacError, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID};
+use crate::prelude::{
+    Address, NaclacError, UncheckedAccount, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
+};
 
-/// Binds `$info: AccountInfo` and `$data: &[u8]` (the account's raw data) for
+/// Binds `$info: UncheckedAccount` and `$data: &[u8]` (the account's raw data) for
 /// the statements that follow, in the calling function (a borrow failure
 /// returns from it). The constraints here check the fixed SPL layout on the
 /// bytes, so they work on any field whose account data can be read, whatever
 /// its declared type.
 macro_rules! account_data {
     ($account:expr => $info:ident, $data:ident) => {
-        let $info = $crate::wrappers::ToAccountInfo::to_account_info($account);
+        let $info = $crate::wrappers::ToUncheckedAccount::to_unchecked_account($account);
         #[cfg(not(feature = "pinocchio"))]
         let borrowed = $info
             .try_borrow_data()
@@ -28,7 +30,7 @@ macro_rules! account_data {
 /// layout checks read raw bytes, which prove nothing about an account any
 /// other program could have written.
 #[inline(always)]
-fn require_token_program_owner(info: &AccountInfo) -> core::result::Result<(), NaclacError> {
+fn require_token_program_owner(info: &UncheckedAccount) -> core::result::Result<(), NaclacError> {
     let owner = crate::prelude::Owner::program_owner(info);
     if owner != TOKEN_PROGRAM_ID && owner != TOKEN_2022_PROGRAM_ID {
         return Err(NaclacError::ConstraintOwner);
@@ -42,8 +44,8 @@ fn require_token_program_owner(info: &AccountInfo) -> core::result::Result<(), N
 /// not own the account is always reported as `ProgramIdMismatch`.
 #[inline(always)]
 fn require_owned_by(
-    info: &AccountInfo,
-    token_program: Option<&AccountInfo>,
+    info: &UncheckedAccount,
+    token_program: Option<&UncheckedAccount>,
 ) -> core::result::Result<(), NaclacError> {
     if let Some(token_program) = token_program {
         let expected = crate::wrappers::ToAddress::address(token_program);
@@ -58,7 +60,7 @@ fn require_owned_by(
 /// program: the owner of an account created for one of these namespaces.
 #[inline(always)]
 fn token_program_address(
-    token_program: Option<&AccountInfo>,
+    token_program: Option<&UncheckedAccount>,
 ) -> core::result::Result<Address, NaclacError> {
     let Some(token_program) = token_program else {
         return Err(NaclacError::ProgramIdMismatch);
@@ -78,9 +80,9 @@ pub mod token {
     use {
         super::{require_owned_by, require_token_program_owner, token_program_address},
         crate::{
-            prelude::{AccountInfo, Address, CpiHandle, CpiHandleMut, CpiSigner, NaclacError},
+            prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, NaclacError, UncheckedAccount},
             token::{initialize_account_with_owner_signed, TokenAccount},
-            wrappers::{NaclacAccount, ToAccountInfo, ToAddress},
+            wrappers::{NaclacAccount, ToAddress, ToUncheckedAccount},
         },
         naclac_core::{
             constraint::{AccountConstraint, AccountConstraintInit, ConstraintRules},
@@ -91,16 +93,16 @@ pub mod token {
     #[constraint_args]
     #[derive(Default)]
     pub struct Args {
-        pub mint: Option<AccountInfo>,
+        pub mint: Option<UncheckedAccount>,
         pub authority: Option<Address>,
-        pub token_program: Option<AccountInfo>,
+        pub token_program: Option<UncheckedAccount>,
     }
 
     pub struct Constraint;
 
     pub const RULES: ConstraintRules = ConstraintRules { rules: &[] };
 
-    impl<A: ToAccountInfo + NaclacAccount> AccountConstraint<A> for Constraint {
+    impl<A: ToUncheckedAccount + NaclacAccount> AccountConstraint<A> for Constraint {
         type Args<'a> = Args;
 
         #[inline(always)]
@@ -120,7 +122,7 @@ pub mod token {
         }
     }
 
-    impl<A: ToAccountInfo + NaclacAccount> AccountConstraintInit<A> for Constraint {
+    impl<A: ToUncheckedAccount + NaclacAccount> AccountConstraintInit<A> for Constraint {
         #[inline(always)]
         fn space(_args: &Args) -> usize {
             165
@@ -133,7 +135,7 @@ pub mod token {
 
         #[inline(always)]
         fn initialize(
-            account: &AccountInfo,
+            account: &UncheckedAccount,
             index: usize,
             args: &Args,
             _signer_seeds: &[CpiSigner<'_, '_>],
@@ -173,9 +175,9 @@ pub mod mint {
     use {
         super::{require_owned_by, require_token_program_owner, token_program_address},
         crate::{
-            prelude::{AccountInfo, Address, CpiHandle, CpiHandleMut, CpiSigner, NaclacError},
+            prelude::{Address, CpiHandle, CpiHandleMut, CpiSigner, NaclacError, UncheckedAccount},
             token::{initialize_mint_signed, Mint},
-            wrappers::{NaclacAccount, ToAccountInfo},
+            wrappers::{NaclacAccount, ToUncheckedAccount},
         },
         naclac_core::{
             constraint::{AccountConstraint, AccountConstraintInit, ConstraintRules},
@@ -189,14 +191,14 @@ pub mod mint {
         pub decimals: Option<u8>,
         pub authority: Option<Address>,
         pub freeze_authority: Option<Address>,
-        pub token_program: Option<AccountInfo>,
+        pub token_program: Option<UncheckedAccount>,
     }
 
     pub struct Constraint;
 
     pub const RULES: ConstraintRules = ConstraintRules { rules: &[] };
 
-    impl<A: ToAccountInfo + NaclacAccount> AccountConstraint<A> for Constraint {
+    impl<A: ToUncheckedAccount + NaclacAccount> AccountConstraint<A> for Constraint {
         type Args<'a> = Args;
 
         #[inline(always)]
@@ -219,7 +221,7 @@ pub mod mint {
         }
     }
 
-    impl<A: ToAccountInfo + NaclacAccount> AccountConstraintInit<A> for Constraint {
+    impl<A: ToUncheckedAccount + NaclacAccount> AccountConstraintInit<A> for Constraint {
         #[inline(always)]
         fn space(_args: &Args) -> usize {
             82
@@ -232,7 +234,7 @@ pub mod mint {
 
         #[inline(always)]
         fn initialize(
-            account: &AccountInfo,
+            account: &UncheckedAccount,
             index: usize,
             args: &Args,
             _signer_seeds: &[CpiSigner<'_, '_>],
@@ -278,11 +280,11 @@ pub mod associated_token {
                 AtaCpiAccounts,
             },
             prelude::{
-                AccountInfo, Address, CpiHandle, CpiHandleMut, NaclacError, Owner,
+                Address, CpiHandle, CpiHandleMut, NaclacError, Owner, UncheckedAccount,
                 ASSOCIATED_TOKEN_PROGRAM_ID,
             },
             token::TokenAccount,
-            wrappers::{NaclacAccount, ToAccountInfo, ToAddress},
+            wrappers::{NaclacAccount, ToAddress, ToUncheckedAccount},
         },
         naclac_core::{
             constraint::{
@@ -295,18 +297,18 @@ pub mod associated_token {
     #[constraint_args]
     #[derive(Default)]
     pub struct Args {
-        pub mint: Option<AccountInfo>,
-        pub authority: Option<AccountInfo>,
+        pub mint: Option<UncheckedAccount>,
+        pub authority: Option<UncheckedAccount>,
         pub bump: Option<u8>,
-        pub token_program: Option<AccountInfo>,
-        pub associated_token_program: Option<AccountInfo>,
+        pub token_program: Option<UncheckedAccount>,
+        pub associated_token_program: Option<UncheckedAccount>,
     }
 
     pub struct Constraint;
 
     pub const RULES: ConstraintRules = ConstraintRules { rules: &[] };
 
-    impl<A: ToAccountInfo + NaclacAccount> AccountConstraint<A> for Constraint {
+    impl<A: ToUncheckedAccount + NaclacAccount> AccountConstraint<A> for Constraint {
         type Args<'a> = Args;
 
         #[inline(always)]
@@ -349,7 +351,7 @@ pub mod associated_token {
         }
     }
 
-    impl<A: ToAccountInfo + NaclacAccount> AccountConstraintCreate<A> for Constraint {
+    impl<A: ToUncheckedAccount + NaclacAccount> AccountConstraintCreate<A> for Constraint {
         #[inline(always)]
         fn create(args: &Args, creation: ConstraintCreation<'_>) -> crate::prelude::Result<()> {
             let index = creation.index;

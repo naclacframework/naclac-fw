@@ -24,7 +24,7 @@ pub struct CreateMint2022WithTransferHook {
     /// naclac `Discriminator` to check since this is a raw SPL `Mint` +
     /// `TransferHook` extension layout, not a naclac account.
     #[account(mut)]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

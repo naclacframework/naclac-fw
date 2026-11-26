@@ -28,7 +28,7 @@
 //! Both backends: `pinocchio-token-2022` itself covers only the
 //! `MetadataPointer` extension (not the content instructions it points at),
 //! but every instruction here is built as a data-only `Instruction` value
-//! with no `AccountInfo` involved, so `super::invoke_interface_instruction`
+//! with no `UncheckedAccount` involved, so `super::invoke_interface_instruction`
 //! (`extensions/mod.rs`) can dispatch it under either backend — see that
 //! function's own doc comment for how the pinocchio conversion is verified
 //! safe. Beyond the official `anchor-spl` crate's own

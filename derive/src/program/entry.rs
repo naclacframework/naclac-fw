@@ -120,10 +120,10 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
             }
             let instruction_discriminator = #disc_read;
             let mut __lookup_storage =
-                [core::mem::MaybeUninit::<naclac_lang::prelude::AccountView>::uninit(); 64];
+                [core::mem::MaybeUninit::<naclac_lang::pinocchio::AccountView>::uninit(); 64];
             // SAFETY: `__lookup_storage` lives in this frame, which outlives every
             // dispatch call below, and nothing else borrows it.
-            let __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::prelude::AccountView>; 64] =
+            let __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::pinocchio::AccountView>; 64] =
                 unsafe { &mut *(&mut __lookup_storage as *mut _) };
             match instruction_discriminator {
                 #(#direct_return_arms,)*
@@ -149,7 +149,7 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
             // inner dispatcher can safely bind them to Context<T> using 'static references.
             unsafe {
                 let program_id: &'static naclac_lang::prelude::Address = core::mem::transmute(program_id);
-                let accounts: &'static [naclac_lang::prelude::AccountInfoData] = core::mem::transmute(accounts);
+                let accounts: &'static [naclac_lang::prelude::UncheckedAccountData] = core::mem::transmute(accounts);
                 let instruction_data: &'static [u8] = core::mem::transmute(instruction_data);
                 process_instruction_inner(
                     program_id,
@@ -196,10 +196,10 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
             // Accounts are walked by the matched arm's own `load_and_validate`,
             // into this frame's lookup buffer.
             let mut __lookup_storage =
-                [core::mem::MaybeUninit::<naclac_lang::prelude::AccountView>::uninit(); 64];
+                [core::mem::MaybeUninit::<naclac_lang::pinocchio::AccountView>::uninit(); 64];
             // SAFETY: `__lookup_storage` lives in this frame, which outlives every
             // dispatch call below, and nothing else borrows it.
-            let __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::prelude::AccountView>; 64] =
+            let __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::pinocchio::AccountView>; 64] =
                 unsafe { &mut *(&mut __lookup_storage as *mut _) };
             match instruction_discriminator {
                 #(#match_arms),*
@@ -211,7 +211,7 @@ pub(super) fn program_tokens(parts: ProgramParts) -> TokenStream {
         #[inline(always)]
         fn process_instruction_inner(
             program_id: &'static naclac_lang::prelude::Address,
-            accounts: &'static [naclac_lang::prelude::AccountInfo],
+            accounts: &'static [naclac_lang::prelude::UncheckedAccount],
             instruction_data: &'static [u8],
             __dups_opt: Option<&naclac_lang::prelude::DuplicateSlots>,
         ) -> naclac_lang::prelude::Result {

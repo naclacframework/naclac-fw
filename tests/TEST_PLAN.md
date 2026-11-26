@@ -21,7 +21,7 @@ the "one backend split into two" the framework has:
 So "solana" is one backend (`solana-program`-based, has a real `AccountInfo`
 struct with `Rc<RefCell<...>>` lamports/data) that itself splits into two
 serialization modes (borsh vs zero-copy), and "pinocchio" is the second,
-wholly separate backend (no_std, always zero-copy, different `AccountInfo`
+wholly separate backend (no_std, always zero-copy, different `UncheckedAccount`
 shape entirely, different CPI mechanism). Any test that touches account
 data shape, discriminators, or CPI needs to run in all three; anything that's
 purely about macro *syntax acceptance* (does this attribute parse) only
@@ -66,7 +66,7 @@ mode variants.** Sibling packages in one case (e.g. `discriminator` /
 *same* dependency. `--workspace` unifies features across the whole resolve,
 silently building `naclac-lang` with `pinocchio` *and* `borsh` *and* default
 all switched on at once — this doesn't error, it just corrupts every mode
-simultaneously (missing `BorshSerialize`, wrong `AccountInfo` shape, etc.).
+simultaneously (missing `BorshSerialize`, wrong `UncheckedAccount` shape, etc.).
 Always test one package at a time: `cargo test -p <name>`. Use
 `scripts/test-all.sh` (repo root) to run every case's every package
 correctly — it's the automation layer for this, not something to redo by
@@ -178,10 +178,10 @@ covering:
 **`executable` — ✅ built and passing (10/10, all 3 modes:
 `accounts_constraints`, `accounts_constraints_borsh`,
 `accounts_constraints_zc`).** Added `check_executable` — a single
-`#[account(executable)]`-constrained bare `AccountInfo` field, deliberately
+`#[account(executable)]`-constrained bare `UncheckedAccount` field, deliberately
 *not* `Program<T>` (which already enforces executable-ness internally on
 its own, unconditionally — see `core/src/wrappers/program.rs`'s
-`try_from`; `executable` on a plain `AccountInfo` is for asserting the same
+`try_from`; `executable` on a plain `UncheckedAccount` is for asserting the same
 property without that wrapper). Positive case passes the real System
 Program account (genuinely executable); negative case passes the payer's
 own signer account (not executable), expecting
@@ -199,7 +199,7 @@ coverage:
 
 - **`rent_exempt`** (a brand-new, bare-flag constraint, no prior coverage at
   all) — `check_rent_exempt`, a single `#[account(rent_exempt)]`-constrained
-  bare `AccountInfo` field (`security.rs`'s "Rent-Exemption Check": non-pinocchio
+  bare `UncheckedAccount` field (`security.rs`'s "Rent-Exemption Check": non-pinocchio
   calls `Rent::get()?.is_exempt(lamports, data_len)`; pinocchio uses a
   const-rent formula). Positive case passes `provider.payer.address()`
   (litesvm funds the default payer with a huge SOL balance, trivially
@@ -213,7 +213,7 @@ coverage:
   `target == dest` unconditionally, before any owner/data check, but every
   existing `close` test (`close_vault`) only ever exercised the success path
   with a distinct destination. New instruction `close_vault_self`: two bare
-  `AccountInfo` fields, `target` (`#[account(mut, close = destination,
+  `UncheckedAccount` fields, `target` (`#[account(mut, close = destination,
   unsafe(alias))]`) and `destination` (`#[account(mut, unsafe(alias))]`).
   `unsafe(alias)` on both is load-bearing, not decorative: without it,
   passing the same address into two declared `mut` slots is caught by a
@@ -243,9 +243,9 @@ coverage:
 - **`seeds::program`** (external-program PDA derivation, parsed in
   `parser.rs`, consumed in `security.rs`'s PDA derivation as
   `pda_program_tokens`) — new instruction `check_external_pda`, a bare
-  `AccountInfo` field with `#[account(seeds = [SEED_EXTERNAL_PDA], bump =
+  `UncheckedAccount` field with `#[account(seeds = [SEED_EXTERNAL_PDA], bump =
   bump, seeds::program = naclac_lang::prelude::SYSTEM_PROGRAM_ID)]` (explicit
-  `bump = bump`, not bare `bump`: a bare `AccountInfo` has no stored `.bump`
+  `bump = bump`, not bare `bump`: a bare `UncheckedAccount` has no stored `.bump`
   field for the auto-bump path to read — same reasoning as
   `touch_seeded.rs`). Uses the real System Program ID as the "external"
   program — real, stable, no separate deployment needed. Positive case
@@ -444,7 +444,7 @@ test:
 | `event.rs` | 1 — `Pubkey` field |
 | `lib.rs` | 1 — banned `find_program_address`/`create_program_address` (text-scanned across `#[instruction]`/`#[program]`/`#[derive(Accounts)]` bodies) |
 | `system.rs` | 2 — unparseable `#[system(invariant = "...")]` expression, `f32`/`f64` banned in `#[system]` functions |
-| `instruction/parser.rs` | 3 — bare `alias` rejection, `has_one = <dotted.path>` (must be a simple ident), bare `AccountInfo` field missing a `/// SAFETY:` comment |
+| `instruction/parser.rs` | 3 — bare `alias` rejection, `has_one = <dotted.path>` (must be a simple ident), bare `UncheckedAccount` field missing a `/// SAFETY:` comment |
 | `instruction/security.rs` | 3 — `bump = <expr>` combined with `init` on a compile-time-precomputed literal-seed PDA, `seeds = [...]` with no `bump` at all, `has_one = <unknown field>` |
 
 **Removed from the framework, not tested:** the `#[account(...)]`/
@@ -474,7 +474,7 @@ Where a site has an accompanying *valid* form, a `tests/pass/*.rs`
 counterpart exists too, so a future refactor that makes the check *too*
 strict (rejecting valid code) gets caught, not just one that makes it too
 loose: `unsafe(alias)` (bare-`alias`'s valid form), a real `/// SAFETY: ...`
-comment (`AccountInfo`'s valid form), bare `bump` (the missing-bump case's
+comment (`UncheckedAccount`'s valid form), bare `bump` (the missing-bump case's
 valid form).
 
 **Note on `.cargo/config.toml` here:** unlike `tests/discriminator/`/`tests/pda-seeds/`,
@@ -517,7 +517,7 @@ duplicated). Two real bugs found and fixed while first running this:
   `LaunchRecord` role
 - `create_mint` — `mint::decimals` + `mint::authority` combined with `init`
   (real CPI-based mint creation via `init_cpi.rs`, mirroring
-  `examples/launchpad/.../create_mint.rs` exactly, bare `AccountInfo` field).
+  `examples/launchpad/.../create_mint.rs` exactly, bare `UncheckedAccount` field).
   Uses a dynamic seed component (`id: u64`) rather than a pure literal
   specifically so explicit `bump = mint_bump` is allowed — a pure-literal
   seed + `init` requires bare `bump` instead, confirmed the hard way while
@@ -541,7 +541,7 @@ duplicated). Two real bugs found and fixed while first running this:
 
 - `check_vault_program` (`programs/*/src/instructions/check_vault_program.rs`,
   all 3 modes) — `token::token_program = token_program` on an existing, bare
-  `AccountInfo` `vault` field, checked in `generate_relational_checks`
+  `UncheckedAccount` `vault` field, checked in `generate_relational_checks`
   (`security.rs`, ~lines 762-772, post account-load):
   `Owner::program_owner(&vault) == ToAddress::address(&token_program)`.
   Positive case: a real SPL token account (created via
@@ -555,7 +555,7 @@ duplicated). Two real bugs found and fixed while first running this:
   for the negative case — any non-Token-owned account reaches the relational
   check the same way, since `Account<TokenAccount>`'s own `try_from`
   (`token/src/token.rs`, `discriminator_len() == 0`) and bare
-  `AccountInfo` perform no owner check of their own at load time (confirmed
+  `UncheckedAccount` perform no owner check of their own at load time (confirmed
   by reading `core/src/wrappers/account.rs` and `account_loader.rs`
   directly, not assumed).
 - `create_mint_with_freeze` (`programs/*/src/instructions/create_mint_with_freeze.rs`,
@@ -566,7 +566,7 @@ duplicated). Two real bugs found and fixed while first running this:
   same `SEED_MINT` prefix as `create_mint`; PDA uniqueness still comes from
   the dynamic `id` seed component, same as `create_mint`. No manual
   bump-write-back workaround needed (unlike `init_mint_authority`'s bare-bump
-  gotcha noted above) since the `mint` field is a bare `AccountInfo` with an
+  gotcha noted above) since the `mint` field is a bare `UncheckedAccount` with an
   *explicit* `bump = mint_bump`, not a `#[account]`.
 - `check_mint_freeze_authority` (`programs/*/src/instructions/check_mint_freeze_authority.rs`,
   all 3 modes) — `mint::freeze_authority = freeze_authority` on an existing,
@@ -628,12 +628,12 @@ instead of leaving the manual version as the final state**:
   associated_token::authority = owner)]` on the `associated_token` field —
   the instruction body is now empty, exactly mirroring `create_mint`'s.
 
-Accounts: `payer: Signer (mut)`, `owner: AccountInfo` (the wallet that will
+Accounts: `payer: Signer (mut)`, `owner: UncheckedAccount` (the wallet that will
 own the new ATA — a fresh `Keypair`, deliberately distinct from the payer,
 see bug #3 below), `mint: Account<Mint>` (from the existing `create_mint`
-instruction), `associated_token: AccountInfo` (`init`-constrained — doesn't
-exist on-chain yet, so a bare `AccountInfo`, not `Account<TokenAccount>`,
-mirroring `create_mint.rs`'s own `mint: AccountInfo` reasoning),
+instruction), `associated_token: UncheckedAccount` (`init`-constrained — doesn't
+exist on-chain yet, so a bare `UncheckedAccount`, not `Account<TokenAccount>`,
+mirroring `create_mint.rs`'s own `mint: UncheckedAccount` reasoning),
 `system_program: Program<System>`, `token_program: Program<Token>`,
 `associated_token_program: Program<AssociatedToken>`. The test
 (`create_ata_creates_a_real_associated_token_account`, all 3 `tests/*.rs`
@@ -876,7 +876,7 @@ it could never reach this code path.
 **`compile-fail/` (2 fail + 2 pass fixtures):**
 - **A struct with one field over the per-field budget** — `tests/fail/01_per_field_oversized.rs`
   (`Account<BigData>`, a single `[u8; 300]` field, guaranteed over the
-  300-byte cap regardless of `AccountInfo`'s own overhead) confirms the
+  300-byte cap regardless of `UncheckedAccount`'s own overhead) confirms the
   `const _: () = assert!(...)` in `accounts.rs:332` fires; `tests/pass/01_per_field_boxed_clears_it.rs`
   is the identical fixture boxed, confirming `Box<Account<T>>` clears it.
 - **Several fields each under budget individually but over in aggregate** —
@@ -902,7 +902,7 @@ it could never reach this code path.
   present in the code).
 - **Transparency, two different blanket-impl paths**: `touch_big` exercises
   `Deref`/`DerefMut` (mutation) and `ToAddress` (`.address()`) through the
-  Box; `close_big` exercises `ToAccountInfo` (the lamport-drain/reassign
+  Box; `close_big` exercises `ToUncheckedAccount` (the lamport-drain/reassign
   path `close_account.rs` uses) through the Box — a different code path
   than mutation, not redundant with it. (`tests/dup-mut/`'s
   `boxed_account_field_loads_and_mutates_like_an_unboxed_one` already
@@ -956,8 +956,8 @@ needing a fresh one:
     multi-token expressions like `new_space as usize` into the single
     bogus identifier `new_spaceasusize`. Fixed by normalizing only the
     `::`/`=` separators instead of stripping all whitespace.
-  - **`AccountInfo::resize()` didn't exist**: naclac's own lifetime-erased
-    `AccountInfo` wrapper (`core/src/prelude.rs`, one definition per
+  - **`UncheckedAccount::resize()` didn't exist**: naclac's own lifetime-erased
+    `UncheckedAccount` wrapper (`core/src/prelude.rs`, one definition per
     backend) never had a `resize` method written at all. Added one to each:
     the solana-backend wrapper forwards to the real
     `solana_program::account_info::AccountInfo::resize` via the existing

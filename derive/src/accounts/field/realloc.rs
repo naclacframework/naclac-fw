@@ -84,7 +84,7 @@ pub fn generate_realloc_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
 /// reads the field's own raw discriminator bytes and looks up the matching
 /// type's current compiled size, rejecting any discriminator not in the
 /// list. `field_name` must already be bound in scope as the field's raw
-/// `AccountInfo` local (true for every field inside `load_and_validate`,
+/// `UncheckedAccount` local (true for every field inside `load_and_validate`,
 /// where this is spliced — see `accounts.rs`'s per-field `let #field_name
 /// = ...` binding).
 ///

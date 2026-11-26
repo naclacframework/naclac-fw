@@ -11,7 +11,7 @@ pub struct Take {
 
     /// SAFETY: Verified through `escrow_state` PDA seed derivation; receives rent on close.
     #[account(mut)]
-    pub maker: AccountInfo,
+    pub maker: UncheckedAccount,
 
     pub mint_a: Account<Mint>,
     pub mint_b: Account<Mint>,

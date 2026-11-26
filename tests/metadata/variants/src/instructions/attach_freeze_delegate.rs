@@ -14,7 +14,7 @@ pub struct AttachFreezeDelegate {
 
     /// The external Metaplex Core program to CPI into.
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn attach_freeze_delegate(ctx: Context<AttachFreezeDelegate>) -> Result {

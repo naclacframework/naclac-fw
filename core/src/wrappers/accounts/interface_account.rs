@@ -21,16 +21,16 @@
 
 #[cfg(feature = "borsh")]
 use crate::prelude::{
-    AccountInfo, Address, BorshDeserialize, BorshSerialize, NaclacError, Owner, Result,
+    Address, BorshDeserialize, BorshSerialize, NaclacError, Owner, Result, UncheckedAccount,
 };
 #[cfg(feature = "borsh")]
-use crate::wrappers::{ToAccountInfo, ToAddress};
+use crate::wrappers::{ToAddress, ToUncheckedAccount};
 #[cfg(feature = "borsh")]
 use core::ops::{Deref, DerefMut};
 
 #[cfg(feature = "borsh")]
 fn check_interface_owner<T: crate::wrappers::ValidateInterfaceLayout>(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     index: usize,
 ) -> core::result::Result<(), NaclacError> {
     let owner = Owner::program_owner(info);
@@ -49,7 +49,7 @@ fn check_interface_owner<T: crate::wrappers::ValidateInterfaceLayout>(
 #[cfg(feature = "borsh")]
 #[derive(Clone)]
 pub struct InterfaceAccount<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> {
-    pub info: AccountInfo,
+    pub info: UncheckedAccount,
     pub data: T,
     // Deliberately private — see `accounts/account.rs`'s `Account<T>` doc
     // comment on its own `index` field for why.
@@ -65,7 +65,7 @@ impl<
             + crate::wrappers::ValidateInterfaceLayout,
     > InterfaceAccount<T>
 {
-    pub fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+    pub fn try_from(info: &UncheckedAccount, index: usize) -> Result<Self> {
         check_interface_owner::<T>(info, index).map_err(|e| e.err(index))?;
         let raw = info.try_borrow_data()?;
         let disc_len = T::DISCRIMINATOR.len();
@@ -94,7 +94,7 @@ impl<
     }
 
     #[inline(always)]
-    pub fn try_from_mut(info: &AccountInfo, index: usize) -> Result<Self> {
+    pub fn try_from_mut(info: &UncheckedAccount, index: usize) -> Result<Self> {
         Self::try_from(info, index)
     }
 
@@ -176,19 +176,19 @@ impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> Dere
 }
 
 #[cfg(feature = "borsh")]
-impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> ToAccountInfo
+impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator> ToUncheckedAccount
     for InterfaceAccount<T>
 {
-    fn to_account_info(&self) -> AccountInfo {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
         self.info
     }
 }
 
 #[cfg(feature = "borsh")]
 impl<T: BorshDeserialize + BorshSerialize + crate::wrappers::Discriminator>
-    crate::wrappers::ToAccountInfos for InterfaceAccount<T>
+    crate::wrappers::ToUncheckedAccounts for InterfaceAccount<T>
 {
-    fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
+    fn to_unchecked_accounts(&self) -> crate::prelude::Vec<UncheckedAccount> {
         crate::prelude::vec![self.info]
     }
 }
@@ -269,12 +269,12 @@ impl<
     }
 
     #[inline(always)]
-    fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+    fn try_from(info: &UncheckedAccount, index: usize) -> Result<Self> {
         Self::try_from(info, index)
     }
 
     #[inline(always)]
-    fn try_from_mut(info: &AccountInfo, index: usize) -> Result<Self> {
+    fn try_from_mut(info: &UncheckedAccount, index: usize) -> Result<Self> {
         Self::try_from_mut(info, index)
     }
 
@@ -293,15 +293,15 @@ impl<
 // ===========================================================================
 
 #[cfg(feature = "wincode")]
-use crate::prelude::{AccountInfo, Address, NaclacError, Owner, Result};
+use crate::prelude::{Address, NaclacError, Owner, Result, UncheckedAccount};
 #[cfg(feature = "wincode")]
-use crate::wrappers::{ToAccountInfo, ToAddress};
+use crate::wrappers::{ToAddress, ToUncheckedAccount};
 #[cfg(feature = "wincode")]
 use core::ops::{Deref, DerefMut};
 
 #[cfg(feature = "wincode")]
 fn check_interface_owner_wincode<T: crate::wrappers::ValidateInterfaceLayout>(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     index: usize,
 ) -> core::result::Result<(), NaclacError> {
     let owner = Owner::program_owner(info);
@@ -319,7 +319,7 @@ pub struct InterfaceAccount<
         + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
         + crate::wrappers::Discriminator,
 > {
-    pub info: AccountInfo,
+    pub info: UncheckedAccount,
     pub data: T,
     index: usize,
     loaded_len: usize,
@@ -333,7 +333,7 @@ impl<
             + crate::wrappers::ValidateInterfaceLayout,
     > InterfaceAccount<T>
 {
-    pub fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+    pub fn try_from(info: &UncheckedAccount, index: usize) -> Result<Self> {
         check_interface_owner_wincode::<T>(info, index).map_err(|e| e.err(index))?;
         let raw = info.try_borrow_data()?;
         let disc_len = T::DISCRIMINATOR.len();
@@ -363,7 +363,7 @@ impl<
     }
 
     #[inline(always)]
-    pub fn try_from_mut(info: &AccountInfo, index: usize) -> Result<Self> {
+    pub fn try_from_mut(info: &UncheckedAccount, index: usize) -> Result<Self> {
         Self::try_from(info, index)
     }
 
@@ -453,9 +453,9 @@ impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
             + crate::wrappers::Discriminator,
-    > ToAccountInfo for InterfaceAccount<T>
+    > ToUncheckedAccount for InterfaceAccount<T>
 {
-    fn to_account_info(&self) -> AccountInfo {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
         self.info
     }
 }
@@ -465,9 +465,9 @@ impl<
         T: crate::prelude::wincode::SchemaReadOwned<crate::wincode_config::Config, Dst = T>
             + crate::prelude::wincode::SchemaWrite<crate::wincode_config::Config, Src = T>
             + crate::wrappers::Discriminator,
-    > crate::wrappers::ToAccountInfos for InterfaceAccount<T>
+    > crate::wrappers::ToUncheckedAccounts for InterfaceAccount<T>
 {
-    fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
+    fn to_unchecked_accounts(&self) -> crate::prelude::Vec<UncheckedAccount> {
         crate::prelude::vec![self.info]
     }
 }
@@ -574,12 +574,12 @@ impl<
     }
 
     #[inline(always)]
-    fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+    fn try_from(info: &UncheckedAccount, index: usize) -> Result<Self> {
         Self::try_from(info, index)
     }
 
     #[inline(always)]
-    fn try_from_mut(info: &AccountInfo, index: usize) -> Result<Self> {
+    fn try_from_mut(info: &UncheckedAccount, index: usize) -> Result<Self> {
         Self::try_from_mut(info, index)
     }
 
@@ -598,11 +598,11 @@ impl<
 // ===========================================================================
 
 #[cfg(feature = "bytemuck")]
-use crate::prelude::{AccountInfo, Address, NaclacError, Owner};
+use crate::prelude::{Address, NaclacError, Owner, UncheckedAccount};
 #[cfg(feature = "bytemuck")]
 use crate::wrappers::accounts::NaclacZeroCopy;
 #[cfg(feature = "bytemuck")]
-use crate::wrappers::ToAccountInfo;
+use crate::wrappers::ToUncheckedAccount;
 #[cfg(feature = "bytemuck")]
 use core::marker::PhantomData;
 #[cfg(feature = "bytemuck")]
@@ -610,7 +610,7 @@ use core::ops::{Deref, DerefMut};
 
 #[cfg(feature = "bytemuck")]
 fn check_interface_owner_zc<T: crate::wrappers::ValidateInterfaceLayout>(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     index: usize,
 ) -> core::result::Result<(), NaclacError> {
     let owner = Owner::program_owner(info);
@@ -627,7 +627,7 @@ fn check_interface_owner_zc<T: crate::wrappers::ValidateInterfaceLayout>(
 /// the owner directly instead of calling `T::validate_account`.
 #[cfg(feature = "bytemuck")]
 pub struct InterfaceAccount<T: NaclacZeroCopy> {
-    pub info: AccountInfo,
+    pub info: UncheckedAccount,
     header_ptr: *mut T,
     // Deliberately private — see `accounts/account.rs`'s `Account<T>` doc
     // comment on its own `index` field for why.
@@ -666,7 +666,7 @@ impl<T: NaclacZeroCopy> Copy for InterfaceAccount<T> {}
 
 #[cfg(feature = "bytemuck")]
 impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAccount<T> {
-    pub fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
+    pub fn try_from(info: &UncheckedAccount, index: usize) -> crate::prelude::Result<Self> {
         check_interface_owner_zc::<T>(info, index).map_err(|e| e.err(index))?;
         let header_ptr: *mut T;
         let disc_len = T::DISCRIMINATOR.len();
@@ -710,7 +710,7 @@ impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> InterfaceAcco
     /// any same-owner account of the wrong type. See `Account::try_from_mut`'s
     /// doc comment for why "verified earlier" doesn't hold for a `mut` field.
     #[inline(always)]
-    pub fn try_from_mut(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
+    pub fn try_from_mut(info: &UncheckedAccount, index: usize) -> crate::prelude::Result<Self> {
         Self::try_from(info, index)
     }
 
@@ -751,16 +751,16 @@ impl<T: NaclacZeroCopy> DerefMut for InterfaceAccount<T> {
 }
 
 #[cfg(feature = "bytemuck")]
-impl<T: NaclacZeroCopy> ToAccountInfo for InterfaceAccount<T> {
+impl<T: NaclacZeroCopy> ToUncheckedAccount for InterfaceAccount<T> {
     #[inline(always)]
-    fn to_account_info(&self) -> AccountInfo {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
         self.info
     }
 }
 
 #[cfg(all(feature = "bytemuck", not(feature = "pinocchio")))]
-impl<T: NaclacZeroCopy> crate::wrappers::ToAccountInfos for InterfaceAccount<T> {
-    fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
+impl<T: NaclacZeroCopy> crate::wrappers::ToUncheckedAccounts for InterfaceAccount<T> {
+    fn to_unchecked_accounts(&self) -> crate::prelude::Vec<UncheckedAccount> {
         crate::prelude::vec![self.info]
     }
 }
@@ -847,12 +847,12 @@ impl<T: NaclacZeroCopy + crate::wrappers::ValidateInterfaceLayout> crate::wrappe
     }
 
     #[inline(always)]
-    fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
+    fn try_from(info: &UncheckedAccount, index: usize) -> crate::prelude::Result<Self> {
         Self::try_from(info, index)
     }
 
     #[inline(always)]
-    fn try_from_mut(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
+    fn try_from_mut(info: &UncheckedAccount, index: usize) -> crate::prelude::Result<Self> {
         Self::try_from_mut(info, index)
     }
 }

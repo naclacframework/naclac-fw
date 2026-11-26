@@ -15,7 +15,7 @@ pub struct Foo {
 
     /// SAFETY: only used as the mint's `authority` for constraint
     /// verification below; never read or deserialized.
-    pub authority: AccountInfo,
+    pub authority: UncheckedAccount,
 
     /// SAFETY: fully validated/constructed via `mint::decimals =`/`init`
     /// below — irrelevant here, this fixture never reaches that check.
@@ -27,7 +27,7 @@ pub struct Foo {
         mint::decimals = 6,
         mint::authority = authority,
     )]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub system_program: Program<System>,
 }

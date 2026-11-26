@@ -342,14 +342,14 @@ fn non_primitive_field_seed_pda_helper_is_correctly_skipped() {
 /// there, the dynamic seed is a sibling *typed* `Account<Registry>` field
 /// (`registry.as_ref()`), which `seed_binding_tokens` resolves via its
 /// cross-field-reference special case. Here the sibling is a plain,
-/// unchecked `AccountInfo` with `.address()` called on it
+/// unchecked `UncheckedAccount` with `.address()` called on it
 /// (`config_program_id.address().as_ref()`) — not a zero-copy account field,
 /// so it falls through to the generic expression-peeling path instead. Both
 /// are verify-only (never `init`), bare `bump`, reading the bump stored on
 /// the existing account — this checks whether that mechanism holds for the
 /// *generic* path the same way it already does for the cross-field one.
 #[test]
-fn bare_bump_verify_with_account_info_seed_reference() {
+fn bare_bump_verify_with_unchecked_account_seed_reference() {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
     let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
 
@@ -375,7 +375,7 @@ fn bare_bump_verify_with_account_info_seed_reference() {
     .send_and_confirm()
     .expect(
         "touch_config_entry_bare_bump should succeed — bare bump, verify-only, \
-         seed referencing a plain AccountInfo sibling field via .address()",
+         seed referencing a plain UncheckedAccount sibling field via .address()",
     );
 
     let raw = provider
@@ -384,16 +384,16 @@ fn bare_bump_verify_with_account_info_seed_reference() {
     assert_eq!(config_entry_value(&raw), 6, "touch should have incremented value");
 }
 
-/// Same seed shape as `bare_bump_verify_with_account_info_seed_reference`,
+/// Same seed shape as `bare_bump_verify_with_unchecked_account_seed_reference`,
 /// but the instruction also takes a `u128` arg ahead of the bare-bump
 /// account check — matching `pump_fees::get_fees`'s exact arg shape
-/// (`Bool, u128, u64, Bool` before its `AccountInfo`-seeded, bare-bump
+/// (`Bool, u128, u64, Bool` before its `UncheckedAccount`-seeded, bare-bump
 /// `fee_config` account). Isolates whether combining instruction-arg parsing
 /// (particularly a `u128`, given this framework's two independent
 /// arg-wire-format parsers) with this seed shape breaks the seeds check —
 /// something no other passing seed-shape test exercises.
 #[test]
-fn bare_bump_verify_with_account_info_seed_reference_and_ix_args() {
+fn bare_bump_verify_with_unchecked_account_seed_reference_and_ix_args() {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
     let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
 
@@ -432,14 +432,113 @@ fn bare_bump_verify_with_account_info_seed_reference_and_ix_args() {
     assert_eq!(config_entry_value(&raw), 6, "touch should have incremented value");
 }
 
+fn with_args_instruction_data_and_accounts(
+    provider: &NaclacProvider,
+) -> (Vec<u8>, Vec<(AccountMeta, &'static str)>) {
+    let config_program_id = Keypair::new().address();
+    let (config_entry_pda, bump) = Address::find_program_address(
+        &[SEED_CONFIG_ENTRY, config_program_id.as_ref()],
+        &PROGRAM_ID,
+    );
+    provider
+        .set_account(
+            &config_entry_pda,
+            config_entry_bytes(bump, 5),
+            &PROGRAM_ID,
+            10_000_000,
+        )
+        .expect("inject config_entry fixture");
+
+    let instruction = build_touch_config_entry_bare_bump_with_args(
+        provider,
+        PROGRAM_ID,
+        Bool::from(false),
+        500_000_000u128,
+        0u64,
+        Bool::from(false),
+        TouchConfigEntryBareBumpWithArgsAccounts {
+            config_program_id,
+            config_entry: config_entry_pda,
+        },
+    )
+    .build_instruction();
+    let accounts = instruction
+        .accounts
+        .iter()
+        .map(|meta| {
+            let address = Address::new_from_array(meta.pubkey.to_bytes());
+            let account = if meta.is_writable {
+                AccountMeta::new(address, meta.is_signer)
+            } else {
+                AccountMeta::new_readonly(address, meta.is_signer)
+            };
+            (account, "account")
+        })
+        .collect();
+    (instruction.data, accounts)
+}
+
+fn send_raw_instruction(
+    provider: &NaclacProvider,
+    data: Vec<u8>,
+    accounts: &[(AccountMeta, &'static str)],
+) -> Result<NaclacTransactionMetadata, NaclacClientError> {
+    provider
+        .expire_blockhash()
+        .expect("Failed to expire the blockhash");
+    let mut builder = InstructionBuilder::new(provider, PROGRAM_ID, data);
+    for (meta, name) in accounts {
+        builder = builder.account(meta.clone(), *name);
+    }
+    builder.send_and_confirm()
+}
+
+/// An instruction whose data ends before its last fixed-width argument is
+/// rejected with `InvalidInstructionData` at every truncation length, in
+/// every layout.
+#[test]
+fn instruction_data_shorter_than_the_fixed_arguments_is_rejected() {
+    let payer = load_node_wallet().expect("Failed to load local Solana keypair");
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
+    let (data, accounts) = with_args_instruction_data_and_accounts(&provider);
+
+    const ARGUMENT_BYTES: usize = 1 + 16 + 8 + 1;
+    let discriminator_len = data.len() - ARGUMENT_BYTES;
+    for len in discriminator_len..data.len() {
+        let result = send_raw_instruction(&provider, data[..len].to_vec(), &accounts);
+        assert_custom_code(result, 10012);
+    }
+    send_raw_instruction(&provider, data, &accounts)
+        .expect("the complete instruction data should still succeed");
+}
+
+/// A `Bool` argument byte other than 0 or 1 is rejected with
+/// `InvalidInstructionData`, whether it is the first or the last argument.
+#[test]
+fn an_invalid_bool_argument_byte_is_rejected() {
+    let payer = load_node_wallet().expect("Failed to load local Solana keypair");
+    let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
+    let (data, accounts) = with_args_instruction_data_and_accounts(&provider);
+
+    const ARGUMENT_BYTES: usize = 1 + 16 + 8 + 1;
+    let first_bool = data.len() - ARGUMENT_BYTES;
+    let last_bool = data.len() - 1;
+    for position in [first_bool, last_bool] {
+        let mut invalid = data.clone();
+        invalid[position] = 2;
+        let result = send_raw_instruction(&provider, invalid, &accounts);
+        assert_custom_code(result, 10012);
+    }
+}
+
 /// The one remaining structural difference from `get_fees.rs`: that
 /// account is verify-only *and never `mut`* (a plain read), whereas every
 /// other seed-shape test so far marks the account `mut` so it can write to
-/// it. Isolates whether a non-`mut`, bare-bump, `AccountInfo`-seeded
+/// it. Isolates whether a non-`mut`, bare-bump, `UncheckedAccount`-seeded
 /// account being only read (never written) — with the same ix-arg shape —
 /// changes how/when the seeds check runs.
 #[test]
-fn read_only_bare_bump_verify_with_account_info_seed_reference() {
+fn read_only_bare_bump_verify_with_unchecked_account_seed_reference() {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
     let provider = NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
 
@@ -469,7 +568,7 @@ fn read_only_bare_bump_verify_with_account_info_seed_reference() {
     .send_and_confirm()
     .expect(
         "read_config_entry_bare_bump should succeed — non-mut, verify-only, bare bump, \
-         seed referencing a plain AccountInfo sibling field via .address()",
+         seed referencing a plain UncheckedAccount sibling field via .address()",
     );
 
     let value: u64 = *bytemuck::from_bytes(&result.return_data);

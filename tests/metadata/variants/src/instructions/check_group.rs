@@ -7,7 +7,7 @@ use naclac_lang::prelude::*;
 pub struct CheckGroup {
     /// SAFETY: read-only; `fetch_group` itself validates ownership by the
     /// real Metaplex Core program before parsing any bytes.
-    pub group: AccountInfo,
+    pub group: UncheckedAccount,
 }
 
 pub fn check_group(

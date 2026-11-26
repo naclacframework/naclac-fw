@@ -46,7 +46,7 @@ pub struct BuyExactSolIn {
     /// not a single fixed address — no declarative constraint supports OR);
     /// never deserialized, only a lamport destination below.
     #[account(mut)]
-    pub fee_recipient: AccountInfo,
+    pub fee_recipient: UncheckedAccount,
 
     pub mint: InterfaceAccount<Mint>,
 
@@ -88,13 +88,13 @@ pub struct BuyExactSolIn {
         seeds = [CREATOR_VAULT_SEED, bonding_curve.creator.as_ref()],
         bump = args.creator_vault_bump,
     )]
-    pub creator_vault: AccountInfo,
+    pub creator_vault: UncheckedAccount,
 
     /// SAFETY: self-reference, unused beyond seed material for `fee_config`
     /// below — naclac's `emit!` needs no `event_authority`/self-CPI account,
     /// unlike Anchor's own event-emission convention.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 
     /// Real `buy_exact_sol_in` never writes this account (confirmed: classic
     /// `buy`/`sell` never touch it either, per `probe16`'s findings in
@@ -123,12 +123,12 @@ pub struct BuyExactSolIn {
         bump = args.fee_config_bump,
         owner = PUMP_FEES_PROGRAM_ID,
     )]
-    pub fee_config: AccountInfo,
+    pub fee_config: UncheckedAccount,
 
     pub fee_program: Program<PumpFees>,
 
     /// SAFETY: unused — this reimplementation has no v2 bonding-curve concept.
-    pub bonding_curve_v2: AccountInfo,
+    pub bonding_curve_v2: UncheckedAccount,
 
     /// SAFETY: the `seeds`/`owner` constraints fully validate this as a real
     /// `pump_fees::BuybackVault` PDA; `buyback_index` is caller-supplied —
@@ -141,13 +141,13 @@ pub struct BuyExactSolIn {
         bump = args.buyback_vault_bump,
         owner = PUMP_FEES_PROGRAM_ID,
     )]
-    pub buyback_fee_recipient: AccountInfo,
+    pub buyback_fee_recipient: UncheckedAccount,
 
     /// SAFETY: the `seeds`/`bump` constraint already verifies its address;
     /// it's a lamport-only PDA (no stored data) — only ever used as the
     /// signed-CPI proof-of-origin for `pump_fees::get_fees` below.
     #[account(seeds = [PUMP_AUTHORITY_SEED], bump)]
-    pub pump_authority: AccountInfo,
+    pub pump_authority: UncheckedAccount,
 }
 
 pub fn buy_exact_sol_in(ctx: Context<BuyExactSolIn>, args: BuyExactSolInArgs) -> Result {

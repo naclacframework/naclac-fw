@@ -16,7 +16,7 @@ pub struct AttachEdition {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn attach_edition(ctx: Context<AttachEdition>) -> Result {

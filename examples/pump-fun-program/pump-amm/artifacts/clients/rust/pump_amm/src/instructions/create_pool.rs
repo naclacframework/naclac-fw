@@ -49,7 +49,7 @@ pub struct CreatePoolAccounts {
     /// SAFETY: `init` + `mint::decimals`/`mint::authority` below fully
     /// validate and construct this account via a real CPI to Token-2022 —
     /// there is no naclac `Discriminator` to check since this is a raw SPL
-    /// `Mint` layout, so `AccountInfo` is correct here, not a gap in
+    /// `Mint` layout, so `UncheckedAccount` is correct here, not a gap in
     /// coverage (same reasoning as `pump::create`'s own `mint` field).
     pub lp_mint: naclac_client::Address,
     pub user_base_token_account: naclac_client::Address,
@@ -58,7 +58,7 @@ pub struct CreatePoolAccounts {
     /// the real Associated Token Program's own CPI-level address
     /// verification, fully validate and construct this account — there is
     /// no naclac `Discriminator` to check since this is a raw SPL
-    /// `TokenAccount` layout, so `AccountInfo` is correct here, not a gap in
+    /// `TokenAccount` layout, so `UncheckedAccount` is correct here, not a gap in
     /// coverage (same reasoning as `pump::create`'s own `mint` field).
     pub user_pool_token_account: naclac_client::Address,
     /// SAFETY: same as `user_pool_token_account` above. `init_if_needed`
@@ -126,7 +126,7 @@ pub struct CreatePoolCpiAccounts<'a> {
     /// SAFETY: `init` + `mint::decimals`/`mint::authority` below fully
     /// validate and construct this account via a real CPI to Token-2022 —
     /// there is no naclac `Discriminator` to check since this is a raw SPL
-    /// `Mint` layout, so `AccountInfo` is correct here, not a gap in
+    /// `Mint` layout, so `UncheckedAccount` is correct here, not a gap in
     /// coverage (same reasoning as `pump::create`'s own `mint` field).
     pub lp_mint: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub user_base_token_account: crate::sdk_core_cpi::CpiHandleMut<'a>,
@@ -135,7 +135,7 @@ pub struct CreatePoolCpiAccounts<'a> {
     /// the real Associated Token Program's own CPI-level address
     /// verification, fully validate and construct this account — there is
     /// no naclac `Discriminator` to check since this is a raw SPL
-    /// `TokenAccount` layout, so `AccountInfo` is correct here, not a gap in
+    /// `TokenAccount` layout, so `UncheckedAccount` is correct here, not a gap in
     /// coverage (same reasoning as `pump::create`'s own `mint` field).
     pub user_pool_token_account: crate::sdk_core_cpi::CpiHandleMut<'a>,
     /// SAFETY: same as `user_pool_token_account` above. `init_if_needed`
@@ -160,7 +160,7 @@ pub struct CreatePoolCpiCall<'a> {
     pub accounts: CreatePoolCpiAccounts<'a>,
     pub args: crate::types::CreatePoolArgsCpi,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

@@ -180,7 +180,7 @@ export const IDL = {
             "body, never deserialized — real `create_v2` requires classic Token",
             "specifically here (confirmed via `probe64.rs`, `Custom(6064)`",
             "`InvalidQuoteTokenProgram` for Token-2022), so this stays a raw",
-            "`AccountInfo` rather than a typed `Program<Token>` to preserve that",
+            "`UncheckedAccount` rather than a typed `Program<Token>` to preserve that",
             "exact real error instead of a generic constraint-mismatch one."
           ],
           "optional": true
@@ -2313,7 +2313,7 @@ export const IDL = {
       "docs": [
         "Grows a pump-owned account's data buffer to match its currently",
         "compiled-in size, funding the extra rent from `user`. `account` stays a",
-        "raw `AccountInfo` (never a typed `Account<T>`) deliberately: a",
+        "raw `UncheckedAccount` (never a typed `Account<T>`) deliberately: a",
         "still-undersized account -- the very thing being extended -- fails",
         "`Account<T>`'s own size check before this instruction's `realloc`",
         "constraint (let alone its body) ever runs (confirmed empirically:",

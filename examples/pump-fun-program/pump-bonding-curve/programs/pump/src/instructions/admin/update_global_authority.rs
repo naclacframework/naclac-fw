@@ -14,7 +14,7 @@ pub struct UpdateGlobalAuthority {
 
     /// SAFETY: only its address is read, written into `global.authority` --
     /// never deserialized.
-    pub new_authority: AccountInfo,
+    pub new_authority: UncheckedAccount,
 }
 
 pub fn update_global_authority(ctx: Context<UpdateGlobalAuthority>) -> Result {

@@ -1,17 +1,5 @@
-error: Naclac Error: this existing PDA field has no bump, and its type can't discover one. Use Account<T>/InterfaceAccount<T>, or write `bump = <value>` on the field.
-  --> tests/fail/17_seeds_missing_bump.rs:16:23
+error: Naclac Error: this existing PDA field has no bump, and its type can't discover one. Use Account<T>/InterfaceAccount<T>, or write `bump` (canonical search) or `bump = <value>`.
+  --> tests/fail/17_seeds_missing_bump.rs:17:23
    |
-16 |     #[account(seeds = [b"foo", authority.address().as_ref()])]
+17 |     #[account(seeds = [b"foo", authority.address().as_ref()])]
    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[E0425]: cannot find value `expected_pda` in this scope
-  --> tests/fail/17_seeds_missing_bump.rs:16:23
-   |
-16 |     #[account(seeds = [b"foo", authority.address().as_ref()])]
-   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
-
-error[E0425]: cannot find value `expected_bump` in this scope
-  --> tests/fail/17_seeds_missing_bump.rs:16:23
-   |
-16 |     #[account(seeds = [b"foo", authority.address().as_ref()])]
-   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope

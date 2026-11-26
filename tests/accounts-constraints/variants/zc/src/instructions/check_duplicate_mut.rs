@@ -12,16 +12,16 @@ pub struct CheckDuplicateMut {
     /// SAFETY: never read or written; only its position and writable flag
     /// matter to the duplicate check.
     #[account(mut)]
-    pub first: AccountInfo,
+    pub first: UncheckedAccount,
 
     /// SAFETY: never read or written; only its position and writable flag
     /// matter to the duplicate check.
     #[account(mut)]
-    pub second: AccountInfo,
+    pub second: UncheckedAccount,
 
     /// SAFETY: never read or written; only its position matters to the
     /// duplicate check.
-    pub observer: AccountInfo,
+    pub observer: UncheckedAccount,
 }
 
 pub fn check_duplicate_mut(_ctx: Context<CheckDuplicateMut>) -> Result {

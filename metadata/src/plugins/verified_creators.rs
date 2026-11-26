@@ -135,7 +135,7 @@ pub fn attach_collection_verified_creators_signed(
 /// identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_asset_verified_creators(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
 ) -> Result<Option<crate::prelude::Vec<VerifiedCreatorSignature>>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
@@ -155,7 +155,7 @@ pub fn fetch_asset_verified_creators(
 /// identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_collection_verified_creators(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
 ) -> Result<Option<crate::prelude::Vec<VerifiedCreatorSignature>>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
@@ -215,7 +215,7 @@ fn read_verified_creators_owned(
 /// identically on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_asset_verified_creators(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
 ) -> Result<Option<RecordList<'_, VerifiedCreatorSignature>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
@@ -228,7 +228,7 @@ pub fn fetch_asset_verified_creators(
 /// identically on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_collection_verified_creators(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
 ) -> Result<Option<RecordList<'_, VerifiedCreatorSignature>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {

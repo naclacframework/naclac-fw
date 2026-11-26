@@ -105,7 +105,7 @@ pub(super) fn expand(ctx: &ProgramCtx, event_cpi_ctx_structs: &[syn::Path]) -> E
                 // the 8-byte account count, and the first serialized account is
                 // never a duplicate entry.
                 let __ea = unsafe {
-                    naclac_lang::prelude::AccountView::new_unchecked(
+                    naclac_lang::pinocchio::AccountView::new_unchecked(
                         input.add(8) as *mut naclac_lang::pinocchio::account::RuntimeAccount,
                     )
                 };

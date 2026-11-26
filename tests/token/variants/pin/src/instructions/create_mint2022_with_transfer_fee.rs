@@ -30,7 +30,7 @@ pub struct CreateMint2022WithTransferFee {
     /// naclac `Discriminator` to check since this is a raw SPL `Mint` +
     /// `TransferFeeConfig` extension layout, not a naclac account.
     #[account(mut)]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

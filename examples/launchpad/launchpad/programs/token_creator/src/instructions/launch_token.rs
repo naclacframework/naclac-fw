@@ -53,7 +53,7 @@ pub struct LaunchToken {
         mint::authority = launch_record,
         mint::token_program = token_program,
     )]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     /// SAFETY: `init` + `associated_token::*` below have the Associated Token
     /// program create and address-check this account; it is a raw SPL token
@@ -66,35 +66,35 @@ pub struct LaunchToken {
         associated_token::authority = payer,
         associated_token::token_program = token_program,
     )]
-    pub payer_token_account: AccountInfo,
+    pub payer_token_account: UncheckedAccount,
 
     /// SAFETY: the AMM receives this as the depositor token account of
     /// `quote_mint` and checks its mint and its owner.
     #[account(mut)]
-    pub payer_quote_account: AccountInfo,
+    pub payer_quote_account: UncheckedAccount,
 
     /// SAFETY: created and address-checked by the AMM `initialize` call that
     /// receives it.
     #[account(mut)]
-    pub pool_state: AccountInfo,
+    pub pool_state: UncheckedAccount,
 
     /// SAFETY: same as `pool_state`.
     #[account(mut)]
-    pub pool_vault_a: AccountInfo,
+    pub pool_vault_a: UncheckedAccount,
 
     /// SAFETY: same as `pool_state`.
     #[account(mut)]
-    pub pool_vault_b: AccountInfo,
+    pub pool_vault_b: UncheckedAccount,
 
     /// SAFETY: same as `pool_state`.
     #[account(mut)]
-    pub pool_lp_mint: AccountInfo,
+    pub pool_lp_mint: UncheckedAccount,
 
     /// SAFETY: the payer's LP associated token account, created and
     /// address-checked by the AMM `initialize` call that receives it; its owner
     /// is then reassigned to `launch_record`.
     #[account(mut)]
-    pub payer_lp: AccountInfo,
+    pub payer_lp: UncheckedAccount,
 
     pub token_program: Program<Token>,
 

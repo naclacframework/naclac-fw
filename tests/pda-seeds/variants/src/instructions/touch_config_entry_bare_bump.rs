@@ -6,7 +6,7 @@ use crate::constants::SEED_CONFIG_ENTRY;
 pub struct TouchConfigEntryBareBump {
     /// SAFETY: only used as PDA seed material for `config_entry` below; never
     /// deserialized, invoked, or otherwise trusted for its own contents.
-    pub config_program_id: AccountInfo,
+    pub config_program_id: UncheckedAccount,
 
     #[account(
         mut,

@@ -12,7 +12,7 @@ pub struct ExtendFeeConfig {
     pub user: Signer,
     /// SAFETY: only used as PDA seed material for `fee_config`; not
     /// deserialized or invoked.
-    pub config_program_id: AccountInfo,
+    pub config_program_id: UncheckedAccount,
     #[account(
         mut,
         seeds = [FEE_CONFIG_SEED, config_program_id.address().as_ref()],
@@ -28,7 +28,7 @@ pub struct ExtendFeeConfig {
 /// any signer (`user` pays the rent delta, per the real program's IDL —
 /// there's no admin/ownership check on this instruction).
 pub fn extend_fee_config(ctx: Context<ExtendFeeConfig>) -> Result {
-    let current_size = ctx.accounts.fee_config.to_account_info().data().len() as u64;
+    let current_size = ctx.accounts.fee_config.to_unchecked_account().data().len() as u64;
     let timestamp = unix_timestamp()?;
 
     emit!(ExtendFeeConfigEvent {

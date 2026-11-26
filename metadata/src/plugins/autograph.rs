@@ -56,7 +56,7 @@ pub fn attach_autograph_signed(
 /// on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_asset_autograph(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
 ) -> Result<Option<crate::prelude::Vec<AutographEntry>>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
@@ -76,7 +76,7 @@ pub fn fetch_asset_autograph(
 /// on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_asset_autograph(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
 ) -> Result<Option<crate::prelude::Vec<AutographEntry>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {

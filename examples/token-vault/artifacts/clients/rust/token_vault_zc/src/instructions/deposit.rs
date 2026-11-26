@@ -107,7 +107,7 @@ pub trait DepositCpi<'info> {
         amount: u64,
         user_bump: u8,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()>;
 
 }
@@ -121,7 +121,7 @@ impl<'info> DepositCpi<'info> for crate::sdk_core::Program<crate::TokenVaultZc> 
         amount: u64,
         user_bump: u8,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()> {
         let args = DepositIxArgs {
             vault_id,

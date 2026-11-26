@@ -10,7 +10,7 @@ use {
 
 /// True if any doc-comment line on this field (once desugared from `///`/`#[doc = "..."]`
 /// and trimmed of leading whitespace) starts with `SAFETY:`. Used to require an explicit,
-/// human-written justification on every unchecked `AccountInfo` field — mirroring the
+/// human-written justification on every `UncheckedAccount` field — mirroring the
 /// `// SAFETY:` convention this codebase already uses for `unsafe` blocks.
 pub(super) fn has_safety_doc_comment(attrs: &[syn::Attribute]) -> bool {
     attrs.iter().any(|attr| {
@@ -206,12 +206,12 @@ pub(super) fn finish(
         (None, None) => None,
     };
     if matches!(realloc_space_variant, Some(ReallocSpace::AnyOf(_)))
-        && !crate::type_classify::is_exactly(&ty, "AccountInfo")
+        && !crate::type_classify::is_exactly(&ty, "UncheckedAccount")
     {
         return Err(syn::Error::new_spanned(
             &ty,
             "Naclac Error: `realloc::any_of` reads the account's raw bytes, so the field must be \
-             `AccountInfo`. On a typed account use `realloc = <expr>`.",
+             `UncheckedAccount`. On a typed account use `realloc = <expr>`.",
         ));
     }
     // `grow_only` only means something with `any_of`, where the size is
@@ -274,12 +274,13 @@ pub(super) fn finish(
         }
     }
 
-    if crate::type_classify::is_exactly(&ty, "AccountInfo") && !has_safety_doc_comment(field_attrs)
+    if crate::type_classify::is_exactly(&ty, "UncheckedAccount")
+        && !has_safety_doc_comment(field_attrs)
     {
         return Err(syn::Error::new_spanned(
             &ident,
-            "Naclac Error: `AccountInfo` fields get no automatic validation. Add a `/// SAFETY: \
-             ...` doc comment above the field explaining why that is safe.",
+            "Naclac Error: `UncheckedAccount` fields get no automatic validation. Add a \
+             `/// SAFETY: ...` doc comment above the field explaining why that is safe.",
         ));
     }
 

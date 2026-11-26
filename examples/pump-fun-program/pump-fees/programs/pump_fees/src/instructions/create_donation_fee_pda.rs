@@ -45,7 +45,7 @@ pub struct CreateDonationFeePda {
     pub fee_program_global: Account<FeeProgramGlobal>,
 
     /// SAFETY: only used as PDA seed material below; not deserialized.
-    pub base_mint: AccountInfo,
+    pub base_mint: UncheckedAccount,
 
     #[account(
         seeds = [BONDING_CURVE_SEED, base_mint.address().as_ref()],
@@ -61,7 +61,7 @@ pub struct CreateDonationFeePda {
         seeds::program = PUMP_PROGRAM_ID,
         bump = pool_authority_bump,
     )]
-    pub pool_authority: AccountInfo,
+    pub pool_authority: UncheckedAccount,
 
     /// SAFETY: address is always verified via seeds; owner/content are only
     /// checked when `bonding_curve.complete` (see module comment above).
@@ -70,14 +70,14 @@ pub struct CreateDonationFeePda {
         seeds::program = PUMP_AMM_PROGRAM_ID,
         bump = pool_bump,
     )]
-    pub pool: AccountInfo,
+    pub pool: UncheckedAccount,
 
     /// SAFETY: dead — see module comment above. Kept for account-shape parity only.
-    pub sharing_config: AccountInfo,
+    pub sharing_config: UncheckedAccount,
 
     /// SAFETY: plain address material distinguishing donation campaigns for
     /// the same `base_mint`; not a signer, never deserialized.
-    pub config_id: AccountInfo,
+    pub config_id: UncheckedAccount,
 
     #[account(
         init,

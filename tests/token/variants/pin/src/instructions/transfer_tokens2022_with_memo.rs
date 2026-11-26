@@ -37,7 +37,7 @@ pub struct TransferTokens2022WithMemo {
     /// spl-memo program (v1 or v3) is part of this instruction's own
     /// account list. Not SPL-token-shaped, no naclac `Discriminator`
     /// applies.
-    pub memo_program: AccountInfo,
+    pub memo_program: UncheckedAccount,
 }
 
 pub fn transfer_tokens2022_with_memo(

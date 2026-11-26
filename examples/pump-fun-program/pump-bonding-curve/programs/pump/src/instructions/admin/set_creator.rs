@@ -17,7 +17,7 @@ pub struct SetCreator {
 
     /// SAFETY: only used as a seed input for `metadata`/`bonding_curve`
     /// below, never read or written.
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     /// SAFETY: the `owner`/`seeds`/`bump` constraints below already prove
     /// this is the real, canonical Metaplex `Metadata` PDA for `mint` —
@@ -30,7 +30,7 @@ pub struct SetCreator {
         seeds::program = MPL_TOKEN_METADATA_PROGRAM_ID,
         bump = metadata_bump,
     )]
-    pub metadata: AccountInfo,
+    pub metadata: UncheckedAccount,
 
     #[account(mut, seeds = [BONDING_CURVE_SEED, mint.address().as_ref()], bump = bonding_curve_bump)]
     pub bonding_curve: Account<BondingCurve>,

@@ -23,7 +23,7 @@ export interface CreatePoolAccounts {
    * SAFETY: `init` + `mint::decimals`/`mint::authority` below fully
    * validate and construct this account via a real CPI to Token-2022 —
    * there is no naclac `Discriminator` to check since this is a raw SPL
-   * `Mint` layout, so `AccountInfo` is correct here, not a gap in
+   * `Mint` layout, so `UncheckedAccount` is correct here, not a gap in
    * coverage (same reasoning as `pump::create`'s own `mint` field).
    */
   lpMint?: naclac.Address | string;
@@ -34,7 +34,7 @@ export interface CreatePoolAccounts {
    * the real Associated Token Program's own CPI-level address
    * verification, fully validate and construct this account — there is
    * no naclac `Discriminator` to check since this is a raw SPL
-   * `TokenAccount` layout, so `AccountInfo` is correct here, not a gap in
+   * `TokenAccount` layout, so `UncheckedAccount` is correct here, not a gap in
    * coverage (same reasoning as `pump::create`'s own `mint` field).
    */
   userPoolTokenAccount: naclac.Address | string;

@@ -55,7 +55,7 @@ impl Discriminator for TokenAccount {
     /// validates the raw layout (exact length, canonical `COption` tags,
     /// initialized state) via `validate_token_account_bytes`.
     fn validate_account(
-        info: &crate::prelude::AccountInfo,
+        info: &crate::prelude::UncheckedAccount,
         index: usize,
     ) -> crate::prelude::Result<()> {
         if crate::prelude::Owner::program_owner(info) != crate::prelude::TOKEN_PROGRAM_ID {
@@ -72,7 +72,7 @@ impl Discriminator for Mint {
     /// See `TokenAccount::validate_account` above; validates the `Mint`
     /// layout via `validate_mint_bytes`.
     fn validate_account(
-        info: &crate::prelude::AccountInfo,
+        info: &crate::prelude::UncheckedAccount,
         index: usize,
     ) -> crate::prelude::Result<()> {
         if crate::prelude::Owner::program_owner(info) != crate::prelude::TOKEN_PROGRAM_ID {
@@ -240,7 +240,7 @@ impl Mint {
 /// Raw-byte constraint checks backing the `token::*`/`mint::*`/
 /// `associated_token::*` attributes in `#[account(...)]`. Each function takes
 /// the account's raw data slice rather than a hydrated `&TokenAccount`/`&Mint`,
-/// since the generated constraint code runs immediately on `AccountInfo` data,
+/// since the generated constraint code runs immediately on `UncheckedAccount` data,
 /// before (and independent of) any typed zero-copy load. This is the single
 /// place naclac-derive' codegen defers to for the actual SPL Token/Token-2022
 /// layout knowledge — the macro only resolves which expression to compare
@@ -420,7 +420,7 @@ fn validate_mint_layout(data: &[u8], exact_len: bool) -> core::result::Result<()
 /// converting any failure to a `ProgramError` at `index`. Backend-specific
 /// data access only; the actual byte validation is backend-independent.
 fn validate_token_account_bytes(
-    info: &crate::prelude::AccountInfo,
+    info: &crate::prelude::UncheckedAccount,
     index: usize,
     exact_len: bool,
 ) -> crate::prelude::Result<()> {
@@ -437,7 +437,7 @@ fn validate_token_account_bytes(
 
 /// Like `validate_token_account_bytes`, for `validate_mint_layout`.
 fn validate_mint_bytes(
-    info: &crate::prelude::AccountInfo,
+    info: &crate::prelude::UncheckedAccount,
     index: usize,
     exact_len: bool,
 ) -> crate::prelude::Result<()> {

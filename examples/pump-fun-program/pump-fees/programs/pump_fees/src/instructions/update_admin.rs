@@ -12,12 +12,12 @@ pub struct UpdateAdmin {
     pub admin: Signer,
     /// SAFETY: only used as PDA seed material for `fee_config`; not
     /// deserialized or invoked.
-    pub config_program_id: AccountInfo,
+    pub config_program_id: UncheckedAccount,
     #[account(mut, seeds = [FEE_CONFIG_SEED, config_program_id.address().as_ref()], bump)]
     pub fee_config: Account<FeeConfig>,
     /// SAFETY: new admin is passed as an account (not instruction data);
     /// its pubkey is only stored, never deserialized or invoked.
-    pub new_admin: AccountInfo,
+    pub new_admin: UncheckedAccount,
 }
 
 /// Update admin (only callable by admin)

@@ -12,7 +12,7 @@ pub struct ApproveVaultDelegate2022 {
 
     /// SAFETY: only used as an address — becomes the approved delegate via
     /// `approve` below; its data is never read or deserialized.
-    pub delegate: AccountInfo,
+    pub delegate: UncheckedAccount,
 
     pub owner: Signer,
 

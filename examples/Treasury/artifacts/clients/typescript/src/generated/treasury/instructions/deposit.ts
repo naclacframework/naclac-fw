@@ -17,7 +17,8 @@ export interface DepositAccounts {
   treasury: naclac.Address | string;
   /**
    * SAFETY: a lamport-only PDA with no data, checked by `seeds` against the
-   * treasury's stored vault bump; it is only the destination of a transfer.
+   * treasury's stored vault bump, which only `create_treasury` writes, from
+   * the canonical search; it is only the destination of a transfer.
    */
   vault?: naclac.Address | string;
   systemProgram?: naclac.Address | string;

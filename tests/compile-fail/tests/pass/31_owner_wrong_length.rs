@@ -6,7 +6,7 @@ use naclac_lang::prelude::*;
 pub struct Foo {
     /// SAFETY: only the owner is checked; the account is never read.
     #[account(owner = "11111111111111111111111111111111")]
-    pub account: AccountInfo,
+    pub account: UncheckedAccount,
 }
 
 fn main() {}

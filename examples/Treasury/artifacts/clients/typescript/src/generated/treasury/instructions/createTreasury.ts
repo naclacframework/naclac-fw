@@ -17,9 +17,8 @@ export interface CreateTreasuryAccounts {
   admin: naclac.Address | string;
   treasury?: naclac.Address | string;
   /**
-   * SAFETY: a lamport-only PDA with no data, checked by `seeds` and the
-   * canonical bump the caller supplies; it is only the source of signed
-   * transfers.
+   * SAFETY: a lamport-only PDA with no data, checked by `seeds` at its
+   * canonical bump; it is only the source of signed transfers.
    */
   vault?: naclac.Address | string;
   systemProgram?: naclac.Address | string;

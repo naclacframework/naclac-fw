@@ -3,7 +3,7 @@ use crate::state::MintAuthority;
 use crate::constants::SEED_MINT;
 
 // `mint::decimals` + `mint::authority` combined with `init` — the account
-// itself is a bare `AccountInfo` (not `Account<Mint>`), since `init` +
+// itself is a bare `UncheckedAccount` (not `Account<Mint>`), since `init` +
 // `mint::*` routes through `init_cpi.rs`'s real CPI-based mint creation,
 // not naclac's own Discriminator-prefixed layout. Mirrors
 // `examples/launchpad/.../create_mint.rs` exactly.
@@ -16,7 +16,7 @@ pub struct CreateMint {
     /// SAFETY: `init` + `mint::decimals`/`mint::authority` below fully
     /// validate and construct this account via a real CPI to the token
     /// program (`init_cpi.rs`) — there is no naclac `Discriminator` to check
-    /// since this is a raw SPL `Mint` layout, so `AccountInfo` is correct
+    /// since this is a raw SPL `Mint` layout, so `UncheckedAccount` is correct
     /// here, not a gap in coverage.
     #[account(
         init,
@@ -26,7 +26,7 @@ pub struct CreateMint {
         mint::decimals = decimals,
         mint::authority = mint_authority,
     )]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

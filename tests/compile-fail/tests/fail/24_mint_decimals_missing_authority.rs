@@ -21,7 +21,7 @@ pub struct Foo {
         bump,
         mint::decimals = 6,
     )]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub token_program: Program<Token>,
     pub system_program: Program<System>,

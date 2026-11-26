@@ -32,7 +32,7 @@ pub struct InitializeCpiAccounts<'a> {
 pub struct InitializeCpiCall<'a> {
     pub accounts: InitializeCpiAccounts<'a>,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

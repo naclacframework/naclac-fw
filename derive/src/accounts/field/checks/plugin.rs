@@ -111,14 +111,14 @@ fn value_reference(expr: &syn::Expr, all_fields: &[ParsedField]) -> TokenStream 
 }
 
 /// A reference to the field named `ident`, from which its address can be
-/// read: the raw `accounts[idx]` slot for an account wrapper or `AccountInfo`
+/// read: the raw `accounts[idx]` slot for an account wrapper or `UncheckedAccount`
 /// (valid wherever the field is declared), else the field's loaded local.
 /// `None` when no field has that name.
 fn field_reference(ident: &Ident, all_fields: &[ParsedField]) -> Option<TokenStream> {
     let pos = all_fields.iter().position(|f| &f.ident == ident)?;
     let target_field = &all_fields[pos];
     if crate::type_classify::is_account_wrapper(&target_field.ty)
-        || crate::type_classify::is_exactly(&target_field.ty, "AccountInfo")
+        || crate::type_classify::is_exactly(&target_field.ty, "UncheckedAccount")
     {
         Some(quote! { &accounts[#pos] })
     } else {
@@ -322,7 +322,7 @@ mod plugin_tests {
     fn a_written_token_program_is_not_checked_on_a_created_account() {
         let generated = constraint_code(
             "#[account(init, payer = payer, mint::decimals = 6, mint::authority = payer, mint::token_program = program)]
-             mint: AccountInfo,
+             mint: UncheckedAccount,
              #[account(mut)] payer: Signer,
              program: Interface<TokenInterface>",
         );

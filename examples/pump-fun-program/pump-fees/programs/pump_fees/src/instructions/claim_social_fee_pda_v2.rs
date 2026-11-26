@@ -10,7 +10,7 @@ use crate::systems::accumulate_claimed;
 pub struct ClaimSocialFeePdaV2 {
     /// SAFETY: only a token-transfer destination owner; not deserialized.
     #[account(mut)]
-    pub recipient: AccountInfo,
+    pub recipient: UncheckedAccount,
     #[account(
         mut,
         seeds = [SOCIAL_FEE_PDA_SEED, user_id.as_bytes(), &[platform]],
@@ -32,7 +32,7 @@ pub struct ClaimSocialFeePdaV2 {
         associated_token::mint = quote_mint,
         associated_token::authority = recipient,
     )]
-    pub associated_recipient: AccountInfo,
+    pub associated_recipient: UncheckedAccount,
     pub quote_token_program: Interface<TokenInterface>,
     pub associated_token_program: Program<AssociatedToken>,
     pub fee_program_global: Account<FeeProgramGlobal>,

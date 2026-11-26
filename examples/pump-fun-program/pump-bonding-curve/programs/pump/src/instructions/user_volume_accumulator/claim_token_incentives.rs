@@ -25,7 +25,7 @@ pub struct ClaimTokenIncentivesArgs {
 pub struct ClaimTokenIncentives {
     /// SAFETY: only PDA seed material for `user_ata`/`user_volume_accumulator`
     /// below; never deserialized.
-    pub user: AccountInfo,
+    pub user: UncheckedAccount,
 
     #[account(
         mut,

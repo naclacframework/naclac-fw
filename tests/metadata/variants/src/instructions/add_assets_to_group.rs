@@ -13,7 +13,7 @@ pub struct AddAssetsToGroup {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn add_assets_to_group(ctx: Context<AddAssetsToGroup>) -> Result {
@@ -34,12 +34,12 @@ pub fn add_assets_to_group(ctx: Context<AddAssetsToGroup>) -> Result {
     Ok(())
 }
 
-/// Copies a remaining-account's `AccountInfo` into a `CpiHandleMut` — a
+/// Copies a remaining-account's `UncheckedAccount` into a `CpiHandleMut` — a
 /// plain data copy, not a real exclusive Rust borrow; matches
 /// `naclac-metadata`'s own `execute.rs::ExecutePayer::AssetSignerPda`
 /// branch, which builds a `CpiHandleMut` the same way from a shared
 /// reference.
-fn to_item(info: &AccountInfo) -> CpiHandleMut<'_> {
+fn to_item(info: &UncheckedAccount) -> CpiHandleMut<'_> {
     CpiHandleMut {
         info: *info,
         _phantom: core::marker::PhantomData,

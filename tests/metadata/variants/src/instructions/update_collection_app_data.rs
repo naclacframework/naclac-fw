@@ -14,7 +14,7 @@ pub struct UpdateCollectionAppData {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn update_collection_app_data(ctx: Context<UpdateCollectionAppData>) -> Result {

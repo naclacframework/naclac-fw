@@ -35,7 +35,7 @@ pub struct DataSectionInfo<#[cfg(feature = "pinocchio")] 'a> {
 /// it), if attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_asset_data_section(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     target_parent_key: LinkedDataKeyArg,
 ) -> Result<Option<DataSectionInfo>> {
     if Owner::program_owner(info) != crate::ID {
@@ -56,7 +56,7 @@ pub fn fetch_asset_data_section(
 /// `target_parent_key`, if attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_collection_data_section(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     target_parent_key: LinkedDataKeyArg,
 ) -> Result<Option<DataSectionInfo>> {
     if Owner::program_owner(info) != crate::ID {
@@ -130,7 +130,7 @@ fn read_data_section(
 /// `target_parent_key`, if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_asset_data_section(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     target_parent_key: LinkedDataKeyArg,
 ) -> Result<Option<DataSectionInfo<'_>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
@@ -184,7 +184,7 @@ pub fn fetch_asset_data_section(
 /// `target_parent_key`, if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_collection_data_section(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     target_parent_key: LinkedDataKeyArg,
 ) -> Result<Option<DataSectionInfo<'_>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;

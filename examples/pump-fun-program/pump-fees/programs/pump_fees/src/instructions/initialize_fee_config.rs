@@ -20,7 +20,7 @@ pub struct InitializeFeeConfig {
     pub admin: Signer,
     /// SAFETY: only used as PDA seed material for `fee_config`; not
     /// deserialized or invoked.
-    pub config_program_id: AccountInfo,
+    pub config_program_id: UncheckedAccount,
     #[account(init, payer = admin, seeds = [FEE_CONFIG_SEED, config_program_id.address().as_ref()], bump = fee_config_bump)]
     pub fee_config: Account<FeeConfig>,
     pub system_program: Program<System>,

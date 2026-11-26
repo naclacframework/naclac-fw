@@ -14,8 +14,8 @@ pub struct CreateCollection {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — see `create_asset.rs`'s
-    /// `mpl_core_program` field for why this is a bare `AccountInfo`.
-    pub mpl_core_program: AccountInfo,
+    /// `mpl_core_program` field for why this is a bare `UncheckedAccount`.
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn create_collection(ctx: Context<CreateCollection>, name: ZcString, uri: ZcString) -> Result {

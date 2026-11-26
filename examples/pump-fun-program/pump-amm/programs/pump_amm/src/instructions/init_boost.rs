@@ -22,7 +22,7 @@ pub struct InitBoost {
     /// outright; our own `migrate_v2` (the only real caller) already has
     /// this account in its own context and passes it straight through.
     /// Never deserialized.
-    pub bonding_curve: AccountInfo,
+    pub bonding_curve: UncheckedAccount,
 
     #[account(
         mut,
@@ -52,7 +52,7 @@ pub struct InitBoost {
     /// dedicated `BoostVault`-type account exists), used below only as a CPI
     /// signer and as `boost_vault`'s ATA authority.
     #[account(seeds = [BOOST_VAULT_SEED, pool.address().as_ref()], bump = boost_vault_authority_bump)]
-    pub boost_vault_authority: AccountInfo,
+    pub boost_vault_authority: UncheckedAccount,
 
     /// SAFETY: `init` + `associated_token::mint`/`::authority` below, plus
     /// the real Associated Token Program's own CPI-level address
@@ -67,7 +67,7 @@ pub struct InitBoost {
         associated_token::authority = boost_vault_authority,
         associated_token::token_program =quote_token_program,
     )]
-    pub boost_vault: AccountInfo,
+    pub boost_vault: UncheckedAccount,
 
     pub quote_token_program: Interface<TokenInterface>,
     pub system_program: Program<System>,

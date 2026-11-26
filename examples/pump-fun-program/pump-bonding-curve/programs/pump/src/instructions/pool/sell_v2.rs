@@ -75,7 +75,7 @@ pub struct SellV2 {
     /// SOL-paired coin (see module comment), or `associated_quote_fee_recipient`'s
     /// authority seed for any other quote mint.
     #[account(mut)]
-    pub fee_recipient: AccountInfo,
+    pub fee_recipient: UncheckedAccount,
 
     #[account(
         mut,
@@ -98,7 +98,7 @@ pub struct SellV2 {
         bump = args.buyback_vault_bump,
         owner = PUMP_FEES_PROGRAM_ID,
     )]
-    pub buyback_fee_recipient: AccountInfo,
+    pub buyback_fee_recipient: UncheckedAccount,
 
     /// SAFETY: real `pump.so` does not auto-create this ATA (confirmed via
     /// `probe42`/`probe43`) — must already exist.
@@ -173,7 +173,7 @@ pub struct SellV2 {
         seeds = [CREATOR_VAULT_SEED, bonding_curve.creator.as_ref()],
         bump = args.creator_vault_bump,
     )]
-    pub creator_vault: AccountInfo,
+    pub creator_vault: UncheckedAccount,
 
     #[account(
         mut,
@@ -188,7 +188,7 @@ pub struct SellV2 {
     /// SAFETY: confirmed via probe — not read/required for a coin that
     /// hasn't opted into fee-sharing; pure account-shape parity, same
     /// category as `bonding_curve_v2` elsewhere in this program.
-    pub sharing_config: AccountInfo,
+    pub sharing_config: UncheckedAccount,
 
     #[account(
         mut,
@@ -213,7 +213,7 @@ pub struct SellV2 {
     /// below — naclac's `emit!` needs no `event_authority`/self-CPI account,
     /// unlike Anchor's own event-emission convention.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 
     /// SAFETY: the `seeds`/`owner` constraints fully validate this; only
     /// passed as a CPI account to `pump_fees::get_fees` below, never
@@ -224,7 +224,7 @@ pub struct SellV2 {
         bump = args.fee_config_bump,
         owner = PUMP_FEES_PROGRAM_ID,
     )]
-    pub fee_config: AccountInfo,
+    pub fee_config: UncheckedAccount,
 
     pub fee_program: Program<PumpFees>,
 
@@ -234,7 +234,7 @@ pub struct SellV2 {
     /// it's a lamport-only PDA (no stored data) — only ever used as the
     /// signed-CPI proof-of-origin for `pump_fees::get_fees` below.
     #[account(seeds = [PUMP_AUTHORITY_SEED], bump)]
-    pub pump_authority: AccountInfo,
+    pub pump_authority: UncheckedAccount,
 }
 
 pub fn sell_v2(ctx: Context<SellV2>, args: SellV2Args) -> Result {

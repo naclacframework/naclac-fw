@@ -14,7 +14,7 @@ pub struct RevokeCollectionPluginAuthority {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn revoke_collection_plugin_authority(ctx: Context<RevokeCollectionPluginAuthority>) -> Result {

@@ -49,9 +49,8 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Pod for CreateTreasuryCpiIxArgs {}
 pub struct CreateTreasuryAccounts {
     pub admin: naclac_client::Address,
     pub treasury: naclac_client::Address,
-    /// SAFETY: a lamport-only PDA with no data, checked by `seeds` and the
-    /// canonical bump the caller supplies; it is only the source of signed
-    /// transfers.
+    /// SAFETY: a lamport-only PDA with no data, checked by `seeds` at its
+    /// canonical bump; it is only the source of signed transfers.
     pub vault: naclac_client::Address,
     pub system_program: naclac_client::Address,
 }
@@ -92,9 +91,8 @@ pub fn build_create_treasury<'a>(
 pub struct CreateTreasuryCpiAccounts<'a> {
     pub admin: crate::sdk_core_cpi::CpiHandleMut<'a>,
     pub treasury: crate::sdk_core_cpi::CpiHandleMut<'a>,
-    /// SAFETY: a lamport-only PDA with no data, checked by `seeds` and the
-    /// canonical bump the caller supplies; it is only the source of signed
-    /// transfers.
+    /// SAFETY: a lamport-only PDA with no data, checked by `seeds` at its
+    /// canonical bump; it is only the source of signed transfers.
     pub vault: crate::sdk_core_cpi::CpiHandle<'a>,
     pub system_program: crate::sdk_core_cpi::CpiHandle<'a>,
 }
@@ -105,7 +103,7 @@ pub struct CreateTreasuryCpiCall<'a> {
     pub vault_bump: u8,
     pub threshold: u8,
     pub signer_seeds: &'a [crate::sdk_core_cpi::CpiSigner<'a, 'a>],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

@@ -19,13 +19,14 @@ pub struct Deposit {
     pub treasury: Account<Treasury>,
 
     /// SAFETY: a lamport-only PDA with no data, checked by `seeds` against the
-    /// treasury's stored vault bump; it is only the destination of a transfer.
+    /// treasury's stored vault bump, which only `create_treasury` writes, from
+    /// the canonical search; it is only the destination of a transfer.
     #[account(
         mut,
         seeds = VaultPda::seeds(treasury.address()),
         bump = treasury.vault_bump
     )]
-    pub vault: AccountInfo,
+    pub vault: UncheckedAccount,
 
     pub system_program: Program<System>,
 }

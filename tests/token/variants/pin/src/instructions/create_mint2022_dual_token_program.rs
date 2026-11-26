@@ -24,7 +24,7 @@ pub struct CreateMint2022DualTokenProgram {
         mint::authority = mint_authority,
         mint::token_program = token_2022_program,
     )]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

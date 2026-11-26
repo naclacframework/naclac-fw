@@ -17,7 +17,7 @@ pub struct CreateAsset {
     /// SAFETY: the real Metaplex Core program — external to this workspace,
     /// so there's no naclac `Program<T>` marker type to constrain it with;
     /// callers are expected to pass the real deployed program ID.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn create_asset(ctx: Context<CreateAsset>, name: ZcString, uri: ZcString) -> Result {

@@ -98,7 +98,7 @@ pub trait RemoveLiquidityCpi<'info> {
         accounts: RemoveLiquidityCpiAccounts<'a>,
         lp_amount: u64,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()>;
 
 }
@@ -110,7 +110,7 @@ impl<'info> RemoveLiquidityCpi<'info> for crate::sdk_core::Program<crate::Amm> {
         accounts: RemoveLiquidityCpiAccounts<'a>,
         lp_amount: u64,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()> {
         let args = RemoveLiquidityIxArgs {
             lp_amount,

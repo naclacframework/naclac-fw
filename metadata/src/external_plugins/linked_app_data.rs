@@ -171,7 +171,7 @@ pub fn remove_collection_linked_app_data_signed(
 /// been written yet. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_collection_linked_app_data(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     data_authority: PluginAuthorityArg,
 ) -> Result<Option<LinkedAppDataInfo>> {
     if Owner::program_owner(info) != crate::ID {
@@ -235,7 +235,7 @@ pub fn fetch_collection_linked_app_data(
 /// been written yet. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_collection_linked_app_data(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     data_authority: PluginAuthorityArg,
 ) -> Result<Option<LinkedAppDataInfo<'_>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;

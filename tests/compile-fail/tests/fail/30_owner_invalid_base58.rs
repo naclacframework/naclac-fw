@@ -9,7 +9,7 @@ pub struct Foo {
     /// SAFETY: fully validated via `owner =` below — irrelevant here, this
     /// fixture never reaches that check.
     #[account(owner = "not-valid-base58!!!")]
-    pub account: AccountInfo,
+    pub account: UncheckedAccount,
 }
 
 fn main() {}

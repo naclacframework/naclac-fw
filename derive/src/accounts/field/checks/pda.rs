@@ -11,15 +11,15 @@ use {
 
 const HASH_ONLY_INELIGIBLE_MSG: &str =
     "Naclac Error: this existing PDA field has no bump, and its type can't discover one. Use \
-     Account<T>/InterfaceAccount<T>, or write `bump = <value>` on the field.";
+     Account<T>/InterfaceAccount<T>, or write `bump` (canonical search) or `bump = <value>`.";
 
-/// Whether `ty` is written as `AccountInfo` or `AccountView`, types that never
-/// validate their owner. Bump discovery is refused for them here, with the
-/// field's span; every other spelling, an alias included, is refused by the
-/// `OWNER_VALIDATED` assertion the discovery code carries.
+/// Whether `ty` is written as `UncheckedAccount`, a type that never validates its
+/// owner. A bare `bump` on it runs the canonical search; no bump at all is
+/// refused here, with the field's span. Every other spelling, an alias
+/// included, is refused by the `OWNER_VALIDATED` assertion the discovery code
+/// carries.
 fn names_unchecked_type(ty: &syn::Type) -> bool {
-    crate::type_classify::is_exactly(ty, "AccountInfo")
-        || crate::type_classify::is_exactly(ty, "AccountView")
+    crate::type_classify::is_exactly(ty, "UncheckedAccount")
 }
 
 /// Which phase of a field's checks the PDA check belongs to.
@@ -188,18 +188,10 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
     let mut use_stored_or_searched_bump = false;
 
     match &field.pda_bump {
-        Some(PdaBump::Auto) if field.init_config.is_none() => {
-            if names_unchecked_type(&field.ty) {
-                find_pda_error = Some(HASH_ONLY_INELIGIBLE_MSG.to_string());
-            } else {
-                use_stored_or_searched_bump = true;
-            }
+        Some(PdaBump::Auto) if field.init_config.is_none() && !names_unchecked_type(&field.ty) => {
+            use_stored_or_searched_bump = true;
         }
         Some(PdaBump::Auto) => {
-            // Only reached for a fresh PDA (`init`) under seeds unknown until
-            // runtime: no compile-time precompute is possible and no
-            // client-supplied bump can be trusted, so a real canonical search
-            // is the only way to establish the bump.
             use_manual_search = true;
         }
         Some(PdaBump::Explicit(parsed_bump_expr)) => {
@@ -209,8 +201,7 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
         None if field.init_config.is_some() => {
             find_pda_error = Some(
                 "Naclac Error: `init` under seeds unknown at compile time needs `bump` \
-                 (canonical search) or `bump = <value>`. Example: #[account(init, seeds = \
-                 [...], bump)]"
+                 (canonical search). Example: #[account(init, seeds = [...], bump)]"
                     .to_string(),
             );
         }
@@ -226,6 +217,7 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
     let logic = if let Some(msg) = &find_pda_error {
         quote! {
             compile_error!(#msg);
+            let expected_bump = 0u8;
         }
     } else if use_stored_or_searched_bump {
         let ty = &field.ty;
@@ -278,7 +270,10 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
             .ok_or(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
         }
     } else if use_manual_search {
-        // The one place a bounded on-chain canonical search is allowed.
+        // The bounded on-chain canonical search, for a fresh PDA (`init`) and
+        // for an existing account whose type does not prove this program
+        // created it. A bump read from anywhere else cannot establish the
+        // canonical one.
         quote! {
             #seed_bindings
             #pda_program_ref
@@ -292,37 +287,23 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
             .ok_or(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
         }
     } else {
-        // A type that does not prove this program created the account must sit
-        // at the canonical bump: one hash would accept any bump that derives
-        // its address. `OWNER_VALIDATED` is a constant, so only one branch
-        // is compiled for the field's type.
-        let ty = &field.ty;
+        // An explicit bump is used as given for every field type: one hash and
+        // a compare, with no proof that the bump is canonical. For an
+        // `UncheckedAccount` that proof is the author's, stated in its `SAFETY` note.
         quote! {
             #seed_bindings
             let expected_bump = #bump_expr;
             #pda_program_ref
             #actual_address_ref
             let __seeds: &[&[u8]] = #seeds_slice;
-            if <#ty as naclac_lang::prelude::NaclacAccount>::OWNER_VALIDATED {
-                if *__actual_address
-                    != naclac_lang::prelude::derive_program_address(
-                        __seeds,
-                        expected_bump,
-                        __pda_program,
-                    )
-                {
-                    return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
-                }
-            } else {
-                let __canonical_bump = naclac_lang::prelude::verify_canonical_address(
+            if *__actual_address
+                != naclac_lang::prelude::derive_program_address(
                     __seeds,
+                    expected_bump,
                     __pda_program,
-                    __actual_address,
                 )
-                .ok_or(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx))?;
-                if __canonical_bump != expected_bump {
-                    return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
-                }
+            {
+                return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
             }
         }
     };
@@ -330,9 +311,13 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
     Creation {
         logic,
         bump_verification,
-        // Every branch that sets this proves the field's own address equals
-        // the PDA derived from the seeds and `expected_bump`.
-        skip_address_check: use_hash_only_search || use_manual_search || use_explicit_bump,
+        // True when the address is already proved equal to the PDA of the
+        // seeds and `expected_bump`, or the field has a compile error and no
+        // address is compared.
+        skip_address_check: find_pda_error.is_some()
+            || use_hash_only_search
+            || use_manual_search
+            || use_explicit_bump,
     }
 }
 
@@ -715,19 +700,43 @@ mod const_pda_tests {
     }
 
     #[test]
-    fn an_explicit_bump_must_be_canonical_unless_the_type_proves_its_owner() {
-        for ty in ["Account<A>", "AccountInfo"] {
+    fn an_explicit_bump_is_one_hash_and_a_compare_for_every_type() {
+        for ty in ["Account<A>", "UncheckedAccount"] {
             let code = rendered(&field(&format!(
                 "/// SAFETY: test. \n #[account(seeds = [SEED_A, user.address().as_ref()], bump = args.bump)] a: {ty}"
             )));
-            assert!(
-                code.contains("NaclacAccount > :: OWNER_VALIDATED"),
-                "{code}"
-            );
+            assert!(!code.contains("compile_error"), "{code}");
             assert!(code.contains("derive_program_address"), "{code}");
-            assert!(code.contains("verify_canonical_address"), "{code}");
-            assert!(!code.contains("find_program_address"), "{code}");
-            assert!(code.contains("__canonical_bump != expected_bump"), "{code}");
+            assert!(!code.contains("verify_canonical_address"), "{code}");
+            assert!(!code.contains("OWNER_VALIDATED"), "{code}");
+        }
+    }
+
+    #[test]
+    fn a_bare_bump_on_an_unchecked_account_runs_the_canonical_search() {
+        let code = rendered(&field(
+            "/// SAFETY: test. \n #[account(seeds = [SEED_A, user.address().as_ref()], bump)] \
+             a: UncheckedAccount",
+        ));
+        assert!(!code.contains("compile_error"), "{code}");
+        assert!(code.contains("verify_canonical_address"), "{code}");
+        assert!(!code.contains("derive_program_address"), "{code}");
+    }
+
+    #[test]
+    fn a_pda_field_error_leaves_no_undefined_locals() {
+        let init = rendered(&field(
+            "#[account(init, payer = payer, seeds = [SEED_A, user.address().as_ref()])] \
+             a: Account<A>",
+        ));
+        let existing = rendered(&field(
+            "/// SAFETY: test. \n #[account(seeds = [SEED_A, user.address().as_ref()])] \
+             a: UncheckedAccount",
+        ));
+        for code in [init, existing] {
+            assert_eq!(code.matches("compile_error").count(), 1, "{code}");
+            assert!(code.contains("let expected_bump = 0u8"), "{code}");
+            assert!(!code.contains("expected_pda"), "{code}");
         }
     }
 

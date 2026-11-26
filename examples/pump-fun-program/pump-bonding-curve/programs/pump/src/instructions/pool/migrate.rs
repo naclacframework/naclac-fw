@@ -64,7 +64,7 @@ pub struct Migrate {
     /// (a single dynamic field, not a static address) — no declarative
     /// constraint supports comparing against another account's field value.
     #[account(mut)]
-    pub withdraw_authority: AccountInfo,
+    pub withdraw_authority: UncheckedAccount,
 
     pub mint: InterfaceAccount<Mint>,
 
@@ -78,7 +78,7 @@ pub struct Migrate {
     /// SAFETY: address pinned via `address = WSOL_MINT`; only used as CPI/seed
     /// material below, never deserialized.
     #[account(address = WSOL_MINT)]
-    pub wsol_mint: AccountInfo,
+    pub wsol_mint: UncheckedAccount,
 
     #[account(mut)]
     pub user: Signer,
@@ -99,7 +99,7 @@ pub struct Migrate {
     /// specifically requires to be the Rent sysvar (confirmed empirically —
     /// see that function's own doc comment in `naclac-token`).
     #[account(address = RENT_SYSVAR_ID)]
-    pub rent: AccountInfo,
+    pub rent: UncheckedAccount,
 
     #[account(
         mut,
@@ -118,7 +118,7 @@ pub struct Migrate {
         seeds = [POOL_AUTHORITY_SEED, mint.address().as_ref()],
         bump = args.pool_authority_bump,
     )]
-    pub pool_authority: AccountInfo,
+    pub pool_authority: UncheckedAccount,
 
     /// SAFETY: doesn't exist yet — created by the nested `create_pool` CPI
     /// below, address verified via seeds only.
@@ -128,7 +128,7 @@ pub struct Migrate {
         seeds::program = PUMP_AMM_PROGRAM_ID,
         bump = args.pool_bump,
     )]
-    pub pool: AccountInfo,
+    pub pool: UncheckedAccount,
 
     /// SAFETY: created directly by this instruction's own body (a manual
     /// `create_idempotent_with_extra_accounts_signed` call, not the
@@ -144,7 +144,7 @@ pub struct Migrate {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.pool_authority_mint_account_bump,
     )]
-    pub pool_authority_mint_account: AccountInfo,
+    pub pool_authority_mint_account: UncheckedAccount,
 
     /// SAFETY: same as `pool_authority_mint_account` above.
     #[account(
@@ -153,7 +153,7 @@ pub struct Migrate {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.pool_authority_wsol_account_bump,
     )]
-    pub pool_authority_wsol_account: AccountInfo,
+    pub pool_authority_wsol_account: UncheckedAccount,
 
     /// SAFETY: address fully verified via `seeds`/`seeds::program`/`bump`;
     /// passed straight into the nested `create_pool` CPI below, whose own
@@ -163,7 +163,7 @@ pub struct Migrate {
         seeds::program = PUMP_AMM_PROGRAM_ID,
         bump = args.amm_global_config_bump,
     )]
-    pub amm_global_config: AccountInfo,
+    pub amm_global_config: UncheckedAccount,
 
     /// SAFETY: doesn't exist yet — created by the nested `create_pool` CPI.
     #[account(
@@ -172,7 +172,7 @@ pub struct Migrate {
         seeds::program = PUMP_AMM_PROGRAM_ID,
         bump = args.lp_mint_bump,
     )]
-    pub lp_mint: AccountInfo,
+    pub lp_mint: UncheckedAccount,
 
     /// SAFETY: doesn't exist yet — created by the nested `create_pool` CPI;
     /// this is `pool_authority`'s own LP-token ATA, burned and closed below
@@ -183,7 +183,7 @@ pub struct Migrate {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.user_pool_token_account_bump,
     )]
-    pub user_pool_token_account: AccountInfo,
+    pub user_pool_token_account: UncheckedAccount,
 
     /// SAFETY: created directly by this instruction's own body — see
     /// `pool_authority_mint_account` above for why. Owned by `pool` (not
@@ -195,7 +195,7 @@ pub struct Migrate {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.pool_base_token_account_bump,
     )]
-    pub pool_base_token_account: AccountInfo,
+    pub pool_base_token_account: UncheckedAccount,
 
     /// SAFETY: same as `pool_base_token_account` above.
     #[account(
@@ -204,7 +204,7 @@ pub struct Migrate {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.pool_quote_token_account_bump,
     )]
-    pub pool_quote_token_account: AccountInfo,
+    pub pool_quote_token_account: UncheckedAccount,
 }
 
 pub fn migrate(ctx: Context<Migrate>, args: MigrateArgs) -> Result {
@@ -301,7 +301,7 @@ pub fn migrate(ctx: Context<Migrate>, args: MigrateArgs) -> Result {
         pool_authority_signer,
     )?;
     // `payer` and `authority` are both `pool_authority` here — `pool_authority_copy`
-    // (a plain `Copy` of the `AccountInfo`) supplies the immutable `authority`
+    // (a plain `Copy` of the `UncheckedAccount`) supplies the immutable `authority`
     // role so it doesn't alias the mutable `payer` borrow of the same field.
     naclac_lang::associated_token::create_idempotent_with_extra_accounts_signed(
         ctx.accounts.associated_token_program.to_cpi_handle(),
@@ -403,7 +403,7 @@ pub fn migrate(ctx: Context<Migrate>, args: MigrateArgs) -> Result {
         pool_authority_signer,
     )?;
     // `destination` and `authority` are the same account (`pool_authority`
-    // reclaims its own ATA's rent) — `AccountInfo` is `Copy`, so a plain
+    // reclaims its own ATA's rent) — `UncheckedAccount` is `Copy`, so a plain
     // copy (not `.clone()`) is enough to keep the mutable `destination`
     // borrow and the immutable `authority` borrow from aliasing.
     let pool_authority_for_close = ctx.accounts.pool_authority;

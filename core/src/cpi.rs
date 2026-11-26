@@ -554,8 +554,8 @@ pub trait ToAccountMetas {
     fn to_account_metas(&self) -> crate::prelude::Vec<AccountMeta>;
 }
 
-pub trait ToAccountInfos {
-    fn to_account_infos(&self) -> crate::prelude::Vec<crate::prelude::AccountInfo>;
+pub trait ToUncheckedAccounts {
+    fn to_unchecked_accounts(&self) -> crate::prelude::Vec<crate::prelude::UncheckedAccount>;
 }
 
 // ===========================================================================
@@ -650,8 +650,8 @@ fn copy_account_into(
     slot: &mut core::mem::MaybeUninit<solana_account_info::AccountInfo<'_>>,
     handle: &crate::prelude::CpiHandle<'_>,
 ) {
-    let data: *const crate::prelude::AccountInfoData = handle.info.data_ref();
-    // SAFETY: `AccountInfoData` has the SDK `AccountInfo`'s exact layout (the
+    let data: *const crate::prelude::UncheckedAccountData = handle.info.data_ref();
+    // SAFETY: `UncheckedAccountData` has the SDK `AccountInfo`'s exact layout (the
     // same cast `to_lifetime` relies on), and `handle` keeps the account alive.
     slot.write(unsafe { core::ptr::read(data as *const solana_account_info::AccountInfo<'_>) });
 }
@@ -834,24 +834,24 @@ pub(crate) mod stable {
     }
 
     /// For each `(key, is_writable)` of `accounts`, checks the first entry of
-    /// `account_infos` with that key: a writable account's lamports and data
+    /// `unchecked_accounts` with that key: a writable account's lamports and data
     /// must be mutably borrowable, a read-only account's borrowable, otherwise
     /// this returns `AccountBorrowFailed`. The check borrows are released on
     /// return. Every invoke path runs exactly this check.
     #[inline(always)]
     pub(crate) fn check_borrows<'a>(
         accounts: impl Iterator<Item = (&'a solana_address::Address, bool)>,
-        account_infos: &[AccountInfo<'_>],
+        unchecked_accounts: &[AccountInfo<'_>],
     ) -> solana_program_error::ProgramResult {
         for (key, is_writable) in accounts {
-            for account_info in account_infos.iter() {
-                if *key == *account_info.key {
+            for unchecked_account in unchecked_accounts.iter() {
+                if *key == *unchecked_account.key {
                     if is_writable {
-                        let _ = account_info.try_borrow_mut_lamports()?;
-                        let _ = account_info.try_borrow_mut_data()?;
+                        let _ = unchecked_account.try_borrow_mut_lamports()?;
+                        let _ = unchecked_account.try_borrow_mut_data()?;
                     } else {
-                        let _ = account_info.try_borrow_lamports()?;
-                        let _ = account_info.try_borrow_data()?;
+                        let _ = unchecked_account.try_borrow_lamports()?;
+                        let _ = unchecked_account.try_borrow_data()?;
                     }
                     break;
                 }
@@ -868,7 +868,7 @@ pub(crate) mod stable {
     #[inline(always)]
     pub(crate) fn invoke_signed_raw(
         instruction: &StableInstruction<'_>,
-        account_infos: &[AccountInfo<'_>],
+        unchecked_accounts: &[AccountInfo<'_>],
         signers_seeds: &[&[&[u8]]],
     ) -> crate::prelude::Result<()> {
         #[cfg(target_os = "solana")]
@@ -876,8 +876,8 @@ pub(crate) mod stable {
             let result = unsafe {
                 solana_define_syscall::definitions::sol_invoke_signed_rust(
                     instruction as *const StableInstruction<'_> as *const u8,
-                    account_infos.as_ptr() as *const u8,
-                    account_infos.len() as u64,
+                    unchecked_accounts.as_ptr() as *const u8,
+                    unchecked_accounts.len() as u64,
                     signers_seeds.as_ptr() as *const u8,
                     signers_seeds.len() as u64,
                 )
@@ -887,7 +887,7 @@ pub(crate) mod stable {
             }
         }
         #[cfg(not(target_os = "solana"))]
-        let _ = (instruction, account_infos, signers_seeds);
+        let _ = (instruction, unchecked_accounts, signers_seeds);
         Ok(())
     }
 
@@ -1060,26 +1060,26 @@ pub mod sdk {
     };
 
     /// [`invoke_signed`] with no signer seeds.
-    pub fn invoke(instruction: &Instruction, account_infos: &[AccountInfo]) -> ProgramResult {
-        invoke_signed(instruction, account_infos, &[])
+    pub fn invoke(instruction: &Instruction, unchecked_accounts: &[AccountInfo]) -> ProgramResult {
+        invoke_signed(instruction, unchecked_accounts, &[])
     }
 
     /// [`invoke_signed_unchecked`] with no signer seeds.
     pub fn invoke_unchecked(
         instruction: &Instruction,
-        account_infos: &[AccountInfo],
+        unchecked_accounts: &[AccountInfo],
     ) -> ProgramResult {
-        invoke_signed_unchecked(instruction, account_infos, &[])
+        invoke_signed_unchecked(instruction, unchecked_accounts, &[])
     }
 
     /// Invokes `instruction` after checking, for each of its account metas,
-    /// the first entry of `account_infos` with that key: a writable meta's
+    /// the first entry of `unchecked_accounts` with that key: a writable meta's
     /// lamports and data must be mutably borrowable, a read-only meta's
     /// borrowable, otherwise this returns `AccountBorrowFailed` without
     /// invoking. The check borrows are released before the call.
     pub fn invoke_signed(
         instruction: &Instruction,
-        account_infos: &[AccountInfo],
+        unchecked_accounts: &[AccountInfo],
         signers_seeds: &[&[&[u8]]],
     ) -> ProgramResult {
         check_borrows(
@@ -1087,10 +1087,10 @@ pub mod sdk {
                 .accounts
                 .iter()
                 .map(|account_meta| (&account_meta.pubkey, account_meta.is_writable)),
-            account_infos,
+            unchecked_accounts,
         )?;
 
-        invoke_signed_unchecked(instruction, account_infos, signers_seeds)
+        invoke_signed_unchecked(instruction, unchecked_accounts, signers_seeds)
     }
 
     /// Invokes `instruction` with no borrow checks: the caller must not pass a
@@ -1098,12 +1098,12 @@ pub mod sdk {
     /// Off-chain this does nothing and returns `Ok(())`.
     pub fn invoke_signed_unchecked(
         instruction: &Instruction,
-        account_infos: &[AccountInfo],
+        unchecked_accounts: &[AccountInfo],
         signers_seeds: &[&[&[u8]]],
     ) -> ProgramResult {
         invoke_signed_raw(
             &StableInstruction::from_instruction(instruction),
-            account_infos,
+            unchecked_accounts,
             signers_seeds,
         )
     }
@@ -1226,7 +1226,7 @@ pub mod sdk {
         }
 
         #[test]
-        fn only_the_first_matching_account_info_is_checked() {
+        fn only_the_first_matching_unchecked_account_is_checked() {
             let (k1, owner) = (key(1), key(0xAA));
             let (mut lamports_a, mut lamports_b) = (1u64, 2u64);
             let (mut data_a, mut data_b) = ([0u8; 2], [0u8; 2]);
@@ -1263,7 +1263,7 @@ pub mod sdk {
 mod paired_tests {
     use {
         super::*,
-        crate::prelude::{AccountInfo, AccountInfoData, Address, CpiHandle, ProgramError},
+        crate::prelude::{Address, CpiHandle, ProgramError, UncheckedAccount, UncheckedAccountData},
         alloc::{boxed::Box, rc::Rc, vec},
         core::{cell::RefCell, marker::PhantomData},
         solana_instruction::{AccountMeta, Instruction},
@@ -1272,7 +1272,7 @@ mod paired_tests {
     fn handle(key: u8) -> CpiHandle<'static> {
         let data: &'static mut [u8] = Box::leak(Box::new([0u8; 4]));
         CpiHandle {
-            info: AccountInfo::from_data(Box::leak(Box::new(AccountInfoData {
+            info: UncheckedAccount::from_data(Box::leak(Box::new(UncheckedAccountData {
                 key: Box::leak(Box::new(Address::new_from_array([key; 32]))),
                 lamports: Rc::new(RefCell::new(Box::leak(Box::new(1u64)))),
                 data: Rc::new(RefCell::new(data)),
@@ -1582,21 +1582,21 @@ pub fn invoke_signed_pinocchio_handles_unchecked(
     account_handles: &[crate::prelude::CpiHandle<'_>],
     signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
-    let account_infos: &[crate::prelude::AccountInfo] =
+    let unchecked_accounts: &[crate::prelude::UncheckedAccount] =
         unsafe { core::mem::transmute(account_handles) };
 
-    if account_infos.len() > crate::prelude::MAX_CPI_ACCOUNTS {
+    if unchecked_accounts.len() > crate::prelude::MAX_CPI_ACCOUNTS {
         return Err(crate::prelude::NaclacError::TooManyCpiAccounts.into());
     }
 
     let mut cpi_accounts_arr =
         [const { core::mem::MaybeUninit::<::pinocchio::cpi::CpiAccount>::uninit() };
             crate::prelude::MAX_CPI_ACCOUNTS];
-    let cpi_accounts_len = account_infos.len();
+    let cpi_accounts_len = unchecked_accounts.len();
     for (uninit, info) in cpi_accounts_arr
         .iter_mut()
         .take(cpi_accounts_len)
-        .zip(account_infos.iter())
+        .zip(unchecked_accounts.iter())
     {
         uninit.write(::pinocchio::cpi::CpiAccount::from(&info.view));
     }
@@ -1623,12 +1623,12 @@ pub fn invoke_signed_pinocchio_handles_unchecked(
 #[cfg(feature = "pinocchio")]
 pub fn invoke_signed_pinocchio(
     instruction: &::pinocchio::instruction::InstructionView,
-    account_infos: &[::pinocchio::AccountView],
+    unchecked_accounts: &[::pinocchio::AccountView],
     signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
     ::pinocchio::cpi::invoke_signed_with_bounds::<{ crate::prelude::MAX_CPI_ACCOUNTS }, _>(
         instruction,
-        account_infos,
+        unchecked_accounts,
         CpiSigner::as_pinocchio(signers),
     )
 }
@@ -1639,21 +1639,21 @@ pub fn invoke_signed_pinocchio(
 #[cfg(feature = "pinocchio")]
 pub fn invoke_signed_pinocchio_unchecked(
     instruction: &::pinocchio::instruction::InstructionView,
-    account_infos: &[::pinocchio::AccountView],
+    unchecked_accounts: &[::pinocchio::AccountView],
     signers: &[CpiSigner<'_, '_>],
 ) -> crate::prelude::Result<()> {
-    if account_infos.len() > crate::prelude::MAX_CPI_ACCOUNTS {
+    if unchecked_accounts.len() > crate::prelude::MAX_CPI_ACCOUNTS {
         return Err(crate::prelude::NaclacError::TooManyCpiAccounts.into());
     }
 
     let mut cpi_accounts_arr =
         [const { core::mem::MaybeUninit::<::pinocchio::cpi::CpiAccount>::uninit() };
             crate::prelude::MAX_CPI_ACCOUNTS];
-    let cpi_accounts_len = account_infos.len();
+    let cpi_accounts_len = unchecked_accounts.len();
     for (uninit, view) in cpi_accounts_arr
         .iter_mut()
         .take(cpi_accounts_len)
-        .zip(account_infos.iter())
+        .zip(unchecked_accounts.iter())
     {
         uninit.write(::pinocchio::cpi::CpiAccount::from(view));
     }

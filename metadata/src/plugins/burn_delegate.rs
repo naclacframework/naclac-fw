@@ -38,7 +38,7 @@ pub fn attach_burn_delegate_signed(
 /// `true` if an `Asset` has a `BurnDelegate` plugin attached. Callable
 /// identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn asset_has_burn_delegate(info: &AccountInfo) -> Result<bool> {
+pub fn asset_has_burn_delegate(info: &UncheckedAccount) -> Result<bool> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -56,7 +56,7 @@ pub fn asset_has_burn_delegate(info: &AccountInfo) -> Result<bool> {
 /// `true` if an `Asset` has a `BurnDelegate` plugin attached. Callable
 /// identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn asset_has_burn_delegate(info: &AccountInfo) -> Result<bool> {
+pub fn asset_has_burn_delegate(info: &UncheckedAccount) -> Result<bool> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(false);

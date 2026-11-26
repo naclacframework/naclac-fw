@@ -9,7 +9,7 @@ use crate::constants::{SEED_MINT, SEED_MINT_AUTHORITY};
 /// rejects a metadata account that isn't the mint), initializes the mint,
 /// then initializes `TokenMetadata` on it. Funds the account well beyond its
 /// initial size: `TokenMetadata::Initialize`/`UpdateField` both grow the
-/// account via `AccountInfo::resize` directly (no payer/`system_program`
+/// account via `UncheckedAccount::resize` directly (no payer/`system_program`
 /// account of their own), and `resize` never adds lamports — only pre-funded
 /// headroom keeps a later grow rent-exempt.
 #[instruction_args]
@@ -35,7 +35,7 @@ pub struct CreateMint2022WithMetadataPointerAndMetadata {
     /// is a raw SPL `Mint` + `MetadataPointer` + `TokenMetadata` layout, not
     /// a naclac account.
     #[account(mut)]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

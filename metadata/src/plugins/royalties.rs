@@ -258,7 +258,7 @@ fn encode_royalties_payload<S: crate::fixed_buf::ByteSink>(
 /// Reads an `Asset`'s `Royalties` plugin, if attached. Callable identically
 /// on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_asset_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData>> {
+pub fn fetch_asset_royalties(info: &UncheckedAccount) -> Result<Option<RoyaltiesData>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -276,7 +276,7 @@ pub fn fetch_asset_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData>
 /// Reads a `Collection`'s `Royalties` plugin, if attached. Callable
 /// identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_collection_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData>> {
+pub fn fetch_collection_royalties(info: &UncheckedAccount) -> Result<Option<RoyaltiesData>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -294,7 +294,7 @@ pub fn fetch_collection_royalties(info: &AccountInfo) -> Result<Option<Royalties
 /// Reads an `Asset`'s `Royalties` plugin, if attached. Callable identically
 /// on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData<'_>>> {
+pub fn fetch_asset_royalties(info: &UncheckedAccount) -> Result<Option<RoyaltiesData<'_>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -305,7 +305,7 @@ pub fn fetch_asset_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData<
 /// Reads a `Collection`'s `Royalties` plugin, if attached. Callable
 /// identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_collection_royalties(info: &AccountInfo) -> Result<Option<RoyaltiesData<'_>>> {
+pub fn fetch_collection_royalties(info: &UncheckedAccount) -> Result<Option<RoyaltiesData<'_>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);

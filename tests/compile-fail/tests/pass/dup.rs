@@ -14,7 +14,7 @@ pub struct Foo {
     pub b: Signer,
     /// SAFETY: test fixture.
     #[account(dup)]
-    pub c: Option<AccountInfo>,
+    pub c: Option<UncheckedAccount>,
 }
 
 fn main() {}

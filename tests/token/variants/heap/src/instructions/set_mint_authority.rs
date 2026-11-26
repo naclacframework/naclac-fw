@@ -6,7 +6,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 // authority kinds this test case exercises: `authority_type == 0` maps to
 // `AuthorityType::MintTokens`, anything else to `AuthorityType::FreezeAccount`
 // — a single instruction covers both variants rather than duplicating the
-// whole shape twice. `new_authority` is passed as a bare `AccountInfo`
+// whole shape twice. `new_authority` is passed as a bare `UncheckedAccount`
 // account (its key only), not a raw `Address`/`Address` instruction argument —
 // `derive/src/accounts`'s zero-copy-mode compile check explicitly
 // bans a raw `Address`/`Address` as an `#[instruction(...)]` argument, so this
@@ -24,7 +24,7 @@ pub struct SetMintAuthority {
     /// SAFETY: only used as an address — its own key becomes the mint's new
     /// authority via `set_authority_signed` below; its data is never read or
     /// deserialized.
-    pub new_authority: AccountInfo,
+    pub new_authority: UncheckedAccount,
 
     pub token_program: Program<Token>,
 }

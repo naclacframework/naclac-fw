@@ -8,7 +8,7 @@ pub struct EmitViaSolLogDataBaseline {
     // all three, isolating the emit mechanism itself as the sole variable.
     /// SAFETY: only its address is checked; its data is never read.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 }
 
 pub fn emit_via_sol_log_data_baseline(_ctx: Context<EmitViaSolLogDataBaseline>) -> Result {

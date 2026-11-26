@@ -10,8 +10,8 @@
 use crate::{
     cpi::CpiSigner,
     error::NaclacError,
-    prelude::{AccountInfo, Address, CpiHandle},
-    wrappers::{ToAccountInfo, ToAddress},
+    prelude::{Address, CpiHandle, UncheckedAccount},
+    wrappers::{ToAddress, ToUncheckedAccount},
 };
 
 /// A constraint attached to a field of type `A`.
@@ -41,7 +41,7 @@ pub trait AccountConstraintInit<A>: AccountConstraint<A> {
     /// is not a PDA). Errors from the programs it calls are returned
     /// unchanged; its own errors carry `index`.
     fn initialize(
-        account: &AccountInfo,
+        account: &UncheckedAccount,
         index: usize,
         args: &Self::Args<'_>,
         signer_seeds: &[CpiSigner<'_, '_>],
@@ -52,11 +52,11 @@ pub trait AccountConstraintInit<A>: AccountConstraint<A> {
 /// `init` / `init_if_needed` field. The derive has already checked that an
 /// `init` account is empty and that `system_program` is the system program.
 pub struct ConstraintCreation<'a> {
-    pub account: AccountInfo,
+    pub account: UncheckedAccount,
     /// The field's index, for the constraint's own errors.
     pub index: usize,
-    pub payer: AccountInfo,
-    pub system_program: AccountInfo,
+    pub payer: UncheckedAccount,
+    pub system_program: UncheckedAccount,
     /// `init_if_needed`: an account that already exists is left as it is.
     pub idempotent: bool,
     /// The field's `extra_accounts = [..]`, when it has one.
@@ -81,7 +81,7 @@ pub trait AccountConstraintCreate<A>: AccountConstraint<A> {
 /// Turns the value written for a key, taken by reference, into the type of
 /// that key's `Args` field. Anything with an address (another field of the
 /// struct, an `Address`, a reference to one) becomes an `Address`; another
-/// field of the struct becomes its `AccountInfo` handle; integers and `bool`
+/// field of the struct becomes its `UncheckedAccount` handle; integers and `bool`
 /// are copied. A crate that uses its own type for a key implements
 /// this for a reference to that type. There is deliberately no conversion
 /// between different types, so a value of the wrong type is a compile error.
@@ -96,10 +96,10 @@ impl<A: ToAddress + ?Sized> ConstraintValue<Address> for &A {
     }
 }
 
-impl<A: ToAccountInfo + ?Sized> ConstraintValue<AccountInfo> for &A {
+impl<A: ToUncheckedAccount + ?Sized> ConstraintValue<UncheckedAccount> for &A {
     #[inline(always)]
-    fn into_value(self) -> AccountInfo {
-        self.to_account_info()
+    fn into_value(self) -> UncheckedAccount {
+        self.to_unchecked_account()
     }
 }
 

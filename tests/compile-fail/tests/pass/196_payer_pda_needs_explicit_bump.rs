@@ -8,12 +8,12 @@ declare_id!("11111111111111111111111111111111");
 pub struct Foo {
     /// SAFETY: a PDA that pays for the account and signs through its seeds.
     #[account(mut, seeds = [b"payer"], bump = 254)]
-    pub payer: AccountInfo,
+    pub payer: UncheckedAccount,
 
     pub mint: Account<Mint>,
 
     /// SAFETY: only used as the ATA's `authority`; never read or deserialized.
-    pub owner: AccountInfo,
+    pub owner: UncheckedAccount,
 
     #[account(init_if_needed, payer = payer, associated_token::mint = mint, associated_token::authority = owner, extra_accounts = [owner])]
     pub vault: Account<TokenAccount>,

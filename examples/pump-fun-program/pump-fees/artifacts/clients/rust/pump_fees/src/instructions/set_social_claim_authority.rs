@@ -80,7 +80,7 @@ pub struct SetSocialClaimAuthorityCpiCall<'a> {
     pub accounts: SetSocialClaimAuthorityCpiAccounts<'a>,
     pub social_claim_authority: crate::sdk_core_cpi::Address,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

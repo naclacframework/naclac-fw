@@ -22,7 +22,7 @@ pub struct Foo {
 
     /// SAFETY: only used as the ATA's `authority` for constraint
     /// verification below; never read or deserialized.
-    pub owner: AccountInfo,
+    pub owner: UncheckedAccount,
 
     #[account(
         init,

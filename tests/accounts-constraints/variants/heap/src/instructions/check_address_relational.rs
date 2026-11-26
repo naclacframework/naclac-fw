@@ -8,12 +8,12 @@ pub struct CheckAddressRelational {
     /// SAFETY: only the account's own address is inspected via the
     /// `address` constraint below; its data is never read or deserialized.
     #[account(address = expected_address)]
-    pub target: AccountInfo,
+    pub target: UncheckedAccount,
 
     /// SAFETY: only its own address is read, as the expected value; never
     /// deserialized.
     #[account(dup)]
-    pub expected_address: AccountInfo,
+    pub expected_address: UncheckedAccount,
 }
 
 pub fn check_address_relational(_ctx: Context<CheckAddressRelational>) -> Result {

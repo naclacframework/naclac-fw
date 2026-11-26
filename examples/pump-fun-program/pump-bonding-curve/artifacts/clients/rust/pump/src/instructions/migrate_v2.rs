@@ -238,7 +238,7 @@ pub struct MigrateV2CpiCall<'a> {
     pub accounts: MigrateV2CpiAccounts<'a>,
     pub args: crate::types::MigrateV2ArgsCpi,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

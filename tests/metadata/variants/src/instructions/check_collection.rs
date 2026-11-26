@@ -8,7 +8,7 @@ use naclac_lang::prelude::*;
 pub struct CheckCollection {
     /// SAFETY: read-only; `fetch_collection` itself validates ownership by
     /// the real Metaplex Core program before parsing any bytes.
-    pub collection: AccountInfo,
+    pub collection: UncheckedAccount,
 }
 
 #[instruction_args]

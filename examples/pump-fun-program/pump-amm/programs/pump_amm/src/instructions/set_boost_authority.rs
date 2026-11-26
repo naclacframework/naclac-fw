@@ -13,7 +13,7 @@ pub struct SetBoostAuthority {
     /// SAFETY: the new `boost_authority` value is this account's own
     /// address (real `set_boost_authority` takes zero args, matching this)
     /// — never deserialized, only its address is read.
-    pub boost_authority: AccountInfo,
+    pub boost_authority: UncheckedAccount,
 
     pub system_program: Program<System>,
 }

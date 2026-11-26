@@ -10,7 +10,7 @@ pub struct Foo {
     /// fixture never reaches that check.
     // "11111111" decodes to a handful of zero bytes — valid base58, wrong length.
     #[account(owner = "11111111")]
-    pub account: AccountInfo,
+    pub account: UncheckedAccount,
 }
 
 fn main() {}

@@ -60,7 +60,7 @@ pub fn attach_collection_add_blocker_signed(
 /// `true` if an `Asset` has an `AddBlocker` plugin attached. Callable
 /// identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn asset_has_add_blocker(info: &AccountInfo) -> Result<bool> {
+pub fn asset_has_add_blocker(info: &UncheckedAccount) -> Result<bool> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -78,7 +78,7 @@ pub fn asset_has_add_blocker(info: &AccountInfo) -> Result<bool> {
 /// `true` if a `Collection` has an `AddBlocker` plugin attached. Callable
 /// identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn collection_has_add_blocker(info: &AccountInfo) -> Result<bool> {
+pub fn collection_has_add_blocker(info: &UncheckedAccount) -> Result<bool> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -96,7 +96,7 @@ pub fn collection_has_add_blocker(info: &AccountInfo) -> Result<bool> {
 /// `true` if an `Asset` has an `AddBlocker` plugin attached. Callable
 /// identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn asset_has_add_blocker(info: &AccountInfo) -> Result<bool> {
+pub fn asset_has_add_blocker(info: &UncheckedAccount) -> Result<bool> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(false);
@@ -107,7 +107,7 @@ pub fn asset_has_add_blocker(info: &AccountInfo) -> Result<bool> {
 /// `true` if a `Collection` has an `AddBlocker` plugin attached. Callable
 /// identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn collection_has_add_blocker(info: &AccountInfo) -> Result<bool> {
+pub fn collection_has_add_blocker(info: &UncheckedAccount) -> Result<bool> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(false);

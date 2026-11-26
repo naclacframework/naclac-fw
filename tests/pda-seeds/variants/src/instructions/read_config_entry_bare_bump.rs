@@ -6,7 +6,7 @@ use crate::constants::SEED_CONFIG_ENTRY;
 pub struct ReadConfigEntryBareBump {
     /// SAFETY: only used as PDA seed material for `config_entry` below; never
     /// deserialized, invoked, or otherwise trusted for its own contents.
-    pub config_program_id: AccountInfo,
+    pub config_program_id: UncheckedAccount,
 
     #[account(seeds = [SEED_CONFIG_ENTRY, config_program_id.address().as_ref()], bump)]
     pub config_entry: Account<ConfigEntry>,

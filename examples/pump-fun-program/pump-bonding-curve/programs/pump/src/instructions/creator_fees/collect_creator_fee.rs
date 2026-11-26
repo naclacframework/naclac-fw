@@ -21,7 +21,7 @@ pub struct CollectCreatorFee {
     /// SAFETY: only a native-lamport transfer destination and PDA seed
     /// material for `creator_vault` below; never deserialized.
     #[account(mut)]
-    pub creator: AccountInfo,
+    pub creator: UncheckedAccount,
 
     /// SAFETY: the `seeds`/`bump` constraint already verifies its address;
     /// it's a lamport-only PDA (no stored data) — only ever a lamport source
@@ -31,7 +31,7 @@ pub struct CollectCreatorFee {
         seeds = [CREATOR_VAULT_SEED, creator.address().as_ref()],
         bump = creator_vault_bump,
     )]
-    pub creator_vault: AccountInfo,
+    pub creator_vault: UncheckedAccount,
 
     pub system_program: Program<System>,
 }

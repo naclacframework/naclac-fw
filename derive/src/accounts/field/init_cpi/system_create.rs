@@ -112,7 +112,7 @@ pub(super) fn tokens(ctx: &InitCtx) -> TokenStream {
                     return Err(naclac_lang::prelude::NaclacError::ProgramIdMismatch.err(#system_program_idx));
                 }
 
-                let __payer_info_wrapper = naclac_lang::prelude::ToAccountInfo::to_account_info(#payer_ref);
+                let __payer_info_wrapper = naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(#payer_ref);
 
                 if info.data_is_empty()? {
                     #create_call_solana(

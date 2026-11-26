@@ -13,7 +13,8 @@ export interface ExecuteAccounts {
   proposal: naclac.Address | string;
   /**
    * SAFETY: a lamport-only PDA with no data, checked by `seeds` against the
-   * treasury's stored vault bump; it is only the source of a signed transfer.
+   * treasury's stored vault bump, which only `create_treasury` writes, from
+   * the canonical search; it is only the source of a signed transfer.
    */
   vault?: naclac.Address | string;
   /**

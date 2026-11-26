@@ -297,7 +297,7 @@ fn token_constraint_rejects_wrong_mint_and_wrong_authority() {
     // `vault` is field index 2; `AccountNotInitialized` (15) -> 10000 + 2*100 + 15 = 10215.
     assert_custom_code(uninitialized_result, 10215);
 
-    // A plain `AccountInfo` vault proves nothing about its owner by its type,
+    // A plain `UncheckedAccount` vault proves nothing about its owner by its type,
     // so the token constraint checks the owner itself: a real token account
     // passes, and an account carrying the same mint and authority bytes but
     // owned by this program instead of the Token program is rejected.

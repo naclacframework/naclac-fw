@@ -18,7 +18,7 @@ pub struct CreateFeeSharingConfig {
 
     /// SAFETY: only used as a seed input for `bonding_curve`/`sharing_config` below, never
     /// read or written — a wrong value just fails those seed checks.
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     #[account(
         init,
@@ -47,7 +47,7 @@ pub struct CreateFeeSharingConfig {
     /// signer of *this* instruction (it's signed by us, via our own seeds,
     /// only on the outgoing CPI).
     #[account(seeds = [PUMP_FEES_AUTHORITY_SEED], bump)]
-    pub pump_fees_authority: AccountInfo,
+    pub pump_fees_authority: UncheckedAccount,
 }
 
 pub fn create_fee_sharing_config(

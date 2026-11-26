@@ -14,7 +14,7 @@ pub struct SweepBuyback {
     /// deserialized. `destination_ata` is separately typed/validated as a
     /// real `TokenAccount`.
     #[account(mut)]
-    pub destination: AccountInfo,
+    pub destination: UncheckedAccount,
     #[account(mut)]
     pub authority: Signer,
     #[account(mut, seeds = [BUYBACK_VAULT_SEED, &[index]], bump = buyback_vault_bump)]
@@ -67,7 +67,7 @@ pub fn sweep_buyback(ctx: Context<SweepBuyback>, index: u8, buyback_vault_bump: 
     // fees-05 #6: leave `buyback_vault` rent-exempt, never drain the full balance.
     let vault_data_len = 8 + core::mem::size_of::<BuybackVault>();
     let rent_exempt_minimum = Rent::get()?.try_minimum_balance(vault_data_len)?;
-    let vault_lamports = ctx.accounts.buyback_vault.to_account_info().lamports();
+    let vault_lamports = ctx.accounts.buyback_vault.to_unchecked_account().lamports();
     let sol_amount = vault_lamports.saturating_sub(rent_exempt_minimum);
     if sol_amount > 0 {
         ctx.accounts.buyback_vault.sub_lamports(sol_amount)?;

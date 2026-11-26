@@ -8,7 +8,7 @@ use naclac_lang::prelude::*;
 pub struct CheckAppData {
     /// SAFETY: read-only; `fetch_asset_app_data` itself validates ownership
     /// by the real Metaplex Core program before parsing any bytes.
-    pub asset: AccountInfo,
+    pub asset: UncheckedAccount,
 }
 
 pub fn check_app_data(ctx: Context<CheckAppData>) -> Result {

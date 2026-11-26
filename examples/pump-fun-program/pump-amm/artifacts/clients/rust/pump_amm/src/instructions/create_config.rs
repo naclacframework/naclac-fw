@@ -53,7 +53,7 @@ pub struct CreateConfigCpiAccounts<'a> {
 pub struct CreateConfigCpiCall<'a> {
     pub accounts: CreateConfigCpiAccounts<'a>,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

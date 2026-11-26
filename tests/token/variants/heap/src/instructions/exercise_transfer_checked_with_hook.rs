@@ -29,7 +29,7 @@ pub struct ExerciseTransferCheckedWithHook {
     /// resolves and validates the hook's required accounts against real
     /// Token-2022/`spl-transfer-hook-interface` rules; its data is never
     /// read or deserialized here.
-    pub hook_program: AccountInfo,
+    pub hook_program: UncheckedAccount,
 
     pub token_program: Program<Token2022>,
 }

@@ -13,7 +13,7 @@ pub struct WriteCollectionAppData {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn write_collection_app_data(ctx: Context<WriteCollectionAppData>) -> Result {

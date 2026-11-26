@@ -4,7 +4,7 @@ use crate::state::Vault;
 // No test program in this repo boxes any account field before this. The
 // point isn't the `Box` keyword itself — it's the blanket impls added for
 // it in `core/src/wrappers/mod.rs` (`NaclacAccount`, `Owner`,
-// `ToAddress`, `AsRefByteSlice`, `ToAccountInfo`/`ToAccountInfos`,
+// `ToAddress`, `AsRefByteSlice`, `ToUncheckedAccount`/`ToUncheckedAccounts`,
 // `ToCpiHandle`/`ToCpiHandleMut`, confirmed by reading that file directly):
 // a `Box<Account<T>>` field should be a fully transparent stand-in for a
 // bare `Account<T>` field everywhere naclac's own codegen or a handler body

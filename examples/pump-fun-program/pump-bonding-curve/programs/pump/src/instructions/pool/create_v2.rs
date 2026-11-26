@@ -87,7 +87,7 @@ pub struct CreateV2 {
     /// lamport-only PDA (no stored data) — the mint's authority throughout
     /// creation, signed via its own seeds for every CPI below.
     #[account(seeds = [MINT_AUTHORITY_SEED], bump)]
-    pub mint_authority: AccountInfo,
+    pub mint_authority: UncheckedAccount,
 
     #[account(
         init,
@@ -105,7 +105,7 @@ pub struct CreateV2 {
     /// enforcement the declarative `associated_token::...` sugar (used by
     /// classic `create.rs`) ultimately relies on too.
     #[account(mut)]
-    pub associated_bonding_curve: AccountInfo,
+    pub associated_bonding_curve: UncheckedAccount,
 
     #[account(seeds = [GLOBAL_SEED], bump)]
     pub global: Account<Global>,
@@ -125,18 +125,18 @@ pub struct CreateV2 {
     /// body, never deserialized — real `create_v2` requires classic Token
     /// specifically here (confirmed via `probe64.rs`, `Custom(6064)`
     /// `InvalidQuoteTokenProgram` for Token-2022), so this stays a raw
-    /// `AccountInfo` rather than a typed `Program<Token>` to preserve that
+    /// `UncheckedAccount` rather than a typed `Program<Token>` to preserve that
     /// exact real error instead of a generic constraint-mismatch one. Repeats
     /// `token_program` when a client passes Token-2022, which the handler rejects.
     #[account(dup)]
-    pub quote_token_program: Option<AccountInfo>,
+    pub quote_token_program: Option<UncheckedAccount>,
 
     /// SAFETY: created by hand in the handler body below, mirroring
     /// `associated_bonding_curve` above — confirmed real `create_v2` creates
     /// this itself (non-idempotent `Create`, `probe64.rs`), never
     /// deserialized before that point.
     #[account(mut)]
-    pub associated_quote_bonding_curve: Option<AccountInfo>,
+    pub associated_quote_bonding_curve: Option<UncheckedAccount>,
 }
 
 pub fn create_v2(

@@ -49,7 +49,7 @@ pub struct Initialize {
         mint::authority = pool_state,
         mint::token_program = lp_token_program,
     )]
-    pub lp_mint: AccountInfo,
+    pub lp_mint: UncheckedAccount,
 
     /// SAFETY: `init` + `token::*` below create this account and initialise
     /// it through the named token program, at an address only this program can
@@ -64,7 +64,7 @@ pub struct Initialize {
         token::authority = pool_state,
         token::token_program = token_program_a,
     )]
-    pub vault_a: AccountInfo,
+    pub vault_a: UncheckedAccount,
 
     /// SAFETY: same as `vault_a`.
     #[account(
@@ -76,7 +76,7 @@ pub struct Initialize {
         token::authority = pool_state,
         token::token_program = token_program_b,
     )]
-    pub vault_b: AccountInfo,
+    pub vault_b: UncheckedAccount,
 
     #[account(
         mut,
@@ -103,7 +103,7 @@ pub struct Initialize {
         associated_token::authority = payer,
         associated_token::token_program = lp_token_program,
     )]
-    pub depositor_lp: AccountInfo,
+    pub depositor_lp: UncheckedAccount,
 
     pub token_program_a: Interface<TokenInterface>,
 

@@ -29,8 +29,8 @@
 //! list, not just the parent's `groups` list).
 //!
 //! `items` is a borrowed `&[CpiHandleMut]`, not owned — building a
-//! `CpiHandle` from each only needs to read+copy its `info: AccountInfo`
-//! (both fields are `pub`), which `AccountInfo::to_cpi_handle()` (an
+//! `CpiHandle` from each only needs to read+copy its `info: UncheckedAccount`
+//! (both fields are `pub`), which `UncheckedAccount::to_cpi_handle()` (an
 //! existing `naclac-core` trait method) already does without consuming the
 //! `CpiHandleMut`. On
 //! `pinocchio` the account list is capped at `MAX_CPI_ACCOUNTS` (the

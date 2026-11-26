@@ -3,11 +3,11 @@
 //! Provides the Signer wrapper to enforce that a given account has signed the transaction.
 
 #[cfg(feature = "pinocchio")]
-use crate::prelude::AccountView;
+use pinocchio::AccountView;
 use {
     crate::{
-        prelude::{AccountInfo, Address, NaclacError, Result},
-        wrappers::{ToAccountInfo, ToAddress},
+        prelude::{Address, NaclacError, Result, UncheckedAccount},
+        wrappers::{ToAddress, ToUncheckedAccount},
     },
     core::ops::Deref,
 };
@@ -17,14 +17,14 @@ use {
 #[cfg_attr(feature = "pinocchio", derive(Copy))]
 pub struct Signer {
     #[cfg(not(feature = "pinocchio"))]
-    pub info: AccountInfo,
+    pub info: UncheckedAccount,
     #[cfg(feature = "pinocchio")]
     pub view: AccountView,
 }
 
 #[cfg(not(feature = "pinocchio"))]
 impl Signer {
-    pub fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+    pub fn try_from(info: &UncheckedAccount, index: usize) -> Result<Self> {
         if !info.is_signer {
             return Err(NaclacError::ConstraintSigner.err(index));
         }
@@ -41,22 +41,22 @@ impl crate::wrappers::Owner for Signer {
 
 #[cfg(not(feature = "pinocchio"))]
 impl Deref for Signer {
-    type Target = AccountInfo;
+    type Target = UncheckedAccount;
     fn deref(&self) -> &Self::Target {
         &self.info
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl ToAccountInfo for Signer {
-    fn to_account_info(&self) -> AccountInfo {
+impl ToUncheckedAccount for Signer {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
         self.info
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl crate::wrappers::ToAccountInfos for Signer {
-    fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
+impl crate::wrappers::ToUncheckedAccounts for Signer {
+    fn to_unchecked_accounts(&self) -> crate::prelude::Vec<UncheckedAccount> {
         crate::prelude::vec![self.info]
     }
 }
@@ -109,7 +109,7 @@ impl crate::wrappers::AsRefByteSlice for Signer {
 // --- PINOCCHIO BACKEND ---
 #[cfg(feature = "pinocchio")]
 impl Signer {
-    pub fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+    pub fn try_from(info: &UncheckedAccount, index: usize) -> Result<Self> {
         if !info.is_signer() {
             return Err(NaclacError::ConstraintSigner.err(index));
         }
@@ -125,7 +125,7 @@ impl Signer {
     /// `info` must be a signer of the current instruction.
     #[doc(hidden)]
     #[inline(always)]
-    pub unsafe fn from_verified_signer(info: &AccountInfo) -> Self {
+    pub unsafe fn from_verified_signer(info: &UncheckedAccount) -> Self {
         Self { view: info.view }
     }
 }
@@ -139,16 +139,16 @@ impl Deref for Signer {
 }
 
 #[cfg(feature = "pinocchio")]
-impl crate::wrappers::ToAccountView for Signer {
-    fn to_account_view(&self) -> AccountView {
+impl crate::wrappers::ToRuntimeView for Signer {
+    fn to_runtime_view(&self) -> AccountView {
         self.view
     }
 }
 
 #[cfg(feature = "pinocchio")]
-impl ToAccountInfo for Signer {
-    fn to_account_info(&self) -> AccountInfo {
-        AccountInfo { view: self.view }
+impl ToUncheckedAccount for Signer {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
+        UncheckedAccount { view: self.view }
     }
 }
 
@@ -198,7 +198,7 @@ impl<'a> crate::wrappers::cpi_handle::ToCpiHandle<'a> for Signer {
     #[inline(always)]
     fn to_cpi_handle(&'a self) -> crate::wrappers::cpi_handle::CpiHandle<'a> {
         crate::wrappers::cpi_handle::CpiHandle {
-            info: AccountInfo { view: self.view },
+            info: UncheckedAccount { view: self.view },
             _phantom: core::marker::PhantomData,
         }
     }
@@ -209,7 +209,7 @@ impl<'a> crate::wrappers::cpi_handle::ToCpiHandleMut<'a> for Signer {
     #[inline(always)]
     fn to_cpi_handle_mut(&'a mut self) -> crate::wrappers::cpi_handle::CpiHandleMut<'a> {
         crate::wrappers::cpi_handle::CpiHandleMut {
-            info: AccountInfo { view: self.view },
+            info: UncheckedAccount { view: self.view },
             _phantom: core::marker::PhantomData,
         }
     }
@@ -226,7 +226,7 @@ impl crate::wrappers::NaclacAccount for Signer {
     const IS_SIGNER: bool = true;
 
     #[inline(always)]
-    fn try_from(info: &AccountInfo, index: usize) -> Result<Self> {
+    fn try_from(info: &UncheckedAccount, index: usize) -> Result<Self> {
         Self::try_from(info, index)
     }
 }

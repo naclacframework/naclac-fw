@@ -9,7 +9,7 @@ use crate::constants::SEED_EXTERNAL_PDA;
 // "external" program — a real, stable address that needs no separate
 // deployment to exercise this.
 //
-// Explicit `bump = bump` (not bare `bump`): a bare `AccountInfo` has no
+// Explicit `bump = bump` (not bare `bump`): a bare `UncheckedAccount` has no
 // stored `.bump` field for the bare-bump auto-path to read (see
 // `touch_seeded.rs` for the same explicit-bump pattern on `Account<T>`).
 #[derive(Accounts)]
@@ -23,7 +23,7 @@ pub struct CheckExternalPda {
         bump = bump,
         seeds::program = naclac_lang::prelude::SYSTEM_PROGRAM_ID
     )]
-    pub target: AccountInfo,
+    pub target: UncheckedAccount,
 }
 
 pub fn check_external_pda(_ctx: Context<CheckExternalPda>, _bump: u8) -> Result {

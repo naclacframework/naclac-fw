@@ -863,7 +863,10 @@ pub fn remove_collection_oracle_signed(
 /// Reads an `Asset`'s `Oracle` adapter identified by `base_address`, if
 /// attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_asset_oracle(info: &AccountInfo, base_address: Address) -> Result<Option<OracleInfo>> {
+pub fn fetch_asset_oracle(
+    info: &UncheckedAccount,
+    base_address: Address,
+) -> Result<Option<OracleInfo>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -882,7 +885,7 @@ pub fn fetch_asset_oracle(info: &AccountInfo, base_address: Address) -> Result<O
 /// attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_collection_oracle(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     base_address: Address,
 ) -> Result<Option<OracleInfo>> {
     if Owner::program_owner(info) != crate::ID {
@@ -1154,7 +1157,10 @@ fn read_oracle_header(data: &[u8], offset: usize) -> Result<OracleInfo> {
 /// Reads an `Asset`'s `Oracle` adapter identified by `base_address`, if
 /// attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_oracle(info: &AccountInfo, base_address: Address) -> Result<Option<OracleInfo>> {
+pub fn fetch_asset_oracle(
+    info: &UncheckedAccount,
+    base_address: Address,
+) -> Result<Option<OracleInfo>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -1166,7 +1172,7 @@ pub fn fetch_asset_oracle(info: &AccountInfo, base_address: Address) -> Result<O
 /// attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_collection_oracle(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     base_address: Address,
 ) -> Result<Option<OracleInfo>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;

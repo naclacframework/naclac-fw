@@ -58,17 +58,17 @@ pub struct CrankDonationFeePda {
     /// account slot the real classic-Token `SyncNative` processor
     /// specifically requires to be the Rent sysvar.
     #[account(address = RENT_SYSVAR_ID)]
-    pub rent: AccountInfo,
+    pub rent: UncheckedAccount,
 
     #[account(seeds = [FEE_PROGRAM_GLOBAL_SEED])]
     pub fee_program_global: Account<FeeProgramGlobal>,
 
     /// SAFETY: only used as PDA seed material below; not deserialized.
-    pub base_mint: AccountInfo,
+    pub base_mint: UncheckedAccount,
 
     /// SAFETY: plain address material distinguishing donation campaigns;
     /// not a signer, never deserialized.
-    pub config_id: AccountInfo,
+    pub config_id: UncheckedAccount,
 
     #[account(
         mut,
@@ -94,7 +94,7 @@ pub struct CrankDonationFeePda {
 
     /// SAFETY: dead — real `donation_relay` bypasses its own mint-safety
     /// check for WSOL unconditionally; kept for account-shape parity only.
-    pub mint_whitelist: AccountInfo,
+    pub mint_whitelist: UncheckedAccount,
 
     /// SAFETY: owned by `donation_relay_program`; only ever passed through
     /// as a CPI handle below, never deserialized here.
@@ -104,7 +104,7 @@ pub struct CrankDonationFeePda {
         seeds::program = DONATION_RELAY_PROGRAM_ID,
         bump = args.epoch_tracker_bump,
     )]
-    pub epoch_tracker: AccountInfo,
+    pub epoch_tracker: UncheckedAccount,
 
     /// SAFETY: same as `epoch_tracker` above.
     #[account(
@@ -113,7 +113,7 @@ pub struct CrankDonationFeePda {
         seeds::program = DONATION_RELAY_PROGRAM_ID,
         bump = args.debouncer_bump,
     )]
-    pub debouncer: AccountInfo,
+    pub debouncer: UncheckedAccount,
 
     /// SAFETY: `debouncer`'s own WSOL ATA; created idempotently by the
     /// nested CPI itself, only passed through as a CPI handle here.
@@ -123,7 +123,7 @@ pub struct CrankDonationFeePda {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.debouncer_ata_bump,
     )]
-    pub debouncer_ata: AccountInfo,
+    pub debouncer_ata: UncheckedAccount,
 }
 
 pub fn crank_donation_fee_pda(
@@ -132,7 +132,7 @@ pub fn crank_donation_fee_pda(
 ) -> Result<Option<DonationFeePdaCranked>> {
     let data_len = 8 + core::mem::size_of::<DonationFeePda>();
     let rent_exempt_minimum = Rent::get()?.try_minimum_balance(data_len)?;
-    let donation_fee_pda_lamports = ctx.accounts.donation_fee_pda.to_account_info().lamports();
+    let donation_fee_pda_lamports = ctx.accounts.donation_fee_pda.to_unchecked_account().lamports();
     let lamport_excess = donation_fee_pda_lamports.saturating_sub(rent_exempt_minimum);
 
     let ata_balance_before = ctx.accounts.donation_fee_pda_ata.amount();

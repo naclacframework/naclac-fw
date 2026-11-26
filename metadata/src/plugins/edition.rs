@@ -44,7 +44,7 @@ pub fn attach_edition_signed(
 /// Reads an `Asset`'s `Edition` plugin (its print number), if attached.
 /// Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_asset_edition(info: &AccountInfo) -> Result<Option<u32>> {
+pub fn fetch_asset_edition(info: &UncheckedAccount) -> Result<Option<u32>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -62,7 +62,7 @@ pub fn fetch_asset_edition(info: &AccountInfo) -> Result<Option<u32>> {
 /// Reads an `Asset`'s `Edition` plugin (its print number), if attached.
 /// Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_edition(info: &AccountInfo) -> Result<Option<u32>> {
+pub fn fetch_asset_edition(info: &UncheckedAccount) -> Result<Option<u32>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);

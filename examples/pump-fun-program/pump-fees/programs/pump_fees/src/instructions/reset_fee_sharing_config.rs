@@ -20,7 +20,7 @@ use crate::state::{BondingCurve, Global, Shareholder, SharingConfig};
 #[instruction(bonding_curve_bump: u8, pump_creator_vault_bump: u8, coin_creator_vault_authority_bump: u8)]
 pub struct ResetFeeSharingConfig {
     /// SAFETY: only recorded as the sole post-reset shareholder; never read or invoked.
-    pub new_admin: AccountInfo,
+    pub new_admin: UncheckedAccount,
 
     pub authority: Signer,
 
@@ -29,7 +29,7 @@ pub struct ResetFeeSharingConfig {
 
     /// SAFETY: only used as PDA seed material for `bonding_curve`/`sharing_config`
     /// below, never read or invoked.
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     #[account(
         mut,
@@ -55,7 +55,7 @@ pub struct ResetFeeSharingConfig {
         seeds::program = PUMP_PROGRAM_ID,
         bump = pump_creator_vault_bump,
     )]
-    pub pump_creator_vault: AccountInfo,
+    pub pump_creator_vault: UncheckedAccount,
 
     pub system_program: Program<System>,
     pub pump_program: Program<Pump>,
@@ -76,12 +76,12 @@ pub struct ResetFeeSharingConfig {
         seeds::program = PUMP_AMM_PROGRAM_ID,
         bump = coin_creator_vault_authority_bump,
     )]
-    pub coin_creator_vault_authority: AccountInfo,
+    pub coin_creator_vault_authority: UncheckedAccount,
 
     /// SAFETY: only a CPI passthrough — deserialized and mutated by the nested
     /// `pump_amm::transfer_creator_fees_to_pump` CPI target, never read here.
     #[account(mut)]
-    pub coin_creator_vault_ata: AccountInfo,
+    pub coin_creator_vault_ata: UncheckedAccount,
 
     /// SAFETY: only used as the signed-CPI proof-of-origin for
     /// `pump::distribute_creator_fees` below — the `seeds`/`bump` constraint
@@ -89,7 +89,7 @@ pub struct ResetFeeSharingConfig {
     /// *this* instruction (it's signed by us, via our own seeds, only on
     /// the outgoing CPI).
     #[account(seeds = [PUMP_FEES_AUTHORITY_SEED], bump)]
-    pub pump_fees_authority: AccountInfo,
+    pub pump_fees_authority: UncheckedAccount,
 }
 
 /// Reset Fee Sharing Config and distribute pending fees first. Sweeps any AMM-side
@@ -130,7 +130,7 @@ pub fn reset_fee_sharing_config(
         pump_creator_vault_bump,
     )?;
 
-    let mut remaining_for_distribute: Vec<(AccountInfo, bool, bool)> = Vec::with_capacity(shareholders_len);
+    let mut remaining_for_distribute: Vec<(UncheckedAccount, bool, bool)> = Vec::with_capacity(shareholders_len);
     for account in ctx.remaining_accounts {
         remaining_for_distribute.push((*account, true, false));
     }

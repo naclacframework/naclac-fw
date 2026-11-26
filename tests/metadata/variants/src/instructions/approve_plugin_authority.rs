@@ -16,10 +16,10 @@ pub struct ApprovePluginAuthority {
     /// The account whose pubkey becomes the plugin's new authority.
     /// SAFETY: only its pubkey is read — it need not exist or be owned by
     /// anything in particular.
-    pub new_authority: AccountInfo,
+    pub new_authority: UncheckedAccount,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn approve_plugin_authority(ctx: Context<ApprovePluginAuthority>) -> Result {

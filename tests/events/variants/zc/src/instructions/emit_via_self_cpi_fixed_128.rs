@@ -4,7 +4,7 @@ use naclac_lang::prelude::*;
 pub struct EmitViaSelfCpiFixed128 {
     /// SAFETY: only its address is checked; its data is never read.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 }
 
 /// `sha256("global:log_event_fixed_128")[..8]`.

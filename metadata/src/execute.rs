@@ -75,9 +75,9 @@ pub struct ExecuteAssetAccounts<'a> {
     pub target_program: CpiHandle<'a>,
 }
 
-/// Duplicates an `AccountInfo` for the "same account, two roles" case (see
+/// Duplicates an `UncheckedAccount` for the "same account, two roles" case (see
 /// this file's header).
-fn clone_account_info(info: &AccountInfo) -> AccountInfo {
+fn clone_unchecked_account(info: &UncheckedAccount) -> UncheckedAccount {
     *info
 }
 
@@ -101,7 +101,7 @@ pub fn execute_signed(
         ExecutePayer::Wallet(handle) => (handle, true),
         ExecutePayer::AssetSignerPda => (
             CpiHandleMut {
-                info: clone_account_info(&accounts.asset_signer.info),
+                info: clone_unchecked_account(&accounts.asset_signer.info),
                 _phantom: core::marker::PhantomData,
             },
             false,

@@ -15,7 +15,7 @@ pub struct BoostBuyAndBurn {
     /// the real program derives this on-chain purely for event logging,
     /// which naclac bans; the caller computes it off-chain and passes it
     /// in). Never deserialized.
-    pub bonding_curve: AccountInfo,
+    pub bonding_curve: UncheckedAccount,
 
     #[account(
         mut,
@@ -45,7 +45,7 @@ pub struct BoostBuyAndBurn {
     /// signing/seed PDA with no stored data, used below only as a CPI
     /// signer (matches `init_boost.rs`'s own account of the same name).
     #[account(seeds = [BOOST_VAULT_SEED, pool.address().as_ref()], bump = boost_vault_authority_bump)]
-    pub boost_vault_authority: AccountInfo,
+    pub boost_vault_authority: UncheckedAccount,
 
     #[account(mut)]
     pub boost_vault: InterfaceAccount<TokenAccount>,

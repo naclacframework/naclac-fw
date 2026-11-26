@@ -66,7 +66,7 @@ pub struct CreateV2Accounts {
     /// body, never deserialized — real `create_v2` requires classic Token
     /// specifically here (confirmed via `probe64.rs`, `Custom(6064)`
     /// `InvalidQuoteTokenProgram` for Token-2022), so this stays a raw
-    /// `AccountInfo` rather than a typed `Program<Token>` to preserve that
+    /// `UncheckedAccount` rather than a typed `Program<Token>` to preserve that
     /// exact real error instead of a generic constraint-mismatch one.
     pub quote_token_program: Option<naclac_client::Address>,
     /// SAFETY: created by hand in the handler body below, mirroring
@@ -161,7 +161,7 @@ pub struct CreateV2CpiAccounts<'a> {
     /// body, never deserialized — real `create_v2` requires classic Token
     /// specifically here (confirmed via `probe64.rs`, `Custom(6064)`
     /// `InvalidQuoteTokenProgram` for Token-2022), so this stays a raw
-    /// `AccountInfo` rather than a typed `Program<Token>` to preserve that
+    /// `UncheckedAccount` rather than a typed `Program<Token>` to preserve that
     /// exact real error instead of a generic constraint-mismatch one.
     pub quote_token_program: Option<crate::sdk_core_cpi::CpiHandle<'a>>,
     /// SAFETY: created by hand in the handler body below, mirroring
@@ -181,7 +181,7 @@ pub struct CreateV2CpiCall<'a> {
     pub is_cashback_enabled: crate::sdk_core_cpi::Bool,
     pub bonding_curve_bump: u8,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

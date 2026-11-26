@@ -14,7 +14,7 @@ pub struct AdminSetCreator {
 
     /// SAFETY: only used as a seed input for `bonding_curve` below, never
     /// read or written -- a wrong value just fails that seed check.
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     #[account(mut, seeds = [BONDING_CURVE_SEED, mint.address().as_ref()], bump = bonding_curve_bump)]
     pub bonding_curve: Account<BondingCurve>,

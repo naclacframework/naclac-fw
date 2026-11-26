@@ -18,7 +18,7 @@ pub struct Foo {
         payer = payer,
         associated_token::mint = mint,
     )]
-    pub vault: AccountInfo,
+    pub vault: UncheckedAccount,
 
     pub token_program: Program<Token>,
     pub associated_token_program: Program<AssociatedToken>,

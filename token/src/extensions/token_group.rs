@@ -18,7 +18,7 @@
 //! Both backends: `pinocchio-token-2022` itself covers only the
 //! `GroupPointer`/`GroupMemberPointer` extensions (not the content
 //! instructions they point at), but every instruction here is built as a
-//! data-only `Instruction` value with no `AccountInfo` involved, so
+//! data-only `Instruction` value with no `UncheckedAccount` involved, so
 //! `super::invoke_interface_instruction` (`extensions/mod.rs`) can dispatch
 //! it under either backend, same as `token_metadata.rs`. Beyond the
 //! official `anchor-spl` crate's own `token_2022_extensions::token_group`

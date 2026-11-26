@@ -263,10 +263,10 @@ pub fn emit_cpi<
             is_writable: false,
         }];
         let instruction = StableInstruction::new(*ctx.program_id, &accounts, data);
-        let account_infos = [unsafe { event_authority.to_lifetime() }];
+        let unchecked_accounts = [unsafe { event_authority.to_lifetime() }];
         invoke_signed_raw(
             &instruction,
-            &account_infos,
+            &unchecked_accounts,
             &[&[b"__event_authority", &[bump]]],
         )
         .unwrap_or_else(|_| panic!("event self-CPI returned an error code"))

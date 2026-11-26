@@ -24,7 +24,7 @@ pub struct CreateMint2022WithTransferHook {
     /// SAFETY: allocated and initialized entirely by hand in the handler
     /// body below — see `CreateMint2022WithTransferFee::mint`'s SAFETY note.
     #[account(mut)]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

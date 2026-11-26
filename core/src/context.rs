@@ -31,7 +31,7 @@ pub trait EventCpiTag {
     note = "put `#[event_cpi]` directly above `#[derive(Accounts)]` on `{Self}`; it injects the `event_authority` and `program` accounts the self-CPI needs"
 )]
 pub trait EventCpiAuthority: Bumps + 'static {
-    fn event_authority(&self) -> &crate::prelude::AccountInfo;
+    fn event_authority(&self) -> &crate::prelude::UncheckedAccount;
     fn event_authority_bump(bumps: &Self::BumpsStruct) -> u8;
 }
 

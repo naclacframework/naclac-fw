@@ -23,18 +23,19 @@ pub struct Execute {
     pub proposal: Account<Proposal>,
 
     /// SAFETY: a lamport-only PDA with no data, checked by `seeds` against the
-    /// treasury's stored vault bump; it is only the source of a signed transfer.
+    /// treasury's stored vault bump, which only `create_treasury` writes, from
+    /// the canonical search; it is only the source of a signed transfer.
     #[account(
         mut,
         seeds = VaultPda::seeds(treasury.address()),
         bump = treasury.vault_bump
     )]
-    pub vault: AccountInfo,
+    pub vault: UncheckedAccount,
 
     /// SAFETY: only the destination of lamports, checked against the
     /// proposal's recipient.
     #[account(mut)]
-    pub recipient: AccountInfo,
+    pub recipient: UncheckedAccount,
 
     pub system_program: Program<System>,
 }

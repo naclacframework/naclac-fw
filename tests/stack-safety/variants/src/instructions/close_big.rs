@@ -2,7 +2,7 @@ use naclac_lang::prelude::*;
 use crate::state::BigData;
 
 // `close`'s lamport-drain/reassign logic (`close_account.rs`) operates on
-// the field's `AccountInfo` — this is the ToAccountInfo/AsRefByteSlice side
+// the field's `UncheckedAccount` — this is the ToUncheckedAccount/AsRefByteSlice side
 // of the boxed-field blanket impls, not just Deref/DerefMut on the inner
 // data like `touch_big` exercises.
 #[derive(Accounts)]

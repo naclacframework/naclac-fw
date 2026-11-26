@@ -93,7 +93,7 @@ Batch 2 results (CI, 2026-11-21)
   (derive/src/system/scale.rs analyze_stmt/analyze_assign), so `Ok(a + b)`, a returned sum or arithmetic
   inside a call argument is never checked. Fixture now binds the sum with `let`.
 - 117 used `realloc::any_of` on `Account<T>`; the generated code reads the raw account through an
-  `AccountInfo` local, so it gives an unhelpful E0599 there. Fixture now uses `AccountInfo`.
+  `UncheckedAccount` local, so it gives an unhelpful E0599 there. Fixture now uses `UncheckedAccount`.
 - 187: an unknown `realloc::` key gives only the generic syn error `expected ,`; the token and ATA
   namespaces give a clear "is not a constraint. Valid keys" message. Snapshot records today's behaviour.
 - The coverage regex now lets a placeholder match nothing (an empty `{hint}`).
@@ -104,7 +104,7 @@ Fixed in the framework (2026-11-21)
   return, `?`, blocks, if/else, match arms and guards, loops, closures, tuples, arrays, struct literals,
   index, ranges) and checks each arithmetic expression once; nested blocks and branches get their own
   scope. Unit tests in the same file; fixture 192 covers `Ok(a + b)`.
-- derive/src/accounts/field/parser/validate.rs: `realloc::any_of` on a field that is not `AccountInfo`
+- derive/src/accounts/field/parser/validate.rs: `realloc::any_of` on a field that is not `UncheckedAccount`
   is a clear error (fixture 191).
 - derive/src/accounts/field/parser/attrs.rs: an unknown `realloc::` key is a clear error listing the
   valid keys (fixture 187, snapshot to regenerate).

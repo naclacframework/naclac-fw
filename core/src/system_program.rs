@@ -111,7 +111,7 @@ mod solana_system {
     ) -> Result<()> {
         // The instruction below always targets the real, hardcoded `ID`
         // regardless of `program` — but the low-level CPI mechanism still
-        // needs `program`'s `AccountInfo` present to locate/invoke it, so a
+        // needs `program`'s `UncheckedAccount` present to locate/invoke it, so a
         // caller passing the wrong account here would otherwise fail with
         // an opaque "account not found"-style runtime error instead of a
         // clear one.
@@ -140,7 +140,7 @@ mod solana_system {
 
         let stable_ix = StableInstruction::new(ID, &stable_accounts, &ix_data);
 
-        let account_infos = unsafe {
+        let unchecked_accounts = unsafe {
             [
                 from.info.to_lifetime(),
                 to.info.to_lifetime(),
@@ -150,7 +150,7 @@ mod solana_system {
 
         invoke_signed_raw(
             &stable_ix,
-            &account_infos,
+            &unchecked_accounts,
             CpiSigner::as_seed_slices(signers),
         )
     }
@@ -235,15 +235,15 @@ mod solana_system {
 
         // SAFETY: these are bitwise aliases of the accounts `first` and
         // `second` point to, which outlive this call, read as the SDK's
-        // `AccountInfo` that `AccountInfoData` mirrors (the same layout
+        // `AccountInfo` that `UncheckedAccountData` mirrors (the same layout
         // `to_lifetime` transmutes between). They are never dropped
         // (`ManuallyDrop`), so the `Rc` counts are neither incremented nor
         // decremented, and they do not escape this function.
         let infos = core::mem::ManuallyDrop::new(unsafe {
             [
-                core::ptr::read(first.data_ref() as *const crate::prelude::AccountInfoData
+                core::ptr::read(first.data_ref() as *const crate::prelude::UncheckedAccountData
                     as *const solana_account_info::AccountInfo<'static>),
-                core::ptr::read(second.data_ref() as *const crate::prelude::AccountInfoData
+                core::ptr::read(second.data_ref() as *const crate::prelude::UncheckedAccountData
                     as *const solana_account_info::AccountInfo<'static>),
             ]
         });
@@ -316,8 +316,8 @@ mod pinocchio_system {
     /// prefund-aware equivalent.
     #[inline(always)]
     fn create_account_unchecked_raw(
-        from: &crate::prelude::AccountView,
-        to: &crate::prelude::AccountView,
+        from: &::pinocchio::AccountView,
+        to: &::pinocchio::AccountView,
         lamports: u64,
         space: u64,
         owner: &crate::prelude::Address,
@@ -364,8 +364,8 @@ mod pinocchio_system {
     /// account passed to the CPI has its data borrowed.
     #[inline(always)]
     fn create_account_checked_raw(
-        from: &crate::prelude::AccountView,
-        to: &crate::prelude::AccountView,
+        from: &::pinocchio::AccountView,
+        to: &::pinocchio::AccountView,
         lamports: u64,
         space: u64,
         owner: &crate::prelude::Address,
@@ -491,8 +491,8 @@ mod pinocchio_system {
     /// `CpiHandleMut`s. Always the checked, prefund-aware path — use
     /// `create_account_unchecked_for_init` for `init_unchecked`.
     pub fn create_account_checked_for_init(
-        from: &crate::prelude::AccountView,
-        to: &crate::prelude::AccountView,
+        from: &::pinocchio::AccountView,
+        to: &::pinocchio::AccountView,
         lamports: u64,
         space: u64,
         owner: &crate::prelude::Address,
@@ -517,8 +517,8 @@ mod pinocchio_system {
     /// the caller has not retained a live borrow on `from`'s or `to`'s
     /// account data across this call.
     pub fn create_account_unchecked_for_init(
-        from: &crate::prelude::AccountView,
-        to: &crate::prelude::AccountView,
+        from: &::pinocchio::AccountView,
+        to: &::pinocchio::AccountView,
         lamports: u64,
         space: u64,
         owner: &crate::prelude::Address,
@@ -633,7 +633,7 @@ impl crate::wrappers::Program<crate::wrappers::System> {
 mod pinocchio_transfer_tests {
     use {
         super::transfer,
-        crate::prelude::{AccountInfo, CpiHandleMut, ProgramError},
+        crate::prelude::{CpiHandleMut, ProgramError, UncheckedAccount},
         core::marker::PhantomData,
         pinocchio::account::{AccountView, RuntimeAccount, NOT_BORROWED},
     };
@@ -648,7 +648,7 @@ mod pinocchio_transfer_tests {
     fn handle(account: &mut RuntimeAccount) -> CpiHandleMut<'_> {
         CpiHandleMut {
             // SAFETY: `account` is a live `RuntimeAccount` that the handle borrows exclusively.
-            info: AccountInfo {
+            info: UncheckedAccount {
                 view: unsafe { AccountView::new_unchecked(account) },
             },
             _phantom: PhantomData,

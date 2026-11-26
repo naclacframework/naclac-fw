@@ -91,7 +91,7 @@ pub struct ResizeNoteCpiCall<'a> {
     pub accounts: ResizeNoteCpiAccounts<'a>,
     pub new_space: u64,
     pub signer_seeds: &'a [crate::sdk_core_cpi::CpiSigner<'a, 'a>],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

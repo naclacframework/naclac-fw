@@ -7,7 +7,7 @@ pub struct CreateAssociatedTokenAccountIdempotent {
 
     /// SAFETY: only used as the ATA's `authority` argument to the
     /// Associated Token Program CPI below; never read or deserialized.
-    pub owner: AccountInfo,
+    pub owner: UncheckedAccount,
 
     pub mint: Account<Mint>,
 
@@ -20,7 +20,7 @@ pub struct CreateAssociatedTokenAccountIdempotent {
         associated_token::mint = mint,
         associated_token::authority = owner,
     )]
-    pub associated_token: AccountInfo,
+    pub associated_token: UncheckedAccount,
 
     pub system_program: Program<System>,
     pub token_program: Program<Token>,

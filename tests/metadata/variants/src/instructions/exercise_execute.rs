@@ -20,7 +20,7 @@ pub struct ExerciseExecute {
     /// transfer — a CPI cannot mark an account writable that the outer
     /// transaction itself didn't already include as writable.
     #[account(mut)]
-    pub asset_signer: AccountInfo,
+    pub asset_signer: UncheckedAccount,
 
     #[account(mut)]
     pub payer: Signer,
@@ -28,12 +28,12 @@ pub struct ExerciseExecute {
     /// The destination of the inner (zero-lamport) System transfer.
     /// SAFETY: only its pubkey is read — it need not exist beforehand.
     #[account(mut)]
-    pub destination: AccountInfo,
+    pub destination: UncheckedAccount,
 
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn exercise_execute(ctx: Context<ExerciseExecute>) -> Result {

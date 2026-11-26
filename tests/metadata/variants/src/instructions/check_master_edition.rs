@@ -10,7 +10,7 @@ pub struct CheckMasterEdition {
     /// SAFETY: read-only; `fetch_collection_master_edition` itself
     /// validates ownership by the real Metaplex Core program before parsing
     /// any bytes.
-    pub collection: AccountInfo,
+    pub collection: UncheckedAccount,
 }
 
 pub fn check_master_edition(

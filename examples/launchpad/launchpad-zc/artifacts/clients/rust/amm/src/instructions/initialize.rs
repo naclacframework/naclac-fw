@@ -128,7 +128,7 @@ pub trait InitializeCpi<'info> {
         amount_a: u64,
         amount_b: u64,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()>;
 
 }
@@ -143,7 +143,7 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core::Program<crate::Amm> {
         amount_a: u64,
         amount_b: u64,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()> {
         let args = InitializeIxArgs {
             id,

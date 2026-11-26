@@ -107,7 +107,9 @@ pub fn attach_master_edition_signed(
 /// Reads a `Collection`'s `MasterEdition` plugin, if attached. Callable
 /// identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_collection_master_edition(info: &AccountInfo) -> Result<Option<MasterEditionData>> {
+pub fn fetch_collection_master_edition(
+    info: &UncheckedAccount,
+) -> Result<Option<MasterEditionData>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -132,7 +134,9 @@ pub fn fetch_collection_master_edition(info: &AccountInfo) -> Result<Option<Mast
 /// Reads a `Collection`'s `MasterEdition` plugin, if attached. Callable
 /// identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_collection_master_edition(info: &AccountInfo) -> Result<Option<MasterEditionData>> {
+pub fn fetch_collection_master_edition(
+    info: &UncheckedAccount,
+) -> Result<Option<MasterEditionData>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {
         return Ok(None);

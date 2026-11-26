@@ -51,7 +51,7 @@ pub fn generate_cpi_ix(ix: &IdlInstruction, idl: &Idl) -> String {
     }
     cpi_content.push_str("    pub signer_seeds: &'a [crate::sdk_core_cpi::CpiSigner<'a, 'a>],\n");
     cpi_content.push_str(
-        "    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],\n",
+        "    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],\n",
     );
     cpi_content.push_str("}\n\n");
 

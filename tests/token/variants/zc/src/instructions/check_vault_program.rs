@@ -6,7 +6,7 @@ use naclac_lang::prelude::*;
 // loads: a mismatch is `NaclacError::ProgramIdMismatch`, a different error
 // variant from the `ConstraintTokenMint`/`ConstraintTokenAuthority` that
 // `token::mint`/`token::authority` return.
-// Uses a bare `AccountInfo` for
+// Uses a bare `UncheckedAccount` for
 // `vault` (not `Account<TokenAccount>`) since only the owning-program
 // metadata is inspected here, never the account's data.
 #[derive(Accounts)]
@@ -17,7 +17,7 @@ pub struct CheckVaultProgram {
     /// the `token::token_program` constraint below; its data is never read or
     /// deserialized.
     #[account(token::token_program = token_program)]
-    pub vault: AccountInfo,
+    pub vault: UncheckedAccount,
 }
 
 pub fn check_vault_program(_ctx: Context<CheckVaultProgram>) -> Result {

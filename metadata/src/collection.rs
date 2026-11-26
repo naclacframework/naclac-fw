@@ -42,7 +42,7 @@ pub struct CollectionData {
 /// fields. Fails if the account isn't owned by the Core program, or isn't a
 /// valid `CollectionV1`-keyed account.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_collection(info: &AccountInfo) -> Result<CollectionData> {
+pub fn fetch_collection(info: &UncheckedAccount) -> Result<CollectionData> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -64,7 +64,7 @@ pub fn fetch_collection(info: &AccountInfo) -> Result<CollectionData> {
 /// fields. Fails if the account isn't owned by the Core program, or isn't a
 /// valid `CollectionV1`-keyed account.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_collection(info: &AccountInfo) -> Result<CollectionData> {
+pub fn fetch_collection(info: &UncheckedAccount) -> Result<CollectionData> {
     let view = CollectionView::try_from(info)?;
     Ok(CollectionData {
         update_authority: view.update_authority(),
@@ -102,7 +102,7 @@ impl<'a> CollectionView<'a> {
     /// `pinocchio`-only: see `AssetView::try_from`'s doc comment (`asset.rs`)
     /// for why the `solana` backend must go through `from_bytes` directly.
     #[cfg(feature = "pinocchio")]
-    pub fn try_from(info: &'a AccountInfo) -> Result<Self> {
+    pub fn try_from(info: &'a UncheckedAccount) -> Result<Self> {
         if Owner::program_owner(info) != crate::ID {
             return Err(NaclacError::ConstraintOwner.into());
         }

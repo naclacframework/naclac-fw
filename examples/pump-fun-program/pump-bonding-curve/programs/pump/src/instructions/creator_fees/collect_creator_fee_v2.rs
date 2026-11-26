@@ -32,7 +32,7 @@ pub struct CollectCreatorFeeV2Args {
 pub struct CollectCreatorFeeV2 {
     /// SAFETY: only PDA seed material for `creator_vault`/`creator_token_account`
     /// below; never deserialized.
-    pub creator: AccountInfo,
+    pub creator: UncheckedAccount,
 
     #[account(
         mut,
@@ -51,7 +51,7 @@ pub struct CollectCreatorFeeV2 {
         seeds = [CREATOR_VAULT_SEED, creator.address().as_ref()],
         bump = args.creator_vault_bump,
     )]
-    pub creator_vault: AccountInfo,
+    pub creator_vault: UncheckedAccount,
 
     #[account(
         mut,

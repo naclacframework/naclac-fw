@@ -104,7 +104,7 @@ pub trait CreateMintCpi<'info> {
         launch_record_bump: u8,
         decimals: u8,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()>;
 
 }
@@ -119,7 +119,7 @@ impl<'info> CreateMintCpi<'info> for crate::sdk_core::Program<crate::TokenCreato
         launch_record_bump: u8,
         decimals: u8,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()> {
         let args = CreateMintIxArgs {
             id,

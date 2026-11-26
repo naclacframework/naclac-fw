@@ -95,7 +95,7 @@ fn big_boxed_field_inits_and_mutates_and_address_works() {
 }
 
 /// `close`'s lamport-drain/reassign logic operates on the field's raw
-/// `AccountInfo` — a different blanket impl (`ToAccountInfo`) than the
+/// `UncheckedAccount` — a different blanket impl (`ToUncheckedAccount`) than the
 /// `Deref`/`DerefMut`/`ToAddress` path the mutation test above exercises.
 /// Confirms that side is also fully transparent through the Box.
 #[test]

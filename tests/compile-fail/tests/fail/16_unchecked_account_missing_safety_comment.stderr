@@ -1,0 +1,5 @@
+error: Naclac Error: `UncheckedAccount` fields get no automatic validation. Add a `/// SAFETY: ...` doc comment above the field explaining why that is safe.
+ --> tests/fail/16_unchecked_account_missing_safety_comment.rs:9:9
+  |
+9 |     pub unchecked: UncheckedAccount,
+  |         ^^^^^^^^^

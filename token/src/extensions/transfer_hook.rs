@@ -284,14 +284,14 @@ pub fn transfer_checked_with_hook_signed(
     let destination_info = unsafe { accounts.to.info.to_lifetime() };
     let authority_info = unsafe { accounts.authority.info.to_lifetime() };
 
-    let mut cpi_account_infos = vec![
+    let mut cpi_unchecked_accounts = vec![
         source_info.clone(),
         mint_info.clone(),
         destination_info.clone(),
         authority_info.clone(),
     ];
 
-    let additional_account_infos: Vec<_> = accounts
+    let additional_unchecked_accounts: Vec<_> = accounts
         .extra_accounts
         .iter()
         .map(|handle| unsafe { handle.info.to_lifetime() })
@@ -301,19 +301,19 @@ pub fn transfer_checked_with_hook_signed(
 
     ::spl_transfer_hook_interface::onchain::add_extra_accounts_for_execute_cpi(
         &mut cpi_instruction,
-        &mut cpi_account_infos,
+        &mut cpi_unchecked_accounts,
         &hook_program_address,
         source_info,
         mint_info,
         destination_info,
         authority_info,
         amount,
-        &additional_account_infos,
+        &additional_unchecked_accounts,
     )?;
 
     naclac_core::prelude::invoke_signed(
         &cpi_instruction,
-        &cpi_account_infos,
+        &cpi_unchecked_accounts,
         CpiSigner::as_seed_slices(signer_seeds),
     )
 }

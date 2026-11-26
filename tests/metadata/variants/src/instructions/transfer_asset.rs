@@ -16,10 +16,10 @@ pub struct TransferAsset {
     /// SAFETY: only its pubkey is read (passed readonly, non-signer, to the
     /// real Metaplex Core program) — it need not exist or be owned by
     /// anything in particular.
-    pub new_owner: AccountInfo,
+    pub new_owner: UncheckedAccount,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn transfer_asset(ctx: Context<TransferAsset>) -> Result {

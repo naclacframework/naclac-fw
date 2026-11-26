@@ -10,7 +10,7 @@ pub struct Foo {
     pub payer: Signer,
 
     /// SAFETY: only used as the mint's `authority`; never read or deserialized.
-    pub authority: AccountInfo,
+    pub authority: UncheckedAccount,
 
     #[account(init, payer = payer, seeds = [b"mint"], bump, mint::decimals = 6, mint::authority = authority)]
     pub mint: Account<Mint>,

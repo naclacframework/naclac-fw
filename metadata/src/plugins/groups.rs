@@ -31,7 +31,7 @@ use crate::{
 /// Reads an `Asset`'s `Groups` plugin, if attached. Callable identically on
 /// both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<crate::prelude::Vec<Address>>> {
+pub fn fetch_asset_groups(info: &UncheckedAccount) -> Result<Option<crate::prelude::Vec<Address>>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -50,7 +50,7 @@ pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<crate::prelude::V
 /// both backends. Zero-copy on `pinocchio` — the `RecordList<Address>` views
 /// directly into the account's own bytes, no cap needed.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_groups(info: &AccountInfo) -> Result<Option<RecordList<'_, Address>>> {
+pub fn fetch_asset_groups(info: &UncheckedAccount) -> Result<Option<RecordList<'_, Address>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);

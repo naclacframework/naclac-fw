@@ -61,16 +61,16 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
             /// validates `is_signer` once `invoke_signed` has marked it as
             /// one. Its data is never read.
             #[account(seeds = [b"__event_authority"], bump)]
-            pub event_authority: naclac_lang::prelude::AccountInfo,
+            pub event_authority: naclac_lang::prelude::UncheckedAccount,
             /// SAFETY: only its address is checked; its data is never read.
             #[account(address = crate::ID)]
-            pub program: naclac_lang::prelude::AccountInfo,
+            pub program: naclac_lang::prelude::UncheckedAccount,
         }
 
         // What `emit_cpi!` reaches the injected fields through; a struct
         // without `#[event_cpi]` has no such impl.
         impl #impl_generics naclac_lang::prelude::EventCpiAuthority for #ident #ty_generics #where_clause {
-            fn event_authority(&self) -> &naclac_lang::prelude::AccountInfo {
+            fn event_authority(&self) -> &naclac_lang::prelude::UncheckedAccount {
                 &self.event_authority
             }
 

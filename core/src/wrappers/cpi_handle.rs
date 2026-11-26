@@ -3,19 +3,19 @@
 //! Provides the `CpiHandle` and `CpiHandleMut` wrapper types which enforce
 //! Solana account lifetimes and Rust's aliasing rules at compile-time during CPIs.
 
-use {crate::prelude::AccountInfo, core::marker::PhantomData};
+use {crate::prelude::UncheckedAccount, core::marker::PhantomData};
 
 /// An immutable CPI handle representing a shared borrow of an account.
 #[repr(transparent)]
 pub struct CpiHandle<'a> {
-    pub info: AccountInfo,
+    pub info: UncheckedAccount,
     pub _phantom: PhantomData<&'a ()>,
 }
 
 /// A mutable CPI handle representing an exclusive borrow of an account.
 #[repr(transparent)]
 pub struct CpiHandleMut<'a> {
-    pub info: AccountInfo,
+    pub info: UncheckedAccount,
     pub _phantom: PhantomData<&'a mut ()>,
 }
 
@@ -48,7 +48,7 @@ pub trait ToCpiHandleMut<'a> {
     fn to_cpi_handle_mut(&'a mut self) -> CpiHandleMut<'a>;
 }
 
-impl<'a> ToCpiHandle<'a> for AccountInfo {
+impl<'a> ToCpiHandle<'a> for UncheckedAccount {
     #[inline(always)]
     fn to_cpi_handle(&'a self) -> CpiHandle<'a> {
         CpiHandle {
@@ -58,7 +58,7 @@ impl<'a> ToCpiHandle<'a> for AccountInfo {
     }
 }
 
-impl<'a> ToCpiHandleMut<'a> for AccountInfo {
+impl<'a> ToCpiHandleMut<'a> for UncheckedAccount {
     #[inline(always)]
     fn to_cpi_handle_mut(&'a mut self) -> CpiHandleMut<'a> {
         CpiHandleMut {

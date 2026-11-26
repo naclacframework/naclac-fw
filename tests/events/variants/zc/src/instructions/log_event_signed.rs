@@ -13,7 +13,7 @@ pub struct LogEventSigned {
     /// `SEED_EVENT_AUTHORITY`) and `is_signer` are checked; its data is
     /// never read.
     #[account(signer, seeds = [SEED_EVENT_AUTHORITY], bump)]
-    pub event_authority: AccountInfo,
+    pub event_authority: UncheckedAccount,
 }
 
 pub fn log_event_signed(_ctx: Context<LogEventSigned>, _data: [u8; 8]) -> Result {

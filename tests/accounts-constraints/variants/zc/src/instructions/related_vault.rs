@@ -7,7 +7,7 @@ use crate::state::Vault;
 // `accounts.Y`'s address". Here `admin = authority` checks
 // `vault.admin == authority.address()`. Deliberately named `admin`, not
 // `owner` — `owner` is itself a reserved constraint keyword (the
-// AccountInfo-owner check in `check_owner.rs`), so using it as a relation
+// UncheckedAccount-owner check in `check_owner.rs`), so using it as a relation
 // field name would silently mean something else entirely.
 #[derive(Accounts)]
 pub struct RelatedVault {

@@ -26,7 +26,7 @@ use crate::state::{BondingCurve, MinimumDistributableFeeEvent, SharingConfig};
 pub struct GetMinimumDistributableFee {
     /// SAFETY: only used as PDA seed material for `bonding_curve`/`sharing_config`
     /// below, never read or invoked.
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     #[account(seeds = [BONDING_CURVE_SEED, mint.address().as_ref()], bump = bonding_curve_bump)]
     pub bonding_curve: Account<BondingCurve>,
@@ -46,7 +46,7 @@ pub struct GetMinimumDistributableFee {
         seeds = [CREATOR_VAULT_SEED, bonding_curve.creator.as_ref()],
         bump = creator_vault_bump,
     )]
-    pub creator_vault: AccountInfo,
+    pub creator_vault: UncheckedAccount,
 }
 
 /// Permissionless view instruction (confirmed via real IDL doc comment) that

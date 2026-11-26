@@ -86,7 +86,7 @@ pub trait InitializeCpi<'info> {
         vault_id: u64,
         vault_bump: u8,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()>;
 
 }
@@ -99,7 +99,7 @@ impl<'info> InitializeCpi<'info> for crate::sdk_core::Program<crate::TokenVaultZ
         vault_id: u64,
         vault_bump: u8,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()> {
         let args = InitializeIxArgs {
             vault_id,

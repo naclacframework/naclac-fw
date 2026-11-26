@@ -3,7 +3,7 @@ use crate::state::Thing;
 
 // Proves `Option<Box<Account<Thing>>>` ("Box inside Option") already works
 // via naclac-core's existing blanket `NaclacAccount`/`ToAddress`/
-// `ToAccountInfo` impls for `Box<T>` — no macro changes needed, unlike
+// `ToUncheckedAccount` impls for `Box<T>` — no macro changes needed, unlike
 // `Box<Option<T>>` (Box outside), which `type_classify.rs` still doesn't
 // detect as optional at all and would need real, more invasive work. Only
 // meaningful where the wrapper holds decoded data (Borsh, Wincode, and

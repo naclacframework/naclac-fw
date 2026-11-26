@@ -4,7 +4,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 
 // Real `approve`/`approve_signed` CPI (`token/src/token.rs`), signed
 // by the `mint_authority` PDA (the vault's real owner). `delegate` is a bare
-// `AccountInfo` — only its address is used, mirroring
+// `UncheckedAccount` — only its address is used, mirroring
 // `set_mint_authority.rs`'s `new_authority` reasoning.
 #[derive(Accounts)]
 pub struct ApproveVaultDelegate {
@@ -13,7 +13,7 @@ pub struct ApproveVaultDelegate {
 
     /// SAFETY: only used as an address — becomes the approved delegate via
     /// `approve_signed` below; its data is never read or deserialized.
-    pub delegate: AccountInfo,
+    pub delegate: UncheckedAccount,
 
     #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
     pub mint_authority: Account<MintAuthority>,

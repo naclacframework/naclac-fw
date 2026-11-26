@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// `realloc::any_of` on an `AccountInfo` field is valid.
+// `realloc::any_of` on an `UncheckedAccount` field is valid.
 use naclac_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");
@@ -11,7 +11,7 @@ pub struct Foo {
 
     /// SAFETY: `realloc::any_of` reads the raw account and checks its discriminator.
     #[account(mut, realloc::any_of = [FooData], realloc::payer = payer)]
-    pub account: AccountInfo,
+    pub account: UncheckedAccount,
 
     pub system_program: Program<System>,
 }

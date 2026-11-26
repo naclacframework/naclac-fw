@@ -24,9 +24,8 @@ export const IDL = {
         {
           "name": "vault",
           "docs": [
-            "SAFETY: a lamport-only PDA with no data, checked by `seeds` and the",
-            "canonical bump the caller supplies; it is only the source of signed",
-            "transfers."
+            "SAFETY: a lamport-only PDA with no data, checked by `seeds` at its",
+            "canonical bump; it is only the source of signed transfers."
           ],
           "pda": {
             "seeds": [
@@ -85,7 +84,8 @@ export const IDL = {
           "name": "vault",
           "docs": [
             "SAFETY: a lamport-only PDA with no data, checked by `seeds` against the",
-            "treasury's stored vault bump; it is only the destination of a transfer."
+            "treasury's stored vault bump, which only `create_treasury` writes, from",
+            "the canonical search; it is only the destination of a transfer."
           ],
           "writable": true,
           "pda": {
@@ -147,7 +147,8 @@ export const IDL = {
           "name": "vault",
           "docs": [
             "SAFETY: a lamport-only PDA with no data, checked by `seeds` against the",
-            "treasury's stored vault bump; it is only the source of a signed transfer."
+            "treasury's stored vault bump, which only `create_treasury` writes, from",
+            "the canonical search; it is only the source of a signed transfer."
           ],
           "writable": true,
           "pda": {

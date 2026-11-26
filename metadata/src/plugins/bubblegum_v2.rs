@@ -40,7 +40,7 @@ pub fn attach_bubblegum_v2_signed(
 /// `true` if an `Asset` has a `BubblegumV2` plugin attached. Callable
 /// identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
-pub fn asset_has_bubblegum_v2(info: &AccountInfo) -> Result<bool> {
+pub fn asset_has_bubblegum_v2(info: &UncheckedAccount) -> Result<bool> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -58,7 +58,7 @@ pub fn asset_has_bubblegum_v2(info: &AccountInfo) -> Result<bool> {
 /// `true` if an `Asset` has a `BubblegumV2` plugin attached. Callable
 /// identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn asset_has_bubblegum_v2(info: &AccountInfo) -> Result<bool> {
+pub fn asset_has_bubblegum_v2(info: &UncheckedAccount) -> Result<bool> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(false);

@@ -20,7 +20,7 @@ pub struct CreateMintWithFreeze {
     /// SAFETY: `init` + `mint::decimals`/`mint::authority`/`mint::freeze_authority`
     /// below fully validate and construct this account via a real CPI to the
     /// token program (`init_cpi.rs`) — there is no naclac `Discriminator` to
-    /// check since this is a raw SPL `Mint` layout, so `AccountInfo` is
+    /// check since this is a raw SPL `Mint` layout, so `UncheckedAccount` is
     /// correct here, not a gap in coverage.
     #[account(
         init,
@@ -31,7 +31,7 @@ pub struct CreateMintWithFreeze {
         mint::authority = mint_authority,
         mint::freeze_authority = mint_authority,
     )]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

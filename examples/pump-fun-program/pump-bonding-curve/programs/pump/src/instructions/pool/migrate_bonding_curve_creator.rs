@@ -8,7 +8,7 @@ use crate::state::BondingCurve;
 pub struct MigrateBondingCurveCreator {
     /// SAFETY: only used as a seed input for `bonding_curve`/`sharing_config` below, never
     /// read or written — a wrong value just fails those seed checks.
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     #[account(
         mut,
@@ -24,7 +24,7 @@ pub struct MigrateBondingCurveCreator {
         seeds::program = PUMP_FEES_PROGRAM_ID,
         bump = sharing_config_bump,
     )]
-    pub sharing_config: AccountInfo,
+    pub sharing_config: UncheckedAccount,
 
     /// SAFETY: `signer` + the `seeds`/`seeds::program` constraint together
     /// prove this call was CPI'd (via `invoke_signed`) by `pump_fees` itself
@@ -37,7 +37,7 @@ pub struct MigrateBondingCurveCreator {
         seeds::program = PUMP_FEES_PROGRAM_ID,
         bump,
     )]
-    pub pump_fees_authority: AccountInfo,
+    pub pump_fees_authority: UncheckedAccount,
 }
 
 pub fn migrate_bonding_curve_creator(

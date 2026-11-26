@@ -86,7 +86,7 @@ const _: () = assert!(MAX_ACCOUNTS <= u8::MAX as usize);
 /// after its duplicate marker) inside the loader's input buffer, which must
 /// be 8-byte aligned.
 #[inline(always)]
-unsafe fn deserialize_account_info<'a>(
+unsafe fn deserialize_unchecked_account<'a>(
     input: *mut u8,
     mut offset: usize,
 ) -> (AccountInfo<'a>, usize) {
@@ -177,10 +177,10 @@ pub unsafe fn deserialize<'a>(input: *mut u8) -> Option<Deserialized<'a>> {
         let dup_info = *(input.add(offset) as *const u8);
         offset = offset.wrapping_add(size_of::<u8>());
         if dup_info == NON_DUP_MARKER {
-            let (account_info, new_offset) = deserialize_account_info(input, offset);
+            let (unchecked_account, new_offset) = deserialize_unchecked_account(input, offset);
             offset = new_offset;
             // SAFETY: `i < num_accounts <= capacity`, and slot `i` is unwritten.
-            slots.add(i).write(account_info);
+            slots.add(i).write(unchecked_account);
         } else {
             offset = offset.wrapping_add(7);
             if dup_info as usize >= i {

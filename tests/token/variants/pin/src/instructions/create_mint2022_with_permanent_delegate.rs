@@ -26,7 +26,7 @@ pub struct CreateMint2022WithPermanentDelegate {
     /// naclac `Discriminator` to check since this is a raw SPL `Mint` +
     /// `PermanentDelegate` extension layout, not a naclac account.
     #[account(mut)]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

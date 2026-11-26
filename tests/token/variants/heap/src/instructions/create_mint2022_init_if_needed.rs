@@ -33,7 +33,7 @@ pub struct CreateMint2022InitIfNeeded {
         mint::decimals = decimals,
         mint::authority = mint_authority,
     )]
-    pub mint: AccountInfo,
+    pub mint: UncheckedAccount,
 
     pub mint_authority: Account<MintAuthority>,
 

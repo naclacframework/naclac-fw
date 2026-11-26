@@ -12,7 +12,7 @@ use crate::state::CallerAuthority;
 pub struct CallAuthorizedIncrement {
     /// SAFETY: `cpi_callee`'s own PDA, validated by that program.
     #[account(mut)]
-    pub counter: AccountInfo,
+    pub counter: UncheckedAccount,
 
     #[account(seeds = CallerAuthority::seeds(), bump)]
     pub caller_authority: Account<CallerAuthority>,

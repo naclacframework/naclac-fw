@@ -9,7 +9,7 @@ pub struct Foo {
     pub a: Account<Thing>,
     /// SAFETY: test fixture.
     #[account(dup)]
-    pub b: AccountInfo,
+    pub b: UncheckedAccount,
 }
 
 #[account]

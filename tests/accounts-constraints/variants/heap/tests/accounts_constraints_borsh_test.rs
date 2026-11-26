@@ -512,7 +512,7 @@ fn close_drains_lamports_and_account_cannot_be_reused() {
 }
 
 /// `executable`: rejects an account whose `executable` flag isn't set.
-/// Meaningful specifically on a plain `AccountInfo` field (not `Program<T>`,
+/// Meaningful specifically on a plain `UncheckedAccount` field (not `Program<T>`,
 /// which already enforces executable-ness internally on its own) — the real
 /// System Program account (genuinely executable) must be accepted, and the
 /// payer's own signer account (not executable) must be rejected.
@@ -781,6 +781,36 @@ fn seeds_program_constraint_derives_pda_against_external_program() {
     // `CheckExternalPda { target }` — `target` is field index 0 ->
     // 10000 + 0*100 + ConstraintSeeds(6) = 10006.
     assert_custom_code(wrong_result, 10006);
+}
+
+/// An explicit `bump = <value>` on an `UncheckedAccount` is used as given: one
+/// hash and a compare, with no proof that the bump is canonical. A
+/// non-canonical bump with the address it derives is accepted.
+#[test]
+fn an_explicit_bump_on_an_unchecked_account_is_not_checked_to_be_canonical() {
+    let provider = setup();
+
+    let seed: &[u8] = b"external_pda";
+    let (_, canonical_bump) = Address::find_program_address(&[seed], &SYSTEM_PROGRAM_ID);
+    let (other_bump, other_address) = (0..canonical_bump)
+        .rev()
+        .find_map(|bump| {
+            Address::create_program_address(&[seed, &[bump]], &SYSTEM_PROGRAM_ID)
+                .ok()
+                .map(|address| (bump, address))
+        })
+        .expect("a non-canonical bump that derives an address exists");
+
+    build_check_external_pda(
+        &provider,
+        PROGRAM_ID,
+        other_bump,
+        CheckExternalPdaAccounts {
+            target: other_address,
+        },
+    )
+    .send_and_confirm()
+    .expect("a bump that derives the account's own address must be accepted as given");
 }
 
 /// Real end-to-end proof that `init` on a heap-layout `#[account]` with a

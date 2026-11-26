@@ -17,7 +17,7 @@ pub struct CheckMintFreezeAuthority {
     /// name, and fields load sequentially in declaration order (same
     /// convention as `check_vault_constraints.rs`'s `mint`/`mint_authority`
     /// preceding `vault`).
-    pub freeze_authority: AccountInfo,
+    pub freeze_authority: UncheckedAccount,
 
     #[account(mint::freeze_authority = freeze_authority)]
     pub mint: Account<Mint>,

@@ -10,7 +10,7 @@ use crate::systems::accumulate_claimed;
 pub struct ClaimSocialFeePda {
     /// SAFETY: only a lamport-transfer destination; not deserialized.
     #[account(mut)]
-    pub recipient: AccountInfo,
+    pub recipient: UncheckedAccount,
     #[account(
         mut,
         seeds = [SOCIAL_FEE_PDA_SEED, user_id.as_bytes(), &[platform]],
@@ -51,7 +51,7 @@ pub fn claim_social_fee_pda(
     // fees-06#14: drain the full native SOL balance down to rent-exemption.
     let data_len = 8 + core::mem::size_of::<SocialFeePda>();
     let rent_exempt_minimum = Rent::get()?.try_minimum_balance(data_len)?;
-    let claimable_before = ctx.accounts.social_fee_pda.to_account_info().lamports();
+    let claimable_before = ctx.accounts.social_fee_pda.to_unchecked_account().lamports();
     let amount_claimed = claimable_before.saturating_sub(rent_exempt_minimum);
     let recipient_balance_before = ctx.accounts.recipient.lamports();
 

@@ -69,7 +69,7 @@ pub struct AssetData {
 /// fields. Fails if the account isn't owned by the Core program, or isn't a
 /// valid `AssetV1`-keyed account.
 #[cfg(not(feature = "pinocchio"))]
-pub fn fetch_asset(info: &AccountInfo) -> Result<AssetData> {
+pub fn fetch_asset(info: &UncheckedAccount) -> Result<AssetData> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
     }
@@ -91,7 +91,7 @@ pub fn fetch_asset(info: &AccountInfo) -> Result<AssetData> {
 /// fields. Fails if the account isn't owned by the Core program, or isn't a
 /// valid `AssetV1`-keyed account.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset(info: &AccountInfo) -> Result<AssetData> {
+pub fn fetch_asset(info: &UncheckedAccount) -> Result<AssetData> {
     let view = AssetView::try_from(info)?;
     Ok(AssetData {
         owner: view.owner(),
@@ -132,13 +132,13 @@ pub struct AssetView<'a> {
 }
 
 impl<'a> AssetView<'a> {
-    /// `pinocchio`-only: `AccountInfo::data()` (a plain, un-guarded `&[u8]`)
+    /// `pinocchio`-only: `UncheckedAccount::data()` (a plain, un-guarded `&[u8]`)
     /// only exists on that backend. On `solana`, callers must go through
     /// `try_borrow_data()` themselves (a `Ref`-guarded borrow) and construct
     /// via `from_bytes` directly instead — see e.g. `plugins/attributes.rs`'s
     /// `fetch_asset_attributes`.
     #[cfg(feature = "pinocchio")]
-    pub fn try_from(info: &'a AccountInfo) -> Result<Self> {
+    pub fn try_from(info: &'a UncheckedAccount) -> Result<Self> {
         if Owner::program_owner(info) != crate::ID {
             return Err(NaclacError::ConstraintOwner.into());
         }

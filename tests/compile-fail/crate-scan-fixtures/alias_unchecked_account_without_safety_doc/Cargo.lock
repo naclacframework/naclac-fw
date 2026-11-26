@@ -39,7 +39,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "alias_account_info_without_safety_doc"
+name = "alias_unchecked_account_without_safety_doc"
 version = "0.1.0"
 dependencies = [
  "naclac-lang",

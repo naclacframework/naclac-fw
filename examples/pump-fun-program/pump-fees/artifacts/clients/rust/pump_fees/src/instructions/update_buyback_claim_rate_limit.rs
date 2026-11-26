@@ -99,7 +99,7 @@ pub struct UpdateBuybackClaimRateLimitCpiCall<'a> {
     pub buyback_vault_bump: u8,
     pub claim_rate_limit: i64,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

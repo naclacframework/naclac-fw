@@ -18,15 +18,15 @@ use naclac_lang::prelude::*;
 // test reach `close_account.rs`'s own explicit self-check.
 #[derive(Accounts)]
 pub struct CloseVaultSelf {
-    /// SAFETY: bare `AccountInfo` close target — this test exercises only
+    /// SAFETY: bare `UncheckedAccount` close target — this test exercises only
     /// the self-close guard (target == dest), which fires before any
     /// owner/data check, so no other validation is meaningful here.
     #[account(mut, close = destination, unsafe(alias))]
-    pub target: AccountInfo,
+    pub target: UncheckedAccount,
 
-    /// SAFETY: bare `AccountInfo` close destination — see `target` above.
+    /// SAFETY: bare `UncheckedAccount` close destination — see `target` above.
     #[account(mut, unsafe(alias))]
-    pub destination: AccountInfo,
+    pub destination: UncheckedAccount,
 }
 
 pub fn close_vault_self(_ctx: Context<CloseVaultSelf>) -> Result {

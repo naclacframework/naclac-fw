@@ -15,11 +15,14 @@ pub mod program;
 pub mod serialized_bounds;
 pub mod signer;
 
-#[cfg(not(feature = "pinocchio"))]
-use crate::prelude::AccountInfo;
 use crate::prelude::Address;
+#[cfg(not(feature = "pinocchio"))]
+use crate::prelude::UncheckedAccount;
 #[cfg(feature = "pinocchio")]
-use crate::prelude::{AccountInfo, AccountView, PinocchioAddress};
+use {
+    crate::prelude::{PinocchioAddress, UncheckedAccount},
+    pinocchio::AccountView,
+};
 pub use {
     accounts::*,
     cpi_handle::*,
@@ -43,8 +46,8 @@ pub trait ToAddress {
 }
 
 #[cfg(feature = "pinocchio")]
-pub trait ToAccountView {
-    fn to_account_view(&self) -> AccountView;
+pub trait ToRuntimeView {
+    fn to_runtime_view(&self) -> AccountView;
 }
 
 pub trait Owner {
@@ -68,13 +71,13 @@ pub trait Discriminator {
     /// Extra per-type validation run once at account-wrapper construction
     /// beyond what the discriminator/size check alone can verify from
     /// the raw data slice — e.g. the account's owner, which lives on
-    /// `AccountInfo`, not in the data itself. No-op by default; overridden
+    /// `UncheckedAccount`, not in the data itself. No-op by default; overridden
     /// by types (like naclac-token's `TokenAccount`/`Mint`) that must always
     /// be owned by a specific external program regardless of what
     /// `#[account(...)]` attributes the app author did or didn't write on
     /// that field.
     #[inline(always)]
-    fn validate_account(_info: &AccountInfo, _index: usize) -> crate::prelude::Result<()> {
+    fn validate_account(_info: &UncheckedAccount, _index: usize) -> crate::prelude::Result<()> {
         Ok(())
     }
 
@@ -132,15 +135,15 @@ pub trait AsRefByteSlice {
     fn as_ref_byte_slice(&self) -> &[u8];
 }
 
-/// Backend-specific trait to convert a wrapper to a raw AccountInfo.
-pub trait ToAccountInfo {
-    fn to_account_info(&self) -> AccountInfo;
+/// Backend-specific trait to convert a wrapper to a raw UncheckedAccount.
+pub trait ToUncheckedAccount {
+    fn to_unchecked_account(&self) -> UncheckedAccount;
 }
 
-/// Trait to convert a type into a list of AccountInfos.
-pub trait ToAccountInfos {
+/// Trait to convert a type into a list of UncheckedAccounts.
+pub trait ToUncheckedAccounts {
     #[cfg(not(feature = "pinocchio"))]
-    fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo>;
+    fn to_unchecked_accounts(&self) -> crate::prelude::Vec<UncheckedAccount>;
 }
 
 /// Core trait for Naclac-validated account wrapper types.
@@ -177,13 +180,13 @@ pub trait NaclacAccount: Sized {
     /// its size counts against the stack frame of `load_and_validate`.
     const CARRIES_DATA: bool = false;
 
-    /// Hydrate and validate the account wrapper from an `AccountInfo`.
-    fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self>;
+    /// Hydrate and validate the account wrapper from an `UncheckedAccount`.
+    fn try_from(info: &UncheckedAccount, index: usize) -> crate::prelude::Result<Self>;
 
     /// Fast-path hydration for mutable non-init accounts.
     /// By default, falls back to standard `try_from`.
     #[inline(always)]
-    fn try_from_mut(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
+    fn try_from_mut(info: &UncheckedAccount, index: usize) -> crate::prelude::Result<Self> {
         Self::try_from(info, index)
     }
 
@@ -218,22 +221,12 @@ pub trait Ids {
     fn ids() -> &'static [Address];
 }
 
-impl NaclacAccount for AccountInfo {
+impl NaclacAccount for UncheckedAccount {
     const UNCHECKED: bool = true;
 
     #[inline(always)]
-    fn try_from(info: &AccountInfo, _index: usize) -> crate::prelude::Result<Self> {
+    fn try_from(info: &UncheckedAccount, _index: usize) -> crate::prelude::Result<Self> {
         Ok(*info)
-    }
-}
-
-#[cfg(feature = "pinocchio")]
-impl NaclacAccount for AccountView {
-    const UNCHECKED: bool = true;
-
-    #[inline(always)]
-    fn try_from(info: &AccountInfo, _index: usize) -> crate::prelude::Result<Self> {
-        Ok(info.view)
     }
 }
 
@@ -251,12 +244,12 @@ impl<T: NaclacAccount> NaclacAccount for Box<T> {
     const CARRIES_DATA: bool = T::CARRIES_DATA;
 
     #[inline(always)]
-    fn try_from(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
+    fn try_from(info: &UncheckedAccount, index: usize) -> crate::prelude::Result<Self> {
         Ok(Box::new(T::try_from(info, index)?))
     }
 
     #[inline(always)]
-    fn try_from_mut(info: &AccountInfo, index: usize) -> crate::prelude::Result<Self> {
+    fn try_from_mut(info: &UncheckedAccount, index: usize) -> crate::prelude::Result<Self> {
         Ok(Box::new(T::try_from_mut(info, index)?))
     }
 
@@ -301,18 +294,18 @@ impl<T: AsRefByteSlice> AsRefByteSlice for Box<T> {
 }
 
 #[cfg(any(not(feature = "pinocchio"), feature = "wincode"))]
-impl<T: ToAccountInfo> ToAccountInfo for Box<T> {
+impl<T: ToUncheckedAccount> ToUncheckedAccount for Box<T> {
     #[inline(always)]
-    fn to_account_info(&self) -> AccountInfo {
-        (**self).to_account_info()
+    fn to_unchecked_account(&self) -> UncheckedAccount {
+        (**self).to_unchecked_account()
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl<T: ToAccountInfos> ToAccountInfos for Box<T> {
+impl<T: ToUncheckedAccounts> ToUncheckedAccounts for Box<T> {
     #[inline(always)]
-    fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
-        (**self).to_account_infos()
+    fn to_unchecked_accounts(&self) -> crate::prelude::Vec<UncheckedAccount> {
+        (**self).to_unchecked_accounts()
     }
 }
 
@@ -359,37 +352,37 @@ impl<T: ToAddress + ?Sized> ToAddress for &T {
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl ToAccountInfo for AccountInfo {
-    fn to_account_info(&self) -> AccountInfo {
+impl ToUncheckedAccount for UncheckedAccount {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
         *self
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl ToAccountInfos for AccountInfo {
-    fn to_account_infos(&self) -> crate::prelude::Vec<AccountInfo> {
+impl ToUncheckedAccounts for UncheckedAccount {
+    fn to_unchecked_accounts(&self) -> crate::prelude::Vec<UncheckedAccount> {
         crate::prelude::vec![*self]
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl ToAddress for AccountInfo {
+impl ToAddress for UncheckedAccount {
     fn address(&self) -> Address {
         *self.key
     }
 }
 
 #[cfg(not(feature = "pinocchio"))]
-impl Owner for AccountInfo {
+impl Owner for UncheckedAccount {
     fn program_owner(&self) -> Address {
         *self.owner
     }
 }
 
 #[cfg(feature = "pinocchio")]
-impl ToAccountInfo for AccountView {
-    fn to_account_info(&self) -> AccountInfo {
-        AccountInfo { view: *self }
+impl ToUncheckedAccount for AccountView {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
+        UncheckedAccount { view: *self }
     }
 }
 
@@ -415,29 +408,29 @@ impl Owner for AccountView {
 }
 
 #[cfg(feature = "pinocchio")]
-impl ToAccountView for AccountInfo {
-    fn to_account_view(&self) -> AccountView {
+impl ToRuntimeView for UncheckedAccount {
+    fn to_runtime_view(&self) -> AccountView {
         self.view
     }
 }
 
 #[cfg(feature = "pinocchio")]
-impl ToAddress for AccountInfo {
+impl ToAddress for UncheckedAccount {
     fn address(&self) -> Address {
         ToAddress::address(&self.view)
     }
 }
 
 #[cfg(feature = "pinocchio")]
-impl Owner for AccountInfo {
+impl Owner for UncheckedAccount {
     fn program_owner(&self) -> Address {
         Address::from_address(self.view.owner())
     }
 }
 
 #[cfg(feature = "pinocchio")]
-impl ToAccountInfo for AccountInfo {
-    fn to_account_info(&self) -> AccountInfo {
+impl ToUncheckedAccount for UncheckedAccount {
+    fn to_unchecked_account(&self) -> UncheckedAccount {
         *self
     }
 }

@@ -28,8 +28,8 @@
 
 use crate::{
     prelude::{
-        AccountInfo, Address, CpiHandle, CpiSigner, InterfaceAccount, NaclacError, Owner, Pod,
-        Result, Zeroable, TOKEN_2022_PROGRAM_ID,
+        Address, CpiHandle, CpiSigner, InterfaceAccount, NaclacError, Owner, Pod, Result,
+        UncheckedAccount, Zeroable, TOKEN_2022_PROGRAM_ID,
     },
     token::{Mint, TokenAccount},
     wrappers::ToAddress,
@@ -41,7 +41,7 @@ use crate::{
 /// time before the handler runs), the `program: CpiHandle<'_>` these
 /// functions take is a raw handle with no validation of its own — without
 /// this, a caller whose own `#[derive(Accounts)]` struct under-constrains
-/// that field (a bare `AccountInfo` instead of `Program<Token2022>`) would
+/// that field (a bare `UncheckedAccount` instead of `Program<Token2022>`) would
 /// let an attacker substitute a program that mimics Token-2022's
 /// instruction-discriminant layout and silently "succeed" without doing
 /// anything real, rather than the CPI failing loudly. Matches
@@ -84,7 +84,7 @@ pub use {
 /// Invokes an `Instruction` built by a real SPL interface crate's own
 /// `instruction::*` constructor (`spl-token-metadata-interface`,
 /// `spl-token-group-interface`) — data-only, backend-agnostic values with no
-/// `AccountInfo` involved. Solana backend passes it straight to
+/// `UncheckedAccount` involved. Solana backend passes it straight to
 /// `crate::cpi::invoke_signed` (the same type, since `solana_instruction::Instruction`
 /// is a direct re-export of `solana_instruction::Instruction`). Pinocchio
 /// backend converts each `AccountMeta` into pinocchio's own
@@ -107,7 +107,7 @@ pub(crate) fn invoke_interface_instruction(
 /// Extracts the raw address a real SPL interface crate's `instruction::*`
 /// constructor expects (`solana_address::Address`, by value), from anything
 /// with a `ToAddress` impl — `CpiHandle`/`CpiHandleMut` and their own `.info`
-/// field (a plain `AccountInfo` in both backends, not a nested `CpiHandle`)
+/// field (a plain `UncheckedAccount` in both backends, not a nested `CpiHandle`)
 /// alike. Solana backend: naclac's own `Address` already *is* that type
 /// (`crate::prelude::Address` is a direct re-export there), so this is a
 /// no-op read. Pinocchio backend: naclac's own `Address` is instead its own
@@ -269,7 +269,10 @@ fn get_extension<Ext: Extension>(
     Ok(unsafe { core::ptr::read_unaligned(bytes.as_ptr() as *const Ext) })
 }
 
-fn get_extension_from_info<Ext: Extension>(info: &AccountInfo, base_len: usize) -> Result<Ext> {
+fn get_extension_from_info<Ext: Extension>(
+    info: &UncheckedAccount,
+    base_len: usize,
+) -> Result<Ext> {
     // Extensions only exist on Token-2022 accounts — `InterfaceAccount<T>`
     // itself accepts either Token or Token-2022 ownership, so this re-checks
     // specifically for Token-2022 rather than trusting the caller.
@@ -353,7 +356,7 @@ fn first_extension_outside(
 }
 
 fn first_extension_outside_from_info(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
     base_len: usize,
     account_type: u8,
     allowed: &[u16],

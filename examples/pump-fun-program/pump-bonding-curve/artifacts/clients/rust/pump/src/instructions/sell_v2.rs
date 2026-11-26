@@ -220,7 +220,7 @@ pub struct SellV2CpiCall<'a> {
     pub accounts: SellV2CpiAccounts<'a>,
     pub args: crate::types::SellV2ArgsCpi,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

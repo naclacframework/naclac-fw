@@ -16,7 +16,7 @@ pub struct InitUserVolumeAccumulator {
 
     /// SAFETY: only used as PDA seed material for `user_volume_accumulator`
     /// below; never read or invoked.
-    pub user: AccountInfo,
+    pub user: UncheckedAccount,
 
     #[account(
         init,

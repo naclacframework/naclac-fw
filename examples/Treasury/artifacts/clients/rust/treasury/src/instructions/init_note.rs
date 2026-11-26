@@ -91,7 +91,7 @@ pub struct InitNoteCpiCall<'a> {
     pub accounts: InitNoteCpiAccounts<'a>,
     pub id: u64,
     pub signer_seeds: &'a [crate::sdk_core_cpi::CpiSigner<'a, 'a>],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

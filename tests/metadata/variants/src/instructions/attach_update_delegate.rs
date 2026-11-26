@@ -14,7 +14,7 @@ pub struct AttachUpdateDelegate {
 
     /// The external Metaplex Core program to CPI into.
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn attach_update_delegate(ctx: Context<AttachUpdateDelegate>) -> Result {

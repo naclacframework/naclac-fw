@@ -10,11 +10,11 @@ pub struct CheckOwnerRelational {
     /// SAFETY: only the account's owner field is inspected via the `owner`
     /// constraint below; its data is never read or deserialized.
     #[account(owner = expected_owner)]
-    pub target: AccountInfo,
+    pub target: UncheckedAccount,
 
     /// SAFETY: only its own address is read, as the expected owning program;
     /// never deserialized.
-    pub expected_owner: AccountInfo,
+    pub expected_owner: UncheckedAccount,
 }
 
 pub fn check_owner_relational(_ctx: Context<CheckOwnerRelational>) -> Result {

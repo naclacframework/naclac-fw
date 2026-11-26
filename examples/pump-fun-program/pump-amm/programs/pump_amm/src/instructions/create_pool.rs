@@ -50,7 +50,7 @@ pub struct CreatePool {
     /// SAFETY: `init` + `mint::decimals`/`mint::authority` below fully
     /// validate and construct this account via a real CPI to Token-2022 —
     /// there is no naclac `Discriminator` to check since this is a raw SPL
-    /// `Mint` layout, so `AccountInfo` is correct here, not a gap in
+    /// `Mint` layout, so `UncheckedAccount` is correct here, not a gap in
     /// coverage (same reasoning as `pump::create`'s own `mint` field).
     #[account(
         init,
@@ -61,7 +61,7 @@ pub struct CreatePool {
         mint::authority = pool,
         mint::token_program = token_2022_program,
     )]
-    pub lp_mint: AccountInfo,
+    pub lp_mint: UncheckedAccount,
 
     #[account(
         mut,
@@ -85,7 +85,7 @@ pub struct CreatePool {
     /// the real Associated Token Program's own CPI-level address
     /// verification, fully validate and construct this account — there is
     /// no naclac `Discriminator` to check since this is a raw SPL
-    /// `TokenAccount` layout, so `AccountInfo` is correct here, not a gap in
+    /// `TokenAccount` layout, so `UncheckedAccount` is correct here, not a gap in
     /// coverage (same reasoning as `pump::create`'s own `mint` field).
     #[account(
         init,
@@ -94,7 +94,7 @@ pub struct CreatePool {
         associated_token::authority = creator,
         associated_token::token_program =token_2022_program,
     )]
-    pub user_pool_token_account: AccountInfo,
+    pub user_pool_token_account: UncheckedAccount,
 
     /// SAFETY: same as `user_pool_token_account` above. `init_if_needed`
     /// (not strict `init`) — `pump::migrate` pre-creates this itself before
@@ -110,7 +110,7 @@ pub struct CreatePool {
         associated_token::authority = pool,
         associated_token::token_program =base_token_program,
     )]
-    pub pool_base_token_account: AccountInfo,
+    pub pool_base_token_account: UncheckedAccount,
 
     /// SAFETY: same as `pool_base_token_account` above.
     #[account(
@@ -120,7 +120,7 @@ pub struct CreatePool {
         associated_token::authority = pool,
         associated_token::token_program =quote_token_program,
     )]
-    pub pool_quote_token_account: AccountInfo,
+    pub pool_quote_token_account: UncheckedAccount,
 
     pub system_program: Program<System>,
     pub token_2022_program: Program<Token2022>,

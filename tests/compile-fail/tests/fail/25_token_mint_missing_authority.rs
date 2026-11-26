@@ -22,7 +22,7 @@ pub struct Foo {
         bump,
         token::mint = mint,
     )]
-    pub vault: AccountInfo,
+    pub vault: UncheckedAccount,
 
     pub token_program: Program<Token>,
     pub system_program: Program<System>,

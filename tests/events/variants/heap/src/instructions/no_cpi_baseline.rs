@@ -8,7 +8,7 @@ pub struct NoCpiBaseline {
     // from the self-CPI baseline's total CU to get the CPI's own cost alone.
     /// SAFETY: only its address is checked; its data is never read.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 }
 
 pub fn no_cpi_baseline(_ctx: Context<NoCpiBaseline>) -> Result {

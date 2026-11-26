@@ -8,7 +8,7 @@ pub struct CheckAddress {
     /// SAFETY: only the account's own address is inspected via the
     /// `address` constraint below; its data is never read or deserialized.
     #[account(address = naclac_lang::prelude::SYSTEM_PROGRAM_ID)]
-    pub target: AccountInfo,
+    pub target: UncheckedAccount,
 }
 
 pub fn check_address(_ctx: Context<CheckAddress>) -> Result {

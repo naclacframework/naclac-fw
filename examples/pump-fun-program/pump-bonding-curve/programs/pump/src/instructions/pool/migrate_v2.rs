@@ -73,7 +73,7 @@ pub struct MigrateV2 {
     /// (a single dynamic field, not a static address) — no declarative
     /// constraint supports comparing against another account's field value.
     #[account(mut)]
-    pub withdraw_authority: AccountInfo,
+    pub withdraw_authority: UncheckedAccount,
 
     pub base_mint: InterfaceAccount<Mint>,
 
@@ -138,7 +138,7 @@ pub struct MigrateV2 {
     /// processor specifically requires to be the Rent sysvar (same as
     /// `migrate.rs`'s own identical call).
     #[account(address = RENT_SYSVAR_ID)]
-    pub rent: AccountInfo,
+    pub rent: UncheckedAccount,
 
     /// SAFETY: lamport-only PDA (no stored data) — real payer for every
     /// account created during migration; signs the nested `create_pool`/
@@ -148,7 +148,7 @@ pub struct MigrateV2 {
         seeds = [POOL_AUTHORITY_SEED, base_mint.address().as_ref()],
         bump = args.pool_authority_bump,
     )]
-    pub pool_authority: AccountInfo,
+    pub pool_authority: UncheckedAccount,
 
     /// SAFETY: doesn't exist yet — created by the nested `create_pool` CPI
     /// below, address verified via seeds only.
@@ -158,7 +158,7 @@ pub struct MigrateV2 {
         seeds::program = PUMP_AMM_PROGRAM_ID,
         bump = args.pool_bump,
     )]
-    pub pool: AccountInfo,
+    pub pool: UncheckedAccount,
 
     /// SAFETY: created directly by this instruction's own body (a manual
     /// `create_idempotent_with_extra_accounts_signed` call, same reasoning as
@@ -170,7 +170,7 @@ pub struct MigrateV2 {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.pool_authority_mint_account_bump,
     )]
-    pub pool_authority_mint_account: AccountInfo,
+    pub pool_authority_mint_account: UncheckedAccount,
 
     /// SAFETY: same as `pool_authority_mint_account` above.
     #[account(
@@ -179,7 +179,7 @@ pub struct MigrateV2 {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.pool_authority_quote_account_bump,
     )]
-    pub pool_authority_quote_account: AccountInfo,
+    pub pool_authority_quote_account: UncheckedAccount,
 
     /// SAFETY: address fully verified via `seeds`/`seeds::program`/`bump`;
     /// passed straight into the nested `create_pool`/`init_boost` CPIs below.
@@ -189,7 +189,7 @@ pub struct MigrateV2 {
         seeds::program = PUMP_AMM_PROGRAM_ID,
         bump = args.amm_global_config_bump,
     )]
-    pub amm_global_config: AccountInfo,
+    pub amm_global_config: UncheckedAccount,
 
     /// SAFETY: doesn't exist yet — created by the nested `create_pool` CPI.
     #[account(
@@ -198,7 +198,7 @@ pub struct MigrateV2 {
         seeds::program = PUMP_AMM_PROGRAM_ID,
         bump = args.lp_mint_bump,
     )]
-    pub lp_mint: AccountInfo,
+    pub lp_mint: UncheckedAccount,
 
     /// SAFETY: doesn't exist yet — created by the nested `create_pool` CPI;
     /// `pool_authority`'s own LP-token ATA, burned and closed below once
@@ -209,7 +209,7 @@ pub struct MigrateV2 {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.user_pool_token_account_bump,
     )]
-    pub user_pool_token_account: AccountInfo,
+    pub user_pool_token_account: UncheckedAccount,
 
     /// SAFETY: created directly by this instruction's own body — see
     /// `pool_authority_mint_account` above for why.
@@ -219,7 +219,7 @@ pub struct MigrateV2 {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.pool_base_token_account_bump,
     )]
-    pub pool_base_token_account: AccountInfo,
+    pub pool_base_token_account: UncheckedAccount,
 
     /// SAFETY: same as `pool_base_token_account` above.
     #[account(
@@ -228,7 +228,7 @@ pub struct MigrateV2 {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.pool_quote_token_account_bump,
     )]
-    pub pool_quote_token_account: AccountInfo,
+    pub pool_quote_token_account: UncheckedAccount,
 
     /// SAFETY: `seeds`/`bump` already verifies its address; a bare
     /// signing/seed PDA with no stored data — real `remaining_accounts[0]`
@@ -239,7 +239,7 @@ pub struct MigrateV2 {
         seeds::program = PUMP_AMM_PROGRAM_ID,
         bump = args.boost_vault_authority_bump,
     )]
-    pub boost_vault_authority: AccountInfo,
+    pub boost_vault_authority: UncheckedAccount,
 
     /// SAFETY: doesn't exist yet — created by the nested `init_boost` CPI.
     /// Real `remaining_accounts[1]` on `migrate_v2`.
@@ -249,7 +249,7 @@ pub struct MigrateV2 {
         seeds::program = ASSOCIATED_TOKEN_PROGRAM_ID,
         bump = args.boost_vault_bump,
     )]
-    pub boost_vault: AccountInfo,
+    pub boost_vault: UncheckedAccount,
 }
 
 pub fn migrate_v2(ctx: Context<MigrateV2>, args: MigrateV2Args) -> Result {

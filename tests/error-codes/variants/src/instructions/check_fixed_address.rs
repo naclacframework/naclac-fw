@@ -12,7 +12,7 @@ pub struct CheckFixedAddress {
     /// SAFETY: only this account's own address is checked against the
     /// constant below — its data is never read or deserialized.
     #[account(address = naclac_lang::prelude::SYSTEM_PROGRAM_ID)]
-    pub target: AccountInfo,
+    pub target: UncheckedAccount,
 }
 
 pub fn check_fixed_address(_ctx: Context<CheckFixedAddress>) -> Result {

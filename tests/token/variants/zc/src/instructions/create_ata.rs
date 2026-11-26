@@ -7,9 +7,9 @@ use naclac_lang::prelude::*;
 // instruction body. Previously this instruction called
 // `AssociatedTokenCpi::create` by hand because this constraint didn't
 // exist yet; now that it does, `create_ata`'s body is empty, same as
-// `create_mint`'s. `associated_token` is a bare `AccountInfo` (not
+// `create_mint`'s. `associated_token` is a bare `UncheckedAccount` (not
 // `Account<TokenAccount>`), since it doesn't exist on-chain yet — the CPI
-// itself creates it, matching `create_mint.rs`'s `mint: AccountInfo`
+// itself creates it, matching `create_mint.rs`'s `mint: UncheckedAccount`
 // reasoning.
 //
 // Named `CreateAssociatedTokenAccount`, not `CreateAta`: `naclac_lang::prelude`
@@ -25,7 +25,7 @@ pub struct CreateAssociatedTokenAccount {
 
     /// SAFETY: only used as the ATA's `authority` argument to the
     /// Associated Token Program CPI below; never read or deserialized.
-    pub owner: AccountInfo,
+    pub owner: UncheckedAccount,
 
     pub mint: Account<Mint>,
 
@@ -40,7 +40,7 @@ pub struct CreateAssociatedTokenAccount {
         associated_token::mint = mint,
         associated_token::authority = owner,
     )]
-    pub associated_token: AccountInfo,
+    pub associated_token: UncheckedAccount,
 
     pub system_program: Program<System>,
     pub token_program: Program<Token>,

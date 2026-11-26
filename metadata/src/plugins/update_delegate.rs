@@ -103,7 +103,7 @@ pub fn attach_collection_update_delegate_signed(
 /// attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_asset_update_delegate(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
 ) -> Result<Option<crate::prelude::Vec<Address>>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
@@ -123,7 +123,7 @@ pub fn fetch_asset_update_delegate(
 /// if attached. Callable identically on both backends.
 #[cfg(not(feature = "pinocchio"))]
 pub fn fetch_collection_update_delegate(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
 ) -> Result<Option<crate::prelude::Vec<Address>>> {
     if Owner::program_owner(info) != crate::ID {
         return Err(NaclacError::ConstraintOwner.into());
@@ -142,7 +142,9 @@ pub fn fetch_collection_update_delegate(
 /// Reads an `Asset`'s `UpdateDelegate` plugin's `additional_delegates`, if
 /// attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
-pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<RecordList<'_, Address>>> {
+pub fn fetch_asset_update_delegate(
+    info: &UncheckedAccount,
+) -> Result<Option<RecordList<'_, Address>>> {
     let asset_view = crate::asset::AssetView::try_from(info)?;
     let Some(plugin_header_offset) = asset_view.plugin_header_offset() else {
         return Ok(None);
@@ -154,7 +156,7 @@ pub fn fetch_asset_update_delegate(info: &AccountInfo) -> Result<Option<RecordLi
 /// if attached. Callable identically on both backends.
 #[cfg(feature = "pinocchio")]
 pub fn fetch_collection_update_delegate(
-    info: &AccountInfo,
+    info: &UncheckedAccount,
 ) -> Result<Option<RecordList<'_, Address>>> {
     let collection_view = crate::collection::CollectionView::try_from(info)?;
     let Some(plugin_header_offset) = collection_view.plugin_header_offset() else {

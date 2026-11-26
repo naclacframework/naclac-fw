@@ -28,11 +28,11 @@ pub fn generate_close_logic(fields: &[ParsedField]) -> Vec<TokenStream> {
 
             let target_ident = &field.ident;
             let target_info =
-                quote! { naclac_lang::prelude::ToAccountInfo::to_account_info(__target) };
+                quote! { naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(__target) };
 
             let dest_ident = dest;
             let dest_info =
-                quote! { naclac_lang::prelude::ToAccountInfo::to_account_info(&self.#dest_ident) };
+                quote! { naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(&self.#dest_ident) };
             let idx = field.index;
 
             let close_body = quote! {

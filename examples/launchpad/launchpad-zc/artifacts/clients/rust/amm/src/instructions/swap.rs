@@ -98,7 +98,7 @@ pub trait SwapCpi<'info> {
         amount_in: u64,
         minimum_amount_out: u64,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()>;
 
 }
@@ -111,7 +111,7 @@ impl<'info> SwapCpi<'info> for crate::sdk_core::Program<crate::Amm> {
         amount_in: u64,
         minimum_amount_out: u64,
         signer_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(crate::sdk_core::AccountInfo, bool, bool)]
+        remaining_accounts: &[(crate::sdk_core::UncheckedAccount, bool, bool)]
     ) -> crate::sdk_core::Result<()> {
         let args = SwapIxArgs {
             amount_in,

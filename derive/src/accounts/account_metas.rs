@@ -1,6 +1,6 @@
 //! The two array helpers on an Accounts struct that expose its accounts:
 //! `to_account_metas` (off-chain, for building transactions) and
-//! `to_account_infos` (on-chain and off-chain, e.g. for manual CPI).
+//! `to_unchecked_accounts` (on-chain and off-chain, e.g. for manual CPI).
 
 use {
     super::{signer::signer_flag, Shared},
@@ -44,7 +44,7 @@ pub(super) fn account_helper_impls(shared: &Shared) -> TokenStream {
         })
         .collect();
 
-    let account_info_exprs: Vec<_> = shared
+    let unchecked_account_exprs: Vec<_> = shared
         .fields
         .iter()
         .map(|field| {
@@ -52,12 +52,12 @@ pub(super) fn account_helper_impls(shared: &Shared) -> TokenStream {
             if field.is_optional {
                 quote! {
                     match &self.#field_name {
-                        Some(__inner) => Some(naclac_lang::prelude::ToAccountInfo::to_account_info(__inner)),
+                        Some(__inner) => Some(naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(__inner)),
                         None => None,
                     }
                 }
             } else {
-                quote! { Some(naclac_lang::prelude::ToAccountInfo::to_account_info(&self.#field_name)) }
+                quote! { Some(naclac_lang::prelude::ToUncheckedAccount::to_unchecked_account(&self.#field_name)) }
             }
         })
         .collect();
@@ -79,10 +79,10 @@ pub(super) fn account_helper_impls(shared: &Shared) -> TokenStream {
         }
 
         impl #impl_generics #struct_name #ty_generics #where_clause {
-            pub fn to_account_infos(&self) -> [Option<naclac_lang::prelude::AccountInfo>; #n_fields] {
+            pub fn to_unchecked_accounts(&self) -> [Option<naclac_lang::prelude::UncheckedAccount>; #n_fields] {
                 [
                     #(
-                        #account_info_exprs,
+                        #unchecked_account_exprs,
                     )*
                 ]
             }

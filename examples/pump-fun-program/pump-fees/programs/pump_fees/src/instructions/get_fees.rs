@@ -10,7 +10,7 @@ use crate::systems::calculate_fee_tier;
 pub struct GetFees {
     /// SAFETY: only used as PDA seed material for `fee_config` below; never
     /// deserialized, invoked, or otherwise trusted for its own contents.
-    pub config_program_id: AccountInfo,
+    pub config_program_id: UncheckedAccount,
     #[account(seeds = [FEE_CONFIG_SEED, config_program_id.address().as_ref()], bump)]
     pub fee_config: Account<FeeConfig>,
 
@@ -25,7 +25,7 @@ pub struct GetFees {
         seeds::program = PUMP_PROGRAM_ID,
         bump,
     )]
-    pub pump_authority: AccountInfo,
+    pub pump_authority: UncheckedAccount,
 }
 
 // fee-04 §5 / fees-06#2 (resolved via reference/fee-tier-probe/src/bin/probe5.rs):

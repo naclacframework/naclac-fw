@@ -31,7 +31,7 @@ pub struct TransferTokens2022WithMemo {
     /// SAFETY: never read or deserialized as SPL-token-shaped data — only
     /// its address is used, to build and invoke the real spl-memo
     /// instruction below.
-    pub memo_program: AccountInfo,
+    pub memo_program: UncheckedAccount,
 }
 
 pub fn transfer_tokens2022_with_memo(

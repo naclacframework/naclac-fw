@@ -8,7 +8,7 @@ pub struct EmitViaSolLogDataSized {
     // swept `size` is the only variable across the comparison.
     /// SAFETY: only its address is checked; its data is never read.
     #[account(address = crate::ID)]
-    pub program: AccountInfo,
+    pub program: UncheckedAccount,
 }
 
 /// `sol_log_data` emit with a `size`-byte payload — sweeps CU cost against

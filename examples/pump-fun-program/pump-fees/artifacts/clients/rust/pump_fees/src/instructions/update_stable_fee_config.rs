@@ -77,7 +77,7 @@ pub struct UpdateStableFeeConfigCpiCall<'a> {
     pub accounts: UpdateStableFeeConfigCpiAccounts<'a>,
     pub stable_fee_tiers: crate::sdk_core_cpi::ZcVec<crate::types::FeeTierCpi>,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

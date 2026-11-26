@@ -12,7 +12,7 @@ pub struct Foo {
 
     /// SAFETY: `realloc::any_of` reads the raw account and checks its discriminator.
     #[account(mut, realloc::any_of = [FooData], realloc::payer = payer, realloc::zero = true)]
-    pub account: AccountInfo,
+    pub account: UncheckedAccount,
 
     pub system_program: Program<System>,
 }

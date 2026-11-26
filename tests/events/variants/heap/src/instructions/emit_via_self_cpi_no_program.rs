@@ -10,7 +10,7 @@ pub struct EmitViaSelfCpiNoProgram {
     /// (`log_event_signed`) that checks `is_signer`, once `invoke_signed`
     /// below has actually marked it as one. Its data is never read.
     #[account(seeds = [SEED_EVENT_AUTHORITY], bump)]
-    pub event_authority: AccountInfo,
+    pub event_authority: UncheckedAccount,
 }
 
 /// `sha256("global:log_event_signed")[..8]`.

@@ -1,6 +1,6 @@
 //! The two per-instruction dispatch functions: `__dispatch_<handler>` for the
 //! pinocchio runtime (reads the raw entrypoint input) and for the solana
-//! runtime (receives pre-built `AccountInfo`s). Each deserializes the
+//! runtime (receives pre-built `UncheckedAccount`s). Each deserializes the
 //! arguments, loads and validates the accounts, calls the handler, stores its
 //! return data and runs `teardown` on success.
 
@@ -54,7 +54,7 @@ pub(super) fn dispatch_items(
             program_id: &'static naclac_lang::prelude::Address,
             __input: *mut u8,
             __num_accounts: usize,
-            __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::prelude::AccountView>; 64],
+            __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::pinocchio::AccountView>; 64],
             instruction_data: &'static [u8],
         ) -> naclac_lang::prelude::ProgramResult {
             #args_deserialization
@@ -86,12 +86,12 @@ pub(super) fn dispatch_items(
         }
     });
 
-    // Standard Solana path: takes pre-built &[AccountInfo].
+    // Standard Solana path: takes pre-built &[UncheckedAccount].
     items.push(syn::parse_quote! {
                     #[cfg(feature = "solana")]
                     pub(crate) fn #dispatch_func_name(
                         program_id: &naclac_lang::prelude::Address,
-                        accounts: &[naclac_lang::prelude::AccountInfo],
+                        accounts: &[naclac_lang::prelude::UncheckedAccount],
                         instruction_data: &[u8],
                         __duplicates: Option<&naclac_lang::prelude::DuplicateSlots>,
                     ) -> naclac_lang::prelude::Result {

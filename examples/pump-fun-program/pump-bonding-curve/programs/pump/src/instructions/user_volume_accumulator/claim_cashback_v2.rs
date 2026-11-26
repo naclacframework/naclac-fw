@@ -28,7 +28,7 @@ pub struct ClaimCashbackV2 {
     /// SAFETY: only PDA seed material for `user_volume_accumulator`/
     /// `associated_quote_user` below; never deserialized.
     #[account(mut)]
-    pub user: AccountInfo,
+    pub user: UncheckedAccount,
 
     #[account(
         mut,

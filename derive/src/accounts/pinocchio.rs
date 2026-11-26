@@ -85,7 +85,7 @@ fn account_walk(shared: &Shared) -> TokenStream {
             }?;
         }
         // SAFETY: every declared slot of `__lookup` was written, by its fast
-        // check or by the slow walk, and `AccountInfo` is
+        // check or by the slow walk, and `UncheckedAccount` is
         // `#[repr(transparent)]` over `AccountView`.
         let __views = unsafe {
             &*(__lookup_ptr as *const [naclac_lang::prelude::AccountType; #n_declared_accounts])
@@ -148,11 +148,11 @@ fn load_and_validate_fn(shared: &Shared, cfg: TokenStream, variant: &Variant) ->
             program_id: &'static naclac_lang::prelude::Address,
             __input: *mut u8,
             __num_accounts: usize,
-            __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::prelude::AccountView>; 64],
+            __lookup: &'static mut [core::mem::MaybeUninit<naclac_lang::pinocchio::AccountView>; 64],
             instruction_data: &[u8],
         ) -> Result<(Self, &'static [naclac_lang::prelude::AccountType], #bumps_struct_name), naclac_lang::prelude::ProgramError> {
             #account_count_check
-            let __lookup_ptr = __lookup.as_mut_ptr() as *mut naclac_lang::prelude::AccountView;
+            let __lookup_ptr = __lookup.as_mut_ptr() as *mut naclac_lang::pinocchio::AccountView;
             // SAFETY: `__input` is the entrypoint buffer (caller contract) and
             // `__lookup` holds 64 slots, at least `__num_accounts` (checked above).
             #cursor_binding = unsafe {
@@ -166,7 +166,7 @@ fn load_and_validate_fn(shared: &Shared, cfg: TokenStream, variant: &Variant) ->
             #(#field_loaders)*
             // SAFETY: trailing accounts exist only when `__num_accounts > N`,
             // in which case the slow walk filled `__lookup[N..__num_accounts]`;
-            // otherwise the slice is empty. `AccountInfo` is
+            // otherwise the slice is empty. `UncheckedAccount` is
             // `#[repr(transparent)]` over `AccountView`.
             let __remaining: &'static [naclac_lang::prelude::AccountType] = unsafe {
                 core::slice::from_raw_parts(

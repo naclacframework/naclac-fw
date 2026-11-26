@@ -129,7 +129,7 @@ pub struct LaunchTokenCpiCall<'a> {
     pub accounts: LaunchTokenCpiAccounts<'a>,
     pub args: crate::types::LaunchTokenArgs,
     pub signer_seeds: &'a [&'a [&'a [u8]]],
-    pub remaining_accounts: &'a [(crate::sdk_core_cpi::AccountInfo, bool, bool)],
+    pub remaining_accounts: &'a [(crate::sdk_core_cpi::UncheckedAccount, bool, bool)],
 }
 
 #[cfg(feature = "cpi")]

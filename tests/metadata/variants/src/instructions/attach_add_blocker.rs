@@ -13,7 +13,7 @@ pub struct AttachAddBlocker {
     pub system_program: Program<System>,
 
     /// SAFETY: the real Metaplex Core program — external to this workspace.
-    pub mpl_core_program: AccountInfo,
+    pub mpl_core_program: UncheckedAccount,
 }
 
 pub fn attach_add_blocker(ctx: Context<AttachAddBlocker>) -> Result {

@@ -1,6 +1,6 @@
 // Site: derive/src/accounts/stack_guard.rs — a single data-carrying field
 // whose real size_of::<Account<T>>() exceeds the 300-byte per-field budget.
-// [u8; 300] alone guarantees this regardless of AccountInfo's own overhead.
+// [u8; 300] alone guarantees this regardless of UncheckedAccount's own overhead.
 use naclac_lang::prelude::*;
 
 #[account]
