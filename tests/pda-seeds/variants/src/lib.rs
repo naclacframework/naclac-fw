@@ -23,13 +23,6 @@ pub mod pda_seeds {
         touch_entry_bare_bump::touch_entry_bare_bump(ctx)
     }
 
-    pub fn touch_registry_explicit_bump(
-        ctx: Context<TouchRegistryExplicitBump>,
-        bump: u8,
-    ) -> Result {
-        touch_registry_explicit_bump::touch_registry_explicit_bump(ctx, bump)
-    }
-
     pub fn init_child(ctx: Context<InitChild>) -> Result {
         init_child::init_child(ctx)
     }

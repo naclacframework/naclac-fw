@@ -63,6 +63,45 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for LaunchRecord {}
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for LaunchRecord {}
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_offchain::PodValidate for LaunchRecord {
+    const TRIVIAL: bool = true
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_offchain::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchRecord, creator
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchRecord, mint
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchRecord, amount_token
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchRecord, amount_quote
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for LaunchRecord {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -124,6 +163,45 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for LaunchRecordCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for LaunchRecordCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_cpi::PodValidate for LaunchRecordCpi {
+    const TRIVIAL: bool = true
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_cpi::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchRecordCpi, creator
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchRecordCpi, mint
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchRecordCpi, amount_token
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchRecordCpi, amount_quote
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
+
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for LaunchRecordCpi {

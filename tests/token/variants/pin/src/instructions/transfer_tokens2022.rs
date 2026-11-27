@@ -11,7 +11,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 // would reject these genuinely Token-2022-owned accounts.
 #[derive(Accounts)]
 pub struct TransferTokens2022 {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     pub mint: InterfaceAccount<Mint>,

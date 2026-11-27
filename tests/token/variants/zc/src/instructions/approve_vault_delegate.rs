@@ -15,7 +15,7 @@ pub struct ApproveVaultDelegate {
     /// `approve_signed` below; its data is never read or deserialized.
     pub delegate: UncheckedAccount,
 
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     pub token_program: Program<Token>,

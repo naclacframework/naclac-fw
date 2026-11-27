@@ -409,14 +409,13 @@ fn relation_constraint_rejects_mismatched_admin() {
     .expect("related_vault must succeed when `authority` matches `vault.admin`");
 }
 
-/// `seeds` + explicit `bump = <expr>` on an existing account: the correct
-/// stored bump is accepted, a deliberately wrong one is rejected
-/// (`NaclacError::ConstraintSeeds`) — the on-chain
-/// `find_program_address`-banned hash-and-compare path.
+/// `seeds` + a bare `bump` on an existing account whose seeds are all
+/// constants: the address and canonical bump are computed at compile time,
+/// and the initialized PDA is accepted.
 #[test]
-fn seeds_constraint_rejects_wrong_explicit_bump() {
+fn seeds_constraint_with_constant_seeds_accepts_the_canonical_pda() {
     let provider = setup();
-    let (seeded_pda, seeded_bump) = get_seeded_pda(&PROGRAM_ID);
+    let (seeded_pda, _bump) = get_seeded_pda(&PROGRAM_ID);
 
     build_init_seeded(
         &provider,
@@ -433,23 +432,10 @@ fn seeds_constraint_rejects_wrong_explicit_bump() {
     build_touch_seeded(
         &provider,
         PROGRAM_ID,
-        seeded_bump,
         TouchSeededAccounts { seeded: seeded_pda },
     )
     .send_and_confirm()
-    .expect("touch_seeded with the correct bump should succeed");
-
-    let wrong_bump = seeded_bump.wrapping_sub(1);
-    let wrong_result = build_touch_seeded(
-        &provider,
-        PROGRAM_ID,
-        wrong_bump,
-        TouchSeededAccounts { seeded: seeded_pda },
-    )
-    .send_and_confirm();
-    // `TouchSeeded { seeded }` — `seeded` is field index 0 ->
-    // 10000 + 0*100 + ConstraintSeeds(6) = 10006.
-    assert_custom_code(wrong_result, 10006);
+    .expect("touch_seeded on the canonical PDA should succeed");
 }
 
 /// `close`: drains the target's lamports to `destination` and zeroes its
@@ -752,8 +738,10 @@ fn seeds_program_constraint_derives_pda_against_external_program() {
     let provider = setup();
 
     let seed: &[u8] = b"external_pda";
+    let authority = provider.payer.address();
+    let authority_seed: &[u8] = authority.as_ref();
     let (external_pda, external_bump) =
-        Address::find_program_address(&[seed], &SYSTEM_PROGRAM_ID);
+        Address::find_program_address(&[seed, authority_seed], &SYSTEM_PROGRAM_ID);
 
     build_check_external_pda(
         &provider,
@@ -761,6 +749,7 @@ fn seeds_program_constraint_derives_pda_against_external_program() {
         external_bump,
         CheckExternalPdaAccounts {
             target: external_pda,
+            authority,
         },
     )
     .send_and_confirm()
@@ -775,10 +764,11 @@ fn seeds_program_constraint_derives_pda_against_external_program() {
         wrong_bump,
         CheckExternalPdaAccounts {
             target: external_pda,
+            authority,
         },
     )
     .send_and_confirm();
-    // `CheckExternalPda { target }` — `target` is field index 0 ->
+    // `CheckExternalPda { target, authority }` — `target` is field index 0 ->
     // 10000 + 0*100 + ConstraintSeeds(6) = 10006.
     assert_custom_code(wrong_result, 10006);
 }
@@ -791,11 +781,14 @@ fn an_explicit_bump_on_an_unchecked_account_is_not_checked_to_be_canonical() {
     let provider = setup();
 
     let seed: &[u8] = b"external_pda";
-    let (_, canonical_bump) = Address::find_program_address(&[seed], &SYSTEM_PROGRAM_ID);
+    let authority = provider.payer.address();
+    let authority_seed: &[u8] = authority.as_ref();
+    let (_, canonical_bump) =
+        Address::find_program_address(&[seed, authority_seed], &SYSTEM_PROGRAM_ID);
     let (other_bump, other_address) = (0..canonical_bump)
         .rev()
         .find_map(|bump| {
-            Address::create_program_address(&[seed, &[bump]], &SYSTEM_PROGRAM_ID)
+            Address::create_program_address(&[seed, authority_seed, &[bump]], &SYSTEM_PROGRAM_ID)
                 .ok()
                 .map(|address| (bump, address))
         })
@@ -807,6 +800,7 @@ fn an_explicit_bump_on_an_unchecked_account_is_not_checked_to_be_canonical() {
         other_bump,
         CheckExternalPdaAccounts {
             target: other_address,
+            authority,
         },
     )
     .send_and_confirm()

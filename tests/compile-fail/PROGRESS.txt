@@ -130,8 +130,9 @@ Batch 3 (2026-11-22), written without snapshots
   jobs; takes only fail/pass `idl-build` and `idl-build-LAYOUT`) and `RUNTIME,no-layout` (two jobs; takes
   only `no-layout` and `RUNTIME-no-layout`). Neither runs the top-level fixtures. A `no-layout` fail
   fixture has no pass counterpart (the corrected program needs a layout feature).
-- Fixtures: 196 (payer PDA with ATA extra_accounts needs an explicit bump), 197-200 (literal seed errors
-  under idl-build), 201 (ATA key needed in the IDL), 202 (no IDL type, idl-build-borsh), 203 (no layout).
+- Fixtures: 197-200 (literal seed errors under idl-build), 201 (ATA key needed in the IDL), 202 (no IDL
+  type, idl-build-borsh), 203 (no layout), 204-205 (an SDK account type as an Accounts field, per
+  runtime and layout), 206 (`bump = <value>` on all-constant seeds).
 - Runtime crate-scan crates, run by `cargo test --test diagnostics`: idl_name_and_code_clashes,
   idl_opt_bad_inner, idl_constant_bad_type, idl_opt_name_clash (each builds, then the IDL step must panic),
   and config_conflicts (built with eight conflicting feature sets for the compile_error!s in naclac-core and

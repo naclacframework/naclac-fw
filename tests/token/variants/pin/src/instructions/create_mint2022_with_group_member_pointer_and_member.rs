@@ -30,7 +30,7 @@ pub struct CreateMint2022WithGroupMemberPointerAndMember {
     #[account(mut)]
     pub group_mint: InterfaceAccount<Mint>,
 
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     pub token_program: Program<Token2022>,

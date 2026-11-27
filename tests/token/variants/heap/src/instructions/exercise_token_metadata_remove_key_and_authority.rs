@@ -12,7 +12,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 /// actually mutated on-chain state.
 #[derive(Accounts)]
 pub struct ExerciseTokenMetadataRemoveKeyAndAuthority {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     /// SAFETY: this account is the same mint validated/created by

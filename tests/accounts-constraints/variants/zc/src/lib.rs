@@ -61,8 +61,8 @@ pub mod accounts_constraints {
         init_seeded::init_seeded(ctx)
     }
 
-    pub fn touch_seeded(ctx: Context<TouchSeeded>, bump: u8) -> Result {
-        touch_seeded::touch_seeded(ctx, bump)
+    pub fn touch_seeded(ctx: Context<TouchSeeded>) -> Result {
+        touch_seeded::touch_seeded(ctx)
     }
 
     pub fn check_min_value(ctx: Context<CheckMinValue>) -> Result {

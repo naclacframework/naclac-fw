@@ -123,7 +123,7 @@ struct Env {
 
 fn provider() -> NaclacProvider {
     let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-    NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider")
+    NaclacProvider::new("devnet", payer).expect("Failed to construct NaclacProvider")
 }
 
 fn sorted_signers() -> (Keypair, Keypair) {

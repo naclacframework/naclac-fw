@@ -10,7 +10,7 @@ pub struct MintToVault {
     #[account(mut)]
     pub mint: Account<Mint>,
 
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     #[account(mut)]

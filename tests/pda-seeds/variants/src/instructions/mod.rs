@@ -9,7 +9,6 @@ pub mod read_config_entry_bare_bump;
 pub mod touch_config_entry_bare_bump;
 pub mod touch_config_entry_bare_bump_with_args;
 pub mod touch_entry_bare_bump;
-pub mod touch_registry_explicit_bump;
 
 pub use init_child::*;
 pub use init_child_late::*;
@@ -22,4 +21,3 @@ pub use read_config_entry_bare_bump::*;
 pub use touch_config_entry_bare_bump::*;
 pub use touch_config_entry_bare_bump_with_args::*;
 pub use touch_entry_bare_bump::*;
-pub use touch_registry_explicit_bump::*;

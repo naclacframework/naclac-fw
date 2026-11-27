@@ -25,7 +25,6 @@ pub mod log_event_fixed_512;
 pub mod log_event_fixed_8;
 pub mod log_event_signed;
 pub mod no_cpi_baseline;
-pub mod touch_counter_explicit_bump;
 
 pub use emit_fixed_128::*;
 pub use emit_fixed_2048::*;
@@ -54,4 +53,3 @@ pub use log_event_fixed_512::*;
 pub use log_event_fixed_8::*;
 pub use log_event_signed::*;
 pub use no_cpi_baseline::*;
-pub use touch_counter_explicit_bump::*;

@@ -20,7 +20,8 @@ bytemuck = ["naclac-lang/bytemuck"]
 naclac-lang = { version = "0.1.0", path = "../../../../../lang", features = ["token"] }
 
 [dev-dependencies]
-naclac-client = { version = "0.1.0", path = "../../../../../client-rs", features = ["litesvm"] }
+#naclac-client = { version = "0.1.0", path = "../../../../../client-rs", features = ["litesvm"] }
+naclac-client = { version = "0.1.0", path = "../../../../../client-rs", features = ["rpc"] }
 amm-client = { version = "0.1.0", path = "../../artifacts/clients/rust/amm" }
 proptest = "1"
 

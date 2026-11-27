@@ -43,7 +43,7 @@ pub struct InitCounter {
 
 #[derive(Accounts)]
 pub struct IncrementCounter {
-    #[account(mut, seeds = [SEED_COUNTER], bump = counter.bump)]
+    #[account(mut, seeds = [SEED_COUNTER], bump)]
     pub counter: Account<Counter>,
 }
 

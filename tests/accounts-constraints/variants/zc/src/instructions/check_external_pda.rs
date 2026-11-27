@@ -9,21 +9,24 @@ use crate::constants::SEED_EXTERNAL_PDA;
 // "external" program — a real, stable address that needs no separate
 // deployment to exercise this.
 //
-// Explicit `bump = bump` (not bare `bump`): a bare `UncheckedAccount` has no
-// stored `.bump` field for the bare-bump auto-path to read (see
-// `touch_seeded.rs` for the same explicit-bump pattern on `Account<T>`).
+// `authority` is one of the seeds, so the seeds are not all constants and
+// the explicit `bump = bump` is used as given: one hash and a compare, with
+// no proof that the bump is canonical.
 #[derive(Accounts)]
 #[instruction(bump: u8)]
 pub struct CheckExternalPda {
     /// SAFETY: only this account's own address is compared against the PDA
-    /// derived from `SEED_EXTERNAL_PDA` + `bump` against the System
-    /// Program's ID; its data is never read or deserialized.
+    /// derived from `SEED_EXTERNAL_PDA`, `authority` and `bump` against the
+    /// System Program's ID; its data is never read or deserialized.
     #[account(
-        seeds = [SEED_EXTERNAL_PDA],
+        seeds = [SEED_EXTERNAL_PDA, authority.address().as_ref()],
         bump = bump,
         seeds::program = naclac_lang::prelude::SYSTEM_PROGRAM_ID
     )]
     pub target: UncheckedAccount,
+
+    /// SAFETY: only its address is used as a seed; never read or deserialized.
+    pub authority: UncheckedAccount,
 }
 
 pub fn check_external_pda(_ctx: Context<CheckExternalPda>, _bump: u8) -> Result {

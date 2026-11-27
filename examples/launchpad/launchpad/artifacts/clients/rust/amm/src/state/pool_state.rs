@@ -75,6 +75,62 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for PoolState {}
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for PoolState {}
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_offchain::PodValidate for PoolState {
+    const TRIVIAL: bool = true && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u8 as crate::sdk_core_offchain::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_offchain::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolState, id
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolState, token_a_mint
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolState, token_b_mint
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolState, vault_a
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolState, vault_b
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <crate::sdk_core_offchain::Address as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolState, lp_mint
+            )..][..::core::mem::size_of::<crate::sdk_core_offchain::Address>()],
+        )?;
+        <u8 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolState, bump
+            )..][..::core::mem::size_of::<u8>()],
+        )?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for PoolState {
     fn default() -> Self {
         crate::sdk_core_offchain::bytemuck::Zeroable::zeroed()
@@ -148,6 +204,62 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for PoolStateCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for PoolStateCpi {}
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_cpi::PodValidate for PoolStateCpi {
+    const TRIVIAL: bool = true && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u8 as crate::sdk_core_cpi::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_cpi::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolStateCpi, id
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolStateCpi, token_a_mint
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolStateCpi, token_b_mint
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolStateCpi, vault_a
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolStateCpi, vault_b
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <crate::sdk_core_cpi::Address as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolStateCpi, lp_mint
+            )..][..::core::mem::size_of::<crate::sdk_core_cpi::Address>()],
+        )?;
+        <u8 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                PoolStateCpi, bump
+            )..][..::core::mem::size_of::<u8>()],
+        )?;
+        Ok(())
+    }
+}
+
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl core::default::Default for PoolStateCpi {

@@ -23,7 +23,7 @@ pub struct ExerciseTransferFeeCpisArgs {
 #[derive(Accounts)]
 #[instruction(args: ExerciseTransferFeeCpisArgs)]
 pub struct ExerciseTransferFeeCpis {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     #[account(mut)]

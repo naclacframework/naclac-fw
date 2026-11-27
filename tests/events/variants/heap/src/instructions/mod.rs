@@ -12,7 +12,6 @@ pub mod init_counter_unchecked;
 pub mod log_event;
 pub mod log_event_signed;
 pub mod no_cpi_baseline;
-pub mod touch_counter_explicit_bump;
 
 pub use emit_via_self_cpi_baseline::*;
 pub use emit_via_self_cpi_no_program::*;
@@ -28,4 +27,3 @@ pub use init_counter_unchecked::*;
 pub use log_event::*;
 pub use log_event_signed::*;
 pub use no_cpi_baseline::*;
-pub use touch_counter_explicit_bump::*;

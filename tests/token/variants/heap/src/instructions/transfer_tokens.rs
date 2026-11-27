@@ -12,7 +12,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 // assumed.
 #[derive(Accounts)]
 pub struct TransferTokens {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     pub mint: Account<Mint>,

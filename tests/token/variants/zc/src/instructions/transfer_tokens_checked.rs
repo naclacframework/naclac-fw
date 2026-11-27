@@ -8,7 +8,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 // rejects a `decimals` argument that doesn't match the mint's real decimals.
 #[derive(Accounts)]
 pub struct TransferTokensChecked {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     #[account(mut)]

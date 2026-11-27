@@ -13,7 +13,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 /// list `transfer_checked_with_hook_signed` requires.
 #[derive(Accounts)]
 pub struct ExerciseTransferCheckedWithHook {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     pub mint: InterfaceAccount<Mint>,

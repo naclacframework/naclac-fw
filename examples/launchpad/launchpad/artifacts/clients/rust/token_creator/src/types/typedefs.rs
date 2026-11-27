@@ -65,13 +65,57 @@ unsafe impl crate::sdk_core_offchain::bytemuck::Zeroable for LaunchTokenArgs {}
 unsafe impl crate::sdk_core_offchain::bytemuck::Pod for LaunchTokenArgs {}
 #[cfg(feature = "offchain")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_offchain::PodValidate for LaunchTokenArgs {
+    const TRIVIAL: bool = true && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u8 as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_offchain::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_offchain::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgs, id
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u8 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgs, decimals
+            )..][..::core::mem::size_of::<u8>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgs, amount_token_pool
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgs, amount_token_launcher
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_offchain::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgs, amount_quote
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "offchain")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl crate::sdk_core_offchain::ZcCodec for LaunchTokenArgs {
     const SIZE: usize = core::mem::size_of::<LaunchTokenArgs>();
     fn encode(&self, out: &mut [u8]) {
         crate::sdk_core_offchain::encode_pod(self, out);
     }
     fn decode(bytes: &[u8]) -> Option<Self> {
-        crate::sdk_core_offchain::decode_pod(bytes)
+        crate::sdk_core_offchain::decode_validated(bytes)
     }
 }
 
@@ -142,13 +186,57 @@ unsafe impl crate::sdk_core_cpi::bytemuck::Zeroable for LaunchTokenArgsCpi {}
 unsafe impl crate::sdk_core_cpi::bytemuck::Pod for LaunchTokenArgsCpi {}
 #[cfg(feature = "cpi")]
 #[cfg(not(any(feature = "borsh", feature = "wincode")))]
+impl crate::sdk_core_cpi::PodValidate for LaunchTokenArgsCpi {
+    const TRIVIAL: bool = true && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u8 as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL
+        && <u64 as crate::sdk_core_cpi::PodValidate>::TRIVIAL;
+    #[inline(always)]
+    fn validate_bytes(
+        bytes: &[u8],
+    ) -> ::core::result::Result<(), crate::sdk_core_cpi::PodError> {
+        if Self::TRIVIAL {
+            return Ok(());
+        }
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgsCpi, id
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u8 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgsCpi, decimals
+            )..][..::core::mem::size_of::<u8>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgsCpi, amount_token_pool
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgsCpi, amount_token_launcher
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        <u64 as crate::sdk_core_cpi::PodValidate>::validate_bytes(
+            &bytes[::core::mem::offset_of!(
+                LaunchTokenArgsCpi, amount_quote
+            )..][..::core::mem::size_of::<u64>()],
+        )?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "cpi")]
+#[cfg(not(any(feature = "borsh", feature = "wincode")))]
 impl crate::sdk_core_cpi::ZcCodec for LaunchTokenArgsCpi {
     const SIZE: usize = core::mem::size_of::<LaunchTokenArgsCpi>();
     fn encode(&self, out: &mut [u8]) {
         crate::sdk_core_cpi::encode_pod(self, out);
     }
     fn decode(bytes: &[u8]) -> Option<Self> {
-        crate::sdk_core_cpi::decode_pod(bytes)
+        crate::sdk_core_cpi::decode_validated(bytes)
     }
 }
 

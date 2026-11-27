@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// An explicit bump is valid.
+// A PDA payer whose seeds name another field signs the ATA creation with the bump its own check found.
 use naclac_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");
@@ -7,7 +7,7 @@ declare_id!("11111111111111111111111111111111");
 #[derive(Accounts)]
 pub struct Foo {
     /// SAFETY: a PDA that pays for the account and signs through its seeds.
-    #[account(mut, seeds = [b"payer"], bump = 254)]
+    #[account(mut, seeds = [b"payer", owner.address().as_ref()], bump)]
     pub payer: UncheckedAccount,
 
     pub mint: Account<Mint>,

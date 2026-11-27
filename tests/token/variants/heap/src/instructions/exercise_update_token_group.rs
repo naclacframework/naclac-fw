@@ -9,7 +9,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 /// `get_extension` to confirm both CPIs actually changed on-chain state.
 #[derive(Accounts)]
 pub struct ExerciseUpdateTokenGroup {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     #[account(mut)]

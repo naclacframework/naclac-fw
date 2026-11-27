@@ -9,7 +9,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 /// actually changed, not just that Token-2022 accepted the instruction.
 #[derive(Accounts)]
 pub struct ExerciseInterestBearingMintUpdateRate {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     #[account(mut)]

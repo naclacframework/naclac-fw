@@ -1,5 +1,0 @@
-error: Naclac Error: a `payer` with `seeds = [...]` used by an ATA `init_if_needed` with `extra_accounts` needs an explicit `bump = <expr>`; an automatic bump isn't supported there.
-  --> tests/fail/196_payer_pda_needs_explicit_bump.rs:11:9
-   |
-11 |     pub payer: UncheckedAccount,
-   |         ^^^^^

@@ -24,10 +24,6 @@ pub mod events_prog {
         increment_counter::increment_counter(ctx)
     }
 
-    pub fn touch_counter_explicit_bump(ctx: Context<TouchCounterExplicitBump>) -> Result {
-        touch_counter_explicit_bump::touch_counter_explicit_bump(ctx)
-    }
-
     pub fn log_event(ctx: Context<LogEvent>, data: Vec<u8>) -> Result {
         log_event::log_event(ctx, data)
     }

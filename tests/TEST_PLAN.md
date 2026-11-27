@@ -245,9 +245,9 @@ coverage:
   `pda_program_tokens`) — new instruction `check_external_pda`, a bare
   `UncheckedAccount` field with `#[account(seeds = [SEED_EXTERNAL_PDA], bump =
   bump, seeds::program = naclac_lang::prelude::SYSTEM_PROGRAM_ID)]` (explicit
-  `bump = bump`, not bare `bump`: a bare `UncheckedAccount` has no stored `.bump`
-  field for the auto-bump path to read — same reasoning as
-  `touch_seeded.rs`). Uses the real System Program ID as the "external"
+  `bump = bump`: trusted as given, one hash and a compare with no proof it is
+  canonical; a bare `bump` on an `UncheckedAccount` with runtime seeds runs the
+  bounded canonical search instead). Uses the real System Program ID as the "external"
   program — real, stable, no separate deployment needed. Positive case
   derives the PDA off-chain via `Address::find_program_address(&[b"external_pda"],
   &SYSTEM_PROGRAM_ID)` and confirms the on-chain program accepts it with the
@@ -445,7 +445,7 @@ test:
 | `lib.rs` | 1 — banned `find_program_address`/`create_program_address` (text-scanned across `#[instruction]`/`#[program]`/`#[derive(Accounts)]` bodies) |
 | `system.rs` | 2 — unparseable `#[system(invariant = "...")]` expression, `f32`/`f64` banned in `#[system]` functions |
 | `instruction/parser.rs` | 3 — bare `alias` rejection, `has_one = <dotted.path>` (must be a simple ident), bare `UncheckedAccount` field missing a `/// SAFETY:` comment |
-| `instruction/security.rs` | 3 — `bump = <expr>` combined with `init` on a compile-time-precomputed literal-seed PDA, `seeds = [...]` with no `bump` at all, `has_one = <unknown field>` |
+| `instruction/security.rs` | 3 — `bump = <expr>` combined with `init` (`init` takes only a bare `bump`), `bump = <expr>` on an all-constant-seed PDA (its bump is found at compile time; write a bare `bump`), `seeds = [...]` with no `bump` at all, `has_one = <unknown field>` |
 
 **Removed from the framework, not tested:** the `#[account(...)]`/
 `#[event(...)]`/`#[program(...)]`/`#[instruction(...)]` (function attribute)
@@ -461,14 +461,10 @@ rather than kept as permanent migration-era ceremony. If naclac gains
 external users before any old tutorials/LLM training data pushes people
 toward the old syntax again, this is worth revisiting.
 
-**14 of 15 remaining sites are covered as `tests/fail/*.rs` fixtures.** The remaining one
-(`security.rs`'s `bump = <expr>` + `init` + precomputed-PDA check,
-`:325-332`) can't be triggered from an isolated `trybuild` fixture: it only
-fires inside the `is_pda_precomputed` branch, which requires the crate's own
-`declare_id!` to be found (`declared_program_id`, `security.rs`). A fixture
-that declares one with `declare_id!` can reach that branch, so this site can
-now be covered by a fixture that declares its id and uses an all-literal seed
-array — noted as a follow-up, not silently dropped.
+**All 15 remaining sites are covered as `tests/fail/*.rs` fixtures.** The
+`bump = <expr>` check on an all-constant-seed PDA is covered by
+`206_explicit_bump_on_constant_seeds.rs`, which declares an id with
+`declare_id!` and uses an all-literal seed array.
 
 Where a site has an accompanying *valid* form, a `tests/pass/*.rs`
 counterpart exists too, so a future refactor that makes the check *too*
@@ -518,10 +514,8 @@ duplicated). Two real bugs found and fixed while first running this:
 - `create_mint` — `mint::decimals` + `mint::authority` combined with `init`
   (real CPI-based mint creation via `init_cpi.rs`, mirroring
   `examples/launchpad/.../create_mint.rs` exactly, bare `UncheckedAccount` field).
-  Uses a dynamic seed component (`id: u64`) rather than a pure literal
-  specifically so explicit `bump = mint_bump` is allowed — a pure-literal
-  seed + `init` requires bare `bump` instead, confirmed the hard way while
-  fixing `resolve_seed_literal`'s file-discovery bug (see section 0)
+  Uses a dynamic seed component (`id: u64`) and a bare `bump` (`init` takes
+  only a bare `bump`; an all-constant seed array also rejects `bump = <expr>`)
 - `check_vault_constraints` — `token::mint`/`token::authority` enforced on
   an *existing* (non-`init`) token account, mirroring
   `examples/escrow/.../make.rs`'s `vault_token_account` exactly. Confirms
@@ -751,10 +745,8 @@ rather than guessing:
   runtime bump verification entirely (`security.rs`'s precomputed branch,
   `bump_name == "__naclac_auto_bump"` short-circuits past the verification
   block) — it relies solely on the address check, which is still
-  cryptographically sufficient alone. Explicit `bump = <expr>` always
-  performs the extra comparison. Not a gap, just an asymmetry worth knowing
-  about if a future case's assertions depend on bump *mismatches* being
-  caught on an existing, non-`init`, literal-seeded account with bare bump.
+  cryptographically sufficient alone. `bump = <expr>` is rejected at compile
+  time on an all-constant-seed PDA, so a bare `bump` is the only form there.
 
 **Modes:** all three (`core/src/event/{borsh,zero_copy,pinocchio}.rs`
 are three genuinely different implementations, not one implementation with

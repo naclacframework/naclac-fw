@@ -9,7 +9,7 @@ pub struct Chain {
     #[account(seeds = [b"a", second.address().as_ref()], bump = 1)]
     pub first: Account<Thing>,
 
-    #[account(seeds = [b"b"], bump = 1)]
+    #[account(seeds = [b"b"], bump)]
     pub second: Account<Thing>,
 }
 

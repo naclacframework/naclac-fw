@@ -18,7 +18,7 @@ pub struct SetMintAuthority {
     #[account(mut)]
     pub mint: Account<Mint>,
 
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     /// SAFETY: only used as an address — its own key becomes the mint's new

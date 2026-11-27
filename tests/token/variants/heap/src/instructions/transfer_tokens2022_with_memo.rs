@@ -15,7 +15,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 /// for Token-2022 itself.
 #[derive(Accounts)]
 pub struct TransferTokens2022WithMemo {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     pub mint: InterfaceAccount<Mint>,

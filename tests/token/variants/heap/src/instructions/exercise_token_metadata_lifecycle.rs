@@ -14,7 +14,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 /// compiling.
 #[derive(Accounts)]
 pub struct ExerciseTokenMetadataLifecycle {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     /// SAFETY: this account is the same mint validated/created by

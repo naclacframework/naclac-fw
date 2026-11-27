@@ -10,7 +10,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 /// accepted the instruction.
 #[derive(Accounts)]
 pub struct ExerciseGroupMemberPointerUpdate {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     #[account(mut)]

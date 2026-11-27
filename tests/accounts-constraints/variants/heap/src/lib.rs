@@ -65,8 +65,8 @@ pub mod accounts_constraints_borsh {
         init_note::init_note(ctx, name)
     }
 
-    pub fn touch_seeded(ctx: Context<TouchSeeded>, bump: u8) -> Result {
-        touch_seeded::touch_seeded(ctx, bump)
+    pub fn touch_seeded(ctx: Context<TouchSeeded>) -> Result {
+        touch_seeded::touch_seeded(ctx)
     }
 
     pub fn check_min_value(ctx: Context<CheckMinValue>) -> Result {

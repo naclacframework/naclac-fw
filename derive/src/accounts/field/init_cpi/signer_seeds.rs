@@ -4,7 +4,7 @@
 use {
     crate::accounts::field::{
         checks::{seed_binding_tokens, typed_seeds_call},
-        parser::{ParsedField, PdaBump, PdaSeeds},
+        parser::{ParsedField, PdaSeeds},
     },
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
@@ -85,21 +85,14 @@ pub(super) fn signer_seeds_tokens(field: &ParsedField) -> TokenStream {
 }
 
 /// Same as `signer_seeds_tokens`, but for a field referenced only as
-/// `payer = <field>` on a *different* field's `init`/`init_if_needed` —
-/// resolves `payer_field`'s own seeds directly rather than relying on an
-/// `expected_bump` local, which the surrounding codegen only ever defines
-/// for the field actually being initialized, never for whatever field
-/// `payer` happens to name. Needed for a `payer` that's itself a
-/// program-owned PDA (not a real wallet) — e.g. a lamport source raw-funded
-/// earlier in the same instruction, which must sign this CPI via its own
-/// seeds to authorize spending its lamports as rent.
+/// `payer = <field>` on a *different* field's `init`/`init_if_needed`: the
+/// signer seeds of a `payer` that is itself a program-owned PDA, which must
+/// sign the creation CPI through its own seeds.
 ///
-/// Only `PdaBump::Explicit` is supported: an auto-derived `bump` on the
-/// payer field would need this codegen to know how that field's own bump
-/// was independently verified elsewhere in the struct, which isn't tracked
-/// here — every real caller so far supplies an explicit bump anyway (naclac
-/// never runs an on-chain bump-search loop), so this isn't a regression
-/// against anything currently expressible.
+/// The bump is the payer's `__bump_<field>` local, which the payer's own PDA
+/// check defines for every kind of `bump`. The payer is loaded before the
+/// field it pays for, because `payer` is a load-time dependency of that field
+/// (`load_order`). A payer that is an `Option` is not supported here.
 pub(super) fn payer_signer_seeds_tokens(payer_field: &ParsedField) -> TokenStream {
     let seeds = match &payer_field.pda_seed {
         Some(seeds) => seeds,
@@ -109,22 +102,7 @@ pub(super) fn payer_signer_seeds_tokens(payer_field: &ParsedField) -> TokenStrea
             };
         }
     };
-    let bump_expr = match &payer_field.pda_bump {
-        Some(PdaBump::Explicit(expr)) => quote! { #expr },
-        _ => {
-            let error = syn::Error::new_spanned(
-                &payer_field.ident,
-                "Naclac Error: a `payer` with `seeds = [...]` used by an ATA `init_if_needed` \
-                 with `extra_accounts` needs an explicit `bump = <expr>`; an automatic bump \
-                 isn't supported there.",
-            )
-            .to_compile_error();
-            return quote! {
-                #error
-                let __payer_signer_seeds: &[naclac_lang::prelude::CpiSigner] = &[];
-            };
-        }
-    };
+    let bump_local = format_ident!("__bump_{}", payer_field.ident);
 
     let bump_array = format_ident!("__payer_bump_arr");
     let BoundSeeds {
@@ -133,7 +111,7 @@ pub(super) fn payer_signer_seeds_tokens(payer_field: &ParsedField) -> TokenStrea
     } = bind_seeds(seeds, &payer_field.ident, "__payer_seed", &bump_array);
 
     quote! {
-        let #bump_array = [#bump_expr];
+        let #bump_array = [#bump_local];
         #bindings
         let __payer_seed_set = naclac_lang::prelude::SignerSeeds::new(#with_bump);
         let __payer_signer = [__payer_seed_set.signer()];

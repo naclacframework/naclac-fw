@@ -1,5 +1,5 @@
 #![allow(unexpected_cfgs)]
-// A payer PDA used with `extra_accounts` needs an explicit bump.
+// A PDA payer with constant seeds signs the ATA creation with the bump the compiler found.
 use naclac_lang::prelude::*;
 
 declare_id!("11111111111111111111111111111111");

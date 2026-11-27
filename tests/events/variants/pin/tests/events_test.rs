@@ -2,9 +2,8 @@ use naclac_client::*;
 use events_client::{
     get_counter_pda,
     instructions::{
-        build_emit_roster, build_increment_counter, build_init_counter,
-        build_touch_counter_explicit_bump, EmitRosterAccounts, IncrementCounterAccounts,
-        InitCounterAccounts, TouchCounterExplicitBumpAccounts,
+        build_emit_roster, build_increment_counter, build_init_counter, EmitRosterAccounts,
+        IncrementCounterAccounts, InitCounterAccounts,
     },
     types::PROGRAM_ID,
     types::{CounterIncremented, RosterChanged, RosterChangedAlloc},
@@ -77,40 +76,6 @@ fn event_round_trips_correctly_across_multiple_emissions() {
     assert_eq!(
         second_count, 2,
         "the event payload must reflect the account's actual updated state, not a stale/cached value"
-    );
-}
-
-/// Explicit `bump = counter.bump` (a self-reference on an existing account)
-/// — verifying this actually works rather than assuming it does, since no
-/// existing test exercises this exact form. Reasoned to be equivalent to
-/// bare `bump`'s proven auto-path (see `touch_counter_explicit_bump.rs`),
-/// but reasoning isn't verification: this test is the verification.
-#[test]
-fn explicit_self_referencing_bump_on_existing_account_works() {
-    let provider = setup();
-    let (counter_pda, _bump) = get_counter_pda(&PROGRAM_ID);
-
-    build_init_counter(
-        &provider,
-        PROGRAM_ID,
-        InitCounterAccounts {
-            payer: provider.payer.address(),
-            counter: counter_pda,
-            system_program: Address::default(),
-        },
-    )
-    .send_and_confirm()
-    .expect("init_counter should succeed");
-
-    build_touch_counter_explicit_bump(
-        &provider,
-        PROGRAM_ID,
-        TouchCounterExplicitBumpAccounts { counter: counter_pda },
-    )
-    .send_and_confirm()
-    .expect(
-        "touch_counter_explicit_bump must succeed — `bump = counter.bump` should validate \
-         identically to bare `bump`'s auto-path, not fail some self-reference-specific gap",
     );
 }
 

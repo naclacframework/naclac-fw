@@ -13,6 +13,10 @@ const HASH_ONLY_INELIGIBLE_MSG: &str =
     "Naclac Error: this existing PDA field has no bump, and its type can't discover one. Use \
      Account<T>/InterfaceAccount<T>, or write `bump` (canonical search) or `bump = <value>`.";
 
+const CONST_SEEDS_EXPLICIT_BUMP_MSG: &str =
+    "Naclac Error: every seed of this PDA is a constant, so its bump is found at compile time. \
+     Write a bare `bump` instead of `bump = <value>`.";
+
 /// Whether `ty` is written as `UncheckedAccount`, a type that never validates its
 /// owner. A bare `bump` on it runs the canonical search; no bump at all is
 /// refused here, with the field's span. Every other spelling, an alias
@@ -30,11 +34,9 @@ pub(super) enum PdaChecks {
     Constraint(TokenStream),
 }
 
-/// How the expected PDA and bump are obtained, and how an explicit bump is
-/// verified against them.
+/// How the expected PDA and bump are obtained.
 struct Creation {
     logic: TokenStream,
-    bump_verification: TokenStream,
     /// True when the derivation already guarantees the address matches the
     /// field's own account, so comparing the two would be tautological.
     skip_address_check: bool,
@@ -146,25 +148,14 @@ fn const_pda(
 }
 
 fn precomputed_creation(field: &ParsedField, initializer: &TokenStream) -> Creation {
-    let idx = field.index;
-    let pda_const = format_ident!("__NACLAC_PDA_{}", idx);
+    let pda_const = format_ident!("__NACLAC_PDA_{}", field.index);
     let logic = quote! {
         const #pda_const: (naclac_lang::prelude::Address, u8) = #initializer;
         let expected_pda = #pda_const.0;
         let expected_bump = #pda_const.1;
     };
-
-    let mut bump_verification = quote! {};
-    if let Some(PdaBump::Explicit(bump_expr)) = &field.pda_bump {
-        bump_verification = quote! {
-            if expected_bump != (#bump_expr) {
-                return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
-            }
-        };
-    }
     Creation {
         logic,
-        bump_verification,
         skip_address_check: false,
     }
 }
@@ -180,7 +171,6 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
     let (seed_bindings, seeds_slice) = seed_slice_tokens(pda_seeds, field_ident, "__seed");
 
     let mut bump_expr = quote! {};
-    let bump_verification = quote! {};
     let mut find_pda_error: Option<String> = None;
     let mut use_explicit_bump = false;
     let mut use_manual_search = false;
@@ -310,7 +300,6 @@ fn dynamic_creation(field: &ParsedField, pda_seeds: &PdaSeeds) -> Creation {
 
     Creation {
         logic,
-        bump_verification,
         // True when the address is already proved equal to the PDA of the
         // seeds and `expected_bump`, or the field has a compile error and no
         // address is compared.
@@ -366,9 +355,10 @@ fn seeds_type_check(field: &ParsedField, pda_seeds: &PdaSeeds) -> TokenStream {
 }
 
 /// The PDA check for `field`, or `None` when it has neither `seeds` nor
-/// `bump`. A field that creates its account and writes `bump = <expr>` gets a
-/// compile error plus placeholder `expected_bump` and `__bump_<field>` locals,
-/// so the code generated after it still compiles and the error stands alone.
+/// `bump`. A field that creates its account and writes `bump = <expr>`, or
+/// writes it on seeds the compiler evaluates, gets a compile error plus
+/// placeholder `expected_bump` and `__bump_<field>` locals, so the code
+/// generated after it still compiles and the error stands alone.
 pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Option<PdaChecks> {
     let Some(seeds) = &field.pda_seed else {
         if field.pda_bump.is_some() {
@@ -400,13 +390,23 @@ pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Optio
     let bump_cap = format_ident!("__bump_{}", field_ident);
     let actual_address_ref = actual_address_ref();
 
-    let creation = match const_pda(field, seeds, runtime_names) {
+    let precomputed = const_pda(field, seeds, runtime_names);
+    if precomputed.is_some() && matches!(field.pda_bump, Some(PdaBump::Explicit(_))) {
+        let error = syn::Error::new_spanned(&field.ident, CONST_SEEDS_EXPLICIT_BUMP_MSG)
+            .to_compile_error();
+        return Some(PdaChecks::Constraint(quote! {
+            #error
+            let expected_bump = 0u8;
+            let #bump_cap = expected_bump;
+        }));
+    }
+
+    let creation = match precomputed {
         Some(initializer) => precomputed_creation(field, &initializer),
         None => dynamic_creation(field, seeds),
     };
     let Creation {
         logic,
-        bump_verification,
         skip_address_check,
     } = creation;
     let type_check = seeds_type_check(field, seeds);
@@ -416,7 +416,6 @@ pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Optio
             Some(PdaChecks::Constraint(quote! {
                 #type_check
                 #logic
-                #bump_verification
                 let #bump_cap = expected_bump;
             }))
         } else {
@@ -436,7 +435,6 @@ pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Optio
                         return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
                     }
                 }
-                #bump_verification
                 let #bump_cap = expected_bump;
             }))
         }
@@ -444,7 +442,6 @@ pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Optio
         Some(PdaChecks::Metadata(quote! {
             #type_check
             #logic
-            #bump_verification
             let #bump_cap = expected_bump;
         }))
     } else {
@@ -465,7 +462,6 @@ pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Optio
                     return Err(naclac_lang::prelude::NaclacError::ConstraintSeeds.err(#idx));
                 }
             }
-            #bump_verification
             let #bump_cap = expected_bump;
         }))
     }
@@ -697,6 +693,30 @@ mod const_pda_tests {
              a: Account<A>",
         );
         assert!(!rendered(&existing).contains("compile_error"));
+    }
+
+    #[test]
+    fn an_explicit_bump_on_constant_seeds_is_an_error_for_every_type() {
+        for ty in ["Account<A>", "UncheckedAccount"] {
+            let code = rendered(&field(&format!(
+                "/// SAFETY: test. \n #[account(seeds = [SEED_A], bump = 3)] a: {ty}"
+            )));
+            assert_eq!(code.matches("compile_error").count(), 1, "{code}");
+            assert!(code.contains("found at compile time"), "{code}");
+            assert!(code.contains("let expected_bump = 0u8"), "{code}");
+            assert!(!code.contains("expected_pda"), "{code}");
+        }
+    }
+
+    #[test]
+    fn a_bare_bump_on_constant_seeds_is_precomputed_for_every_type() {
+        for ty in ["Account<A>", "UncheckedAccount"] {
+            let code = rendered(&field(&format!(
+                "/// SAFETY: test. \n #[account(seeds = [SEED_A], bump)] a: {ty}"
+            )));
+            assert!(!code.contains("compile_error"), "{code}");
+            assert!(code.contains("const __NACLAC_PDA_0"), "{code}");
+        }
     }
 
     #[test]

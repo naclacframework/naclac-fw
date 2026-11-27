@@ -19,7 +19,7 @@ pub struct CloseMint2022 {
     #[account(mut)]
     pub destination: UncheckedAccount,
 
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     pub token_program: Program<Token2022>,

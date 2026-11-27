@@ -20,7 +20,7 @@ use crate::constants::SEED_MINT_AUTHORITY;
 /// which targets `pinocchio_memo::ID` directly.
 #[derive(Accounts)]
 pub struct TransferTokens2022WithMemo {
-    #[account(seeds = [SEED_MINT_AUTHORITY], bump = mint_authority.bump)]
+    #[account(seeds = [SEED_MINT_AUTHORITY], bump)]
     pub mint_authority: Account<MintAuthority>,
 
     pub mint: InterfaceAccount<Mint>,

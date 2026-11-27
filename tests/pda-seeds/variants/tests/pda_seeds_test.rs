@@ -6,11 +6,10 @@ use pda_seeds_client::{
         build_init_entry_late, build_init_registry, build_init_tagged_child,
         build_read_config_entry_bare_bump, InitChildLateAccounts, InitEntryLateAccounts,
         build_touch_config_entry_bare_bump, build_touch_config_entry_bare_bump_with_args,
-        build_touch_entry_bare_bump, build_touch_registry_explicit_bump, InitChildAccounts,
-        InitChildSafeAccounts, InitEntryAccounts, InitRegistryAccounts, InitTaggedChildAccounts,
-        ReadConfigEntryBareBumpAccounts, TouchConfigEntryBareBumpAccounts,
-        TouchConfigEntryBareBumpWithArgsAccounts, TouchEntryBareBumpAccounts,
-        TouchRegistryExplicitBumpAccounts,
+        build_touch_entry_bare_bump, InitChildAccounts, InitChildSafeAccounts, InitEntryAccounts,
+        InitRegistryAccounts, InitTaggedChildAccounts, ReadConfigEntryBareBumpAccounts,
+        TouchConfigEntryBareBumpAccounts, TouchConfigEntryBareBumpWithArgsAccounts,
+        TouchEntryBareBumpAccounts,
     },
     types::PROGRAM_ID,
     CONFIGENTRY_DISCRIMINATOR,
@@ -119,33 +118,6 @@ fn seed_expression_shapes_all_resolve_correctly() {
     )
     .send_and_confirm()
     .expect("touch_entry_bare_bump should succeed (auto-bump on existing zero-copy account)");
-
-    // --- Case 4: explicit bump, existing account — positive then negative ---
-    build_touch_registry_explicit_bump(
-        &provider,
-        PROGRAM_ID,
-        registry_bump,
-        TouchRegistryExplicitBumpAccounts {
-            registry: registry_pda,
-        },
-    )
-    .send_and_confirm()
-    .expect("touch_registry_explicit_bump with the correct bump should succeed");
-
-    let wrong_bump = registry_bump.wrapping_sub(1);
-    let wrong_result = build_touch_registry_explicit_bump(
-        &provider,
-        PROGRAM_ID,
-        wrong_bump,
-        TouchRegistryExplicitBumpAccounts {
-            registry: registry_pda,
-        },
-    )
-    .send_and_confirm();
-    // `TouchRegistryExplicitBump { registry }` — `registry` is field index
-    // 0; a wrong explicit `bump` mismatch emits `ConstraintSeeds` (6) ->
-    // 10000 + 0*100 + 6 = 10006.
-    assert_custom_code(wrong_result, 10006);
 
     // --- Case 5: nested field-access + method-chain seed, init ---
     // `registry.bump.to_le_bytes().as_ref()` — distinct from case 2's
@@ -488,7 +460,7 @@ fn send_raw_instruction(
         .expect("Failed to expire the blockhash");
     let mut builder = InstructionBuilder::new(provider, PROGRAM_ID, data);
     for (meta, name) in accounts {
-        builder = builder.account(meta.clone(), *name);
+        builder = builder.account(meta.clone(), name);
     }
     builder.send_and_confirm()
 }
