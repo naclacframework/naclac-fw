@@ -392,8 +392,8 @@ pub(super) fn pda_checks(field: &ParsedField, runtime_names: &[String]) -> Optio
 
     let precomputed = const_pda(field, seeds, runtime_names);
     if precomputed.is_some() && matches!(field.pda_bump, Some(PdaBump::Explicit(_))) {
-        let error = syn::Error::new_spanned(&field.ident, CONST_SEEDS_EXPLICIT_BUMP_MSG)
-            .to_compile_error();
+        let error =
+            syn::Error::new_spanned(&field.ident, CONST_SEEDS_EXPLICIT_BUMP_MSG).to_compile_error();
         return Some(PdaChecks::Constraint(quote! {
             #error
             let expected_bump = 0u8;

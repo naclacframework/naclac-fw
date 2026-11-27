@@ -1,5 +1,5 @@
 error: Naclac Error: every seed of this PDA is a constant, so its bump is found at compile time. Write a bare `bump` instead of `bump = <value>`.
-  --> tests/fail/206_explicit_bump_on_constant_seeds.rs:11:9
+  --> tests/fail/206_explicit_bump_on_constant_seeds.rs:10:23
    |
-11 |     pub account: UncheckedAccount,
-   |         ^^^^^^^
+10 |     #[account(seeds = [b"foo"], bump = 254)]
+   |                       ^^^^^^^^
