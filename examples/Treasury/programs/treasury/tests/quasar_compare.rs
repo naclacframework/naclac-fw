@@ -1,12 +1,15 @@
-//! Runs the same treasury scenario against the naclac program and its Quasar
-//! port in one litesvm harness, driving both with the naclac-generated
-//! builders, checks that both end in the same state, and prints compute units
-//! per step and the size of each `.so`.
+//! Runs the same treasury scenario against the naclac program and its port in
+//! Quasar or Anchor v2 in one litesvm harness, driving both with the
+//! naclac-generated builders, checks that both end in the same state, and
+//! prints compute units per step and the size of each `.so`.
 //!
-//! The Quasar binary is read from `QUASAR_TREASURY_SO`; the naclac binary is
-//! the one `naclac build` leaves in `artifacts/deploy`. The admin and the note
-//! ids are chosen so every PDA of the scenario has bump 255 under both program
-//! ids, so neither side pays for a longer canonical bump search.
+//! The Quasar binary is read from `QUASAR_TREASURY_SO` and the Anchor binary
+//! from `ANCHOR_TREASURY_SO`; the naclac binary is the one `naclac build`
+//! leaves in `artifacts/deploy`. The admin and the note ids are chosen so
+//! every PDA of the scenario has bump 255 under all three program ids, so no
+//! side pays for a longer canonical bump search. Anchor accounts carry an
+//! 8-byte discriminator, so their state is decoded at that offset and their
+//! lengths are compared without the 7 extra bytes.
 
 use {
     naclac_client::*,
@@ -28,6 +31,8 @@ use {
 
 const QUASAR_ID: Address =
     Address::from_str_const("77777777777777777777777777777777777777777777");
+const ANCHOR_ID: Address =
+    Address::from_str_const("88888888888888888888888888888888888888888888");
 
 const NOW: i64 = 1_000_000;
 const LATER: i64 = NOW + 3_600;
@@ -39,6 +44,7 @@ const NOTE_SIZE: u64 = 100;
 enum Framework {
     Naclac,
     Quasar,
+    Anchor,
 }
 
 impl Framework {
@@ -46,6 +52,7 @@ impl Framework {
         match self {
             Framework::Naclac => "naclac",
             Framework::Quasar => "quasar",
+            Framework::Anchor => "anchor",
         }
     }
 
@@ -53,6 +60,15 @@ impl Framework {
         match self {
             Framework::Naclac => PROGRAM_ID,
             Framework::Quasar => QUASAR_ID,
+            Framework::Anchor => ANCHOR_ID,
+        }
+    }
+
+    /// The bytes an account's discriminator takes beyond naclac's one byte.
+    fn discriminator_overhead(self) -> usize {
+        match self {
+            Framework::Anchor => 7,
+            Framework::Naclac | Framework::Quasar => 0,
         }
     }
 }
@@ -68,7 +84,7 @@ struct Keys {
 }
 
 fn all_first_try(admin: &Address) -> bool {
-    [PROGRAM_ID, QUASAR_ID].iter().all(|program| {
+    [PROGRAM_ID, QUASAR_ID, ANCHOR_ID].iter().all(|program| {
         let (treasury, treasury_bump) = get_treasury_pda(program, admin);
         let (_, vault_bump) = get_vault_pda(program, &treasury);
         let (_, proposal_bump) = get_proposal_pda(program, &treasury, 0);
@@ -79,7 +95,7 @@ fn all_first_try(admin: &Address) -> bool {
 fn note_id_with_first_try_bump(authority: &Address, first: u64) -> u64 {
     (first..)
         .find(|id| {
-            [PROGRAM_ID, QUASAR_ID]
+            [PROGRAM_ID, QUASAR_ID, ANCHOR_ID]
                 .iter()
                 .all(|program| get_note_pda(program, authority, *id).1 == 255)
         })
@@ -126,11 +142,22 @@ fn file_size(path: &str) -> u64 {
         .len()
 }
 
-fn quasar_so_path() -> String {
-    std::env::var("QUASAR_TREASURY_SO").unwrap_or_else(|_| {
+fn other_so_path(framework: Framework) -> String {
+    let (variable, example) = match framework {
+        Framework::Quasar => (
+            "QUASAR_TREASURY_SO",
+            "/path/to/quasar-master/target/deploy/quasar_treasury.so",
+        ),
+        Framework::Anchor => (
+            "ANCHOR_TREASURY_SO",
+            "/path/to/anchor/target/deploy/treasury_v2.so",
+        ),
+        Framework::Naclac => panic!("the naclac binary comes from `naclac build`"),
+    };
+    std::env::var(variable).unwrap_or_else(|_| {
         panic!(
-            "QUASAR_TREASURY_SO is not set; point it at the built Quasar treasury binary, for \
-             example QUASAR_TREASURY_SO=/path/to/quasar-master/target/deploy/quasar_treasury.so"
+            "{variable} is not set; point it at the built treasury binary, for example \
+             {variable}={example}"
         )
     })
 }
@@ -154,15 +181,15 @@ struct Run<'a> {
 }
 
 impl<'a> Run<'a> {
-    fn new(framework: Framework, keys: &'a Keys, quasar_so: &str) -> Run<'a> {
+    fn new(framework: Framework, keys: &'a Keys, other_so: &str) -> Run<'a> {
         let payer = load_node_wallet().expect("Failed to load local Solana keypair");
         let provider =
             NaclacProvider::new("litesvm", payer).expect("Failed to construct NaclacProvider");
         let program = framework.program();
-        if framework == Framework::Quasar {
-            provider
-                .add_program(&program, quasar_so)
-                .expect("Failed to load the Quasar treasury binary");
+        if framework != Framework::Naclac {
+            provider.add_program(&program, other_so).unwrap_or_else(|e| {
+                panic!("Failed to load the {} treasury binary: {e:?}", framework.label())
+            });
         }
         provider
             .set_clock_unix_timestamp(NOW)
@@ -248,17 +275,142 @@ impl<'a> Run<'a> {
             .lamports
     }
 
-    fn data_len(&self, address: &Address) -> usize {
+    fn account_bytes(&self, address: &Address) -> Vec<u8> {
         self.provider
             .get_account(address)
             .expect("the account should exist")
             .data
-            .len()
+    }
+
+    fn raw_len(&self, address: &Address) -> usize {
+        self.account_bytes(address).len()
+    }
+
+    fn data_len(&self, address: &Address) -> usize {
+        self.raw_len(address) - self.framework.discriminator_overhead()
+    }
+
+    fn proposal_fact(&self) -> String {
+        let address = self.proposal();
+        if self.framework == Framework::Anchor {
+            let data = self.account_bytes(&address);
+            let approvals = addresses_at(&data, 132, usize::from(u16_at(&data, 130)));
+            return format!(
+                "proposal id={} amount={} deadline={} executed={} approvals={:?} \
+                 proposer={} recipient={} len={}",
+                u64_at(&data, 40),
+                u64_at(&data, 112),
+                i64::from_le_bytes(array_at(&data, 120)),
+                data[128] != 0,
+                approvals,
+                address_at(&data, 48),
+                address_at(&data, 80),
+                self.data_len(&address),
+            );
+        }
+        let proposal = fetch_proposal(&self.provider, &address).expect("proposal should be readable");
+        let (id, amount, deadline) = (proposal.id, proposal.amount, proposal.deadline);
+        format!(
+            "proposal id={id} amount={amount} deadline={deadline} executed={} approvals={:?} \
+             proposer={} recipient={} len={}",
+            bool::from(proposal.executed),
+            proposal.approvals.iter().collect::<Vec<_>>(),
+            proposal.proposer,
+            proposal.recipient,
+            self.data_len(&address),
+        )
+    }
+
+    fn treasury_fact(&self) -> String {
+        if self.framework == Framework::Anchor {
+            let data = self.account_bytes(&self.treasury);
+            let status = match data[43] {
+                0 => Status::Active,
+                1 => Status::Paused,
+                other => panic!("the treasury status {other} is not valid"),
+            };
+            let members = addresses_at(&data, 62, usize::from(u16_at(&data, 60)));
+            return format!(
+                "treasury admin={} threshold={} status={status:?} next_id={} \
+                 total_deposited={} members={:?} len={}",
+                address_at(&data, 8),
+                data[42],
+                u64_at(&data, 44),
+                u64_at(&data, 52),
+                members,
+                self.data_len(&self.treasury),
+            );
+        }
+        let treasury =
+            fetch_treasury(&self.provider, &self.treasury).expect("treasury should be readable");
+        let (threshold, next_id, total_deposited) =
+            (treasury.threshold, treasury.next_id, treasury.total_deposited);
+        let Ok(status) = treasury.status.get() else {
+            panic!("the treasury status should be valid");
+        };
+        format!(
+            "treasury admin={} threshold={threshold} status={status:?} next_id={next_id} \
+             total_deposited={total_deposited} members={:?} len={}",
+            treasury.admin,
+            treasury.members.iter().collect::<Vec<_>>(),
+            self.data_len(&self.treasury),
+        )
+    }
+
+    /// A note's length is the program's own size unless `resized` says an
+    /// instruction set it, in which case every framework reports the same raw
+    /// length.
+    fn note_fact(&self, name: &str, id: u64, resized: bool) -> String {
+        let address = self.note(id);
+        let len = if resized {
+            self.raw_len(&address)
+        } else {
+            self.data_len(&address)
+        };
+        if self.framework == Framework::Anchor {
+            let data = self.account_bytes(&address);
+            return format!(
+                "{name} authority={} id={} count={} len={len}",
+                address_at(&data, 8),
+                u64_at(&data, 40),
+                u64_at(&data, 48),
+            );
+        }
+        let note = fetch_note(&self.provider, &address).expect("note should be readable");
+        let (note_id, count) = (note.id, note.count);
+        format!(
+            "{name} authority={} id={note_id} count={count} len={len}",
+            note.authority,
+        )
     }
 }
 
-fn run(framework: Framework, keys: &Keys, quasar_so: &str) -> Outcome {
-    let run = Run::new(framework, keys, quasar_so);
+fn array_at<const N: usize>(data: &[u8], offset: usize) -> [u8; N] {
+    data[offset..offset + N]
+        .try_into()
+        .expect("the account is long enough")
+}
+
+fn u16_at(data: &[u8], offset: usize) -> u16 {
+    u16::from_le_bytes(array_at(data, offset))
+}
+
+fn u64_at(data: &[u8], offset: usize) -> u64 {
+    u64::from_le_bytes(array_at(data, offset))
+}
+
+fn address_at(data: &[u8], offset: usize) -> Address {
+    Address::new_from_array(array_at(data, offset))
+}
+
+fn addresses_at(data: &[u8], offset: usize, count: usize) -> Vec<Address> {
+    (0..count)
+        .map(|index| address_at(data, offset + 32 * index))
+        .collect()
+}
+
+fn run(framework: Framework, keys: &Keys, other_so: &str) -> Outcome {
+    let run = Run::new(framework, keys, other_so);
     let program = run.program;
     let provider = &run.provider;
     let admin = &keys.admin;
@@ -411,17 +563,7 @@ fn run(framework: Framework, keys: &Keys, quasar_so: &str) -> Outcome {
     );
     facts.push(format!("execute returned {returned}"));
 
-    let proposal = fetch_proposal(provider, &run.proposal()).expect("proposal should be readable");
-    let (id, amount, deadline) = (proposal.id, proposal.amount, proposal.deadline);
-    facts.push(format!(
-        "proposal id={id} amount={amount} deadline={deadline} executed={} approvals={:?} \
-         proposer={} recipient={} len={}",
-        bool::from(proposal.executed),
-        proposal.approvals.iter().collect::<Vec<_>>(),
-        proposal.proposer,
-        proposal.recipient,
-        run.data_len(&run.proposal()),
-    ));
+    facts.push(run.proposal_fact());
 
     run.send(
         "close_proposal",
@@ -494,28 +636,13 @@ fn run(framework: Framework, keys: &Keys, quasar_so: &str) -> Outcome {
         .signer(admin),
     );
 
-    let treasury = fetch_treasury(provider, &run.treasury).expect("treasury should be readable");
-    let (threshold, next_id, total_deposited) =
-        (treasury.threshold, treasury.next_id, treasury.total_deposited);
-    let Ok(status) = treasury.status.get() else {
-        panic!("the treasury status should be valid");
-    };
-    facts.push(format!(
-        "treasury admin={} threshold={threshold} status={status:?} next_id={next_id} \
-         total_deposited={total_deposited} members={:?} len={}",
-        treasury.admin,
-        treasury.members.iter().collect::<Vec<_>>(),
-        run.data_len(&run.treasury),
-    ));
+    facts.push(run.treasury_fact());
 
-    for (name, note_id) in [("note_one", keys.note_one), ("note_two", keys.note_two)] {
-        let note = fetch_note(provider, &run.note(note_id)).expect("note should be readable");
-        let (note_id, count) = (note.id, note.count);
-        facts.push(format!(
-            "{name} authority={} id={note_id} count={count} len={}",
-            note.authority,
-            run.data_len(&run.note(note_id)),
-        ));
+    for (name, note_id, resized) in [
+        ("note_one", keys.note_one, false),
+        ("note_two", keys.note_two, true),
+    ] {
+        facts.push(run.note_fact(name, note_id, resized));
     }
 
     facts.push(format!(
@@ -532,84 +659,93 @@ fn run(framework: Framework, keys: &Keys, quasar_so: &str) -> Outcome {
     }
 }
 
-fn verdict(naclac: u64, quasar: u64) -> String {
-    if naclac < quasar {
-        format!("naclac -{}", quasar - naclac)
-    } else if quasar < naclac {
-        format!("quasar -{}", naclac - quasar)
+fn verdict(naclac: u64, other: u64, other_label: &str) -> String {
+    if naclac < other {
+        format!("naclac -{}", other - naclac)
+    } else if other < naclac {
+        format!("{other_label} -{}", naclac - other)
     } else {
         "equal".to_string()
     }
 }
 
-fn table(title: &str, naclac: &Outcome, quasar: &Outcome, pick: impl Fn(&Row) -> u64) {
+fn table(title: &str, naclac: &Outcome, other: &Outcome, pick: impl Fn(&Row) -> u64) {
+    let other_label = other.framework.label();
     println!("\n{title}");
     println!(
         "  {:<16} {:>8} {:>8}   {}",
         "step",
         naclac.framework.label(),
-        quasar.framework.label(),
+        other_label,
         "cheaper"
     );
-    let (mut naclac_total, mut quasar_total) = (0u64, 0u64);
-    let (mut naclac_wins, mut quasar_wins) = (0usize, 0usize);
-    for (n, q) in naclac.rows.iter().zip(&quasar.rows) {
-        assert_eq!(n.step, q.step, "the two runs must send the same steps");
-        let (n_cu, q_cu) = (pick(n), pick(q));
+    let (mut naclac_total, mut other_total) = (0u64, 0u64);
+    let (mut naclac_wins, mut other_wins) = (0usize, 0usize);
+    for (n, o) in naclac.rows.iter().zip(&other.rows) {
+        assert_eq!(n.step, o.step, "the two runs must send the same steps");
+        let (n_cu, o_cu) = (pick(n), pick(o));
         naclac_total += n_cu;
-        quasar_total += q_cu;
-        naclac_wins += usize::from(n_cu < q_cu);
-        quasar_wins += usize::from(q_cu < n_cu);
+        other_total += o_cu;
+        naclac_wins += usize::from(n_cu < o_cu);
+        other_wins += usize::from(o_cu < n_cu);
         println!(
             "  {:<16} {:>8} {:>8}   {}",
             n.step,
             n_cu,
-            q_cu,
-            verdict(n_cu, q_cu)
+            o_cu,
+            verdict(n_cu, o_cu, other_label)
         );
     }
     println!(
         "  {:<16} {:>8} {:>8}   {}",
         "total",
         naclac_total,
-        quasar_total,
-        verdict(naclac_total, quasar_total)
+        other_total,
+        verdict(naclac_total, other_total, other_label)
     );
-    println!("  steps cheaper: naclac {naclac_wins}, quasar {quasar_wins}");
+    println!("  steps cheaper: naclac {naclac_wins}, {other_label} {other_wins}");
 }
 
-#[test]
-#[ignore = "needs QUASAR_TREASURY_SO; run with --ignored"]
-fn treasury_naclac_against_quasar() {
-    let quasar_so = quasar_so_path();
+fn compare_success(other: Framework) {
+    let other_so = other_so_path(other);
     let keys = Keys::new();
-    let naclac = run(Framework::Naclac, &keys, &quasar_so);
-    let quasar = run(Framework::Quasar, &keys, &quasar_so);
+    let naclac = run(Framework::Naclac, &keys, &other_so);
+    let compared = run(other, &keys, &other_so);
 
     assert_eq!(
         naclac.facts,
-        quasar.facts,
+        compared.facts,
         "the two programs must end in the same state"
     );
 
     table(
         "Compute units of the whole transaction (the system program's own cost included)",
         &naclac,
-        &quasar,
+        &compared,
         |row| row.cu,
     );
 
-    let (naclac_size, quasar_size) = (
-        file_size(&naclac_so_path()),
-        file_size(&quasar_so),
-    );
+    let label = other.label();
+    let (naclac_size, other_size) = (file_size(&naclac_so_path()), file_size(&other_so));
     println!("\nBinary size");
     println!(
-        "  naclac {naclac_size} bytes ({:.2} KB)\n  quasar {quasar_size} bytes ({:.2} KB)\n  {}",
+        "  naclac {naclac_size} bytes ({:.2} KB)\n  {label} {other_size} bytes ({:.2} KB)\n  {}",
         naclac_size as f64 / 1024.0,
-        quasar_size as f64 / 1024.0,
-        verdict(naclac_size, quasar_size)
+        other_size as f64 / 1024.0,
+        verdict(naclac_size, other_size, label)
     );
+}
+
+#[test]
+#[ignore = "needs QUASAR_TREASURY_SO; run with --ignored"]
+fn treasury_naclac_against_quasar() {
+    compare_success(Framework::Quasar);
+}
+
+#[test]
+#[ignore = "needs ANCHOR_TREASURY_SO; run with --ignored"]
+fn treasury_naclac_against_anchor() {
+    compare_success(Framework::Anchor);
 }
 
 struct FailureCase {
@@ -618,8 +754,8 @@ struct FailureCase {
     error: String,
 }
 
-fn failure_paths(framework: Framework, keys: &Keys, quasar_so: &str) -> Vec<FailureCase> {
-    let run = Run::new(framework, keys, quasar_so);
+fn failure_paths(framework: Framework, keys: &Keys, other_so: &str) -> Vec<FailureCase> {
+    let run = Run::new(framework, keys, other_so);
     let program = run.program;
     let provider = &run.provider;
     let admin = &keys.admin;
@@ -771,26 +907,34 @@ fn failure_paths(framework: Framework, keys: &Keys, quasar_so: &str) -> Vec<Fail
 #[test]
 #[ignore = "needs QUASAR_TREASURY_SO; run with --ignored"]
 fn treasury_failure_paths_naclac_against_quasar() {
-    let quasar_so = quasar_so_path();
+    compare_failure_paths(Framework::Quasar);
+}
+
+#[test]
+#[ignore = "needs ANCHOR_TREASURY_SO; run with --ignored"]
+fn treasury_failure_paths_naclac_against_anchor() {
+    compare_failure_paths(Framework::Anchor);
+}
+
+fn compare_failure_paths(other: Framework) {
+    let other_so = other_so_path(other);
     let keys = Keys::new();
-    let naclac = failure_paths(Framework::Naclac, &keys, &quasar_so);
-    let quasar = failure_paths(Framework::Quasar, &keys, &quasar_so);
+    let naclac = failure_paths(Framework::Naclac, &keys, &other_so);
+    let compared = failure_paths(other, &keys, &other_so);
+    let label = other.label();
 
     println!("\nCompute units the program consumed before the failure");
-    println!(
-        "  {:<46} {:>8} {:>8}   cheaper",
-        "case", "naclac", "quasar"
-    );
-    for (n, q) in naclac.iter().zip(&quasar) {
-        assert_eq!(n.name, q.name, "the two runs must send the same cases");
+    println!("  {:<46} {:>8} {:>8}   cheaper", "case", "naclac", label);
+    for (n, o) in naclac.iter().zip(&compared) {
+        assert_eq!(n.name, o.name, "the two runs must send the same cases");
         println!(
             "  {:<46} {:>8} {:>8}   {}",
             n.name,
             n.cu,
-            q.cu,
-            verdict(n.cu, q.cu)
+            o.cu,
+            verdict(n.cu, o.cu, label)
         );
         println!("    naclac error: {}", n.error);
-        println!("    quasar error: {}", q.error);
+        println!("    {label} error: {}", o.error);
     }
 }

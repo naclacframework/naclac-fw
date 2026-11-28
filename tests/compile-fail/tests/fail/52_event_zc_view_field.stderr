@@ -1,4 +1,4 @@
-error: Naclac Error: 'ZcString' can't be a field of an #[event]: it is a view into the instruction data and owns no bytes. Use a fixed-size array, or Vec<T>/String with #[event(alloc)].
+error: Naclac Error: 'ZcString' can't be a field of an #[event]: it is a view into the instruction data and owns no bytes. Use a fixed-size array, FixedVec or FixedString.
  --> tests/fail/52_event_zc_view_field.rs:6:15
   |
 6 |     pub note: ZcString,

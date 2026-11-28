@@ -38,7 +38,6 @@ import { toCamelCase } from "../utils/case";
 import {
   parseEventsFromTransaction,
   resolveRpcInnerInstructions,
-  eventFieldLayout,
   type NaclacInnerInstruction,
   type NaclacRpcResult,
 } from "../events";
@@ -80,7 +79,6 @@ export class MethodsBuilder {
   private readonly args: Record<string, unknown>;
   private readonly provider: NaclacProvider;
   private readonly isZeroCopy: boolean;
-  private readonly allocEvents: readonly string[];
   private programId: Address;
 
   private _userAccounts: Record<string, Address> = {};
@@ -99,14 +97,12 @@ export class MethodsBuilder {
     args: Record<string, unknown>,
     provider: NaclacProvider,
     isZeroCopy = false,
-    allocEvents: readonly string[] = [],
   ) {
     this.idl = idl;
     this.ixDef = ixDef;
     this.args = args;
     this.provider = provider;
     this.isZeroCopy = isZeroCopy;
-    this.allocEvents = allocEvents;
     this.programId = address(idl.address);
   }
 
@@ -553,7 +549,7 @@ export class MethodsBuilder {
           this.idl,
           eventName,
           { logs, innerInstructions, eventAuthority },
-          eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+          this.isZeroCopy,
         );
       },
     };

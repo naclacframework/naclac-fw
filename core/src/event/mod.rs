@@ -228,8 +228,7 @@ mod event_frame_kani_proofs {
 /// ++ its fields`, with the fields in the same encoding its plain `emit()`
 /// logs. A fixed-size zero-copy event, or a Wincode event whose encoding always
 /// has the same size, is joined on the stack; an event with dynamic fields
-/// (Borsh, a dynamic Wincode event, `#[event(alloc)]`) needs its one heap
-/// buffer anyway.
+/// (Borsh, a dynamic Wincode event) needs its one heap buffer anyway.
 pub trait EventCpiPayload {
     fn with_cpi_payload<R>(&self, tag: &[u8], send: impl FnOnce(&[u8]) -> R) -> R;
 }

@@ -40,14 +40,15 @@ pub fn update_fee_config(
 
     validate_fee_tiers(&cfg.fee_tiers[..cfg.fee_tiers_len as usize])?;
 
-    // `UpdateFeeConfigEvent` needs an owned `Vec<FeeTier>`: `#[event(alloc)]`
-    // only recognizes Vec/String/Option field kinds, not `ZcVec`/`Span`.
-    let fee_tiers: Vec<FeeTier> = fee_tiers.iter().collect();
+    let mut event_tiers = FixedVec::<FeeTier, MAX_FEE_TIERS>::new();
+    for tier in fee_tiers.iter() {
+        event_tiers.try_push(tier)?;
+    }
     emit!(UpdateFeeConfigEvent {
         timestamp,
         admin: ctx.accounts.admin.address(),
         fee_config: ctx.accounts.fee_config.address(),
-        fee_tiers,
+        fee_tiers: event_tiers,
         flat_fees,
     });
 

@@ -220,18 +220,26 @@ pub fn emit_log(ctx: Context<Mutate>) -> Result {
         scores: lab.scores,
         name: lab.name,
     });
+    let mut colors = FixedVec::<ZcEnum<Color>, 2>::new();
+    colors.try_extend_from_slice(&[ZcEnum::<Color>::new(Color::Red), lab.color])?;
+    let mut note = FixedString::<8>::new();
+    note.try_set("lab")?;
+    let mut values = FixedVec::<u64, 3>::new();
+    values.try_extend_from_slice(&[1, 2, 3])?;
     emit!(LabLog {
         head: lab.counter,
-        colors: Vec::from([ZcEnum::<Color>::new(Color::Red), lab.color]),
-        maybe: lab.maybe_color.get(),
-        note: String::from("lab"),
-        values: Vec::from([1u64, 2, 3]),
+        colors,
+        maybe: lab.maybe_color,
+        note,
+        values,
         action: lab.action,
     });
+    let mut text = FixedString::<8>::new();
+    text.try_set("text")?;
     emit!(TextLog {
         scores: lab.scores,
         name: lab.name,
-        note: String::from("text"),
+        note: text,
     });
     Ok(())
 }
@@ -253,12 +261,18 @@ pub fn emit_cpi_log(ctx: Context<EmitCpiLog>) -> Result {
         signed: lab.signed,
         wide: lab.wide,
     });
+    let mut colors = FixedVec::<ZcEnum<Color>, 2>::new();
+    colors.try_extend_from_slice(&[ZcEnum::<Color>::new(Color::Red), lab.color])?;
+    let mut note = FixedString::<8>::new();
+    note.try_set("cpi")?;
+    let mut values = FixedVec::<u64, 3>::new();
+    values.try_extend_from_slice(&[4, 5])?;
     emit_cpi!(LabLog {
         head: lab.counter,
-        colors: Vec::from([ZcEnum::<Color>::new(Color::Red), lab.color]),
-        maybe: lab.maybe_color.get(),
-        note: String::from("cpi"),
-        values: Vec::from([4u64, 5]),
+        colors,
+        maybe: lab.maybe_color,
+        note,
+        values,
         action: lab.action,
     });
     Ok(())

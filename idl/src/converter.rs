@@ -67,8 +67,8 @@ fn types_list(idl: &Idl) -> Result<Vec<Value>, String> {
 }
 
 /// The IDL to upload on chain. Every key of the local IDL stays where it is,
-/// except `accounts` and `events` keep only each entry's name, discriminator
-/// and (for an event) `alloc`, and `definedTypes` becomes `types`, holding
+/// except `accounts` and `events` keep only each entry's name and
+/// discriminator, and `definedTypes` becomes `types`, holding
 /// those accounts' and events' fields too. `metadata.spec` is added.
 pub fn to_onchain_idl(idl: &Idl) -> Result<Value, String> {
     let Value::Object(root) = serialize(idl)? else {
@@ -95,15 +95,7 @@ pub fn to_onchain_idl(idl: &Idl) -> Result<Value, String> {
             "events" => Value::Array(
                 idl.events
                     .iter()
-                    .map(|e| {
-                        let mut entry = Map::new();
-                        entry.insert("name".to_string(), Value::from(e.name.as_str()));
-                        entry.insert("discriminator".to_string(), json!(e.discriminator));
-                        if e.alloc {
-                            entry.insert("alloc".to_string(), Value::Bool(true));
-                        }
-                        Value::Object(entry)
-                    })
+                    .map(|e| json!({ "name": e.name, "discriminator": e.discriminator }))
                     .collect(),
             ),
             "definedTypes" => {
@@ -161,8 +153,8 @@ fn local_account(entry: &Value, types: &mut Vec<Value>) -> Result<Value, String>
     Ok(Value::Object(local))
 }
 
-/// An event's local form: its on-chain `name`, `discriminator` and `alloc`,
-/// plus `docs` and `fields` from its entry in `types`.
+/// An event's local form: its on-chain `name` and `discriminator`, plus `docs`
+/// and `fields` from its entry in `types`.
 fn local_event(entry: &Value, types: &mut Vec<Value>) -> Result<Value, String> {
     let name = entry_name(entry)?;
     let ty = take_type(types, name)
@@ -173,9 +165,6 @@ fn local_event(entry: &Value, types: &mut Vec<Value>) -> Result<Value, String> {
         local.insert("docs".to_string(), docs.clone());
     }
     local.insert("discriminator".to_string(), entry["discriminator"].clone());
-    if let Some(alloc) = entry.get("alloc") {
-        local.insert("alloc".to_string(), alloc.clone());
-    }
     local.insert("fields".to_string(), ty["type"]["fields"].clone());
     Ok(Value::Object(local))
 }
@@ -238,8 +227,7 @@ mod tests {
             }],
             "accounts": [{"name": "Acc", "docs": ["an account"], "discriminator": [2], "type": {"kind": "struct", "fields": [{"name": "x", "type": "publicKey"}]}}],
             "events": [
-                {"name": "Ev", "discriminator": [3], "fields": [{"name": "y", "type": "u64"}]},
-                {"name": "EvAlloc", "docs": ["packed"], "discriminator": [4], "alloc": true, "fields": [{"name": "w", "type": "u8"}]}
+                {"name": "Ev", "docs": ["an event"], "discriminator": [3], "fields": [{"name": "y", "type": "u64"}]}
             ],
             "errors": [{"code": 6000, "name": "Bad", "msg": "it is bad"}, {"code": 6001, "name": "Silent"}],
             "constants": [{"name": "C", "type": "bytes", "value": "[1, 2]"}],
@@ -269,10 +257,7 @@ mod tests {
         );
         assert_eq!(
             onchain["events"],
-            json!([
-                { "name": "Ev", "discriminator": [3] },
-                { "name": "EvAlloc", "discriminator": [4], "alloc": true }
-            ])
+            json!([{ "name": "Ev", "discriminator": [3] }])
         );
     }
 
@@ -282,12 +267,12 @@ mod tests {
         assert!(onchain.get("definedTypes").is_none());
         let types = onchain["types"].as_array().unwrap();
         let names: Vec<&str> = types.iter().map(|t| t["name"].as_str().unwrap()).collect();
-        assert_eq!(names, ["Acc", "Ev", "EvAlloc", "Plain", "Kind"]);
+        assert_eq!(names, ["Acc", "Ev", "Plain", "Kind"]);
         assert_eq!(types[0]["type"]["fields"][0]["name"], Value::from("x"));
         assert_eq!(types[0]["docs"], json!(["an account"]));
         assert_eq!(types[1]["type"]["kind"], Value::from("struct"));
         assert_eq!(types[1]["type"]["fields"][0]["name"], Value::from("y"));
-        assert_eq!(types[4]["type"]["kind"], Value::from("enum"));
+        assert_eq!(types[3]["type"]["kind"], Value::from("enum"));
     }
 
     #[test]

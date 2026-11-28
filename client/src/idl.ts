@@ -113,8 +113,6 @@ export interface IdlEventDef {
    * logs: `sha256("event:<EventName>")[0..8]` unless the event declares one.
    */
   readonly discriminator?: readonly number[];
-  /** True for an `#[event(alloc)]` event, whose fields are written back to back with no alignment gaps. */
-  readonly alloc?: boolean;
   readonly fields: readonly IdlEventField[];
 }
 

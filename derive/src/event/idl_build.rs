@@ -12,16 +12,13 @@ use syn::Type;
 /// `create_type()`), which both returns this event's shape and recursively
 /// chases `NaclacIdlBuild::create_type()` for every field that references a
 /// real defined type, inserting each into the shared `types` map the caller
-/// passes in. Shared by both the plain and `#[event(alloc)]` branches: the
-/// field types are the same in either, and `alloc` becomes the event's
-/// `alloc` flag.
+/// passes in.
 #[cfg(feature = "idl-build")]
 pub(super) fn idl_build_event_impl(
     struct_name: &syn::Ident,
     struct_attrs: &[syn::Attribute],
     fields: &syn::Fields,
     disc: &[u8],
-    alloc: bool,
 ) -> proc_macro2::TokenStream {
     let struct_docs = naclac_syn::parser::extract_docs(struct_attrs);
     let mut field_ts_list = Vec::new();
@@ -62,7 +59,6 @@ pub(super) fn idl_build_event_impl(
                     name: #struct_name_str.into(),
                     docs: vec![#(#struct_docs.into()),*],
                     discriminator: vec![#(#disc),*],
-                    alloc: #alloc,
                     fields: vec![#(#field_ts_list),*],
                 }
             }
@@ -91,7 +87,6 @@ pub(super) fn idl_build_event_impl(
     _struct_attrs: &[syn::Attribute],
     _fields: &syn::Fields,
     _disc: &[u8],
-    _alloc: bool,
 ) -> proc_macro2::TokenStream {
     quote! {}
 }

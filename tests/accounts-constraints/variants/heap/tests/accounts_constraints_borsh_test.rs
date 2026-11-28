@@ -2,7 +2,9 @@ use naclac_client::*;
 use accounts_constraints_borsh_client::{
     fetch_ledger, fetch_note, fetch_vault,
     get_ledger_pda, get_note_pda, get_seeded_pda, get_vault_pda,
+    LEDGER_DISCRIMINATOR,
     instructions::{
+        build_init_if_needed_keyed, build_init_keyed, InitIfNeededKeyedAccounts, InitKeyedAccounts,
         build_check_min_value, build_check_min_value_unmet, CheckMinValueAccounts,
         CheckMinValueUnmetAccounts,
         build_check_address, build_check_address_relational, build_check_duplicate_mut,
@@ -111,6 +113,106 @@ fn init_if_needed_second_call_does_not_overwrite() {
         ledger.value, 42,
         "second init_if_needed call must not re-initialize/overwrite existing data"
     );
+}
+
+fn planted_ledger(
+    provider: &NaclacProvider,
+    owner: &Address,
+    discriminator_set: bool,
+) -> Keypair {
+    let ledger = Keypair::new();
+    let mut data = vec![0u8; 64];
+    if discriminator_set {
+        data[..LEDGER_DISCRIMINATOR.len()].copy_from_slice(LEDGER_DISCRIMINATOR);
+    }
+    provider
+        .set_account(&ledger.address(), data, owner, 10_000_000)
+        .expect("planting the ledger account should succeed");
+    ledger
+}
+
+/// `init_if_needed` on an existing keypair account: one owned by another
+/// program is rejected even though it carries this program's discriminator,
+/// and one owned by this program is accepted and loaded.
+#[test]
+fn init_if_needed_accepts_only_an_existing_account_owned_by_the_program() {
+    let provider = setup();
+    let foreign_owner = Keypair::new().address();
+
+    let foreign = planted_ledger(&provider, &foreign_owner, true);
+    let rejected = build_init_if_needed_keyed(
+        &provider,
+        PROGRAM_ID,
+        InitIfNeededKeyedAccounts {
+            payer: provider.payer.address(),
+            ledger: foreign.address(),
+            system_program: Address::default(),
+        },
+    )
+    .signer(&foreign)
+    .send_and_confirm();
+    // `InitIfNeededKeyed { payer, ledger, .. }` — `ledger` is field index 1 ->
+    // 10000 + 1*100 + ConstraintOwner(4) = 10104.
+    assert_custom_code(rejected, 10104);
+
+    let own = planted_ledger(&provider, &PROGRAM_ID, true);
+    build_init_if_needed_keyed(
+        &provider,
+        PROGRAM_ID,
+        InitIfNeededKeyedAccounts {
+            payer: provider.payer.address(),
+            ledger: own.address(),
+            system_program: Address::default(),
+        },
+    )
+    .signer(&own)
+    .send_and_confirm()
+    .expect("an existing account owned by the program must be accepted");
+    let ledger = fetch_ledger(&provider, &own.address()).expect("ledger should be readable");
+    let value = ledger.value;
+    assert_eq!(value, 1);
+}
+
+/// `init` on an account a client already allocated: one holding zeroed data
+/// and owned by this program is initialized in place, and one owned by
+/// another program is rejected.
+#[test]
+fn init_adopts_only_a_zeroed_account_owned_by_the_program() {
+    let provider = setup();
+    let foreign_owner = Keypair::new().address();
+
+    let foreign = planted_ledger(&provider, &foreign_owner, false);
+    let rejected = build_init_keyed(
+        &provider,
+        PROGRAM_ID,
+        InitKeyedAccounts {
+            payer: provider.payer.address(),
+            ledger: foreign.address(),
+            system_program: Address::default(),
+        },
+    )
+    .signer(&foreign)
+    .send_and_confirm();
+    // `InitKeyed { payer, ledger, .. }` — `ledger` is field index 1 ->
+    // 10000 + 1*100 + ConstraintOwner(4) = 10104.
+    assert_custom_code(rejected, 10104);
+
+    let own = planted_ledger(&provider, &PROGRAM_ID, false);
+    build_init_keyed(
+        &provider,
+        PROGRAM_ID,
+        InitKeyedAccounts {
+            payer: provider.payer.address(),
+            ledger: own.address(),
+            system_program: Address::default(),
+        },
+    )
+    .signer(&own)
+    .send_and_confirm()
+    .expect("a zeroed account owned by the program must be initialized in place");
+    let ledger = fetch_ledger(&provider, &own.address()).expect("ledger should be readable");
+    let value = ledger.value;
+    assert_eq!(value, 1);
 }
 
 /// `signer`: a required signature that isn't provided must be rejected;

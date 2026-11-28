@@ -1,7 +1,6 @@
 import type { NaclacIdl } from "./idl";
 import { resolveDiscriminator } from "./utils/hash";
 import { decodeAccountData } from "./coder/instruction";
-import type { StructLayout } from "./coder/types";
 import { decodeBase64 } from "./utils/common";
 import { getBase58Codec } from "@solana/codecs";
 
@@ -18,7 +17,7 @@ export function tryDecodeEventLog(
   discriminator: Uint8Array,
   log: string,
   definedTypes?: readonly any[],
-  isZeroCopy: StructLayout = false,
+  isZeroCopy = false,
 ): any | null {
   if (!log.startsWith("Program data: ")) return null;
 
@@ -67,7 +66,7 @@ export function parseEventsFromLogs<T = any>(
   idl: NaclacIdl,
   eventName: string,
   logs: readonly string[],
-  isZeroCopy: StructLayout = false,
+  isZeroCopy = false,
 ): T[] {
   const eventDef = idl.events?.find((e) => e.name === eventName);
   if (!eventDef) {
@@ -83,22 +82,6 @@ export function parseEventsFromLogs<T = any>(
   }
 
   return results;
-}
-
-/**
- * The wire layout `eventName`'s fields are decoded with. In a zero-copy
- * program a plain `#[event]` is a fixed `repr(C)` struct (`true`), but an
- * `#[event(alloc)]` one (`allocEvents`, baked into the generated client) is
- * written field by field with `Pod` values inside (`"alloc"`). A Borsh
- * program's events are always Borsh (`false`).
- */
-export function eventFieldLayout(
-  isZeroCopy: boolean,
-  allocEvents: readonly string[],
-  eventName: string,
-): StructLayout {
-  if (!isZeroCopy) return false;
-  return allocEvents.includes(eventName) ? "alloc" : true;
 }
 
 /**
@@ -175,7 +158,7 @@ export function parseEventsFromInnerInstructions<T = any>(
   eventName: string,
   innerInstructions: readonly NaclacInnerInstruction[],
   eventAuthority: string,
-  isZeroCopy: StructLayout = false,
+  isZeroCopy = false,
 ): T[] {
   const eventDef = idl.events?.find((e) => e.name === eventName);
   if (!eventDef) {
@@ -222,7 +205,7 @@ export function parseEventsFromTransaction<T = any>(
     innerInstructions?: readonly NaclacInnerInstruction[];
     eventAuthority?: string;
   },
-  isZeroCopy: StructLayout = false,
+  isZeroCopy = false,
 ): T[] {
   const fromLogs = parseEventsFromLogs<T>(idl, eventName, tx.logs, isZeroCopy);
   if (!tx.innerInstructions || tx.eventAuthority === undefined) return fromLogs;

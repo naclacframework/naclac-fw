@@ -87,11 +87,11 @@ pub struct MixedEvent {
     pub color: ZcEnum<Color>,
 }
 
-#[event(alloc)]
+#[event]
 pub struct StateLog {
     pub head: u8,
     pub color: ZcEnum<Color>,
-    pub colors: Vec<ZcEnum<Color>>,
-    pub maybe: Option<ZcEnum<Color>>,
+    pub colors: FixedVec<ZcEnum<Color>, 2>,
+    pub maybe: Opt<ZcEnum<Color>>,
     pub action: ZcEnum<Action>,
 }

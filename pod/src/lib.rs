@@ -56,9 +56,7 @@ pub use {
     unaligned::Unaligned,
     validate::PodValidate,
     zc_enum::{
-        decode_pod, decode_validated, encode_pod, event_bytes_of, event_field_default,
-        event_slice_bytes, ZcCodec, ZcEnum, ZcEnumKind, ZcEventDefault, ZcEventField, ZcField,
-        ZcStorage,
+        decode_pod, decode_validated, encode_pod, ZcCodec, ZcEnum, ZcEnumKind, ZcField, ZcStorage,
     },
     zc_vec::{ZcString, ZcVec, ZcVecIter},
 };

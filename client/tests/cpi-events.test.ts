@@ -11,7 +11,6 @@
 import { strict as assert } from "assert";
 import { getBase58Codec } from "@solana/codecs";
 import {
-  eventFieldLayout,
   parseEventsFromInnerInstructions,
   parseEventsFromTransaction,
   resolveRpcInnerInstructions,
@@ -134,81 +133,6 @@ describe("self-CPI events", () => {
       values(parseEventsFromTransaction(idl, "Counter", { logs: [log], innerInstructions: calls })),
       [10n],
     );
-  });
-});
-
-describe("eventFieldLayout", () => {
-  it("is fixed-layout for a plain event and alloc for an alloc event in a zero-copy program", () => {
-    assert.equal(eventFieldLayout(true, ["Sized"], "Counter"), true);
-    assert.equal(eventFieldLayout(true, ["Sized"], "Sized"), "alloc");
-    assert.equal(eventFieldLayout(false, [], "Counter"), false);
-    assert.equal(eventFieldLayout(false, ["Sized"], "Sized"), false);
-  });
-});
-
-describe("alloc event holding a defined struct", () => {
-  const paddedIdl = {
-    ...idl,
-    events: [
-      {
-        name: "Nested",
-        discriminator: DISCRIMINATOR,
-        fields: [
-          { name: "head", type: "u8" },
-          { name: "inner", type: { defined: "Padded" } },
-          { name: "many", type: { vec: { defined: "Padded" } } },
-          { name: "maybe", type: { option: { defined: "Padded" } } },
-          { name: "note", type: "string" },
-        ],
-      },
-    ],
-    definedTypes: [
-      {
-        name: "Padded",
-        type: {
-          kind: "struct",
-          fields: [
-            { name: "kind", type: "u8" },
-            { name: "amount", type: "u64" },
-          ],
-        },
-      },
-    ],
-  } as unknown as NaclacIdl;
-
-  const packed = (kind: number, amount: bigint) => [kind, ...u64(amount)];
-  const u32 = (value: number) => [value, 0, 0, 0];
-
-  it("reads each nested value in its packed 9-byte layout, with no padding", () => {
-    const bytes = Uint8Array.from([
-      ...TAG,
-      ...DISCRIMINATOR,
-      5,
-      ...packed(3, 0x1122334455667788n),
-      ...u32(2),
-      ...packed(9, 42n),
-      ...packed(3, 7n),
-      1,
-      ...packed(4, 8n),
-      ...u32(2),
-      104,
-      105,
-    ]);
-    const [event] = parseEventsFromInnerInstructions(
-      paddedIdl,
-      "Nested",
-      [call(PROGRAM, AUTHORITY, bytes)],
-      AUTHORITY,
-      "alloc",
-    );
-    assert.equal(event.head, 5);
-    assert.deepEqual(event.inner, { kind: 3, amount: 0x1122334455667788n });
-    assert.deepEqual(event.many, [
-      { kind: 9, amount: 42n },
-      { kind: 3, amount: 7n },
-    ]);
-    assert.deepEqual(event.maybe, { __option: "Some", value: { kind: 4, amount: 8n } });
-    assert.equal(event.note, "hi");
   });
 });
 

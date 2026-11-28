@@ -111,15 +111,16 @@ pub fn emit_state_changed(ctx: Context<Mutate>) -> Result {
 
 pub fn emit_state_log(ctx: Context<Mutate>) -> Result {
     let state = &ctx.accounts.state;
-    let colors = Vec::from([
+    let mut colors = FixedVec::<ZcEnum<Color>, 2>::new();
+    colors.try_extend_from_slice(&[
         ZcEnum::<Color>::new(Color::Red),
         ZcEnum::<Color>::new(Color::Blue),
-    ]);
+    ])?;
     emit!(StateLog {
         head: 7,
         color: state.color,
         colors,
-        maybe: Some(state.color),
+        maybe: Opt::some(state.color),
         action: state.action,
     });
     Ok(())

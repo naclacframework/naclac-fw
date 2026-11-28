@@ -47,7 +47,7 @@ pub fn expand_seeds_derive(item: TokenStream) -> TokenStream {
 /// `#[cfg(feature = "X")]` only ever sees the crate currently being
 /// compiled's own declared features, never a dependency's.
 pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = match naclac_syn::discriminator::parse_macro_args(attr.into(), false) {
+    let args = match naclac_syn::discriminator::parse_macro_args(attr.into()) {
         Ok(args) => args,
         Err(err) => return err.to_compile_error().into(),
     };

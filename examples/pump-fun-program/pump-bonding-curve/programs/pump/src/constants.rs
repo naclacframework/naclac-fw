@@ -16,6 +16,11 @@ pub const CREATOR_VAULT_SEED: &[u8] = b"creator-vault";
 // Must match `pump_fees`'s own `MAX_SHAREHOLDERS` exactly -- this program
 // reads `sharing_config` accounts `pump_fees` creates.
 pub const MAX_SHAREHOLDERS: usize = 30;
+/// Token Metadata's limits on a mint's name, symbol and URI.
+pub const MAX_NAME_LEN: usize = 32;
+pub const MAX_SYMBOL_LEN: usize = 10;
+pub const MAX_URI_LEN: usize = 200;
+pub const MAX_IX_NAME_LEN: usize = 32;
 pub const WSOL_MINT: Address = address!("So11111111111111111111111111111111111111112");
 
 pub const GLOBAL_VOLUME_ACCUMULATOR_SEED: &[u8] = b"global_volume_accumulator";

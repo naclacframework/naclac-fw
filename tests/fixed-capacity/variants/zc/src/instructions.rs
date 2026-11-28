@@ -94,6 +94,14 @@ pub fn clear_all(ctx: Context<Mutate>) -> Result {
     Ok(())
 }
 
+pub fn get_scores(ctx: Context<Mutate>) -> Result<FixedVec<u64, 4>> {
+    Ok(ctx.accounts.profile.scores)
+}
+
+pub fn get_name(ctx: Context<Mutate>) -> Result<FixedString<16>> {
+    Ok(ctx.accounts.profile.name)
+}
+
 pub fn set_roster(
     ctx: Context<Mutate>,
     scores: FixedVec<u64, 4>,

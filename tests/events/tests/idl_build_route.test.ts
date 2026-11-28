@@ -51,18 +51,9 @@ for (const [name, idl] of programs) {
     });
 
     it("carries instruction and event doc comments", () => {
-      assert.ok(instruction(idl, "emit_via_self_cpi_sized").docs.length > 0);
-      const sized = idl.events.find((e: any) => e.name === "SizedPayload");
-      assert.ok(sized.docs.length > 0);
+      assert.ok(instruction(idl, "emit_via_self_cpi_baseline").docs.length > 0);
+      const counter = idl.events.find((e: any) => e.name === "CounterIncremented");
+      assert.ok(counter.docs.length > 0);
     });
   });
 }
-
-describe("idl-build IDL (events, padded defined type)", () => {
-  it("carries the doc comments of an event and of a defined type", () => {
-    const nested = (eventsIdl as any).events.find((e: any) => e.name === "NestedPadded");
-    assert.ok(nested.docs.length > 0);
-    const padded = (eventsIdl as any).definedTypes.find((t: any) => t.name === "PaddedInner");
-    assert.ok(padded.docs.length > 0);
-  });
-});

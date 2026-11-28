@@ -16,19 +16,19 @@ describe("emit_cpi! events (kit client, litesvm)", () => {
     payer = await naclac.loadNodeWallet();
   });
 
-  const cases: { name: string; make: () => any; alloc: boolean }[] = [
-    { name: "borsh", make: () => new EventsBorshClient("litesvm", payer), alloc: false },
-    { name: "pinocchio zero-copy", make: () => new EventsClient("litesvm", payer), alloc: true },
-    { name: "solana zero-copy", make: () => new EventsZcClient("litesvm", payer), alloc: true },
+  const cases: { name: string; make: () => any }[] = [
+    { name: "borsh", make: () => new EventsBorshClient("litesvm", payer) },
+    { name: "pinocchio zero-copy", make: () => new EventsClient("litesvm", payer) },
+    { name: "solana zero-copy", make: () => new EventsZcClient("litesvm", payer) },
   ];
 
-  for (const { name, make, alloc } of cases) {
+  for (const { name, make } of cases) {
     it(`${name}: decodes the CPI-emitted events from .rpc()`, async () => {
       const client = make();
       const result = await client.eventCpiEmit({}, { program: client.programId }).rpc();
 
       assert.ok(result.innerInstructions, "litesvm must supply inner instructions");
-      assert.equal(result.innerInstructions.length, alloc ? 2 : 1);
+      assert.equal(result.innerInstructions.length, 1);
       for (const call of result.innerInstructions) {
         assert.equal(call.programId, client.programId);
         assert.equal(call.stackHeight, 2);
@@ -44,30 +44,6 @@ describe("emit_cpi! events (kit client, litesvm)", () => {
       const fromTransaction = await client.parseCounterIncrementedEventsFromTransaction(result);
       assert.equal(fromTransaction.length, 1);
       assert.equal(Number(fromTransaction[0].newCount), 7);
-
-      if (alloc) {
-        const payloads = result.parseEvents("SizedPayload");
-        assert.equal(payloads.length, 1);
-        assert.deepEqual(Array.from(payloads[0].data as ArrayLike<number>), [1, 2, 3]);
-      }
     });
   }
-
-  it("pinocchio zero-copy: decodes an alloc event holding a padded defined type", async () => {
-    const client = new EventsClient("litesvm", payer);
-    const result = await client.eventCpiEmitNested({}, { program: client.programId }).rpc();
-
-    const events = result.parseEvents("NestedPadded");
-    assert.equal(events.length, 1);
-    const event = events[0];
-    assert.equal(Number(event.head), 5);
-    assert.equal(Number(event.inner.kind), 3);
-    assert.equal(BigInt(event.inner.amount), 0x1122334455667788n);
-    assert.equal(event.many.length, 2);
-    assert.equal(Number(event.many[0].kind), 9);
-    assert.equal(BigInt(event.many[0].amount), 42n);
-    assert.equal(Number(event.many[1].kind), 3);
-    assert.equal(BigInt(event.many[1].amount), 0x1122334455667788n);
-    assert.equal(event.note, "hi");
-  });
 });

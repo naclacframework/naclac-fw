@@ -206,64 +206,6 @@ function getBorshStructCodec(fields: any[], definedTypes?: readonly any[]): Nacl
 }
 
 /**
- * Wire layout of a top-level field list: `true` = zero-copy C layout, `false`
- * = Borsh, `"alloc"` = an `#[event(alloc)]` event (see `getAllocStructCodec`).
- */
-export type StructLayout = boolean | "alloc";
-
-/**
- * Codec for an `#[event(alloc)]` event's fields: the fields themselves are
- * written back to back with no alignment gaps (`String`/`Vec` u32
- * length-prefixed, `Option` u8-tagged), but every value inside them —
- * a plain field, a `Vec` element, an `Option` payload — is a packed `Pod`
- * value in its zero-copy layout.
- */
-function getAllocStructCodec(fields: any[], definedTypes?: readonly any[]): NaclacCodec {
-  const fieldCodec = (type: any): NaclacCodec => {
-    if (typeof type === "object" && type !== null) {
-      if ("vec" in type) {
-        return getArrayCodec(getIdlCodec(type.vec, definedTypes, true) as any, {
-          size: getU32Codec(),
-        }) as unknown as NaclacCodec;
-      }
-      if ("option" in type) {
-        return getOptionCodec(getIdlCodec(type.option, definedTypes, true) as any, {
-          prefix: getU8Codec(),
-        }) as unknown as NaclacCodec;
-      }
-    }
-    return getIdlCodec(type, definedTypes, true);
-  };
-  return {
-    encode(value: any): Uint8Array {
-      const valObj = (value ?? {}) as Record<string, any>;
-      const parts = fields.map((f) => fieldCodec(f.type).encode(valObj[toCamelCase(f.name)]));
-      const buffer = new Uint8Array(parts.reduce((sum, p) => sum + p.length, 0));
-      let off = 0;
-      for (const part of parts) {
-        buffer.set(part, off);
-        off += part.length;
-      }
-      return buffer;
-    },
-    decode(bytes: Uint8Array): any {
-      const [val] = this.read(bytes, 0);
-      return val;
-    },
-    read(bytes: Uint8Array, offset: number): [any, number] {
-      const result: Record<string, any> = {};
-      let off = offset;
-      for (const f of fields) {
-        const [val, newOff] = fieldCodec(f.type).read(bytes, off);
-        result[toCamelCase(f.name)] = val;
-        off = newOff;
-      }
-      return [result, off];
-    },
-  };
-}
-
-/**
  * A named field list's own codec — for a *top-level* struct-shaped field
  * list (an account's own fields, an event's own fields), not a nested
  * `{"defined": X}` reference. Exported so callers like `decodeAccountData`
@@ -273,9 +215,8 @@ function getAllocStructCodec(fields: any[], definedTypes?: readonly any[]): Nacl
 export function getStructFieldsCodec(
   fields: any[],
   definedTypes: readonly any[] | undefined,
-  layout: StructLayout
+  layout: boolean
 ): NaclacCodec {
-  if (layout === "alloc") return getAllocStructCodec(fields, definedTypes);
   return layout ? getStructCodec(fields, definedTypes) : getBorshStructCodec(fields, definedTypes);
 }
 
@@ -600,7 +541,7 @@ function isVariableArgType(type: any): boolean {
  * are packed back to back with no alignment padding between them.
  *
  * - `Vec<T>` / `ZcVec<T>`: a u32 LE *byte* length, then each element in its
- *   zero-copy layout (not an element count, unlike an `#[event(alloc)]`).
+ *   zero-copy layout (not an element count).
  * - `String` / `ZcString`: a u32 LE byte length, then UTF-8.
  * - `Option<T>`: a one-byte tag, then `T`'s bytes — zeroes of `T`'s size when
  *   `None`, so the argument always occupies `1 + size_of::<T>()` bytes.

@@ -46,9 +46,12 @@ pub fn create_social_fee_pda(
     pda.user_id_len = user_id.len() as u32;
     pda.platform = platform;
 
+    let mut event_user_id = FixedString::<20>::new();
+    event_user_id.try_set(user_id.as_str())?;
+
     emit!(SocialFeePdaCreated {
         timestamp,
-        user_id: String::from(user_id.as_str()),
+        user_id: event_user_id,
         platform,
         social_fee_pda: ctx.accounts.social_fee_pda.address(),
         created_by: ctx.accounts.payer.address(),

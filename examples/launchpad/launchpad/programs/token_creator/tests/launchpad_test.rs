@@ -148,7 +148,7 @@ impl Scenario {
     /// sorts below the new mint exactly when `quote_below_mint` is set.
     fn new(quote_program: Address, quote_below_mint: bool) -> Scenario {
         let payer = load_node_wallet().expect("Failed to load local Solana keypair");
-        let provider = NaclacProvider::new("devnet", payer)
+        let provider = NaclacProvider::new("litesvm", payer)
             .expect("Failed to construct NaclacProvider");
         let owner = provider.payer.address();
 

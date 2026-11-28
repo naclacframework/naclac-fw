@@ -146,18 +146,13 @@ pub fn parse_override_expr(expr: &syn::Expr) -> syn::Result<Vec<u8>> {
 /// Arguments accepted by `#[account(..)]` and `#[event(..)]`.
 #[derive(Debug, Default)]
 pub struct MacroArgs {
-    pub alloc: bool,
     pub discriminator: Option<Vec<u8>>,
 }
 
-/// Parses the comma-separated argument list of `#[account(..)]` (pass
-/// `allow_alloc = false`) or `#[event(..)]` (`allow_alloc = true`). Empty
-/// tokens are valid and yield the defaults. Unknown or repeated arguments are
-/// errors.
-pub fn parse_macro_args(
-    tokens: proc_macro2::TokenStream,
-    allow_alloc: bool,
-) -> syn::Result<MacroArgs> {
+/// Parses the comma-separated argument list of `#[account(..)]` or
+/// `#[event(..)]`. Empty tokens are valid and yield the defaults. Unknown or
+/// repeated arguments are errors.
+pub fn parse_macro_args(tokens: proc_macro2::TokenStream) -> syn::Result<MacroArgs> {
     use syn::parse::Parser;
 
     let mut args = MacroArgs::default();
@@ -168,15 +163,6 @@ pub fn parse_macro_args(
         .parse2(tokens)?;
     for meta in metas {
         match meta {
-            syn::Meta::Path(path) if allow_alloc && path.is_ident("alloc") => {
-                if args.alloc {
-                    return Err(syn::Error::new_spanned(
-                        path,
-                        "Naclac Error: duplicate `alloc` argument.",
-                    ));
-                }
-                args.alloc = true;
-            }
             syn::Meta::NameValue(nv) if nv.path.is_ident("discriminator") => {
                 if args.discriminator.is_some() {
                     return Err(syn::Error::new_spanned(
@@ -187,16 +173,9 @@ pub fn parse_macro_args(
                 args.discriminator = Some(parse_override_expr(&nv.value)?);
             }
             other => {
-                let accepted = if allow_alloc {
-                    "`alloc` and `discriminator = ..`"
-                } else {
-                    "`discriminator = ..`"
-                };
                 return Err(syn::Error::new_spanned(
                     other,
-                    format!(
-                        "Naclac Error: unknown argument; the accepted arguments are {accepted}."
-                    ),
+                    "Naclac Error: unknown argument; the accepted arguments are `discriminator = ..`.",
                 ));
             }
         }
@@ -206,12 +185,12 @@ pub fn parse_macro_args(
 
 /// `parse_macro_args` applied to an attribute as written in source: a
 /// bare `#[account]` / `#[event]` yields the defaults.
-pub fn macro_args_of(attr: &syn::Attribute, allow_alloc: bool) -> syn::Result<MacroArgs> {
+pub fn macro_args_of(attr: &syn::Attribute) -> syn::Result<MacroArgs> {
     let tokens = match &attr.meta {
         syn::Meta::List(list) => list.tokens.clone(),
         _ => proc_macro2::TokenStream::new(),
     };
-    parse_macro_args(tokens, allow_alloc)
+    parse_macro_args(tokens)
 }
 
 /// Reads the standalone `#[discriminator = <value>]` attribute from a
@@ -419,34 +398,23 @@ mod tests {
     }
 
     #[test]
-    fn macro_args_parse_alloc_and_discriminator_in_any_order() {
-        let none = parse_macro_args(quote::quote! {}, true).unwrap();
-        assert!(!none.alloc && none.discriminator.is_none());
+    fn macro_args_parse_the_discriminator() {
+        let none = parse_macro_args(quote::quote! {}).unwrap();
+        assert!(none.discriminator.is_none());
 
-        let alloc = parse_macro_args(quote::quote! { alloc }, true).unwrap();
-        assert!(alloc.alloc && alloc.discriminator.is_none());
-
-        let disc = parse_macro_args(quote::quote! { discriminator = [1, 2] }, false).unwrap();
-        assert!(!disc.alloc);
+        let disc = parse_macro_args(quote::quote! { discriminator = [1, 2] }).unwrap();
         assert_eq!(disc.discriminator, Some(vec![1, 2]));
 
-        let a = parse_macro_args(quote::quote! { alloc, discriminator = 9 }, true).unwrap();
-        let b = parse_macro_args(quote::quote! { discriminator = 9, alloc }, true).unwrap();
-        assert!(a.alloc && b.alloc);
-        assert_eq!(a.discriminator, Some(vec![9]));
-        assert_eq!(b.discriminator, Some(vec![9]));
+        let single = parse_macro_args(quote::quote! { discriminator = 9 }).unwrap();
+        assert_eq!(single.discriminator, Some(vec![9]));
     }
 
     #[test]
-    fn macro_args_reject_unknown_repeated_and_disallowed() {
-        assert!(parse_macro_args(quote::quote! { alloc }, false).is_err());
-        assert!(parse_macro_args(quote::quote! { bogus }, true).is_err());
-        assert!(parse_macro_args(quote::quote! { alloc, alloc }, true).is_err());
-        assert!(
-            parse_macro_args(quote::quote! { discriminator = 1, discriminator = 2 }, true).is_err()
-        );
-        assert!(parse_macro_args(quote::quote! { discriminator(1) }, true).is_err());
-        assert!(parse_macro_args(quote::quote! { discriminator = FOO }, true).is_err());
+    fn macro_args_reject_unknown_and_repeated() {
+        assert!(parse_macro_args(quote::quote! { bogus }).is_err());
+        assert!(parse_macro_args(quote::quote! { discriminator = 1, discriminator = 2 }).is_err());
+        assert!(parse_macro_args(quote::quote! { discriminator(1) }).is_err());
+        assert!(parse_macro_args(quote::quote! { discriminator = FOO }).is_err());
     }
 
     #[test]

@@ -1,6 +1,9 @@
 use naclac_lang::prelude::*;
 use naclac_lang::prelude::spl_token_metadata_interface;
-use crate::constants::{BONDING_CURVE_SEED, GLOBAL_SEED, MINT_AUTHORITY_SEED, MINT_DECIMALS, WSOL_MINT};
+use crate::constants::{
+    BONDING_CURVE_SEED, GLOBAL_SEED, MAX_NAME_LEN, MAX_SYMBOL_LEN, MAX_URI_LEN, MINT_AUTHORITY_SEED,
+    MINT_DECIMALS, WSOL_MINT,
+};
 use crate::errors::PumpError;
 use crate::events::CreateEvent;
 use crate::state::{BondingCurve, Global};
@@ -357,10 +360,16 @@ pub fn create_v2(
     ctx.accounts.bonding_curve.virtual_quote_reserves = virtual_quote_reserves;
 
     let timestamp = unix_timestamp()?;
+    let mut event_name = FixedString::<MAX_NAME_LEN>::new();
+    event_name.try_set(name.as_str())?;
+    let mut event_symbol = FixedString::<MAX_SYMBOL_LEN>::new();
+    event_symbol.try_set(symbol.as_str())?;
+    let mut event_uri = FixedString::<MAX_URI_LEN>::new();
+    event_uri.try_set(uri.as_str())?;
     emit!(CreateEvent {
-        name: String::from(name.as_str()),
-        symbol: String::from(symbol.as_str()),
-        uri: String::from(uri.as_str()),
+        name: event_name,
+        symbol: event_symbol,
+        uri: event_uri,
         mint: mint_address,
         bonding_curve: ctx.accounts.bonding_curve.address(),
         user: ctx.accounts.user.address(),

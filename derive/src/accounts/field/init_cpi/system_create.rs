@@ -53,6 +53,22 @@ pub(super) fn tokens(ctx: &InitCtx) -> TokenStream {
             }
         }
     };
+    // An account this field does not create must already belong to the
+    // program: a matching discriminator does not prove ownership.
+    let ty = &field.ty;
+    let owner_check = quote! {
+        if <#ty as naclac_lang::prelude::NaclacAccount>::PROGRAM_OWNED {
+            let __owner = naclac_lang::prelude::Owner::program_owner(info);
+            if __owner != naclac_lang::prelude::ToAddress::address(program_id) {
+                return Err(naclac_lang::prelude::NaclacError::ConstraintOwner.err(#idx));
+            }
+        }
+    };
+    let existing_owner_check = if field.is_init_if_needed {
+        quote! { else { #owner_check } }
+    } else {
+        quote! {}
+    };
     let create_call_solana = if field.is_init_unchecked {
         quote! { naclac_lang::prelude::system_program::create_account_signed_unchecked }
     } else {
@@ -124,6 +140,8 @@ pub(super) fn tokens(ctx: &InitCtx) -> TokenStream {
                         program_id,
                         signer_seeds,
                     )?;
+                } else {
+                    #owner_check
                 }
 
                 let mut __account_data = info.try_borrow_mut_data()?;
@@ -155,6 +173,8 @@ pub(super) fn tokens(ctx: &InitCtx) -> TokenStream {
                         program_id,
                         signer_seeds,
                     )?;
+                } else {
+                    #owner_check
                 }
 
                 // SAFETY: We are initializing the account discriminator.
@@ -164,6 +184,6 @@ pub(super) fn tokens(ctx: &InitCtx) -> TokenStream {
                     slice.copy_from_slice(<#inner_type as naclac_lang::prelude::Discriminator>::DISCRIMINATOR);
                 }
             }
-        }
+        } #existing_owner_check
     }
 }

@@ -239,4 +239,30 @@ mod tests {
         assert!(created.contains("AccountAlreadyInitialized"), "{created}");
         assert!(!maybe_created.contains("AccountAlreadyInitialized"));
     }
+
+    fn plain_init_code(kind: &str) -> String {
+        init_code(&format!(
+            "#[account({kind}, payer = payer)] counter: Account<Counter>,
+             #[account(mut)] payer: Signer,
+             system_program: Program<System>"
+        ))
+    }
+
+    #[test]
+    fn an_init_field_checks_the_owner_of_an_adopted_account_on_each_runtime() {
+        let generated = plain_init_code("init");
+        assert_eq!(generated.matches("ConstraintOwner").count(), 2, "{generated}");
+    }
+
+    #[test]
+    fn an_init_if_needed_field_also_checks_the_owner_of_an_existing_account() {
+        let generated = plain_init_code("init_if_needed");
+        assert_eq!(generated.matches("ConstraintOwner").count(), 3, "{generated}");
+    }
+
+    #[test]
+    fn a_namespace_created_account_leaves_the_owner_to_its_own_type() {
+        let generated = mint_init_code("init_if_needed");
+        assert!(!generated.contains("ConstraintOwner"), "{generated}");
+    }
 }

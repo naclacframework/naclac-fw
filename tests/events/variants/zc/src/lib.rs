@@ -28,10 +28,6 @@ pub mod events_prog {
         emit_batch_fixed::emit_batch_fixed(ctx)
     }
 
-    pub fn emit_batch_alloc(ctx: Context<EmitBatchAlloc>) -> Result {
-        emit_batch_alloc::emit_batch_alloc(ctx)
-    }
-
     pub fn emit_roster(ctx: Context<EmitRoster>) -> Result {
         emit_roster::emit_roster(ctx)
     }
@@ -48,16 +44,8 @@ pub mod events_prog {
         emit_via_self_cpi_baseline::emit_via_self_cpi_baseline(ctx)
     }
 
-    pub fn emit_via_self_cpi_sized(ctx: Context<EmitViaSelfCpiSized>, size: u32) -> Result {
-        emit_via_self_cpi_sized::emit_via_self_cpi_sized(ctx, size)
-    }
-
     pub fn emit_via_sol_log_data_baseline(ctx: Context<EmitViaSolLogDataBaseline>) -> Result {
         emit_via_sol_log_data_baseline::emit_via_sol_log_data_baseline(ctx)
-    }
-
-    pub fn emit_via_sol_log_data_sized(ctx: Context<EmitViaSolLogDataSized>, size: u32) -> Result {
-        emit_via_sol_log_data_sized::emit_via_sol_log_data_sized(ctx, size)
     }
 
     pub fn emit_fixed_8(ctx: Context<EmitFixed8>) -> Result {

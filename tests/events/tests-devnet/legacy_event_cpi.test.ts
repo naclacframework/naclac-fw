@@ -17,19 +17,19 @@ describe("emit_cpi! events (legacy client, devnet)", () => {
     payer = await naclac.loadNodeWallet();
   });
 
-  const cases: { name: string; make: () => any; alloc: boolean }[] = [
-    { name: "borsh", make: () => new EventsBorshClient("devnet", payer), alloc: false },
-    { name: "pinocchio zero-copy", make: () => new EventsClient("devnet", payer), alloc: true },
-    { name: "solana zero-copy", make: () => new EventsZcClient("devnet", payer), alloc: true },
+  const cases: { name: string; make: () => any }[] = [
+    { name: "borsh", make: () => new EventsBorshClient("devnet", payer) },
+    { name: "pinocchio zero-copy", make: () => new EventsClient("devnet", payer) },
+    { name: "solana zero-copy", make: () => new EventsZcClient("devnet", payer) },
   ];
 
-  for (const { name, make, alloc } of cases) {
+  for (const { name, make } of cases) {
     it(`${name}: decodes the CPI-emitted events from .rpc()`, async () => {
       const client = make();
       const result = await client.eventCpiEmit({}, { program: client.programId }).rpc();
 
       assert.ok(result.innerInstructions, "the node must supply inner instructions");
-      assert.equal(result.innerInstructions.length, alloc ? 2 : 1);
+      assert.equal(result.innerInstructions.length, 1);
       for (const call of result.innerInstructions) {
         assert.equal(call.programId, client.programId.toBase58());
         assert.equal(call.stackHeight, 2);
@@ -44,12 +44,6 @@ describe("emit_cpi! events (legacy client, devnet)", () => {
         client.parseCounterIncrementedEvents(result.logs, result.innerInstructions).length,
         1,
       );
-
-      if (alloc) {
-        const payloads = result.parseEvents("SizedPayload");
-        assert.equal(payloads.length, 1);
-        assert.deepEqual(Array.from(payloads[0].data as ArrayLike<number>), [1, 2, 3]);
-      }
     });
   }
 });

@@ -6,7 +6,7 @@ use events_client::{
         IncrementCounterAccounts, InitCounterAccounts,
     },
     types::PROGRAM_ID,
-    types::{CounterIncremented, RosterChanged, RosterChangedAlloc},
+    types::{CounterIncremented, RosterChanged},
 };
 
 fn setup() -> NaclacProvider {
@@ -112,12 +112,4 @@ fn events_with_a_fixed_vec_and_a_fixed_string_round_trip() {
     let plain_name = plain[0].name;
     assert_eq!(plain_scores.iter().collect::<Vec<u64>>(), vec![10, 20]);
     assert_eq!(plain_name.as_str().ok(), Some("roster"));
-
-    let alloc: Vec<RosterChangedAlloc> = tx
-        .parse_events_alloc()
-        .expect("failed to parse RosterChangedAlloc from the transaction's logs");
-    assert_eq!(alloc.len(), 1);
-    assert_eq!(alloc[0].scores.iter().collect::<Vec<u64>>(), vec![10, 20]);
-    assert_eq!(alloc[0].name.as_str().ok(), Some("roster"));
-    assert_eq!(alloc[0].note, "alloc");
 }

@@ -265,12 +265,4 @@ describe("Vec codec matches Borsh's wire format", () => {
     const codec = getIdlCodec({ vec: "u8" }, [], false);
     assert.deepEqual(Array.from(codec.encode([])), [0, 0, 0, 0]);
   });
-
-  it("an #[event(alloc)] log line with a Vec<u8> field decodes with the sequential layout", () => {
-    const eventDef = { fields: [{ name: "data", type: { vec: "u8" } }] };
-    const raw = Uint8Array.from([9, 3, 0, 0, 0, 1, 2, 3]);
-    const log = `Program data: ${Buffer.from(raw).toString("base64")}`;
-    const decoded = tryDecodeEventLog(eventDef, Uint8Array.from([9]), log, [], false);
-    assert.deepEqual(Array.from(decoded?.data as ArrayLike<number>), [1, 2, 3]);
-  });
 });

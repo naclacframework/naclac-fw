@@ -1,4 +1,4 @@
-//! Events of the zero-copy family: fixed events and `#[event(alloc)]` events.
+//! Events of the zero-copy family.
 
 use {
     crate::types::{Action, Color, Level, Signed, Wide},
@@ -38,19 +38,19 @@ pub struct RosterChanged {
     pub name: FixedString<16>,
 }
 
-#[event(alloc, discriminator = [2, 0, 4])]
+#[event(discriminator = [2, 0, 4])]
 pub struct LabLog {
     pub head: u8,
-    pub colors: Vec<ZcEnum<Color>>,
-    pub maybe: Option<ZcEnum<Color>>,
-    pub note: String,
-    pub values: Vec<u64>,
+    pub colors: FixedVec<ZcEnum<Color>, 2>,
+    pub maybe: Opt<ZcEnum<Color>>,
+    pub note: FixedString<8>,
+    pub values: FixedVec<u64, 3>,
     pub action: ZcEnum<Action>,
 }
 
-#[event(alloc, discriminator = [2, 0, 5])]
+#[event(discriminator = [2, 0, 5])]
 pub struct TextLog {
     pub scores: FixedVec<u64, 4>,
     pub name: FixedString<16>,
-    pub note: String,
+    pub note: FixedString<8>,
 }

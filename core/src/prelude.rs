@@ -45,10 +45,9 @@ pub use crate::wrappers::{
 // with the `bytemuck` feature.
 #[cfg(feature = "bytemuck")]
 pub use crate::wrappers::{
-    decode_pod, decode_validated, encode_pod, event_bytes_of, event_field_default,
-    event_slice_bytes, Bool, BoolField, FixedString, FixedVec, FixedVecIter, NaclacZeroCopy, Opt,
-    PodError, PodValidate, Unaligned, ZcCodec, ZcEnum, ZcEnumKind, ZcEventDefault, ZcEventField,
-    ZcField, ZcStorage, ZcString, ZcVec, ZcVecIter,
+    decode_pod, decode_validated, encode_pod, Bool, BoolField, FixedString, FixedVec, FixedVecIter,
+    NaclacZeroCopy, Opt, PodError, PodValidate, Unaligned, ZcCodec, ZcEnum, ZcEnumKind, ZcField,
+    ZcStorage, ZcString, ZcVec, ZcVecIter,
 };
 
 pub use crate::system_program::{CreateAccountAccounts, SystemTransferAccounts};

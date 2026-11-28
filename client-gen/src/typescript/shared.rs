@@ -172,8 +172,8 @@ pub fn format_const_value(val_str: &str, ty_str: &str) -> String {
 }
 
 /// Generates the TypeScript IDL export file (idl/<name>.ts): the IDL JSON as
-/// it is, with its type. The mode, the alloc events and the fixed-capacity
-/// slots are all in that JSON, which is what the runtime reads them from.
+/// it is, with its type. The mode and the fixed-capacity slots are all in
+/// that JSON, which is what the runtime reads them from.
 pub fn generate_ts(idl_json: &str) -> Result<String, Box<dyn std::error::Error>> {
     let parsed: serde_json::Value = serde_json::from_str(idl_json)?;
     let program_name = parsed

@@ -64,14 +64,17 @@ pub(super) fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStrea
             });
         }
 
-        let returns_tokens = match &ix.return_ty {
+        let (returns_tokens, returns_slots_tokens) = match &ix.return_ty {
             Some(return_ty) => {
                 chase_calls.push(quote! {
                     <#return_ty as #idl::idl_type::NaclacIdlType>::chase(&mut __defined_types);
                 });
-                quote! { Some(<#return_ty as #idl::idl_type::NaclacIdlType>::idl_type()) }
+                (
+                    quote! { Some(<#return_ty as #idl::idl_type::NaclacIdlType>::idl_type()) },
+                    quote! { <#return_ty as #idl::idl_type::NaclacIdlType>::slots() },
+                )
             }
-            None => quote! { None },
+            None => (quote! { None }, quote! { None }),
         };
 
         ix_tokens.push(quote! {
@@ -91,6 +94,7 @@ pub(super) fn build_idl_assembler(ixs: &[IdlBuildIx]) -> proc_macro2::TokenStrea
                         .collect(),
                     args: vec![#(#arg_field_tokens),*],
                     returns: #returns_tokens,
+                    returns_slots: #returns_slots_tokens,
                 }
             }
         });

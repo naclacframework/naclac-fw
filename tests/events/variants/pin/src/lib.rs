@@ -44,14 +44,6 @@ pub mod events_prog {
         emit_via_sol_log_data_baseline::emit_via_sol_log_data_baseline(ctx)
     }
 
-    pub fn emit_via_self_cpi_sized(ctx: Context<EmitViaSelfCpiSized>, size: u32) -> Result {
-        emit_via_self_cpi_sized::emit_via_self_cpi_sized(ctx, size)
-    }
-
-    pub fn emit_via_sol_log_data_sized(ctx: Context<EmitViaSolLogDataSized>, size: u32) -> Result {
-        emit_via_sol_log_data_sized::emit_via_sol_log_data_sized(ctx, size)
-    }
-
     pub fn emit_fixed_8(ctx: Context<EmitFixed8>) -> Result {
         emit_fixed_8::emit_fixed_8(ctx)
     }
@@ -118,10 +110,6 @@ pub mod events_prog {
 
     pub fn emit_via_self_cpi_no_program(ctx: Context<EmitViaSelfCpiNoProgram>) -> Result {
         emit_via_self_cpi_no_program::emit_via_self_cpi_no_program(ctx)
-    }
-
-    pub fn event_cpi_emit_nested(ctx: Context<EventCpiEmit>) -> Result {
-        event_cpi_emit::event_cpi_emit_nested(ctx)
     }
 
     pub fn event_cpi_noop(ctx: Context<EventCpiEmit>) -> Result {

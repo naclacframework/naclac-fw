@@ -28,7 +28,6 @@ import {
   parseEventsFromLogs,
   parseEventsFromTransaction,
   resolveRpcInnerInstructions,
-  eventFieldLayout,
   type NaclacInnerInstruction,
   type NaclacRpcResult,
 } from "../events";
@@ -196,7 +195,6 @@ export class LegacyMethodsBuilder {
   private readonly args: Record<string, unknown>;
   private readonly provider: LegacyProvider;
   private readonly isZeroCopy: boolean;
-  private readonly allocEvents: readonly string[];
   private programId: PublicKey;
 
   private _userAccounts: Record<string, PublicKey> = {};
@@ -216,14 +214,12 @@ export class LegacyMethodsBuilder {
     args: Record<string, unknown>,
     provider: LegacyProvider,
     isZeroCopy = false,
-    allocEvents: readonly string[] = [],
   ) {
     this.idl = idl;
     this.ixDef = ixDef;
     this.args = args;
     this.provider = provider;
     this.isZeroCopy = isZeroCopy;
-    this.allocEvents = allocEvents;
     this.programId = new PublicKey(idl.address);
   }
 
@@ -621,7 +617,7 @@ export class LegacyMethodsBuilder {
           this.idl,
           eventName,
           { logs, innerInstructions, eventAuthority },
-          eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+          this.isZeroCopy,
         );
       },
     };
@@ -637,8 +633,6 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
   readonly programId: PublicKey;
   /** True when the IDL's `metadata.serialization` is `bytemuck`. */
   readonly isZeroCopy: boolean;
-  /** Names of this program's `alloc` events. */
-  readonly allocEvents: readonly string[];
 
   readonly methods: {
     [Name in IdlInstructionName<TIdl>]: (
@@ -735,8 +729,6 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
     this.provider = provider;
     this.isZeroCopy = idl.metadata.serialization === "bytemuck";
     const isZeroCopy = this.isZeroCopy;
-    this.allocEvents = idl.events.filter((e) => e.alloc).map((e) => e.name);
-    const allocEvents = this.allocEvents;
     this.programId = new PublicKey(idl.address);
 
     this.methods = {} as any;
@@ -744,7 +736,7 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
       (this.methods as any)[ixDef.name] = (
         args: Record<string, unknown> = {},
       ) => {
-        return new LegacyMethodsBuilder(idl, ixDef, args, provider, isZeroCopy, allocEvents);
+        return new LegacyMethodsBuilder(idl, ixDef, args, provider, isZeroCopy);
       };
     }
 
@@ -789,7 +781,7 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
             discriminator,
             log,
             this.idl.definedTypes,
-            eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+            this.isZeroCopy,
           );
           if (decoded === null) continue;
           callback(decoded, ctx.slot, logs.signature);
@@ -817,7 +809,7 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
       this.idl,
       eventName,
       logs,
-      eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+      this.isZeroCopy,
     );
   }
 
@@ -843,7 +835,7 @@ export class LegacyProgram<TIdl extends NaclacIdl = NaclacIdl> {
       this.idl,
       eventName,
       { ...tx, eventAuthority: pda.toBase58() },
-      eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+      this.isZeroCopy,
     );
   }
 

@@ -37,7 +37,7 @@ Done
 - Matrix workflow, regeneration artifact, coverage crate, crate-scan job.
 - 19 existing fixtures moved into pass/bytemuck and fail/bytemuck (zero-copy only checks).
 - Batch 1 (numbers 100-107, each with a pass counterpart): heap repr and discriminant range,
-  instruction_args ZcVec, event(alloc), handler ZcVec under borsh and wincode, zero-copy enum
+  instruction_args ZcVec, handler ZcVec under borsh and wincode, zero-copy enum
   without repr, derive(Default) conflicts. These have no .stderr yet.
 
 First CI run (2026-11-21) and what it changed

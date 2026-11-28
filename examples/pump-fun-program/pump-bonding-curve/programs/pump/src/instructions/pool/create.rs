@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
 use crate::constants::{
-    BONDING_CURVE_SEED, GLOBAL_SEED, METADATA_SEED, MINT_AUTHORITY_SEED, MINT_DECIMALS,
-    MPL_TOKEN_METADATA_PROGRAM_ID,
+    BONDING_CURVE_SEED, GLOBAL_SEED, MAX_NAME_LEN, MAX_SYMBOL_LEN, MAX_URI_LEN, METADATA_SEED,
+    MINT_AUTHORITY_SEED, MINT_DECIMALS, MPL_TOKEN_METADATA_PROGRAM_ID,
 };
 use crate::events::CreateEvent;
 use crate::state::{BondingCurve, Global};
@@ -113,10 +113,16 @@ pub fn create(
     )?;
 
     let timestamp = unix_timestamp()?;
+    let mut event_name = FixedString::<MAX_NAME_LEN>::new();
+    event_name.try_set(name.as_str())?;
+    let mut event_symbol = FixedString::<MAX_SYMBOL_LEN>::new();
+    event_symbol.try_set(symbol.as_str())?;
+    let mut event_uri = FixedString::<MAX_URI_LEN>::new();
+    event_uri.try_set(uri.as_str())?;
     emit!(CreateEvent {
-        name: String::from(name.as_str()),
-        symbol: String::from(symbol.as_str()),
-        uri: String::from(uri.as_str()),
+        name: event_name,
+        symbol: event_symbol,
+        uri: event_uri,
         mint: ctx.accounts.mint.address(),
         bonding_curve: ctx.accounts.bonding_curve.address(),
         user: ctx.accounts.user.address(),

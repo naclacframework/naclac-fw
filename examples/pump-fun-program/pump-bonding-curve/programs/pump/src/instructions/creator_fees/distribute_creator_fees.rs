@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
 use crate::constants::{
-    BONDING_CURVE_SEED, CREATOR_VAULT_SEED, PUMP_FEES_AUTHORITY_SEED, PUMP_FEES_PROGRAM_ID, SHARING_CONFIG_SEED,
-    WSOL_MINT,
+    BONDING_CURVE_SEED, CREATOR_VAULT_SEED, MAX_SHAREHOLDERS, PUMP_FEES_AUTHORITY_SEED, PUMP_FEES_PROGRAM_ID,
+    SHARING_CONFIG_SEED, WSOL_MINT,
 };
 use crate::errors::PumpError;
 use crate::events::DistributeCreatorFeesEvent;
@@ -135,7 +135,8 @@ pub fn distribute_creator_fees(
     }
 
     let timestamp = unix_timestamp()?;
-    let shareholders: Vec<Shareholder> = ctx.accounts.sharing_config.shareholders[..shareholders_len].to_vec();
+    let mut shareholders = FixedVec::<Shareholder, MAX_SHAREHOLDERS>::new();
+    shareholders.try_set_from_slice(&ctx.accounts.sharing_config.shareholders[..shareholders_len])?;
     emit!(DistributeCreatorFeesEvent {
         timestamp,
         mint: ctx.accounts.mint.address(),

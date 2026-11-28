@@ -1,11 +1,12 @@
 use naclac_lang::prelude::*;
+use crate::constants::{MAX_IX_NAME_LEN, MAX_NAME_LEN, MAX_SHAREHOLDERS, MAX_SYMBOL_LEN, MAX_URI_LEN};
 use crate::state::Shareholder;
 
-#[event(alloc)]
+#[event]
 pub struct CreateEvent {
-    pub name: String,
-    pub symbol: String,
-    pub uri: String,
+    pub name: FixedString<MAX_NAME_LEN>,
+    pub symbol: FixedString<MAX_SYMBOL_LEN>,
+    pub uri: FixedString<MAX_URI_LEN>,
     pub mint: Address,
     pub bonding_curve: Address,
     pub user: Address,
@@ -50,14 +51,14 @@ pub struct SetParamsEvent {
     pub enable_migrate: Bool,
 }
 
-#[event(alloc)]
+#[event]
 pub struct DistributeCreatorFeesEvent {
     pub timestamp: i64,
     pub mint: Address,
     pub bonding_curve: Address,
     pub sharing_config: Address,
     pub admin: Address,
-    pub shareholders: Vec<Shareholder>,
+    pub shareholders: FixedVec<Shareholder, MAX_SHAREHOLDERS>,
     pub distributed: u64,
     pub quote_mint: Address,
 }
@@ -97,7 +98,7 @@ pub struct ExtendAccountEvent {
     pub timestamp: i64,
 }
 
-#[event(alloc)]
+#[event]
 pub struct TradeEvent {
     pub mint: Address,
     pub sol_amount: u64,
@@ -120,13 +121,13 @@ pub struct TradeEvent {
     pub total_claimed_tokens: u64,
     pub current_sol_volume: u64,
     pub last_update_timestamp: i64,
-    pub ix_name: String,
+    pub ix_name: FixedString<MAX_IX_NAME_LEN>,
     pub mayhem_mode: Bool,
     pub cashback_fee_basis_points: u64,
     pub cashback: u64,
     pub buyback_fee_basis_points: u64,
     pub buyback_fee: u64,
-    pub shareholders: Vec<Shareholder>,
+    pub shareholders: FixedVec<Shareholder, MAX_SHAREHOLDERS>,
     pub quote_mint: Address,
     pub quote_amount: u64,
     pub virtual_quote_reserves: u64,

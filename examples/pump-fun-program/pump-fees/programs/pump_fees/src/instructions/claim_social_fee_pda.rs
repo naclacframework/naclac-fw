@@ -67,9 +67,12 @@ pub fn claim_social_fee_pda(
 
     let recipient_balance_after = ctx.accounts.recipient.lamports();
 
+    let mut event_user_id = FixedString::<20>::new();
+    event_user_id.try_set(user_id.as_str())?;
+
     let event = emit!(SocialFeePdaClaimed {
         timestamp: now,
-        user_id: String::from(user_id.as_str()),
+        user_id: event_user_id,
         platform,
         social_fee_pda: ctx.accounts.social_fee_pda.address(),
         recipient: ctx.accounts.recipient.address(),

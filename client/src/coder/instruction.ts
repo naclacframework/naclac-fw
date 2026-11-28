@@ -1,5 +1,5 @@
 import type { IdlInstruction } from "../idl";
-import { getIdlCodec, getStructFieldsCodec, getZeroCopyArgCodec, type StructLayout } from "./types";
+import { getIdlCodec, getStructFieldsCodec, getZeroCopyArgCodec } from "./types";
 import { toCamelCase } from "../utils/case";
 
 /**
@@ -112,7 +112,7 @@ export function decodeAccountData(
   fields: readonly { name: string; type: string | Record<string, unknown> }[],
   data: Uint8Array,
   definedTypes?: readonly any[],
-  isZeroCopy: StructLayout = false,
+  isZeroCopy = false,
   dataOffset = 8
 ): Record<string, unknown> {
   const codec = getStructFieldsCodec(fields as any[], definedTypes, isZeroCopy);
@@ -133,7 +133,7 @@ export function decodeDiscriminatedAccountData(
   discriminator: Uint8Array,
   accountName: string,
   definedTypes?: readonly any[],
-  isZeroCopy: StructLayout = false
+  isZeroCopy = false
 ): Record<string, unknown> {
   if (
     data.length < discriminator.length ||

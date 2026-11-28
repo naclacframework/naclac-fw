@@ -24,8 +24,7 @@ fn expire(provider: &NaclacProvider) {
 
 /// Real, measured CU cost of the fixed-size (`bytemuck::bytes_of`, no
 /// allocation) `sol_log_data` emit path vs. a length-prefix-free self-CPI,
-/// across the same sizes used in the dynamic (`#[event(alloc)]`) sweep — so
-/// the two mechanisms can be compared directly under solana-program +
+/// so the two mechanisms can be compared directly under solana-program +
 /// zero-copy.
 #[test]
 fn fixed_size_cu_sweep() {

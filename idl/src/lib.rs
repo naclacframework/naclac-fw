@@ -261,6 +261,10 @@ pub struct IdlInstruction {
     pub args: Vec<IdlField>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub returns: Option<Value>,
+    /// Set only when the return type is a `FixedVec<T, N>` or `FixedString<N>`,
+    /// possibly inside arrays: the `N`, read as for [`IdlField::slots`].
+    #[serde(default, rename = "returnsSlots", skip_serializing_if = "Option::is_none")]
+    pub returns_slots: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -357,11 +361,6 @@ pub struct IdlEvent {
     /// 1 to 8 bytes; `sha256("event:<Name>")[..8]` unless the event carries
     /// `discriminator = ..`.
     pub discriminator: Vec<u8>,
-    /// Set only for an `#[event(alloc)]` event, whose fields are written back
-    /// to back with no alignment gaps; absent for a plain event, which is the
-    /// struct's own memory layout.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub alloc: bool,
     pub fields: Vec<IdlEventField>,
 }
 

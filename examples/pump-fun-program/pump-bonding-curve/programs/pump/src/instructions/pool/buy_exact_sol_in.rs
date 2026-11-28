@@ -2,6 +2,7 @@ use naclac_lang::prelude::*;
 use pump_fees_client::instructions::GetFeesCpiAccounts;
 use pump_fees_client::PumpFees;
 use crate::constants::{
+    MAX_IX_NAME_LEN,
     BONDING_CURVE_SEED, BUYBACK_VAULT_SEED, CREATOR_VAULT_SEED, FEE_CONFIG_SEED, GLOBAL_SEED,
     GLOBAL_VOLUME_ACCUMULATOR_SEED, PUMP_AUTHORITY_SEED, PUMP_FEES_PROGRAM_ID, USER_VOLUME_ACCUMULATOR_SEED,
 };
@@ -306,6 +307,8 @@ pub fn buy_exact_sol_in(ctx: Context<BuyExactSolIn>, args: BuyExactSolInArgs) ->
     let complete: bool = ctx.accounts.bonding_curve.complete.into();
     let cashback_fee_basis_points = if is_cashback_coin { fees.creator_fee_bps } else { 0 };
     let bonding_curve = &ctx.accounts.bonding_curve;
+    let mut ix_name = FixedString::<MAX_IX_NAME_LEN>::new();
+    ix_name.try_set("buy_exact_sol_in")?;
     emit!(TradeEvent {
         mint: mint_address,
         sol_amount: net_sol,
@@ -328,13 +331,13 @@ pub fn buy_exact_sol_in(ctx: Context<BuyExactSolIn>, args: BuyExactSolInArgs) ->
         total_claimed_tokens: ctx.accounts.user_volume_accumulator.total_claimed_tokens,
         current_sol_volume: ctx.accounts.user_volume_accumulator.current_sol_volume,
         last_update_timestamp: ctx.accounts.user_volume_accumulator.last_update_timestamp,
-        ix_name: String::from("buy_exact_sol_in"),
+        ix_name,
         mayhem_mode: bonding_curve.is_mayhem_mode,
         cashback_fee_basis_points,
         cashback: if is_cashback_coin { creator_fee } else { 0 },
         buyback_fee_basis_points: ctx.accounts.global.buyback_basis_points,
         buyback_fee: buyback_share,
-        shareholders: Vec::new(),
+        shareholders: FixedVec::new(),
         quote_mint: bonding_curve.quote_mint,
         quote_amount: net_sol,
         virtual_quote_reserves: bonding_curve.virtual_quote_reserves,

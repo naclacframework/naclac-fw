@@ -318,7 +318,7 @@ fn popping_an_empty_roster_and_an_overflowing_counter_are_rejected() {
 }
 
 #[test]
-fn emit_log_writes_fixed_and_alloc_events() {
+fn emit_log_writes_the_events() {
     let (provider, lab) = setup();
     send!(&provider, lab, build_set_text, SetTextAccounts, "events".to_string()).expect("text");
     send!(&provider, lab, build_set_scores, SetScoresAccounts, vec![1u64, 2]).expect("scores");
@@ -335,21 +335,21 @@ fn emit_log_writes_fixed_and_alloc_events() {
     assert_eq!(rosters[0].scores.len(), 2);
     assert_eq!(rosters[0].name.as_str().ok(), Some("events"));
 
-    let logs = meta.parse_events_alloc::<LabLog>().expect("lab log");
+    let logs = meta.parse_events_zero_copy::<LabLog>().expect("lab log");
     assert_eq!(logs.len(), 1);
-    assert_eq!(logs[0].note, "lab");
-    assert_eq!(logs[0].values, vec![1u64, 2, 3]);
+    assert_eq!(logs[0].note.as_str().ok(), Some("lab"));
+    assert_eq!(logs[0].values.iter().collect::<Vec<_>>(), vec![1u64, 2, 3]);
     assert_eq!(logs[0].colors.len(), 2);
-    assert!(matches!(logs[0].maybe, Some(Color::Blue)));
+    assert!(matches!(logs[0].maybe.get().map(|color| color.get()), Some(Ok(Color::Blue))));
 
-    let texts = meta.parse_events_alloc::<TextLog>().expect("text log");
+    let texts = meta.parse_events_zero_copy::<TextLog>().expect("text log");
     assert_eq!(texts.len(), 1);
-    assert_eq!(texts[0].note, "text");
+    assert_eq!(texts[0].note.as_str().ok(), Some("text"));
     assert_eq!(texts[0].name.as_str().ok(), Some("events"));
 }
 
 #[test]
-fn emit_cpi_records_both_event_kinds_in_the_inner_instruction_trace() {
+fn emit_cpi_records_the_events_in_the_inner_instruction_trace() {
     let (provider, lab) = setup();
     let event_authority = Address::find_program_address(&[b"__event_authority"], &PROGRAM_ID).0;
     fresh_blockhash(&provider);
@@ -387,10 +387,10 @@ fn emit_cpi_records_both_event_kinds_in_the_inner_instruction_trace() {
     );
 
     assert_eq!(meta.parse_events_zero_copy::<EnumsChanged>().expect("enums").len(), 1);
-    let logs = meta.parse_events_alloc::<LabLog>().expect("lab log");
+    let logs = meta.parse_events_zero_copy::<LabLog>().expect("lab log");
     assert_eq!(logs.len(), 1);
-    assert_eq!(logs[0].note, "cpi");
-    assert_eq!(logs[0].values, vec![4u64, 5]);
+    assert_eq!(logs[0].note.as_str().ok(), Some("cpi"));
+    assert_eq!(logs[0].values.iter().collect::<Vec<_>>(), vec![4u64, 5]);
 }
 
 #[test]

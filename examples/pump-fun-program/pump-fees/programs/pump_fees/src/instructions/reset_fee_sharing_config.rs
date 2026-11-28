@@ -5,7 +5,7 @@ use pump_client::instructions::{DistributeCreatorFeesCpi, DistributeCreatorFeesC
 use pump_client::Pump;
 use crate::constants::{
     AMM_CREATOR_VAULT_AUTHORITY_SEED, BONDING_CURVE_SEED, PUMP_AMM_PROGRAM_ID, PUMP_CREATOR_VAULT_SEED,
-    PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED, PUMP_PROGRAM_ID, SHARING_CONFIG_SEED, WSOL_MINT,
+    PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED, MAX_SHAREHOLDERS, PUMP_PROGRAM_ID, SHARING_CONFIG_SEED, WSOL_MINT,
 };
 use crate::errors::FeesError;
 use crate::events::ResetFeeSharingConfigEvent;
@@ -159,15 +159,17 @@ pub fn reset_fee_sharing_config(
     let sharing_config_address = ctx.accounts.sharing_config.address();
     let mint_address = ctx.accounts.mint.address();
     let old_admin = ctx.accounts.sharing_config.admin;
-    let old_shareholders: Vec<Shareholder> =
-        ctx.accounts.sharing_config.shareholders[..shareholders_len].to_vec();
+    let mut old_shareholders = FixedVec::<Shareholder, MAX_SHAREHOLDERS>::new();
+    old_shareholders.try_set_from_slice(&ctx.accounts.sharing_config.shareholders[..shareholders_len])?;
     let old_version = ctx.accounts.sharing_config.version;
     let new_admin = ctx.accounts.new_admin.address();
-    let new_shareholders = vec![Shareholder { address: new_admin, share_bps: 10_000, ..Default::default() }];
+    let new_shareholder = Shareholder { address: new_admin, share_bps: 10_000, ..Default::default() };
+    let mut new_shareholders = FixedVec::<Shareholder, MAX_SHAREHOLDERS>::new();
+    new_shareholders.try_push(new_shareholder)?;
 
     let sharing_config = &mut ctx.accounts.sharing_config;
     sharing_config.admin = new_admin;
-    sharing_config.shareholders[0] = new_shareholders[0];
+    sharing_config.shareholders[0] = new_shareholder;
     sharing_config.shareholders_len = 1;
     sharing_config.version = 2;
     let new_version = sharing_config.version;

@@ -140,12 +140,15 @@ pub fn donate_pubkey_config_id_with_payer_v1(
 
     let tip = (args.amount as u128 * args.tip_bps as u128 / 10_000) as u64;
 
+    let mut message = FixedString::<MAX_MESSAGE_LEN>::new();
+    message.try_set(args.message.as_str())?;
+
     emit!(DonationMadeV1Event {
         config_id: args.config_id,
         mint: mint_addr,
         gross_amount: args.amount,
         tip,
-        message: String::from(args.message.as_str()),
+        message,
         credited_to: args.credited_to,
     });
 

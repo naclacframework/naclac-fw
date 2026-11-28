@@ -536,10 +536,9 @@ fn read_token_account_amount(provider: &NaclacProvider, address: &Address) -> u6
 /// `associated_social_fee_pda`'s entire balance moves to `associated_recipient`
 /// (created idempotently by the instruction's own `init_if_needed`
 /// constraint, so it's only *derived* here, never pre-created). Also
-/// exercises decoding a real `#[event(alloc)]` return value: `Option<T>`-tagged
-/// (`return_data[0] == 1` for `Some`), the inner bytes read via
-/// `NaclacAllocEvent::decode` rather than a raw Borsh/bytemuck cast, since
-/// `SocialFeePdaClaimed` has a `String` field and isn't `Pod`.
+/// exercises decoding an event returned as return data: `Option<T>`-tagged
+/// (`return_data[0] == 1` for `Some`), the inner bytes read as the event's own
+/// `Pod` layout.
 #[test]
 fn claim_social_fee_pda_v2_sweeps_full_token_balance() {
     let provider = setup();
@@ -642,12 +641,17 @@ fn claim_social_fee_pda_v2_sweeps_full_token_balance() {
     );
 
     assert_eq!(result.return_data[0], 1, "claim should succeed and return Some(event)");
-    let event = <SocialFeePdaClaimed as NaclacAllocEvent>::decode(&result.return_data[1..])
-        .expect("SocialFeePdaClaimed should decode");
-    assert_eq!(event.amount_claimed, 750_000_000);
-    assert_eq!(event.claimable_before, 750_000_000);
-    assert_eq!(event.recipient_balance_before, 0);
-    assert_eq!(event.recipient_balance_after, 750_000_000);
+    let event: SocialFeePdaClaimed = bytemuck::pod_read_unaligned(
+        &result.return_data[1..1 + core::mem::size_of::<SocialFeePdaClaimed>()],
+    );
+    let amount_claimed = event.amount_claimed;
+    let claimable_before = event.claimable_before;
+    let recipient_balance_before = event.recipient_balance_before;
+    let recipient_balance_after = event.recipient_balance_after;
+    assert_eq!(amount_claimed, 750_000_000);
+    assert_eq!(claimable_before, 750_000_000);
+    assert_eq!(recipient_balance_before, 0);
+    assert_eq!(recipient_balance_after, 750_000_000);
 
     let pda_state = fetch_social_fee_pda(&provider, &social_fee_pda_addr)
         .expect("social_fee_pda should be readable after claim");

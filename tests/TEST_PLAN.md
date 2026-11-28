@@ -167,6 +167,8 @@ covering:
 |---|---|---|
 | `init` + `payer` + `space` | `init_vault` | account created, discriminator written, rent-exempt, explicit `space = 8 + size_of::<Vault>()` |
 | `init_if_needed` | `init_if_needed_ledger` | first call creates+sets value; second call with a different arg does not overwrite it |
+| `init_if_needed` on an existing keypair account | `init_if_needed_keyed` | an account owned by another program but carrying this program's discriminator is rejected (`ConstraintOwner`); one owned by the program is accepted |
+| `init` on a pre-allocated account | `init_keyed` | a zeroed account owned by the program is initialized in place; a zeroed account owned by another program is rejected (`ConstraintOwner`) |
 | `signer` | `require_signer` | missing signature rejected; real signature accepted |
 | `owner` | `check_owner` | account owned by the wrong program rejected; System-Program-owned account accepted |
 | `address` | `check_address` | account whose own key doesn't match the expected constant rejected |

@@ -1,7 +1,7 @@
 use naclac_lang::prelude::*;
 use crate::state::Counter;
 use crate::constants::SEED_COUNTER;
-use crate::events::{RosterChanged, RosterChangedAlloc};
+use crate::events::RosterChanged;
 
 #[derive(Accounts)]
 pub struct EmitRoster {
@@ -19,11 +19,6 @@ pub fn emit_roster(ctx: Context<EmitRoster>) -> Result {
     name.try_set("roster")?;
 
     emit!(RosterChanged { scores, name });
-    emit!(RosterChangedAlloc {
-        scores,
-        name,
-        note: String::from("alloc"),
-    });
 
     Ok(())
 }

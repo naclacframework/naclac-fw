@@ -2,12 +2,11 @@ use naclac_client::*;
 use events_zc_client::{
     get_counter_pda,
     instructions::{
-        build_emit_batch_alloc, build_emit_batch_fixed, build_emit_roster, build_increment_counter,
-        build_init_counter, EmitBatchAllocAccounts, EmitBatchFixedAccounts, EmitRosterAccounts,
-        IncrementCounterAccounts, InitCounterAccounts,
+        build_emit_batch_fixed, build_emit_roster, build_increment_counter, build_init_counter,
+        EmitBatchFixedAccounts, EmitRosterAccounts, IncrementCounterAccounts, InitCounterAccounts,
     },
     types::PROGRAM_ID,
-    types::{BatchTouched, BatchTouchedAlloc, CounterIncremented, RosterChanged, RosterChangedAlloc},
+    types::{BatchTouched, CounterIncremented, RosterChanged},
 };
 
 fn setup() -> NaclacProvider {
@@ -80,17 +79,8 @@ fn event_round_trips_correctly_across_multiple_emissions() {
     );
 }
 
-/// Verifies `#[event(alloc)]` end-to-end against the client-gen pipeline this
-/// mode was never originally designed for: naclac-syn's IDL generation (no
-/// bogus zero-copy padding field, correct `vec`/`string` IDL types) and
-/// naclac-client-gen's Rust codegen (a plain, non-`Pod` struct plus a
-/// generated `NaclacAllocEvent::decode` sequential reader), decoded via the
-/// new `parse_events_alloc`. Emits a plain fixed-size `#[event]`
-/// (`BatchTouched`, bytemuck-cast) and an `#[event(alloc)]`
-/// (`BatchTouchedAlloc`, Vec/String) side by side so both paths are checked
-/// in one place.
 #[test]
-fn alloc_and_fixed_events_round_trip() {
+fn a_fixed_array_event_round_trips() {
     let provider = setup();
     let (counter_pda, _bump) = get_counter_pda(&PROGRAM_ID);
 
@@ -122,26 +112,6 @@ fn alloc_and_fixed_events_round_trip() {
     let fixed_values = fixed_events[0].values;
     assert_eq!(fixed_tag, 42);
     assert_eq!(fixed_values, [1, 2, 3, 4, 5, 6, 7, 8]);
-
-    if let ClientBackend::LiteSVM(svm) = &provider.backend {
-        svm.lock().unwrap().expire_blockhash();
-    }
-
-    let tx_alloc = build_emit_batch_alloc(
-        &provider,
-        PROGRAM_ID,
-        EmitBatchAllocAccounts { counter: counter_pda },
-    )
-    .send_and_confirm()
-    .expect("emit_batch_alloc should succeed");
-
-    let alloc_events: Vec<BatchTouchedAlloc> = tx_alloc
-        .parse_events_alloc()
-        .expect("failed to parse BatchTouchedAlloc from the alloc-event transaction's logs");
-    assert_eq!(alloc_events.len(), 1);
-    assert_eq!(alloc_events[0].tag, 42);
-    assert_eq!(alloc_events[0].values, vec![1, 2, 3, 4, 5, 6, 7, 8]);
-    assert_eq!(alloc_events[0].label, "batch");
 }
 
 #[test]
@@ -177,12 +147,4 @@ fn events_with_a_fixed_vec_and_a_fixed_string_round_trip() {
     let plain_name = plain[0].name;
     assert_eq!(plain_scores.iter().collect::<Vec<u64>>(), vec![10, 20]);
     assert_eq!(plain_name.as_str().ok(), Some("roster"));
-
-    let alloc: Vec<RosterChangedAlloc> = tx
-        .parse_events_alloc()
-        .expect("failed to parse RosterChangedAlloc from the transaction's logs");
-    assert_eq!(alloc.len(), 1);
-    assert_eq!(alloc[0].scores.iter().collect::<Vec<u64>>(), vec![10, 20]);
-    assert_eq!(alloc[0].name.as_str().ok(), Some("roster"));
-    assert_eq!(alloc[0].note, "alloc");
 }

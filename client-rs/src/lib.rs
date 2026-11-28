@@ -17,9 +17,8 @@ pub use {
         AccountFetcher, NaclacDecode,
     },
     provider::{
-        translate_transaction_failure, ClientBackend, NaclacAllocEvent, NaclacEvent,
-        NaclacInnerInstruction, NaclacProvider, NaclacTransactionMetadata, RpcCluster,
-        TransactionVersion,
+        translate_transaction_failure, ClientBackend, NaclacEvent, NaclacInnerInstruction,
+        NaclacProvider, NaclacTransactionMetadata, RpcCluster, TransactionVersion,
     },
     token::{Mint, TokenAccount},
     utils::{

@@ -318,7 +318,7 @@ fn the_account_bytes_match_the_golden_fixture_shared_with_the_typescript_client(
 }
 
 #[test]
-fn an_alloc_event_carrying_enums_decodes_to_the_emitted_values() {
+fn an_event_carrying_enums_and_fixed_lists_decodes_to_the_emitted_values() {
     let (provider, state) = setup();
     set_action(
         &provider,
@@ -342,19 +342,19 @@ fn an_alloc_event_carrying_enums_decodes_to_the_emitted_values() {
     .expect("emit_state_log should succeed");
 
     let events = meta
-        .parse_events_alloc::<StateLog>()
+        .parse_events_zero_copy::<StateLog>()
         .expect("events should parse");
     assert_eq!(events.len(), 1, "exactly one StateLog event expected");
-    let event = &events[0];
+    let event = events[0];
     assert_eq!(event.head, 7);
-    assert!(matches!(event.color, Color::Blue));
+    assert!(matches!(event.color.get(), Ok(Color::Blue)));
     assert_eq!(event.colors.len(), 2);
-    assert!(matches!(event.colors[0], Color::Red));
-    assert!(matches!(event.colors[1], Color::Blue));
-    assert!(matches!(event.maybe, Some(Color::Blue)));
+    assert!(matches!(event.colors.get(0).map(|c| c.get()), Some(Ok(Color::Red))));
+    assert!(matches!(event.colors.get(1).map(|c| c.get()), Some(Ok(Color::Blue))));
+    assert!(matches!(event.maybe.get().map(|c| c.get()), Some(Ok(Color::Blue))));
     assert!(matches!(
-        event.action,
-        Action::Transfer { amount: 42, .. }
+        event.action.get(),
+        Ok(Action::Transfer { amount: 42, .. })
     ));
 }
 

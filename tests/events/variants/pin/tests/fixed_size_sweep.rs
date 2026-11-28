@@ -24,8 +24,7 @@ fn expire(provider: &NaclacProvider) {
 
 /// Real, measured CU cost of the fixed-size (`bytemuck::bytes_of`, no
 /// allocation) `sol_log_data` emit path vs. a length-prefix-free self-CPI,
-/// across the same sizes used in the dynamic (`#[event(alloc)]`) sweep — so
-/// the two mechanisms can be compared directly under pinocchio.
+/// so the two mechanisms can be compared directly under pinocchio.
 #[test]
 fn fixed_size_cu_sweep() {
     let provider = setup();

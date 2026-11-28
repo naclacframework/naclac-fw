@@ -1,7 +1,7 @@
 use naclac_client::*;
 use events_client::{
     instructions::{build_event_cpi_emit, EventCpiEmitAccounts},
-    types::{CounterIncremented, SizedPayload, PROGRAM_ID},
+    types::{CounterIncremented, PROGRAM_ID},
 };
 
 /// Runs `emit_cpi!` against devnet with the `events` program deployed there
@@ -39,7 +39,7 @@ fn emit_cpi_events_decode_from_a_real_rpc_node() {
             .inner_instructions
             .as_ref()
             .unwrap_or_else(|| panic!("{label}: the node must supply inner instructions"));
-        assert_eq!(inner.len(), 2, "{label}: {inner:?}");
+        assert_eq!(inner.len(), 1, "{label}: {inner:?}");
         for call in inner {
             assert_eq!(call.outer_index, 0, "{label}");
             assert_eq!(call.stack_height, 2, "{label}");
@@ -53,11 +53,5 @@ fn emit_cpi_events_decode_from_a_real_rpc_node() {
         assert_eq!(counters.len(), 1, "{label}");
         let counted = counters[0].new_count;
         assert_eq!(counted, 7, "{label}");
-
-        let payloads: Vec<SizedPayload> = meta
-            .parse_events_alloc()
-            .expect("parse_events_alloc must not fail");
-        assert_eq!(payloads.len(), 1, "{label}");
-        assert_eq!(payloads[0].data, vec![1u8, 2, 3], "{label}");
     }
 }

@@ -21,6 +21,14 @@ pub mod accounts_constraints_borsh {
         init_if_needed_ledger::init_if_needed_ledger(ctx, value)
     }
 
+    pub fn init_if_needed_keyed(ctx: Context<InitIfNeededKeyed>) -> Result {
+        init_if_needed_keyed::init_if_needed_keyed(ctx)
+    }
+
+    pub fn init_keyed(ctx: Context<InitKeyed>) -> Result {
+        init_keyed::init_keyed(ctx)
+    }
+
     pub fn require_signer(ctx: Context<RequireSigner>) -> Result {
         require_signer::require_signer(ctx)
     }

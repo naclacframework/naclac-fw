@@ -11,7 +11,6 @@ import {
   tryDecodeEventLog,
   parseEventsFromLogs,
   parseEventsFromTransaction,
-  eventFieldLayout,
   type NaclacInnerInstruction,
 } from "../events";
 
@@ -28,8 +27,6 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
   readonly provider: NaclacProvider;
   /** True when the IDL's `metadata.serialization` is `bytemuck`. */
   readonly isZeroCopy: boolean;
-  /** Names of this program's `alloc` events. */
-  readonly allocEvents: readonly string[];
 
   readonly methods: {
     [Name in IdlInstructionName<TIdl>]: (
@@ -120,9 +117,8 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
   /**
    * The wire layout comes from the IDL itself: `metadata.serialization` says
    * whether a `definedTypes` struct or enum is the packed zero-copy layout
-   * (`bytemuck`) or Borsh/Wincode, each event's `alloc`
-   * flag says whether it is sequentially encoded, and a field's `slots` is its
-   * fixed capacity. See `client/src/coder/types.ts`'s `getIdlCodec`.
+   * (`bytemuck`) or Borsh/Wincode, and a field's `slots` is its fixed
+   * capacity. See `client/src/coder/types.ts`'s `getIdlCodec`.
    */
   constructor(rawIdl: TIdl, provider: NaclacProvider) {
     const idl = resolveSlots(rawIdl);
@@ -130,15 +126,13 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
     this.provider = provider;
     this.isZeroCopy = idl.metadata.serialization === "bytemuck";
     const isZeroCopy = this.isZeroCopy;
-    this.allocEvents = idl.events.filter((e) => e.alloc).map((e) => e.name);
-    const allocEvents = this.allocEvents;
 
     this.methods = {} as any;
     for (const ixDef of idl.instructions) {
       (this.methods as any)[ixDef.name] = (
         args: Record<string, unknown> = {},
       ) => {
-        return new MethodsBuilder(idl, ixDef, args, provider, isZeroCopy, allocEvents);
+        return new MethodsBuilder(idl, ixDef, args, provider, isZeroCopy);
       };
     }
 
@@ -170,7 +164,7 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
     }
 
     const discriminator = resolveDiscriminator(eventDef.discriminator, "event", eventName);
-    const zeroCopyLayout = eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName);
+    const zeroCopyLayout = this.isZeroCopy;
     const listenerId = this._listenerIdCounter++;
 
     if (this.provider.litesvm) {
@@ -255,7 +249,7 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
       this.idl,
       eventName,
       logs,
-      eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+      this.isZeroCopy,
     );
   }
 
@@ -281,7 +275,7 @@ export class Program<TIdl extends NaclacIdl = NaclacIdl> {
       this.idl,
       eventName,
       { ...tx, eventAuthority },
-      eventFieldLayout(this.isZeroCopy, this.allocEvents, eventName),
+      this.isZeroCopy,
     );
   }
 

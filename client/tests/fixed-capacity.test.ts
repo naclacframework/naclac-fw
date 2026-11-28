@@ -119,18 +119,16 @@ function idlWithEvent(serialization: "bytemuck" | "borsh"): NaclacIdl {
 }
 
 describe("fixed-capacity event fields", () => {
-  for (const layout of [true, "alloc"] as const) {
-    it(`encodes and decodes a ${layout === true ? "plain" : "alloc"} event with a FixedVec and a FixedString`, () => {
-      const idl = resolveSlots(idlWithEvent("bytemuck"));
-      const codec = getStructFieldsCodec(idl.events[0].fields as any[], idl.definedTypes, layout);
-      const bytes = codec.encode({ scores: [1n, 2n], label: "hi", total: 7n });
+  it("encodes and decodes an event with a FixedVec and a FixedString", () => {
+    const idl = resolveSlots(idlWithEvent("bytemuck"));
+    const codec = getStructFieldsCodec(idl.events[0].fields as any[], idl.definedTypes, true);
+    const bytes = codec.encode({ scores: [1n, 2n], label: "hi", total: 7n });
 
-      assert.equal(bytes.length, 2 + 4 * 8 + (2 + 16) + 8);
-      assert.deepEqual([...bytes.slice(0, 2)], [2, 0]);
-      assert.deepEqual([...bytes.slice(34, 38)], [2, 0, 104, 105]);
-      assert.deepEqual(codec.decode(bytes), { scores: [1n, 2n], label: "hi", total: 7n });
-    });
-  }
+    assert.equal(bytes.length, 2 + 4 * 8 + (2 + 16) + 8);
+    assert.deepEqual([...bytes.slice(0, 2)], [2, 0]);
+    assert.deepEqual([...bytes.slice(34, 38)], [2, 0, 104, 105]);
+    assert.deepEqual(codec.decode(bytes), { scores: [1n, 2n], label: "hi", total: 7n });
+  });
 
   it("refuses slots on an event field in a program that is not bytemuck", () => {
     assert.throws(() => resolveSlots(idlWithEvent("borsh")), /Log\.scores.*not bytemuck/);

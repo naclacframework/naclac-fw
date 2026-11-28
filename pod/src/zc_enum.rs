@@ -34,47 +34,6 @@ pub trait ZcField {}
 
 impl<T: Pod> ZcField for T {}
 
-/// A type that can be a field of a zero-copy `#[event(alloc)]`, or the element
-/// type of a `Vec`/`Option` field there: exactly the types whose bytes can be
-/// written out as they are (`NoUninit`).
-#[diagnostic::on_unimplemented(
-    message = "`{Self}` cannot be a field of a zero-copy event",
-    label = "this type's bytes cannot be written as they are",
-    note = "a `#[defined_type]` enum field must be written `ZcEnum<EnumName>`"
-)]
-pub trait ZcEventField: bytemuck::NoUninit {}
-
-impl<T: bytemuck::NoUninit> ZcEventField for T {}
-
-/// A direct field of a zero-copy `#[event(alloc)]` must be `Default` for the
-/// event's generated `Default` impl. This trait has the single requirement
-/// `Default` so a field that fails it reports the message below.
-#[diagnostic::on_unimplemented(
-    message = "`{Self}` cannot be a field of a zero-copy event",
-    label = "this type has no default value",
-    note = "a `#[defined_type]` enum field must be written `ZcEnum<EnumName>`"
-)]
-pub trait ZcEventDefault: Default {}
-
-impl<T: Default> ZcEventDefault for T {}
-
-/// The default value of one direct event field, for the generated `Default`.
-pub fn event_field_default<T: ZcEventDefault>() -> T {
-    T::default()
-}
-
-/// The bytes of one event field. Generated `#[event(alloc)]` code writes every
-/// field through this, so a field type that cannot be written reports the
-/// `ZcEventField` message instead of a raw `NoUninit` error.
-pub fn event_bytes_of<T: ZcEventField>(value: &T) -> &[u8] {
-    bytemuck::bytes_of(value)
-}
-
-/// The bytes of a `Vec` event field's elements, back to back.
-pub fn event_slice_bytes<T: ZcEventField>(values: &[T]) -> &[u8] {
-    bytemuck::cast_slice(values)
-}
-
 /// The packed stored form of a value.
 ///
 /// `encode` writes exactly [`Self::SIZE`] bytes into a slice of that length

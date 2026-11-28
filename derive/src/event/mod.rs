@@ -3,11 +3,9 @@
 //! Handles the expansion of the `#[event]` macro, generating efficient event logging logic.
 //! It resolves the discriminator at compile time (8 bytes derived from the name, or the
 //! 1 to 8 bytes given by `#[event(discriminator = ..)]`) and emits events using either
-//! highly optimized zero-copy slicing (`bytemuck`), a single-allocation dynamic buffer
-//! (`#[event(alloc)]`, for events needing `Vec`/`String`/`Option`), or standard Borsh
+//! highly optimized zero-copy slicing (`bytemuck`) or standard Borsh / Wincode
 //! serialization.
 
-mod alloc;
 mod idl_build;
 
 use {
@@ -18,7 +16,7 @@ use {
 };
 
 pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = match naclac_syn::discriminator::parse_macro_args(attr.into(), true) {
+    let args = match naclac_syn::discriminator::parse_macro_args(attr.into()) {
         Ok(args) => args,
         Err(err) => return err.to_compile_error().into(),
     };
@@ -54,7 +52,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Some(error) = crate::type_classify::zc_view_field_error(
         ast.fields.iter(),
         "an #[event]",
-        "Use a fixed-size array, or Vec<T>/String with #[event(alloc)].",
+        "Use a fixed-size array, FixedVec or FixedString.",
     ) {
         return error.to_compile_error().into();
     }
@@ -73,25 +71,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let borsh_cfg = crate::common::cfg_gates::borsh();
     let wincode_cfg = crate::common::cfg_gates::wincode();
 
-    let idl_build_impl = idl_build_event_impl(
-        struct_name,
-        &ast.attrs,
-        &ast.fields,
-        &disc_bytes,
-        args.alloc,
-    );
-
-    if args.alloc {
-        return alloc::expand_alloc(
-            &ast,
-            struct_name,
-            &disc_tokens,
-            &zero_copy_cfg,
-            &borsh_cfg,
-            &wincode_cfg,
-            idl_build_impl,
-        );
-    }
+    let idl_build_impl = idl_build_event_impl(struct_name, &ast.attrs, &ast.fields, &disc_bytes);
 
     if let Some(error) = crate::pod_struct_checks::repr_error(&ast.attrs, "a plain #[event]") {
         return error.to_compile_error().into();

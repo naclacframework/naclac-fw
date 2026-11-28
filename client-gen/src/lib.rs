@@ -67,10 +67,6 @@ pub struct Idl {
     /// instruction uses `#[event_cpi]`.
     #[serde(rename = "eventCpiTag", default)]
     pub event_cpi_tag: Option<Vec<u8>>,
-    /// Names of every `alloc` event. Derived by [`Idl::from_json`] from the
-    /// events' `alloc` flags, never read from the JSON.
-    #[serde(skip)]
-    pub alloc_event_names: std::collections::HashSet<String>,
 }
 
 /// `ty` as the generators handle a fixed-capacity field: the plain `vec` or
@@ -98,13 +94,12 @@ fn fixed_form(ty: &serde_json::Value, slots: u64) -> Result<serde_json::Value, S
 
 impl Idl {
     /// Parses an IDL and derives everything the generators need that the JSON
-    /// states indirectly: the mode flags from `metadata.serialization`, the
-    /// alloc event names from the events' `alloc` flags, and each field with
-    /// `slots` re-typed as the fixed-capacity type it is.
+    /// states indirectly: the mode flags from `metadata.serialization`, and
+    /// each field with `slots` re-typed as the fixed-capacity type it is.
     ///
     /// Fails when the IDL has no `metadata.serialization` (which bytes its
     /// types stand for cannot be guessed, so it has to be regenerated), or has
-    /// `slots` or an `alloc` event in a program that is not `bytemuck`.
+    /// `slots` in a program that is not `bytemuck`.
     pub fn from_json(idl_json: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let mut idl: Idl = serde_json::from_str(idl_json)?;
         let name = idl.metadata.name.clone();
@@ -115,19 +110,6 @@ impl Idl {
         })?;
         idl.is_zero_copy = serialization == naclac_idl::Serialization::Bytemuck;
         idl.is_wincode = serialization == naclac_idl::Serialization::Wincode;
-
-        idl.alloc_event_names = idl
-            .events
-            .iter()
-            .filter(|event| event.alloc)
-            .map(|event| event.name.clone())
-            .collect();
-        if !idl.is_zero_copy && !idl.alloc_event_names.is_empty() {
-            return Err(format!(
-                "the IDL for '{name}' has alloc events but its serialization is not bytemuck"
-            )
-            .into());
-        }
 
         let is_zero_copy = idl.is_zero_copy;
         for account in &mut idl.accounts {
@@ -365,9 +347,6 @@ pub struct IdlEventDef {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discriminator: Option<Vec<u8>>,
-    /// True for an `#[event(alloc)]` event.
-    #[serde(default)]
-    pub alloc: bool,
     pub fields: Vec<IdlEventField>,
     #[serde(default)]
     pub docs: Vec<String>,
@@ -461,7 +440,7 @@ pub fn resolve_leaf_type(
 mod from_json_tests {
     use {super::*, serde_json::json};
 
-    fn idl(serialization: Option<&str>, slots: bool, alloc: bool) -> String {
+    fn idl(serialization: Option<&str>, slots: bool) -> String {
         let mut field = json!({ "name": "scores", "type": { "vec": "u64" } });
         if slots {
             field["slots"] = json!(8);
@@ -470,10 +449,7 @@ mod from_json_tests {
         if let Some(serialization) = serialization {
             metadata["serialization"] = json!(serialization);
         }
-        let mut event = json!({ "name": "Log", "discriminator": [1], "fields": [] });
-        if alloc {
-            event["alloc"] = json!(true);
-        }
+        let event = json!({ "name": "Log", "discriminator": [1], "fields": [] });
         json!({
             "address": "11111111111111111111111111111111",
             "metadata": metadata,
@@ -488,36 +464,33 @@ mod from_json_tests {
 
     #[test]
     fn slots_become_a_fixed_vec_and_the_mode_flags_follow_the_serialization() {
-        let parsed = Idl::from_json(&idl(Some("bytemuck"), true, true)).unwrap();
+        let parsed = Idl::from_json(&idl(Some("bytemuck"), true)).unwrap();
         assert!(parsed.is_zero_copy && !parsed.is_wincode);
         assert_eq!(
             parsed.accounts[0].ty.fields[0].ty,
             json!({ "fixedVec": ["u64", 8] })
         );
-        assert!(parsed.alloc_event_names.contains("Log"));
     }
 
     #[test]
     fn a_field_without_slots_keeps_its_plain_type() {
-        let parsed = Idl::from_json(&idl(Some("bytemuck"), false, false)).unwrap();
+        let parsed = Idl::from_json(&idl(Some("bytemuck"), false)).unwrap();
         assert_eq!(parsed.accounts[0].ty.fields[0].ty, json!({ "vec": "u64" }));
-        assert!(parsed.alloc_event_names.is_empty());
     }
 
     #[test]
     fn an_idl_without_a_serialization_is_rejected() {
-        let error = Idl::from_json(&idl(None, false, false)).err().unwrap();
+        let error = Idl::from_json(&idl(None, false)).err().unwrap();
         assert!(error.to_string().contains("metadata.serialization"));
     }
 
     #[test]
-    fn slots_and_alloc_events_outside_bytemuck_are_rejected() {
-        assert!(Idl::from_json(&idl(Some("borsh"), true, false)).is_err());
-        assert!(Idl::from_json(&idl(Some("wincode"), false, true)).is_err());
+    fn slots_outside_bytemuck_are_rejected() {
+        assert!(Idl::from_json(&idl(Some("borsh"), true)).is_err());
     }
 
-    fn idl_with_event_slots(serialization: &str, alloc: bool) -> String {
-        let mut event = json!({
+    fn idl_with_event_slots(serialization: &str) -> String {
+        let event = json!({
             "name": "Log",
             "discriminator": [1],
             "fields": [
@@ -526,9 +499,6 @@ mod from_json_tests {
                 { "name": "total", "type": "u64" },
             ],
         });
-        if alloc {
-            event["alloc"] = json!(true);
-        }
         json!({
             "address": "11111111111111111111111111111111",
             "metadata": {
@@ -548,18 +518,16 @@ mod from_json_tests {
 
     #[test]
     fn slots_on_an_event_field_become_fixed_types() {
-        for alloc in [false, true] {
-            let parsed = Idl::from_json(&idl_with_event_slots("bytemuck", alloc)).unwrap();
-            let fields = &parsed.events[0].fields;
-            assert_eq!(fields[0].ty, json!({ "fixedVec": ["u64", 4] }));
-            assert_eq!(fields[1].ty, json!({ "fixedString": 16 }));
-            assert_eq!(fields[2].ty, json!("u64"));
-        }
+        let parsed = Idl::from_json(&idl_with_event_slots("bytemuck")).unwrap();
+        let fields = &parsed.events[0].fields;
+        assert_eq!(fields[0].ty, json!({ "fixedVec": ["u64", 4] }));
+        assert_eq!(fields[1].ty, json!({ "fixedString": 16 }));
+        assert_eq!(fields[2].ty, json!("u64"));
     }
 
     #[test]
     fn slots_on_an_event_field_outside_bytemuck_are_rejected() {
-        let error = Idl::from_json(&idl_with_event_slots("borsh", false))
+        let error = Idl::from_json(&idl_with_event_slots("borsh"))
             .err()
             .unwrap();
         assert!(error.to_string().contains("Log.scores"));

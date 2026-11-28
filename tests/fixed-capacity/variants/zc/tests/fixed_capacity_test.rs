@@ -709,3 +709,65 @@ fn the_whole_account_matches_the_layout_built_from_the_rules() {
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
+
+#[test]
+fn a_returned_list_and_string_are_set_as_return_data_in_the_stored_layout() {
+    let (provider, profile) = setup();
+    push_score(&provider, profile, 10).unwrap();
+    push_score(&provider, profile, 20).unwrap();
+    set_name(&provider, profile, "ada").unwrap();
+
+    fresh_blockhash(&provider);
+    let scores = build_get_scores(
+        &provider,
+        PROGRAM_ID,
+        GetScoresAccounts {
+            signer: provider.payer.address(),
+            profile,
+        },
+    )
+    .send_and_confirm()
+    .expect("get_scores should succeed");
+    assert_eq!(
+        hex(&scores.return_data),
+        hex(&packed_list(
+            2,
+            &[10u64.to_le_bytes(), 20u64.to_le_bytes()].concat(),
+            4 * 8
+        ))
+    );
+
+    fresh_blockhash(&provider);
+    let name = build_get_name(
+        &provider,
+        PROGRAM_ID,
+        GetNameAccounts {
+            signer: provider.payer.address(),
+            profile,
+        },
+    )
+    .send_and_confirm()
+    .expect("get_name should succeed");
+    assert_eq!(hex(&name.return_data), hex(&packed_list(3, b"ada", 16)));
+}
+
+#[test]
+fn the_idl_records_the_capacity_of_a_returned_list_and_string() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../artifacts/idl")
+        .join(format!("{}.json", env!("CARGO_PKG_NAME")));
+    let idl: String = std::fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("the IDL {} must exist: {error}", path.display()))
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
+    assert!(idl.contains(r#""name":"get_scores""#));
+    assert!(
+        idl.contains(r#""returns":{"vec":"u64"},"returnsSlots":4"#),
+        "get_scores: {idl}"
+    );
+    assert!(
+        idl.contains(r#""returns":"string","returnsSlots":16"#),
+        "get_name: {idl}"
+    );
+}

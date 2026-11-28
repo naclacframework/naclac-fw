@@ -1,17 +1,14 @@
 use naclac_lang::prelude::*;
 
-use crate::events::{CounterIncremented, SizedPayload};
+use crate::events::CounterIncremented;
 
-/// Emits a plain zero-copy `#[event]` through `emit_cpi!`, and an
-/// `#[event(alloc)]` one, covering both encodings the zero-copy solana
-/// backend uses.
+/// Emits a plain zero-copy `#[event]` through `emit_cpi!`.
 #[event_cpi]
 #[derive(Accounts)]
 pub struct EventCpiEmit {}
 
 pub fn event_cpi_emit(ctx: Context<EventCpiEmit>) -> Result {
     emit_cpi!(CounterIncremented { new_count: 7u64 });
-    emit_cpi!(SizedPayload { data: Vec::from([1u8, 2, 3]) });
     Ok(())
 }
 

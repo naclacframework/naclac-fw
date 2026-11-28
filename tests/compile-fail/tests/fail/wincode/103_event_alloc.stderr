@@ -1,7 +1,0 @@
-error: Naclac Error: #[event(alloc)] is only for the zero-copy (`bytemuck`) layout; under Wincode, plain #[event] already supports dynamic types.
- --> tests/fail/wincode/103_event_alloc.rs:4:1
-  |
-4 | #[event(alloc)]
-  | ^^^^^^^^^^^^^^^
-  |
-  = note: this error originates in the attribute macro `event` (in Nightly builds, run with -Z macro-backtrace for more info)

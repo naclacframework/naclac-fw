@@ -5,7 +5,7 @@ use pump_client::instructions::{DistributeCreatorFeesV2Cpi, DistributeCreatorFee
 use pump_client::Pump;
 use crate::constants::{
     AMM_CREATOR_VAULT_AUTHORITY_SEED, BONDING_CURVE_SEED, PUMP_AMM_PROGRAM_ID, PUMP_CREATOR_VAULT_SEED,
-    PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED, PUMP_PROGRAM_ID, SHARING_CONFIG_SEED,
+    PUMP_FEES_AUTHORITY_SEED, PUMP_GLOBAL_SEED, MAX_SHAREHOLDERS, PUMP_PROGRAM_ID, SHARING_CONFIG_SEED,
 };
 use crate::errors::FeesError;
 use crate::events::UpdateFeeSharesEvent;
@@ -197,12 +197,15 @@ pub fn update_fee_shares_v2(
     sharing_config.admin_revoked = 1;
     let version = sharing_config.version;
 
+    let mut event_shareholders = FixedVec::<Shareholder, MAX_SHAREHOLDERS>::new();
+    event_shareholders.try_set_from_slice(&new_shareholders)?;
+
     emit!(UpdateFeeSharesEvent {
         timestamp,
         mint: mint_address,
         sharing_config: sharing_config_address,
         admin,
-        new_shareholders,
+        new_shareholders: event_shareholders,
         version,
     });
 

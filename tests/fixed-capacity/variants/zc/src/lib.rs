@@ -50,6 +50,14 @@ pub mod fixed_capacity {
         instructions::clear_all(ctx)
     }
 
+    pub fn get_scores(ctx: Context<Mutate>) -> Result<FixedVec<u64, 4>> {
+        instructions::get_scores(ctx)
+    }
+
+    pub fn get_name(ctx: Context<Mutate>) -> Result<FixedString<16>> {
+        instructions::get_name(ctx)
+    }
+
     pub fn set_roster(
         ctx: Context<Mutate>,
         scores: FixedVec<u64, 4>,

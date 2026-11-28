@@ -296,39 +296,6 @@ impl NaclacTransactionMetadata {
         }
         Ok(events)
     }
-
-    /// Parses `#[event(alloc)]` events of type `T` from the transaction's
-    /// logs and, for a program using `#[event_cpi]`, its inner instructions.
-    /// Unlike [`parse_events_zero_copy`](Self::parse_events_zero_copy), `T` isn't
-    /// `bytemuck::Pod` (it may hold `Vec`/`String`/`Option` fields), so decoding
-    /// is delegated to `T`'s generated [`NaclacAllocEvent::decode`], which mirrors
-    /// the on-chain `emit()`'s sequential, length-prefixed write order. An event
-    /// of type `T` that does not decode is an error, not a left-out event.
-    pub fn parse_events_alloc<T: crate::NaclacAllocEvent>(
-        &self,
-    ) -> Result<Vec<T>, NaclacClientError> {
-        let mut events = Vec::new();
-        for (disc_bytes, payload_bytes) in self.event_frames::<T>() {
-            if disc_bytes == T::DISCRIMINATOR {
-                let event = T::decode(&payload_bytes).ok_or_else(|| {
-                    NaclacClientError::DeserializationError(
-                        "Event data failed to decode".to_string(),
-                    )
-                })?;
-                events.push(event);
-            }
-        }
-        Ok(events)
-    }
-}
-
-/// Implemented by client-generated `#[event(alloc)]` structs. `decode` reads
-/// the single-allocation, length-prefixed wire format `expand_alloc` writes
-/// on-chain: fields in declaration order, `Vec<T>`/`String` as a u32 LE
-/// length prefix followed by their bytes, `Option<T>` as a 1-byte tag plus
-/// `T`'s bytes when present, everything else as a raw `bytemuck` read.
-pub trait NaclacAllocEvent: NaclacEvent + Sized {
-    fn decode(bytes: &[u8]) -> Option<Self>;
 }
 
 /// Implemented by every client-generated event struct. `DISCRIMINATOR` is the
