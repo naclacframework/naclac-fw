@@ -263,7 +263,11 @@ pub struct IdlInstruction {
     pub returns: Option<Value>,
     /// Set only when the return type is a `FixedVec<T, N>` or `FixedString<N>`,
     /// possibly inside arrays: the `N`, read as for [`IdlField::slots`].
-    #[serde(default, rename = "returnsSlots", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        rename = "returnsSlots",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub returns_slots: Option<u64>,
 }
 

@@ -340,7 +340,10 @@ fn emit_log_writes_the_events() {
     assert_eq!(logs[0].note.as_str().ok(), Some("lab"));
     assert_eq!(logs[0].values.iter().collect::<Vec<_>>(), vec![1u64, 2, 3]);
     assert_eq!(logs[0].colors.len(), 2);
-    assert!(matches!(logs[0].maybe.get().map(|color| color.get()), Some(Ok(Color::Blue))));
+    let maybe = logs[0].maybe;
+    assert_eq!({ maybe.tag }, 1);
+    let stored = maybe.value;
+    assert!(matches!(stored.get(), Ok(Color::Blue)));
 
     let texts = meta.parse_events_zero_copy::<TextLog>().expect("text log");
     assert_eq!(texts.len(), 1);

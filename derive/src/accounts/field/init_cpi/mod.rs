@@ -251,13 +251,21 @@ mod tests {
     #[test]
     fn an_init_field_checks_the_owner_of_an_adopted_account_on_each_runtime() {
         let generated = plain_init_code("init");
-        assert_eq!(generated.matches("ConstraintOwner").count(), 2, "{generated}");
+        assert_eq!(
+            generated.matches("ConstraintOwner").count(),
+            2,
+            "{generated}"
+        );
     }
 
     #[test]
     fn an_init_if_needed_field_also_checks_the_owner_of_an_existing_account() {
         let generated = plain_init_code("init_if_needed");
-        assert_eq!(generated.matches("ConstraintOwner").count(), 3, "{generated}");
+        assert_eq!(
+            generated.matches("ConstraintOwner").count(),
+            3,
+            "{generated}"
+        );
     }
 
     #[test]

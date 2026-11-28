@@ -1,5 +1,7 @@
 use {
-    super::super::{map_type_to_rust_cpi, map_type_to_rust_with_prefix, render_docs, sdk_core_alias},
+    super::super::{
+        map_type_to_rust_cpi, map_type_to_rust_with_prefix, render_docs, sdk_core_alias,
+    },
     crate::{Idl, IdlEventDef},
     heck::{AsSnakeCase, ToUpperCamelCase},
     std::{fs, path::Path},
@@ -227,4 +229,3 @@ fn generate_fixed_event(
         events_content.push('\n');
     }
 }
-
