@@ -351,7 +351,10 @@ fn an_event_carrying_enums_and_fixed_lists_decodes_to_the_emitted_values() {
     assert_eq!(event.colors.len(), 2);
     assert!(matches!(event.colors.get(0).map(|c| c.get()), Some(Ok(Color::Red))));
     assert!(matches!(event.colors.get(1).map(|c| c.get()), Some(Ok(Color::Blue))));
-    assert!(matches!(event.maybe.get().map(|c| c.get()), Some(Ok(Color::Blue))));
+    let maybe = event.maybe;
+    assert_eq!({ maybe.tag }, 1);
+    let stored = maybe.value;
+    assert!(matches!(stored.get(), Ok(Color::Blue)));
     assert!(matches!(
         event.action.get(),
         Ok(Action::Transfer { amount: 42, .. })
